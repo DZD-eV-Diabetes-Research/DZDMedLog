@@ -1,0 +1,19 @@
+<h1>{{AppContent.Configuration}}</h1>
+<div class="grid gap-3" style="margin-top: 0.5rem;">
+    <div class="field col config-card" [routerLink]="['/configuration', 'data']">
+        <p-card header={{AppContent.DataManagement}}
+            [style]="{'width': 'inherit', 'margin-bottom': '2em', 'text-align': 'center'}">
+            <span class="icon-bordered">
+                <i class="pi pi-database" style="font-size: 2rem; color: #da281c;"></i>
+            </span>
+        </p-card>
+    </div>
+    <div class="field col config-card" [routerLink]="['/configuration', 'event']">
+        <p-card header={{AppContent.EventManagement}}
+            [style]="{'width': 'inherit', 'margin-bottom': '2em', 'text-align': 'center'}">
+            <span class="icon-bordered">
+                <i class="pi pi-calendar" style="font-size: 2rem; color: #da281c;"></i>
+            </span>
+        </p-card>
+    </div>
+</div>

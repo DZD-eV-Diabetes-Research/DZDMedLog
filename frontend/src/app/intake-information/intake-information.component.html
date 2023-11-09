@@ -1,0 +1,83 @@
+{{AppContent.IntakeInformationSubtitle}}
+
+<p-divider class="field col-12"></p-divider>
+<div class="ui-fluid formgrid grid">
+    <h6 class="field col-12">{{AppContent.ForDiabetesDrugs}}</h6>
+    <div class="field col-2">
+        <label>{{AppContent.Intake}}</label>
+    </div>
+    <div class="field col-5">
+        <span class="p-float-label">
+            <p-calendar #startDate="ngModel" [style]="{'width':'100%'}" [(ngModel)]="intake.startDate" [required]="true" [ngClass]="{'ng-dirty': (startDate.invalid && submitted) || (startDate.dirty && startDate.invalid)}"></p-calendar>
+            <label for="startDate">{{AppContent.StartDate}}</label>
+        </span>
+        <small *ngIf="(startDate.invalid && submitted) || (startDate.dirty && startDate.invalid)" class="p-error">{{AppContent.StartDate}}{{AppContent.IsRequired}}</small>
+    </div>
+    <div class="field col-5">
+        <span class="p-float-label">
+            <p-calendar #endDate="ngModel" [style]="{'width':'100%'}" [(ngModel)]="intake.endDate" [required]="true" [ngClass]="{'ng-dirty': (endDate.invalid && submitted) || (endDate.dirty && endDate.invalid)}"></p-calendar>
+            <label for="endDate">{{AppContent.EndDate}}</label>
+        </span>                
+        <small *ngIf="(endDate.invalid && submitted) || (endDate.dirty && endDate.invalid)" class="p-error">{{AppContent.EndDate}}{{AppContent.IsRequired}}</small>
+    </div>
+    <p-divider class="field col-12"></p-divider>
+    <h6 class="field col-12">{{AppContent.AdditionalInformation}}</h6>
+    <div class="field col-12">
+        <div class="field-checkbox">
+            <input type="checkbox" id="prescribed" [(ngModel)]="intake.prescribed">
+            <label for="prescribed">{{AppContent.IsPrescribed}}</label>
+        </div>
+    </div>
+    <div class="field col-12">
+        <div class="field-checkbox">
+            <input type="checkbox" id="reguarly" [(ngModel)]="intake.regularly">
+            <label for="reguarly">{{AppContent.IsRegularly}}</label>
+        </div>
+    </div>
+    <div class="field col-4">
+        <span class="p-float-label">
+            <input type="number" #dosePerDay="ngModel" required pInputText [style]="{'width':'100%'}" [(ngModel)]="intake.dosePerDay" [required]="intake.regularly" [disabled]="!intake.regularly" [ngClass]="{'ng-dirty': (dosePerDay.invalid && submitted) || (dosePerDay.dirty && startDate.invalid)}">
+            <label for="startDate">{{AppContent.DosePerDay}}</label>
+        </span>
+        <small *ngIf="(dosePerDay.invalid && submitted) || (dosePerDay.dirty && dosePerDay.invalid)" class="p-error">{{AppContent.DosePerDay}}{{AppContent.IsRequired}}</small>
+    </div>
+    <div class="field col-4">
+        <span class="p-float-label">
+            <p-dropdown #intakeInterval="ngModel" [options]="intakeIntervals" [style]="{'width':'100%'}" [(ngModel)]="intake.intakeInterval" [required]="intake.regularly" [disabled]="!intake.regularly" [ngClass]="{'ng-dirty': (intakeInterval.invalid && submitted) || (intakeInterval.dirty && intakeInterval.invalid)}"></p-dropdown>
+            <label for="intakeInterval">{{AppContent.IntakeInterval}}</label>
+        </span>
+        <small *ngIf="(intakeInterval.invalid && submitted) || (intakeInterval.dirty && intakeInterval.invalid)" class="p-error">{{AppContent.IntakeInterval}}{{AppContent.IsRequired}}</small>
+    </div>
+    <div class="field col-4">
+        <span class="p-float-label">
+            <p-dropdown #doseUnit="ngModel" [options]="doseUnits" [style]="{'width':'100%'}" [(ngModel)]="intake.doseUnit" [required]="intake.regularly" [disabled]="!intake.regularly" [ngClass]="{'ng-dirty': (doseUnit.invalid && submitted) || (doseUnit.dirty && doseUnit.invalid)}"></p-dropdown>
+            <label for="doseUnit">{{AppContent.DoseUnit}}</label>
+        </span>
+        <small *ngIf="(doseUnit.invalid && submitted) || (doseUnit.dirty && doseUnit.invalid)" class="p-error">{{AppContent.DoseUnit}}{{AppContent.IsRequired}}</small>
+    </div>
+    <div class="field col-12">
+        <div class="field-checkbox">
+            <input type="checkbox" id="takenToday" [(ngModel)]="intake.takenToday">
+            <label for="takenToday">{{AppContent.TakenToday}}</label>
+        </div>
+    </div>
+    <p-divider class="field col-12"></p-divider>
+    <div class="field col-12">
+        <span class="p-float-label">
+            <input type="text" #note="ngModel" pInputText [style]="{'width':'100%'}" [(ngModel)]="intake.note">
+            <label for="startDate">{{AppContent.Notice}}</label>
+        </span>
+    </div>
+    <p-divider class="field col-12"></p-divider>
+    <div class="field col-12">
+        <span class="p-float-label">
+            <p-dropdown #sourceOfDrugData="ngModel" [options]="sourcesOfDrugData" [style]="{'width':'100%'}" [(ngModel)]="intake.sourceOfDrugData" [required]="true" [ngClass]="{'ng-dirty': (sourceOfDrugData.invalid && submitted) || (sourceOfDrugData.dirty && sourceOfDrugData.invalid)}"></p-dropdown>
+            <label for="sourceOfDrugData">{{AppContent.SourceOfDrugData}}</label>
+        </span>
+        <small *ngIf="(sourceOfDrugData.invalid && submitted) || (sourceOfDrugData.dirty && sourceOfDrugData.invalid)" class="p-error">{{AppContent.SourceOfDrugData}}{{AppContent.IsRequired}}</small>
+    </div>
+</div>
+        
+<div class="grid grid-nogutter justify-content-end">
+    <button pButton pRipple type="button" class="p-button-outlined" (click)="addIntake()" icon="pi pi-check" label="{{AppContent.Save}}"></button>
+</div>

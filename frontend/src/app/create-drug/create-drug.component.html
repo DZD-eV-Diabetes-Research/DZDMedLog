@@ -1,0 +1,129 @@
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <span class="p-float-label">
+                <input pInputText type="number" id="pharmaceuticalCentralNumber"
+                       [(ngModel)]="drugDetails.pharmaceuticalCentralNumber" required/>
+                <label for="pharmaceuticalCentralNumber">{{AppContent.PharmaCentralNumber}}</label>
+            </span>
+        </div>
+
+        <div class="col">
+            <span class="p-float-label">
+                <input pInputText id="atc" [(ngModel)]="atcAbbreviation"/>
+                <label for="atc">{{AppContent.ATC}}</label>
+            </span>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-12">
+            <span class="p-float-label">
+                <input pInputText id="name" [(ngModel)]="drugDetails.name"/>
+                <label for="name">{{AppContent.Name}}</label>
+            </span>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-12">
+            <p-dropdown [options]="dosageForms" [(ngModel)]="selectedDosageForm"
+                        placeholder="{{AppContent.DosageFormInput}}"
+                        (onChange)="changeSelectedDosageForm(selectedDosageForm)">
+
+                <ng-template pTemplate="selectedItem">
+                    <div *ngIf="selectedDosageForm">
+                        <div>{{selectedDosageForm.abbreviation}} ({{selectedDosageForm.name}})</div>
+                    </div>
+                </ng-template>
+
+                <ng-template let-dosageForm pTemplate="item">
+                    <div>
+                        <div>{{dosageForm.abbreviation}} ({{dosageForm.name}})</div>
+                    </div>
+                </ng-template>
+            </p-dropdown>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-12">
+            <p-dropdown [options]="applicationForms" [(ngModel)]="selectedApplicationForm"
+                        placeholder="{{AppContent.ApplicationFormInput}}"
+                        (onChange)="changeSelectedApplicationForm(selectedApplicationForm)">
+
+                <ng-template pTemplate="selectedItem">
+                    <div *ngIf="selectedApplicationForm">
+                        <div>{{selectedApplicationForm.abbreviation}} ({{selectedApplicationForm.name}})</div>
+                    </div>
+                </ng-template>
+
+                <ng-template let-applicationForm pTemplate="item">
+                    <div>
+                        <div>{{applicationForm.abbreviation}} ({{applicationForm.name}})</div>
+                    </div>
+                </ng-template>
+            </p-dropdown>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-12">
+            <p-dropdown [options]="normPackageSizes" [(ngModel)]="selectedNormPackageSize"
+                        placeholder="{{AppContent.StandardPackageSizeInput}}"
+                        (onChange)="changeSelectedNormPackageSize(selectedNormPackageSize)">
+
+                <ng-template pTemplate="selectedItem">
+                    <div *ngIf="selectedNormPackageSize">
+                        <div>{{selectedNormPackageSize.id}} ({{selectedNormPackageSize.name}})</div>
+                    </div>
+                </ng-template>
+
+                <ng-template let-normPackageSize pTemplate="item">
+                    <div>
+                        <div>{{normPackageSize.id}} ({{normPackageSize.name}})</div>
+                    </div>
+                </ng-template>
+            </p-dropdown>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col">
+            <span class="p-float-label">
+                <input pInputText type="number" id="packageSize" [(ngModel)]="drugDetails.packageSize"/>
+                <label for="packageSize">{{AppContent.PackageSize}}</label>
+            </span>
+        </div>
+
+        <div class="col">
+            <span class="p-float-label">
+                <input pInputText id="producerKey" [(ngModel)]="producerKey"/>
+                <label for="producerKey">{{AppContent.ManufacturerKeyInput}}</label>
+            </span>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col">
+            <span class="p-float-label">
+                <input pInputText type="number" id="priceInCents" [(ngModel)]="drugDetails.priceInCents"/>
+                <label for="priceInCents">{{AppContent.PriceInCent}}</label>
+            </span>
+        </div>
+
+        <div class="col">
+            <span class="p-float-label">
+                <input pInputText type="number" id="fixedPriceInCents" [(ngModel)]="drugDetails.fixedPriceInCents"/>
+                <label for="fixedPriceInCents">{{AppContent.FixedPriceInCent}}</label>
+            </span>
+        </div>
+    </div>
+
+    <div class="grid flex mt-2">
+        <span class="ml-auto mr-1">
+            <button pButton pRipple type="button" class="p-button-outlined" icon="pi pi-check" label={{AppContent.Save}}
+                    (click)="addDrug()"></button>
+        </span>
+    </div>
+</div>

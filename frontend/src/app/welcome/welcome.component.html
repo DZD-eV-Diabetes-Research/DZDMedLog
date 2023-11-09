@@ -1,0 +1,22 @@
+<div class="text-center">
+
+    <p-card header="IDOM">
+        <ng-template pTemplate="header">
+            <img alt="Card"
+                 src="https://www.dzd-ev.de/fileadmin/0-templates/DZD/images/DZD_Logo_ausStyleGuide_RGB.svg"
+                 height="150px">
+        </ng-template>
+        <div class="d-grid gap-2 col-6 mx-auto">
+            <button pButton type="button" label={{AppContent.ConductInterview}} icon="pi pi-flag" class="p-button-lg"
+                    [routerLink]="'/interview'"></button>
+            <button pButton type="button" label={{AppContent.SearchMedicine}} icon="pi pi-search" class="p-button-lg"
+                    [routerLink]="'/drugs'"></button>
+            <button pButton type="button" label={{AppContent.ExportInterviews}} icon="pi pi-download" class="p-button-lg"
+                    (click)="downloadCsv()"></button>
+            <button pButton type="button" label={{AppContent.Configuration}} icon="pi pi-users" class="p-button-lg"
+                    [routerLink]="'/configuration'"></button>
+        </div>
+    </p-card>
+
+</div>
+

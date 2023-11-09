@@ -1,0 +1,118 @@
+<div class="container custom-container-2">
+    
+    <h1>Medikamentenübersicht</h1>
+    
+    <div class="card">
+            <p-table #drugDataTable [value]="drugs" dataKey="id" [rows]="50" [showCurrentPageReport]="true"
+                     [rowsPerPageOptions]="[10,25,50,100]" [paginator]="true" sortMode="multiple"
+                     [lazy]="true" (onLazyLoad)="loadDrugs($event)" [totalRecords]="totalRecords"
+                     currentPageReportTemplate="Zeige {first} bis {last} von {totalRecords} Einträgen"
+                     styleClass="p-datatable-sm">
+                <ng-template pTemplate="caption">
+                    <div class="flex align-items-center">
+                        <button pButton pRipple type="button" class="p-button-outlined" icon="pi pi-filter-slash"
+                                (click)="clear(drugDataTable)" [ngStyle]="{'margin-right':'5px'}"></button>
+                        <span class="p-input-icon-left">
+                            <i class="pi pi-search"></i>
+                            <input pInputText type="text" (input)="applyFilterGlobal($event, 'contains')"
+                                    placeholder={{AppContent.SearchByKeyWord}}/>
+                        </span>
+                        <span class="ml-auto">
+                            <button pButton pRipple type="button" class="p-button-outlined" icon="pi pi-plus"
+                                    (click)="showCreateDrugDialog()"></button>
+                        </span>
+                    </div>
+                </ng-template>
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th pSortableColumn="name">
+                            <div class="flex justify-content-center align-items-center">
+                                {{AppContent.DrugName}}
+                                <p-sortIcon field="name"></p-sortIcon>
+                            </div>
+                        </th>
+                        <th pSortableColumn="producer">
+                            <div class="flex justify-content-center align-items-center">
+                                {{AppContent.ManufacturerKey}}
+                                <p-sortIcon field="producer"></p-sortIcon>
+                            </div>
+                        </th>
+                        <th pSortableColumn="dosageForm">
+                            <div class="flex justify-content-center align-items-center">
+                                {{AppContent.DosageForm}}
+                                <p-sortIcon field="dosageForm"></p-sortIcon>
+                            </div>
+                        </th>
+                        <th pSortableColumn="applicationForm">
+                            <div class="flex justify-content-center align-items-center">
+                                {{AppContent.ApplicationForm}}
+                                <p-sortIcon field="applicationForm"></p-sortIcon>
+                            </div>
+                        </th>
+                        <th pSortableColumn="atc">
+                            <div class="flex justify-content-center align-items-center">
+                                {{AppContent.ATC}}
+                                <p-sortIcon field="atc"></p-sortIcon>
+                            </div>
+                        </th>
+                        <th pSortableColumn="pharmaceuticalCentralNumber">
+                            <div class="flex justify-content-center align-items-center">
+                                {{AppContent.PZN}}
+                                <p-sortIcon field="pharmaceuticalCentralNumber"></p-sortIcon>
+                            </div>
+                        </th>
+                        <th pSortableColumn="packageSize">
+                            <div class="flex justify-content-center align-items-center">
+                                {{AppContent.PackingSize}}
+                                <p-sortIcon field="packageSize"></p-sortIcon>
+                            </div>
+                        </th>
+                        <th pSortableColumn="normPackageSize">
+                            <div class="flex justify-content-center align-items-center">
+                                {{AppContent.StandardPackageSize}}
+                                <p-sortIcon field="normPackageSize"></p-sortIcon>
+                            </div>
+                        </th>
+                        <th pSortableColumn="isCustom">
+                            <div class="flex justify-content-center align-items-center">
+                                {{AppContent.FromTrade}}
+                                <p-sortIcon field="isCustom"></p-sortIcon>
+                            </div>
+                        </th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-drug>
+                    <tr *ngIf="drug.pharmaceuticalCentralNumber">
+                        <td>
+                            {{ !drug.name ? '' : drug.name }}
+                        </td>
+                        <td>
+                            {{ !drug.producer ? '' : drug.producer.key }}
+                        </td>
+                        <td>
+                            {{ !drug.dosageForm ? '' : drug.dosageForm.abbreviation }}
+                        </td>
+                        <td>
+                            {{ !drug.applicationForm ? '' : drug.applicationForm.abbreviation }}
+                        </td>
+                        <td>
+                            {{ !drug.atc ? '' : drug.atc.abbreviation }}
+                        </td>
+                        <td>
+                            {{ drug.pharmaceuticalCentralNumber }}
+                        </td>
+                        <td>
+                            {{ !drug.packageSize ? '' : drug.packageSize }}
+                        </td>
+                        <td>
+                            {{ !drug.normPackageSize ? '' : drug.normPackageSize.name }}
+                        </td>
+                        <td class="text-center">
+                            <i class="pi"
+                               [ngClass]="{'true-icon pi-check-circle': !drug.isCustom, 'false-icon pi-times-circle': drug.isCustom}"></i>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+</div>

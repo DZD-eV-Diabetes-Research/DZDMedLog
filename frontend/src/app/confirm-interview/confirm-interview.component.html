@@ -1,0 +1,33 @@
+<p-card>
+    <ng-template pTemplate="title">
+        {{AppContent.ConfirmInterviewTitle}}
+    </ng-template>
+    <ng-template pTemplate="subtitle">
+        {{AppContent.InterestSpecificDrugs}}
+        <br><br>
+        {{AppContent.InsulinDocumented}}
+        <br><br>
+        <b>{{AppContent.OnlyWomen}}</b>
+        <br>
+        {{AppContent.HormoneDrugDocumented}}
+    </ng-template>
+    <ng-template pTemplate="content">
+        <div class="field grid">
+            <label class="col-12 mb-2 md:col-4 md:mb-0" for="endDate">{{AppContent.EndTime}}</label>
+            <div>
+                <p-calendar #endDate="ngModel" [(ngModel)]="interviewService.endDate" [timeOnly]="true" inputId="timeonly" [required]="true" [ngClass]="{'ng-dirty': (endDate.invalid && submitted) || (endDate.dirty && endDate.invalid)}"></p-calendar>
+                <small *ngIf="(endDate.invalid && submitted) || (endDate.dirty && endDate.invalid)" class="p-error">{{AppContent.EndTime}}{{AppContent.IsRequired}}</small>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <div class="ui-fluid formgrid grid">
+            <div class="field col-6">
+                <p-button label="{{AppContent.PreviousPage}}" (click)="previousPage()" icon="pi pi-angle-left" iconPos="left"></p-button>
+            </div>
+            <div class="field col-6">
+                <p-button label="{{AppContent.Save}}" [style]="{'float': 'right'}" icon="pi pi-save" iconPos="right" (click)="save()"></p-button>
+            </div>
+        </div>
+    </ng-template>
+</p-card>
