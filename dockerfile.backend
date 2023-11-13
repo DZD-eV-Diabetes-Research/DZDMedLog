@@ -1,0 +1,21 @@
+FROM alpine AS build
+
+RUN apk update
+RUN apk add openjdk17 maven
+RUN mkdir -p /app
+WORKDIR /app
+COPY backend /app
+RUN mvn clean package
+
+FROM alpine AS run
+RUN apk add openjdk17
+RUN mkdir -p /app
+RUN mkdir -p /config
+WORKDIR /app
+COPY --from=build /app/target/idom.jar .
+COPY docker.backend.start.sh .
+COPY backend/src/main/resources/application.properties /app/config_template.properties
+#COPY backend/src/main/resources/application.properties /config/application.properties
+ENV SPRING_CONFIG_LOCATION=/config/application.properties
+# CMD ["java" , "-jar", "idom.jar"]
+CMD [ "./docker.backend.start.sh" ]

@@ -30,3 +30,34 @@
     - backendUrl
     - authIssuer
     - authClientId
+
+
+### Configuration
+
+You can customize the application configuration using environment variables. Here are the environment variable names and their corresponding property variable names:
+
+- **Database Configuration:**
+  - `SPRING_DATASOURCE_URL` (`spring.datasource.url`): JDBC URL for the database.
+  - `SPRING_DATASOURCE_DRIVER_CLASS_NAME` (`spring.datasource.driverClassName`): Database driver class.
+  - `SPRING_DATASOURCE_USERNAME` (`spring.datasource.username`): Database username.
+  - `SPRING_DATASOURCE_PASSWORD` (`spring.datasource.password`): Database password.
+  - `SPRING_JPA_DATABASE_PLATFORM` (`spring.jpa.database-platform`): Hibernate dialect for the database.
+
+- **H2 Console Configuration:**
+  - `SPRING_H2_CONSOLE_ENABLED` (`spring.h2.console.enabled`): Enable or disable the H2 console.
+
+- **File Upload Configuration:**
+  - `SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE` (`spring.servlet.multipart.max-file-size`): Maximum file size for file uploads.
+  - `SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE` (`spring.servlet.multipart.max-request-size`): Maximum request size for file uploads.
+
+- **Frontend URL for Production:**
+  - `FRONTEND_URL_PROD` (`frontend.url.prod`): URL for the production frontend.
+
+- **JPA Configuration:**
+  - `SPRING_JPA_PROPERTIES_HIBERNATE_CHECK_NULLABILITY` (`spring.jpa.properties.hibernate.check_nullability`): Enable or disable checking nullability in Hibernate.
+
+- **API Context Path:**
+  - `SERVER_SERVLET_CONTEXT_PATH` (`server.servlet.context-path`): Context path for the API.
+
+- **OAuth 2.0 Resource Server Configuration:**
+  - `SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI` (`spring.security.oauth2.resourceserver.jwt.issuer-uri`): Issuer URI for OAuth 2.0 JWT.

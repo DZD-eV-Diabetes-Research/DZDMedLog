@@ -327,6 +327,5 @@ $RECYCLE.BIN/
 ###############
 
 idom_example_data
-
-export.yaml
+*/node_modules/*
 medlog/

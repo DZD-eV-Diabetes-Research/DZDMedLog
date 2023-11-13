@@ -1,6 +1,6 @@
 export const environment = {
     production: true,
-    backendUrl: '',
-    authIssuer: '',
-    authClientId: ''
+    backendUrl: process.env['BACKEND_URL'] || '',
+    authIssuer: process.env['OIDC_AUTH_ISSUER'] || '',
+    authClientId: process.env['OIDC_AUTH_CLIENT_ID'] || ''
 };
