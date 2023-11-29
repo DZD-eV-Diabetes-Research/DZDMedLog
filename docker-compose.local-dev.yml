@@ -10,7 +10,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgresql:5432/${POSTGRES_DATABASE:-medlog}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_DATABASE:-medlog}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-w789efhweds3rt43wredfwf}
-      - FRONTEND_URL_PROD=${FRONTEND_URL:-http:/0.0.0.0:8081}
+      - FRONTEND_URL_PROD=${FRONTEND_URL:-http:/0.0.0.0:8080}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=oidc
     ports:
       - 8080:8080
@@ -26,6 +26,22 @@ services:
       - OIDC_AUTH_CLIENT_ID="1234"
     ports:
       - 8081:8081
+
+  postgresql:
+    image: docker.io/library/postgres:12-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: "pg_isready -h localhost -p 5432 -q -U ${POSTGRES_DATABASE:-medlog}"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ./medlog/app/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-w789efhweds3rt43wredfwf}
+      - POSTGRES_USER=${POSTGRES_DATABASE:-medlog}
+      - POSTGRES_DB=${POSTGRES_DATABASE:-medlog}
+
 
   oidc:
     image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2023.10.3}
@@ -68,20 +84,6 @@ services:
       - ./medlog/oidc/authentik/custom-templates:/templates
       - ./dev/provisoning/authentik_blueprints:/blueprints/custom
 
-  postgresql:
-    image: docker.io/library/postgres:12-alpine
-    restart: unless-stopped
-    healthcheck:
-      test: "pg_isready -h localhost -p 5432 -q -U ${POSTGRES_DATABASE:-medlog}"
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - ./medlog/app/db:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-w789efhweds3rt43wredfwf}
-      - POSTGRES_USER=${POSTGRES_DATABASE:-medlog}
-      - POSTGRES_DB=${POSTGRES_DATABASE:-medlog}
 
   postgresql-oidc:
     image: docker.io/library/postgres:12-alpine
