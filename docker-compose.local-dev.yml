@@ -6,11 +6,11 @@ services:
     build:
       dockerfile: dockerfile.backend
     environment:
-      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgresql:5432/${POSTGRES_DATABASE:-medlog}
-      - SPRING_DATASOURCE_USERNAME=${POSTGRES_DATABASE:-medlog}
-      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-w789efhweds3rt43wredfwf}
-      - FRONTEND_URL_PROD=${FRONTEND_URL:-http:/0.0.0.0:8080}
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.h2.Driver
+      - SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb
+      - SPRING_DATASOURCE_USERNAME=medlog
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-w893e0zhgio34whrefwuoehgsl}
+      - FRONTEND_URL_PROD=${FRONTEND_URL:-http:/0.0.0.0:8888}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=oidc
     ports:
       - 8080:8080
@@ -23,25 +23,9 @@ services:
       - PORT=8888
       - BACKEND_URL=http://127.0.0.1:8080
       - OIDC_AUTH_ISSUER=http://127.0.0.1:9000
-      - OIDC_AUTH_CLIENT_ID="1234"
+      - OIDC_AUTH_CLIENT_ID="FfgBVFx2H11q8Dz6HDmh8ASIuqolKZd7q7IUsZn2"
     ports:
-      - 8081:8081
-
-  postgresql:
-    image: docker.io/library/postgres:12-alpine
-    restart: unless-stopped
-    healthcheck:
-      test: "pg_isready -h localhost -p 5432 -q -U ${POSTGRES_DATABASE:-medlog}"
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - ./medlog/app/db:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-w789efhweds3rt43wredfwf}
-      - POSTGRES_USER=${POSTGRES_DATABASE:-medlog}
-      - POSTGRES_DB=${POSTGRES_DATABASE:-medlog}
-
+      - 8888:8888
 
   oidc:
     image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2023.10.3}

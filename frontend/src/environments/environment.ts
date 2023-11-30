@@ -1,3 +1,4 @@
+import * as process from 'process';
 export const environment = {
     production: true,
     backendUrl: process.env['BACKEND_URL'] || '',
