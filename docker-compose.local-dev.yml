@@ -20,12 +20,14 @@ services:
     build:
       dockerfile: dockerfile.frontend
     environment:
-      - PORT=8888
+      - NGINX_HOST=${HOST:-localhost}
+      - NGINX_PORT=${PORT:-8888}
       - BACKEND_URL=http://127.0.0.1:8080
-      - OIDC_AUTH_ISSUER=http://127.0.0.1:9000
+      - OIDC_AUTH_ISSUER=http://127.0.0.1:9000/application/o/medlog/
       - OIDC_AUTH_CLIENT_ID="FfgBVFx2H11q8Dz6HDmh8ASIuqolKZd7q7IUsZn2"
+      - REQUIRE_HTTPS=false
     ports:
-      - 8888:8888
+      - 8888:80
 
   oidc:
     image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2023.10.3}
@@ -41,6 +43,7 @@ services:
       AUTHENTIK_POSTGRESQL__NAME: ${POSTGRES_DATABASE:-medlog}
       AUTHENTIK_POSTGRESQL__PASSWORD: ${POSTGRES_PASSWORD:-w789efhweds3rt43wredfwf}
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-CHANGE_ME_FOR_GODS_SAKE_s89dtzfgo42wuhrf083qrhgfewuoasdfghouesdhfkjsd}
+      AUTHENTIK_LOG_LEVEL: DEBUG
     volumes:
       - ./medlog/oidc/authentik/media:/media
       - ./medlog/oidc/authentik/custom-templates:/templates

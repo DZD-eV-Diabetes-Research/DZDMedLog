@@ -1,5 +1,8 @@
-import {AuthConfig} from 'angular-oauth2-oidc'
+import { AuthConfig } from 'angular-oauth2-oidc'
 import { environment } from 'src/environments/environment';
+import * as process from 'process';
+import yn from 'yn';
+
 
 export const authConfig: AuthConfig = {
   issuer: environment.authIssuer,
@@ -12,4 +15,5 @@ export const authConfig: AuthConfig = {
   sessionChecksEnabled: true,
   strictDiscoveryDocumentValidation: false,
   clearHashAfterLogin: false, // https://github.com/manfredsteyer/angular-oauth2-oidc/issues/457#issuecomment-431807040,
+  requireHttps: environment.requireHttps,
 };

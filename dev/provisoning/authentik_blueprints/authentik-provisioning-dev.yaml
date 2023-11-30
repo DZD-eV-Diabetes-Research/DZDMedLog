@@ -8,15 +8,19 @@ entries:
       name: medlog-oidc-provider
     state: present
     attrs:
+      assigned_application_slug: medlog
       authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
       authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
-      client_type: confidential
+      client_type: public
       client_id: FfgBVFx2H11q8Dz6HDmh8ASIuqolKZd7q7IUsZn2
       client_secret: m5WZWMZjZBUCgHTI9puGhIJjebY3iDkMNf4qfd7yrV77NgtbVzKpJWlU32DITbBMgmTxbdOShZAPrH9sjvO71RPZMOOlxCr5C3IAiYMdyKsqV4dapX3bkO23gqNqT1sY
-      redirect_uris: http://localhost:8888
+      redirect_uris: http://localhost:8888/
       access_token_validity: minutes=5
       signing_key: !Find [authentik_crypto.CertificateKeyPair, [name, default]]
-
+    scope:
+      - openid
+      - profile
+      - email
   - model: authentik_core.Application
     id: medlog
     identifiers:
