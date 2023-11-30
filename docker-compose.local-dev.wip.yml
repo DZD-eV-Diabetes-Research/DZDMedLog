@@ -1,0 +1,95 @@
+version: '3.8'
+services:
+
+  backend:
+    image: medlog/backend
+    build:
+      dockerfile: dockerfile.backend
+    environment:
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.h2.Driver
+      - SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb
+      - SPRING_DATASOURCE_USERNAME=medlog
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-w893e0zhgio34whrefwuoehgsl}
+      - FRONTEND_URL_PROD=${FRONTEND_URL:-http:/0.0.0.0:8888}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=oidc
+    ports:
+      - 8080:8080
+
+  frontend:
+    image: medlog/frontend
+    build:
+      dockerfile: dockerfile.frontend
+    environment:
+      - NGINX_HOST=${HOST:-localhost}
+      - NGINX_PORT=${PORT:-8888}
+      - BACKEND_URL=http://127.0.0.1:8080
+      - OIDC_AUTH_ISSUER=http://127.0.0.1:9000/application/o/medlog/
+      - OIDC_AUTH_CLIENT_ID="FfgBVFx2H11q8Dz6HDmh8ASIuqolKZd7q7IUsZn2"
+      - REQUIRE_HTTPS=false
+    ports:
+      - 8888:80
+
+  oidc:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2023.10.3}
+    command: server
+    environment:
+      #AUTHENTIK_LISTEN__HTTP: 0.0.0.0:8082
+      AUTHENTIK_DISABLE_UPDATE_CHECK: true
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-iamastupidtest}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-w73e89rf23uioqhezrgd793qgifweurfhgq}
+      AUTHENTIK_REDIS__HOST: redis-oidc
+      AUTHENTIK_POSTGRESQL__HOST: postgresql-oidc
+      AUTHENTIK_POSTGRESQL__USER: ${POSTGRES_DATABASE:-medlog}
+      AUTHENTIK_POSTGRESQL__NAME: ${POSTGRES_DATABASE:-medlog}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${POSTGRES_PASSWORD:-w789efhweds3rt43wredfwf}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-CHANGE_ME_FOR_GODS_SAKE_s89dtzfgo42wuhrf083qrhgfewuoasdfghouesdhfkjsd}
+      AUTHENTIK_LOG_LEVEL: DEBUG
+    volumes:
+      - ./medlog/oidc/authentik/media:/media
+      - ./medlog/oidc/authentik/custom-templates:/templates
+      - ./dev/provisoning/authentik_blueprints:/blueprints/custom
+    ports:
+      - 9000:9000
+
+  oidc-worker:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2023.10.3}
+    command: worker
+    environment:
+      #AUTHENTIK_LISTEN__HTTP: 0.0.0.0:9000
+      AUTHENTIK_DISABLE_UPDATE_CHECK: true
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-iamastupidtest}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-w73e89rf23uioqhezrgd793qgifweurfhgq}
+      AUTHENTIK_REDIS__HOST: redis-oidc
+      AUTHENTIK_POSTGRESQL__HOST: postgresql-oidc
+      AUTHENTIK_POSTGRESQL__USER: ${POSTGRES_DATABASE:-medlog}
+      AUTHENTIK_POSTGRESQL__NAME: ${POSTGRES_DATABASE:-medlog}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${POSTGRES_PASSWORD:-w789efhweds3rt43wredfwf}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-CHANGE_ME_FOR_GODS_SAKE_s89dtzfgo42wuhrf083qrhgfewuoasdfghouesdhfkjsd}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./medlog/oidc/authentik/media:/media
+      - ./medlog/oidc/authentik/custom-templates:/templates
+      - ./dev/provisoning/authentik_blueprints:/blueprints/custom
+
+
+  postgresql-oidc:
+    image: docker.io/library/postgres:12-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: "pg_isready -h localhost -p 5432 -q -U ${POSTGRES_DATABASE:-medlog}"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ./medlog/oidc/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-w789efhweds3rt43wredfwf}
+      - POSTGRES_USER=${POSTGRES_DATABASE:-medlog}
+      - POSTGRES_DB=${POSTGRES_DATABASE:-medlog}
+
+  redis-oidc:
+    image: docker.io/library/redis:alpine
+    command: --save 60 1 --loglevel warning
+    restart: unless-stopped
+    volumes:
+      - ./medlog/oidc/cache:/data
