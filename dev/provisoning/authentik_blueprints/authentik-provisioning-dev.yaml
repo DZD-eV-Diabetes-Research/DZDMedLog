@@ -17,10 +17,10 @@ entries:
       redirect_uris: http://localhost:8888/
       access_token_validity: minutes=5
       signing_key: !Find [authentik_crypto.CertificateKeyPair, [name, default]]
-    scope:
-      - openid
-      - profile
-      - email
+      scope:
+        - openid
+        - profile
+        - email
   - model: authentik_core.Application
     id: medlog
     identifiers:

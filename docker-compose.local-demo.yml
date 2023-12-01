@@ -10,7 +10,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb
       - SPRING_DATASOURCE_USERNAME=medlog
       - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-w893e0zhgio34whrefwuoehgsl}
-      - FRONTEND_URL_PROD=${FRONTEND_URL:-http:/0.0.0.0:8888}
+      - FRONTEND_URL_PROD=${FRONTEND_URL:-http://localhost:8888}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=oidc
     ports:
       - 8080:8080
@@ -21,10 +21,9 @@ services:
       dockerfile: dockerfile.frontend
     environment:
       - NGINX_HOST=${HOST:-localhost}
-      - NGINX_PORT=${PORT:-8888}
-      - BACKEND_URL=http://127.0.0.1:8080
-      - OIDC_AUTH_ISSUER=http://127.0.0.1:9000/application/o/medlog/
-      - OIDC_AUTH_CLIENT_ID="FfgBVFx2H11q8Dz6HDmh8ASIuqolKZd7q7IUsZn2"
+      - BACKEND_URL=http://localhost:8080
+      - OIDC_AUTH_ISSUER=http://localhost:9000/application/o/medlog/
+      - OIDC_AUTH_CLIENT_ID=FfgBVFx2H11q8Dz6HDmh8ASIuqolKZd7q7IUsZn2
       - REQUIRE_HTTPS=false
     ports:
       - 8888:80
@@ -45,8 +44,8 @@ services:
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-CHANGE_ME_FOR_GODS_SAKE_s89dtzfgo42wuhrf083qrhgfewuoasdfghouesdhfkjsd}
       AUTHENTIK_LOG_LEVEL: DEBUG
     volumes:
-      - ./medlog/oidc/authentik/media:/media
-      - ./medlog/oidc/authentik/custom-templates:/templates
+      - ./medlog-demo-data/oidc/authentik/media:/media
+      - ./medlog-demo-data/oidc/authentik/custom-templates:/templates
       - ./dev/provisoning/authentik_blueprints:/blueprints/custom
     ports:
       - 9000:9000
@@ -67,8 +66,8 @@ services:
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-CHANGE_ME_FOR_GODS_SAKE_s89dtzfgo42wuhrf083qrhgfewuoasdfghouesdhfkjsd}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./medlog/oidc/authentik/media:/media
-      - ./medlog/oidc/authentik/custom-templates:/templates
+      - ./medlog-demo-data/oidc/authentik/media:/media
+      - ./medlog-demo-data/oidc/authentik/custom-templates:/templates
       - ./dev/provisoning/authentik_blueprints:/blueprints/custom
 
 
@@ -81,7 +80,7 @@ services:
       timeout: 5s
       retries: 5
     volumes:
-      - ./medlog/oidc/db:/var/lib/postgresql/data
+      - ./medlog-demo-data/oidc/db:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-w789efhweds3rt43wredfwf}
       - POSTGRES_USER=${POSTGRES_DATABASE:-medlog}
@@ -92,4 +91,4 @@ services:
     command: --save 60 1 --loglevel warning
     restart: unless-stopped
     volumes:
-      - ./medlog/oidc/cache:/data
+      - ./medlog-demo-data/oidc/cache:/data

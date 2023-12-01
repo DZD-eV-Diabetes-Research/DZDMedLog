@@ -21,8 +21,8 @@ services:
       dockerfile: dockerfile.frontend
     environment:
       - PORT=8888
-      - BACKEND_URL=http://127.0.0.1:8080
-      - OIDC_AUTH_ISSUER=http://127.0.0.1:9000
+      - BACKEND_URL=http://localhost:8080
+      - OIDC_AUTH_ISSUER=http://localhost:9000
       - OIDC_AUTH_CLIENT_ID="1234"
     ports:
       - 8081:8081

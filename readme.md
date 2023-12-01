@@ -8,7 +8,7 @@
 ### Build
 - The backend can be built through Maven with the following command:
   - `mvn clean package`
-    - The produced .jar-file appears in `backend/target/idom.jar` and can be started with `java -jar idom.jar`
+    - The produced .jar-file appears in `backend/target/medlog.jar` and can be started with `java -jar medlog.jar`
 - The frontend can be packaged with the following commands:
   ```
   npm install

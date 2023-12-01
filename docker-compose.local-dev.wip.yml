@@ -22,8 +22,8 @@ services:
     environment:
       - NGINX_HOST=${HOST:-localhost}
       - NGINX_PORT=${PORT:-8888}
-      - BACKEND_URL=http://127.0.0.1:8080
-      - OIDC_AUTH_ISSUER=http://127.0.0.1:9000/application/o/medlog/
+      - BACKEND_URL=http://localhost:8080
+      - OIDC_AUTH_ISSUER=http://localhost:9000/application/o/medlog/
       - OIDC_AUTH_CLIENT_ID="FfgBVFx2H11q8Dz6HDmh8ASIuqolKZd7q7IUsZn2"
       - REQUIRE_HTTPS=false
     ports:

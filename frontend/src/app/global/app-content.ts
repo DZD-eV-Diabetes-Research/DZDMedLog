@@ -1,6 +1,6 @@
 export class AppContent {
     //Common
-    static readonly Title: string = "IDOM";
+    static readonly Title: string = "MedLog";
     static readonly SearchByKeyWord: string = "Nach Bezeichnung suchen";
     static readonly FirstName: string = 'Vorname';
     static readonly LastName: string = 'Nachname';

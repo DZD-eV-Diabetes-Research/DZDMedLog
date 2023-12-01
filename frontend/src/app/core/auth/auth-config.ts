@@ -1,8 +1,7 @@
 import { AuthConfig } from 'angular-oauth2-oidc'
 import { environment } from 'src/environments/environment';
-import * as process from 'process';
-import yn from 'yn';
 
+console.log({ "ENV": environment })
 
 export const authConfig: AuthConfig = {
   issuer: environment.authIssuer,
