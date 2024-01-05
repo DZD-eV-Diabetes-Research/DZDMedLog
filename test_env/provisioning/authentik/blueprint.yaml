@@ -1,0 +1,42 @@
+version: 1
+metadata:
+  name: medlog-oidc
+entries:
+  - model: authentik_providers_oauth2.OAuth2Provider
+    id: medlog-oidc-provider
+    identifiers:
+      name: medlog-oidc-provider
+    state: present
+    attrs:
+      assigned_application_slug: medlog
+      authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      client_type: public
+      client_id: FfgBVFx2H11q8Dz6HDmh8ASIuqolKZd7q7IUsZn2
+      client_secret: m5WZWMZjZBUCgHTI9puGhIJjebY3iDkMNf4qfd7yrV77NgtbVzKpJWlU32DITbBMgmTxbdOShZAPrH9sjvO71RPZMOOlxCr5C3IAiYMdyKsqV4dapX3bkO23gqNqT1sY
+      redirect_uris: http://localhost:8888/
+      access_token_validity: minutes=5
+      signing_key: !Find [authentik_crypto.CertificateKeyPair, [name, default]]
+      scope:
+        - openid
+        - profile
+        - email
+  - model: authentik_core.Application
+    id: medlog
+    identifiers:
+      slug: medlog
+    state: present
+    attrs:
+      name: medlog
+      slug: medlog
+      provider: !Find [authentik_providers_oauth2.OAuth2Provider, [name, medlog-oidc-provider]]
+      policy_engine_mode: any
+      meta_launch_url: http://localhost:8888
+
+  - model: authentik_core.user
+    state: present
+    identifiers:
+      username: devuser
+    attrs:
+      name: devuser
+      password: password123
