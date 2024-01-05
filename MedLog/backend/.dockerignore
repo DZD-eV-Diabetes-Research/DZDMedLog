@@ -327,7 +327,5 @@ $RECYCLE.BIN/
 ###############
 
 medlog_example_data
-
-export.yaml
-medlog-demo-data/
-.env
+*/node_modules/*
+medlog/
