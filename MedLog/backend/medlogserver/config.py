@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, AnyUrl
-from typing import List, Annotated
+from pydantic import Field, AnyUrl, SecretStr
+from typing import List, Annotated, Optional
 from pathlib import Path, PurePath
 
 env_file_path = Path(__file__).parent / ".env"
@@ -13,14 +13,32 @@ class Config(BaseSettings):
         env_file=env_file_path,
         env_file_encoding="utf-8",
     )
-
+    LOG_LEVEL: str = Field(default="DEBUG")
+    UVICORN_LOG_LEVEL: Optional[str] = Field(
+        default=None,
+        description="The log level of the uvicorn server. If not defined it will be the same as LOG_LEVEL.",
+    )
+    APP_NAME: str = "DZD MedLog"
+    LISTENING_PORT: int = Field(default=8008)
+    LISTENING_HOST: str = Field(
+        default="localhost",
+        examples=[
+            "0.0.0.0",
+            "localhost",
+            "127.0.0.1",
+        ],
+    )
     sqldatabase_url: AnyUrl = Field(default="sqlite+aiosqlite:///./local.db")
 
     class OpenIDConnect(BaseSettings):
+        PROVIDER_NAME: str = Field(
+            description="The name of the OpenID Connect provider shown to the user.",
+            default="My OpenID Connect Login",
+        )
         client_id: str = Field(
             description="The client id of the OpenID Connect provider."
         )
-        client_secret: str = Field(
+        client_secret: SecretStr = Field(
             description="The client secret of the OpenID Connect provider."
         )
         discovery_endpoint: AnyUrl = Field(
@@ -43,4 +61,4 @@ class Config(BaseSettings):
         )
         jwt_secret: str = Field(description="The secret used to sign the JWT tokens.")
 
-    oidc: OpenIDConnect = Field(description="OpenID Connect settings.")
+    oidc: OpenIDConnect = Field(description="OpenID Connect settings.", default=None)
