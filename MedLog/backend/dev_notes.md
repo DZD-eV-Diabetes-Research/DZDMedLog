@@ -8,7 +8,8 @@ https://fastapi-users.github.io/fastapi-users/12.1/
 https://github.com/testdrivenio/fastapi-sqlmodel-alembic
 https://testdriven.io/blog/fastapi-sqlmodel/
 
-
+https://docs.authlib.org/en/latest/client/fastapi.html
+https://github.com/authlib/demo-oauth-client/blob/master/starlette-google-login/app.py
 
 https://openid.net/specs/openid-connect-core-1_0.html
 https://frankie567.github.io/httpx-oauth/oauth2/
