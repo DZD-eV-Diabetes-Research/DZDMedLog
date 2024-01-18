@@ -18,26 +18,36 @@ if __name__ == "__main__":
 def start():
     import medlogserver
     from medlogserver.config import Config
-    from medlogserver.log import get_logger, get_uvicorn_loglevel
+
+    from medlogserver.log import (
+        get_logger,
+        get_loglevel,
+        get_uvicorn_loglevel,
+        APP_LOGGER_DEFAULT_NAME,
+    )
 
     config = Config()
-    log = get_logger(__name__)
-    print(log.handlers)
+    log = get_logger()
 
     print(
         f"Start medlogserver version: {getversion.get_module_version(medlogserver)[0]}"
     )
-    print(f"LOG_LEVEL: {config.LOG_LEVEL}")
-    print(f"UVICORN_LOG_LEVEL: {config.LOG_LEVEL}")
+
     log.debug("----CONFIG-----")
     log.debug(yaml.dump(config.model_dump(), sort_keys=False))
     log.debug("----CONFIG-END-----")
+    print(f"LOG_LEVEL: {config.LOG_LEVEL}")
+    print(f"UVICORN_LOG_LEVEL: {get_uvicorn_loglevel()}")
+
     import uvicorn
     from uvicorn.config import LOGGING_CONFIG
     from medlogserver.api.auth import app
 
     uvicorn_log_config: Dict = LOGGING_CONFIG
-
+    uvicorn_log_config["loggers"][APP_LOGGER_DEFAULT_NAME] = {
+        "handlers": ["default"],
+        "level": get_loglevel(),
+    }
     uvicorn.run(
         app,
         host=config.LISTENING_HOST,

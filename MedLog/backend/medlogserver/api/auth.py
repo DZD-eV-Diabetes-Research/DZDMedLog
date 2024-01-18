@@ -16,7 +16,7 @@ from typing import Optional
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
-log = get_logger(__name__)
+log = get_logger()
 log.info("GET CONFIG")
 config = Config()
 
@@ -79,16 +79,24 @@ async def current_user(
     return user
 
 
+@app.get("/")
+async def login(request: Request):
+    log.info("TEST INFO LOG")
+    log.debug("TEST DEBUG LOG")
+    log.error("TEST ERROR LOG")
+    return "hello world"
+
+
 @app.get("/login")
 async def login(request: Request):
     redirect_uri = request.url_for("auth")
-    log.info(f"redirect_uri: {redirect_uri}")
+    log.debug(f"/login redirect_uri:{redirect_uri}")
+
     return await authlib_oauth_app.authorize_redirect(request, str(redirect_uri))
 
 
 @app.get("/auth")
 async def auth(request: Request):
-    log.info("###'WAAAAAA")
     token = await authlib_oauth_app.authorize_access_token(request)
     # <=0.15
     # user = await oauth.google.parse_id_token(request, token)
