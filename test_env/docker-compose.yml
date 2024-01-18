@@ -28,10 +28,13 @@ services:
     networks:
       frontapp:
         ipv4_address: 172.25.0.11
+    profiles:
+      # we wont build/start this ocntainer while developing the backend.
+      - do-not-start
 
   #frontend:
   #  image: medlog/frontend
-    
+
 
   oidc:
     image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2023.10.3}

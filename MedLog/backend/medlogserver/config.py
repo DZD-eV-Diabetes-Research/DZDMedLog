@@ -61,4 +61,6 @@ class Config(BaseSettings):
         )
         jwt_secret: str = Field(description="The secret used to sign the JWT tokens.")
 
-    oidc: OpenIDConnect = Field(description="OpenID Connect settings.", default=None)
+    oidc: Optional[OpenIDConnect] = Field(
+        description="OpenID Connect settings.", default=None
+    )

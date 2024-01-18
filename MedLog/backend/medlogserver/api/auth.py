@@ -14,8 +14,9 @@ from typing import Optional
 
 # internal imports
 from medlogserver.config import Config
+from medlogserver.log import get_logger
 
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 log.info("GET CONFIG")
 config = Config()
 
@@ -37,6 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
     allow_credentials=True,
 )
+
 
 authlib_oauth = OAuth()
 
@@ -86,6 +88,7 @@ async def login(request: Request):
 
 @app.get("/auth")
 async def auth(request: Request):
+    log.info("###'WAAAAAA")
     token = await authlib_oauth_app.authorize_access_token(request)
     # <=0.15
     # user = await oauth.google.parse_id_token(request, token)

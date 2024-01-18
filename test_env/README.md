@@ -8,10 +8,6 @@
 cd test_env
 ```
 
-```
-docker compose build .
-```
-
 ## Start
 
 ```
