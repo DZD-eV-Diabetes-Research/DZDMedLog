@@ -30,6 +30,7 @@ def get_uvicorn_loglevel():
         (logging.INFO, "20", "INFO", "info"): "info",
         (logging.DEBUG, "10", "DEBUG", "debug"): "debug",
     }
+
     # if the uvicorn log level is not defined, it will be the same as the python log level
     UVICORN_LOG_LEVEL = (
         config.UVICORN_LOG_LEVEL

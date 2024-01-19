@@ -1,7 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, AnyUrl, SecretStr
-from typing import List, Annotated, Optional
+from pydantic import Field, AnyUrl, SecretStr, AnyHttpUrl
+from typing import List, Annotated, Optional, Literal
 from pathlib import Path, PurePath
+import socket
 
 env_file_path = Path(__file__).parent / ".env"
 # print(env_file)
@@ -13,14 +14,17 @@ class Config(BaseSettings):
         env_file=env_file_path,
         env_file_encoding="utf-8",
     )
-    LOG_LEVEL: str = Field(default="DEBUG")
+    LOG_LEVEL: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"] = Field(
+        default="WARNING"
+    )
+    # Webserver
     UVICORN_LOG_LEVEL: Optional[str] = Field(
         default=None,
         description="The log level of the uvicorn server. If not defined it will be the same as LOG_LEVEL.",
     )
     APP_NAME: str = "DZD MedLog"
-    LISTENING_PORT: int = Field(default=8008)
-    LISTENING_HOST: str = Field(
+    SERVER_LISTENING_PORT: int = Field(default=8008)
+    SERVER_LISTENING_HOST: str = Field(
         default="localhost",
         examples=[
             "0.0.0.0",
@@ -28,7 +32,34 @@ class Config(BaseSettings):
             "127.0.0.1",
         ],
     )
+    SERVER_HOSTNAME: Optional[str] = Field(
+        default_factory=socket.gethostname,
+        description="The (external) hostname where the API is available. Usally a FQDN in productive systems. If not defined, it will be automatically detected.",
+    )
+    SERVER_PROTOCOL: Optional[Literal["http", "https"]] = Field(
+        default=None,
+        description="The protocol detection can fail in certain reverse proxy situations. This option allows you to manually override the automatic detection",
+    )
+
+    def get_server_url(self) -> AnyHttpUrl:
+        if self.SERVER_PROTOCOL is not None:
+            proto = self.SERVER_PROTOCOL
+        elif self.SERVER_LISTENING_HOST == 443:
+            proto = "https"
+        else:
+            proto = "http"
+        return AnyHttpUrl(f"{proto}://{self.SERVER_HOSTNAME}")
+
     sqldatabase_url: AnyUrl = Field(default="sqlite+aiosqlite:///./local.db")
+
+    JWT_SECRET: str = Field(
+        description="The secret used to sign the JWT tokens. Provide a long random string.",
+        min_length=64,
+    )
+    JWT_ALGORITHM: str = Field(default="HS256")
+    JWT_TOKEN_EXPIRES_MINUTES: int = Field(
+        default=30, description="The lifetime of the JWT tokens in minutes."
+    )
 
     class OpenIDConnect(BaseSettings):
         PROVIDER_NAME: str = Field(
@@ -59,7 +90,10 @@ class Config(BaseSettings):
             description="The attribute of the OpenID Connect provider that contains a unique id of the user.",
             default="email",
         )
-        jwt_secret: str = Field(description="The secret used to sign the JWT tokens.")
+        user_group_attribute: str = Field(description="", default="groups")
+        jwt_secret: SecretStr = Field(
+            description="The secret used to sign the JWT tokens. Provide a long random string.",
+        )
 
     oidc: Optional[OpenIDConnect] = Field(
         description="OpenID Connect settings.", default=None

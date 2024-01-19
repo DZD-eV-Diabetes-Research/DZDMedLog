@@ -23,3 +23,8 @@ https://github.com/gmachado-nextreason/example-oidc-server-fastapi
 
 https://github.com/nextml-code/fastapi-third-party-auth
 https://github.com/yezz123/AuthX
+
+
+## Hardening TODO
+
+introduce and implement "TRUSTED_PROXY" setting

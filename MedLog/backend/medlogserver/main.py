@@ -50,9 +50,9 @@ def start():
     }
     uvicorn.run(
         app,
-        host=config.LISTENING_HOST,
+        host=config.SERVER_LISTENING_HOST,
         log_level=get_uvicorn_loglevel(),
-        port=config.LISTENING_PORT,
+        port=config.SERVER_LISTENING_PORT,
         log_config=uvicorn_log_config,
     )
 
