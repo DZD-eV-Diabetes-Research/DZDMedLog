@@ -19,6 +19,10 @@ https://fastapi-users.github.io/fastapi-users/12.1/configuration/oauth/#instanti
 ## interesting
 https://github.com/gmachado-nextreason/example-oidc-server-fastapi
 
+
+Securing Vue.js with OpenID Connect and OAuth by Bobby Johnson | Armada JS 2019
+https://www.youtube.com/watch?v=r0BCki3U2AM
+
 ## ditched libs
 
 https://github.com/nextml-code/fastapi-third-party-auth

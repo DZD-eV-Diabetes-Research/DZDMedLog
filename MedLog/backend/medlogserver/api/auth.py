@@ -6,6 +6,7 @@ from fastapi.security.open_id_connect_url import OpenIdConnect
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from authlib.integrations.starlette_client import OAuth, OAuthError
+from authlib.integrations.starlette_client.integration import StarletteRemoteApp
 from jose import JWTError, jwt
 from oauthlib.oauth2 import OAuth2Token
 from fastapi import HTTPException
@@ -42,15 +43,22 @@ class JWTTokenResponse(BaseModel):
 class JWTTokenContainer:
     def __init__(
         self,
-        user_identifier: str,
+        sub: str,
         scope: List[str] = None,
         prevent_generate_new_token: bool = False,
     ):
+        """_summary_
+
+        Args:
+            sub (str): "Subject" - the user name/id
+            scope (List[str], optional): _description_. Defaults to None.
+            prevent_generate_new_token (bool, optional): _description_. Defaults to False.
+        """
         if scope is None:
             scope = []
         self.scope: List[str] = scope
-        self.user_name: str = user_identifier
-        self.expire_moment: datetime = None
+        self.sub: str = sub
+        self.exp: datetime = None
         self.jwt_token: str = None
         if not prevent_generate_new_token:
             self._generate_token()
@@ -59,20 +67,18 @@ class JWTTokenContainer:
         return JWTTokenResponse(
             token=self.jwt_token,
             token_type="Bearer",
-            expires_in=int(
-                (self.expire_moment - datetime.now(timezone.utc)).total_seconds()
-            ),
+            expires_in=int((self.exp - datetime.now(timezone.utc)).total_seconds()),
         )
 
     def _generate_token(self):
         expire_moment: datetime = datetime.now(timezone.utc) + timedelta(
             minutes=config.JWT_TOKEN_EXPIRES_MINUTES
         )
-        self.expire_moment = expire_moment
+        self.exp = expire_moment
         self.jwt_token = jwt.encode(
             claims={
-                "sub": self.user_name,
-                "exp": self.expire_moment.timestamp(),
+                "sub": self.sub,
+                "exp": self.exp.timestamp(),
                 "aud": str(config.get_server_url()),
                 "scope": " ".join(self.scope),
                 "iss": config.SERVER_HOSTNAME,
@@ -93,7 +99,7 @@ class JWTTokenContainer:
                 prevent_generate_new_token=True,
             )
             new_obj.jwt_token = jwt_token
-            new_obj.expire_moment = datetime.fromtimestamp(jwt_token_decoded["exp"])
+            new_obj.exp = datetime.fromtimestamp(jwt_token_decoded["exp"])
             return new_obj
         except JWTError as exp:
             raise HTTPException(
@@ -136,6 +142,7 @@ app.add_middleware(
 
 authlib_oauth = OAuth()
 
+
 authlib_oauth.register(
     name="medlog",
     server_metadata_url=str(config.oidc.discovery_endpoint),
@@ -144,7 +151,7 @@ authlib_oauth.register(
     client_secret=config.oidc.client_secret.get_secret_value(),
 )
 
-authlib_oauth_app = authlib_oauth.medlog
+authlib_oauth_app: StarletteRemoteApp = authlib_oauth.medlog
 
 fastapi_oauth2 = OpenIdConnect(
     openIdConnectUrl=str(config.oidc.discovery_endpoint),
@@ -213,7 +220,7 @@ async def auth(request: Request):
     )
     assert userinfo[config.oidc.user_id_attribute], "User ID attribute is empty"
     client_access_token = JWTTokenContainer(
-        user_identifier=userinfo[config.oidc.user_id_attribute],
+        sub=userinfo[config.oidc.user_id_attribute],
         scope=userinfo[config.oidc.user_group_attribute],
     )
 

@@ -26,15 +26,11 @@ class Config(BaseSettings):
     SERVER_LISTENING_PORT: int = Field(default=8008)
     SERVER_LISTENING_HOST: str = Field(
         default="localhost",
-        examples=[
-            "0.0.0.0",
-            "localhost",
-            "127.0.0.1",
-        ],
+        examples=["0.0.0.0", "localhost", "127.0.0.1", "176.16.8.123"],
     )
     SERVER_HOSTNAME: Optional[str] = Field(
         default_factory=socket.gethostname,
-        description="The (external) hostname where the API is available. Usally a FQDN in productive systems. If not defined, it will be automatically detected.",
+        description="The (external) hostname/domainname where the API is available. Usally a FQDN in productive systems. If not defined, it will be automatically detected based on the hostname.",
     )
     SERVER_PROTOCOL: Optional[Literal["http", "https"]] = Field(
         default=None,
@@ -50,7 +46,7 @@ class Config(BaseSettings):
             proto = "http"
         return AnyHttpUrl(f"{proto}://{self.SERVER_HOSTNAME}")
 
-    sqldatabase_url: AnyUrl = Field(default="sqlite+aiosqlite:///./local.db")
+    SQL_DATABASE_URL: AnyUrl = Field(default="sqlite+aiosqlite:///./local.db")
 
     JWT_SECRET: str = Field(
         description="The secret used to sign the JWT tokens. Provide a long random string.",
@@ -58,7 +54,7 @@ class Config(BaseSettings):
     )
     JWT_ALGORITHM: str = Field(default="HS256")
     JWT_TOKEN_EXPIRES_MINUTES: int = Field(
-        default=30, description="The lifetime of the JWT tokens in minutes."
+        default=1440, description="The lifetime of the Clients JWT tokens in minutes."
     )
 
     class OpenIDConnect(BaseSettings):

@@ -9,7 +9,7 @@ from medlogserver.config import Config
 
 config = Config()
 
-engine = create_async_engine(config.sqldatabase_url)
+engine = create_async_engine(config.SQL_DATABASE_URL)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
 

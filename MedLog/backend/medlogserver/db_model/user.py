@@ -1,22 +1,25 @@
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator, List, Optional
 
-from fastapi import Depends
-from fastapi_users.db import (
-    SQLAlchemyBaseOAuthAccountTableUUID,
-    SQLAlchemyBaseUserTableUUID,
-    SQLAlchemyUserDatabase,
-)
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, relationship
 
 from medlogserver.db_model.base import Base
 
-
-class OAuthAccount(SQLAlchemyBaseOAuthAccountTableUUID, Base):
-    pass
+from sqlmodel import Field
 
 
-class User(SQLAlchemyBaseUserTableUUID, Base):
-    oauth_accounts: Mapped[List[OAuthAccount]] = relationship(
-        "OAuthAccount", lazy="joined"
-    )
+class User(Base):
+    __tablename__ = "user"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    username: str = Field(default=None, index=True)
+    disabled: bool = Field(default=False)
+    scopes: List[str] = Field(default=[])
+
+
+class Device(Base):
+    __tablename__ = "device"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(default=None)
+    user: User = Field(default=None, foreign_key="users.id")
+    disabled: bool = Field(default=False)
+
+class ClientToken(Base):
+    
