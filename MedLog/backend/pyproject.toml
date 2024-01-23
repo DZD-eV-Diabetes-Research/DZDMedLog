@@ -13,11 +13,14 @@ license = { text = "MIT" }
 classifiers = [
     "Framework :: FastAPI",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
     "uvicorn",
+    "oauthlib",
     "fastapi",
+    "starlette",
+    "python-jose",
     "Authlib",
     "httpx",
     "sqlmodel",
@@ -27,7 +30,7 @@ dependencies = [
     "pydantic_settings",
     "Click",
     "getversion",
-    "pip-tools"
+    "pip-tools",
 ]
 dynamic = ["version"]
 

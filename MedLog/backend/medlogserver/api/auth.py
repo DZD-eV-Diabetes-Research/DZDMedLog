@@ -6,9 +6,11 @@ from fastapi.security.open_id_connect_url import OpenIdConnect
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from authlib.integrations.starlette_client import OAuth, OAuthError
-from authlib.integrations.starlette_client.integration import StarletteRemoteApp
+from authlib.integrations.starlette_client.apps import StarletteOAuth2App
+
 from jose import JWTError, jwt
 from oauthlib.oauth2 import OAuth2Token
+
 from fastapi import HTTPException
 from fastapi import Request
 from fastapi import Depends
@@ -22,10 +24,23 @@ from authlib.oidc.core.claims import UserInfo as OIDCUserInfo
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
+
 log = get_logger()
 
 config = Config()
 
+
+class HTTPExceptionResponse(BaseModel):
+    status_code: int
+    detail: str
+
+
+class OAuthErrorHTTPResponse(HTTPExceptionResponse):
+    _error_code = 401
+
+    @classmethod
+    def from_OAuthError(cls, error: OAuthError):
+        return cls(status_code=cls._error_code.default, detail=error.description)
 
 class JWTTokenResponse(BaseModel):
     token: str = Field(
@@ -108,27 +123,19 @@ class JWTTokenContainer:
             )
 
 
-class HTTPExceptionResponse(BaseModel):
-    status_code: int
-    detail: str
-
-
-class OAuthErrorHTTPResponse(HTTPExceptionResponse):
-    _error_code = 401
-
-    @classmethod
-    def from_OAuthError(cls, error: OAuthError):
-        return cls(status_code=cls._error_code.default, detail=error.description)
-
-
 app = FastAPI(
+    #swagger_ui_oauth2_redirect_url='/auth',
     swagger_ui_init_oauth={
         "clientId": config.oidc.client_id,
         "appName": "medlog",
-        "usePkceWithAuthorizationCodeGrant": False,
+        "scopeSeparator": " ",
+        "additionalQueryStringParams": {},
         "scopes": "openid profile email",
+        "useBasicAuthenticationWithAccessCodeGrant": False,
+        "usePkceWithAuthorizationCodeGrant": False,
     }
 )
+
 app.add_middleware(SessionMiddleware, secret_key=config.oidc.jwt_secret)
 # TODO FIX THIS: ONLY FOR DEV
 app.add_middleware(
@@ -151,16 +158,16 @@ authlib_oauth.register(
     client_secret=config.oidc.client_secret.get_secret_value(),
 )
 
-authlib_oauth_app: StarletteRemoteApp = authlib_oauth.medlog
+authlib_oauth_app: StarletteOAuth2App = authlib_oauth.medlog
 
-fastapi_oauth2 = OpenIdConnect(
+fastapi_oauth2_oidc = OpenIdConnect(
     openIdConnectUrl=str(config.oidc.discovery_endpoint),
     scheme_name=config.oidc.PROVIDER_NAME,
 )
 
 
 async def current_user(
-    request: Request, token: Optional[str] = Depends(fastapi_oauth2)
+    request: Request, token: Optional[str] = Security(fastapi_oauth2_oidc)
 ):
     # we could query the identity provider to give us some information about the user
     # userinfo = await self.authlib_oauth.myapp.userinfo(token={"access_token": token})
@@ -195,6 +202,8 @@ async def only_for_logged_in_users_test(user=Security(current_user, scopes=["ope
 
 @app.get("/login")
 async def login(request: Request):
+    #log.debug(request.session)
+    #request.session['test'] = 'foo'
     redirect_uri = request.url_for("auth")
     log.debug(f"/login redirect_uri:{redirect_uri}")
 
@@ -205,19 +214,32 @@ async def login(request: Request):
     "/auth",
     response_model=JWTTokenResponse,
     responses={401: {"model": OAuthErrorHTTPResponse}},
-    response_description="a JWT token to be used to authenticate against the API",
+    response_description="a OAuth2Token token to be used to authenticate against the API",
 )
 async def auth(request: Request):
+    
+    #log.debug(request.session.get('test', ''))
     try:
-        user_oauth_token = await authlib_oauth_app.authorize_access_token(request)
+        # We use the OAuth2 Authorization Code Flow. That means the OIDC provider send the auth code to here.
+        # we create the refresh and access token from the auth code and send the access token back to the user
+            
+        user_oauth_token: OAuth2Token = await authlib_oauth_app.authorize_access_token(
+            request
+        )
         log.info(f"token: {type(user_oauth_token)},{user_oauth_token}")
+
     except OAuthError as error:
         return OAuthErrorHTTPResponse.from_OAuthError(error)
     # <=0.15
     # user = await oauth.google.parse_id_token(request, token)
-    userinfo: OIDCUserInfo = await authlib_oauth_app.userinfo(
-        token={"access_token": user_oauth_token["access_token"]}
-    )
+    try:
+        userinfo: OIDCUserInfo = await authlib_oauth_app.userinfo(
+            token={"access_token": user_oauth_token["access_token"]}
+        )
+    except Exception as exp:
+        log.error(f"Could not get userinfo from OIDC provider: {exp}")
+    return user_oauth_token
+
     assert userinfo[config.oidc.user_id_attribute], "User ID attribute is empty"
     client_access_token = JWTTokenContainer(
         sub=userinfo[config.oidc.user_id_attribute],

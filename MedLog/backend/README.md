@@ -6,6 +6,6 @@
 
 `python -m pip install pip-tools`
 
-`pip-compile -o requirements.txt pyproject.toml`
+`pip-compile -o MedLog/backend/requirements.txt MedLog/backend/pyproject.toml`
 
-`pip install -r requirements.txt`
+`pip install -r requirements.txt -U`
