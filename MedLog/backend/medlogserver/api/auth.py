@@ -136,7 +136,8 @@ app = FastAPI(
     }
 )
 
-app.add_middleware(SessionMiddleware, secret_key=config.oidc.jwt_secret)
+#app.add_middleware(SessionMiddleware, secret_key=config.oidc.jwt_secret)
+app.add_middleware(SessionMiddleware,secret_key="xxx")
 # TODO FIX THIS: ONLY FOR DEV
 app.add_middleware(
     CORSMiddleware,
@@ -212,7 +213,7 @@ async def login(request: Request):
 
 @app.get(
     "/auth",
-    response_model=JWTTokenResponse,
+    #response_model=JWTTokenResponse,
     responses={401: {"model": OAuthErrorHTTPResponse}},
     response_description="a OAuth2Token token to be used to authenticate against the API",
 )
@@ -222,7 +223,7 @@ async def auth(request: Request):
     try:
         # We use the OAuth2 Authorization Code Flow. That means the OIDC provider send the auth code to here.
         # we create the refresh and access token from the auth code and send the access token back to the user
-            
+        print(request.session)
         user_oauth_token: OAuth2Token = await authlib_oauth_app.authorize_access_token(
             request
         )

@@ -18,7 +18,7 @@ This will start a local Authentik instance with a prepared configurations (user,
 
 ## Check
 
-visit http://http://172.25.0.12:9000 to check if Authentik is running
+visit http://172.25.0.12:9000 to check if Authentik is running
 You can login with:
 `akadmin`:`iamastupidtest` for admin access
 `devuser`:`password123` for a normal user access
