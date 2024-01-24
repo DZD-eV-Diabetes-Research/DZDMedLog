@@ -5,6 +5,7 @@ https://fastapi-users.github.io/fastapi-users/12.1/
 
 ## Important Sources / insporations
 
+### OIDC
 https://github.com/tiangolo/full-stack-fastapi-postgresql
 
 https://github.com/tiangolo/fastapi/issues/12#issuecomment-457706256
@@ -19,6 +20,9 @@ https://openid.net/specs/openid-connect-core-1_0.html
 https://frankie567.github.io/httpx-oauth/oauth2/
 https://fastapi-users.github.io/fastapi-users/12.1/configuration/oauth/#instantiate-an-oauth2-client
 
+### DB
+
+https://medium.com/@estretyakov/the-ultimate-async-setup-fastapi-sqlmodel-alembic-pytest-ae5cdcfed3d4
 
 ## interesting
 https://github.com/gmachado-nextreason/example-oidc-server-fastapi

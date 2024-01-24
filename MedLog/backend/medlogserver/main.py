@@ -41,7 +41,7 @@ def start():
 
     import uvicorn
     from uvicorn.config import LOGGING_CONFIG
-    from medlogserver.api.auth import app
+    from medlogserver.REST_api.auth import app
 
     uvicorn_log_config: Dict = LOGGING_CONFIG
     uvicorn_log_config["loggers"][APP_LOGGER_DEFAULT_NAME] = {

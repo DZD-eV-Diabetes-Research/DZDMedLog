@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from fastapi_users import fastapi_users
 
 
-from medlogserver.api.auth import oidc_client, auth_backend
+from medlogserver.REST_api.auth import oidc_client, auth_backend
 
 router = APIRouter(prefix="/v1")
 

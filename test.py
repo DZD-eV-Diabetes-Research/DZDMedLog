@@ -1,3 +1,8 @@
-a = "3213"
-b = 23213
-print(str("sds", a, b))
+mls = "this is a test\
+    yeeeses, hope ther are no extra spaces"
+print(mls)
+
+mls2 = """this is another test\
+    yeeeses, hope ther are no extra spaces"
+"""
+print(mls2)

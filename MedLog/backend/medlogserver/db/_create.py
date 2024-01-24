@@ -4,7 +4,7 @@ from typing import AsyncGenerator, List
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, relationship
 
-from medlogserver.db_model.base import Base
+from medlogserver.db.base import Base
 from medlogserver.config import Config
 
 config = Config()
