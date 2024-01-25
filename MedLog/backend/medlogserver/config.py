@@ -10,11 +10,6 @@ env_file_path = Path(__file__).parent / ".env"
 
 
 class Config(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_nested_delimiter="__",
-        env_file=env_file_path,
-        env_file_encoding="utf-8",
-    )
     APP_NAME: str = "DZD MedLog"
     LOG_LEVEL: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"] = Field(
         default="WARNING"
@@ -37,6 +32,11 @@ class Config(BaseSettings):
     SERVER_PROTOCOL: Optional[Literal["http", "https"]] = Field(
         default=None,
         description="The protocol detection can fail in certain reverse proxy situations. This option allows you to manually override the automatic detection",
+    )
+
+    SERVER_SESSION_SECRET: str = Field(
+        description="The secret used to encrypt session state. Provide a long random string.",
+        min_length=64,
     )
 
     def get_server_url(self) -> AnyHttpUrl:
@@ -80,29 +80,33 @@ class Config(BaseSettings):
         CLIENT_SECRET: SecretStr = Field(
             description="The client secret of the OpenID Connect provider."
         )
-        discovery_endpoint: AnyUrl = Field(
+        DISCOVERY_ENDPOINT: AnyUrl = Field(
             description="The discovery endpoint of the OpenID Connect provider."
         )
-        scopes: List[str] = Field(
+        SCOPES: List[str] = Field(
             description="", default=["openid", "profile", "email"]
         )
-        user_id_attribute: str = Field(
+        USER_ID_ATTRIBUTE: str = Field(
             description="The attribute of the OpenID Connect provider that contains a unique id of the user.",
             default="preferred_username",
         )
-        user_display_name_attribute: str = Field(
+        USER_DISPLAY_NAME_ATTRIBUTE: str = Field(
             description="The attribute of the OpenID Connect provider that contains the display name of the user.",
             default="display_name",
         )
-        user_mail_attribute: str = Field(
+        USER_MAIL_ATTRIBUTE: str = Field(
             description="The attribute of the OpenID Connect provider that contains a unique id of the user.",
             default="email",
         )
-        user_group_attribute: str = Field(description="", default="groups")
+        USER_GROUP_ATTRIBUTE: str = Field(description="", default="groups")
         jwt_secret: SecretStr = Field(
             description="The secret used to sign the JWT tokens. Provide a long random string.",
         )
-        prefix_user_id_with_provider_name: bool = Field(
+        AUTO_CREATE_AUTHORIZED_USER: bool = Field(
+            default=True,
+            description="If a user does not exists in the local database, create the user on first authorization via the OIDC Provider.",
+        )
+        PREFIX_USER_ID_WITH_PROVIDER_NAME: bool = Field(
             description="To prevent naming collisions, the user id is prefixed with the provider name.",
             default=True,
         )
@@ -122,4 +126,12 @@ class Config(BaseSettings):
                 If you want to lower database traffic and quicker requests set this to false."""
         ),
         default=True,
+    )
+    ###### CONFIG END ######
+    # mode_config is fixed variable  in pydantic-settings to control the behaviour of our settings model
+    # https://docs.pydantic.dev/latest/api/base_model/#pydantic.main.BaseModel.model_config
+    model_config = SettingsConfigDict(
+        env_nested_delimiter="__",
+        env_file=env_file_path,
+        env_file_encoding="utf-8",
     )

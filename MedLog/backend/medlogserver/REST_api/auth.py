@@ -42,6 +42,7 @@ class OAuthErrorHTTPResponse(HTTPExceptionResponse):
     def from_OAuthError(cls, error: OAuthError):
         return cls(status_code=cls._error_code.default, detail=error.description)
 
+
 class JWTTokenResponse(BaseModel):
     token: str = Field(
         examples=[
@@ -55,76 +56,8 @@ class JWTTokenResponse(BaseModel):
     )
 
 
-class JWTTokenContainer:
-    def __init__(
-        self,
-        sub: str,
-        scope: List[str] = None,
-        prevent_generate_new_token: bool = False,
-    ):
-        """_summary_
-
-        Args:
-            sub (str): "Subject" - the user name/id
-            scope (List[str], optional): _description_. Defaults to None.
-            prevent_generate_new_token (bool, optional): _description_. Defaults to False.
-        """
-        if scope is None:
-            scope = []
-        self.scope: List[str] = scope
-        self.sub: str = sub
-        self.exp: datetime = None
-        self.jwt_token: str = None
-        if not prevent_generate_new_token:
-            self._generate_token()
-
-    def get_response(self) -> JWTTokenResponse:
-        return JWTTokenResponse(
-            token=self.jwt_token,
-            token_type="Bearer",
-            expires_in=int((self.exp - datetime.now(timezone.utc)).total_seconds()),
-        )
-
-    def _generate_token(self):
-        expire_moment: datetime = datetime.now(timezone.utc) + timedelta(
-            minutes=config.JWT_TOKEN_EXPIRES_MINUTES
-        )
-        self.exp = expire_moment
-        self.jwt_token = jwt.encode(
-            claims={
-                "sub": self.sub,
-                "exp": self.exp.timestamp(),
-                "aud": str(config.get_server_url()),
-                "scope": " ".join(self.scope),
-                "iss": config.SERVER_HOSTNAME,
-            },
-            key=config.JWT_SECRET,
-            algorithm=config.JWT_ALGORITHM,
-        )
-
-    @classmethod
-    def from_existing_jwt(cls, jwt_token: str) -> Self:
-        try:
-            jwt_token_decoded = jwt.decode(
-                jwt_token, config.JWT_SECRET, config.JWT_ALGORITHM
-            )
-            new_obj = cls(
-                user_name=jwt_token_decoded["sub"],
-                user_roles=jwt_token_decoded["scope"].split(" "),
-                prevent_generate_new_token=True,
-            )
-            new_obj.jwt_token = jwt_token
-            new_obj.exp = datetime.fromtimestamp(jwt_token_decoded["exp"])
-            return new_obj
-        except JWTError as exp:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Supplied authentication could not be validated ({exp})",
-            )
-
-
 app = FastAPI(
-    #swagger_ui_oauth2_redirect_url='/auth',
+    # swagger_ui_oauth2_redirect_url='/auth',
     swagger_ui_init_oauth={
         "clientId": config.oidc.client_id,
         "appName": "medlog",
@@ -136,8 +69,8 @@ app = FastAPI(
     }
 )
 
-#app.add_middleware(SessionMiddleware, secret_key=config.oidc.jwt_secret)
-app.add_middleware(SessionMiddleware,secret_key="xxx")
+# app.add_middleware(SessionMiddleware, secret_key=config.oidc.jwt_secret)
+app.add_middleware(SessionMiddleware, secret_key="xxx")
 # TODO FIX THIS: ONLY FOR DEV
 app.add_middleware(
     CORSMiddleware,
@@ -203,8 +136,8 @@ async def only_for_logged_in_users_test(user=Security(current_user, scopes=["ope
 
 @app.get("/login")
 async def login(request: Request):
-    #log.debug(request.session)
-    #request.session['test'] = 'foo'
+    # log.debug(request.session)
+    # request.session['test'] = 'foo'
     redirect_uri = request.url_for("auth")
     log.debug(f"/login redirect_uri:{redirect_uri}")
 
@@ -213,13 +146,12 @@ async def login(request: Request):
 
 @app.get(
     "/auth",
-    #response_model=JWTTokenResponse,
+    # response_model=JWTTokenResponse,
     responses={401: {"model": OAuthErrorHTTPResponse}},
     response_description="a OAuth2Token token to be used to authenticate against the API",
 )
 async def auth(request: Request):
-    
-    #log.debug(request.session.get('test', ''))
+    # log.debug(request.session.get('test', ''))
     try:
         # We use the OAuth2 Authorization Code Flow. That means the OIDC provider send the auth code to here.
         # we create the refresh and access token from the auth code and send the access token back to the user

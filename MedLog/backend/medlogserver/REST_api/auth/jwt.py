@@ -6,10 +6,12 @@ from typing import List, Literal
 from typing_extensions import Self
 from jose import JWTError, jwt
 from fastapi import HTTPException, status
-
+import json
 #
+from medlogserver.db.user import User
 from medlogserver.config import Config
 from medlogserver.log import get_logger
+
 
 log = get_logger()
 config = Config()
@@ -32,8 +34,7 @@ class JWTTokenContainer:
     def __init__(
         self,
         sub: str,
-        user_name: str,
-        user_groups: List[str] = None,
+        user: User,
         scope: List[str] = None,
         prevent_generate_new_token: bool = False,
     ):
@@ -48,10 +49,10 @@ class JWTTokenContainer:
             scope = []
         self.scope: List[str] = scope
         self.sub: str = sub
-        self.name: str = user_name
-        self.grps: List[str] = user_groups
+
         self.exp: datetime = None
         self.jwt_token: str = None
+        self.user: User = user
         self.id: UUID = None
         if not prevent_generate_new_token:
             self._generate_token()
@@ -93,8 +94,11 @@ class JWTTokenContainer:
                 "aud": str(config.get_server_url()),
                 "scope": " ".join(self.scope),
                 "iss": config.SERVER_HOSTNAME,
-                "name": self.name,
-                "grps": " ".join(self.grps),
+                # Dumping the whole user object in the token, is a very heavy payload and maybe a bad idea.
+                # lets analize later if database access to load the user object (and just save the user id here) every request is maybe better perfoming.
+                # (Which would defeat the whole purpose of jwt tokens :D. then we could switch to good old opaque tokens)
+                # TODO: do some tests and thinking here before deciding
+                "user": self.user.model_dump_json(),
                 "id": str(self.id),
             },
             key=config.AUTH_JWT_SECRET,
@@ -109,9 +113,8 @@ class JWTTokenContainer:
             )
             new_obj = cls(
                 sub=jwt_token_decoded["sub"],
-                user_name=jwt_token_decoded["name"],
-                user_groups=jwt_token_decoded["grps"].split(" "),
                 scope=jwt_token_decoded["scope"].split(" "),
+                user=User(**json.load(jwt_token_decoded["user"]))
                 prevent_generate_new_token=True,
             )
             new_obj.jwt_token = jwt_token

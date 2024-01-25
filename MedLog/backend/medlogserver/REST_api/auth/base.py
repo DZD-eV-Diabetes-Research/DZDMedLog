@@ -44,29 +44,33 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        jwt: JWTTokenContainer = JWTTokenContainer.from_existing_encoded_jwt(token)
-        if jwt.user_id is None:
+        access_jwt: JWTTokenContainer = JWTTokenContainer.from_existing_encoded_jwt(
+            token
+        )
+        if access_jwt.user is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
     if config.AUTH_CHECK_TOKENS_FOR_REVOKATION:
         access_token_from_db = None
-        if jwt.id is None:
-            user_auth_access_tokens = await user_auth_access_token_crud.list_by_user(
-                user_id=jwt.user_id
+
+        if access_jwt.id is None:
+            stored_user_auth_access_tokens = (
+                await user_auth_access_token_crud.list_by_user(
+                    user_id=access_jwt.user.id
+                )
             )
-            for token in user_auth_access_tokens:
-                if token.token_encoded == jwt.jwt_token:
-                    access_token_from_db = token
+
+            for stored_user_access_token in stored_user_auth_access_tokens:
+                if stored_user_access_token.token_encoded == access_jwt.jwt_token:
+                    access_token_from_db = stored_user_access_token
                     break
         else:
-            access_token_from_db = await user_auth_access_token_crud.get(id=jwt.id)
+            access_token_from_db = await user_auth_access_token_crud.get(
+                id=access_jwt.id
+            )
         if access_token_from_db is None or access_token_from_db.disabled:
             raise credentials_exception
-    if jwt.is_expired():
+    if access_jwt.is_expired():
         raise credentials_exception
-    # YOU ARE HERE. EXTARCT USER INFO FROM TOKEN AND BUILD USER OBJECT AND RETURN
-    user = None
-    if user is None:
-        raise credentials_exception
-    return user
+    return access_jwt.user

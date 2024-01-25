@@ -3,7 +3,7 @@ from pydantic import SecretStr, Json
 from fastapi import Depends
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseTable, AsyncSession, get_session
+from medlogserver.db.base import Base, BaseTable, AsyncSession, get_session
 
 from sqlmodel import Field, select, delete
 from uuid import UUID
@@ -13,6 +13,8 @@ config = Config()
 
 
 # User Models and Table
+
+
 class UserBase(BaseTable, table=False):
     email: str = Field(default=None, index=True)
     display_name: str = Field(default=None, max_length=128)
