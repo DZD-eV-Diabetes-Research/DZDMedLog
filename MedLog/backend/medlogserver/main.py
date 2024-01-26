@@ -4,6 +4,7 @@ import os
 import getversion
 import yaml
 import sys
+import asyncio
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler(sys.stdout))
@@ -38,10 +39,16 @@ def start():
     log.debug("----CONFIG-END-----")
     print(f"LOG_LEVEL: {config.LOG_LEVEL}")
     print(f"UVICORN_LOG_LEVEL: {get_uvicorn_loglevel()}")
+    from medlogserver.db._init_db import init_db
 
+    asyncio.run(init_db())
     import uvicorn
     from uvicorn.config import LOGGING_CONFIG
-    from medlogserver.REST_api.auth import app
+    from medlogserver.app import app
+    from medlogserver.REST_api.auth.scheme_oidc import register_oidc_providers
+
+    for oidc_provider_router in register_oidc_providers():
+        app.include_router(oidc_provider_router)
 
     uvicorn_log_config: Dict = LOGGING_CONFIG
     uvicorn_log_config["loggers"][APP_LOGGER_DEFAULT_NAME] = {

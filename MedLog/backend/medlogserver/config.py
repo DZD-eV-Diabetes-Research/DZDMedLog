@@ -1,9 +1,10 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, AnyUrl, SecretStr, AnyHttpUrl
+from pydantic import Field, AnyUrl, SecretStr, AnyHttpUrl, validator, StringConstraints
 from typing import List, Annotated, Optional, Literal
 from pathlib import Path, PurePath
 import socket
 from textwrap import dedent
+
 
 env_file_path = Path(__file__).parent / ".env"
 # print(env_file)
@@ -30,7 +31,7 @@ class Config(BaseSettings):
         description="The (external) hostname/domainname where the API is available. Usally a FQDN in productive systems. If not defined, it will be automatically detected based on the hostname.",
     )
     SERVER_PROTOCOL: Optional[Literal["http", "https"]] = Field(
-        default=None,
+        default="http",
         description="The protocol detection can fail in certain reverse proxy situations. This option allows you to manually override the automatic detection",
     )
 
@@ -48,7 +49,12 @@ class Config(BaseSettings):
             proto = "http"
         return AnyHttpUrl(f"{proto}://{self.SERVER_HOSTNAME}")
 
-    SQL_DATABASE_URL: AnyUrl = Field(default="sqlite+aiosqlite:///./local.db")
+    SQL_DATABASE_URL: AnyUrl = Field(default="sqlite+aiosqlite:///./local.sqlite")
+
+    ADMIN_USER_NAME: str = Field(default="admin")
+    ADMIN_USER_PW: str = Field()
+    ADMIN_USER_EMAIL: Optional[str] = Field(default=None)
+    ADMIN_ROLE_NAME: str = Field(default="medlog-admin")
 
     AUTH_LOCAL_USER_DB_ENABLED: bool = Field(
         default=True, description="Local user database is enabled."
@@ -70,7 +76,19 @@ class Config(BaseSettings):
     )
 
     class OpenIDConnectProvider(BaseSettings):
-        PROVIDER_NAME: str = Field(
+        PROVIDER_SLUG_NAME: Annotated[
+            str,
+            StringConstraints(
+                strip_whitespace=True, to_lower=True, pattern=r"^[a-zA-Z0-9-]+$"
+            ),
+        ] = Field(
+            description="The name of the OpenID Connect used in urls.",
+            default="openid-connect",
+            max_length=64,
+            min_length=3,
+        )
+
+        PROVIDER_DISPLAY_NAME: str = Field(
             description="The name of the OpenID Connect provider shown to the user.",
             default="My OpenID Connect Login",
         )
@@ -99,9 +117,7 @@ class Config(BaseSettings):
             default="email",
         )
         USER_GROUP_ATTRIBUTE: str = Field(description="", default="groups")
-        jwt_secret: SecretStr = Field(
-            description="The secret used to sign the JWT tokens. Provide a long random string.",
-        )
+
         AUTO_CREATE_AUTHORIZED_USER: bool = Field(
             default=True,
             description="If a user does not exists in the local database, create the user on first authorization via the OIDC Provider.",

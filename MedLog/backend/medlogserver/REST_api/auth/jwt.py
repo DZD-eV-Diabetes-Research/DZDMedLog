@@ -7,6 +7,7 @@ from typing_extensions import Self
 from jose import JWTError, jwt
 from fastapi import HTTPException, status
 import json
+
 #
 from medlogserver.db.user import User
 from medlogserver.config import Config
@@ -114,7 +115,7 @@ class JWTTokenContainer:
             new_obj = cls(
                 sub=jwt_token_decoded["sub"],
                 scope=jwt_token_decoded["scope"].split(" "),
-                user=User(**json.load(jwt_token_decoded["user"]))
+                user=User(**json.load(jwt_token_decoded["user"])),
                 prevent_generate_new_token=True,
             )
             new_obj.jwt_token = jwt_token

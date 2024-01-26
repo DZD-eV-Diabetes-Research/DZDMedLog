@@ -1,30 +1,40 @@
 from typing import AsyncGenerator, List, Optional, Literal
-from pydantic import SecretStr, Json
+from pydantic import SecretStr
 from fastapi import Depends
+import contextlib
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel
+
+import uuid
+from uuid import UUID
+
+from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import Base, BaseTable, AsyncSession, get_session
-
-from sqlmodel import Field, select, delete
-from uuid import UUID
+from medlogserver.db.base import Base, BaseTable
 
 log = get_logger()
 config = Config()
 
 
-# User Models and Table
-
-
-class UserBase(BaseTable, table=False):
+class UserBase(Base, table=False):
     email: str = Field(default=None, index=True)
     display_name: str = Field(default=None, max_length=128)
-    roles: List[str] = Field(default=[])
+    roles: List[str] = Field(default=[], sa_column=Column(JSON))
     disabled: bool = Field(default=False)
     is_email_verified: bool = Field(default=False)
 
 
-class User(UserBase, table=True):
+class User(UserBase, BaseTable, table=True):
     __tablename__ = "user"
+    id: uuid.UUID = Field(
+        default_factory=uuid.uuid4,
+        primary_key=True,
+        index=True,
+        nullable=False,
+        unique=True,
+        # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
+    )
     username: str = Field(default=None, index=True, unique=True)
 
 
@@ -81,6 +91,8 @@ class UserCRUD:
             raise raise_exception_if_exists if raise_exception_if_exists else ValueError(
                 f"User with username {user.username} already exists"
             )
+        if user.display_name is None:
+            user.display_name = user.username
         self.session.add(user)
         await self.session.commit()
         await self.session.refresh(user)
@@ -120,11 +132,14 @@ class UserCRUD:
             show_disabled=True,
         )
         if user is not None:
-            delete(user).where(User.id == user_id)
+            delete(user).where(User.pk == user_id)
         return True
 
 
 async def get_users_crud(
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_async_session),
 ) -> UserCRUD:
-    return UserCRUD(session=session)
+    yield UserCRUD(session=session)
+
+
+get_users_crud_context = contextlib.asynccontextmanager(get_users_crud)

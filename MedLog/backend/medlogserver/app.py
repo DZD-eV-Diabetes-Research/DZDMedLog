@@ -1,11 +1,12 @@
+from contextlib import asynccontextmanager
 from fastapi import Depends
 from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
-from medlogserver.REST_api._routers import router
+
 
 # from fastapi.security import
-from medlogserver.REST_api.auth import auth_backend
+
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 

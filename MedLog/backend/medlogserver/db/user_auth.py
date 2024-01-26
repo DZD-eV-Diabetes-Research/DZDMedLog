@@ -1,13 +1,17 @@
 from typing import AsyncGenerator, List, Optional, Literal, Sequence
+import contextlib
 from pydantic import SecretStr, Json
 from fastapi import Depends
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.base import BaseTable
-from medlogserver.db.base import AsyncSession, get_session
+from medlogserver.db._session import AsyncSession, get_async_session
 from sqlmodel import Field, select, delete
-from uuid import UUID
+import uuid
 from passlib.context import CryptContext
+import enum
+
+from sqlmodel import Enum, Column
 
 log = get_logger()
 config = Config()
@@ -15,11 +19,18 @@ config = Config()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+class AllowedAuthSources(str, enum.Enum):
+    local = "local"
+    oidc = "oidc"
+
+
 # UserAuth Models and Table
 class _UserAuthBase(BaseTable, table=False):
-    user_id: UUID = Field(foreign_key="user.id")
-    auth_source: Literal["local", "oidc"] = Field()
-    oidc_provider_name: str = Field(default=None, index=True)
+    user_id: uuid.UUID = Field(foreign_key="user.id")
+    auth_source: AllowedAuthSources = Field(
+        default="local", sa_column=Column(Enum(AllowedAuthSources))
+    )
+    oidc_provider_name: Optional[str] = Field(default=None, index=True)
 
 
 class UserAuthUpdate(BaseTable, table=False):
@@ -36,7 +47,15 @@ class UserAuthCreate(_UserAuthBase, UserAuthUpdate, table=False):
 
 class UserAuth(_UserAuthBase, table=True):
     __tablename__ = "user_auth"
-    password_hashed: SecretStr = Field(
+    id: uuid.UUID = Field(
+        default_factory=uuid.uuid4,
+        primary_key=True,
+        index=True,
+        nullable=False,
+        unique=True,
+        # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
+    )
+    password_hashed: str = Field(
         default=None,
         description="The hashed password of the user. Can be None if user is authorized by external provider. e.g. OIDC",
     )
@@ -53,7 +72,7 @@ class UserAuthCRUD:
 
     async def list_by_user(
         self,
-        user_id: str | UUID,
+        user_id: str | uuid.UUID,
         raise_exception_if_none: Exception = None,
     ) -> Sequence[UserAuth]:
         query = select(UserAuth).where(UserAuth.user_id == user_id)
@@ -67,19 +86,26 @@ class UserAuthCRUD:
     async def create(self, user_auth_create: UserAuthCreate) -> UserAuth:
         password_hashed = pwd_context.hash(user_auth_create.password.get_secret_value())
         user_vals = {}
+
         for k, v in user_auth_create.model_dump().items():
-            if k != "password":
-                setattr(user_vals, "password_hashed", password_hashed)
+            log.info(f"{k} {v}")
+            if k == "password":
+                user_vals["password_hashed"] = password_hashed
+
             else:
-                setattr(user_vals, k, v)
+                user_vals[k] = v
+
+        log.debug(f"user_vals {user_vals}")
         user_auth = UserAuth(**user_vals)
+        log.debug(user_auth)
+
         self.session.add(user_auth)
         await self.session.commit()
         await self.session.refresh(user_auth)
         return user_auth
 
     async def delete(
-        self, id: str | UUID, raise_exception_if_not_exists=None
+        self, id: str | uuid.UUID, raise_exception_if_not_exists=None
     ) -> None | Literal[True]:
         user_auth = select(UserAuth).where(UserAuth.id == id)
         if user_auth is None and raise_exception_if_not_exists:
@@ -93,7 +119,7 @@ class UserAuthCRUD:
     async def update(
         self,
         user_auth_update: UserAuthUpdate,
-        id: str | UUID = None,
+        id: str | uuid.UUID = None,
     ) -> UserAuth:
         id = id if id is not None else user_auth_update.id
         if id is None:
@@ -115,17 +141,19 @@ class UserAuthCRUD:
 
 
 async def get_user_auth_crud(
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_async_session),
 ) -> UserAuthCRUD:
-    return UserAuthCRUD(session=session)
+    yield UserAuthCRUD(session=session)
 
+
+get_user_auth_crud_context = contextlib.asynccontextmanager(get_user_auth_crud)
 
 # ClientAccessToken models and table
 
 
 class _UserAuthAccessTokenBase(BaseTable, table=False):
     __tablename__ = "user_auth_access_token"
-    user_id: UUID = Field(default=None, foreign_key="user.id")
+    user_auth_id: uuid.UUID = Field(default=None, foreign_key="user_auth.id")
 
 
 class UserAuthAccessTokenUpdate(_UserAuthAccessTokenBase, table=False):
@@ -141,6 +169,14 @@ class UserAuthAccessToken(
     UserAuthAccessTokenCreate, UserAuthAccessTokenUpdate, table=True
 ):
     __tablename__ = "user_auth_access_token"
+    id: uuid.UUID = Field(
+        default_factory=uuid.uuid4,
+        primary_key=True,
+        index=True,
+        nullable=False,
+        unique=True,
+        # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
+    )
 
 
 class UserAuthAccessTokenCRUD:
@@ -149,7 +185,7 @@ class UserAuthAccessTokenCRUD:
 
     async def get(
         self,
-        id: str | UUID,
+        id: str | uuid.UUID,
         raise_exception_if_none: Exception = None,
     ) -> UserAuthAccessToken:
         query = select(UserAuthAccessToken).where(UserAuthAccessToken.id == id)
@@ -162,7 +198,7 @@ class UserAuthAccessTokenCRUD:
 
     async def list_by_user(
         self,
-        user_id: str | UUID,
+        user_id: str | uuid.UUID,
     ) -> List[UserAuthAccessToken]:
         query = select(UserAuthAccessToken).where(
             UserAuthAccessToken.user_id == user_id
@@ -184,7 +220,7 @@ class UserAuthAccessTokenCRUD:
         return user_auth_access_token
 
     async def delete(
-        self, id: str | UUID, raise_exception_if_not_exists=None
+        self, id: str | uuid.UUID, raise_exception_if_not_exists=None
     ) -> None | Literal[True]:
         query = select(UserAuthAccessToken).where(UserAuthAccessToken.id == id)
         results = await self.session.exec(statement=query)
@@ -201,7 +237,7 @@ class UserAuthAccessTokenCRUD:
     async def update(
         self,
         user_auth_access_token_update: UserAuthAccessTokenUpdate,
-        id: str | UUID = None,
+        id: str | uuid.UUID = None,
     ) -> UserAuthAccessToken:
         id = id if id is not None else user_auth_access_token_update.id
         if id is None:
@@ -226,6 +262,11 @@ class UserAuthAccessTokenCRUD:
 
 
 async def get_user_auth_access_token_crud(
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_async_session),
 ) -> UserAuthAccessTokenCRUD:
-    return UserAuthAccessTokenCRUD(session=session)
+    yield UserAuthAccessTokenCRUD(session=session)
+
+
+get_user_auth_access_token_crud_context = contextlib.asynccontextmanager(
+    get_user_auth_access_token_crud
+)

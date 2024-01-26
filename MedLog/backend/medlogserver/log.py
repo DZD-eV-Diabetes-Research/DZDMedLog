@@ -12,11 +12,13 @@ APP_LOGGER_DEFAULT_NAME = "MedLog"
 def get_loglevel():
     return os.getenv("LOG_LEVEL", config.LOG_LEVEL)
 
-
+log = None
 def get_logger(name: str = APP_LOGGER_DEFAULT_NAME) -> logging.Logger:
-    log = logging.getLogger(name)
-    log.setLevel(get_loglevel())
-    log.addHandler(logging.StreamHandler(sys.stdout))
+    global log
+    if log is None or log.name != name:
+        log = logging.getLogger(name)
+        log.setLevel(get_loglevel())
+        log.addHandler(logging.StreamHandler(sys.stdout))
     return log
 
 
@@ -33,8 +35,8 @@ def get_uvicorn_loglevel():
 
     # if the uvicorn log level is not defined, it will be the same as the python log level
     UVICORN_LOG_LEVEL = (
-        config.UVICORN_LOG_LEVEL
-        if config.UVICORN_LOG_LEVEL is not None
+        config.SERVER_UVICORN_LOG_LEVEL
+        if config.SERVER_UVICORN_LOG_LEVEL is not None
         else config.LOG_LEVEL
     )
     for key, val in UVICORN_LOG_LEVEL_map.items():

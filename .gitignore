@@ -331,3 +331,4 @@ medlog_example_data
 export.yaml
 medlog-demo-data/
 .env
+local.sqlite

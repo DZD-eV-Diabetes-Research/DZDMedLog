@@ -17,7 +17,7 @@ entries:
       #http://localhost:8888/auth 
       # http://localhost:8888/docs/oauth2-redirect
       #redirect_uris: ^http:\/\/localhost:8888\/(auth|docs\/oauth2-redirect)$ 
-      redirect_uris: "http://localhost:8888/auth http://localhost:8888/docs/oauth2-redirect"
+      redirect_uris: "http://localhost:8888/auth/openid-connect http://localhost:8888/docs/oauth2-redirect"
       access_token_validity: minutes=5
       signing_key: !Find [authentik_crypto.CertificateKeyPair, [name, default]]
       scope:
