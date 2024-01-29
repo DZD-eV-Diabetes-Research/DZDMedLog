@@ -19,7 +19,7 @@ config = Config()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-class AllowedAuthSources(str, enum.Enum):
+class AllowedAuthSourceTypes(str, enum.Enum):
     local = "local"
     oidc = "oidc"
 
@@ -27,14 +27,14 @@ class AllowedAuthSources(str, enum.Enum):
 # UserAuth Models and Table
 class _UserAuthBase(BaseTable, table=False):
     user_id: uuid.UUID = Field(foreign_key="user.id")
-    auth_source: AllowedAuthSources = Field(
-        default="local", sa_column=Column(Enum(AllowedAuthSources))
+    auth_source_type: AllowedAuthSourceTypes = Field(
+        default="local", sa_column=Column(Enum(AllowedAuthSourceTypes))
     )
     oidc_provider_name: Optional[str] = Field(default=None, index=True)
 
 
 class UserAuthUpdate(BaseTable, table=False):
-    password: SecretStr = Field(
+    password: Optional[SecretStr] = Field(
         default=None,
         min_length=10,
         description="The password of the user. Can be None if user is authorized by external provider. e.g. OIDC",
@@ -55,28 +55,31 @@ class UserAuth(_UserAuthBase, table=True):
         unique=True,
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
-    password_hashed: str = Field(
+    password_hashed: Optional[str] = Field(
         default=None,
         description="The hashed password of the user. Can be None if user is authorized by external provider. e.g. OIDC",
     )
 
     def verify_password(self, password: SecretStr) -> bool:
-        return pwd_context.verify(
-            password.get_secret_value(), self.password_hashed.get_secret_value()
-        )
+        return pwd_context.verify(password.get_secret_value(), self.password_hashed)
 
 
 class UserAuthCRUD:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def list_by_user(
+    async def list_by_user_id(
         self,
         user_id: str | uuid.UUID,
+        filter_auth_source_type: str = None,
+        filter_oidc_provider_name: str = None,
         raise_exception_if_none: Exception = None,
     ) -> Sequence[UserAuth]:
         query = select(UserAuth).where(UserAuth.user_id == user_id)
-
+        if filter_auth_source_type:
+            query.where(UserAuth.auth_source_type == filter_auth_source_type)
+        if filter_oidc_provider_name:
+            query.where(UserAuth.oidc_provider_name == filter_oidc_provider_name)
         results = await self.session.exec(statement=query)
         user: UserAuth | None = results.all()
         if user is None and raise_exception_if_none:
@@ -84,7 +87,14 @@ class UserAuthCRUD:
         return user
 
     async def create(self, user_auth_create: UserAuthCreate) -> UserAuth:
-        password_hashed = pwd_context.hash(user_auth_create.password.get_secret_value())
+        password_hashed = None
+        if user_auth_create.auth_source_type == AllowedAuthSourceTypes.local:
+            if user_auth_create.password is None:
+                raise ValueError("Password is not allowd to be empty for local users")
+            password_hashed = pwd_context.hash(
+                user_auth_create.password.get_secret_value()
+            )
+
         user_vals = {}
 
         for k, v in user_auth_create.model_dump().items():

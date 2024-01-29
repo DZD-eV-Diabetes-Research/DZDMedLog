@@ -15,10 +15,18 @@ from medlogserver.db.user import get_users_crud, User, UserCRUD
 from medlogserver.db.user_auth import (
     get_user_auth_crud,
     UserAuth,
+    UserAuthCreate,
     UserAuthCRUD,
     UserAuthAccessToken,
+    UserAuthAccessTokenCreate,
     UserAuthAccessTokenCRUD,
     get_user_auth_access_token_crud,
+    AllowedAuthSourceTypes,
+)
+from medlogserver.db.user_auth_external_oidc_token import (
+    UserAuthExternalOIDCToken,
+    UserAuthExternalOIDCTokenCRUD,
+    get_user_auth_external_oidc_token_crud,
 )
 
 config = Config()
@@ -41,81 +49,147 @@ class OAuthErrorHTTPResponse(HTTPExceptionResponse):
         return cls(status_code=cls._error_code.default, detail=error.description)
 
 
-def register_oidc_providers() -> Generator[APIRouter, None, None]:
-    # TODO: test if function names of route muste be unique for multiple OIDC providers
-    for oidc_provider in config.AUTH_OIDC_PROVIDERS:
-        oidc_router = APIRouter()
+class StarletteOAuthProviderAppContainer:
+    def __init__(self, oidc_provider_config: Config.OpenIDConnectProvider):
+        self.name = f"medlog{oidc_provider_config.PROVIDER_SLUG_NAME.replace('-','')}"
+        self.oidc_provider_config = oidc_provider_config
+        self.fast_api_router: APIRouter = APIRouter()
+        self.starlette_client = OAuth()
+
+        self.starlette_client.register(
+            name=self.name,
+            server_metadata_url=str(oidc_provider_config.DISCOVERY_ENDPOINT),
+            client_kwargs={"scope": " ".join(oidc_provider_config.SCOPES)},
+            client_id=oidc_provider_config.CLIENT_ID,  # if enabled, authlib will also check that the access token belongs to this client id (audience)
+            client_secret=oidc_provider_config.CLIENT_SECRET.get_secret_value(),
+        )
         # this is the url the external OIDC provider will be redirect to (at our API here) after the user has authenticated
-        oidc_provider_auth_url = f"/auth/{oidc_provider.PROVIDER_SLUG_NAME}"
-        oauthname = f"medlog{oidc_provider.PROVIDER_SLUG_NAME.replace('-','')}"
-        authlib_oauth = OAuth()
-
-        authlib_oauth.register(
-            name=oauthname,
-            server_metadata_url=str(oidc_provider.DISCOVERY_ENDPOINT),
-            client_kwargs={"scope": " ".join(oidc_provider.SCOPES)},
-            client_id=oidc_provider.CLIENT_ID,  # if enabled, authlib will also check that the access token belongs to this client id (audience)
-            client_secret=oidc_provider.CLIENT_SECRET.get_secret_value(),
+        self.oidc_provider_auth_url = f"/auth/{oidc_provider_config.PROVIDER_SLUG_NAME}"
+        self.fast_api_router.add_api_route(
+            path=f"/login/{oidc_provider_config.PROVIDER_SLUG_NAME}",
+            endpoint=self.login,
+            name=f"login_{self.name}",
+            methods=["GET"],
         )
-
-        authlib_oauth_app: StarletteOAuth2App = getattr(authlib_oauth, oauthname)
-
-        """
-        fastapi_oauth2_oidc = OpenIdConnect(
-            openIdConnectUrl=str(oidc_provider.DISCOVERY_ENDPOINT),
-            scheme_name=oidc_provider.PROVIDER_SLUG_NAME,
-        )
-        """
-
-        @oidc_router.get(
-            f"/login/{oidc_provider.PROVIDER_SLUG_NAME}",
-            name=f"login_{oauthname}",
-        )
-        async def login(request: Request):
-            redirect_uri = request.url_for(oauthname)
-            log.debug(f"/login redirect_uri:{redirect_uri}")
-
-            return await authlib_oauth_app.authorize_redirect(
-                request, str(redirect_uri)
-            )
-
-        @oidc_router.get(
-            oidc_provider_auth_url,
-            name=oauthname,
-            # response_model=JWTTokenResponse,
+        self.fast_api_router.add_api_route(
+            path=self.oidc_provider_auth_url,
+            endpoint=self.auth,
+            name=self.name,
+            methods=["GET"],
             responses={401: {"model": OAuthErrorHTTPResponse}},
             response_description="a OAuth2Token token to be used to authenticate against the API",
         )
-        async def auth(
-            request: Request,
-            user_crud: UserCRUD = Depends(get_users_crud),
-            user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
-            user_auth_access_token_crud: UserAuthAccessTokenCRUD = Depends(
-                get_user_auth_access_token_crud
-            ),
-        ):
-            # TIM YOU ARE HERE
 
-            # log.debug(request.session.get('test', ''))
-            try:
-                # We use the OAuth2 Authorization Code Flow. That means the OIDC provider send the auth code to here.
-                # we create the refresh and access token from the auth code and send the access token back to the user
-                print(request.session)
-                user_oauth_token: OAuth2Token = (
-                    await authlib_oauth_app.authorize_access_token(request)
+    @property
+    def app(self) -> StarletteOAuth2App:
+        return getattr(self.starlette_client, self.name)
+
+    async def login(self, request: Request):
+        redirect_uri = request.url_for(self.name)
+        log.debug(f"/login redirect_uri:{redirect_uri}")
+
+        return await self.app.authorize_redirect(request, str(redirect_uri))
+
+    async def auth(
+        self,
+        request: Request,
+        user_crud: UserCRUD = Depends(get_users_crud),
+        user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
+        user_auth_access_token_crud: UserAuthAccessTokenCRUD = Depends(
+            get_user_auth_access_token_crud
+        ),
+        user_auth_external_oidc_token_crud: UserAuthExternalOIDCTokenCRUD = Depends(
+            get_user_auth_external_oidc_token_crud
+        ),
+    ):
+        # TIM YOU ARE HERE
+
+        # log.debug(request.session.get('test', ''))
+        try:
+            # We use the OAuth2 Authorization Code Flow. That means the OIDC provider send the auth code to here.
+            # we create the refresh and access token from the auth code and send the access token back to the user
+            user_oauth_token: OAuth2Token = await self.app.authorize_access_token(
+                request
+            )
+            log.info(f"token: {type(user_oauth_token)},{user_oauth_token}")
+
+        except OAuthError as error:
+            return OAuthErrorHTTPResponse.from_OAuthError(error)
+        # <=0.15
+        # user = await oauth.google.parse_id_token(request, token)
+        try:
+            userinfo: OIDCUserInfo = await self.app.userinfo(
+                token={"access_token": user_oauth_token["access_token"]}
+            )
+        except Exception as exp:
+            # todo: if the endpoint is not available/functional we can try to extract the userinfo from the token.
+            log.error(f"Could not get userinfo from OIDC provider: {exp}")
+            raise ValueError("Can not reach userendpoint. TODO: Proper Error message")
+        username_attribute = self.oidc_provider_config.USER_ID_ATTRIBUTE
+
+        username = f"{self.oidc_provider_config.PREFIX_USER_ID_WITH_PROVIDER_NAME if not None else ''}{userinfo.get(username_attribute)}"
+
+        user = await user_crud.get_by_username(username)
+        if user is None and self.oidc_provider_config.AUTO_CREATE_AUTHORIZED_USER:
+            user = User(
+                email=userinfo.get(self.oidc_provider_config.USER_MAIL_ATTRIBUTE, None),
+                display_name=userinfo.get(
+                    self.oidc_provider_config.USER_DISPLAY_NAME_ATTRIBUTE, None
+                ),
+                roles=userinfo.get(
+                    self.oidc_provider_config.USER_GROUP_ATTRIBUTE, None
+                ),
+                disabled=False,
+                is_email_verified=userinfo.get(
+                    self.oidc_provider_config.USER_MAIL_VERIFIED_ATTRIBUTE, False
+                ),
+                username=username,
+            )
+            print("USER PRE CREATE", user)
+            user = await user_crud.create(user)
+            print("USER POST CREATE", user)
+        elif user is None and not self.oidc_provider_config.AUTO_CREATE_AUTHORIZED_USER:
+            raise ValueError("Not allowed to create user")
+        user_auth = await user_auth_crud.list_by_user_id(
+            user.id,
+            filter_auth_source_type=AllowedAuthSourceTypes.oidc,
+            filter_oidc_provider_name=self.name,
+        )
+        if not user_auth:
+            user_auth = await user_auth_crud.create(
+                UserAuthCreate(
+                    user_id=user.id,
+                    auth_source_type=AllowedAuthSourceTypes.oidc,
+                    oidc_provider_name=self.name,
                 )
-                log.info(f"token: {type(user_oauth_token)},{user_oauth_token}")
+            )
+        else:
+            user_auth = user_auth[0]
+        user_auth_external_oidc_token = await user_auth_external_oidc_token_crud.create(
+            UserAuthExternalOIDCToken(
+                oidc_provider_name=self.name,
+                oauth_token=user_oauth_token,
+                user_auth_id=user_auth.id,
+            )
+        )
+        access_token = JWTTokenContainer(user=user)
+        print(
+            "access_token.exp_timestamp_utc",
+            access_token.exp_timestamp_utc,
+            type(access_token.exp_timestamp_utc),
+        )
+        await user_auth_access_token_crud.create(
+            UserAuthAccessTokenCreate(
+                user_auth_id=user_auth.id,
+                token_encoded=access_token.jwt_token_encoded,
+                valid_until_timestamp=int(access_token.exp_timestamp_utc),
+            )
+        )
 
-            except OAuthError as error:
-                return OAuthErrorHTTPResponse.from_OAuthError(error)
-            # <=0.15
-            # user = await oauth.google.parse_id_token(request, token)
-            try:
-                userinfo: OIDCUserInfo = await authlib_oauth_app.userinfo(
-                    token={"access_token": user_oauth_token["access_token"]}
-                )
-            except Exception as exp:
-                log.error(f"Could not get userinfo from OIDC provider: {exp}")
-            return user_oauth_token
+        return access_token.get_response()
 
-        yield oidc_router
+
+def generate_oidc_provider_auth_routhers() -> Generator[APIRouter, None, None]:
+    for oidc_provider in config.AUTH_OIDC_PROVIDERS:
+        authlib_oauth = StarletteOAuthProviderAppContainer(oidc_provider)
+        yield authlib_oauth.fast_api_router

@@ -44,10 +44,12 @@ def start():
     asyncio.run(init_db())
     import uvicorn
     from uvicorn.config import LOGGING_CONFIG
-    from medlogserver.app import app
-    from medlogserver.REST_api.auth.scheme_oidc import register_oidc_providers
+    from medlogserver.app import app, add_api_middleware
+    from medlogserver.REST_api.auth.scheme_oidc import (
+        generate_oidc_provider_auth_routhers,
+    )
 
-    for oidc_provider_router in register_oidc_providers():
+    for oidc_provider_router in generate_oidc_provider_auth_routhers():
         app.include_router(oidc_provider_router)
 
     uvicorn_log_config: Dict = LOGGING_CONFIG
@@ -55,6 +57,7 @@ def start():
         "handlers": ["default"],
         "level": get_loglevel(),
     }
+    add_api_middleware(app)
     uvicorn.run(
         app,
         host=config.SERVER_LISTENING_HOST,

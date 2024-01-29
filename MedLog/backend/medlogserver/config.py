@@ -116,6 +116,10 @@ class Config(BaseSettings):
             description="The attribute of the OpenID Connect provider that contains a unique id of the user.",
             default="email",
         )
+        USER_MAIL_VERIFIED_ATTRIBUTE: str = Field(
+            description="The attribute of the OpenID Connect provider that contains the info if the email adress is verified.",
+            default="email_verified",
+        )
         USER_GROUP_ATTRIBUTE: str = Field(description="", default="groups")
 
         AUTO_CREATE_AUTHORIZED_USER: bool = Field(
@@ -124,7 +128,7 @@ class Config(BaseSettings):
         )
         PREFIX_USER_ID_WITH_PROVIDER_NAME: bool = Field(
             description="To prevent naming collisions, the user id is prefixed with the provider name.",
-            default=True,
+            default=None,
         )
 
     AUTH_OIDC_PROVIDERS: Optional[List[OpenIDConnectProvider]] = Field(

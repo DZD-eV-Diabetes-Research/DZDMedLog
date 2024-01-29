@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from uuid import UUID
 
 from datetime import datetime, timedelta, timezone
-from typing import List, Literal
+from typing import List, Literal, Dict
 from typing_extensions import Self
 from jose import JWTError, jwt
 from fastapi import HTTPException, status
@@ -29,30 +29,26 @@ class JWTTokenResponse(BaseModel):
     expires_in: int = Field(
         description="The number of seconds until the token expires", examples=[3600]
     )
+    expires_at_utc: int = Field()
 
 
 class JWTTokenContainer:
     def __init__(
         self,
-        sub: str,
         user: User,
-        scope: List[str] = None,
         prevent_generate_new_token: bool = False,
     ):
         """_summary_
 
         Args:
-            sub (str): "Subject" - the user name/id
-            scope (List[str], optional): _description_. Defaults to None.
+            user (User): _description_
             prevent_generate_new_token (bool, optional): _description_. Defaults to False.
         """
-        if scope is None:
-            scope = []
-        self.scope: List[str] = scope
-        self.sub: str = sub
+        self.scope: List[str] = user.roles
+        self.sub: str = user.username
 
-        self.exp: datetime = None
-        self.jwt_token: str = None
+        self.exp: datetime.timestamp = None
+        self.jwt_token_encoded: str = None
         self.user: User = user
         self.id: UUID = None
         if not prevent_generate_new_token:
@@ -76,11 +72,22 @@ class JWTTokenContainer:
     def is_expired(self) -> bool:
         return datetime.now(timezone.utc) > self.exp
 
+    @property
+    def exp_timestamp_utc(self) -> bool:
+        return self.exp.timestamp()
+
     def get_response(self) -> JWTTokenResponse:
         return JWTTokenResponse(
-            token=self.jwt_token,
+            token=self.jwt_token_encoded,
             token_type="Bearer",
             expires_in=int((self.exp - datetime.now(timezone.utc)).total_seconds()),
+            expires_at_utc=self.exp_timestamp_utc,
+        )
+
+    @property
+    def jwt_token_decoded(self) -> Dict:
+        return jwt.decode(
+            self.token_decoded, config.AUTH_JWT_SECRET, config.AUTH_JWT_ALGORITHM
         )
 
     def _generate_token(self):
@@ -88,7 +95,7 @@ class JWTTokenContainer:
             minutes=config.AUTH_ACCESS_TOKEN_EXPIRES_MINUTES
         )
         self.exp = expire_moment
-        self.jwt_token = jwt.encode(
+        self.jwt_token_encoded = jwt.encode(
             claims={
                 "sub": self.sub,
                 "exp": self.exp.timestamp(),
@@ -113,12 +120,12 @@ class JWTTokenContainer:
                 jwt_token, config.AUTH_JWT_SECRET, config.AUTH_JWT_ALGORITHM
             )
             new_obj = cls(
-                sub=jwt_token_decoded["sub"],
-                scope=jwt_token_decoded["scope"].split(" "),
+                # sub=jwt_token_decoded["sub"],
+                # scope=jwt_token_decoded["scope"].split(" "),
                 user=User(**json.load(jwt_token_decoded["user"])),
                 prevent_generate_new_token=True,
             )
-            new_obj.jwt_token = jwt_token
+            new_obj.jwt_token_encoded = jwt_token
             new_obj.id = UUID(jwt_token_decoded["id"])
             new_obj.exp = datetime.fromtimestamp(jwt_token_decoded["exp"])
             return new_obj

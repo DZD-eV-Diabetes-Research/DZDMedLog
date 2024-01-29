@@ -15,13 +15,16 @@ log = get_logger()
 config = Config()
 
 app = FastAPI()
-app.add_middleware(SessionMiddleware, secret_key=config.SERVER_SESSION_SECRET)
 
-# TODO FIX THIS: ONLY FOR DEV
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-    allow_credentials=True,
-)
+
+def add_api_middleware(fastapiapp:FastAPI):
+    # TODO FIX THIS: ONLY FOR DEV
+    fastapiapp.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+        allow_credentials=True,
+    )
+    fastapiapp.add_middleware(SessionMiddleware, secret_key=config.SERVER_SESSION_SECRET)
+
