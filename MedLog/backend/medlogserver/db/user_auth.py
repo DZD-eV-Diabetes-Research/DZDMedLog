@@ -1,17 +1,22 @@
+# Basics
 from typing import AsyncGenerator, List, Optional, Literal, Sequence
+
+# Libs
+import enum
+import uuid
 import contextlib
 from pydantic import SecretStr, Json
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
+from sqlmodel import Field, select, delete, Enum, Column
+from passlib.context import CryptContext
+
+# Internal
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.base import BaseTable
 from medlogserver.db._session import AsyncSession, get_async_session
-from sqlmodel import Field, select, delete
-import uuid
-from passlib.context import CryptContext
-import enum
+from medlogserver.db.user import User
 
-from sqlmodel import Enum, Column
 
 log = get_logger()
 config = Config()
@@ -60,8 +65,18 @@ class UserAuth(_UserAuthBase, table=True):
         description="The hashed password of the user. Can be None if user is authorized by external provider. e.g. OIDC",
     )
 
-    def verify_password(self, password: SecretStr) -> bool:
-        return pwd_context.verify(password.get_secret_value(), self.password_hashed)
+    def verify_password(
+        self, password: SecretStr | str, raise_exception_if_wrong_pw: Exception = None
+    ) -> bool:
+        if isinstance(password, SecretStr):
+            password_correct = pwd_context.verify(
+                password.get_secret_value(), self.password_hashed
+            )
+        else:
+            password_correct = pwd_context.verify(password, self.password_hashed)
+        if not password_correct and raise_exception_if_wrong_pw:
+            raise raise_exception_if_wrong_pw
+        return password_correct
 
 
 class UserAuthCRUD:
@@ -71,7 +86,7 @@ class UserAuthCRUD:
     async def list_by_user_id(
         self,
         user_id: str | uuid.UUID,
-        filter_auth_source_type: str = None,
+        filter_auth_source_type: AllowedAuthSourceTypes = None,
         filter_oidc_provider_name: str = None,
         raise_exception_if_none: Exception = None,
     ) -> Sequence[UserAuth]:
@@ -81,10 +96,50 @@ class UserAuthCRUD:
         if filter_oidc_provider_name:
             query.where(UserAuth.oidc_provider_name == filter_oidc_provider_name)
         results = await self.session.exec(statement=query)
+        user_auths: Sequence[UserAuth] = results.all()
+        if user_auths is None and raise_exception_if_none:
+            raise raise_exception_if_none
+        return user_auths
+
+    async def list_by_username(
+        self,
+        username: str | uuid.UUID,
+        filter_auth_source_type: AllowedAuthSourceTypes = None,
+        filter_oidc_provider_name: str = None,
+        raise_exception_if_none: Exception = None,
+    ) -> Sequence[UserAuth]:
+        query = select(UserAuth).join(User).where(User.username == username)
+        if filter_auth_source_type:
+            query.where(UserAuth.auth_source_type == filter_auth_source_type)
+        if filter_oidc_provider_name:
+            query.where(UserAuth.oidc_provider_name == filter_oidc_provider_name)
+        results = await self.session.exec(statement=query)
         user: UserAuth | None = results.all()
         if user is None and raise_exception_if_none:
             raise raise_exception_if_none
         return user
+
+    async def get_local_auth_source_by_username(
+        self, username: str | uuid.UUID, raise_exception_if_none: Exception = None
+    ) -> UserAuth | None:
+        query = select(UserAuth).join(User).where(User.username == username)
+        results = await self.session.exec(statement=query)
+        user_auths: Sequence[UserAuth] | None = results.all()
+
+        # for good measure we do a sanity check here. one user should only a one "local"-auth entry, with the hashed password.
+        # if the system work realiable, over time, we can remove this check later.
+        if len(user_auths) > 1:
+            # there are multiple local user auths. something is broken. Lets attach an uuid to the error, so we can identify it, if a user reports that.
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details="Something went wrong. Please report this error. Error-id: f5d08a40-6d2e-442f-bd97-b0e3d0f9a2b7",
+            )
+        elif len(user_auths) == 0:
+            if raise_exception_if_none:
+                raise raise_exception_if_none
+            return None
+        user_auth = user_auths[0]
+        return user_auth
 
     async def create(self, user_auth_create: UserAuthCreate) -> UserAuth:
         password_hashed = None

@@ -24,6 +24,7 @@ from medlogserver.db.user_auth import (
     get_user_auth_access_token_crud,
     AllowedAuthSourceTypes,
 )
+from medlogserver.REST_api.auth.jwt import JWTTokenResponse
 from medlogserver.db.user_auth_external_oidc_token import (
     UserAuthExternalOIDCToken,
     UserAuthExternalOIDCTokenCRUD,
@@ -65,6 +66,7 @@ class StarletteOAuthProviderAppContainer:
             name=self.name,
             methods=["GET"],
             responses={401: {"model": HTTPErrorResponeRepresentation}},
+            response_model=JWTTokenResponse,
             response_description="a OAuth2Token token to be used to authenticate against the API",
         )
 
@@ -74,8 +76,6 @@ class StarletteOAuthProviderAppContainer:
 
     async def login(self, request: Request):
         redirect_uri = request.url_for(self.name)
-        log.debug(f"/login redirect_uri:{redirect_uri}")
-
         return await self.app.authorize_redirect(request, str(redirect_uri))
 
     async def auth(
@@ -188,6 +188,7 @@ class StarletteOAuthProviderAppContainer:
 
 
 def generate_oidc_provider_auth_routhers() -> Generator[APIRouter, None, None]:
+    print("config.AUTH_OIDC_PROVIDERS", config.AUTH_OIDC_PROVIDERS)
     for oidc_provider in config.AUTH_OIDC_PROVIDERS:
         authlib_oauth = StarletteOAuthProviderAppContainer(oidc_provider)
         yield authlib_oauth.fast_api_router

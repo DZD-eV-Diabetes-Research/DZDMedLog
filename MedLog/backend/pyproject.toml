@@ -34,6 +34,7 @@ dependencies = [
     "Click",
     "getversion",
     "pip-tools",
+    "python-multipart",
 ]
 dynamic = ["version"]
 

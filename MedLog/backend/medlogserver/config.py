@@ -26,6 +26,7 @@ class Config(BaseSettings):
         default="localhost",
         examples=["0.0.0.0", "localhost", "127.0.0.1", "176.16.8.123"],
     )
+    # ToDo: Read https://fastapi.tiangolo.com/advanced/behind-a-proxy/ if that is of any help for better hostname/FQDN detection
     SERVER_HOSTNAME: Optional[str] = Field(
         default_factory=socket.gethostname,
         description="The (external) hostname/domainname where the API is available. Usally a FQDN in productive systems. If not defined, it will be automatically detected based on the hostname.",
@@ -82,7 +83,7 @@ class Config(BaseSettings):
                 strip_whitespace=True, to_lower=True, pattern=r"^[a-zA-Z0-9-]+$"
             ),
         ] = Field(
-            description="The name of the OpenID Connect used in urls.",
+            description="The name of the OpenID Connect used in urls. Must be a unique name in all AUTH_OIDC_PROVIDERS.",
             default="openid-connect",
             max_length=64,
             min_length=3,
@@ -132,8 +133,19 @@ class Config(BaseSettings):
         )
 
     AUTH_OIDC_PROVIDERS: Optional[List[OpenIDConnectProvider]] = Field(
-        description="OpenID Connect providers settings.", default=None
+        description="Configure OpenID Connect (OIDC) provider settings for integrating with one or multiple external OIDC providers as the user backend.",
+        default_factory=list,
     )
+
+    @validator("AUTH_OIDC_PROVIDERS")
+    def unique_provider_names(cls, AUTH_OIDC_PROVIDERS: List[OpenIDConnectProvider]):
+        names = [prov.PROVIDER_SLUG_NAME for prov in AUTH_OIDC_PROVIDERS]
+        if len(set(names)) < len(AUTH_OIDC_PROVIDERS):
+            raise ValueError(
+                "AUTH_OIDC_PROVIDERS config error. `PROVIDER_SLUG_NAME` must be unique accross all OIDC-provider entries."
+            )
+        return AUTH_OIDC_PROVIDERS
+
     AUTH_MERGE_USERS_FROM_DIFFERENT_PROVIDERS: bool = Field(
         description="If true, users from different providers with the same name are merged into one user. If false users with same name will cause an error.",
         default=True,
