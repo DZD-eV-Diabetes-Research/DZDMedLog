@@ -44,9 +44,7 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        access_jwt: JWTTokenContainer = JWTTokenContainer.from_existing_encoded_jwt(
-            token
-        )
+        access_jwt: JWTTokenContainer = JWTTokenContainer.from_existing_jwt(token)
         if access_jwt.user is None:
             raise credentials_exception
     except JWTError:

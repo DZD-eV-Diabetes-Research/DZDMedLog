@@ -128,7 +128,7 @@ class Config(BaseSettings):
         )
         PREFIX_USER_ID_WITH_PROVIDER_NAME: bool = Field(
             description="To prevent naming collisions, the user id is prefixed with the provider name.",
-            default=None,
+            default=False,
         )
 
     AUTH_OIDC_PROVIDERS: Optional[List[OpenIDConnectProvider]] = Field(

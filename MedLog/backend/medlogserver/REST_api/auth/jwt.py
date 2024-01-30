@@ -26,10 +26,10 @@ class JWTTokenResponse(BaseModel):
         description="JWT token to be used to authenticate against the API",
     )
     token_type: Literal["Bearer"] = "Bearer"
-    expires_in: int = Field(
+    expires_in_sec: int = Field(
         description="The number of seconds until the token expires", examples=[3600]
     )
-    expires_at_utc: int = Field()
+    expires_at_utc: float = Field()
 
 
 class JWTTokenContainer:
@@ -46,8 +46,8 @@ class JWTTokenContainer:
         """
         self.scope: List[str] = user.roles
         self.sub: str = user.username
+        self.exp_datetime: datetime = None
 
-        self.exp: datetime.timestamp = None
         self.jwt_token_encoded: str = None
         self.user: User = user
         self.id: UUID = None
@@ -73,32 +73,35 @@ class JWTTokenContainer:
         return datetime.now(timezone.utc) > self.exp
 
     @property
-    def exp_timestamp_utc(self) -> bool:
-        return self.exp.timestamp()
+    def exp(self) -> int:
+        """Expiration time for the jwt token as Posix timestamp as its defined in https://www.rfc-editor.org/rfc/rfc7519#section-4.1.4
+        Returns:
+            int: Posix timestamp
+        """
+        return int(self.exp_datetime.timestamp())
 
     def get_response(self) -> JWTTokenResponse:
         return JWTTokenResponse(
             token=self.jwt_token_encoded,
             token_type="Bearer",
-            expires_in=int((self.exp - datetime.now(timezone.utc)).total_seconds()),
-            expires_at_utc=self.exp_timestamp_utc,
+            expires_in_sec=int(self.exp - datetime.now(timezone.utc).timestamp()),
+            expires_at_utc=int(self.exp),
         )
 
     @property
     def jwt_token_decoded(self) -> Dict:
         return jwt.decode(
-            self.token_decoded, config.AUTH_JWT_SECRET, config.AUTH_JWT_ALGORITHM
+            self.jwt_token_encoded, config.AUTH_JWT_SECRET, config.AUTH_JWT_ALGORITHM
         )
 
     def _generate_token(self):
-        expire_moment: datetime = datetime.now(timezone.utc) + timedelta(
+        self.exp_datetime: datetime = datetime.now(timezone.utc) + timedelta(
             minutes=config.AUTH_ACCESS_TOKEN_EXPIRES_MINUTES
         )
-        self.exp = expire_moment
         self.jwt_token_encoded = jwt.encode(
             claims={
                 "sub": self.sub,
-                "exp": self.exp.timestamp(),
+                "exp": self.exp,
                 "aud": str(config.get_server_url()),
                 "scope": " ".join(self.scope),
                 "iss": config.SERVER_HOSTNAME,
@@ -114,10 +117,10 @@ class JWTTokenContainer:
         )
 
     @classmethod
-    def from_existing_encoded_jwt(cls, jwt_token: str) -> Self:
+    def from_existing_jwt(cls, jwt_token_encoded: str) -> Self:
         try:
             jwt_token_decoded = jwt.decode(
-                jwt_token, config.AUTH_JWT_SECRET, config.AUTH_JWT_ALGORITHM
+                jwt_token_encoded, config.AUTH_JWT_SECRET, config.AUTH_JWT_ALGORITHM
             )
             new_obj = cls(
                 # sub=jwt_token_decoded["sub"],
@@ -125,9 +128,9 @@ class JWTTokenContainer:
                 user=User(**json.load(jwt_token_decoded["user"])),
                 prevent_generate_new_token=True,
             )
-            new_obj.jwt_token_encoded = jwt_token
+            new_obj.jwt_token_encoded = jwt_token_encoded
             new_obj.id = UUID(jwt_token_decoded["id"])
-            new_obj.exp = datetime.fromtimestamp(jwt_token_decoded["exp"])
+            new_obj.exp_datetime = datetime.fromtimestamp(jwt_token_decoded["exp"])
             return new_obj
         except JWTError as exp:
             raise HTTPException(
