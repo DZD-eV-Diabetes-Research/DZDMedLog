@@ -10,21 +10,27 @@ from pydantic import BaseModel
 
 # intern imports
 from medlogserver.config import Config
-from medlogserver.REST_api.auth.jwt import JWTTokenContainer
+from medlogserver.REST_api.auth.tokens import (
+    JWTRefreshTokenResponse,
+    JWTRefreshTokenContainer,
+    JWTAccessTokenContainer,
+    JWTBundleTokenResponse,
+)
 from medlogserver.REST_api.base import HTTPErrorResponeRepresentation
-from medlogserver.db.user import get_users_crud, User, UserCRUD
+from medlogserver.db.user import get_users_crud, User, UserCRUD, UserUpdate
 from medlogserver.db.user_auth import (
     get_user_auth_crud,
     UserAuth,
     UserAuthCreate,
     UserAuthCRUD,
-    UserAuthAccessToken,
-    UserAuthAccessTokenCreate,
-    UserAuthAccessTokenCRUD,
-    get_user_auth_access_token_crud,
+    UserAuthRefreshToken,
+    UserAuthRefreshTokenCreate,
+    UserAuthRefreshTokenCRUD,
+    get_user_auth_refresh_token_crud,
     AllowedAuthSourceTypes,
 )
-from medlogserver.REST_api.auth.jwt import JWTTokenResponse
+
+
 from medlogserver.db.user_auth_external_oidc_token import (
     UserAuthExternalOIDCToken,
     UserAuthExternalOIDCTokenCRUD,
@@ -66,7 +72,7 @@ class StarletteOAuthProviderAppContainer:
             name=self.name,
             methods=["GET"],
             responses={401: {"model": HTTPErrorResponeRepresentation}},
-            response_model=JWTTokenResponse,
+            response_model=JWTBundleTokenResponse,
             response_description="a OAuth2Token token to be used to authenticate against the API",
         )
 
@@ -74,17 +80,20 @@ class StarletteOAuthProviderAppContainer:
     def app(self) -> StarletteOAuth2App:
         return getattr(self.starlette_client, self.name)
 
+    # ROUTE: /login
     async def login(self, request: Request):
         redirect_uri = request.url_for(self.name)
         return await self.app.authorize_redirect(request, str(redirect_uri))
 
+    # ROUTE: /auth
     async def auth(
         self,
         request: Request,
+        response_model=JWTRefreshTokenResponse,
         user_crud: UserCRUD = Depends(get_users_crud),
         user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
-        user_auth_access_token_crud: UserAuthAccessTokenCRUD = Depends(
-            get_user_auth_access_token_crud
+        user_auth_access_token_crud: UserAuthRefreshTokenCRUD = Depends(
+            get_user_auth_refresh_token_crud
         ),
         user_auth_external_oidc_token_crud: UserAuthExternalOIDCTokenCRUD = Depends(
             get_user_auth_external_oidc_token_crud
@@ -96,7 +105,7 @@ class StarletteOAuthProviderAppContainer:
             user_oauth_token: OAuth2Token = await self.app.authorize_access_token(
                 request
             )
-            log.info(f"token: {type(user_oauth_token)},{user_oauth_token}")
+            # log.debug(f"token: {type(user_oauth_token)},{user_oauth_token}")
 
         except OAuthError as error:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail=error.description)
@@ -120,18 +129,19 @@ class StarletteOAuthProviderAppContainer:
             for claim in claims:
                 userinfo[claim] = user_oauth_token.get(claim, None)
 
-        username_attribute = self.oidc_provider_config.USER_ID_ATTRIBUTE
+        user_name_attribute = self.oidc_provider_config.USER_ID_ATTRIBUTE
         try:
-            username = userinfo.get(username_attribute)
+            user_name = userinfo.get(user_name_attribute)
         except:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Could not extract OIDC username in endpoint or token from '{self.oidc_provider_config.PROVIDER_DISPLAY_NAME}'.",
+                detail=f"Could not extract OIDC user_name in endpoint or token from '{self.oidc_provider_config.PROVIDER_DISPLAY_NAME}'.",
             )
         if self.oidc_provider_config.PREFIX_USER_ID_WITH_PROVIDER_NAME:
-            username = f"{self.name}{username}"
+            user_name = f"{self.name}{user_name}"
 
-        user = await user_crud.get_by_username(username)
+        user = await user_crud.get_by_user_name(user_name)
+
         if user is None and self.oidc_provider_config.AUTO_CREATE_AUTHORIZED_USER:
             user = User(
                 email=userinfo.get(self.oidc_provider_config.USER_MAIL_ATTRIBUTE, None),
@@ -145,7 +155,7 @@ class StarletteOAuthProviderAppContainer:
                 is_email_verified=userinfo.get(
                     self.oidc_provider_config.USER_MAIL_VERIFIED_ATTRIBUTE, False
                 ),
-                username=username,
+                user_name=user_name,
             )
             user = await user_crud.create(user)
         elif user is None and not self.oidc_provider_config.AUTO_CREATE_AUTHORIZED_USER:
@@ -153,6 +163,26 @@ class StarletteOAuthProviderAppContainer:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=f"User is not authorized to self register via OIDC Provider '{self.oidc_provider_config.PROVIDER_DISPLAY_NAME}'.",
             )
+        else:
+            # update userdata
+            log.info(f"Update user data for {user.id}")
+            log.debug(f"Updated userinfo: {userinfo}")
+            user_update = UserUpdate(
+                email=userinfo.get(self.oidc_provider_config.USER_MAIL_ATTRIBUTE, None),
+                display_name=userinfo.get(
+                    self.oidc_provider_config.USER_DISPLAY_NAME_ATTRIBUTE, user_name
+                ),
+                roles=userinfo.get(
+                    self.oidc_provider_config.USER_GROUP_ATTRIBUTE, None
+                ),
+                disabled=False,
+                is_email_verified=userinfo.get(
+                    self.oidc_provider_config.USER_MAIL_VERIFIED_ATTRIBUTE, False
+                ),
+                user_name=user_name,
+            )
+
+            user = await user_crud.update(user_update, user_id=user.id)
         user_auth = await user_auth_crud.list_by_user_id(
             user.id,
             filter_auth_source_type=AllowedAuthSourceTypes.oidc,
@@ -175,16 +205,21 @@ class StarletteOAuthProviderAppContainer:
                 user_auth_id=user_auth.id,
             )
         )
-        access_token = JWTTokenContainer(user=user)
-        await user_auth_access_token_crud.create(
-            UserAuthAccessTokenCreate(
-                user_auth_id=user_auth.id,
-                token_encoded=access_token.jwt_token_encoded,
-                valid_until_timestamp=int(access_token.exp),
-            )
+        # create access token
+        refresh_token = JWTRefreshTokenContainer(user_id=user.id)
+        access_token = JWTAccessTokenContainer(
+            user=user, parent_refresh_token_id=refresh_token.id
         )
 
-        return access_token.get_response()
+        # save refresh token to DB. that way we can revoke it if needed
+        await user_auth_access_token_crud.create(
+            UserAuthRefreshTokenCreate(
+                user_auth_id=user_auth.id,
+                token_encoded=access_token.jwt_token_encoded,
+                valid_until_timestamp=access_token.exp,
+            )
+        )
+        return refresh_token.to_token_set_response(access_token=access_token)
 
 
 def generate_oidc_provider_auth_routhers() -> Generator[APIRouter, None, None]:

@@ -46,9 +46,14 @@ def start():
     from uvicorn.config import LOGGING_CONFIG
     from medlogserver.app import app, add_api_middleware
 
-    from medlogserver.REST_api.auth.scheme_local import fast_api_local_auth_router
+    from medlogserver.REST_api.auth.base import fast_api_auth_base_router
 
-    app.include_router(fast_api_local_auth_router)
+    app.include_router(fast_api_auth_base_router)
+
+    from medlogserver.REST_api.auth.scheme_local import fast_api_auth_local_router
+
+    app.include_router(fast_api_auth_local_router)
+
     from medlogserver.REST_api.auth.scheme_oidc import (
         generate_oidc_provider_auth_routhers,
     )

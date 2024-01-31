@@ -42,14 +42,14 @@ async def create_admin_if_not_exists():
     async with get_async_session_context() as session:
         async with get_users_crud_context(session) as user_crud:
             user_crud: UserCRUD = user_crud
-            admin_user = await user_crud.get_by_username(
-                username=config.ADMIN_USER_NAME, show_disabled=True
+            admin_user = await user_crud.get_by_user_name(
+                user_name=config.ADMIN_USER_NAME, show_disabled=True
             )
         async with get_user_auth_crud_context(session) as user_auth_crud:
             if admin_user is None:
                 log.info(f"Creating admin user {config.ADMIN_USER_NAME}")
                 admin_user = User(
-                    username=config.ADMIN_USER_NAME,
+                    user_name=config.ADMIN_USER_NAME,
                     email=config.ADMIN_USER_EMAIL,
                     disabled=False,
                     roles=[config.ADMIN_ROLE_NAME],

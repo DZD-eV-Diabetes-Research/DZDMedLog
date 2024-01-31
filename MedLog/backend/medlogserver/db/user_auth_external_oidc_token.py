@@ -15,9 +15,9 @@ from medlogserver.db.user_auth import (
     UserAuth,
     UserAuthCreate,
     UserAuthCRUD,
-    UserAuthAccessToken,
-    UserAuthAccessTokenCRUD,
-    get_user_auth_access_token_crud,
+    UserAuthRefreshToken,
+    UserAuthRefreshTokenCRUD,
+    get_user_auth_refresh_token_crud,
     AllowedAuthSourceTypes,
 )
 
@@ -80,14 +80,14 @@ class UserAuthExternalOIDCTokenCRUD:
 
     async def list_by_user_name(
         self,
-        username: str,
+        user_name: str,
         raise_exception_if_none: Exception = None,
     ) -> Sequence[UserAuthExternalOIDCToken]:
         query = (
             select(UserAuthExternalOIDCToken)
             .join(UserAuth)
             .join(User)
-            .where(User.username == username)
+            .where(User.user_name == user_name)
         )
         results = await self.session.exec(statement=query)
         external_oidc_tokens: Sequence[UserAuthExternalOIDCToken] = results.all()

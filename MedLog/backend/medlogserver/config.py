@@ -56,9 +56,11 @@ class Config(BaseSettings):
     ADMIN_USER_PW: str = Field()
     ADMIN_USER_EMAIL: Optional[str] = Field(default=None)
     ADMIN_ROLE_NAME: str = Field(default="medlog-admin")
+    USERMANAGER_ROLE_NAME: str = Field(default="medlog-user-manager")
 
-    AUTH_LOCAL_USER_DB_ENABLED: bool = Field(
-        default=True, description="Local user database is enabled."
+    AUTH_LOCAL_LOGIN_IS_ENABLED: bool = Field(
+        default=True,
+        description="Local DB users are enabled to login. You could disable this, when having an external OIDC provider.",
     )
     AUTH_LOCAL_USER_DB_REGISTER_ENABLED: Literal[False] = Field(
         default=False, description="Self registration of users is not supported yet."
@@ -73,7 +75,39 @@ class Config(BaseSettings):
         description="The algorithm used to sign the JWT tokens. Only HS256 is supported atm",
     )
     AUTH_ACCESS_TOKEN_EXPIRES_MINUTES: int = Field(
-        default=1440, description="The lifetime of the Clients JWT tokens in minutes."
+        default=2,
+        description=dedent(
+            """These JWT access tokens serve two purposes: As a authorization key to access the API but also to store/cache userdata.
+            The lifespan of the client's JWT access tokens is defined in minutes and is intentionally kept short. 
+            These access tokens serve as a means to efficiently store encrypted user data, mitigating excessive database access. 
+            However, it's essential to note that these tokens also encompass critical user information, including the user's disabled status and roles.
+            Any alterations to the disabled status or user roles will only take effect after the access token undergoes a refresh. 
+            Therefore, the design encourages regular token refreshes to ensure that the latest user status and role changes are reflected, 
+            maintaining an optimal balance between security and responsiveness in accessing user-related information.
+            """
+        ),
+    )
+    AUTH_REFRESH_TOKEN_EXPIRES_MINUTES: int = Field(
+        default=10080,
+        description=dedent(
+            """sets the duration, in minutes, for how long refresh tokens stay valid in the REST API. 
+            Refresh tokens extend the lifespan of access tokens without making users log in again. 
+            By adjusting this setting, you can balance security and user convenience, 
+            deciding how long refresh tokens should remain active based on your application's needs."""
+        ),
+    )
+    AUTH_MERGE_USERS_FROM_DIFFERENT_PROVIDERS: bool = Field(
+        description="If true, users from different providers with the same name are merged into one user. If false users with same name will cause an error.",
+        default=True,
+    )
+    AUTH_CHECK_REFRESH_TOKENS_FOR_REVOKATION: bool = Field(
+        description=dedent(
+            """If true, the tokens are checked against the database with every request if they are revoked.
+                If false, the tokens will just expire according to `AUTH_ACCESS_TOKEN_EXPIRES_MINUTES`.
+                Set this to True if you need a very strict access policy, where disabled users get locked out immediately. 
+                If you want to lower database traffic and quicker requests set this to False."""
+        ),
+        default=False,
     )
 
     class OpenIDConnectProvider(BaseSettings):
@@ -107,7 +141,7 @@ class Config(BaseSettings):
         )
         USER_ID_ATTRIBUTE: str = Field(
             description="The attribute of the OpenID Connect provider that contains a unique id of the user.",
-            default="preferred_username",
+            default="preferred_user_name",
         )
         USER_DISPLAY_NAME_ATTRIBUTE: str = Field(
             description="The attribute of the OpenID Connect provider that contains the display name of the user.",
@@ -128,7 +162,7 @@ class Config(BaseSettings):
             description="If a user does not exists in the local database, create the user on first authorization via the OIDC Provider.",
         )
         PREFIX_USER_ID_WITH_PROVIDER_NAME: bool = Field(
-            description="To prevent naming collisions, the user id is prefixed with the provider name.",
+            description="To prevent naming collisions, the user id is prefixed with the provider name. HINT: 'AUTH_MERGE_USERS_FROM_DIFFERENT_PROVIDERS' will not work with 'PREFIX_USER_ID_WITH_PROVIDER_NAME' set to True.",
             default=False,
         )
 
@@ -146,19 +180,6 @@ class Config(BaseSettings):
             )
         return AUTH_OIDC_PROVIDERS
 
-    AUTH_MERGE_USERS_FROM_DIFFERENT_PROVIDERS: bool = Field(
-        description="If true, users from different providers with the same name are merged into one user. If false users with same name will cause an error.",
-        default=True,
-    )
-    AUTH_CHECK_TOKENS_FOR_REVOKATION: bool = Field(
-        description=dedent(
-            """If true, the tokens are checked against the database with every request if they are revoked.
-                If false, the tokens will just expire according to `AUTH_ACCESS_TOKEN_EXPIRES_MINUTES`.
-                This is a tradeoff between security and perfomance. If you need to lock out users immediate set this to true.
-                If you want to lower database traffic and quicker requests set this to false."""
-        ),
-        default=True,
-    )
     ###### CONFIG END ######
     # mode_config is fixed variable  in pydantic-settings to control the behaviour of our settings model
     # https://docs.pydantic.dev/latest/api/base_model/#pydantic.main.BaseModel.model_config
