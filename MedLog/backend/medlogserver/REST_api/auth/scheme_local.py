@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Sequence
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Query, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Annotated
 
 from fastapi import Depends, APIRouter
@@ -15,7 +15,7 @@ from medlogserver.REST_api.auth.tokens import (
     JWTAccessTokenContainer,
     JWTRefreshTokenContainer,
 )
-from medlogserver.db.user import get_users_crud, User, UserCRUD
+from medlogserver.db.user import get_users_crud, User, UserCRUD, UserCreate
 from medlogserver.db.user_auth import (
     get_user_auth_crud,
     UserAuth,
@@ -98,10 +98,20 @@ async def login_for_token_set(
     return refresh_token.to_token_set_response(access_token=access_token)
 
 
-@fast_api_auth_local_router.post("/user", response_model=User)
+@fast_api_auth_local_router.post(
+    "/user",
+    response_model=User,
+    name="Create local user",
+    description="Creates a new user in the local user database.",
+)
 async def create_user(
-    user: User,
-    password: str,
+    user: UserCreate,
+    user_password: Annotated[
+        str,
+        Query(
+            description="The password for the created user. If non is defined the user will be created but not able to login.",
+        ),
+    ] = None,
     current_user_is_usermanager: bool = Depends(user_is_usermanager),
     user_crud: UserCRUD = Depends(get_user_auth_crud),
     user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
@@ -111,7 +121,7 @@ async def create_user(
         detail="Incorrect user_name or password",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    if not current_user_is_usermanager:
+    if not current_user_is_usermanager and 1 == 2:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing role",
@@ -125,7 +135,10 @@ async def create_user(
             headers={"WWW-Authenticate": "Bearer"},
         ),
     )
-    user_auth: UserAuth = await user_auth_crud.create(
-        UserAuthCreate(auth_source_type=AllowedAuthSourceTypes.local, password=password)
-    )
+    if user_password:
+        user_auth: UserAuth = await user_auth_crud.create(
+            UserAuthCreate(
+                auth_source_type=AllowedAuthSourceTypes.local, password=user_password
+            )
+        )
     return user

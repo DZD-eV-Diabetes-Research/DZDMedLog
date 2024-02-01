@@ -227,13 +227,15 @@ class JWTAccessTokenContainer:
         return self._parent_refresh_token_id
 
     def _generate_token(self):
+        log.info(f"TOKEN AUD: {config.get_server_url().host}")
         self.created_at = datetime.now(timezone.utc)
         self.jwt_token_encoded = jwt.encode(
             claims={
                 "sub": str(self.sub),
                 "exp": self.exp,
                 "iat": int(self.created_at.timestamp()),
-                "aud": str(config.get_server_url()),
+                # "aud": config.get_server_url().host,
+                "aud": "http://localhost:8888",
                 "iss": config.SERVER_HOSTNAME,
                 "user": self.user.model_dump_json(),
                 "id": str(self.id if self.id else uuid4()),

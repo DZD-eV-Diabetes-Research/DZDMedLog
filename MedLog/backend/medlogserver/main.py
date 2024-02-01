@@ -39,34 +39,23 @@ def start():
     log.debug("----CONFIG-END-----")
     print(f"LOG_LEVEL: {config.LOG_LEVEL}")
     print(f"UVICORN_LOG_LEVEL: {get_uvicorn_loglevel()}")
+
     from medlogserver.db._init_db import init_db
 
     asyncio.run(init_db())
     import uvicorn
     from uvicorn.config import LOGGING_CONFIG
     from medlogserver.app import app, add_api_middleware
+    from medlogserver.REST_api._routers import mount_fast_api_routers
 
-    from medlogserver.REST_api.auth.base import fast_api_auth_base_router
-
-    app.include_router(fast_api_auth_base_router)
-
-    from medlogserver.REST_api.auth.scheme_local import fast_api_auth_local_router
-
-    app.include_router(fast_api_auth_local_router)
-
-    from medlogserver.REST_api.auth.scheme_oidc import (
-        generate_oidc_provider_auth_routhers,
-    )
-
-    for oidc_provider_router in generate_oidc_provider_auth_routhers():
-        app.include_router(oidc_provider_router)
-
+    mount_fast_api_routers(app)
+    add_api_middleware(app)
     uvicorn_log_config: Dict = LOGGING_CONFIG
     uvicorn_log_config["loggers"][APP_LOGGER_DEFAULT_NAME] = {
         "handlers": ["default"],
         "level": get_loglevel(),
     }
-    add_api_middleware(app)
+
     uvicorn.run(
         app,
         host=config.SERVER_LISTENING_HOST,

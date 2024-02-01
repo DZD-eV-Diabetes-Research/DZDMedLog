@@ -1,7 +1,9 @@
 from typing import AsyncGenerator, List, Optional, Literal, Sequence
-from pydantic import SecretStr
+from pydantic import validate_email, validator
+from pydantic_core import PydanticCustomError
 from fastapi import Depends
 import contextlib
+from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel
 
@@ -22,16 +24,32 @@ config = Config()
 
 
 class UserBase(Base, table=False):
-    email: str = Field(default=None, index=True)
+    email: Optional[str] = Field(default=None, index=True, max_length=320)
     display_name: str = Field(default=None, max_length=128)
-    roles: List[str] = Field(default=[], sa_column=Column(JSON))
     disabled: bool = Field(default=False)
     is_email_verified: bool = Field(default=False)
 
 
-class User(UserBase, BaseTable, table=True):
-    __tablename__ = "user"
+class UserUpdate(UserBase, table=False):
+    id: Optional[uuid.UUID] = Field(default=None)
 
+
+class UserUpdateByAdmin(UserUpdate, table=False):
+    roles: List[str] = Field(default=[], sa_column=Column(JSON))
+
+
+class UserCreate(UserBase, table=False):
+    user_name: str = Field(default=None, index=True, unique=True)
+    # not sure if this works
+
+    @validator("email")
+    def validmail(cls, email):
+        validate_email(email)
+        return email
+
+
+class User(UserCreate, UserUpdateByAdmin, BaseTable, table=True):
+    __tablename__ = "user"
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,
         primary_key=True,
@@ -40,11 +58,6 @@ class User(UserBase, BaseTable, table=True):
         unique=True,
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
-    user_name: str = Field(default=None, index=True, unique=True)
-
-
-class UserUpdate(UserBase, table=False):
-    id: Optional[uuid.UUID] = Field(default=None)
 
 
 class UserCRUD:
@@ -87,10 +100,12 @@ class UserCRUD:
 
     async def create(
         self,
-        user: User,
+        user: User | UserBase,
         exists_ok: bool = False,
         raise_exception_if_exists: Exception = None,
     ) -> User:
+        if type(user) is UserBase:
+            user = User(**user.model_dump())
         existing_user: User = await self.get_by_user_name(
             user.user_name, show_disabled=True
         )

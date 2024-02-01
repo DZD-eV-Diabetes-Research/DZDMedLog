@@ -1,18 +1,19 @@
-from fastapi import APIRouter
-from fastapi_users import fastapi_users
+from fastapi import APIRouter, FastAPI
 
 
-from medlogserver.REST_api.auth import oidc_client, auth_backend
+def mount_fast_api_routers(fastapi_app: FastAPI):
+    ### AUTH STUFF
+    from medlogserver.REST_api.auth.base import fast_api_auth_base_router
 
-router = APIRouter(prefix="/v1")
+    fastapi_app.include_router(fast_api_auth_base_router, tags=["Auth"])
 
-router.include_router(
-    fastapi_users.get_oauth_router(
-        oauth_client=oidc_client,
-        backend=auth_backend,
-        state_secret="SECRET",
-        get_user_manager=fastapi_users.get_user_manager,
-    ),
-    prefix="/auth/openid",
-    tags=["auth"],
-)
+    from medlogserver.REST_api.auth.scheme_local import fast_api_auth_local_router
+
+    fastapi_app.include_router(fast_api_auth_local_router, tags=["Auth"])
+
+    from medlogserver.REST_api.auth.scheme_oidc import (
+        generate_oidc_provider_auth_routhers,
+    )
+
+    for oidc_provider_router in generate_oidc_provider_auth_routhers():
+        fastapi_app.include_router(oidc_provider_router, tags=["Auth"], prefix="/oidc")

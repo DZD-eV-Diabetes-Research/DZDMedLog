@@ -30,6 +30,7 @@ dependencies = [
     "itsdangerous",
     "pyyaml",
     "pydantic",
+    "pydantic[email]",
     "pydantic_settings",
     "Click",
     "getversion",

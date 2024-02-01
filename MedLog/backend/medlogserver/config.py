@@ -30,6 +30,7 @@ class Config(BaseSettings):
     SERVER_HOSTNAME: Optional[str] = Field(
         default_factory=socket.gethostname,
         description="The (external) hostname/domainname where the API is available. Usally a FQDN in productive systems. If not defined, it will be automatically detected based on the hostname.",
+        examples=["mydomain.com", "localhost:8008"],
     )
     SERVER_PROTOCOL: Optional[Literal["http", "https"]] = Field(
         default="http",
@@ -141,7 +142,7 @@ class Config(BaseSettings):
         )
         USER_ID_ATTRIBUTE: str = Field(
             description="The attribute of the OpenID Connect provider that contains a unique id of the user.",
-            default="preferred_user_name",
+            default="preferred_username",
         )
         USER_DISPLAY_NAME_ATTRIBUTE: str = Field(
             description="The attribute of the OpenID Connect provider that contains the display name of the user.",
