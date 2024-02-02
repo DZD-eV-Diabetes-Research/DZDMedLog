@@ -30,8 +30,8 @@ from medlogserver.REST_api.auth.tokens import (
     JWTAccessTokenResponse,
     JWTRefreshTokenContainer,
 )
-from medlogserver.db.user import get_user_crud, UserCRUD, User
-from medlogserver.db.user_auth import (
+from medlogserver.db.user.user import get_user_crud, UserCRUD, User
+from medlogserver.db.user.user_auth import (
     get_user_auth_crud,
     UserAuthCRUD,
     UserAuth,

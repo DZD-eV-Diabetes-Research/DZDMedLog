@@ -15,8 +15,8 @@ from medlogserver.REST_api.auth.tokens import (
     JWTAccessTokenContainer,
     JWTRefreshTokenContainer,
 )
-from medlogserver.db.user import get_user_crud, User, UserCRUD, UserCreate
-from medlogserver.db.user_auth import (
+from medlogserver.db.user.user import get_user_crud, User, UserCRUD, UserCreate
+from medlogserver.db.user.user_auth import (
     get_user_auth_crud,
     UserAuth,
     UserAuthCreate,
@@ -34,7 +34,7 @@ from medlogserver.REST_api.auth.base import (
     user_is_usermanager,
 )
 
-from medlogserver.db.user_auth_external_oidc_token import (
+from medlogserver.db.user.user_auth_external_oidc_token import (
     UserAuthExternalOIDCToken,
     UserAuthExternalOIDCTokenCRUD,
     get_user_auth_external_oidc_token_crud,

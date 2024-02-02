@@ -94,11 +94,10 @@ class UserCRUD:
     async def list(
         self,
         show_deactivated: bool = False,
-        raise_exception_if_none: Exception = None,
     ) -> Sequence[User]:
         query = select(User)
         if not show_deactivated:
-            query = select(User).where(User.deactivated == False)
+            query = query.where(User.deactivated == False)
         results = await self.session.exec(statement=query)
         return results.all()
 
@@ -152,6 +151,8 @@ class UserCRUD:
             raise raise_exception_if_exists if raise_exception_if_exists else ValueError(
                 f"User with user_name {user.user_name} already exists"
             )
+        elif existing_user is not None and exists_ok:
+            return existing_user
         if user.display_name is None:
             user.display_name = user.user_name
         self.session.add(user)

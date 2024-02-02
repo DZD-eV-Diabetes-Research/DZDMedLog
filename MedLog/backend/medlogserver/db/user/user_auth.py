@@ -15,7 +15,7 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.base import BaseTable
 from medlogserver.db._session import AsyncSession, get_async_session
-from medlogserver.db.user import User
+from medlogserver.db.user.user import User
 
 
 log = get_logger()

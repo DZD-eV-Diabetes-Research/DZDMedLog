@@ -9,8 +9,8 @@ from medlogserver.db._session import AsyncSession, get_async_session
 from sqlmodel import Field, select, delete, Column, JSON
 import uuid
 from oauthlib.oauth2 import OAuth2Token
-from medlogserver.db.user import User
-from medlogserver.db.user_auth import (
+from medlogserver.db.user.user import User
+from medlogserver.db.user.user_auth import (
     get_user_auth_crud,
     UserAuth,
     UserAuthCreate,
