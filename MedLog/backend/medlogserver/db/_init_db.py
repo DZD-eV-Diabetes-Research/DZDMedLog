@@ -11,7 +11,7 @@ from medlogserver.db._session import get_async_session_context
 from medlogserver.db.user import (
     User,
     UserCRUD,
-    get_users_crud,
+    get_user_crud,
     get_users_crud_context,
 )
 from medlogserver.db.user_auth import (
@@ -43,7 +43,7 @@ async def create_admin_if_not_exists():
         async with get_users_crud_context(session) as user_crud:
             user_crud: UserCRUD = user_crud
             admin_user = await user_crud.get_by_user_name(
-                user_name=config.ADMIN_USER_NAME, show_disabled=True
+                user_name=config.ADMIN_USER_NAME, show_deactivated=True
             )
         async with get_user_auth_crud_context(session) as user_auth_crud:
             if admin_user is None:
@@ -51,7 +51,7 @@ async def create_admin_if_not_exists():
                 admin_user = User(
                     user_name=config.ADMIN_USER_NAME,
                     email=config.ADMIN_USER_EMAIL,
-                    disabled=False,
+                    deactivated=False,
                     roles=[config.ADMIN_ROLE_NAME],
                 )
                 admin_user = await user_crud.create(admin_user)

@@ -23,7 +23,10 @@ class JWTTokenResponseBase(BaseModel):
     expires_in: int = Field(
         description="The number of seconds until the token expires", examples=[3600]
     )
-    expires_at: int = Field()
+    expires_at: int = Field(
+        description="The time as POSIX timestamp in UTC when the token expires",
+        examples=[int((datetime.now().timestamp() + 3600))],
+    )
 
 
 class JWTAccessTokenResponse(JWTTokenResponseBase):
@@ -31,7 +34,7 @@ class JWTAccessTokenResponse(JWTTokenResponseBase):
         examples=[
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
         ],
-        description="JWT token to be used to authenticate against the API",
+        description="Token to be used to authenticate against the API",
     )
 
 
@@ -40,7 +43,7 @@ class JWTRefreshTokenResponse(JWTTokenResponseBase):
         examples=[
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
         ],
-        description="JWT refresh token to be used to get new access tokens",
+        description="Refresh token to be used to get new access tokens",
     )
 
 
@@ -99,7 +102,10 @@ class JWTRefreshTokenContainer:
     def from_existing_jwt(cls, jwt_token_encoded: str) -> Self:
         try:
             jwt_token_decoded = jwt.decode(
-                jwt_token_encoded, config.AUTH_JWT_SECRET, config.AUTH_JWT_ALGORITHM
+                jwt_token_encoded,
+                config.AUTH_JWT_SECRET,
+                config.AUTH_JWT_ALGORITHM,
+                audience=config.get_server_url().host,
             )
 
             new_obj = cls(
@@ -217,7 +223,10 @@ class JWTAccessTokenContainer:
     @property
     def jwt_token_decoded(self) -> Dict:
         return jwt.decode(
-            self.jwt_token_encoded, config.AUTH_JWT_SECRET, config.AUTH_JWT_ALGORITHM
+            self.jwt_token_encoded,
+            config.AUTH_JWT_SECRET,
+            config.AUTH_JWT_ALGORITHM,
+            audience=config.get_server_url().host,
         )
 
     @property
@@ -234,8 +243,8 @@ class JWTAccessTokenContainer:
                 "sub": str(self.sub),
                 "exp": self.exp,
                 "iat": int(self.created_at.timestamp()),
-                # "aud": config.get_server_url().host,
-                "aud": "http://localhost:8888",
+                "aud": config.get_server_url().host,
+                # "aud": "http://localhost:8888",
                 "iss": config.SERVER_HOSTNAME,
                 "user": self.user.model_dump_json(),
                 "id": str(self.id if self.id else uuid4()),
@@ -249,14 +258,20 @@ class JWTAccessTokenContainer:
     def from_existing_jwt(cls, jwt_token_encoded: str) -> Self:
         try:
             jwt_token_decoded = jwt.decode(
-                jwt_token_encoded, config.AUTH_JWT_SECRET, config.AUTH_JWT_ALGORITHM
+                jwt_token_encoded,
+                config.AUTH_JWT_SECRET,
+                config.AUTH_JWT_ALGORITHM,
+                audience=config.get_server_url().host,
             )
-
+            user = jwt_token_decoded["user"]
+            log.debug(f"user ({type(user)}): {user}")
+            user_dict: Dict = json.loads(jwt_token_decoded["user"])
+            log.debug(f"jwt_token_decoded ({type(user_dict)}): {user_dict}")
             new_obj = cls(
-                user=User(**json.load(jwt_token_decoded["user"])),
+                user=User.model_validate(user_dict),
                 prevent_generate_new_token=True,
             )
-            new_obj.id = jwt_token_encoded["id"]
+            new_obj.id = jwt_token_decoded["id"]
             new_obj.jwt_token_encoded = jwt_token_encoded
             new_obj.created_at = datetime.fromtimestamp(
                 jwt_token_decoded["iat"], tz=timezone.utc

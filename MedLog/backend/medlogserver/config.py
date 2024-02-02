@@ -81,8 +81,8 @@ class Config(BaseSettings):
             """These JWT access tokens serve two purposes: As a authorization key to access the API but also to store/cache userdata.
             The lifespan of the client's JWT access tokens is defined in minutes and is intentionally kept short. 
             These access tokens serve as a means to efficiently store encrypted user data, mitigating excessive database access. 
-            However, it's essential to note that these tokens also encompass critical user information, including the user's disabled status and roles.
-            Any alterations to the disabled status or user roles will only take effect after the access token undergoes a refresh. 
+            However, it's essential to note that these tokens also encompass critical user information, including the user's deactivated status and roles.
+            Any alterations to the deactivated status or user roles will only take effect after the access token undergoes a refresh. 
             Therefore, the design encourages regular token refreshes to ensure that the latest user status and role changes are reflected, 
             maintaining an optimal balance between security and responsiveness in accessing user-related information.
             """
@@ -105,7 +105,7 @@ class Config(BaseSettings):
         description=dedent(
             """If true, the tokens are checked against the database with every request if they are revoked.
                 If false, the tokens will just expire according to `AUTH_ACCESS_TOKEN_EXPIRES_MINUTES`.
-                Set this to True if you need a very strict access policy, where disabled users get locked out immediately. 
+                Set this to True if you need a very strict access policy, where deactivated users get locked out immediately. 
                 If you want to lower database traffic and quicker requests set this to False."""
         ),
         default=False,

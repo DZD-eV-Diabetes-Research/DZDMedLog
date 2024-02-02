@@ -51,6 +51,22 @@ class UserAuthCreate(_UserAuthBase, UserAuthUpdate, table=False):
 
 
 class UserAuth(_UserAuthBase, table=True):
+    """This table stores the information of what type a certain user is and how the user can access our application.
+    Either a user is of "local"-type and can login with the (hashed) password in this table or a user is external.
+    External user are only comming from a OpenID Connect Provider at the moment and are maked as "oidc". Later there maybe "ldap" user as well.
+    External users may have an extra table to store further auth informations. For oidc users that table is in medlogserver/db/user_auth_external_oidc_token.py
+
+    Args:
+        _UserAuthBase (_type_): _description_
+        table (bool, optional): _description_. Defaults to True.
+
+    Raises:
+        raise_exception_if_wrong_pw: _description_
+
+    Returns:
+        _type_: _description_
+    """
+
     __tablename__ = "user_auth"
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,
@@ -68,12 +84,10 @@ class UserAuth(_UserAuthBase, table=True):
     def verify_password(
         self, password: SecretStr | str, raise_exception_if_wrong_pw: Exception = None
     ) -> bool:
+        pw = password
         if isinstance(password, SecretStr):
-            password_correct = pwd_context.verify(
-                password.get_secret_value(), self.password_hashed
-            )
-        else:
-            password_correct = pwd_context.verify(password, self.password_hashed)
+            pw = password.get_secret_value()
+        password_correct = pwd_context.verify(pw, self.password_hashed)
         if not password_correct and raise_exception_if_wrong_pw:
             raise raise_exception_if_wrong_pw
         return password_correct
@@ -119,15 +133,14 @@ class UserAuthCRUD:
             raise raise_exception_if_none
         return user
 
-    async def get_local_auth_source_by_user_name(
-        self, user_name: str | uuid.UUID, raise_exception_if_none: Exception = None
+    async def get_local_auth_source_by_user_id(
+        self, user_id: str | uuid.UUID, raise_exception_if_none: Exception = None
     ) -> UserAuth | None:
-        query = select(UserAuth).join(User).where(User.user_name == user_name)
+        query = select(UserAuth).where(UserAuth.user_id == user_id)
         results = await self.session.exec(statement=query)
         user_auths: Sequence[UserAuth] | None = results.all()
 
-        # for good measure we do a sanity check here. one user should only a one "local"-auth entry, with the hashed password.
-        # if the system work realiable, over time, we can remove this check later.
+        # for good measure we do a sanity check here. one user should only have one "local"-auth entry with a hashed password.
         if len(user_auths) > 1:
             # there are multiple local user auths. something is broken. Lets attach an uuid to the error, so we can identify it, if a user reports that.
             raise HTTPException(
@@ -140,6 +153,16 @@ class UserAuthCRUD:
             return None
         user_auth = user_auths[0]
         return user_auth
+
+    async def get_local_auth_source_by_user_name(
+        self, user_name: str, raise_exception_if_none: Exception = None
+    ) -> UserAuth | None:
+        query = select(User).where(User.user_name == user_name)
+        results = await self.session.exec(statement=query)
+        user: User | None = results.one_or_none()
+        if not user and raise_exception_if_none:
+            raise raise_exception_if_none
+        return await self.get_local_auth_source_by_user_id(user.id)
 
     async def create(self, user_auth_create: UserAuthCreate) -> UserAuth:
         password_hashed = None
@@ -222,7 +245,7 @@ class _UserAuthRefreshTokenBase(BaseTable, table=False):
 
 
 class UserAuthRefreshTokenUpdate(_UserAuthRefreshTokenBase, table=False):
-    disabled: bool = Field(default=False)
+    deactivated: bool = Field(default=False)
 
 
 class UserAuthRefreshTokenCreate(_UserAuthRefreshTokenBase, table=False):
@@ -251,12 +274,12 @@ class UserAuthRefreshTokenCRUD:
     async def get(
         self,
         id: str | uuid.UUID,
-        show_disabled: bool = False,
+        show_deactivated: bool = False,
         raise_exception_if_none: Exception = None,
     ) -> UserAuthRefreshToken:
         query = select(UserAuthRefreshToken).where(UserAuthRefreshToken.id == id)
-        if not show_disabled:
-            query.where(UserAuthRefreshToken.disabled == False)
+        if not show_deactivated:
+            query.where(UserAuthRefreshToken.deactivated == False)
         results = await self.session.exec(statement=query)
         user_auth_refresh_token: UserAuthRefreshToken | None = results.one_or_none()
         if user_auth_refresh_token is None and raise_exception_if_none:
@@ -342,7 +365,7 @@ class UserAuthRefreshTokenCRUD:
         results = await self.session.exec(statement=query_tokens)
         tokens: Sequence[UserAuthRefreshToken] = results.all()
         for token in tokens:
-            token.disabled = True
+            token.deactivated = True
             self.session.add(token)
         self.session.commit()
 

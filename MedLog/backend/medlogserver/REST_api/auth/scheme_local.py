@@ -15,7 +15,7 @@ from medlogserver.REST_api.auth.tokens import (
     JWTAccessTokenContainer,
     JWTRefreshTokenContainer,
 )
-from medlogserver.db.user import get_users_crud, User, UserCRUD, UserCreate
+from medlogserver.db.user import get_user_crud, User, UserCRUD, UserCreate
 from medlogserver.db.user_auth import (
     get_user_auth_crud,
     UserAuth,
@@ -58,7 +58,7 @@ fast_api_auth_local_router: APIRouter = APIRouter()
 )
 async def login_for_token_set(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    user_crud: UserCRUD = Depends(get_users_crud),
+    user_crud: UserCRUD = Depends(get_user_crud),
     user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
     user_auth_access_token_crud: UserAuthRefreshTokenCRUD = Depends(
         get_user_auth_refresh_token_crud
@@ -77,7 +77,7 @@ async def login_for_token_set(
     user_auth.verify_password(
         form_data.password, raise_exception_if_wrong_pw=wrong_login_exception
     )
-    # get full user data. HINT: user can exist but maybe disabled, thats why the `raise_exception_if_none`
+    # get full user data. HINT: user can exist but maybe deactivated, thats why the `raise_exception_if_none`
     user: User = await user_crud.get(
         user_auth.user_id, raise_exception_if_none=wrong_login_exception
     )
@@ -96,49 +96,3 @@ async def login_for_token_set(
         )
     )
     return refresh_token.to_token_set_response(access_token=access_token)
-
-
-@fast_api_auth_local_router.post(
-    "/user",
-    response_model=User,
-    name="Create local user",
-    description="Creates a new user in the local user database.",
-)
-async def create_user(
-    user: UserCreate,
-    user_password: Annotated[
-        str,
-        Query(
-            description="The password for the created user. If non is defined the user will be created but not able to login.",
-        ),
-    ] = None,
-    current_user_is_usermanager: bool = Depends(user_is_usermanager),
-    user_crud: UserCRUD = Depends(get_user_auth_crud),
-    user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
-) -> User:
-    wrong_login_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Incorrect user_name or password",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    if not current_user_is_usermanager and 1 == 2:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing role",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    user: User = await user_crud.create(
-        User,
-        raise_exception_if_exists=HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User allready exists",
-            headers={"WWW-Authenticate": "Bearer"},
-        ),
-    )
-    if user_password:
-        user_auth: UserAuth = await user_auth_crud.create(
-            UserAuthCreate(
-                auth_source_type=AllowedAuthSourceTypes.local, password=user_password
-            )
-        )
-    return user

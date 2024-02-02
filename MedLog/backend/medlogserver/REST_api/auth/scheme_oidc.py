@@ -17,7 +17,7 @@ from medlogserver.REST_api.auth.tokens import (
     JWTBundleTokenResponse,
 )
 from medlogserver.REST_api.base import HTTPErrorResponeRepresentation
-from medlogserver.db.user import get_users_crud, User, UserCRUD, UserUpdate
+from medlogserver.db.user import get_user_crud, User, UserCRUD, UserUpdate
 from medlogserver.db.user_auth import (
     get_user_auth_crud,
     UserAuth,
@@ -59,12 +59,15 @@ class StarletteOAuthProviderAppContainer:
             client_secret=oidc_provider_config.CLIENT_SECRET.get_secret_value(),
         )
         # this is the url the external OIDC provider will be redirect to (at our API here) after the user has authenticated
-        self.oidc_provider_auth_url = f"/auth/{oidc_provider_config.PROVIDER_SLUG_NAME}"
+        self.oidc_provider_auth_url = (
+            f"/auth/oidc/token/{oidc_provider_config.PROVIDER_SLUG_NAME}"
+        )
         self.fast_api_router.add_api_route(
-            path=f"/login/{oidc_provider_config.PROVIDER_SLUG_NAME}",
+            path=f"/auth/oidc/login/{oidc_provider_config.PROVIDER_SLUG_NAME}",
             endpoint=self.login,
             name=f"login_{self.name}",
             methods=["GET"],
+            description=f"Redirect to login with the external OpenID Connect provider '{oidc_provider_config.PROVIDER_DISPLAY_NAME}'",
         )
         self.fast_api_router.add_api_route(
             path=self.oidc_provider_auth_url,
@@ -74,6 +77,7 @@ class StarletteOAuthProviderAppContainer:
             responses={401: {"model": HTTPErrorResponeRepresentation}},
             response_model=JWTBundleTokenResponse,
             response_description="a OAuth2Token token to be used to authenticate against the API",
+            description=f"The 'Redirect URIs' for the external OpenID Connect providers '{oidc_provider_config.PROVIDER_DISPLAY_NAME}' token transfer",
         )
 
     @property
@@ -90,7 +94,7 @@ class StarletteOAuthProviderAppContainer:
         self,
         request: Request,
         response_model=JWTRefreshTokenResponse,
-        user_crud: UserCRUD = Depends(get_users_crud),
+        user_crud: UserCRUD = Depends(get_user_crud),
         user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
         user_auth_access_token_crud: UserAuthRefreshTokenCRUD = Depends(
             get_user_auth_refresh_token_crud
@@ -151,7 +155,7 @@ class StarletteOAuthProviderAppContainer:
                 roles=userinfo.get(
                     self.oidc_provider_config.USER_GROUP_ATTRIBUTE, None
                 ),
-                disabled=False,
+                deactivated=False,
                 is_email_verified=userinfo.get(
                     self.oidc_provider_config.USER_MAIL_VERIFIED_ATTRIBUTE, False
                 ),
@@ -175,7 +179,7 @@ class StarletteOAuthProviderAppContainer:
                 roles=userinfo.get(
                     self.oidc_provider_config.USER_GROUP_ATTRIBUTE, None
                 ),
-                disabled=False,
+                deactivated=False,
                 is_email_verified=userinfo.get(
                     self.oidc_provider_config.USER_MAIL_VERIFIED_ATTRIBUTE, False
                 ),

@@ -38,7 +38,7 @@ class UserAuthExternalOIDCToken(BaseTable, table=True):
     oidc_provider_name: str = Field(index=True)
     oauth_token: Dict = Field(default=None, sa_column=Column(type_=JSON))
     # valid_until_timestamp: int = Field(default=None)
-    disabled: bool = Field(default=False)
+    deactivated: bool = Field(default=False)
     user_auth_id: uuid.UUID = Field(default=None, foreign_key="user_auth.id")
 
 

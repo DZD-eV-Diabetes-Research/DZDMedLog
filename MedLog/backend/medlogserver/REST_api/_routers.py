@@ -11,9 +11,15 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
 
     fastapi_app.include_router(fast_api_auth_local_router, tags=["Auth"])
 
+    from medlogserver.REST_api.user.manage_local_users import (
+        fast_api_user_manage_router,
+    )
     from medlogserver.REST_api.auth.scheme_oidc import (
         generate_oidc_provider_auth_routhers,
     )
 
     for oidc_provider_router in generate_oidc_provider_auth_routhers():
-        fastapi_app.include_router(oidc_provider_router, tags=["Auth"], prefix="/oidc")
+        fastapi_app.include_router(oidc_provider_router, tags=["Auth"])
+
+    ### USER MANAGEMENT
+    fastapi_app.include_router(fast_api_user_manage_router, tags=["User"])
