@@ -8,6 +8,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from medlogserver.db._engine import db_engine
 from medlogserver.db._session import get_async_session_context
+from medlogserver.db.study.study import Study
+from medlogserver.db.study.study_permission import StudyPermisson
+from medlogserver.db.event.event import Event
 from medlogserver.db.user.user import (
     User,
     UserCRUD,

@@ -16,18 +16,24 @@ from medlogserver.log import get_logger
 from medlogserver.db.base import Base, BaseTable
 
 # TODO: this generated a circular import we need to seperate model and crud classes
-# from medlogserver.db.user_auth import UserAuthRefreshTokenCRUD
+# from medlogserver.db.event_auth import EventAuthRefreshTokenCRUD
 
 
 log = get_logger()
 config = Config()
 
 
-class EventBase(Base, table=False):
-    name: str = Field(
+_name_annotation = Annotated[
+    Optional[str],
+    StringConstraints(strip_whitespace=True, pattern=r"^[a-zA-Z0-9-]+$", max_length=64),
+]
+
+
+class EventUpdate(Base, table=False):
+    name: _name_annotation = Field(
         default=None,
         index=True,
-        max_length=32,
+        unique=True,
         schema_extra={"examples": ["visit01", "TI12"]},
     )
     completed: bool = Field(
@@ -36,7 +42,14 @@ class EventBase(Base, table=False):
     )
 
 
-class Event(EventBase, BaseTable, table=True):
+class Event(EventUpdate, BaseTable, table=True):
+    __tablename__ = "event"
+    study_id: UUID = Field(foreign_key="study.id")
+    name: _name_annotation = Field(
+        index=True,
+        unique=True,
+        schema_extra={"examples": ["visit01", "TI12"]},
+    )
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,
         primary_key=True,
@@ -47,146 +60,87 @@ class Event(EventBase, BaseTable, table=True):
     )
 
 
-class InterviewCRUD:
+class EventCRUD:
     def __init__(self, session: AsyncSession):
         self.session = session
 
     async def list(
         self,
-        show_deactivated: bool = False,
-        raise_exception_if_none: Exception = None,
-    ) -> Sequence[Drug]:
-        query = select(Drug)
-        if not show_deactivated:
-            query = select(Drug).where(Drug.deactivated == False)
+        filter_by_study_id: UUID = None,
+        hide_completed: bool = False,
+    ) -> Sequence[Event]:
+        query = select(Event)
+        if filter_by_study_id:
+            query = query.where(Event.study_id == filter_by_study_id)
+        if hide_completed:
+            query = query.where(Event.completed == True)
         results = await self.session.exec(statement=query)
         return results.all()
 
     async def get(
         self,
-        user_id: str | UUID,
-        show_deactivated: bool = False,
+        event_id: str | UUID,
         raise_exception_if_none: Exception = None,
-    ) -> Optional[User]:
-        query = select(User).where(User.id == user_id)
-        if not show_deactivated:
-            query.where(User.deactivated == False)
-
+    ) -> Optional[Event]:
+        query = select(Event).where(Event.id == event_id)
         results = await self.session.exec(statement=query)
-        user: User | None = results.one_or_none()
-        if user is None and raise_exception_if_none:
+        event: Event | None = results.one_or_none()
+        if event is None and raise_exception_if_none:
             raise raise_exception_if_none
-        return user
-
-    async def get_by_user_name(
-        self,
-        user_name: str | UUID,
-        show_deactivated: bool = False,
-        raise_exception_if_none: Exception = None,
-    ) -> Optional[User]:
-        if show_deactivated:
-            query = select(User).where(User.user_name == user_name)
-        else:
-            query = select(User).where(
-                User.user_name == user_name and User.deactivated == False
-            )
-        results = await self.session.exec(statement=query)
-        user: User | None = results.one_or_none()
-        if user is None and raise_exception_if_none:
-            raise raise_exception_if_none
-        return user
+        return event
 
     async def create(
         self,
-        user: UserCreate | User,
-        exists_ok: bool = False,
+        event: Event,
         raise_exception_if_exists: Exception = None,
-    ) -> User:
-        if type(user) is UserCreate:
-            user: User = User.model_validate(user)
-        log.debug(f"Create user: {user}")
-        existing_user: User = await self.get_by_user_name(
-            user.user_name, show_deactivated=True
+    ) -> Event:
+        log.debug(f"Create event: {event}")
+        existing_events: Event = await self.list(
+            filter_by_study_id=event.study_id, hide_completed=False
         )
-        if existing_user is not None and not exists_ok:
-            raise raise_exception_if_exists if raise_exception_if_exists else ValueError(
-                f"User with user_name {user.user_name} already exists"
-            )
-        if user.display_name is None:
-            user.display_name = user.user_name
-        self.session.add(user)
+        if existing_events and raise_exception_if_exists:
+            raise raise_exception_if_exists
+        self.session.add(event)
         await self.session.commit()
-        await self.session.refresh(user)
-        return user
-
-    async def disable(
-        self,
-        user_id: str | UUID,
-        raise_exception_if_not_exists=None,
-        raise_exception_if_allready_deactivated=None,
-    ) -> bool:
-        if user_id is None:
-            raise ValueError("No user_id provided")
-        user = await self.get(
-            user_id=user_id,
-            raise_exception_if_none=raise_exception_if_not_exists,
-            show_deactivated=True,
-        )
-        if user.deactivated and raise_exception_if_allready_deactivated:
-            raise raise_exception_if_allready_deactivated
-        user.deactivated = True
-        self.session.add(user)
-        await self.session.commit()
-        await self.session.refresh(user)
-
-        # for good measure disable all refresh tokens as well
-        # TODO: this generated a circular import we need to seperate model and crud classes
-        # UserAuthRefreshTokenCRUD(self.session).disable_by_user_id(user_id=user_id)
-        return user
+        await self.session.refresh(event)
+        return event
 
     async def update(
         self,
-        user_update: UserUpdate | UserUpdateByUser | UserUpdateByAdmin,
-        user_id: str | UUID = None,
+        event_update: EventUpdate,
+        event_id: str | UUID,
         raise_exception_if_not_exists=None,
-    ) -> User:
-        user_id = user_id if user_id else user_update.id
-        if user_id is None:
-            raise ValueError(
-                "User update failed, uuid must be set in user_update or passed as argument `id`"
-            )
-        user_from_db = await self.get(
-            user_id=user_id,
-            raise_exception_if_none=raise_exception_if_not_exists,
-            show_deactivated=True,
+    ) -> Event:
+        event_from_db = await self.get(
+            event_id=event_id, raise_exception_if_none=raise_exception_if_not_exists
         )
-        for k, v in user_update.model_dump(exclude_unset=True).items():
-            if k in UserUpdate.model_fields.keys():
-                setattr(user_from_db, k, v)
-        self.session.add(user_from_db)
+        for k, v in event_update.model_dump(exclude_unset=True).items():
+            if k in EventUpdate.model_fields.keys():
+                setattr(event_from_db, k, v)
+        self.session.add(event_from_db)
         await self.session.commit()
-        await self.session.refresh(user_from_db)
-        return user_from_db
+        await self.session.refresh(event_from_db)
+        return event_from_db
 
     async def delete(
         self,
-        user_id: str | UUID,
+        event_id: str | UUID,
         raise_exception_if_not_exists=None,
-    ) -> User:
-        user = await self.get(
-            user_id=user_id,
+    ) -> Event:
+        event = await self.get(
+            event_id=event_id,
             raise_exception_if_none=raise_exception_if_not_exists,
             show_deactivated=True,
         )
-        if user is not None:
-            delete(user).where(User.pk == user_id)
+        if event is not None:
+            delete(event).where(Event.pk == event_id)
         return True
 
 
-async def get_user_crud(
+async def get_event_crud(
     session: AsyncSession = Depends(get_async_session),
-) -> UserCRUD:
-    yield UserCRUD(session=session)
+) -> EventCRUD:
+    yield EventCRUD(session=session)
 
 
-get_users_crud_context = contextlib.asynccontextmanager(get_user_crud)
+get_events_crud_context = contextlib.asynccontextmanager(get_event_crud)

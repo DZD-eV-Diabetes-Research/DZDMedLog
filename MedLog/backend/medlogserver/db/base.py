@@ -36,7 +36,6 @@ class UUIDModel(SQLModel):
         ## sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
 """
-log.info("TIMESTAMP BABY")
 
 
 class TimestampModel(SQLModel):

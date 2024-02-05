@@ -54,7 +54,7 @@ class InterviewCRUD:
     ) -> Optional[User]:
         query = select(User).where(User.id == user_id)
         if not show_deactivated:
-            query.where(User.deactivated == False)
+            query = query.where(User.deactivated == False)
 
         results = await self.session.exec(statement=query)
         user: User | None = results.one_or_none()

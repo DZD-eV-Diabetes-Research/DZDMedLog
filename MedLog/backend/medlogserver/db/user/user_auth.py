@@ -106,9 +106,11 @@ class UserAuthCRUD:
     ) -> Sequence[UserAuth]:
         query = select(UserAuth).where(UserAuth.user_id == user_id)
         if filter_auth_source_type:
-            query.where(UserAuth.auth_source_type == filter_auth_source_type)
+            query = query.where(UserAuth.auth_source_type == filter_auth_source_type)
         if filter_oidc_provider_name:
-            query.where(UserAuth.oidc_provider_name == filter_oidc_provider_name)
+            query = query.where(
+                UserAuth.oidc_provider_name == filter_oidc_provider_name
+            )
         results = await self.session.exec(statement=query)
         user_auths: Sequence[UserAuth] = results.all()
         if user_auths is None and raise_exception_if_none:
@@ -124,9 +126,11 @@ class UserAuthCRUD:
     ) -> Sequence[UserAuth]:
         query = select(UserAuth).join(User).where(User.user_name == user_name)
         if filter_auth_source_type:
-            query.where(UserAuth.auth_source_type == filter_auth_source_type)
+            query = query.where(UserAuth.auth_source_type == filter_auth_source_type)
         if filter_oidc_provider_name:
-            query.where(UserAuth.oidc_provider_name == filter_oidc_provider_name)
+            query = query.where(
+                UserAuth.oidc_provider_name == filter_oidc_provider_name
+            )
         results = await self.session.exec(statement=query)
         user: UserAuth | None = results.all()
         if user is None and raise_exception_if_none:
@@ -279,7 +283,7 @@ class UserAuthRefreshTokenCRUD:
     ) -> UserAuthRefreshToken:
         query = select(UserAuthRefreshToken).where(UserAuthRefreshToken.id == id)
         if not show_deactivated:
-            query.where(UserAuthRefreshToken.deactivated == False)
+            query = query.where(UserAuthRefreshToken.deactivated == False)
         results = await self.session.exec(statement=query)
         user_auth_refresh_token: UserAuthRefreshToken | None = results.one_or_none()
         if user_auth_refresh_token is None and raise_exception_if_none:

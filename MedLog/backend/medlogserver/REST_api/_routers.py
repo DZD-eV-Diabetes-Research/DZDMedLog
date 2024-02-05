@@ -23,3 +23,12 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
 
     ### USER MANAGEMENT
     fastapi_app.include_router(fast_api_user_manage_router, tags=["User"])
+
+    ### APP - Business logic
+    from medlogserver.REST_api.app.manage_studies import fast_api_study_router
+
+    fastapi_app.include_router(fast_api_study_router, tags=["Study"])
+
+    from medlogserver.REST_api.app.manage_event import fast_api_event_router
+
+    fastapi_app.include_router(fast_api_event_router, tags=["Event"])

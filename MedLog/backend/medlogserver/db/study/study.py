@@ -24,17 +24,40 @@ config = Config()
 
 
 class StudyBase(Base, table=False):
-    name: str = Field(
+    name: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, pattern=r"^[a-zA-Z0-9-]+$"),
+    ] = Field(
         default=None,
         index=True,
         max_length=64,
         unique=True,
         schema_extra={"examples": ["PLIS", "BARIA"]},
     )
+
+    display_name: Optional[str] = Field(
+        default=None,
+        index=True,
+        max_length=128,
+        schema_extra={
+            "examples": [
+                "Prädiabetes-Lebensstil-Interventions-Studie (PLIS)",
+                "BARIA-DDZ-Studie",
+            ]
+        },
+    )
+
     deactivated: bool = Field(default=False)
+
+    no_permissions: bool = Field(
+        default=False,
+        description="If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study.  Admin access still need to be allocated explicit.",
+    )
 
 
 class Study(StudyBase, BaseTable, table=True):
+    __tablename__ = "study"
+
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,
         primary_key=True,
@@ -67,7 +90,7 @@ class StudyCRUD:
     ) -> Optional[Study]:
         query = select(Study).where(Study.id == study_id)
         if not show_deactivated:
-            query.where(Study.deactivated == False)
+            query = query.where(Study.deactivated == False)
 
         results = await self.session.exec(statement=query)
         user: Study | None = results.one_or_none()
@@ -83,7 +106,7 @@ class StudyCRUD:
     ) -> Optional[Study]:
         query = select(Study).where(Study.name == study_name)
         if not show_deactivated:
-            query.where(Study.deactivated == False)
+            query = query.where(Study.deactivated == False)
 
         results = await self.session.exec(statement=query)
         study: Study | None = results.one_or_none()
@@ -94,18 +117,17 @@ class StudyCRUD:
     async def create(
         self,
         study: Study,
-        exists_ok: bool = False,
         raise_exception_if_exists: Exception = None,
     ) -> Study:
         log.debug(f"Create study: {study}")
+        if study.display_name is None:
+            study.display_name = study.name
         existing_study: Study = await self.get_by_name(
             study.name, show_deactivated=True
         )
-        if existing_study is not None and not exists_ok:
-            raise raise_exception_if_exists if raise_exception_if_exists else ValueError(
-                f"Study with user_name {study.user_name} already exists"
-            )
-        elif existing_study is not None and exists_ok:
+        if existing_study and raise_exception_if_exists:
+            raise raise_exception_if_exists
+        elif existing_study:
             return existing_study
         self.session.add(study)
         await self.session.commit()
@@ -148,7 +170,7 @@ class StudyCRUD:
             show_deactivated=True,
         )
         for k, v in user_update.model_dump(exclude_unset=True).items():
-            if k in UserUpdate.model_fields.keys():
+            if k in Study.model_fields.keys():
                 setattr(user_from_db, k, v)
         self.session.add(user_from_db)
         await self.session.commit()
@@ -170,10 +192,10 @@ class StudyCRUD:
         return True
 
 
-async def get_user_crud(
+async def get_study_crud(
     session: AsyncSession = Depends(get_async_session),
-) -> UserCRUD:
-    yield UserCRUD(session=session)
+) -> StudyCRUD:
+    yield StudyCRUD(session=session)
 
 
-get_users_crud_context = contextlib.asynccontextmanager(get_user_crud)
+get_study_crud_context = contextlib.asynccontextmanager(get_study_crud)

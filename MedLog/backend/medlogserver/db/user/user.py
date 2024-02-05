@@ -109,7 +109,7 @@ class UserCRUD:
     ) -> Optional[User]:
         query = select(User).where(User.id == user_id)
         if not show_deactivated:
-            query.where(User.deactivated == False)
+            query = query.where(User.deactivated == False)
 
         results = await self.session.exec(statement=query)
         user: User | None = results.one_or_none()
@@ -148,8 +148,10 @@ class UserCRUD:
             user.user_name, show_deactivated=True
         )
         if existing_user is not None and not exists_ok:
-            raise raise_exception_if_exists if raise_exception_if_exists else ValueError(
-                f"User with user_name {user.user_name} already exists"
+            raise (
+                raise_exception_if_exists
+                if raise_exception_if_exists
+                else ValueError(f"User with user_name {user.user_name} already exists")
             )
         elif existing_user is not None and exists_ok:
             return existing_user
@@ -220,7 +222,7 @@ class UserCRUD:
             show_deactivated=True,
         )
         if user is not None:
-            delete(user).where(User.pk == user_id)
+            delete(user).where(User.id == user_id)
         return True
 
 
