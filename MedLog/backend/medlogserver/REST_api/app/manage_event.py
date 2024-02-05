@@ -131,7 +131,6 @@ async def update_event(
     event_id: Annotated[str, Path()],
     event: Annotated[Event, Body(description="The event object with updated data")],
     event_crud: EventCRUD = Depends(get_event_crud),
-    event_permission_crud: EventPermissonCRUD = Depends(get_event_permission_crud),
     current_user: User = Security(get_current_user),
 ) -> User:
     # security
@@ -140,20 +139,7 @@ async def update_event(
         detail=f"You are not allowed to update this event",
     )
     passed_security_check: bool = False
-    if config.ADMIN_ROLE_NAME in current_user.roles:
-        passed_security_check = True
-    else:
-        perm: EventPermisson = await event_permission_crud.get_by_user_and_event(
-            event_id=event_id,
-            user_id=current_user.id,
-            raise_exception_if_none=not_allowed_error,
-        )
-        if perm.is_event_admin:
-            passed_security_check = True
-    if not passed_security_check:
-        raise not_allowed_error
-    # creation
-    return await event_crud.create(event)
+    raise NotImplemented
 
 
 @fast_api_event_router.delete(
