@@ -24,6 +24,7 @@ from medlogserver.db.user.user_auth import (
     get_user_auth_crud,
     get_user_auth_crud_context,
 )
+from medlogserver.db.interview.interview import Interview
 from medlogserver.db.user.user_auth_external_oidc_token import (
     UserAuthExternalOIDCToken,
 )

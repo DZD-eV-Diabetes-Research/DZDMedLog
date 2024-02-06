@@ -17,29 +17,26 @@ from medlogserver.db.base import Base, BaseTable
 from medlogserver.db.event.event import Event
 
 # TODO: this generated a circular import we need to seperate model and crud classes
-# from medlogserver.db.interview_auth import InterviewAuthRefreshTokenCRUD
+# from medlogserver.db.intake_auth import IntakeAuthRefreshTokenCRUD
 
 
 log = get_logger()
 config = Config()
 
 
-class InterviewCreate(Base, table=False):
-    event_id: str = Field(foreign_key="event.id")
-    proband_external_id: str = Field()
-    interview_start_time_utc: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
-    interview_end_time_utc: datetime = Field(default=None)
+class IntakeCreate(Base, table=False):
+    interview_id: str = Field(foreign_key="event.id")
+    intake_start_time_utc: datetime = Field()
+    intake_end_time_utc: datetime = Field(default=None)
     proband_has_taken_meds: bool = Field()
 
 
-class InterviewUpdate(InterviewCreate, table=False):
+class IntakeUpdate(IntakeCreate, table=False):
     pass
 
 
-class Interview(InterviewCreate, table=True):
-    __tablename__ = "interview"
+class Intake(IntakeCreate, table=True):
+    __tablename__ = "intake"
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,
         primary_key=True,
@@ -50,7 +47,7 @@ class Interview(InterviewCreate, table=True):
     )
 
 
-class InterviewCRUD:
+class IntakeCRUD:
     def __init__(self, session: AsyncSession):
         self.session = session
 
@@ -59,94 +56,92 @@ class InterviewCRUD:
         filter_by_event_id: str = None,
         filter_by_proband_external_id: str = None,
         filter_by_study_id: str = None,
-    ) -> Sequence[Interview]:
-        query = select(Interview)
+    ) -> Sequence[Intake]:
+        query = select(Intake)
         if filter_by_study_id:
             query = query.join(Event).where(Event.study_id == filter_by_study_id)
         if filter_by_event_id:
-            query = query.where(Interview.event_id == filter_by_event_id)
+            query = query.where(Intake.event_id == filter_by_event_id)
         if filter_by_proband_external_id:
             query = query.where(
-                Interview.proband_external_id == filter_by_proband_external_id
+                Intake.proband_external_id == filter_by_proband_external_id
             )
         results = await self.session.exec(statement=query)
         return results.all()
 
     async def get(
         self,
-        interview_id: str | UUID,
+        intake_id: str | UUID,
         raise_exception_if_none: Exception = None,
-    ) -> Optional[Interview]:
-        query = select(Interview).where(Interview.id == interview_id)
+    ) -> Optional[Intake]:
+        query = select(Intake).where(Intake.id == intake_id)
         results = await self.session.exec(statement=query)
-        interview: Interview | None = results.one_or_none()
-        if interview is None and raise_exception_if_none:
+        intake: Intake | None = results.one_or_none()
+        if intake is None and raise_exception_if_none:
             raise raise_exception_if_none
-        return interview
+        return intake
 
     async def get_last_completed_by_proband(
         self,
         proband_external_id: str,
         raise_exception_if_none: Exception = None,
-    ) -> Optional[Interview]:
+    ) -> Optional[Intake]:
 
-        query = select(Interview).where(
-            Interview.proband_external_id == proband_external_id
-        )
+        query = select(Intake).where(Intake.proband_external_id == proband_external_id)
 
         results = await self.session.exec(statement=query)
-        interview: Interview | None = results.one_or_none()
-        if interview is None and raise_exception_if_none:
+        intake: Intake | None = results.one_or_none()
+        if intake is None and raise_exception_if_none:
             raise raise_exception_if_none
-        return interview
+        return intake
 
     async def create(
         self,
-        interview: InterviewCreate | Interview,
-    ) -> Interview:
-        log.debug(f"Create interview: {interview}")
-        self.session.add(interview)
+        intake: IntakeCreate | Intake,
+    ) -> Intake:
+        log.debug(f"Create intake: {intake}")
+        self.session.add(intake)
         await self.session.commit()
-        await self.session.refresh(interview)
-        return interview
+        await self.session.refresh(intake)
+        return intake
 
     async def update(
         self,
-        interview_id: str | UUID,
-        interview_update: InterviewUpdate,
+        intake_id: str | UUID,
+        intake_update: IntakeUpdate,
         raise_exception_if_not_exists=None,
-    ) -> Interview:
-        interview_from_db = await self.get(
-            interview_id=interview_id,
+    ) -> Intake:
+        intake_from_db = await self.get(
+            intake_id=intake_id,
             raise_exception_if_none=raise_exception_if_not_exists,
         )
-        for k, v in interview_update.model_dump(exclude_unset=True).items():
-            if k in InterviewUpdate.model_fields.keys():
-                setattr(interview_from_db, k, v)
-        self.session.add(interview_from_db)
+        for k, v in intake_update.model_dump(exclude_unset=True).items():
+            if k in IntakeUpdate.model_fields.keys():
+                setattr(intake_from_db, k, v)
+        self.session.add(intake_from_db)
         await self.session.commit()
-        await self.session.refresh(interview_from_db)
-        return interview_from_db
+        await self.session.refresh(intake_from_db)
+        return intake_from_db
 
     async def delete(
         self,
-        interview_id: str | UUID,
+        intake_id: str | UUID,
         raise_exception_if_not_exists=None,
     ) -> bool:
-        interview = await self.get(
-            interview_id=interview_id,
+        intake = await self.get(
+            intake_id=intake_id,
             raise_exception_if_none=raise_exception_if_not_exists,
             show_deactivated=True,
         )
-        if interview is not None:
-            delete(interview).where(Interview.id == interview_id)
+        if intake is not None:
+            delete(intake).where(Intake.id == intake_id)
         return True
 
 
-async def get_interview_crud(
+async def get_intake_crud(
     session: AsyncSession = Depends(get_async_session),
-) -> InterviewCRUD:
-    yield InterviewCRUD(session=session)
+) -> IntakeCRUD:
+    yield IntakeCRUD(session=session)
 
 
-get_interviews_crud_context = contextlib.asynccontextmanager(get_interview_crud)
+get_intakes_crud_context = contextlib.asynccontextmanager(get_intake_crud)

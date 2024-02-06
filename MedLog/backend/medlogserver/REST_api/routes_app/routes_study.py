@@ -11,44 +11,19 @@ from fastapi import (
     Body,
     Form,
     Path,
+    Response,
 )
-from fastapi.security import OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from pydantic import BaseModel, Field
+
 from typing import Annotated
 
 from fastapi import Depends, APIRouter
 
-from medlogserver.REST_api.auth.tokens import (
-    JWTBundleTokenResponse,
-    JWTAccessTokenContainer,
-    JWTRefreshTokenContainer,
-)
+
 from medlogserver.db.user.user import (
-    get_user_crud,
     User,
-    UserCRUD,
-    UserCreate,
-    UserUpdate,
-    UserUpdateByUser,
-    UserUpdateByAdmin,
 )
-from medlogserver.db.user.user_auth import (
-    get_user_auth_crud,
-    UserAuth,
-    UserAuthCreate,
-    UserAuthUpdate,
-    UserAuthCRUD,
-    UserAuthRefreshToken,
-    UserAuthRefreshTokenCreate,
-    UserAuthRefreshTokenCRUD,
-    get_user_auth_refresh_token_crud,
-    AllowedAuthSourceTypes,
-)
+
 from medlogserver.REST_api.auth.base import (
-    TOKEN_ENDPOINT_PATH,
-    oauth2_scheme,
     user_is_admin,
     user_is_usermanager,
     get_current_user,
@@ -56,21 +31,23 @@ from medlogserver.REST_api.auth.base import (
     NEEDS_USERMAN_API_INFO,
 )
 
-from medlogserver.db.study.study import Study, StudyCRUD, get_study_crud
+from medlogserver.db.study.study import (
+    Study,
+    StudyUpdate,
+    StudyCreate,
+    StudyCRUD,
+    get_study_crud,
+)
 from medlogserver.db.study.study_permission import (
     StudyPermisson,
     StudyPermissonCRUD,
     get_study_permission_crud,
 )
-from medlogserver.REST_api.app.security import (
-    user_has_study_access_map,
-    UserStudyAccess,
+from medlogserver.REST_api.routes_app.security import (
+    user_has_studies_access_map,
+    UserStudyAccessCollection,
 )
-from medlogserver.db.user.user_auth_external_oidc_token import (
-    UserAuthExternalOIDCToken,
-    UserAuthExternalOIDCTokenCRUD,
-    get_user_auth_external_oidc_token_crud,
-)
+
 from medlogserver.config import Config
 
 config = Config()
@@ -88,10 +65,12 @@ fast_api_study_router: APIRouter = APIRouter()
     response_model=List[Study],
     description=f"List all studies the user has access too.",
 )
-async def get_studies(
+async def list_studies(
     show_deactived: bool = Query(False),
     current_user: User = Security(get_current_user),
-    study_permissions_helper: UserStudyAccess = Security(user_has_study_access_map),
+    study_permissions_helper: UserStudyAccessCollection = Security(
+        user_has_studies_access_map
+    ),
     study_crud: StudyCRUD = Depends(get_study_crud),
 ) -> User:
 
@@ -110,7 +89,7 @@ async def get_studies(
     description=f"Create a new study. {NEEDS_ADMIN_API_INFO}",
 )
 async def create_study(
-    study: Study,
+    study: StudyCreate,
     current_user_is_admin: User = Security(user_is_admin),
     study_crud: StudyCRUD = Depends(get_study_crud),
 ) -> User:
@@ -130,11 +109,13 @@ async def create_study(
 )
 async def update_study(
     study_id: Annotated[str, Path()],
-    study: Annotated[Study, Body(description="The study object with updated data")],
+    study: Annotated[
+        StudyUpdate, Body(description="The study object with updated data")
+    ],
     study_crud: StudyCRUD = Depends(get_study_crud),
     study_permission_crud: StudyPermissonCRUD = Depends(get_study_permission_crud),
     current_user: User = Security(get_current_user),
-) -> User:
+) -> Study:
     # security
     not_allowed_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -160,12 +141,17 @@ async def update_study(
 @fast_api_study_router.delete(
     "/study/{study_id}",
     description=f"Delete existing study - Not Yet Implented",
+    response_class=Response,
+    status_code=204,
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"model": None},
+    },
 )
 async def delete_study(
     study_id: Annotated[str, Path()],
     current_user_is_admin: User = Security(user_is_admin),
     study_crud: StudyCRUD = Depends(get_study_crud),
-) -> User:
+):
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail="Deleting a study is not yet implented",

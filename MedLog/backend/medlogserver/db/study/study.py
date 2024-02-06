@@ -24,16 +24,6 @@ config = Config()
 
 
 class StudyBase(Base, table=False):
-    name: Annotated[
-        str,
-        StringConstraints(strip_whitespace=True, pattern=r"^[a-zA-Z0-9-]+$"),
-    ] = Field(
-        default=None,
-        index=True,
-        max_length=64,
-        unique=True,
-        schema_extra={"examples": ["PLIS", "BARIA"]},
-    )
 
     display_name: Optional[str] = Field(
         default=None,
@@ -55,7 +45,26 @@ class StudyBase(Base, table=False):
     )
 
 
-class Study(StudyBase, BaseTable, table=True):
+class StudyUpdate(StudyBase):
+    pass
+
+
+class StudyCreate(StudyUpdate):
+    name: Annotated[
+        str,
+        StringConstraints(
+            strip_whitespace=True, to_lower=True, pattern=r"^[a-zA-Z0-9-]+$"
+        ),
+    ] = Field(
+        description="The identifiying name of the study. This can not be changed later. Must be a '[Slug](https://en.wikipedia.org/wiki/Clean_URL#Slug)'; A human and machine reable string containing no spaces, only numbers, lowered latin-script-letters and dashes. If you need to change the name later, use the display name.",
+        index=True,
+        max_length=64,
+        unique=True,
+        schema_extra={"examples": ["plis", "baria-ddz"]},
+    )
+
+
+class Study(StudyCreate, BaseTable, table=True):
     __tablename__ = "study"
 
     id: uuid.UUID = Field(
@@ -116,23 +125,24 @@ class StudyCRUD:
 
     async def create(
         self,
-        study: Study,
+        study_create: StudyCreate,
         raise_exception_if_exists: Exception = None,
     ) -> Study:
-        log.debug(f"Create study: {study}")
-        if study.display_name is None:
-            study.display_name = study.name
+        log.debug(f"Create study: {study_create}")
+        if study_create.display_name is None:
+            study_create.display_name = study_create.name
         existing_study: Study = await self.get_by_name(
-            study.name, show_deactivated=True
+            study_create.name, show_deactivated=True
         )
         if existing_study and raise_exception_if_exists:
             raise raise_exception_if_exists
         elif existing_study:
             return existing_study
-        self.session.add(study)
+        new_study: Study = Study.model_validate(study_create)
+        self.session.add(new_study)
         await self.session.commit()
-        await self.session.refresh(study)
-        return study
+        await self.session.refresh(new_study)
+        return new_study
 
     async def disable(
         self,
@@ -155,27 +165,22 @@ class StudyCRUD:
 
     async def update(
         self,
-        user_update: Study,
+        study_update: StudyUpdate,
         study_id: str | UUID = None,
         raise_exception_if_not_exists=None,
     ) -> Study:
-        study_id = study_id if study_id else user_update.id
-        if study_id is None:
-            raise ValueError(
-                "Study update failed, uuid must be set in user_update or passed as argument `id`"
-            )
-        user_from_db = await self.get(
+        study_from_db = await self.get(
             study_id=study_id,
             raise_exception_if_none=raise_exception_if_not_exists,
             show_deactivated=True,
         )
-        for k, v in user_update.model_dump(exclude_unset=True).items():
+        for k, v in study_update.model_dump(exclude_unset=True).items():
             if k in Study.model_fields.keys():
-                setattr(user_from_db, k, v)
-        self.session.add(user_from_db)
+                setattr(study_from_db, k, v)
+        self.session.add(study_from_db)
         await self.session.commit()
-        await self.session.refresh(user_from_db)
-        return user_from_db
+        await self.session.refresh(study_from_db)
+        return study_from_db
 
     async def delete(
         self,
