@@ -132,7 +132,7 @@ async def list_users(
 async def get_myself(
     current_user: UserAuthCRUD = Depends(get_current_user),
 ) -> User:
-    return await current_user
+    return current_user
 
 
 @fast_api_user_manage_router.patch(
