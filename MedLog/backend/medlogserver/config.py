@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, AnyUrl, SecretStr, AnyHttpUrl, validator, StringConstraints
-from typing import List, Annotated, Optional, Literal
+from typing import List, Annotated, Optional, Literal, Dict
 from pathlib import Path, PurePath
 import socket
 from textwrap import dedent
@@ -58,6 +58,15 @@ class Config(BaseSettings):
     ADMIN_USER_EMAIL: Optional[str] = Field(default=None)
     ADMIN_ROLE_NAME: str = Field(default="medlog-admin")
     USERMANAGER_ROLE_NAME: str = Field(default="medlog-user-manager")
+
+    APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS: Dict = Field(
+        default={
+            "PRESCRIBED": "prescribed",
+            "RECOMMENDED": "recommended",
+            "NO": "no",
+            "UNKNOWN": "unknown",
+        }
+    )
 
     AUTH_LOCAL_LOGIN_IS_ENABLED: bool = Field(
         default=True,

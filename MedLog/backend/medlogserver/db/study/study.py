@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated
+from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated, Dict
 from pydantic import validate_email, validator, StringConstraints
 from pydantic_core import PydanticCustomError
 from fastapi import Depends

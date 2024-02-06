@@ -32,6 +32,9 @@ class InterviewCreate(Base, table=False):
     )
     interview_end_time_utc: datetime = Field(default=None)
     proband_has_taken_meds: bool = Field()
+    interview_number: int = Field(
+        description="TB: This field is still kind of mysterious to me. In the user interview video the user just filled it with some number. Maybe a process we can automize (shameless plug: https://git.apps.dzd-ev.org/dzdpythonmodules/ptan)?"
+    )
 
 
 class InterviewUpdate(InterviewCreate, table=False):

@@ -1,4 +1,5 @@
-from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated
+from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated, Dict
+import enum
 from pydantic import validate_email, validator, StringConstraints
 from pydantic_core import PydanticCustomError
 from fastapi import Depends
@@ -23,12 +24,16 @@ from medlogserver.db.event.event import Event
 log = get_logger()
 config = Config()
 
+AdministeredByDoctorAnswers = enum.Enum(
+    "AdministeredByDoctorAnswers", config.APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS
+)
+
 
 class IntakeCreate(Base, table=False):
-    interview_id: str = Field(foreign_key="event.id")
+    interview_id: str = Field(foreign_key="interview.id")
     intake_start_time_utc: datetime = Field()
     intake_end_time_utc: datetime = Field(default=None)
-    proband_has_taken_meds: bool = Field()
+    administered_by_doctor: AdministeredByDoctorAnswers
 
 
 class IntakeUpdate(IntakeCreate, table=False):

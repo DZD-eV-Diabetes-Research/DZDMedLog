@@ -71,7 +71,12 @@ from medlogserver.db.interview.interview import (
     InterviewCreate,
     InterviewCRUD,
     InterviewUpdate,
-    get_interview_crud,
+)
+from medlogserver.db.intake.intake import (
+    Intake,
+    IntakeCreate,
+    IntakeCRUD,
+    get_intake_crud,
 )
 from medlogserver.REST_api.routes_app.security import (
     user_has_studies_access_map,
@@ -87,21 +92,35 @@ from medlogserver.log import get_logger
 log = get_logger()
 
 
-fast_api_interview_router: APIRouter = APIRouter()
+fast_api_intake_router: APIRouter = APIRouter()
 
 
-@fast_api_interview_router.get(
-    "/study/{study_id}/interview",
-    response_model=List[Interview],
-    description=f"List all interviews of one study.",
+@fast_api_intake_router.get(
+    "/study/{study_id}/interview/{interview_id}/intake",
+    response_model=List[Intake],
+    description=f"List all medicine intakes of one proband interview.",
 )
-async def list_all_interviews_of_study(
+async def list_all_intakes_of_interview(
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    intake_crud: InterviewCRUD = Depends(get_intake_crud),
 ) -> List[Interview]:
-    return await interview_crud.list(filter_by_study_id=study_access.study.id)
+    return await intake_crud.list()
+    # return await intake_crud.list(filter_by_study_id=study_access.study.id)
 
 
+@fast_api_intake_router.get(
+    "/study/{study_id}/interview/last/intake",
+    response_model=List[Intake],
+    description=f"List all medicine intakes of one probands last completed interview.",
+)
+async def list_all_intakes_of_interview(
+    study_access: UserStudyAccess = Security(user_has_study_access),
+    intake_crud: InterviewCRUD = Depends(get_intake_crud),
+) -> List[Interview]:
+    return
+
+
+"""
 @fast_api_interview_router.get(
     "/study/{study_id}/event/{event_id}/interview",
     response_model=List[Interview],
@@ -110,9 +129,11 @@ async def list_all_interviews_of_study(
 async def list_interviews_by_study_event(
     event_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    intake_crud: InterviewCRUD = Depends(get_intake_crud),
 ) -> List[Interview]:
-    return await interview_crud.list(filter_by_event_id=event_id)
+    return await intake_crud.list(filter_by_event_id=event_id)
+
+
 
 
 @fast_api_interview_router.get(
@@ -124,9 +145,9 @@ async def get_interview(
     event_id: Annotated[str, Path()],
     interview_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    intake_crud: InterviewCRUD = Depends(get_intake_crud),
 ) -> List[Interview]:
-    interview = await interview_crud.get(interview_id=interview_id)
+    interview = await intake_crud.get(interview_id=interview_id)
     if interview.event_id == event_id:
         return interview
     else:
@@ -145,14 +166,14 @@ async def create_interview(
     interview: Annotated[InterviewCreate, Body()],
     event_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    intake_crud: InterviewCRUD = Depends(get_intake_crud),
 ) -> User:
     if not study_access.user_has_interviewer_permission():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             details="User not authorized to create interview in this study",
         )
-    return await interview_crud.create(interview)
+    return await intake_crud.create(interview)
 
 
 @fast_api_interview_router.patch(
@@ -165,20 +186,20 @@ async def update_interview(
     event_id: str,
     interview_update: InterviewUpdate,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    intake_crud: InterviewCRUD = Depends(get_intake_crud),
 ) -> User:
     if not study_access.user_has_interviewer_permission():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             details="User not authorized to create interview in this study",
         )
-    interview_from_db = await interview_crud.get(interview_id)
+    interview_from_db = await intake_crud.get(interview_id)
     if interview_from_db is None or interview_from_db.event_id != event_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No interview with this id under this event available",
         )
-    return await interview_crud.update(interview_id, interview_update)
+    return await intake_crud.update(interview_id, interview_update)
 
 
 @fast_api_interview_router.delete(
@@ -194,7 +215,7 @@ async def delete_interview(
     interview_id: str,
     event_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    intake_crud: InterviewCRUD = Depends(get_intake_crud),
 ) -> None:
     if not study_access.user_has_interviewer_permission():
         raise HTTPException(
@@ -226,6 +247,7 @@ async def delete_interview(
 async def list_interviews_of_proband(
     proband_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    intake_crud: InterviewCRUD = Depends(get_intake_crud),
 ) -> List[Interview]:
-    return await interview_crud.list(filter_by_proband_external_id=proband_id)
+    return await intake_crud.list(filter_by_proband_external_id=proband_id)
+"""

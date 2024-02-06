@@ -38,3 +38,9 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
     )
 
     fastapi_app.include_router(fast_api_interview_router, tags=["Interview"])
+
+    from medlogserver.REST_api.routes_app.routes_intakes import (
+        fast_api_intake_router,
+    )
+
+    fastapi_app.include_router(fast_api_intake_router, tags=["Intake"])
