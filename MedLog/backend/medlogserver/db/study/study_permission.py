@@ -6,7 +6,7 @@ import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, UniqueConstraint
-
+from datetime import datetime
 import uuid
 from uuid import UUID
 
@@ -14,6 +14,8 @@ from medlogserver.db._session import get_async_session, get_async_session_contex
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.base import Base, BaseTable
+from medlogserver.db.user.user import User
+from medlogserver.db.study.study import Study
 
 # TODO: this generated a circular import we need to seperate model and crud classes
 # from medlogserver.db.user_auth import UserAuthRefreshTokenCRUD
@@ -23,7 +25,22 @@ log = get_logger()
 config = Config()
 
 
-class StudyPermissonBase(Base, table=False):
+class StudyPermissonUpdate(Base, table=False):
+    is_study_viewer: bool = Field(
+        default=True,
+        description="This is the minimal access to a study. The user can see all data but can not alter anything",
+    )
+    is_study_interviewer: bool = Field(
+        default=False,
+        description="Study interviewers can create new interview entries for this study.",
+    )
+    is_study_admin: bool = Field(
+        default=False,
+        description="Study admins can give access to the study to new users.",
+    )
+
+
+class StudyPermissonBase(StudyPermissonUpdate, table=False):
     study_id: uuid.UUID = Field(foreign_key="study.id")
     user_id: uuid.UUID = Field(foreign_key="user.id")
     is_study_viewer: bool = Field(
@@ -39,10 +56,12 @@ class StudyPermissonBase(Base, table=False):
         description="Study admins can give access to the study to new users.",
     )
 
-    @property
-    def has_access(self):
-        """Shortcut to check if the user has at least on permission at the study"""
-        return self.is_study_viewer or self.is_study_interviewer or self.is_study_admin
+
+class StudyPermissonHumanReadeable(StudyPermissonBase, table=False):
+    id: uuid.UUID = Field()
+    user_name: str = Field()
+    study_name: str = Field()
+    created_at: datetime = Field()
 
 
 class StudyPermisson(StudyPermissonBase, BaseTable, table=True):
@@ -79,6 +98,37 @@ class StudyPermissonCRUD:
         results = await self.session.exec(statement=query)
         return results.all()
 
+    async def list_human_readable(
+        self,
+        filter_study_id: uuid.UUID | str = None,
+        filter_user_id: uuid.UUID | str = None,
+    ) -> Sequence[StudyPermissonHumanReadeable]:
+        """As this is a n2m table and only container IDs, readbility is not good. this function injects usernames and study IDs for better readablity.
+        ToDo: candidate for caching
+
+        Args:
+            filter_study_id (uuid.UUID | str, optional): _description_. Defaults to None.
+            filter_user_id (uuid.UUID | str, optional): _description_. Defaults to None.
+
+        Returns:
+            Sequence[StudyPermissonHumanReadeable]: _description_
+        """
+        query = select(StudyPermisson, User, Study).join(User).join(Study)
+        if filter_study_id:
+            query = query.where(StudyPermisson.study_id == filter_study_id)
+        if filter_user_id:
+            query = query.where(StudyPermisson.user_id == filter_user_id)
+        results = await self.session.exec(statement=query)
+        readable_results: List[StudyPermissonHumanReadeable] = []
+        for perm, user, study in results:
+            StudyPermissonHumanReadeable(user)
+            readable_results.append(
+                StudyPermissonHumanReadeable(
+                    user_name=user.user_name, study_name=study.name, **perm
+                )
+            )
+        return readable_results
+
     async def get(
         self,
         study_permission_id: str | UUID,
@@ -104,6 +154,20 @@ class StudyPermissonCRUD:
         study_permission: StudyPermisson | None = results.one_or_none()
         if study_permission is None and raise_exception_if_none:
             raise raise_exception_if_none
+        return study_permission
+
+    async def update_or_create_if_not_exists(self, study_permission=StudyPermisson):
+        existing_study_permission: StudyPermisson = await self.list(
+            filter_study_id=study_permission.study_id,
+            filter_user_id=study_permission.user_id,
+        )
+        if existing_study_permission:
+            for k in StudyPermissonUpdate.model_fields.keys():
+                setattr(existing_study_permission, k, getattr(study_permission, k))
+            study_permission = existing_study_permission
+        self.session.add(study_permission)
+        await self.session.commit()
+        await self.session.refresh(study_permission)
         return study_permission
 
     async def create(

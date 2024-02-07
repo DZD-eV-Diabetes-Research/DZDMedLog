@@ -63,6 +63,11 @@ class UserStudyAccess:
     def user_is_admin(self):
         self.user_has_access(as_role="admin")
 
+    def user_can_manage_study_permissions(self) -> bool:
+        if config.USERMANAGER_ROLE_NAME in self.user.roles or self.user_is_admin:
+            return True
+        return False
+
 
 class UserStudyAccessCollection:
     """A access helper that contains all study and the permissions a certain user has acces to"""
