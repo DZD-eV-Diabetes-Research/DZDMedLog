@@ -33,5 +33,35 @@ def use_pydantic_emailstr_manually():
         print(er.message())
         print("EMAIL NOT GUT")
 
+    use_pydantic_emailstr_manually()
 
-use_pydantic_emailstr_manually()
+
+def test_pzn_cleaner():
+    def clean_pzn(pzn: str):
+        return pzn.lstrip("PZN").replace("-", "").replace(" ", "")
+
+    def test_clean_pzn():
+        test_values = [
+            ("PZN12345678", "12345678"),
+            ("PZN-98765432", "98765432"),
+            ("PZN - 55555555", "55555555"),
+            ("PZN - 123-456-789", "123456789"),  # Keine führende "PZN-" entfernen
+            ("PZN - ", ""),  # Keine Ziffern vorhanden
+            ("123456789", "123456789"),  # Kein führendes "PZN" vorhanden
+            ("PZN-11112222", "11112222"),  # Entfernt führendes "-PZN-"
+            ("PZN - 3333-444-555", "3333444555"),  # Kein führendes "PZN-" entfernen
+            ("PZN", ""),  # Keine Ziffern vorhanden
+            ("PZN - 9876 - 5432", "98765432"),  # Kein führendes "PZN-" entfernen
+        ]
+
+        for input_value, expected_output in test_values:
+            result = clean_pzn(input_value)
+            assert (
+                result == expected_output
+            ), f"Error for input '{input_value}': Expected '{expected_output}', but got '{result}'."
+
+    # Run the test
+    test_clean_pzn()
+
+
+test_pzn_cleaner()

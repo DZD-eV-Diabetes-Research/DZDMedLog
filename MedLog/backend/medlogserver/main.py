@@ -46,7 +46,7 @@ def start():
     import uvicorn
     from uvicorn.config import LOGGING_CONFIG
     from medlogserver.app import app, add_api_middleware
-    from medlogserver.REST_api.routers_map import mount_fast_api_routers
+    from medlogserver.api.routers_map import mount_fast_api_routers
 
     mount_fast_api_routers(app)
     add_api_middleware(app)

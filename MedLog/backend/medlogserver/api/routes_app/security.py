@@ -8,7 +8,7 @@ from medlogserver.log import get_logger
 
 from medlogserver.db.user.user import User
 
-from medlogserver.REST_api.auth.base import get_current_user
+from medlogserver.api.auth.base import get_current_user
 from medlogserver.config import Config
 from medlogserver.db.study.study_permission import StudyPermisson
 from medlogserver.db.study.study import Study, StudyCRUD, get_study_crud
@@ -17,6 +17,8 @@ from medlogserver.db.study.study_permission import (
     StudyPermissonCRUD,
     get_study_permission_crud,
 )
+from medlogserver.db.interview.interview import InterviewCRUD
+from medlogserver.db.event.event import EventCRUD
 
 config = Config()
 
@@ -138,3 +140,14 @@ async def user_has_study_access(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="No access to study."
         )
     return study_access
+
+
+async def assert_interview_id_is_part_of_study_id(
+    study_id: str,
+    interview_id: str,
+    interview_crud: InterviewCRUD,
+):
+    # todo: another candiate for caching
+    return await interview_crud.assert_belongs_to_study(
+        interview_id=interview_id, study_id=study_id
+    )

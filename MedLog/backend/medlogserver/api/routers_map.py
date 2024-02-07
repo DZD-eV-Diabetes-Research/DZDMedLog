@@ -3,18 +3,18 @@ from fastapi import APIRouter, FastAPI
 
 def mount_fast_api_routers(fastapi_app: FastAPI):
     ### AUTH STUFF
-    from medlogserver.REST_api.auth.base import fast_api_auth_base_router
+    from medlogserver.api.auth.base import fast_api_auth_base_router
 
     fastapi_app.include_router(fast_api_auth_base_router, tags=["Auth"])
 
-    from medlogserver.REST_api.auth.scheme_local import fast_api_auth_local_router
+    from medlogserver.api.auth.scheme_local import fast_api_auth_local_router
 
     fastapi_app.include_router(fast_api_auth_local_router, tags=["Auth"])
 
-    from medlogserver.REST_api.user.manage_local_users import (
+    from medlogserver.api.user.manage_local_users import (
         fast_api_user_manage_router,
     )
-    from medlogserver.REST_api.auth.scheme_oidc import (
+    from medlogserver.api.auth.scheme_oidc import (
         generate_oidc_provider_auth_routhers,
     )
 
@@ -25,21 +25,21 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
     fastapi_app.include_router(fast_api_user_manage_router, tags=["User"])
 
     ### APP - Business logic
-    from medlogserver.REST_api.routes_app.routes_study import fast_api_study_router
+    from medlogserver.api.routes_app.routes_study import fast_api_study_router
 
     fastapi_app.include_router(fast_api_study_router, tags=["Study"])
 
-    from medlogserver.REST_api.routes_app.routes_event import fast_api_event_router
+    from medlogserver.api.routes_app.routes_event import fast_api_event_router
 
     fastapi_app.include_router(fast_api_event_router, tags=["Event"])
 
-    from medlogserver.REST_api.routes_app.routes_interview import (
+    from medlogserver.api.routes_app.routes_interview import (
         fast_api_interview_router,
     )
 
     fastapi_app.include_router(fast_api_interview_router, tags=["Interview"])
 
-    from medlogserver.REST_api.routes_app.routes_intakes import (
+    from medlogserver.api.routes_app.routes_intakes import (
         fast_api_intake_router,
     )
 

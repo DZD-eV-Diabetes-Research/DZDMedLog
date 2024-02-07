@@ -10,3 +10,7 @@ class HTTPErrorResponeRepresentation(BaseModel):
         schema_extra = {
             "example": {"detail": "HTTPException raised."},
         }
+
+
+class HTTPMessage(BaseModel):
+    message: str

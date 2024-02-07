@@ -10,7 +10,7 @@ from typing import Annotated
 
 from fastapi import Depends, APIRouter
 
-from medlogserver.REST_api.auth.tokens import (
+from medlogserver.api.auth.tokens import (
     JWTBundleTokenResponse,
     JWTAccessTokenContainer,
     JWTRefreshTokenContainer,
@@ -27,7 +27,7 @@ from medlogserver.db.user.user_auth import (
     get_user_auth_refresh_token_crud,
     AllowedAuthSourceTypes,
 )
-from medlogserver.REST_api.auth.base import (
+from medlogserver.api.auth.base import (
     TOKEN_ENDPOINT_PATH,
     oauth2_scheme,
     user_is_admin,

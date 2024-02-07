@@ -5,7 +5,8 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc
+from sqlalchemy.sql.operators import is_not, is_
 from datetime import datetime, timezone
 import uuid
 from uuid import UUID
@@ -87,18 +88,38 @@ class InterviewCRUD:
             raise raise_exception_if_none
         return interview
 
-    async def get_last_completed_by_proband(
+    async def get_last_by_proband(
         self,
+        study_id: str | uuid.UUID,
         proband_external_id: str,
+        completed: bool = False,
         raise_exception_if_none: Exception = None,
     ) -> Optional[Interview]:
 
-        query = select(Interview).where(
-            Interview.proband_external_id == proband_external_id
+        query = (
+            select(Interview)
+            .join(Event)
+            .where(
+                Interview.proband_external_id == proband_external_id
+                and Event.study_id == study_id
+            )
         )
+        if completed:
+            query = (
+                query.where(is_not(Interview.interview_end_time_utc, None))
+                .order_by(desc(Interview.interview_end_time_utc))
+                .limit(1)
+            )
+        else:
+            # ToDo: actually we should sort by a `updated_at` field here and not by interview_start_time_utc. but that is not implepentedyet
+            query = (
+                query.where(is_(Interview.interview_end_time_utc, None))
+                .order_by(desc(Interview.interview_start_time_utc))
+                .limit(1)
+            )
 
         results = await self.session.exec(statement=query)
-        interview: Interview | None = results.one_or_none()
+        interview: Interview | None = results.first()
         if interview is None and raise_exception_if_none:
             raise raise_exception_if_none
         return interview
@@ -143,6 +164,29 @@ class InterviewCRUD:
         )
         if interview is not None:
             delete(interview).where(Interview.id == interview_id)
+        return True
+
+    async def assert_belongs_to_study(
+        self,
+        interview_id: str | UUID,
+        study_id: str | UUID,
+        raise_exception_if_not=None,
+    ) -> bool:
+        query = (
+            select(Event)
+            .join(Interview)
+            .where(
+                Event.id == Interview.event_id
+                and Event.study_id == study_id
+                and Interview.id == interview_id
+            )
+        )
+        results = await self.session.exec(statement=query)
+        event: Event | None = results.first()
+        if event is None:
+            if raise_exception_if_not:
+                raise raise_exception_if_not
+            return False
         return True
 
 

@@ -10,13 +10,13 @@ from pydantic import BaseModel
 
 # intern imports
 from medlogserver.config import Config
-from medlogserver.REST_api.auth.tokens import (
+from medlogserver.api.auth.tokens import (
     JWTRefreshTokenResponse,
     JWTRefreshTokenContainer,
     JWTAccessTokenContainer,
     JWTBundleTokenResponse,
 )
-from medlogserver.REST_api.base import HTTPErrorResponeRepresentation
+from medlogserver.api.base import HTTPErrorResponeRepresentation
 from medlogserver.db.user.user import get_user_crud, User, UserCRUD, UserUpdate
 from medlogserver.db.user.user_auth import (
     get_user_auth_crud,

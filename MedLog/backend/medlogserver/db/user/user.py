@@ -1,5 +1,5 @@
 from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated
-from pydantic import validate_email, validator, StringConstraints
+from pydantic import validate_email, validator, StringConstraints, model_validator
 from pydantic_core import PydanticCustomError
 from fastapi import Depends
 import contextlib
@@ -30,7 +30,7 @@ class UserBase(Base, table=False):
         max_length=320,
         schema_extra={"examples": ["clara@uni.wroc.pl", "titor@time.com"]},
     )
-    display_name: str = Field(
+    display_name: Optional[str] = Field(
         default=None,
         max_length=128,
         min_length=2,
@@ -73,6 +73,13 @@ class UserCreate(UserBase, table=False):
     def validmail(cls, email):
         validate_email(email)
         return email
+
+    @model_validator(mode="after")
+    def val_display_name(self, values):
+        """if no display name is set for now, we copy the identifying `user_name`"""
+        if values["display_name"] is None:
+            values["display_name"] == values["user_name"]
+        return values
 
 
 class User(UserCreate, UserUpdateByAdmin, BaseTable, table=True):
@@ -155,8 +162,7 @@ class UserCRUD:
             )
         elif existing_user is not None and exists_ok:
             return existing_user
-        if user.display_name is None:
-            user.display_name = user.user_name
+
         self.session.add(user)
         await self.session.commit()
         await self.session.refresh(user)

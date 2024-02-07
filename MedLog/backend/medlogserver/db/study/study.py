@@ -1,5 +1,5 @@
 from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated, Dict
-from pydantic import validate_email, validator, StringConstraints
+from pydantic import validate_email, StringConstraints, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 from fastapi import Depends
 import contextlib
@@ -43,6 +43,13 @@ class StudyBase(Base, table=False):
         default=False,
         description="If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study.  Admin access still need to be allocated explicit.",
     )
+
+    @model_validator(mode="after")
+    def val_display_name(self, values):
+        """if no display name is set for now, we copy the identifying `name`"""
+        if values["display_name"] is None:
+            values["display_name"] == values["name"]
+        return values
 
 
 class StudyUpdate(StudyBase):
@@ -129,8 +136,7 @@ class StudyCRUD:
         raise_exception_if_exists: Exception = None,
     ) -> Study:
         log.debug(f"Create study: {study_create}")
-        if study_create.display_name is None:
-            study_create.display_name = study_create.name
+
         existing_study: Study = await self.get_by_name(
             study_create.name, show_deactivated=True
         )

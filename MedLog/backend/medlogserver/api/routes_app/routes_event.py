@@ -24,7 +24,7 @@ from medlogserver.db.event.event import Event, EventUpdate, EventCRUD, get_event
 
 
 from medlogserver.config import Config
-from medlogserver.REST_api.routes_app.security import (
+from medlogserver.api.routes_app.security import (
     user_has_study_access,
     UserStudyAccess,
 )

@@ -25,7 +25,7 @@ from fastapi.security import (
 #
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.REST_api.auth.tokens import (
+from medlogserver.api.auth.tokens import (
     JWTAccessTokenContainer,
     JWTAccessTokenResponse,
     JWTRefreshTokenContainer,

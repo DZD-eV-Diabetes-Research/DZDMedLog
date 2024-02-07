@@ -23,7 +23,7 @@ from medlogserver.db.user.user import (
     User,
 )
 
-from medlogserver.REST_api.auth.base import (
+from medlogserver.api.auth.base import (
     user_is_admin,
     user_is_usermanager,
     get_current_user,
@@ -43,7 +43,7 @@ from medlogserver.db.study.study_permission import (
     StudyPermissonCRUD,
     get_study_permission_crud,
 )
-from medlogserver.REST_api.routes_app.security import (
+from medlogserver.api.routes_app.security import (
     user_has_studies_access_map,
     UserStudyAccessCollection,
 )
