@@ -193,10 +193,10 @@ class Stammdatei(Base, BaseTable, table=True):
                 füllt (NULL)"""
         ),
         sa_type=String(1),
-        schema_extra={"gkvai_source_csv_col_index": 24},
+        schema_extra={"gkvai_source_csv_col_index": 25},
     )
     orphan: bool = Field(
         description="Von der EMA mit Orphan Drug Status zugelassene Arz-neimittel (Klassifikation zum Stichtag)",
         sa_type=Boolean(),
-        schema_extra={"gkvai_source_csv_col_index": 24},
+        schema_extra={"gkvai_source_csv_col_index": 26},
     )
