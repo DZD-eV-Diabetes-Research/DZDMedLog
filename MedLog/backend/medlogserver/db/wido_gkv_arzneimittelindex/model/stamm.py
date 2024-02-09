@@ -101,17 +101,17 @@ class Stammdatei(Base, BaseTable, table=True):
     )
     hersteller_code: str = Field(
         description="Hersteller (siehe Schlüsselverzeichnis hersteller.txt)",
-        sa_type=String(8),
+        sa_type=SmallInteger,
         schema_extra={"gkvai_source_csv_col_index": 9},
     )
     darrform: str = Field(
         description="Darreichungsform(siehe Schlüsselverzeichnis darrform.txt)",
-        sa_type=String(5),
+        sa_type=SmallInteger,
         schema_extra={"gkvai_source_csv_col_index": 10},
     )
     zuzahlstufe: str = Field(
         description="Normpackungsgröße (siehe Schlüsselverzeichnis norm-packungsgroessen.txt)",
-        sa_type=String(1),
+        sa_type=SmallInteger,
         schema_extra={"gkvai_source_csv_col_index": 11},
     )
     packgroesse: str = Field(
@@ -124,7 +124,7 @@ class Stammdatei(Base, BaseTable, table=True):
         sa_type=String(9),
         schema_extra={"gkvai_source_csv_col_index": 13},
     )
-    apoflicht: ApoplfichtTypes = Field(
+    apopflicht: ApoplfichtTypes = Field(
         description="Apotheken-/Rezeptpflicht",
         sa_type=SmallInteger,
         schema_extra={"gkvai_source_csv_col_index": 14},
