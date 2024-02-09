@@ -6,5 +6,5 @@ from sqlalchemy import String, Integer, Column
 from medlogserver.db.base import Base, BaseTable
 
 
-class Applikationsform(Base, BaseTable, table=True):
+class AmtlicheATCKlassifikation(Base, BaseTable, table=True):
     gkvai_source_csv_filename: str = "atc-amtlich.txt"

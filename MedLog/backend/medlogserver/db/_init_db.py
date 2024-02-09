@@ -29,7 +29,21 @@ from medlogserver.db.intake.intake import Intake
 from medlogserver.db.user.user_auth_external_oidc_token import (
     UserAuthExternalOIDCToken,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.model import Stammdatei
+from medlogserver.db.wido_gkv_arzneimittelindex.model import (
+    Applikationsform,
+    ATCKlassifikation,
+    AmtlicheATCKlassifikation,
+    Darreichungsform,
+    AbweichungenAmtlicherATC,
+    Hersteller,
+    Normpackungsgroessen,
+    ArzneimittelPriscus2,
+    RecycelteArtikelnummern,
+    Sondercodes,
+    SondercodesTypes,
+    StammAenderungen,
+    Stammdatei,
+)
 
 from medlogserver.log import get_logger
 from medlogserver.config import Config
