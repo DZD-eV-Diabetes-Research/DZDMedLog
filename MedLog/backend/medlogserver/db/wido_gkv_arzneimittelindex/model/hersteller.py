@@ -7,6 +7,7 @@ from medlogserver.db.base import Base, BaseTable
 
 # TB: Model fertig. ungetestet
 
+
 class Hersteller(Base, BaseTable, table=True):
     gkvai_source_csv_filename: str = "hersteller.txt"
     dateiversion: str = Field(
@@ -15,18 +16,21 @@ class Hersteller(Base, BaseTable, table=True):
         schema_extra={
             "gkvai_source_csv_col_index": 0,
         },
+        primary_key=True,
     )
 
     datenstand: str = Field(
         description="Monat Datenstand (JJJJMM)",
         sa_type=String(6),
         schema_extra={"gkvai_source_csv_col_index": 1},
+        primary_key=True,
     )
 
     herstellercode: str = Field(
         description="Hersteller",
         sa_type=String(8),
         schema_extra={"gkvai_source_csv_col_index": 2},
+        primary_key=True,
     )
 
     bedeutung: str = Field(

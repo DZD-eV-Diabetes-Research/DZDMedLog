@@ -17,17 +17,20 @@ class ATCKlassifikation(Base, BaseTable, table=True):
         schema_extra={
             "gkvai_source_csv_col_index": 0,
         },
+        primary_key=True,
     )
     datenstand: str = Field(
         description="Monat Datenstand (JJJJMM)",
         sa_type=String(6),
         schema_extra={"gkvai_source_csv_col_index": 1},
+        primary_key=True,
     )
 
     atccode: str = Field(
         description="ATC-Code (Klassifikation nach WIdO)",
         sa_type=String(7),
         schema_extra={"gkvai_source_csv_col_index": 2},
+        primary_key=True,
     )
     bedeutung: str = Field(
         description="Bedeutung",

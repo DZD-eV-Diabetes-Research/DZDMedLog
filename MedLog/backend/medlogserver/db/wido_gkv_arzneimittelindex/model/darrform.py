@@ -16,16 +16,19 @@ class Darreichungsform(Base, BaseTable, table=True):
         schema_extra={
             "gkvai_source_csv_col_index": 0,
         },
+        primary_key=True,
     )
     datenstand: str = Field(
         description="Monat Datenstand (JJJJMM)",
         sa_type=String(6),
         schema_extra={"gkvai_source_csv_col_index": 1},
+        primary_key=True,
     )
     darrform: str = Field(
         description="Darreichungsform",
         sa_type=String(5),
         schema_extra={"gkvai_source_csv_col_index": 2},
+        primary_key=True,
     )
     bedeutung: str = Field(
         description="Bedeutung",
