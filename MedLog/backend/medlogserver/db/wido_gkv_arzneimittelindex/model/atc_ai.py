@@ -6,6 +6,8 @@ from sqlalchemy import String, Integer, Column
 
 from medlogserver.db.base import Base, BaseTable
 
+# TB: Model fertig. ungetestet
+
 
 class ATCKlassifikation(Base, BaseTable, table=True):
     gkvai_source_csv_filename: str = "atc-ai.txt"
@@ -21,7 +23,8 @@ class ATCKlassifikation(Base, BaseTable, table=True):
         sa_type=String(6),
         schema_extra={"gkvai_source_csv_col_index": 1},
     )
-    atc_code: str = Field(
+
+    atccode: str = Field(
         description="ATC-Code (Klassifikation nach WIdO)",
         sa_type=String(7),
         schema_extra={"gkvai_source_csv_col_index": 2},

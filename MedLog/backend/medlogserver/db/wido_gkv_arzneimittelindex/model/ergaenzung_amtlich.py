@@ -5,6 +5,8 @@ from sqlalchemy import String, Integer, Column
 
 from medlogserver.db.base import Base, BaseTable
 
+# TB: Model fertig. ungetestet
+
 
 class AbweichungenAmtlicherATC(Base, BaseTable, table=True):
     gkvai_source_csv_filename: str = "ergaenzung_amtlich.txt"
@@ -30,8 +32,9 @@ class AbweichungenAmtlicherATC(Base, BaseTable, table=True):
         sa_type=String(7),
         schema_extra={"gkvai_source_csv_col_index": 3},
     )
+
     dddpk: str = Field(
-        description="DDD je Packung (nach WIdO, in 1/1000 Einheiten)",
+        description="DDD je Packung (nach amtlicher Klassifikation, in 1/1000 Einheiten)",
         sa_type=String(9),
         schema_extra={"gkvai_source_csv_col_index": 4},
     )

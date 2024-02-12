@@ -5,6 +5,8 @@ from sqlalchemy import String, Integer, Column
 
 from medlogserver.db.base import Base, BaseTable
 
+# TB: Model fertig. ungetestet
+
 
 class Darreichungsform(Base, BaseTable, table=True):
     gkvai_source_csv_filename: str = "darrform.txt"
