@@ -190,6 +190,11 @@ class Config(BaseSettings):
             )
         return AUTH_OIDC_PROVIDERS
 
+    AI_DATA_IMPORTER_FLUSH_AFTER_N_ROWS: int = Field(
+        default=1000,
+        description="When reading the Arzneimittelindex data files, write every n rows to the database. Lower this number in a low memory env.",
+    )
+
     ###### CONFIG END ######
     # mode_config is fixed variable  in pydantic-settings to control the behaviour of our settings model
     # https://docs.pydantic.dev/latest/api/base_model/#pydantic.main.BaseModel.model_config

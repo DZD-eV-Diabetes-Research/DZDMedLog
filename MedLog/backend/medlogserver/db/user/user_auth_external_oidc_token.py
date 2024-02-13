@@ -147,7 +147,7 @@ class UserAuthExternalOIDCTokenCRUD:
 
 async def get_user_auth_external_oidc_token_crud(
     session: AsyncSession = Depends(get_async_session),
-) -> UserAuthExternalOIDCTokenCRUD:
+) -> AsyncGenerator[UserAuthExternalOIDCTokenCRUD, None]:
     yield UserAuthExternalOIDCTokenCRUD(session=session)
 
 

@@ -64,4 +64,80 @@ def test_pzn_cleaner():
     test_clean_pzn()
 
 
-test_pzn_cleaner()
+def pathcombiner():
+
+    from typing import List
+    from pathlib import Path, PurePath
+
+    def to_path(
+        *args: str | Path | PurePath, absolute: bool = True, expanduser: bool = True
+    ) -> Path:
+        result_path_fragments: List[Path] = []
+        for arg in args:
+            if isinstance(arg, str):
+                result_path_fragments.append(Path(arg))
+            elif isinstance(arg, PurePath):
+                result_path_fragments.append(arg)
+            elif isinstance(arg, PurePath):
+                result_path_fragments.append(Path(arg))
+        result_path = Path.joinpath(*result_path_fragments)
+        if expanduser:
+            result_path = result_path.expanduser()
+        if absolute:
+            result_path = result_path.absolute()
+        return result_path
+
+    print(to_path("~", Path("test"), Path("thing/"), "filename.txt"))
+
+
+def sqlmodel_class_field_extradata():
+    # Sondercodes
+    import uuid
+    from sqlmodel import Field, SQLModel
+    from sqlalchemy import String, Integer, Column, SmallInteger
+
+    def custom_field(*args, source_file_csv_index=None, **kwargs):
+        # Modify kwargs to include your custom parameters
+        source_file_csv_index = kwargs.pop("source_file_csv_index", None)
+
+        fieldinfo = Field(*args, **kwargs)
+        print(type(fieldinfo))
+        fieldinfo.source_file_csv_index = source_file_csv_index
+        # Pass the modified kwargs to the sqlmodel.Field constructor
+        return fieldinfo
+
+    class Sondercodes(SQLModel, table=True):
+        __tablename__ = "drug_sonder"
+        gkvai_source_csv_filename: str = "sonder.txt"
+        dateiversion: str = Field(
+            description="Dateiversion",
+            sa_type=String(3),
+            sa_column_kwargs={"comment": "gkvai_source_csv_col_index:0"},
+            primary_key=True,
+        )
+        datenstand: str = Field(
+            description="Monat Datenstand (JJJJMM)",
+            sa_type=String(6),
+            sa_column_kwargs={"comment": "gkvai_source_csv_col_index:1"},
+            primary_key=True,
+        )
+        pzn: str = Field(
+            description="Pharmazentralnummer",
+            sa_column_kwargs={"comment": "gkvai_source_csv_col_index:3"},
+            sa_type=String(8),
+            primary_key=True,
+        )
+
+    print(Sondercodes)
+    for name, field in Sondercodes.model_fields.items():
+        csv_source = None
+        try:
+            csv_source = int(
+                getattr(field, "sa_column_kwargs", None)["comment"].split(":")[1]
+            )
+        except TypeError:
+            pass
+        print("csv_source", type(csv_source), csv_source)
+
+
+sqlmodel_class_field_extradata()

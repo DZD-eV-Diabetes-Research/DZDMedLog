@@ -15,133 +15,12 @@ from medlogserver.db._session import get_async_session, get_async_session_contex
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.base import Base, BaseTable
-from medlogserver.db.event.event import Event
-from medlogserver.db.interview.interview import Interview
-
-# TODO: this generated a circular import we need to seperate model and crud classes
-# from medlogserver.db.intake_auth import IntakeAuthRefreshTokenCRUD
-
+from medlogserver.db.event.model import Event
+from medlogserver.db.interview.model import Interview
+from medlogserver.db.intake.model import Intake, IntakeCreate, IntakeUpdate
 
 log = get_logger()
 config = Config()
-
-AdministeredByDoctorAnswers = enum.Enum(
-    "AdministeredByDoctorAnswers", config.APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS
-)
-
-
-class IntakeRegularOrAsNeededAnswers(str, enum.Enum):
-    REGULAR = "regular"
-    ASNEEDED = "as needed"
-
-
-class IntervalOfDailyDoseAnswers(str, enum.Enum):
-    UNKNOWN = "regular"
-    DAILY = "as needed"
-    EVERY_SECOND_DAY = "every 2. day"
-    EVERY_THIRD_DAY = "every 3. day"
-    EVERY_FOURTH_DAY = "every 4. day / twice a week"
-    ONE_WEEK_OR_MORE = "intervals of one week or more"
-
-
-class ConsumedMedsTodayAnswers(str, enum.Enum):
-    YES = "Yes"
-    NO = "No"
-    UNKNOWN = "UNKNOWN"
-
-
-class IntakeCreate(Base, table=False):
-    """This class/table also saves some extra question for every interview. This is 1-to-1 what the old IDOM software did. and its a mess.
-    i fucking hate it. its unflexible, complex and ugly!
-    for a future version we need an extra class/table to store extra question on a per study base.
-    fields (with meatdata like options) could be defined in json schema. so clients can generate dynamic forms relatively easy.
-    """
-
-    interview_id: Optional[str | uuid.UUID] = Field()
-    pharmazentralnummer: Annotated[
-        str,
-        StringConstraints(
-            strip_whitespace=True,
-            to_upper=True,
-            pattern=r"^(PZN-)|(-)|( -)?\d{8,9}$",
-            max_length=12,
-            min_length=8,
-        ),
-    ] = Field(
-        description="Take the Pharmazentralnummer in many formats, but all formats will be normalized to just a 8 digit number.",
-        schema_extra={"examples": ["23894732", "PZN-88888888"]},
-    )
-    intake_start_time_utc: datetime = Field()
-    intake_end_time_utc: datetime = Field(default=None)
-    administered_by_doctor: Optional[AdministeredByDoctorAnswers] = Field(default=None)
-    intake_regular_or_as_needed: Optional[IntakeRegularOrAsNeededAnswers] = Field(
-        default=None,
-        description="If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version",
-    )
-    dose_per_day: Optional[int] = Field(default=None)
-    regular_intervall_of_daily_dose: Optional[IntervalOfDailyDoseAnswers] = Field(
-        default=None
-    )
-    as_needed_dose_unit: int
-    consumed_meds_today: ConsumedMedsTodayAnswers = Field()
-
-    @model_validator(mode="after")
-    def clean_pzn(self, values):
-        values["pharmazentralnummer"]: str = (
-            values["pharmazentralnummer"]
-            .replace("PZN", "")
-            .replace("-", "")
-            .replace(" ", "")
-        )
-
-    @field_validator("intake_regular_or_as_needed")
-    def validate_intake_regular_or_as_needed(cls, value, values):
-        if (
-            values["intake_regular_or_as_needed"]
-            == IntakeRegularOrAsNeededAnswers.REGULAR
-        ):
-            if values["as_needed_dose"] is not None:
-                raise ValueError(
-                    "When choosing regular intake, dose unit muste be empty"
-                )
-        elif (
-            values["intake_regular_or_as_needed"]
-            == IntakeRegularOrAsNeededAnswers.ASNEEDED
-        ):
-            if values["regular_intervall_of_daily_dose"] is not None:
-                raise ValueError(
-                    "When choosing 'as needed' intake, regular_intervall_of_daily_dose must be empty"
-                )
-        return values["intake_regular_or_as_needed"]
-
-
-class IntakeUpdate(IntakeCreate, table=False):
-    pass
-
-
-class Intake(IntakeCreate, BaseTable, table=True):
-    __tablename__ = "intake"
-    interview_id: uuid.UUID = Field(foreign_key="interview.id")
-    pharmazentralnummer: Annotated[
-        str,
-        StringConstraints(
-            strip_whitespace=True,
-            max_length=8,
-            min_length=8,
-        ),
-    ] = Field(
-        description="Pharmazentralnummer as 8 digits only",
-        schema_extra={"examples": ["23894732"]},
-    )
-
-    id: uuid.UUID = Field(
-        default_factory=uuid.uuid4,
-        primary_key=True,
-        index=True,
-        nullable=False,
-        unique=True,
-        # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
-    )
 
 
 class IntakeCRUD:
@@ -287,7 +166,7 @@ class IntakeCRUD:
 
 async def get_intake_crud(
     session: AsyncSession = Depends(get_async_session),
-) -> IntakeCRUD:
+) -> AsyncGenerator[IntakeCRUD, None]:
     yield IntakeCRUD(session=session)
 
 

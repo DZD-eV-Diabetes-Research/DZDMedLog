@@ -10,15 +10,17 @@ from medlogserver.db.user.user import User
 
 from medlogserver.api.auth.base import get_current_user
 from medlogserver.config import Config
-from medlogserver.db.study.study_permission import StudyPermisson
-from medlogserver.db.study.study import Study, StudyCRUD, get_study_crud
-from medlogserver.db.study.study_permission import (
-    StudyPermisson,
+from medlogserver.db.study_permission.model import StudyPermisson
+from medlogserver.db.study.model import Study
+from medlogserver.db.study.crud import StudyCRUD, get_study_crud
+from medlogserver.db.study_permission.model import StudyPermisson
+from medlogserver.db.study_permission.crud import (
     StudyPermissonCRUD,
     get_study_permission_crud,
 )
-from medlogserver.db.interview.interview import InterviewCRUD
-from medlogserver.db.event.event import EventCRUD
+from medlogserver.db.interview.crud import InterviewCRUD, get_interview_crud
+
+from medlogserver.db.event.crud import EventCRUD
 
 config = Config()
 

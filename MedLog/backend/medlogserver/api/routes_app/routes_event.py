@@ -20,7 +20,8 @@ from fastapi import Depends, APIRouter
 from medlogserver.db.user.user import User
 
 
-from medlogserver.db.event.event import Event, EventUpdate, EventCRUD, get_event_crud
+from medlogserver.db.event.model import Event, EventUpdate
+from medlogserver.db.event.crud import EventCRUD, get_event_crud
 
 
 from medlogserver.config import Config

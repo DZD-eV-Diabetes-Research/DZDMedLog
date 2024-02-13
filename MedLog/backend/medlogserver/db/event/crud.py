@@ -14,6 +14,7 @@ from medlogserver.db._session import get_async_session, get_async_session_contex
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.base import Base, BaseTable
+from medlogserver.db.event.model import Event, EventUpdate
 
 # TODO: this generated a circular import we need to seperate model and crud classes
 # from medlogserver.db.event_auth import EventAuthRefreshTokenCRUD
@@ -21,43 +22,6 @@ from medlogserver.db.base import Base, BaseTable
 
 log = get_logger()
 config = Config()
-
-
-_name_annotation = Annotated[
-    Optional[str],
-    StringConstraints(strip_whitespace=True, pattern=r"^[a-zA-Z0-9-]+$", max_length=64),
-]
-
-
-class EventUpdate(Base, table=False):
-    name: _name_annotation = Field(
-        default=None,
-        index=True,
-        unique=True,
-        schema_extra={"examples": ["visit01", "TI12"]},
-    )
-    completed: bool = Field(
-        default=False,
-        description="Is the event completed. E.g. All study participants have been interviewed.",
-    )
-
-
-class Event(EventUpdate, BaseTable, table=True):
-    __tablename__ = "event"
-    study_id: UUID = Field(foreign_key="study.id")
-    name: _name_annotation = Field(
-        index=True,
-        unique=True,
-        schema_extra={"examples": ["visit01", "TI12"]},
-    )
-    id: uuid.UUID = Field(
-        default_factory=uuid.uuid4,
-        primary_key=True,
-        index=True,
-        nullable=False,
-        unique=True,
-        # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
-    )
 
 
 class EventCRUD:
@@ -139,7 +103,7 @@ class EventCRUD:
 
 async def get_event_crud(
     session: AsyncSession = Depends(get_async_session),
-) -> EventCRUD:
+) -> AsyncGenerator[EventCRUD, None]:
     yield EventCRUD(session=session)
 
 

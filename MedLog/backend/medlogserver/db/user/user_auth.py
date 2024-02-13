@@ -376,7 +376,7 @@ class UserAuthRefreshTokenCRUD:
 
 async def get_user_auth_refresh_token_crud(
     session: AsyncSession = Depends(get_async_session),
-) -> UserAuthRefreshTokenCRUD:
+) -> AsyncGenerator[UserAuthRefreshTokenCRUD, None]:
     yield UserAuthRefreshTokenCRUD(session=session)
 
 

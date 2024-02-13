@@ -31,15 +31,10 @@ from medlogserver.api.auth.base import (
     NEEDS_USERMAN_API_INFO,
 )
 
-from medlogserver.db.study.study import (
-    Study,
-    StudyUpdate,
-    StudyCreate,
-    StudyCRUD,
-    get_study_crud,
-)
-from medlogserver.db.study.study_permission import (
-    StudyPermisson,
+from medlogserver.db.study.model import Study, StudyUpdate, StudyCreate
+from medlogserver.db.study.crud import StudyCRUD, get_study_crud
+from medlogserver.db.study_permission.model import StudyPermisson
+from medlogserver.db.study_permission.crud import (
     StudyPermissonCRUD,
     get_study_permission_crud,
 )

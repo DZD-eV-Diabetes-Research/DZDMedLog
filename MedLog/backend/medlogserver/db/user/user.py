@@ -234,7 +234,7 @@ class UserCRUD:
 
 async def get_user_crud(
     session: AsyncSession = Depends(get_async_session),
-) -> UserCRUD:
+) -> AsyncGenerator[UserCRUD, None]:
     yield UserCRUD(session=session)
 
 

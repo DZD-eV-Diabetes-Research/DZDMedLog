@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from medlogserver.db._engine import db_engine
 from medlogserver.db._session import get_async_session_context
-from medlogserver.db.study.study import Study
-from medlogserver.db.study.study_permission import StudyPermisson
-from medlogserver.db.event.event import Event
+from medlogserver.db.study.model import Study
+from medlogserver.db.study_permission.model import StudyPermisson
+from medlogserver.db.event.model import Event
 from medlogserver.db.user.user import (
     User,
     UserCRUD,
@@ -24,8 +24,9 @@ from medlogserver.db.user.user_auth import (
     get_user_auth_crud,
     get_user_auth_crud_context,
 )
-from medlogserver.db.interview.interview import Interview
-from medlogserver.db.intake.intake import Intake
+from medlogserver.db.interview.model import Interview
+from medlogserver.db.intake.model import Intake
+
 from medlogserver.db.user.user_auth_external_oidc_token import (
     UserAuthExternalOIDCToken,
 )

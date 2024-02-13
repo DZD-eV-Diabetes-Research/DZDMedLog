@@ -59,7 +59,8 @@ from medlogserver.api.auth.base import (
     NEEDS_USERMAN_API_INFO,
 )
 
-from medlogserver.db.event.event import Event, EventUpdate, EventCRUD, get_event_crud
+from medlogserver.db.event.model import Event, EventUpdate
+from medlogserver.db.event.crud import EventCRUD, get_event_crud
 
 
 from medlogserver.db.user.user_auth_external_oidc_token import (
@@ -68,13 +69,12 @@ from medlogserver.db.user.user_auth_external_oidc_token import (
     get_user_auth_external_oidc_token_crud,
 )
 from medlogserver.config import Config
-from medlogserver.db.interview.interview import (
+from medlogserver.db.interview.model import (
     Interview,
     InterviewCreate,
-    InterviewCRUD,
     InterviewUpdate,
-    get_interview_crud,
 )
+from medlogserver.db.interview.crud import InterviewCRUD, get_interview_crud
 from medlogserver.api.routes_app.security import (
     user_has_studies_access_map,
     user_has_study_access,

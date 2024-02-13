@@ -3,12 +3,13 @@ import uuid
 from sqlmodel import Field, SQLModel
 from sqlalchemy import String, Integer, Column
 
-from medlogserver.db.base import Base, BaseTable
+from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTableBase
 
 # TB: Model fertig. ungetestet
 
 
-class Normpackungsgroessen(Base, BaseTable, table=True):
+class Normpackungsgroessen(DrugModelTableBase, table=True):
+    __tablename__ = "drug_normpackungsgroessen"
     gkvai_source_csv_filename: str = "normpackungsgroessen.txt"
     dateiversion: str = Field(
         description="Dateiversion",
@@ -22,19 +23,19 @@ class Normpackungsgroessen(Base, BaseTable, table=True):
     datenstand: str = Field(
         description="Monat Datenstand (JJJJMM)",
         sa_type=String(6),
-        schema_extra={"gkvai_source_csv_col_index": 1},
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:1"},
         primary_key=True,
     )
 
     zuzahlstufe: str = Field(
         description="Normpackungsgröße",
         sa_type=String(1),
-        schema_extra={"gkvai_source_csv_col_index": 2},
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:2"},
         primary_key=True,
     )
 
     bedeutung: str = Field(
         description="Bedeutung",
         sa_type=String(70),
-        schema_extra={"gkvai_source_csv_col_index": 3},
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:3"},
     )
