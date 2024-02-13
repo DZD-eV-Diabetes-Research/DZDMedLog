@@ -1,7 +1,7 @@
 <script setup>
 
 import Layout from './components/Layout/Layout.vue';
-import Login from './components/Login.vue';
+import Login from './components/Auth/Login.vue';
 import './styles/index.scss';
 
 </script>
