@@ -4,7 +4,7 @@
   <div class="layout">
     <div class="layout__content">
 
-      <section class="about">
+      <section class="about" v-if="showAbout">
         <h2>About</h2>
         <p>
           A web-based tool to log your patients medication
@@ -28,7 +28,13 @@
     name: 'Layout',
     components: {
       Footer, Header,
-    }
+    },
+    data() {
+    return {
+      showAbout: false,
+    };
+  },
+
   }
 </script>
 <style lang="scss">

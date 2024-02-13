@@ -1,15 +1,13 @@
 <script setup>
 
-import axios from 'axios';
 import Layout from './components/Layout/Layout.vue';
-import Login from './components/Auth/Login.vue';
 import './styles/index.scss';
 
 </script>
 
 <template>
   <Layout>
-    <Login></Login>
+    <router-view></router-view>
   </Layout>
 </template>
 

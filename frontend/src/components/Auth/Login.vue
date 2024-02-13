@@ -9,7 +9,7 @@
             </div>
             <div>
                 <button @click="submitForm()">Login</button>
-                <p>No account? <a href="https://auth.dzd-ev.org/">Sign Up</a></p>
+                <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
             </div>
         </form>
     </base-card>
