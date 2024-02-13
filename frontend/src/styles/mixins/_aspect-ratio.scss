@@ -1,0 +1,28 @@
+@mixin aspect-ratio() {
+  --aspect-ratio: 16/9;
+  // padding bottom hack
+  height: 0;
+  padding-bottom: calc(100% / (var(--aspect-ratio)));
+  position: relative;
+
+  // use aspect-ratio property if supported
+  @supports (aspect-ratio: 16/9) {
+    aspect-ratio: var(--aspect-ratio);
+    height: initial;
+    padding-bottom: initial;
+  }
+
+  img,
+  .zoom-on-hover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-position: var(--object-position, 50% 50%);
+
+    &:not(iframe) {
+      object-fit: cover;
+    }
+  }
+}

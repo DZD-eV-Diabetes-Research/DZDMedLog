@@ -1,0 +1,6 @@
+hr {
+  height: 1px;
+  --vspace: var(--space-8);
+  background-color: var(--color-primary-100);
+  margin: var(--vspace) 0 var(--vspace);
+}

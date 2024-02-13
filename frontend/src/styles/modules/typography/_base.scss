@@ -1,0 +1,56 @@
+/*
+  Styleguide: Base - Typography
+*/
+html {
+  font-family: var(--font-family-base);
+  font-weight: var(--font-weight-text);
+  line-height: var(--line-height-base);
+  font-size: var(--font-size-text);
+}
+
+p {
+  @include fontSmooth();
+  font-weight: var(--font-weight-text);
+  line-height: var(--line-height-base);
+}
+
+small {
+  font-size: 66%;
+}
+
+b,
+strong {
+  font-weight: 600;
+}
+
+s {
+  text-decoration: line-through;
+}
+
+u {
+  text-decoration: underline;
+}
+
+em {
+  font-style: italic;
+}
+
+.text-mono {
+  font-family: var(--font-family-visual);
+  --cap-height: var(--cap-height-mono);
+}
+
+mark {
+  background-color: var(--accent10);
+  color: inherit;
+  padding: 0 var(--space-1);
+}
+
+::selection {
+  background: var(--primary3); /* WebKit/Blink Browsers */
+  color: var(--primary10);
+}
+::-moz-selection {
+  background: var(--primary3); /* Gecko Browsers */
+  color: var(--primary10);
+}

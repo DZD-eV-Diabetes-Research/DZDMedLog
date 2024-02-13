@@ -1,0 +1,26 @@
+code {
+  background-color: var(--color-surface--level-2);
+  font-family: var(--font-family-mono);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--color-surface--contrast);
+
+  &::selection {
+    background-color: var(--color-surface--contrast);
+    color: var(--color-surface--level-2);
+  }
+}
+
+.codesnippet {
+  background-color: var(--color-surface--level-2);
+  border-radius: var(--component--border-radius);
+
+  code {
+    background-color: transparent;
+    line-height: 1.45;
+    font-size: var(--font-size-md);
+    display: block;
+    padding: var(--space-4);
+    overflow-x: auto;
+  }
+}

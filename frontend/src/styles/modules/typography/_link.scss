@@ -1,0 +1,34 @@
+/* purgecss start ignore */
+:root {
+  --link-text-decoration: underline;
+  --link-text-decoration--hover: underline;
+  --link-font-weight: 500;
+  --link-color: var(--accent);
+  --link-color--hover: var(--accent11);
+}
+
+a {
+  color: var(--link-color, var(--primary12));
+  font-weight: var(--font-weight, var(--link-font-weight, inherit));
+  text-decoration: var(--link-text-decoration, underline);
+  text-decoration-color: var(--link-text-decoration-color, var(--link-color));
+  transition: color var(--transition-default),
+    text-decoration-color var(--transition-default), background-size var(--transition-default);
+  font-size: var(--font-size, inherit);
+  text-transform: var(--link-text-transform, inherit);
+  letter-spacing: var(--link-letter-spacing, inherit);
+  display: inline;
+  align-items: center;
+
+  &:hover {
+    color: var(--link-color--hover, inherit);
+    text-decoration: var(
+      --link-text-decoration--hover,
+      var(--link-text-decoration, underline)
+    );
+    text-decoration-color: var(
+      --link-text-decoration-color--hover,
+      var(--link-text-decoration-color)
+    );
+  }
+}

@@ -1,0 +1,8 @@
+:root {
+  // Spacing values
+  --space-base: calc(var(--baseline) / 2);
+  // Baseline relative Spacing
+  // The baseline is a third of a line-height (8px)
+  // Use this spacings to maintain a consistent vertical rhythm
+  @include generateSpacings(30);
+}

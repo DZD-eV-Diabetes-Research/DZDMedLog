@@ -1,0 +1,37 @@
+@mixin generateSpacings($limit: 24) {
+  @for $i from 1 through $limit {
+    --space-#{$i}: calc(var(--baseline) * #{$i});
+  }
+}
+
+@mixin generateSpacingUtilities($limit: 24) {
+  @for $i from 1 through $limit {
+    .pt-#{$i} { padding-top: var(--space-#{$i}); }
+    .pb-#{$i} { padding-bottom: var(--space-#{$i}); }
+    .pr-#{$i} { padding-right: var(--space-#{$i}); }
+    .pl-#{$i} { padding-left: var(--space-#{$i}); }
+
+    .py-#{$i} {
+      padding-top: var(--space-#{$i});
+      padding-bottom: var(--space-#{$i});
+    }
+    .px-#{$i} {
+      padding-left: var(--space-#{$i});
+      padding-right: var(--space-#{$i});
+    }
+
+    .mt-#{$i} { margin-top: var(--space-#{$i}); }
+    .mb-#{$i} { margin-bottom: var(--space-#{$i}); }
+    .mr-#{$i} { margin-right: var(--space-#{$i}); }
+    .ml-#{$i} { margin-left: var(--space-#{$i}); }
+
+    .my-#{$i} {
+      margin-top: var(--space-#{$i});
+      margin-bottom: var(--space-#{$i});
+    }
+    .mx-#{$i} {
+      margin-left: var(--space-#{$i});
+      margin-right: var(--space-#{$i});
+    }
+  }
+}

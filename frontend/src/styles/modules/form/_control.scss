@@ -1,0 +1,44 @@
+.form__control {
+  background-color: var(--color-background);
+  border: 2px solid var(--primary);
+  color: var(--color-contrast-higher);
+  transition: 0.3s;
+  padding-top: var(--form-control-padding-y, var(--space-2));
+  padding-bottom: var(--form-control-padding-y, var(--space-2));
+  padding-left: var(--form-control-padding-x, var(--space-5));
+  padding-right: var(--form-control-padding-x, var(--space-5));
+  border-radius: 1px;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-shadow: var(--component-shadow);
+
+  &::placeholder {
+    opacity: 1;
+    color: var(--color-contrast-lower);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px var(--color-accent);
+  }
+
+  &[aria-invalid="true"] {
+    border-color: var(--color-error);
+
+    &:focus {
+      box-shadow: 0 0 0 2px var(--color-error);
+    }
+
+    textarea {
+      display: block;
+    }
+  }
+
+  &[disabled],
+  &[readonly] {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+}

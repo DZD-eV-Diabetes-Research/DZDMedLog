@@ -1,0 +1,35 @@
+i.icon {
+  margin: 0 var(--space-2);
+  --size: 1em;
+  display: inline-block;
+  color: inherit; // icons inherit the text color
+  fill: currentColor;
+  height: var(--size);
+  width: var(--size);
+  line-height: 1;
+  flex-shrink: 0;
+  max-width: initial;
+  position: relative;
+
+  &:last-child {
+    margin-right: 0;
+  }
+
+  svg {
+    fill: currentColor;
+    height: 100%;
+    width: 100%;
+  }
+}
+
+svg.icon {
+  --size: 1em;
+  display: inline-block;
+  color: inherit;
+  fill: currentColor;
+  height: var(--size);
+  width: var(--size);
+  line-height: 1;
+  flex-shrink: 0;
+  max-width: initial;
+}

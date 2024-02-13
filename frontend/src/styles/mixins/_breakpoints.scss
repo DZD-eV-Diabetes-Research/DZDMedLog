@@ -1,0 +1,9 @@
+// Inspired from: https://github.com/CodyHouse/codyhouse-framework/blob/master/main/assets/css/base/_breakpoints.scss
+@mixin breakpoint($breakpoint, $logic: false) {
+  @if ($logic) {
+    @media #{$logic} and (min-width: map-get($map: $breakpoints, $key: $breakpoint)) { @content; }
+  }
+  @else {
+    @media (min-width: map-get($map: $breakpoints, $key: $breakpoint)) { @content; }
+  }
+}
