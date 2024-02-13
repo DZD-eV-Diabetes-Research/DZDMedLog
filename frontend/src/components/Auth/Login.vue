@@ -25,8 +25,9 @@ export default {
     },
     methods: {
         submitForm() {
-            this.userName = "Now we should do stuff here"
-            this.password = ""
+            this.$router.push('/notFound')
+            // this.userName = "Now we should do stuff here"
+            // this.password = ""
         }
     }
 }
