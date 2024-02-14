@@ -8,6 +8,7 @@
                 <input id="password" name="password" type="password" v-model.trim="password">
             </div>
             <div>
+                <p v-if="!formIsValid">Please enter a valid usernam and password</p>
                 <button @click="submitForm()">Login</button>
                 <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
             </div>
@@ -20,12 +21,17 @@ export default {
     data() {
         return {
             userName: "",
-            password: ""
+            password: "",
+            formIsValid: true,
+            // mode: 'login'
         }
     },
     methods: {
         submitForm() {
-            this.$router.push('/notFound')
+            if (this.userName === '' || this.password.length === 0){
+                this.formIsValid = false
+            } 
+            //this.$router.push('/notFound')
             // this.userName = "Now we should do stuff here"
             // this.password = ""
         }

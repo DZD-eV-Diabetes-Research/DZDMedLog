@@ -4,12 +4,3 @@
             <p>Return to <a href="/">startpage</a></p>
         </base-card>
 </template>
-
-<!-- <script>
-    export default{
-        methods:{
-
-        }
-    }
-
-</script> -->
