@@ -135,7 +135,7 @@ class StudyCRUD:
             show_deactivated=True,
         )
         if user is not None:
-            delete(user).where(Study.pk == study_id)
+            delete(user).where(Study.id == study_id)
         return True
 
 

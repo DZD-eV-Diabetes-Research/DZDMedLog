@@ -97,7 +97,7 @@ class EventCRUD:
             show_deactivated=True,
         )
         if event is not None:
-            delete(event).where(Event.pk == event_id)
+            delete(event).where(Event.id == event_id)
         return True
 
 

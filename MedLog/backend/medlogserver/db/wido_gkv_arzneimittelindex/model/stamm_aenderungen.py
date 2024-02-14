@@ -15,21 +15,8 @@ class JaNein(str, enum.Enum):
 
 class StammAenderungen(DrugModelTableBase, table=True):
     __tablename__ = "drug_aenderungen"
-    gkvai_source_csv_filename: JaNein = "stamm_aenderungen.txt"
-    dateiversion: str = Field(
-        description="Dateiversion",
-        sa_type=String(3),
-        schema_extra={
-            "gkvai_source_csv_col_index": 0,
-        },
-        primary_key=True,
-    )
-    datenstand: str = Field(
-        description="Monat Datenstand (JJJJMM)",
-        sa_type=String(6),
-        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:1"},
-        primary_key=True,
-    )
+    gkvai_source_csv_filename: str = "stamm_aenderungen.txt"
+
     pzn: str = Field(
         description="Pharmazentralnummer",
         sa_type=String(8),

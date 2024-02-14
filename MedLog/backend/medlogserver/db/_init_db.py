@@ -31,6 +31,7 @@ from medlogserver.db.user.user_auth_external_oidc_token import (
     UserAuthExternalOIDCToken,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.model import (
+    AiDataVersion,
     Applikationsform,
     ATCKlassifikation,
     AmtlicheATCKlassifikation,

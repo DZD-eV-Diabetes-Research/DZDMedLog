@@ -27,6 +27,9 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.atc_ai import ATCKlassifik
 from medlogserver.db.wido_gkv_arzneimittelindex.model.applikationsform import (
     Applikationsform,
 )
+from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
+    AiDataVersion,
+)
 
 
 # https://www.wido.de/fileadmin/Dateien/Dokumente/Publikationen_Produkte/Arzneimittel-Klassifikation/wido_arz_stammdatei_plus_info_2021.pdf

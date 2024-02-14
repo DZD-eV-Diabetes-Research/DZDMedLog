@@ -56,14 +56,16 @@ class Stammdatei(DrugModelTableBase, table=True):
     dateiversion: str = Field(
         description="Dateiversion",
         sa_type=String(3),
-        schema_extra={
-            "gkvai_source_csv_col_index": 0,
-        },
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:0"},
+        primary_key=True,
+        foreign_key="ai_dataversion.dateiversion",
     )
     datenstand: str = Field(
         description="Monat Datenstand (JJJJMM)",
         sa_type=String(6),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:1"},
+        primary_key=True,
+        foreign_key="ai_dataversion.datenstand",
     )
     laufnr: str = Field(
         description="Laufende Nummer (vom WIdO vergeben)",
@@ -76,7 +78,7 @@ class Stammdatei(DrugModelTableBase, table=True):
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:3"},
     )
     staname: str = Field(
-        description="Standardaggregatname (vom WIdO vergeben)",
+        description="Standardaggregatname (vom WIdO vergeben) (enhält *NV* wenn 'Noch nicht abschließend klassifiziertes Arzneimittel')",
         sa_type=String(70),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:4"},
     )
