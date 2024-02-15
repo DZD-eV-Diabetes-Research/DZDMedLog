@@ -24,7 +24,7 @@ export default {
             userName: "",
             password: "",
             formIsValid: true,
-            error: ""
+            error: "",
         }
     },
     methods: {
@@ -41,6 +41,7 @@ export default {
 
             try {
                 await this.$store.dispatch('login', payload)
+
             } catch (err) {
                 this.error = err.message || 'Failed to authenticate, try later.';
             }
