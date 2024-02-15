@@ -8,8 +8,11 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTabl
 # TB: Model fertig. ungetestet
 
 
-class AmtlicheATCKlassifikation(DrugModelTableBase, table=True):
+class ATCAmtlich(DrugModelTableBase, table=True):
     __tablename__ = "drug_atc_amtlich"
+    __table_args__ = {
+        "comment": "Amtliche ATC-Klassifikation mit ATC-Code, ATC-Bedeutung"
+    }
     gkvai_source_csv_filename: str = "atc-amtlich.txt"
 
     atccode: str = Field(

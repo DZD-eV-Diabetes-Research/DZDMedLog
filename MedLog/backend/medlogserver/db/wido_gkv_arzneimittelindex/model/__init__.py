@@ -21,9 +21,9 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.ergaenzung_amtlich import 
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.model.darrform import Darreichungsform
 from medlogserver.db.wido_gkv_arzneimittelindex.model.atc_amtlich import (
-    AmtlicheATCKlassifikation,
+    ATCAmtlich,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.model.atc_ai import ATCKlassifikation
+from medlogserver.db.wido_gkv_arzneimittelindex.model.atc_ai import ATCai
 from medlogserver.db.wido_gkv_arzneimittelindex.model.applikationsform import (
     Applikationsform,
 )

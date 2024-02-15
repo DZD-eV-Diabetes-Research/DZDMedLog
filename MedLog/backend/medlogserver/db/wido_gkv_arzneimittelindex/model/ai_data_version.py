@@ -4,12 +4,12 @@ from datetime import datetime
 from sqlmodel import Field, SQLModel, UniqueConstraint
 from sqlalchemy import String, Integer, Column
 
-from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTableBase
+from medlogserver.db.base import Base, BaseTable
 
 
-class AiDataVersion(DrugModelTableBase, table=True):
+class AiDataVersion(Base, BaseTable, table=True):
     """This is a metadata table and not part of the official Wido GTK Arzneimittelindex.
-    We track the "datenstand" and "dateiversion" of the source data here.
+    We track the "datenstand" and "dateiversion" variants of the source data here.
 
 
     Args:
@@ -20,7 +20,7 @@ class AiDataVersion(DrugModelTableBase, table=True):
     __tablename__ = "ai_dataversion"
     __table_args__ = (
         UniqueConstraint(
-            "dateiversion", "datenstand", name="arzeinmittelindex_version_constraint"
+            "dateiversion", "datenstand", name="arzneimittelindex_version_constraint"
         ),
     )
     id: uuid.UUID = Field(
@@ -32,16 +32,8 @@ class AiDataVersion(DrugModelTableBase, table=True):
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
     # https://www.wido.de/fileadmin/Dateien/Dokumente/Publikationen_Produkte/Arzneimittel-Klassifikation/wido_arz_stammdatei_plus_info_2021.pdf
-    dateiversion: str = Field(
-        description="Dateiversion",
-        sa_type=String(3),
-        foreign_key="ai_dataversion.dateiversion",
-    )
-    datenstand: str = Field(
-        description="Monat Datenstand (JJJJMM)",
-        sa_type=String(6),
-        foreign_key="ai_dataversion.datenstand",
-    )
+    dateiversion: str = Field(description="Dateiversion", sa_type=String(3))
+    datenstand: str = Field(description="Monat Datenstand (JJJJMM)", sa_type=String(6))
     import_completed_at: Optional[datetime] = Field(
         default=None,
         description="When starting an import a new AiDataVersion will be made. on completion with no errors this field will be set and the whole Arzneimittelindex is 'armed'/'can be used' ",

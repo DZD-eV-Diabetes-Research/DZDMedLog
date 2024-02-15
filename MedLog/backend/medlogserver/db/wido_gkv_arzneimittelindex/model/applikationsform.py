@@ -8,6 +8,7 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTabl
 
 class Applikationsform(DrugModelTableBase, table=True):
     __tablename__ = "drug_applikationsform"
+    __table_args__ = {"comment": "Applikationsform-Schlüsselverzeichnis"}
     gkvai_source_csv_filename: str = "applikationsform.txt"
     # https://www.wido.de/fileadmin/Dateien/Dokumente/Publikationen_Produkte/Arzneimittel-Klassifikation/wido_arz_stammdatei_plus_info_2021.pdf
 

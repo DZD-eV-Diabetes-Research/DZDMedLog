@@ -60,6 +60,24 @@ class AiDataVersionCRUD:
             raise raise_exception_if_none
         return vers
 
+    async def get_by_datenstand_and_dateiversion(
+        self,
+        datenstand: str,
+        dateiversion: str,
+        raise_exception_if_none: Exception = None,
+    ) -> Optional[AiDataVersion]:
+
+        query = select(AiDataVersion).where(
+            AiDataVersion.datenstand == datenstand
+            and AiDataVersion.dateiversion == dateiversion
+        )
+
+        results = await self.session.exec(statement=query)
+        vers: AiDataVersion | None = results.one_or_none()
+        if vers is None and raise_exception_if_none:
+            raise raise_exception_if_none
+        return vers
+
     async def get_current(self) -> AiDataVersion:
         query = (
             select(AiDataVersion)

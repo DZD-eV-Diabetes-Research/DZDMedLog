@@ -11,8 +11,11 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTabl
 # TB: Model fertig. ungetestet
 
 
-class ATCKlassifikation(DrugModelTableBase, table=True):
+class ATCai(DrugModelTableBase, table=True):
     __tablename__ = "drug_atc_ai"
+    __table_args__ = {
+        "comment": "ATC-Klassifikation des GKV-Arzneimittelindex mit ATC-Code,ATC-Bedeutung"
+    }
     gkvai_source_csv_filename: str = "atc-ai.txt"
 
     atccode: str = Field(

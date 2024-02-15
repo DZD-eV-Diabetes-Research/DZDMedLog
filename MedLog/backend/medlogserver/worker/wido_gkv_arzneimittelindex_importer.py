@@ -14,8 +14,8 @@ from medlogserver.utils import to_path
 
 from medlogserver.db.wido_gkv_arzneimittelindex.model import (
     Applikationsform,
-    ATCKlassifikation,
-    AmtlicheATCKlassifikation,
+    ATCai,
+    ATCAmtlich,
     Darreichungsform,
     AbweichungenAmtlicherATC,
     Hersteller,
@@ -39,8 +39,8 @@ config = Config()
 wido_gkv_arzneimittelindex_csv_delimiter: str = ";"
 wido_gkv_arzneimittelindex_models: List[str] = [
     Applikationsform,
-    ATCKlassifikation,
-    AmtlicheATCKlassifikation,
+    ATCai,
+    ATCAmtlich,
     Darreichungsform,
     AbweichungenAmtlicherATC,
     Hersteller,
