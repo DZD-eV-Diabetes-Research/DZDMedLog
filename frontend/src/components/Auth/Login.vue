@@ -9,6 +9,7 @@
             </div>
             <div>
                 <p v-if="!formIsValid">Please enter a valid usernam and password</p>
+                <h1 style="color: red" v-if="error">{{ error }}</h1>
                 <button @click="submitForm()">Login</button>
                 <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
             </div>
@@ -23,27 +24,36 @@ export default {
             userName: "",
             password: "",
             formIsValid: true,
-            // mode: 'login'
+            error: "",
         }
     },
     methods: {
-        submitForm() {
-            if (this.userName === '' || this.password.length === 0){
+        async submitForm() {
+            this.error = ""
+            if (this.userName === '' || this.password.length === 0) {
                 this.formIsValid = false
-            } 
-            //this.$router.push('/notFound')
-            // this.userName = "Now we should do stuff here"
-            // this.password = ""
+            }
+
+            const payload = {
+                username: this.userName,
+                password: this.password
+            }
+
+            try {
+                await this.$store.dispatch('login', payload)
+
+            } catch (err) {
+                this.error = err.message || 'Failed to authenticate, try later.';
+            }
         }
     }
 }
 </script>
 
 <style lang="scss">
-
-input[type="text"], input[type=password]{
+input[type="text"],
+input[type=password] {
     border: 2px solid black;
     border-radius: 4px;
 }
-
 </style>

@@ -7,7 +7,9 @@ import rootMutations from './mutations'
 const store = createStore({
     state(){
         return{
-            test: "Hallo"
+            test : "TEST",
+            acces_token : null,
+            refresh_token: null
         }
     },
     actions: rootActions,
