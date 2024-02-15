@@ -14,8 +14,8 @@ from medlogserver.db._session import get_async_session, get_async_session_contex
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.base import Base, BaseTable
-from medlogserver.db.wido_gkv_arzneimittelindex.model.atc_ai import (
-    ATCai,
+from medlogserver.db.wido_gkv_arzneimittelindex.model.darrform import (
+    Darreichungsform,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
@@ -26,78 +26,81 @@ log = get_logger()
 config = Config()
 
 
-class ATCaiCRUD(DrugCRUDBase):
+class DarreichungsformCRUD(DrugCRUDBase):
 
-    async def list(self, current_version_only: bool = True) -> Sequence[ATCai]:
-        query = select(ATCai)
+    async def list(
+        self, current_version_only: bool = True
+    ) -> Sequence[Darreichungsform]:
+        query = select(Darreichungsform)
         if current_version_only:
             current_ai_version: AiDataVersion = await self._get_current_ai_version
-            query = query.where(ATCai.ai_version_id == current_ai_version.id)
+            query = query.where(Darreichungsform.ai_version_id == current_ai_version.id)
 
         results = await self.session.exec(statement=query)
         return results.all()
 
     async def get(
         self,
-        atccode: str,
+        darrform: str,
         ai_version_id: uuid.UUID | str = None,
         raise_exception_if_none: Exception = None,
-    ) -> Optional[ATCai]:
+    ) -> Optional[Darreichungsform]:
         if ai_version_id is None:
             current_ai_version = await self._get_current_ai_version()
             ai_version_id = current_ai_version.id
 
-        query = select(ATCai).where(
-            ATCai.atccode == atccode and ATCai.ai_version_id == ai_version_id
+        query = select(Darreichungsform).where(
+            Darreichungsform.darrform == darrform
+            and Darreichungsform.ai_version_id == ai_version_id
         )
 
         results = await self.session.exec(statement=query)
-        atccode: ATCai | None = results.one_or_none()
-        if atccode is None and raise_exception_if_none:
+        darrform: Darreichungsform | None = results.one_or_none()
+        if darrform is None and raise_exception_if_none:
             raise raise_exception_if_none
-        return atccode
+        return darrform
 
     async def create(
         self,
-        atc_ai_create: ATCai,
+        darrform_create: Darreichungsform,
         raise_exception_if_exists: Exception = None,
-    ) -> ATCai:
-        log.debug(f"Create atc_ai: {atc_ai_create}")
-        existing_atccode = None
+    ) -> Darreichungsform:
+        log.debug(f"Create darrform: {darrform_create}")
+        existing_darrform = None
         if raise_exception_if_exists:
-            existing_atccode = self.get(
-                atccode=atc_ai_create.atccode,
-                ai_version_id=atc_ai_create.ai_version_id,
+            existing_darrform = self.get(
+                darrform=darrform_create.darrform,
+                ai_version_id=darrform_create.ai_version_id,
             )
 
-        if existing_atccode and raise_exception_if_exists:
+        if existing_darrform and raise_exception_if_exists:
             raise raise_exception_if_exists
-        elif existing_atccode:
-            return existing_atccode
-        self.session.add(atc_ai_create)
+        elif existing_darrform:
+            return existing_darrform
+        self.session.add(darrform_create)
         await self.session.commit()
-        await self.session.refresh(atc_ai_create)
-        return atc_ai_create
+        await self.session.refresh(darrform_create)
+        return darrform_create
 
     async def create_bulk(
         self,
-        atc_ais_creates: List[ATCai],
-    ) -> ATCai:
-        log.debug(f"Create bulk of atc_ai")
-        for obj in atc_ais_creates:
-            if not isinstance(obj, ATCai):
+        darrforms_creates: List[Darreichungsform],
+    ) -> Darreichungsform:
+        log.debug(f"Create bulk of darrform")
+        for obj in darrforms_creates:
+            if not isinstance(obj, Darreichungsform):
                 raise ValueError(
-                    f"List item is not a ATCai instance:\n {atc_ais_creates}"
+                    f"List item is not a Darreichungsform instance:\n {darrforms_creates}"
                 )
-        self.session.add_all(atc_ais_creates)
+        self.session.add_all(darrforms_creates)
         self.session.commit()
 
     async def update(
         self,
-        atc_ai_update: ATCai,
+        darrform_update: Darreichungsform,
         ai_version_id: str | UUID = None,
         raise_exception_if_not_exists=None,
-    ) -> ATCai:
+    ) -> Darreichungsform:
         # atm we dont need (or even dont want) an update endpoint.
         # after import of the arzneimittelindex data, the data should be kind of "read only"
         raise NotImplementedError()
@@ -107,22 +110,24 @@ class ATCaiCRUD(DrugCRUDBase):
 
     async def delete(
         self,
-        atc_ai_atccode: str,
+        darrform_darrform: str,
         ai_version_id: str | UUID = None,
-    ) -> ATCai:
+    ) -> Darreichungsform:
         # atm we dont need (or even dont want) an delete endpoint.
         # after import of the arzneimittelindex data, the data should be kind of "read only"
         # deletions will only happen when a whole Arbeimittelindex "version"-set is deleted. that will happen by casade deletion
+        Darreichungsform().dict()
         raise NotImplementedError()
+
         if ai_version_id is None:
             current_ai_version = await self._get_current_ai_version()
             ai_version_id = current_ai_version.id
 
 
-async def get_atc_ai_crud(
+async def get_darrform_crud(
     session: AsyncSession = Depends(get_async_session),
-) -> AsyncGenerator[ATCaiCRUD, None]:
-    yield ATCaiCRUD(session=session)
+) -> AsyncGenerator[DarreichungsformCRUD, None]:
+    yield DarreichungsformCRUD(session=session)
 
 
-get_atc_ai_crud_context = contextlib.asynccontextmanager(get_atc_ai_crud)
+get_darrform_crud_context = contextlib.asynccontextmanager(get_darrform_crud)
