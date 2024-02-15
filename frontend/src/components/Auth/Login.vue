@@ -29,6 +29,7 @@ export default {
     },
     methods: {
         async submitForm() {
+            this.error = ""
             if (this.userName === '' || this.password.length === 0) {
                 this.formIsValid = false
             }

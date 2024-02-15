@@ -8,12 +8,6 @@ export default {
         const response = await fetch('http://localhost:8888/auth/token',{
             method: 'POST', body:formData}
             )
-            //body: JSON.stringify({
-            //    username : payload.username,
-            //    password : payload.password,
-            //    returnSecureToken : true
-            // })
-         
 
         const responseData = await response.json()
 
