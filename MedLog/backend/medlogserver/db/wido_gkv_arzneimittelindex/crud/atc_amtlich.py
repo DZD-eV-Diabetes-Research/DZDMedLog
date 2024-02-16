@@ -81,16 +81,14 @@ class ATCAmtlichCRUD(DrugCRUDBase):
 
     async def create_bulk(
         self,
-        atc_amtlichs_creates: List[ATCAmtlich],
+        objects: List[ATCAmtlich],
     ) -> ATCAmtlich:
         log.debug(f"Create bulk of atc_amtlich")
-        for obj in atc_amtlichs_creates:
+        for obj in objects:
             if not isinstance(obj, ATCAmtlich):
-                raise ValueError(
-                    f"List item is not a ATCAmtlich instance:\n {atc_amtlichs_creates}"
-                )
-        self.session.add_all(atc_amtlichs_creates)
-        self.session.commit()
+                raise ValueError(f"List item is not a ATCAmtlich instance:\n {objects}")
+        self.session.add_all(objects)
+        await self.session.commit()
 
     async def update(
         self,

@@ -88,16 +88,16 @@ class ApplikationsformCRUD(DrugCRUDBase):
 
     async def create_bulk(
         self,
-        applikationsforms_creates: List[Applikationsform],
-    ) -> Applikationsform:
+        objects: List[Applikationsform],
+    ):
         log.debug(f"Create bulk of applikationsform")
-        for obj in applikationsforms_creates:
+        for obj in objects:
             if not isinstance(obj, Applikationsform):
                 raise ValueError(
-                    f"List item is not a Applikationsform instance:\n {applikationsforms_creates}"
+                    f"List item is not a Applikationsform instance:\n {objects}"
                 )
-        self.session.add_all(applikationsforms_creates)
-        self.session.commit()
+        self.session.add_all(objects)
+        await self.session.commit()
 
     async def update(
         self,

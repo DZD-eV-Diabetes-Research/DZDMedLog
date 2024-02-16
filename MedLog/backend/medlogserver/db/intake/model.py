@@ -84,7 +84,7 @@ class IntakeCreate(Base, table=False):
 
     @model_validator(mode="after")
     def clean_pzn(self, values):
-        values["pharmazentralnummer"]: str = (
+        values["pharmazentralnummer"] = (
             values["pharmazentralnummer"]
             .replace("PZN", "")
             .replace("-", "")

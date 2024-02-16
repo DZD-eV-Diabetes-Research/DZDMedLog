@@ -14,8 +14,8 @@ from medlogserver.db._session import get_async_session, get_async_session_contex
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.base import Base, BaseTable
-from medlogserver.db.wido_gkv_arzneimittelindex.model.darrform import (
-    Darreichungsform,
+from medlogserver.db.wido_gkv_arzneimittelindex.model.priscus2pzn import (
+    Priscus2PZN,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
@@ -26,81 +26,100 @@ log = get_logger()
 config = Config()
 
 
-class DarreichungsformCRUD(DrugCRUDBase):
+class Priscus2PZNCRUD(DrugCRUDBase):
 
-    async def list(
-        self, current_version_only: bool = True
-    ) -> Sequence[Darreichungsform]:
-        query = select(Darreichungsform)
+    async def list(self, current_version_only: bool = True) -> Sequence[Priscus2PZN]:
+        query = select(Priscus2PZN)
         if current_version_only:
             current_ai_version: AiDataVersion = await self._get_current_ai_version
-            query = query.where(Darreichungsform.ai_version_id == current_ai_version.id)
+            query = query.where(Priscus2PZN.ai_version_id == current_ai_version.id)
 
         results = await self.session.exec(statement=query)
         return results.all()
 
-    async def get(
+    async def exists(
         self,
-        darrform: str,
+        pzn: str,
         ai_version_id: uuid.UUID | str = None,
         raise_exception_if_none: Exception = None,
-    ) -> Optional[Darreichungsform]:
+    ) -> bool:
         if ai_version_id is None:
             current_ai_version = await self._get_current_ai_version()
             ai_version_id = current_ai_version.id
 
-        query = select(Darreichungsform).where(
-            Darreichungsform.darrform == darrform
-            and Darreichungsform.ai_version_id == ai_version_id
+        query = select(Priscus2PZN).where(
+            Priscus2PZN.pzn == pzn and Priscus2PZN.ai_version_id == ai_version_id
         )
 
         results = await self.session.exec(statement=query)
-        darrform: Darreichungsform | None = results.one_or_none()
-        if darrform is None and raise_exception_if_none:
+        pzn: Priscus2PZN | None = results.one_or_none()
+        if pzn is None:
+            if raise_exception_if_none:
+                raise_exception_if_none
+            return False
+        return True
+
+    async def get(
+        self,
+        pzn: str,
+        ai_version_id: uuid.UUID | str = None,
+        raise_exception_if_none: Exception = None,
+    ) -> Optional[Priscus2PZN]:
+        if ai_version_id is None:
+            current_ai_version = await self._get_current_ai_version()
+            ai_version_id = current_ai_version.id
+
+        query = select(Priscus2PZN).where(
+            Priscus2PZN.pzn == pzn and Priscus2PZN.ai_version_id == ai_version_id
+        )
+
+        results = await self.session.exec(statement=query)
+        pzn: Priscus2PZN | None = results.one_or_none()
+        if pzn is None and raise_exception_if_none:
             raise raise_exception_if_none
-        return darrform
+        return pzn
 
     async def create(
         self,
-        darrform_create: Darreichungsform,
+        priscus2pzn_create: Priscus2PZN,
         raise_exception_if_exists: Exception = None,
-    ) -> Darreichungsform:
-        log.debug(f"Create darrform: {darrform_create}")
-        existing_darrform = None
+    ) -> Priscus2PZN:
+        log.debug(f"Create priscus2pzn: {priscus2pzn_create}")
+        existing_priscus2pzn = None
         if raise_exception_if_exists:
-            existing_darrform = self.get(
-                darrform=darrform_create.darrform,
-                ai_version_id=darrform_create.ai_version_id,
+            existing_priscus2pzn = self.get(
+                pzn=priscus2pzn_create.pzn,
+                ai_version_id=priscus2pzn_create.ai_version_id,
             )
 
-        if existing_darrform and raise_exception_if_exists:
+        if existing_priscus2pzn and raise_exception_if_exists:
             raise raise_exception_if_exists
-        elif existing_darrform:
-            return existing_darrform
-        self.session.add(darrform_create)
+        elif existing_priscus2pzn:
+            return existing_priscus2pzn
+        self.session.add(priscus2pzn_create)
         await self.session.commit()
-        await self.session.refresh(darrform_create)
-        return darrform_create
+        await self.session.refresh(priscus2pzn_create)
+        return priscus2pzn_create
 
     async def create_bulk(
         self,
-        objects: List[Darreichungsform],
-    ) -> Darreichungsform:
-        log.debug(f"Create bulk of darrform")
+        objects: List[Priscus2PZN],
+    ) -> Priscus2PZN:
+        log.debug(f"Create bulk of priscus2pzn")
         for obj in objects:
-            if not isinstance(obj, Darreichungsform):
+            if not isinstance(obj, Priscus2PZN):
                 raise ValueError(
-                    f"List item is not a Darreichungsform instance:\n {objects}"
+                    f"List item is not a Priscus2PZN instance:\n {objects}"
                 )
         self.session.add_all(objects)
         await self.session.commit()
 
     async def update(
         self,
-        darrform_update: Darreichungsform,
+        priscus2pzn_update: Priscus2PZN,
         ai_version_id: str | UUID = None,
         raise_exception_if_not_exists=None,
-    ) -> Darreichungsform:
+    ) -> Priscus2PZN:
         # atm we dont need (or even dont want) an update endpoint.
         # after import of the arzneimittelindex data, the data should be kind of "read only"
         raise NotImplementedError()
@@ -110,9 +129,9 @@ class DarreichungsformCRUD(DrugCRUDBase):
 
     async def delete(
         self,
-        darrform_darrform: str,
+        priscus2pzn_priscus2pzn: str,
         ai_version_id: str | UUID = None,
-    ) -> Darreichungsform:
+    ) -> Priscus2PZN:
         # atm we dont need (or even dont want) an delete endpoint.
         # after import of the arzneimittelindex data, the data should be kind of "read only"
         # deletions will only happen when a whole Arbeimittelindex "version"-set is deleted. that will happen by casade deletion
@@ -123,10 +142,10 @@ class DarreichungsformCRUD(DrugCRUDBase):
             ai_version_id = current_ai_version.id
 
 
-async def get_darrform_crud(
+async def get_priscus2pzn_crud(
     session: AsyncSession = Depends(get_async_session),
-) -> AsyncGenerator[DarreichungsformCRUD, None]:
-    yield DarreichungsformCRUD(session=session)
+) -> AsyncGenerator[Priscus2PZNCRUD, None]:
+    yield Priscus2PZNCRUD(session=session)
 
 
-get_darrform_crud_context = contextlib.asynccontextmanager(get_darrform_crud)
+get_priscus2pzn_crud_context = contextlib.asynccontextmanager(get_priscus2pzn_crud)

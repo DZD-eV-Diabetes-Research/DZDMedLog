@@ -1,7 +1,10 @@
+from typing import List
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from uuid import UUID
-
+from medlogserver.db.wido_gkv_arzneimittelindex.model._base import (
+    DrugModelTableBase,
+)
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
@@ -25,3 +28,8 @@ class DrugCRUDBase:
             self._current_ai_version = await ai_version_crud.get_current()
 
         return self._current_ai_version
+
+    def create_bulk(self, objects: List[DrugModelTableBase]):
+        # this is just an abstract/interface method.
+        # look into the specific class file at MedLog/backend/medlogserver/db/wido_gkv_arzneimittelindex/crud/* for specific implementations
+        raise NotImplementedError()

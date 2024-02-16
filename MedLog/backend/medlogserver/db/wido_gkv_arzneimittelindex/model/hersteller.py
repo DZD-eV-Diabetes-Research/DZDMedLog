@@ -10,7 +10,10 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTabl
 
 class Hersteller(DrugModelTableBase, table=True):
     __tablename__ = "drug_hersteller"
-    gkvai_source_csv_filename: str = "hersteller.txt"
+
+    @classmethod
+    def get_source_csv_filename(self) -> str:
+        return "hersteller.txt"
 
     herstellercode: str = Field(
         description="Hersteller",

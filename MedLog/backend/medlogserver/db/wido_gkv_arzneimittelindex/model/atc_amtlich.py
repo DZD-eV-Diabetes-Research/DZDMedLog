@@ -13,7 +13,10 @@ class ATCAmtlich(DrugModelTableBase, table=True):
     __table_args__ = {
         "comment": "Amtliche ATC-Klassifikation mit ATC-Code, ATC-Bedeutung"
     }
-    gkvai_source_csv_filename: str = "atc-amtlich.txt"
+
+    @classmethod
+    def get_source_csv_filename(self) -> str:
+        return "atc-amtlich.txt"
 
     atccode: str = Field(
         description="ATC-Code (amtliche Klassifikation)",

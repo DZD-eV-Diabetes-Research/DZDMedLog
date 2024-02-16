@@ -10,7 +10,10 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTabl
 
 class Darreichungsform(DrugModelTableBase, table=True):
     __tablename__ = "drug_darrform"
-    gkvai_source_csv_filename: str = "darrform.txt"
+
+    @classmethod
+    def get_source_csv_filename(self) -> str:
+        return "darrform.txt"
 
     darrform: str = Field(
         description="Darreichungsform",

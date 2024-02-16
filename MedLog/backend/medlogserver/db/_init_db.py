@@ -36,15 +36,15 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model import (
     ATCai,
     ATCAmtlich,
     Darreichungsform,
-    AbweichungenAmtlicherATC,
+    ATCErgaenzungAmtlich,
     Hersteller,
     Normpackungsgroessen,
-    ArzneimittelPriscus2,
-    RecycelteArtikelnummern,
+    Priscus2PZN,
+    RecycledPZN,
     Sondercodes,
-    SondercodesTypes,
+    SondercodeBedeutung,
     StammAenderungen,
-    Stammdatei,
+    Stamm,
 )
 
 from medlogserver.log import get_logger

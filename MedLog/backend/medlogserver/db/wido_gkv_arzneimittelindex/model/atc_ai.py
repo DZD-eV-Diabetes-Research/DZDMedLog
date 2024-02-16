@@ -16,7 +16,10 @@ class ATCai(DrugModelTableBase, table=True):
     __table_args__ = {
         "comment": "ATC-Klassifikation des GKV-Arzneimittelindex mit ATC-Code,ATC-Bedeutung"
     }
-    gkvai_source_csv_filename: str = "atc-ai.txt"
+
+    @classmethod
+    def get_source_csv_filename(self) -> str:
+        return "atc-ai.txt"
 
     atccode: str = Field(
         description="ATC-Code (Klassifikation nach WIdO)",

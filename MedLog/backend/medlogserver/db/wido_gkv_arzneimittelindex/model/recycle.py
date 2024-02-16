@@ -8,9 +8,15 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTabl
 # TB: Model fertig. ungetestet (und siehe den Kommentar in zeile 33)
 
 
-class RecycelteArtikelnummern(DrugModelTableBase, table=True):
+class RecycledPZN(DrugModelTableBase, table=True):
     __tablename__ = "drug_recycle"
-    gkvai_source_csv_filename: str = "recycle.txt"
+    __table_args__ = {
+        "comment": "Recycelte Artikelnummern. From info_stammdatei_plus.pdf: eine Liste von Pharmazentralnummern enthält, die früher bereits genutzt worden sind, nun aber einem neuen Artikel zugewiesen wurden"
+    }
+
+    @classmethod
+    def get_source_csv_filename(self) -> str:
+        return "recycle.txt"
 
     pzn: str = Field(
         description="Pharmazentralnummer",
@@ -20,7 +26,7 @@ class RecycelteArtikelnummern(DrugModelTableBase, table=True):
     )
 
     neu_rein: str = Field(
-        description="Enddatum",  # hier war kein Datumsformat in der Tabelle angegeben
+        description="Enddatum (JJJJMM)",
         sa_type=String(6),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:3"},
     )

@@ -15,7 +15,10 @@ class JaNein(str, enum.Enum):
 
 class StammAenderungen(DrugModelTableBase, table=True):
     __tablename__ = "drug_aenderungen"
-    gkvai_source_csv_filename: str = "stamm_aenderungen.txt"
+
+    @classmethod
+    def get_source_csv_filename(self) -> str:
+        return "stamm_aenderungen.txt"
 
     pzn: str = Field(
         description="Pharmazentralnummer",

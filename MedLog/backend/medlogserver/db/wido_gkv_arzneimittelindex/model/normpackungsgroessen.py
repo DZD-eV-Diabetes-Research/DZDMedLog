@@ -10,7 +10,10 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTabl
 
 class Normpackungsgroessen(DrugModelTableBase, table=True):
     __tablename__ = "drug_normpackungsgroessen"
-    gkvai_source_csv_filename: str = "normpackungsgroessen.txt"
+
+    @classmethod
+    def get_source_csv_filename(self) -> str:
+        return "normpackungsgroessen.txt"
 
     zuzahlstufe: str = Field(
         description="Normpackungsgröße",

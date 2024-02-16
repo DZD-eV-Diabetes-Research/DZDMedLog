@@ -234,7 +234,7 @@ class UserAuthCRUD:
 
 async def get_user_auth_crud(
     session: AsyncSession = Depends(get_async_session),
-) -> UserAuthCRUD:
+) -> AsyncGenerator[UserAuthCRUD, None]:
     yield UserAuthCRUD(session=session)
 
 
@@ -371,7 +371,7 @@ class UserAuthRefreshTokenCRUD:
         for token in tokens:
             token.deactivated = True
             self.session.add(token)
-        self.session.commit()
+        await self.session.commit()
 
 
 async def get_user_auth_refresh_token_crud(

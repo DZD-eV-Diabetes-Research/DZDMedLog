@@ -8,9 +8,16 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTabl
 # TB: Model fertig. ungetestet
 
 
-class ArzneimittelPriscus2(DrugModelTableBase, table=True):
+class Priscus2PZN(DrugModelTableBase, table=True):
     __tablename__ = "drug_priscus2pzn"
-    gkvai_source_csv_filename: str = "priscus2pzn.txt"
+
+    __table_args__ = {
+        "comment": "Arzneimittel-PRISCUS2-Datei. From info_stammdatei_plus.pdf: In der PRISCUS-2.0-PZN-Liste werden Arzneimittel gelistet, die für ältere Menschen als potenziell inadäquate Medikation (PIM) bewertet werden."
+    }
+
+    @classmethod
+    def get_source_csv_filename(self) -> str:
+        return "priscus2pzn.txt"
 
     pzn: str = Field(
         description="Pharmazentralnummer",

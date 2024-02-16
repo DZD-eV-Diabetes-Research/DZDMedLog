@@ -112,16 +112,16 @@ class AiDataVersionCRUD:
 
     async def create_bulk(
         self,
-        ai_data_version_creates: List[AiDataVersion],
+        objects: List[AiDataVersion],
     ):
         log.debug(f"Create bulk ai_data_version")
-        for obj in ai_data_version_creates:
+        for obj in objects:
             if not isinstance(obj, AiDataVersion):
                 raise ValueError(
-                    f"List item is not a AiDataVersion instance:\n {ai_data_version_creates}"
+                    f"List item is not a AiDataVersion instance:\n {objects}"
                 )
-        self.session.add_all(ai_data_version_creates)
-        self.session.commit()
+        self.session.add_all(objects)
+        await self.session.commit()
 
     async def disable(
         self,

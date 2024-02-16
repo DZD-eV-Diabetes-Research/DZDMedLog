@@ -14,8 +14,8 @@ from medlogserver.db._session import get_async_session, get_async_session_contex
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.base import Base, BaseTable
-from medlogserver.db.wido_gkv_arzneimittelindex.model.darrform import (
-    Darreichungsform,
+from medlogserver.db.wido_gkv_arzneimittelindex.model.sonderbedeutung import (
+    SondercodeBedeutung,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
@@ -26,81 +26,83 @@ log = get_logger()
 config = Config()
 
 
-class DarreichungsformCRUD(DrugCRUDBase):
+class SondercodeBedeutungCRUD(DrugCRUDBase):
 
     async def list(
         self, current_version_only: bool = True
-    ) -> Sequence[Darreichungsform]:
-        query = select(Darreichungsform)
+    ) -> Sequence[SondercodeBedeutung]:
+        query = select(SondercodeBedeutung)
         if current_version_only:
             current_ai_version: AiDataVersion = await self._get_current_ai_version
-            query = query.where(Darreichungsform.ai_version_id == current_ai_version.id)
+            query = query.where(
+                SondercodeBedeutung.ai_version_id == current_ai_version.id
+            )
 
         results = await self.session.exec(statement=query)
         return results.all()
 
     async def get(
         self,
-        darrform: str,
+        sondercode: str,
         ai_version_id: uuid.UUID | str = None,
         raise_exception_if_none: Exception = None,
-    ) -> Optional[Darreichungsform]:
+    ) -> Optional[SondercodeBedeutung]:
         if ai_version_id is None:
             current_ai_version = await self._get_current_ai_version()
             ai_version_id = current_ai_version.id
 
-        query = select(Darreichungsform).where(
-            Darreichungsform.darrform == darrform
-            and Darreichungsform.ai_version_id == ai_version_id
+        query = select(SondercodeBedeutung).where(
+            SondercodeBedeutung.sonder_atc_gruppe == sondercode
+            and SondercodeBedeutung.ai_version_id == ai_version_id
         )
 
         results = await self.session.exec(statement=query)
-        darrform: Darreichungsform | None = results.one_or_none()
-        if darrform is None and raise_exception_if_none:
+        sondercode: SondercodeBedeutung | None = results.one_or_none()
+        if sondercode is None and raise_exception_if_none:
             raise raise_exception_if_none
-        return darrform
+        return sondercode
 
     async def create(
         self,
-        darrform_create: Darreichungsform,
+        sonderbedeutungcode_create: SondercodeBedeutung,
         raise_exception_if_exists: Exception = None,
-    ) -> Darreichungsform:
-        log.debug(f"Create darrform: {darrform_create}")
-        existing_darrform = None
+    ) -> SondercodeBedeutung:
+        log.debug(f"Create sonderbedeutung: {sonderbedeutungcode_create}")
+        existing_sonderbedeutungcode = None
         if raise_exception_if_exists:
-            existing_darrform = self.get(
-                darrform=darrform_create.darrform,
-                ai_version_id=darrform_create.ai_version_id,
+            existing_sonderbedeutungcode = self.get(
+                sondercode=sonderbedeutungcode_create.sonder_atc_gruppe,
+                ai_version_id=sonderbedeutungcode_create.ai_version_id,
             )
 
-        if existing_darrform and raise_exception_if_exists:
+        if existing_sonderbedeutungcode and raise_exception_if_exists:
             raise raise_exception_if_exists
-        elif existing_darrform:
-            return existing_darrform
-        self.session.add(darrform_create)
+        elif existing_sonderbedeutungcode:
+            return existing_sonderbedeutungcode
+        self.session.add(sonderbedeutungcode_create)
         await self.session.commit()
-        await self.session.refresh(darrform_create)
-        return darrform_create
+        await self.session.refresh(sonderbedeutungcode_create)
+        return sonderbedeutungcode_create
 
     async def create_bulk(
         self,
-        objects: List[Darreichungsform],
-    ) -> Darreichungsform:
-        log.debug(f"Create bulk of darrform")
+        objects: List[SondercodeBedeutung],
+    ) -> SondercodeBedeutung:
+        log.debug(f"Create bulk of sonderbedeutung")
         for obj in objects:
-            if not isinstance(obj, Darreichungsform):
+            if not isinstance(obj, SondercodeBedeutung):
                 raise ValueError(
-                    f"List item is not a Darreichungsform instance:\n {objects}"
+                    f"List item is not a SondercodeBedeutung instance:\n {objects}"
                 )
         self.session.add_all(objects)
         await self.session.commit()
 
     async def update(
         self,
-        darrform_update: Darreichungsform,
+        sonderbedeutungcode_update: SondercodeBedeutung,
         ai_version_id: str | UUID = None,
         raise_exception_if_not_exists=None,
-    ) -> Darreichungsform:
+    ) -> SondercodeBedeutung:
         # atm we dont need (or even dont want) an update endpoint.
         # after import of the arzneimittelindex data, the data should be kind of "read only"
         raise NotImplementedError()
@@ -110,23 +112,24 @@ class DarreichungsformCRUD(DrugCRUDBase):
 
     async def delete(
         self,
-        darrform_darrform: str,
+        sonderbedeutungcode_sondercode: str,
         ai_version_id: str | UUID = None,
-    ) -> Darreichungsform:
+    ) -> SondercodeBedeutung:
         # atm we dont need (or even dont want) an delete endpoint.
         # after import of the arzneimittelindex data, the data should be kind of "read only"
         # deletions will only happen when a whole Arbeimittelindex "version"-set is deleted. that will happen by casade deletion
         raise NotImplementedError()
-
         if ai_version_id is None:
             current_ai_version = await self._get_current_ai_version()
             ai_version_id = current_ai_version.id
 
 
-async def get_darrform_crud(
+async def get_sonderbedeutungcode_crud(
     session: AsyncSession = Depends(get_async_session),
-) -> AsyncGenerator[DarreichungsformCRUD, None]:
-    yield DarreichungsformCRUD(session=session)
+) -> AsyncGenerator[SondercodeBedeutungCRUD, None]:
+    yield SondercodeBedeutungCRUD(session=session)
 
 
-get_darrform_crud_context = contextlib.asynccontextmanager(get_darrform_crud)
+get_sonderbedeutungcode_crud_context = contextlib.asynccontextmanager(
+    get_sonderbedeutungcode_crud
+)
