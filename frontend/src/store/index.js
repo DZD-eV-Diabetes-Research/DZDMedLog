@@ -1,5 +1,4 @@
 import { createStore} from 'vuex'
-import axios from "axios"
 
 import rootActions from './actions'
 import rootGetters from './getters'
@@ -9,7 +8,8 @@ const store = createStore({
     state(){
         return{
             access_token : null,
-            refresh_token: null
+            refresh_token: null,
+            my_api: import.meta.env.VITE_API
         }
     },
     actions: rootActions,
