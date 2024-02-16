@@ -8,8 +8,6 @@ import BaseCard from './components/UI/BaseCard.vue';
 
 axios.defaults.baseURL = "http://localhost:8888"
 
-axios.interceptors.request()
-
 const app = createApp(App)
 
 app.use(router)
