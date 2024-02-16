@@ -1,4 +1,5 @@
 import { createStore} from 'vuex'
+import axios from "axios"
 
 import rootActions from './actions'
 import rootGetters from './getters'
@@ -7,8 +8,7 @@ import rootMutations from './mutations'
 const store = createStore({
     state(){
         return{
-            test : "TEST",
-            acces_token : null,
+            access_token : null,
             refresh_token: null
         }
     },
