@@ -10,8 +10,9 @@
             <div>
                 <p v-if="!formIsValid">Please enter a valid usernam and password</p>
                 <h1 style="color: red" v-if="error">{{ error }}</h1>
-                <button @click="submitForm()">Login</button>
+                <button>Login</button>
                 <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
+                <h1>{{ $store.state.my_api }}</h1>
             </div>
         </form>
     </base-card>
@@ -41,6 +42,7 @@ export default {
 
             try {
                 await this.$store.dispatch('login', payload)
+                this.$router.push("/user")
 
             } catch (err) {
                 this.error = err.message || 'Failed to authenticate, try later.';

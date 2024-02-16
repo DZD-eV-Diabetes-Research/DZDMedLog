@@ -7,9 +7,9 @@ import rootMutations from './mutations'
 const store = createStore({
     state(){
         return{
-            test : "TEST",
-            acces_token : null,
-            refresh_token: null
+            access_token : null,
+            refresh_token: null,
+            my_api: import.meta.env.VITE_API
         }
     },
     actions: rootActions,
