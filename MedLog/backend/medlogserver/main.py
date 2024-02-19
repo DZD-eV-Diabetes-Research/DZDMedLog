@@ -58,10 +58,10 @@ def start():
 
     from worker.wido_gkv_arzneimittelindex_importer import load_data
 
-    load_data(
-        source_data_dir="/home/tim/Repos/github.com/DZD-eV-Diabetes-Research/DZDMedLog/GKV_AI_StammPlus/202301"
-    )
-    exit()
+    # load_data(
+    #    source_data_dir="/home/tim/Repos/github.com/DZD-eV-Diabetes-Research/DZDMedLog/GKV_AI_StammPlus/202301"
+    # )
+    # exit()
     uvicorn.run(
         app,
         host=config.SERVER_LISTENING_HOST,

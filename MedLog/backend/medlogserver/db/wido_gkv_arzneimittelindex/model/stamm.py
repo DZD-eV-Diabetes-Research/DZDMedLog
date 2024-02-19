@@ -4,7 +4,7 @@ import uuid
 import enum
 from textwrap import dedent
 from typing import Optional
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, ForeignKeyConstraint
 from sqlalchemy import String, Integer, Column, Boolean, SmallInteger
 
 from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTableBase
@@ -43,6 +43,50 @@ class BioSimilarTypes(str, enum.Enum):
 
 class Stamm(DrugModelTableBase, table=True):
     __tablename__ = "drug_stamm"
+
+    # On composite foreign keys https://github.com/tiangolo/sqlmodel/issues/222
+    __table_args__ = (
+        ForeignKeyConstraint(
+            name="composite_foreign_key_appform",
+            columns=["appform", "ai_version_id"],
+            refcolumns=[
+                "drug_applikationsform.appform",
+                "drug_applikationsform.ai_version_id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_hersteller_code",
+            columns=["hersteller_code", "ai_version_id"],
+            refcolumns=[
+                "drug_hersteller.herstellercode",
+                "drug_hersteller.ai_version_id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_darrform",
+            columns=["darrform", "ai_version_id"],
+            refcolumns=[
+                "drug_darrform.darrform",
+                "drug_darrform.ai_version_id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_zuzahlstufe",
+            columns=["zuzahlstufe", "ai_version_id"],
+            refcolumns=[
+                "drug_normpackungsgroessen.zuzahlstufe",
+                "drug_normpackungsgroessen.ai_version_id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_zuzahlstufe",
+            columns=["zuzahlstufe", "ai_version_id"],
+            refcolumns=[
+                "drug_normpackungsgroessen.zuzahlstufe",
+                "drug_normpackungsgroessen.ai_version_id",
+            ],
+        ),
+    )
 
     @classmethod
     def get_source_csv_filename(self) -> str:
@@ -91,19 +135,22 @@ class Stamm(DrugModelTableBase, table=True):
         description="Hersteller (siehe Schlüsselverzeichnis hersteller.txt)",
         sa_type=SmallInteger,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:9"},
-        foreign_key="drug_hersteller.herstellercode",
+        # We have composite foreign key. see __table_args__ at the top of this class
+        # foreign_key="drug_hersteller.herstellercode",
     )
     darrform: str = Field(
         description="Darreichungsform(siehe Schlüsselverzeichnis darrform.txt)",
         sa_type=SmallInteger,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:10"},
-        foreign_key="drug_darrform.darrform",
+        # We have composite foreign key. see __table_args__ at the top of this class
+        # foreign_key="drug_darrform.darrform",
     )
     zuzahlstufe: Optional[str] = Field(
         description="Normpackungsgröße (siehe Schlüsselverzeichnis norm-packungsgroessen.txt)",
         sa_type=SmallInteger,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:11"},
-        foreign_key="drug_normpackungsgroessen.zuzahlstufe",
+        # We have composite foreign key. see __table_args__ at the top of this class
+        # foreign_key="drug_normpackungsgroessen.zuzahlstufe",
     )
     packgroesse: str = Field(
         description="Packungsgröße (in 1/10 Einheiten)",
@@ -121,12 +168,12 @@ class Stamm(DrugModelTableBase, table=True):
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:14"},
     )
     preisart_alt: Optional[PreisartTypes] = Field(
-        description="Preisart, alt (Schlüssel siehe nachfolgendes Feld)",
+        description="Preisart, alt (Schlüssel PreisartTypes)",
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:15"},
     )
     preisart_neu: Optional[PreisartTypes] = Field(
-        description="Preisart, alt (Schlüssel siehe nachfolgendes Feld)",
+        description="Preisart, alt (Schlüssel siehe PreisartTypes)",
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:16"},
     )
@@ -170,7 +217,8 @@ class Stamm(DrugModelTableBase, table=True):
         description="Applikationsform (siehe Schlüsselverzeichnis applikationsform.txt)",
         sa_type=String(5),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:24"},
-        foreign_key="drug_applikationsform.appform",
+        # We have composite foreign key. see __table_args__ at the top of this class
+        # foreign_key="drug_applikationsform.appform",
     )
     biosimilar: Optional[BioSimilarTypes] = Field(
         description=dedent(
