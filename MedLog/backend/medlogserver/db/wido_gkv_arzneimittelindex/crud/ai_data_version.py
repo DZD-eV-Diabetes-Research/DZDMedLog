@@ -86,7 +86,13 @@ class AiDataVersionCRUD:
             .order_by(desc(AiDataVersion.datenstand))
         )
         results = await self.session.exec(statement=query)
-        return results.first()
+        res = results.one_or_none()
+        if res is None:
+            raise ValueError(
+                "Could not determine a GKV WiDo Arzneimittel index data version. Maybe no Arzneimittel index was imported yet or there is a bug."
+            )
+        log.info(f"RES{res}")
+        return res
 
     async def create(
         self,
@@ -149,7 +155,7 @@ class AiDataVersionCRUD:
     ) -> AiDataVersion:
         obj_id = ai_data_version_id if ai_data_version_id else ai_data_version_update.id
         ai_data_version_from_db = await self.get(
-            ai_data_version_id=obj_id,
+            id=obj_id,
             raise_exception_if_none=raise_exception_if_not_exists,
         )
         for k, v in ai_data_version_update.model_dump(exclude_unset=True).items():

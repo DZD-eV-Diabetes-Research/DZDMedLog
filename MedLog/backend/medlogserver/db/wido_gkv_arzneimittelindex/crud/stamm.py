@@ -6,7 +6,7 @@ import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel
-
+from sqlalchemy import func
 import uuid
 from uuid import UUID
 
@@ -21,19 +21,33 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import DrugCRUDBase
+from medlogserver.api.paginator import PageParams
 
 log = get_logger()
 config = Config()
 
 
 class StammCRUD(DrugCRUDBase):
-
-    async def list(self, current_version_only: bool = True) -> Sequence[Stamm]:
-        query = select(Stamm)
+    async def count(self, current_version_only: bool = True) -> Sequence[Stamm]:
+        query = select(func.count(Stamm.pzn))
         if current_version_only:
-            current_ai_version: AiDataVersion = await self._get_current_ai_version
+            current_ai_version: AiDataVersion = await self._get_current_ai_version()
             query = query.where(Stamm.ai_version_id == current_ai_version.id)
 
+        results = await self.session.exec(statement=query)
+        print("results", results)
+        return results.first()
+
+    async def list(
+        self, current_version_only: bool = True, pagination: PageParams = None
+    ) -> Sequence[Stamm]:
+        query = select(Stamm)
+        if current_version_only:
+            current_ai_version: AiDataVersion = await self._get_current_ai_version()
+            query = query.where(Stamm.ai_version_id == current_ai_version.id)
+        if pagination:
+            query = pagination.append_to_query(query)
+        print("QUERY", query)
         results = await self.session.exec(statement=query)
         return results.all()
 

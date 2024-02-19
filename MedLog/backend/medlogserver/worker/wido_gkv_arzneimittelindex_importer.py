@@ -1,5 +1,6 @@
 from typing import List, Dict, Type, Callable
 import os
+import datetime
 import csv
 import dramatiq
 import asyncio
@@ -166,6 +167,7 @@ def load_data(source_data_dir: Path | str):
             raise ValueError(
                 "It seems that the import mixes different versions of the GKV Wido Arzneimittelindex. This is not supported"
             )
+    asyncio.run(complete_ai_import(version))
 
 
 def _load_model(datacontainer: SourceFile2ModelMap) -> AiDataVersion:
@@ -225,3 +227,24 @@ async def _write_to_db(data: List[DrugModelTableBase], crud_context_getter: Call
         async with crud_context_getter(session) as crud:
             crud: DrugCRUDBase = crud
             await crud.create_bulk(objects=data)
+
+
+def complete_ai_import(version: AiDataVersion) -> AiDataVersion:
+
+    async def set_ai_data_version_completed(ai_version: AiDataVersion):
+        async with get_async_session_context() as session:
+            async with get_ai_data_version_crud_context(session) as ai_version_crud:
+                crud: AiDataVersionCRUD = ai_version_crud
+                existing_version = await crud.get_by_datenstand_and_dateiversion(
+                    dateiversion=ai_version.dateiversion,
+                    datenstand=ai_version.datenstand,
+                )
+                existing_version.import_completed_at = datetime.datetime.now(
+                    datetime.timezone.utc
+                )
+                existing_version = await crud.update(existing_version)
+                log.info(f"Set  {existing_version} as completed.")
+
+                return existing_version
+
+    return set_ai_data_version_completed(version)

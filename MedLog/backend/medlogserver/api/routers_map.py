@@ -50,3 +50,9 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
     )
 
     fastapi_app.include_router(fast_api_intake_router, tags=["Intake"])
+
+    from api.routes_app.routes_drug import (
+        fast_api_drug_router,
+    )
+
+    fastapi_app.include_router(fast_api_drug_router, tags=["Drug"])

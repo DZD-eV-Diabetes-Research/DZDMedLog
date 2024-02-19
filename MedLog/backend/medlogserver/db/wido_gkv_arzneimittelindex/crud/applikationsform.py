@@ -37,7 +37,7 @@ class ApplikationsformCRUD(DrugCRUDBase):
     ) -> Sequence[Applikationsform]:
         query = select(Applikationsform)
         if current_version_only:
-            current_ai_version: AiDataVersion = await self._get_current_ai_version
+            current_ai_version: AiDataVersion = await self._get_current_ai_version()
             query = query.where(Applikationsform.ai_version_id == current_ai_version.id)
 
         results = await self.session.exec(statement=query)

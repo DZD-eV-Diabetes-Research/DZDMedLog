@@ -14,10 +14,15 @@ from medlogserver.log import get_logger
 log = get_logger()
 config = Config()
 
-app = FastAPI()
+app = FastAPI(
+    title="MedLog REST API",
+    version="0.0.1",
+    # openapi_url=f"{settings.api_v1_prefix}/openapi.json",
+    # debug=settings.debug,
+)
 
 
-def add_api_middleware(fastapiapp:FastAPI):
+def add_api_middleware(fastapiapp: FastAPI):
     # TODO FIX THIS: ONLY FOR DEV
     fastapiapp.add_middleware(
         CORSMiddleware,
@@ -26,5 +31,6 @@ def add_api_middleware(fastapiapp:FastAPI):
         allow_headers=["*"],
         allow_credentials=True,
     )
-    fastapiapp.add_middleware(SessionMiddleware, secret_key=config.SERVER_SESSION_SECRET)
-
+    fastapiapp.add_middleware(
+        SessionMiddleware, secret_key=config.SERVER_SESSION_SECRET
+    )

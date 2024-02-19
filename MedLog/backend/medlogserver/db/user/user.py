@@ -52,7 +52,21 @@ class UserUpdateByAdmin(UserUpdate, table=False):
     is_email_verified: bool = Field(default=False)
 
 
-class UserCreate(UserBase, table=False):
+class _UserValidate(UserBase, table=False):
+    @validator("email")
+    def validmail(cls, email):
+        validate_email(email)
+        return email
+
+    @model_validator(mode="after")
+    def val_display_name(self, values):
+        """if no display name is set for now, we copy the identifying `user_name`"""
+        if self.display_name is None:
+            self.display_name = self.user_name
+        return values
+
+
+class _UserWithName(UserBase, table=False):
     user_name: Annotated[
         str,
         StringConstraints(
@@ -69,20 +83,12 @@ class UserCreate(UserBase, table=False):
         schema_extra={"examples": ["clara.immerwahr", "titor.extern.times"]},
     )
 
-    @validator("email")
-    def validmail(cls, email):
-        validate_email(email)
-        return email
 
-    @model_validator(mode="after")
-    def val_display_name(self, values):
-        """if no display name is set for now, we copy the identifying `user_name`"""
-        if values["display_name"] is None:
-            values["display_name"] == values["user_name"]
-        return values
+class UserCreate(_UserWithName, _UserValidate, table=False):
+    pass
 
 
-class User(UserCreate, UserUpdateByAdmin, BaseTable, table=True):
+class User(_UserWithName, UserUpdateByAdmin, BaseTable, table=True):
     __tablename__ = "user"
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,

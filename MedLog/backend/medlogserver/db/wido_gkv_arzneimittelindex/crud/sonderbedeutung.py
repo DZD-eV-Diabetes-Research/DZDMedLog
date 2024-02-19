@@ -33,7 +33,7 @@ class SondercodeBedeutungCRUD(DrugCRUDBase):
     ) -> Sequence[SondercodeBedeutung]:
         query = select(SondercodeBedeutung)
         if current_version_only:
-            current_ai_version: AiDataVersion = await self._get_current_ai_version
+            current_ai_version: AiDataVersion = await self._get_current_ai_version()
             query = query.where(
                 SondercodeBedeutung.ai_version_id == current_ai_version.id
             )

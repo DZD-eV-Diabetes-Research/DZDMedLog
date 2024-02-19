@@ -56,7 +56,9 @@ from medlogserver.api.auth.base import (
     NEEDS_ADMIN_API_INFO,
     NEEDS_USERMAN_API_INFO,
 )
-
+from medlogserver.api.routes_app.security import (
+    get_current_user,
+)
 from medlogserver.db.event.model import Event, EventUpdate
 from medlogserver.db.event.crud import EventCRUD, get_event_crud
 
@@ -66,22 +68,11 @@ from medlogserver.db.user.user_auth_external_oidc_token import (
     get_user_auth_external_oidc_token_crud,
 )
 from medlogserver.config import Config
-from medlogserver.db.wido_gkv_arzneimittelindex.model import Stamm
-from medlogserver.db.interview.crud import InterviewCRUD, get_interview_crud
-from medlogserver.db.intake.model import (
-    Intake,
-    IntakeCreate,
-    IntakeUpdate,
-)
-from medlogserver.db.intake.crud import IntakeCRUD, get_intake_crud
-from medlogserver.api.routes_app.security import (
-    user_has_studies_access_map,
-    user_has_study_access,
-    UserStudyAccess,
-    UserStudyAccessCollection,
-    assert_interview_id_is_part_of_study_id,
-)
+from medlogserver.db.wido_gkv_arzneimittelindex.model import Stamm, StammRead
+from medlogserver.db.wido_gkv_arzneimittelindex.crud import StammCRUD, get_stamm_crud
+
 from medlogserver.api.base import HTTPMessage
+from medlogserver.api.paginator import pagination_query, PageParams, PaginatedResponse
 
 config = Config()
 
@@ -95,20 +86,28 @@ fast_api_drug_router: APIRouter = APIRouter()
 
 #############
 @fast_api_drug_router.get(
-    "/study/{study_id}/proband/{proband_id}/interview/last/intake",
-    response_model=List[Intake],
-    description=f"List all medicine intakes of one probands last completed interview.",
+    "/drug",
+    # response_model=PaginatedResponse[Stamm],
+    response_model=List[StammRead],
+    description=f"List medicine/drugs from the system",
 )
 async def list_all_intakes_of_last_completed_interview(
-    proband_id: str,
-    study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(get_intake_crud),
-) -> List[Intake]:
-    return await intake_crud.list_last_completed_interview_intakes_by_proband(
-        study_id=study_access.study.id, proband_external_id=proband_id
+    user: User = Security(get_current_user),
+    pagination: PageParams = Depends(pagination_query),
+    drug_stamm_crud: StammCRUD = Depends(get_stamm_crud),
+) -> List[StammRead]:
+    result_items = await drug_stamm_crud.list(pagination=pagination)
+    return result_items
+    return PaginatedResponse(
+        total_count=await drug_stamm_crud.count(),
+        offset=pagination.offset,
+        count=len(result_items),
+        items=result_items,
     )
+    # return await drug_stamm_crud.list()
 
 
+"""
 ############
 @fast_api_drug_router.get(
     "/study/{study_id}/proband/{proband_id}/interview/current/intake",
@@ -251,3 +250,4 @@ async def delete_intake(
     )
     log.warning("ToDo: The med record are not deleted yet")
     return await intake_crud.delete(intake_id)
+"""

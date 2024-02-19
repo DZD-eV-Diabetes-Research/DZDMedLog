@@ -33,7 +33,7 @@ class NormpackungsgroessenCRUD(DrugCRUDBase):
     ) -> Sequence[Normpackungsgroessen]:
         query = select(Normpackungsgroessen)
         if current_version_only:
-            current_ai_version: AiDataVersion = await self._get_current_ai_version
+            current_ai_version: AiDataVersion = await self._get_current_ai_version()
             query = query.where(
                 Normpackungsgroessen.ai_version_id == current_ai_version.id
             )

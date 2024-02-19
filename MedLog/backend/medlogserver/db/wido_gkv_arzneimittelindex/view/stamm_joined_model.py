@@ -3,25 +3,17 @@
 import uuid
 import enum
 from textwrap import dedent
-from typing import Optional, Dict
-from sqlmodel import Field, ForeignKeyConstraint, Relationship, SQLModel, Index
+from typing import Optional
+from sqlmodel import Field, ForeignKeyConstraint
 from sqlalchemy import String, Integer, Column, Boolean, SmallInteger
 
 from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTableBase
 
-from medlogserver.db.wido_gkv_arzneimittelindex.model.applikationsform import (
-    Applikationsform,
-)
-from medlogserver.db.wido_gkv_arzneimittelindex.model.darrform import Darreichungsform
-from medlogserver.db.wido_gkv_arzneimittelindex.model.hersteller import Hersteller
-from medlogserver.db.wido_gkv_arzneimittelindex.model.normpackungsgroessen import (
-    Normpackungsgroessen,
-)
 
 # TB: Model Fertig, ungetestet
 
 
-class ApoPlfichtTypes(enum.Enum):
+class ApoplfichtTypes(str, enum.Enum):
     Nichtarzneimittel = 0
     NichtApothekenpflichtigesArzneimittel = 1
     ApothekenpflichtigesRezeptfreiesArzneimittel = 2
@@ -36,7 +28,7 @@ class PreisartTypes(str, enum.Enum):
     OhnePreisangabe = "X"
 
 
-class GenericaKennungTypes(enum.Enum):
+class GenericaKennungTypes(str, enum.Enum):
     ArzneimittelMitPatentBzwSchutzfristen = 0
     PatentfreiesOriginal = 1
     GenerikumInklBiosimilar = 2
@@ -49,7 +41,56 @@ class BioSimilarTypes(str, enum.Enum):
     ArzneimittelUnterDemGleichenATC = "N"
 
 
-class StammBase(DrugModelTableBase, table=False):
+class Stamm(DrugModelTableBase, table=True):
+    __tablename__ = "drug_stamm"
+
+    # On composite foreign keys https://github.com/tiangolo/sqlmodel/issues/222
+    __table_args__ = (
+        ForeignKeyConstraint(
+            name="composite_foreign_key_appform",
+            columns=["appform", "ai_version_id"],
+            refcolumns=[
+                "drug_applikationsform.appform",
+                "drug_applikationsform.ai_version_id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_hersteller_code",
+            columns=["hersteller_code", "ai_version_id"],
+            refcolumns=[
+                "drug_hersteller.herstellercode",
+                "drug_hersteller.ai_version_id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_darrform",
+            columns=["darrform", "ai_version_id"],
+            refcolumns=[
+                "drug_darrform.darrform",
+                "drug_darrform.ai_version_id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_zuzahlstufe",
+            columns=["zuzahlstufe", "ai_version_id"],
+            refcolumns=[
+                "drug_normpackungsgroessen.zuzahlstufe",
+                "drug_normpackungsgroessen.ai_version_id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_zuzahlstufe",
+            columns=["zuzahlstufe", "ai_version_id"],
+            refcolumns=[
+                "drug_normpackungsgroessen.zuzahlstufe",
+                "drug_normpackungsgroessen.ai_version_id",
+            ],
+        ),
+    )
+
+    @classmethod
+    def get_source_csv_filename(self) -> str:
+        return "stamm.txt"
 
     # https://www.wido.de/fileadmin/Dateien/Dokumente/Publikationen_Produkte/Arzneimittel-Klassifikation/wido_arz_stammdatei_plus_info_2021.pdf
 
@@ -97,18 +138,16 @@ class StammBase(DrugModelTableBase, table=False):
         # We have composite foreign key. see __table_args__ at the top of this class
         # foreign_key="drug_hersteller.herstellercode",
     )
-
     darrform: str = Field(
         description="Darreichungsform(siehe Schlüsselverzeichnis darrform.txt)",
-        sa_type=String(5),
+        sa_type=SmallInteger,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:10"},
         # We have composite foreign key. see __table_args__ at the top of this class
         # foreign_key="drug_darrform.darrform",
     )
-
     zuzahlstufe: Optional[str] = Field(
         description="Normpackungsgröße (siehe Schlüsselverzeichnis norm-packungsgroessen.txt)",
-        sa_type=String(1),
+        sa_type=SmallInteger,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:11"},
         # We have composite foreign key. see __table_args__ at the top of this class
         # foreign_key="drug_normpackungsgroessen.zuzahlstufe",
@@ -123,7 +162,7 @@ class StammBase(DrugModelTableBase, table=False):
         sa_type=String(9),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:13"},
     )
-    apopflicht: ApoPlfichtTypes = Field(
+    apopflicht: ApoplfichtTypes = Field(
         description="Apotheken-/Rezeptpflicht",
         sa_type=SmallInteger,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:14"},
@@ -138,17 +177,17 @@ class StammBase(DrugModelTableBase, table=False):
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:16"},
     )
-    preis_alt: int = Field(
+    preis_alt: str = Field(
         description="Preis alt (in Cent)",
         sa_type=Integer(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:17"},
     )
-    preis_neu: int = Field(
+    preis_neu: str = Field(
         description="Preis neu (in Cent)",
         sa_type=Integer(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:18"},
     )
-    festbetrag: int = Field(
+    festbetrag: str = Field(
         description="Festbetrag (in Cent)",
         sa_type=Integer(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:19"},
@@ -201,84 +240,3 @@ class StammBase(DrugModelTableBase, table=False):
         sa_type=Boolean(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:26"},
     )
-
-
-class Stamm(StammBase, table=True):
-    __tablename__ = "drug_stamm"
-
-    # On composite foreign keys https://github.com/tiangolo/sqlmodel/issues/222
-    __table_args__ = (
-        Index(
-            "idx_drug_search",
-            "laufnr",
-            "stakenn",
-            "staname",
-            "atc_code",
-            "indgr",
-            "pzn",
-            "name",
-            "hersteller_code",
-            "darrform",
-            "zuzahlstufe",
-            "packgroesse",
-            "dddpk",
-            "apopflicht",
-            "generikakenn",
-            "appform",
-        ),
-        ForeignKeyConstraint(
-            name="composite_foreign_key_appform",
-            columns=["appform", "ai_version_id"],
-            refcolumns=[
-                "drug_applikationsform.appform",
-                "drug_applikationsform.ai_version_id",
-            ],
-        ),
-        ForeignKeyConstraint(
-            name="composite_foreign_key_hersteller_code",
-            columns=["hersteller_code", "ai_version_id"],
-            refcolumns=[
-                "drug_hersteller.herstellercode",
-                "drug_hersteller.ai_version_id",
-            ],
-        ),
-        ForeignKeyConstraint(
-            name="composite_foreign_key_darrform",
-            columns=["darrform", "ai_version_id"],
-            refcolumns=[
-                "drug_darrform.darrform",
-                "drug_darrform.ai_version_id",
-            ],
-        ),
-        ForeignKeyConstraint(
-            name="composite_foreign_key_zuzahlstufe",
-            columns=["zuzahlstufe", "ai_version_id"],
-            refcolumns=[
-                "drug_normpackungsgroessen.zuzahlstufe",
-                "drug_normpackungsgroessen.ai_version_id",
-            ],
-        ),
-    )
-
-    @classmethod
-    def get_source_csv_filename(self) -> str:
-        return "stamm.txt"
-
-    darrform_ref: Darreichungsform = Relationship(
-        sa_relationship_kwargs={"lazy": "joined"}
-    )
-    appform_ref: Applikationsform = Relationship(
-        sa_relationship_kwargs={"lazy": "joined"}
-    )
-    zuzahlstufe_ref: Normpackungsgroessen = Relationship(
-        sa_relationship_kwargs={"lazy": "joined"}
-    )
-    hersteller_ref: Hersteller = Relationship(sa_relationship_kwargs={"lazy": "joined"})
-
-
-class StammRead(StammBase, table=False):
-
-    darrform_ref: Darreichungsform
-    appform_ref: Applikationsform
-    zuzahlstufe_ref: Optional[Normpackungsgroessen]
-    hersteller_ref: Hersteller

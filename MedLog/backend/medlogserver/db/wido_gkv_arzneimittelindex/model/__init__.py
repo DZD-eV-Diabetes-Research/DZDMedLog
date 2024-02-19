@@ -1,4 +1,4 @@
-from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import Stamm
+from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import Stamm, StammRead
 from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm_aenderungen import (
     StammAenderungen,
 )

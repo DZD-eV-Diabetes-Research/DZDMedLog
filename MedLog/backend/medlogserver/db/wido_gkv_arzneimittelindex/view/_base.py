@@ -16,7 +16,7 @@ from medlogserver.db.wido_gkv_arzneimittelindex.crud.ai_data_version import (
 )
 
 
-class DrugCRUDBase:
+class DrugViewBase:
     def __init__(self, session: AsyncSession):
         self.session = session
         self._current_ai_version: AiDataVersion = None
@@ -31,8 +31,3 @@ class DrugCRUDBase:
                 self._current_ai_version = await ai_version_crud.get_current()
 
         return self._current_ai_version
-
-    def create_bulk(self, objects: List[DrugModelTableBase]):
-        # this is just an abstract/interface method.
-        # look into the specific class file at MedLog/backend/medlogserver/db/wido_gkv_arzneimittelindex/crud/* for specific implementations
-        raise NotImplementedError()
