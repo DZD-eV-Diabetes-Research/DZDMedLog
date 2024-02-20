@@ -5,7 +5,7 @@ export default {
     refresh_token(state){
         return state.refresh_token
     },
-    result(state){
-        return state.result
+    test(state){
+        return state.test
     }
 }

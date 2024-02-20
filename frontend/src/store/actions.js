@@ -2,7 +2,6 @@ import axios from "axios"
 
 export default {
     async login(context, payload) {
-        //import.meta.env.VITE_API + 
         const response = await axios.post('/auth/token', {
             username: payload.username,
             password: payload.password
@@ -18,5 +17,20 @@ export default {
             result: response.data,
         })
     },
+    async getToken(context, payload){ 
+ 
+        axios.defaults.headers.common = {'Authorization' : "Bearer " + payload}
 
+        const response = await axios.post('/auth/refresh', {
+            headers: {
+                'Content-Type': 'json'
+            }
+        })
+
+        console.log(response.data)
+        context.commit('refresh', {
+            result: response.data,
+        })
+
+    }
 }

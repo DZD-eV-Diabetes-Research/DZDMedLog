@@ -13,12 +13,15 @@
                 <button>Login</button>
                 <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
                 <h1>{{ $store.state.my_api }}</h1>
+                <h1>{{ $store.state.refresh_token }}</h1>
             </div>
         </form>
+        <button @click="newToken">New Token</button>
     </base-card>
 </template>
 
 <script>
+
 export default {
     data() {
         return {
@@ -29,6 +32,22 @@ export default {
         }
     },
     methods: {
+
+        async newToken() {
+            if (!this.$store.getters.refresh_token) {
+                this.error = "Please login first"
+            }
+            else {
+                const payload = this.$store.getters.refresh_token
+                console.log(payload)
+                try {
+                    await this.$store.dispatch('getToken', payload)
+                } catch (err) {
+                    this.error = err.response
+                }
+            }
+        },
+
         async submitForm() {
             this.error = ""
             if (this.userName === '' || this.password.length === 0) {
@@ -42,14 +61,21 @@ export default {
 
             try {
                 await this.$store.dispatch('login', payload)
-                this.$router.push("/user")
+                //this.$router.push("/user")
 
             } catch (err) {
-                this.error = err.message || 'Failed to authenticate, try later.';
+                if (err.response.status === 401) {
+                    this.error = "Error: 401 " + err.response.data.detail || 'Failed to authenticate, try later.';
+                } else if (err.response.status === 422) {
+                    this.error = "Error: 422" + " Both fields must contain data" || 'Failed to authenticate, try later.';
+                } else {
+                    this.error = 'Failed to authenticate, try later.'
+                }
             }
         }
     }
 }
+
 </script>
 
 <style lang="scss">
