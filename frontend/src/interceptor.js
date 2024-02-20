@@ -11,7 +11,7 @@ axios.interceptors.response.use(resp => resp, async error => {
         });
 
         if (status === 200) {
-            //Token«
+            //Token
             axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
 
             return axios(error.config);

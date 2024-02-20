@@ -13,12 +13,15 @@
                 <button>Login</button>
                 <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
                 <h1>{{ $store.state.my_api }}</h1>
+                <h1>{{ $store.state.refresh_token }}</h1>
             </div>
         </form>
+        <button @click="newToken">New Token</button>
     </base-card>
 </template>
 
 <script>
+
 export default {
     data() {
         return {
@@ -29,6 +32,22 @@ export default {
         }
     },
     methods: {
+
+        async newToken() {
+            if (!this.$store.getters.refresh_token) {
+                this.error = "Please login first"
+            }
+            else {
+                const payload = this.$store.getters.refresh_token
+                console.log(payload)
+                try {
+                    await this.$store.dispatch('getToken', payload)
+                } catch (err) {
+                    this.error = err.response
+                }
+            }
+        },
+
         async submitForm() {
             this.error = ""
             if (this.userName === '' || this.password.length === 0) {
