@@ -19,11 +19,11 @@ export default {
     },
     async getToken(context, payload){ 
  
-        axios.defaults.headers.common = {'Authorization' : "Bearer " + payload}
+        axios.defaults.headers.common = {'refresh-token' : "Bearer " + payload}
 
         const response = await axios.post('/auth/refresh', {
             headers: {
-                'Content-Type': 'json'
+                'Content-Type': 'json',
             }
         })
 
