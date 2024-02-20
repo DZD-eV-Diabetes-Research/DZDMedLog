@@ -150,13 +150,21 @@ async def get_fresh_access_token(
     elif refresh_token_header:
         refresh_token = refresh_token_header
     else:
-        raise token_invalid_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not valid. Can not parse",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if refresh_token.lower().startswith("bearer"):
         token_type, refresh_token = refresh_token_header.split(" ")
 
     r_token = JWTRefreshTokenContainer.from_existing_jwt(refresh_token)
     if r_token.is_expired():
-        raise token_invalid_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not valid. Is expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     # this will raise error if token is deleted or deactivated (aka. revoked).
     r_token_from_db = await user_auth_refresh_token_crud.get(
@@ -168,7 +176,7 @@ async def get_fresh_access_token(
     if user.deactivated:
         token_invalid_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized",
+            detail="Refresh token not valid. User deactivted",
             headers={"WWW-Authenticate": "Bearer"},
         )
     fresh_access_token = JWTAccessTokenContainer(
