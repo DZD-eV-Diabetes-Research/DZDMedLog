@@ -105,14 +105,14 @@ class JWTRefreshTokenContainer:
                 jwt_token_encoded,
                 config.AUTH_JWT_SECRET,
                 config.AUTH_JWT_ALGORITHM,
-                audience=config.get_server_url().host,
+                audience=str(config.get_server_url()),
             )
-
+            log.debug(f"Decoded jwt token raw: {jwt_token_decoded}")
             new_obj = cls(
                 user_id=jwt_token_decoded["sub"],
                 prevent_generate_new_token=True,
             )
-            new_obj.id = UUID(jwt_token_encoded["id"])
+            new_obj.id = UUID(jwt_token_decoded["id"])
             new_obj.jwt_token_encoded = jwt_token_encoded
             new_obj.created_at = datetime.fromtimestamp(
                 jwt_token_decoded["iat"], tz=timezone.utc
@@ -214,7 +214,7 @@ class JWTAccessTokenContainer:
 
     def to_token_response(self) -> JWTAccessTokenResponse:
         return JWTAccessTokenResponse(
-            token=self.jwt_token_encoded,
+            access_token=self.jwt_token_encoded,
             token_type="Bearer",
             expires_in=int(self.exp - datetime.now(timezone.utc).timestamp()),
             expires_at=int(self.exp),

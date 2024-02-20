@@ -133,7 +133,7 @@ async def get_fresh_access_token(
         example="Bearer S0VLU0UhIExFQ0tFUiEK",
         description="Refresh token via `refresh-token` header field",
     ),
-    user_crud: UserCRUD = Depends(get_user_auth_crud),
+    user_crud: UserCRUD = Depends(get_user_crud),
     user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
     user_auth_refresh_token_crud: UserAuthRefreshTokenCRUD = Depends(
         get_user_auth_refresh_token_crud
@@ -141,10 +141,11 @@ async def get_fresh_access_token(
 ) -> User:
     token_invalid_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Refresh token not valid",
+        detail="Refresh token not valid2",
         headers={"WWW-Authenticate": "Bearer"},
     )
     refresh_token: str = None
+
     if refresh_token_form:
         refresh_token = refresh_token_form
     elif refresh_token_header:
@@ -152,9 +153,12 @@ async def get_fresh_access_token(
     else:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token not valid. Can not parse",
+            detail="Refresh token not valid. Can not find",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    log.debug(
+        f"Access '{REFRESH_ACCESS_TOKEN_ENDPOINT_PATH}' with token ('refresh_token'):' {refresh_token}'"
+    )
     if refresh_token.lower().startswith("bearer"):
         token_type, refresh_token = refresh_token_header.split(" ")
 
@@ -165,21 +169,25 @@ async def get_fresh_access_token(
             detail="Refresh token not valid. Is expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
+    """
     # this will raise error if token is deleted or deactivated (aka. revoked).
+    # ToDO: not implented yet. we need to save the refresh token first
     r_token_from_db = await user_auth_refresh_token_crud.get(
         r_token.id,
         show_deactivated=False,
         raise_exception_if_none=token_invalid_exception,
     )
+    """
+
     user = await user_crud.get(r_token.user_id)
     if user.deactivated:
-        token_invalid_exception = HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token not valid. User deactivted",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
     fresh_access_token = JWTAccessTokenContainer(
         user=user, parent_refresh_token_id=r_token.id
     )
-    return fresh_access_token
+    return fresh_access_token.to_token_response()
