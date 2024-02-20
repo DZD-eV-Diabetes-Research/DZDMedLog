@@ -2,7 +2,6 @@ import axios from "axios"
 
 export default {
     async login(context, payload) {
-        //import.meta.env.VITE_API + 
         const response = await axios.post('/auth/token', {
             username: payload.username,
             password: payload.password

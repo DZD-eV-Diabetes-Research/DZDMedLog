@@ -42,14 +42,21 @@ export default {
 
             try {
                 await this.$store.dispatch('login', payload)
-                this.$router.push("/user")
+                //this.$router.push("/user")
 
             } catch (err) {
-                this.error = err.message || 'Failed to authenticate, try later.';
+                if (err.response.status === 401) {
+                    this.error = "Error: 401 " + err.response.data.detail || 'Failed to authenticate, try later.';
+                } else if (err.response.status === 422) {
+                    this.error = "Error: 422" + " Both fields must contain data" || 'Failed to authenticate, try later.';
+                } else {
+                    this.error = 'Failed to authenticate, try later.'
+                }
             }
         }
     }
 }
+
 </script>
 
 <style lang="scss">
