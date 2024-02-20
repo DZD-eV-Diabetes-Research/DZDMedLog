@@ -71,6 +71,12 @@ from medlogserver.config import Config
 from medlogserver.db.wido_gkv_arzneimittelindex.model import Stamm, StammRead
 from medlogserver.db.wido_gkv_arzneimittelindex.crud import StammCRUD, get_stamm_crud
 
+from medlogserver.db.wido_gkv_arzneimittelindex.view import (
+    get_stamm_joined_view,
+    get_stamm_joined_view_context,
+    StammJoinedView,
+)
+
 from medlogserver.api.base import HTTPMessage
 from medlogserver.api.paginator import pagination_query, PageParams, PaginatedResponse
 
@@ -87,19 +93,48 @@ fast_api_drug_router: APIRouter = APIRouter()
 #############
 @fast_api_drug_router.get(
     "/drug",
-    # response_model=PaginatedResponse[Stamm],
-    response_model=List[StammRead],
+    response_model=PaginatedResponse[StammRead],
     description=f"List medicine/drugs from the system",
 )
 async def list_all_intakes_of_last_completed_interview(
     user: User = Security(get_current_user),
     pagination: PageParams = Depends(pagination_query),
     drug_stamm_crud: StammCRUD = Depends(get_stamm_crud),
-) -> List[StammRead]:
+) -> PaginatedResponse[StammRead]:
     result_items = await drug_stamm_crud.list(pagination=pagination)
-    return result_items
+    # return result_items
     return PaginatedResponse(
         total_count=await drug_stamm_crud.count(),
+        offset=pagination.offset,
+        count=len(result_items),
+        items=result_items,
+    )
+    # return await drug_stamm_crud.list()
+
+
+@fast_api_drug_router.get(
+    "/drug/search",
+    response_model=PaginatedResponse[StammRead],
+    description=f"Search medicine/drugs from the system",
+)
+async def list_all_intakes_of_last_completed_interview(
+    search_term: Annotated[
+        str,
+        Query(
+            description="A search term. Can be multiple words or a single one. Must be at least 3 chars.",
+            min_length=3,
+        ),
+    ],
+    user: User = Security(get_current_user),
+    pagination: PageParams = Depends(pagination_query),
+    drug_stamm_serach_crud: StammJoinedView = Depends(get_stamm_joined_view),
+) -> PaginatedResponse[StammRead]:
+    result_items = await drug_stamm_serach_crud.search(
+        search_term=search_term, pagination=pagination
+    )
+    # return result_items
+    return PaginatedResponse(
+        total_count=None,
         offset=pagination.offset,
         count=len(result_items),
         items=result_items,

@@ -32,15 +32,27 @@ https://intility.github.io/fastapi-azure-auth/multi-tenant/fastapi_configuration
 Securing Vue.js with OpenID Connect and OAuth by Bobby Johnson | Armada JS 2019
 https://www.youtube.com/watch?v=r0BCki3U2AM
 
+## Sreach providers
+
+https://typesense.org/ <- this looks good
+https://redis.io/ <- i am pretty sure we can achive a good solution with good old redis as well
+https://www.elastic.co/de/elasticsearch <- this is the standard solution
+
+
 ## ditched libs
 
 https://github.com/nextml-code/fastapi-third-party-auth
 https://github.com/yezz123/AuthX
 
+## TODO
 
-## Hardening TODO
+### Auth
 
-introduce and implement "TRUSTED_PROXY" setting
+* Refresh token invalidation
+
+### Hardening 
+
+* introduce and implement "TRUSTED_PROXY" setting
 
 
 # OIDC Token types

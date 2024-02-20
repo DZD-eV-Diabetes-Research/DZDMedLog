@@ -195,6 +195,11 @@ class Config(BaseSettings):
         description="When reading the Arzneimittelindex data files, write every n rows to the database. Lower this number in a low memory env.",
     )
 
+    DRUG_SEARCHENGINE_CLASS: Literal["GenericSQLDrugSearchState"] = Field(
+        description="The search engine used in the background to answer drug search requests.",
+        default="GenericSQLDrugSearchState",
+    )
+
     ###### CONFIG END ######
     # mode_config is fixed variable  in pydantic-settings to control the behaviour of our settings model
     # https://docs.pydantic.dev/latest/api/base_model/#pydantic.main.BaseModel.model_config

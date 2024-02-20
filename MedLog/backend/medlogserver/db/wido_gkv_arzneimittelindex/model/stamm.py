@@ -12,6 +12,9 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTabl
 from medlogserver.db.wido_gkv_arzneimittelindex.model.applikationsform import (
     Applikationsform,
 )
+from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
+    AiDataVersion,
+)
 from medlogserver.db.wido_gkv_arzneimittelindex.model.darrform import Darreichungsform
 from medlogserver.db.wido_gkv_arzneimittelindex.model.hersteller import Hersteller
 from medlogserver.db.wido_gkv_arzneimittelindex.model.normpackungsgroessen import (
@@ -47,6 +50,25 @@ class BioSimilarTypes(str, enum.Enum):
     Biosimilar = "B"
     Referenzarzneimittel = "R"
     ArzneimittelUnterDemGleichenATC = "N"
+
+
+DRUG_SEARCHFIELDS = (
+    "laufnr",
+    "stakenn",
+    "staname",
+    "atc_code",
+    "indgr",
+    "pzn",
+    "name",
+    "hersteller_code",
+    "darrform",
+    "zuzahlstufe",
+    "packgroesse",
+    "dddpk",
+    "apopflicht",
+    "generikakenn",
+    "appform",
+)
 
 
 class StammBase(DrugModelTableBase, table=False):
@@ -208,24 +230,7 @@ class Stamm(StammBase, table=True):
 
     # On composite foreign keys https://github.com/tiangolo/sqlmodel/issues/222
     __table_args__ = (
-        Index(
-            "idx_drug_search",
-            "laufnr",
-            "stakenn",
-            "staname",
-            "atc_code",
-            "indgr",
-            "pzn",
-            "name",
-            "hersteller_code",
-            "darrform",
-            "zuzahlstufe",
-            "packgroesse",
-            "dddpk",
-            "apopflicht",
-            "generikakenn",
-            "appform",
-        ),
+        Index("idx_drug_search", *DRUG_SEARCHFIELDS),
         ForeignKeyConstraint(
             name="composite_foreign_key_appform",
             columns=["appform", "ai_version_id"],
@@ -264,6 +269,9 @@ class Stamm(StammBase, table=True):
     def get_source_csv_filename(self) -> str:
         return "stamm.txt"
 
+    ai_version_ref: AiDataVersion = Relationship(
+        sa_relationship_kwargs={"lazy": "joined"}
+    )
     darrform_ref: Darreichungsform = Relationship(
         sa_relationship_kwargs={"lazy": "joined"}
     )
@@ -277,7 +285,7 @@ class Stamm(StammBase, table=True):
 
 
 class StammRead(StammBase, table=False):
-
+    ai_version_ref: AiDataVersion
     darrform_ref: Darreichungsform
     appform_ref: Applikationsform
     zuzahlstufe_ref: Optional[Normpackungsgroessen]

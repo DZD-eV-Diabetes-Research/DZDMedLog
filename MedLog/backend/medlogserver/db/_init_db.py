@@ -53,6 +53,11 @@ from medlogserver.config import Config
 log = get_logger()
 config = Config()
 
+if config.DRUG_SEARCHENGINE_CLASS == "GenericSQLDrugSearchState":
+    from medlogserver.db.wido_gkv_arzneimittelindex.search_engines.sql import (
+        GenericSQLDrugSearchState,
+        GenericSQLDrugSearchCache,
+    )
 
 # db_engine = create_async_engine(str(config.SQL_DATABASE_URL), echo=False, future=True)
 

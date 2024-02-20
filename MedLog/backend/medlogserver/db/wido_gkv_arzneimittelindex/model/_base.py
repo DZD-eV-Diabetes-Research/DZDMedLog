@@ -11,7 +11,7 @@ class DrugModelTableBase(Base, BaseTable):
         raise NotImplementedError()
 
     ai_version_id: uuid.UUID = Field(
-        description="Foreing key to 'AiDataVersion' which contains the information which 'Datenstand' and 'Dateiversion' the row has",
+        description="Foreing key to 'AiDataVersion' ('GKV WiDo Arzneimittel Index' Data Format Version) which contains the information which Arzneimittel Index 'Datenstand' and 'Dateiversion' the row has",
         foreign_key="ai_dataversion.id",
         primary_key=True,
     )
