@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import store from './store/index.js'
 
 import Login from "./components/Auth/Login.vue"
 import UserView from "./components/UI/UserView.vue"
@@ -9,7 +10,16 @@ const router = createRouter({
     routes: [
         { path: '/', redirect: "/auth" },
         { path: '/auth', component: Login },
-        { path: '/user', component: UserView},
+        { path: '/user', component: UserView, beforeEnter:(to, from, next) => {
+            if(store.getters.access_token){
+                next()
+            } else {
+                next("/")
+            }
+        }
+    
+    
+    },
         { path: '/:notFound(.*)', component: NotFound }
     ]
 });

@@ -8,15 +8,13 @@
                 <input id="password" name="password" type="password" v-model.trim="password">
             </div>
             <div>
-                <p v-if="!formIsValid">Please enter a valid usernam and password</p>
                 <h1 style="color: red" v-if="error">{{ error }}</h1>
                 <button>Login</button>
                 <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
             </div>
         </form>
-        <button @click="newToken">New Token</button>
-        <button @click="userMe">About myself</button>
-        <h1> {{ $store.state.result }} </h1>
+        <!-- <button @click="newToken">New Token</button>
+        <button @click="userMe">About myself</button> -->
     </base-card>
 </template>
 
@@ -33,13 +31,11 @@ export default {
     },
     methods: {
 
-        async userMe(){
-            this.error = null
-            const payload = this.$store.getters.access_token
-            try{
-            await this.$store.dispatch("userMe", payload)
+        async userMe() {
+            try {
+                await this.$store.dispatch("userMe")
             }
-            catch(err){
+            catch (err) {
                 this.error = err.response
             }
         },
@@ -50,7 +46,6 @@ export default {
             }
             else {
                 const payload = this.$store.getters.refresh_token
-                console.log(payload)
                 try {
                     await this.$store.dispatch('getToken', payload)
                 } catch (err) {
@@ -62,9 +57,9 @@ export default {
         async submitForm() {
             this.error = ""
             if (this.userName === '' || this.password.length === 0) {
+                this.error = "Please enter a valid username and password"
                 this.formIsValid = false
             }
-
             const payload = {
                 username: this.userName,
                 password: this.password
@@ -72,16 +67,17 @@ export default {
 
             try {
                 await this.$store.dispatch('login', payload)
-                //this.$router.push("/user")
+
+                try {
+                    await this.$store.dispatch("userMe")
+                }
+                catch (err) {
+                    this.error = err.response
+                }
+                this.$router.push("/user")
 
             } catch (err) {
-                if (err.response.status === 401) {
-                    this.error = "Error: 401 " + err.response.data.detail || 'Failed to authenticate, try later.';
-                } else if (err.response.status === 422) {
-                    this.error = "Error: 422" + " Both fields must contain data" || 'Failed to authenticate, try later.';
-                } else {
-                    this.error = 'Failed to authenticate, try later.'
-                }
+                this.error = "Wrong username or password"
             }
         }
     }
