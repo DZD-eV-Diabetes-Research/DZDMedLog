@@ -5,5 +5,8 @@
     },
     refresh(state, payload){
         state.access_token = payload.result.access_token
+    },
+    userMe(state, payload){
+        state.result = payload.result.data
     }
  }

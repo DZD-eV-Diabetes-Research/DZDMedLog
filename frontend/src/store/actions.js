@@ -12,7 +12,6 @@ export default {
         }
         )
 
-        console.log(response.data)
         context.commit('login', {
             result: response.data,
         })
@@ -27,10 +26,16 @@ export default {
             }
         })
 
-        console.log(response.data)
         context.commit('refresh', {
             result: response.data,
         })
-
-    }
+    },
+    async userMe(context, payload){
+        axios.defaults.headers.common = {'Authorization' : "Bearer " + payload}
+        
+        const response = await axios.get("/user/me")
+        context.commit('userMe', {
+            result: response,
+        })
+       }
 }
