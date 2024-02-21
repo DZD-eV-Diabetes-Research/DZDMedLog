@@ -26,9 +26,9 @@ def add_api_middleware(fastapiapp: FastAPI):
     # TODO FIX THIS: ONLY FOR DEV
     fastapiapp.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_origins=[config.CLIENT_URL, str(config.get_server_url())],
+        allow_methods=[config.CLIENT_URL, str(config.get_server_url())],
+        allow_headers=[config.CLIENT_URL, str(config.get_server_url())],
         allow_credentials=True,
     )
     fastapiapp.add_middleware(

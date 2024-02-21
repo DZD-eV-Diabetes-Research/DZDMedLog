@@ -51,6 +51,9 @@ class Config(BaseSettings):
             proto = "http"
         return AnyHttpUrl(f"{proto}://{self.SERVER_HOSTNAME}")
 
+    CLIENT_URL: Optional[str] = Field(
+        default="http://localhost:5173", description="Origin url"
+    )
     SQL_DATABASE_URL: AnyUrl = Field(default="sqlite+aiosqlite:///./local.sqlite")
 
     ADMIN_USER_NAME: str = Field(default="admin")
