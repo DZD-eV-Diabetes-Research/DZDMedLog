@@ -34,6 +34,7 @@ export default {
     methods: {
 
         async userMe(){
+            this.error = null
             const payload = this.$store.getters.access_token
             try{
             await this.$store.dispatch("userMe", payload)
