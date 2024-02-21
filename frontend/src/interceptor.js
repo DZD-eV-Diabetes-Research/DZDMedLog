@@ -8,8 +8,6 @@ axios.interceptors.response.use(resp => resp, async error => {
         refresh = true;
 
         const refresh_token = store.getters.refresh_token
-        console.log("Old Token "+store.getters.access_token)
-
 
         axios.defaults.headers.common = { 'refresh-token': "Bearer " + refresh_token }
 
