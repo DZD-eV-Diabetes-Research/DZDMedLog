@@ -1,4 +1,6 @@
 import axios from "axios"
+import store from "."
+
 
 export default {
     async login(context, payload) {
@@ -30,12 +32,20 @@ export default {
             result: response.data,
         })
     },
-    async userMe(context, payload){
-        axios.defaults.headers.common = {'Authorization' : "Bearer " + payload}
+
+    async userMe(context){
+
+        const access_token = store.getters.access_token
+
+        axios.defaults.headers.common = {'Authorization' : "Bearer " + access_token}
         
         const response = await axios.get("/user/me")
         context.commit('userMe', {
             result: response,
         })
-       }
+       },
+       
+    async updateAccessToken(context, token){
+        context.commit('updateAccessToken', { result: token })
+    }
 }

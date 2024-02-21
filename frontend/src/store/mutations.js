@@ -8,5 +8,8 @@
     },
     userMe(state, payload){
         state.result = payload.result.data
+    },
+    updateAccessToken(state,payload){
+        state.access_token = payload
     }
  }

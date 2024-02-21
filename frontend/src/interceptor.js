@@ -8,6 +8,8 @@ axios.interceptors.response.use(resp => resp, async error => {
         refresh = true;
 
         const refresh_token = store.getters.refresh_token
+        console.log("Old Token "+store.getters.access_token)
+
 
         axios.defaults.headers.common = { 'refresh-token': "Bearer " + refresh_token }
 
@@ -21,8 +23,10 @@ axios.interceptors.response.use(resp => resp, async error => {
 
         if (status === 200) {
             //Token
-            axios.defaults.headers.common = {'Authorization' : "Bearer " + data.token}
+            store.dispatch('updateAccessToken', data.access_token )
+            // axios.defaults.headers.common = {'Authorization' : "Bearer " + data.access_token}
 
+            error.config.headers = {'Authorization' : "Bearer " + data.access_token}
             return axios(error.config);
         }
     }

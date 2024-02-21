@@ -34,15 +34,25 @@ export default {
     methods: {
 
         async userMe(){
-            this.error = null
-            const payload = this.$store.getters.access_token
             try{
-            await this.$store.dispatch("userMe", payload)
+            await this.$store.dispatch("userMe")
             }
             catch(err){
                 this.error = err.response
             }
         },
+
+
+        // async userMe(){
+        //     this.error = null
+        //     const payload = this.$store.getters.access_token
+        //     try{
+        //     await this.$store.dispatch("userMe", payload)
+        //     }
+        //     catch(err){
+        //         this.error = err.response
+        //     }
+        // },
 
         async newToken() {
             if (!this.$store.getters.refresh_token) {
