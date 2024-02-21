@@ -280,6 +280,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             )
         if only_current_medications:
             query = query.where(is_(GenericSQLDrugSearchCache.ahdatum, None))
+        # YOu are here
 
     async def _get_state(self) -> GenericSQLDrugSearchState:
         state = None
