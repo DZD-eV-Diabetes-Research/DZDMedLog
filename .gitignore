@@ -333,3 +333,4 @@ medlog-demo-data/
 .env
 local.sqlite
 GKV_AI_StammPlus/
+package-lock.json

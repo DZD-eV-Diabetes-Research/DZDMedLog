@@ -12,11 +12,11 @@
                 <h1 style="color: red" v-if="error">{{ error }}</h1>
                 <button>Login</button>
                 <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
-                <h1>{{ $store.state.my_api }}</h1>
-                <h1>{{ $store.state.refresh_token }}</h1>
             </div>
         </form>
         <button @click="newToken">New Token</button>
+        <button @click="userMe">About myself</button>
+        <h1> {{ $store.state.result }} </h1>
     </base-card>
 </template>
 
@@ -32,6 +32,16 @@ export default {
         }
     },
     methods: {
+
+        async userMe(){
+            const payload = this.$store.getters.access_token
+            try{
+            await this.$store.dispatch("userMe", payload)
+            }
+            catch(err){
+                this.error = err.response
+            }
+        },
 
         async newToken() {
             if (!this.$store.getters.refresh_token) {
