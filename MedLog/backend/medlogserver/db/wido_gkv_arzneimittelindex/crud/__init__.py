@@ -69,6 +69,27 @@ from medlogserver.db.wido_gkv_arzneimittelindex.crud.applikationsform import (
     get_applikationsform_crud,
     get_applikationsform_crud_context,
 )
+from medlogserver.db.wido_gkv_arzneimittelindex.crud.enum_apofplicht import (
+    ApoPflichtCRUD,
+    get_apopflicht_crud,
+    get_apopflicht_crud_context,
+)
+from medlogserver.db.wido_gkv_arzneimittelindex.crud.enum_biosimilar import (
+    BiosimilarCRUD,
+    get_biosimilar_crud,
+    get_biosimilar_crud_context,
+)
+from medlogserver.db.wido_gkv_arzneimittelindex.crud.enum_generikakenn import (
+    GenerikakennungCRUD,
+    get_generikakenn_crud,
+    get_generikakenn_crud_context,
+)
+from medlogserver.db.wido_gkv_arzneimittelindex.crud.enum_preisart import (
+    PreisartCRUD,
+    get_preisart_crud,
+    get_preisart_crud_context,
+)
+
 from medlogserver.db.base import Base, BaseTable
 
 

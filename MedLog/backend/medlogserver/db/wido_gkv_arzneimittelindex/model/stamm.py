@@ -3,9 +3,11 @@
 import uuid
 import enum
 from textwrap import dedent
-from typing import Optional, Dict
+from typing import Optional, Dict, Self
 from sqlmodel import Field, ForeignKeyConstraint, Relationship, SQLModel, Index
 from sqlalchemy import String, Integer, Column, Boolean, SmallInteger
+from pydantic import field_validator
+
 
 from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTableBase
 
@@ -20,41 +22,20 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.hersteller import Herstell
 from medlogserver.db.wido_gkv_arzneimittelindex.model.normpackungsgroessen import (
     Normpackungsgroessen,
 )
+from medlogserver.db.wido_gkv_arzneimittelindex.model.enum_apofplicht import ApoPflicht
+from medlogserver.db.wido_gkv_arzneimittelindex.model.enum_preisart import Preisart
+
+from medlogserver.db.wido_gkv_arzneimittelindex.model.enum_generikakenn import (
+    Generikakennung,
+)
+
+from medlogserver.db.wido_gkv_arzneimittelindex.model.enum_biosimilar import Biosimilar
 
 # TB: Model Fertig, ungetestet
 
 
-class ApoPlfichtTypes(enum.Enum):
-    Nichtarzneimittel = 0
-    NichtApothekenpflichtigesArzneimittel = 1
-    ApothekenpflichtigesRezeptfreiesArzneimittel = 2
-    RezeptpflichtigesArzneimittel = 3
-
-
-class PreisartTypes(str, enum.Enum):
-    Apothekenverkaufspreis = None
-    Nettopreis = "N"
-    Einkaufspreis = "E"
-    Krankenhausartikel = "K"
-    OhnePreisangabe = "X"
-
-
-class GenericaKennungTypes(enum.Enum):
-    ArzneimittelMitPatentBzwSchutzfristen = 0
-    PatentfreiesOriginal = 1
-    GenerikumInklBiosimilar = 2
-    SonstigeNichtGenerikafähigeArzneimittelUndArzneimittelAusserHandel = 3
-
-
-class BioSimilarTypes(str, enum.Enum):
-    Biosimilar = "B"
-    Referenzarzneimittel = "R"
-    ArzneimittelUnterDemGleichenATC = "N"
-
-
 DRUG_SEARCHFIELDS = (
     "laufnr",
-    "stakenn",
     "staname",
     "atc_code",
     "indgr",
@@ -62,12 +43,8 @@ DRUG_SEARCHFIELDS = (
     "name",
     "hersteller_code",
     "darrform",
-    "zuzahlstufe",
     "packgroesse",
     "dddpk",
-    "apopflicht",
-    "generikakenn",
-    "appform",
 )
 
 
@@ -135,9 +112,9 @@ class StammBase(DrugModelTableBase, table=False):
         # We have composite foreign key. see __table_args__ at the top of this class
         # foreign_key="drug_normpackungsgroessen.zuzahlstufe",
     )
-    packgroesse: str = Field(
+    packgroesse: int = Field(
         description="Packungsgröße (in 1/10 Einheiten)",
-        sa_type=String(7),
+        sa_type=Integer,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:12"},
     )
     dddpk: str = Field(
@@ -145,20 +122,24 @@ class StammBase(DrugModelTableBase, table=False):
         sa_type=String(9),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:13"},
     )
-    apopflicht: ApoPlfichtTypes = Field(
+    apopflicht: int = Field(
         description="Apotheken-/Rezeptpflicht",
         sa_type=SmallInteger,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:14"},
+        foreign_key="drug_enum_apoflicht.apopflicht",
     )
-    preisart_alt: Optional[PreisartTypes] = Field(
+
+    preisart_alt: Optional[str] = Field(
         description="Preisart, alt (Schlüssel PreisartTypes)",
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:15"},
+        foreign_key="drug_enum_preisart.preisart",
     )
-    preisart_neu: Optional[PreisartTypes] = Field(
+    preisart_neu: Optional[str] = Field(
         description="Preisart, alt (Schlüssel siehe PreisartTypes)",
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:16"},
+        foreign_key="drug_enum_preisart.preisart",
     )
     preis_alt: int = Field(
         description="Preis alt (in Cent)",
@@ -191,10 +172,11 @@ class StammBase(DrugModelTableBase, table=False):
         sa_type=Boolean(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:22"},
     )
-    generikakenn: GenericaKennungTypes = Field(
+    generikakenn: int = Field(
         description="Generika-Kennung",
         sa_type=SmallInteger(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:23"},
+        foreign_key="drug_enum_generikakenn.generikakenn",
     )
     appform: Optional[str] = Field(
         description="Applikationsform (siehe Schlüsselverzeichnis applikationsform.txt)",
@@ -203,26 +185,31 @@ class StammBase(DrugModelTableBase, table=False):
         # We have composite foreign key. see __table_args__ at the top of this class
         # foreign_key="drug_applikationsform.appform",
     )
-    biosimilar: Optional[BioSimilarTypes] = Field(
+    biosimilar: Optional[str] = Field(
         description=dedent(
             """Gentechnologisch bzw. biotechnologisch hergestellte
                 Arzneimittel, zu denen Biosimilars zugelassen und im
-                deutschen Markt verfügbar sind oder waren
-                'B' -Biosimilar
-                'R' - Referenzarzneimittel
-                'N' - Arzneimittel unter dem gleichen ATC, das weder 'B'
-                noch 'R' ist
-                Für alle weiteren Arzneimittel ist dieses Feld nicht ge-
-                füllt (NULL)"""
+                deutschen Markt verfügbar sind oder waren"""
         ),
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:25"},
+        foreign_key="drug_enum_biosimilar.biosimilar",
     )
     orphan: bool = Field(
         description="Von der EMA mit Orphan Drug Status zugelassene Arzneimittel (Klassifikation zum Stichtag)",
         sa_type=Boolean(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:26"},
     )
+
+    @field_validator("apopflicht", "generikakenn", mode="before")
+    def transform_str_id_to_int(cls, value) -> int:
+        return int(value)
+
+    @field_validator("preisart_neu", "preisart_alt", mode="before")
+    def fix_empty_apothekenverkaufspreis_preisart_(cls, value) -> int:
+        if value == "":
+            return "A"
+        return value
 
 
 class Stamm(StammBase, table=True):
@@ -270,18 +257,68 @@ class Stamm(StammBase, table=True):
         return "stamm.txt"
 
     ai_version_ref: AiDataVersion = Relationship(
-        sa_relationship_kwargs={"lazy": "joined"}
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        }
     )
     darrform_ref: Darreichungsform = Relationship(
-        sa_relationship_kwargs={"lazy": "joined"}
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        }
     )
     appform_ref: Applikationsform = Relationship(
-        sa_relationship_kwargs={"lazy": "joined"}
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        }
     )
     zuzahlstufe_ref: Normpackungsgroessen = Relationship(
-        sa_relationship_kwargs={"lazy": "joined"}
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        }
     )
-    hersteller_ref: Hersteller = Relationship(sa_relationship_kwargs={"lazy": "joined"})
+    hersteller_ref: Hersteller = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        }
+    )
+
+    apopflicht_ref: ApoPflicht = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        }
+    )
+
+    preisart_neu_ref: Preisart = Relationship(
+        sa_relationship_kwargs={
+            "foreign_keys": "[Stamm.preisart_neu]",
+            "lazy": "joined",
+            "viewonly": True,
+        }
+    )
+    preisart_alt_ref: Preisart = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "foreign_keys": "[Stamm.preisart_alt]",
+        }
+    )
+    biosimilar_ref: Optional[Biosimilar] = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        },
+    )
+    generikakenn_ref: Generikakennung = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        }
+    )
 
 
 class StammRead(StammBase, table=False):
@@ -290,3 +327,8 @@ class StammRead(StammBase, table=False):
     appform_ref: Applikationsform
     zuzahlstufe_ref: Optional[Normpackungsgroessen]
     hersteller_ref: Hersteller
+    apopflicht_ref: ApoPflicht
+    preisart_neu_ref: Preisart
+    preisart_alt_ref: Preisart
+    biosimilar_ref: Optional[Biosimilar]
+    generikakenn_ref: Generikakennung

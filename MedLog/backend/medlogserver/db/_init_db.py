@@ -1,7 +1,7 @@
 from typing import AsyncGenerator, List
 
 from fastapi import Depends
-
+from pathlib import Path, PurePath
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -46,6 +46,10 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model import (
     StammAenderungen,
     Stamm,
 )
+from medlogserver.db.wido_gkv_arzneimittelindex.crud import (
+    AiDataVersionCRUD,
+    get_ai_data_version_crud_context,
+)
 
 from medlogserver.log import get_logger
 from medlogserver.config import Config
@@ -53,7 +57,8 @@ from medlogserver.config import Config
 log = get_logger()
 config = Config()
 
-if config.DRUG_SEARCHENGINE_CLASS == "GenericSQLDrugSearchState":
+
+if config.DRUG_SEARCHENGINE_CLASS == "GenericSQLDrugSearch":
     from medlogserver.db.wido_gkv_arzneimittelindex.search_engines.sql import (
         GenericSQLDrugSearchState,
         GenericSQLDrugSearchCache,
@@ -90,9 +95,33 @@ async def create_admin_if_not_exists():
                 await user_auth_crud.create(admin_user_auth)
 
 
+async def init_drugsearch():
+    from medlogserver.db.wido_gkv_arzneimittelindex.search_engines.sql import (
+        GenericSQLDrugSearchEngine,
+    )
+
+    search_engine = GenericSQLDrugSearchEngine(target_ai_data_version=AiDataVersion)
+    await search_engine.build_index()
+
+
+async def provision_drug_data():
+    from medlogserver.worker.wido_gkv_arzneimittelindex_importer import load_data
+
+    prov_data_dir = Path(config.DRUG_TABLE_PROVISIONING_SOURCE_DIR)
+    prov_stamm_path = Path(PurePath(prov_data_dir, "stamm.txt"))
+    if prov_stamm_path.exists() and prov_stamm_path.is_file():
+        await load_data(source_data_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR)
+    elif prov_data_dir is not None:
+        log.warning(
+            "'DRUG_TABLE_PROVISIONING_SOURCE_DIR' is defined in config but no source data dir found. Will skip drug data provsioning"
+        )
+
+
 async def init_db():
     async with db_engine.begin() as conn:
         log.info(f"Init DB {config.SQL_DATABASE_URL}")
         # await conn.run_sync(SQLModel.metadata.drop_all)
         await conn.run_sync(SQLModel.metadata.create_all)
         await create_admin_if_not_exists()
+        await provision_drug_data()
+        await init_drugsearch()

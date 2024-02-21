@@ -16,7 +16,7 @@ class Normpackungsgroessen(DrugModelTableBase, table=True):
         return "normpackungsgroessen.txt"
 
     zuzahlstufe: str = Field(
-        description="Normpackungsgröße",
+        description="Normpackungsgröße. TB: I dont know where the term 'zuzahlstufe' is coming from. It does not make too much sense for me. Maybe historic artefact/bug in the Arzneimittelindex.",
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:2"},
         primary_key=True,

@@ -198,9 +198,13 @@ class Config(BaseSettings):
         description="When reading the Arzneimittelindex data files, write every n rows to the database. Lower this number in a low memory env.",
     )
 
-    DRUG_SEARCHENGINE_CLASS: Literal["GenericSQLDrugSearchState"] = Field(
+    DRUG_SEARCHENGINE_CLASS: Literal["GenericSQLDrugSearch"] = Field(
         description="The search engine used in the background to answer drug search requests.",
-        default="GenericSQLDrugSearchState",
+        default="GenericSQLDrugSearch",
+    )
+    DRUG_TABLE_PROVISIONING_SOURCE_DIR: str = Field(
+        description="If MedLog is booted with an empty drug database, it will check if a source data set of the GKV Arzneimittel Index is located in this dir",
+        default="GKV_AI_StammPlus/202301",
     )
 
     ###### CONFIG END ######

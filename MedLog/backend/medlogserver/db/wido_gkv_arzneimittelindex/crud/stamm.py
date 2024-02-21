@@ -5,7 +5,7 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel, col
 from sqlalchemy import func
 import uuid
 from uuid import UUID
@@ -49,6 +49,41 @@ class StammCRUD(DrugCRUDBase):
             query = pagination.append_to_query(query)
         print("QUERY", query)
         results = await self.session.exec(statement=query)
+        return results.all()
+
+    async def get_multiple(
+        self,
+        pzns: List[str],
+        current_version_only: bool = True,
+        pagination: PageParams = None,
+        keep_pzn_order: bool = True,
+    ) -> Sequence[Stamm]:
+        query = (
+            select(Stamm)
+            .where(col(Stamm.pzn).in_(pzns))
+            .order_by(
+                Stamm.pzn,  # Default order by ID to maintain database order
+                (Stamm.pzn, pzns),
+            )
+        )
+        log.debug(f"GET MULTIPLE QUERY: {query}")
+        if current_version_only:
+            current_ai_version: AiDataVersion = await self._get_current_ai_version()
+            query = query.where(Stamm.ai_version_id == current_ai_version.id)
+        if pagination:
+            query = pagination.append_to_query(query)
+
+        results = await self.session.exec(statement=query)
+        if keep_pzn_order:
+            db_order: List[Stamm] = results.all()
+            new_order: List[Stamm] = []
+            for pzn in pzns:
+                db_order_item_index = next(
+                    (i for i, obj in enumerate(db_order) if obj.pzn == pzn)
+                )
+                item = db_order.pop(db_order_item_index)
+                new_order.append(item)
+            return new_order
         return results.all()
 
     async def get(

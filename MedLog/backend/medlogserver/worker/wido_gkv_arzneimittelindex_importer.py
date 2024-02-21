@@ -1,4 +1,4 @@
-from typing import List, Dict, Type, Callable
+from typing import List, Dict, Type, Callable, Optional
 import os
 import datetime
 import csv
@@ -30,6 +30,10 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model import (
     SondercodeBedeutung,
     StammAenderungen,
     Stamm,
+    Preisart,
+    Biosimilar,
+    Generikakennung,
+    ApoPflicht,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.crud import (
     AiDataVersionCRUD,
@@ -47,10 +51,17 @@ from medlogserver.db.wido_gkv_arzneimittelindex.crud import (
     get_hersteller_crud_context,
     get_stamm_crud_context,
     get_sondercode_crud_context,
+    get_preisart_crud_context,
+    get_biosimilar_crud_context,
+    get_generikakenn_crud_context,
+    get_apopflicht_crud_context,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import DrugCRUDBase
 
-from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTableBase
+from medlogserver.db.wido_gkv_arzneimittelindex.model._base import (
+    DrugModelTableBase,
+    DrugModelTableEnumBase,
+)
 
 # TODO: this generated a circular import we need to seperate model and crud classes
 # from medlogserver.db.intake_auth import IntakeAuthRefreshTokenCRUD
@@ -61,6 +72,10 @@ config = Config()
 
 wido_gkv_arzneimittelindex_csv_delimiter: str = ";"
 wido_gkv_arzneimittelindex_model_crud_map: Dict[Type[DrugModelTableBase], Callable] = {
+    Preisart: get_preisart_crud_context,
+    Biosimilar: get_biosimilar_crud_context,
+    Generikakennung: get_generikakenn_crud_context,
+    ApoPflicht: get_apopflicht_crud_context,
     Applikationsform: get_applikationsform_crud_context,
     ATCai: get_atc_ai_crud_context,
     ATCAmtlich: get_atc_amtlich_crud_context,
@@ -97,7 +112,7 @@ def unpack_data(
 
 @dataclass
 class SourceFile2ModelMap:
-    model: Type[DrugModelTableBase]
+    model: Type[DrugModelTableBase | DrugModelTableEnumBase]
     source_file_path: Path
     crud_context_func: Callable
 
@@ -108,13 +123,16 @@ def _map_filepathes_to_model(source_data_dir: Path | str) -> List[SourceFile2Mod
         model_class,
         crud_context_func,
     ) in wido_gkv_arzneimittelindex_model_crud_map.items():
-        source_file_name = model_class.get_source_csv_filename()
+        if not model_class.is_enum_table():
+            source_file_name = model_class.get_source_csv_filename()
 
-        source_file_path = to_path(source_data_dir, source_file_name)
-        if not source_file_path.exists() or not source_file_path.is_file():
-            raise FileNotFoundError(
-                f"Source data file '{source_file_name}' not found in {source_data_dir}."
-            )
+            source_file_path = to_path(source_data_dir, source_file_name)
+            if not source_file_path.exists() or not source_file_path.is_file():
+                raise FileNotFoundError(
+                    f"Source data file '{source_file_name}' not found in {source_data_dir}."
+                )
+        else:
+            source_file_path = None
         source_data_file_to_model_class_name_map.append(
             SourceFile2ModelMap(
                 model=model_class,
@@ -125,7 +143,7 @@ def _map_filepathes_to_model(source_data_dir: Path | str) -> List[SourceFile2Mod
     return source_data_file_to_model_class_name_map
 
 
-def sniff_arzneimittel_version(testrow: List[str]) -> AiDataVersion:
+async def sniff_arzneimittel_version(testrow: List[str]) -> AiDataVersion:
     async def get_or_create_version_from_db(dateiversion: str, datenstand: str):
         async with get_async_session_context() as session:
             async with get_ai_data_version_crud_context(session) as ai_version_crud:
@@ -144,34 +162,83 @@ def sniff_arzneimittel_version(testrow: List[str]) -> AiDataVersion:
 
                 return new_version
 
-    ai_data_version = asyncio.run(
-        get_or_create_version_from_db(dateiversion=testrow[0], datenstand=testrow[1])
+    ai_data_version = await get_or_create_version_from_db(
+        dateiversion=testrow[0], datenstand=testrow[1]
     )
+
     return ai_data_version
 
 
-def load_data(source_data_dir: Path | str):
-    version = None
+async def sniff_ai_data_version_from_file(file_path: str) -> AiDataVersion:
+    log.debug(f"Sniff ai data version from {Path(file_path).absolute().resolve()}")
+    with open(file_path, "r") as csvfile:
+        reader_variable = csv.reader(
+            csvfile, delimiter=wido_gkv_arzneimittelindex_csv_delimiter
+        )
+
+        for index, row in enumerate(reader_variable):
+            return AiDataVersion(dateiversion=row[0], datenstand=row[1])
+
+
+async def get_current_ai_data_version_from_db() -> Optional[AiDataVersion]:
+    current_ai_data_version = None
+    async with get_async_session_context() as session:
+        async with get_ai_data_version_crud_context(session) as ai_data_version_crud:
+            current_ai_data_version = await ai_data_version_crud.get_current(
+                none_is_ok=True
+            )
+    return current_ai_data_version
+
+
+async def load_data(
+    source_data_dir: Path | str,
+    skip_if_version_is_in_db: bool = True,
+):
+    current_ai_data_version: AiDataVersion = await get_current_ai_data_version_from_db()
+    sniffed_source_file_version = await sniff_ai_data_version_from_file(
+        f"{source_data_dir}/stamm.txt"
+    )
+    if (
+        current_ai_data_version is not None
+        and sniffed_source_file_version.datenstand <= current_ai_data_version.datenstand
+        and skip_if_version_is_in_db
+    ):
+        log.info(
+            f"Skip drug data provisioning. Data with version '{current_ai_data_version}' or a newer version is allready loaded into DB"
+        )
+        return
     source_data_file_to_model_class_name_map: List[SourceFile2ModelMap] = (
         _map_filepathes_to_model(source_data_dir=source_data_dir)
     )
     for (
         source_data_to_model_entry_container
     ) in source_data_file_to_model_class_name_map:
-
-        file_ai_data_version: AiDataVersion = _load_model(
-            datacontainer=source_data_to_model_entry_container
-        )
-        if version is None:
-            version: AiDataVersion = file_ai_data_version
-        elif version.id != file_ai_data_version.id:
-            raise ValueError(
-                "It seems that the import mixes different versions of the GKV Wido Arzneimittelindex. This is not supported"
+        if not source_data_to_model_entry_container.model.is_enum_table():
+            file_ai_data_version: AiDataVersion = await _load_model(
+                datacontainer=source_data_to_model_entry_container
             )
-    asyncio.run(complete_ai_import(version))
+            if (
+                sniffed_source_file_version.datenstand
+                != file_ai_data_version.datenstand
+                or sniffed_source_file_version.dateiversion
+                != file_ai_data_version.dateiversion
+            ):
+                raise ValueError(
+                    "It seems that the import mixes different versions of the GKV Wido Arzneimittelindex. This is not supported"
+                )
+        else:
+            await _load_enum_model(source_data_to_model_entry_container)
+    await complete_ai_import(file_ai_data_version)
 
 
-def _load_model(datacontainer: SourceFile2ModelMap) -> AiDataVersion:
+async def _load_enum_model(datacontainer: SourceFile2ModelMap):
+    model: DrugModelTableEnumBase = datacontainer.model
+    await _write_to_db(
+        model.get_static_data(), crud_context_getter=datacontainer.crud_context_func
+    )
+
+
+async def _load_model(datacontainer: SourceFile2ModelMap) -> AiDataVersion:
     parsed_data: List[DrugModelTableBase] = []
     ai_data_version: AiDataVersion = None
     with open(datacontainer.source_file_path, "r") as csvfile:
@@ -190,7 +257,7 @@ def _load_model(datacontainer: SourceFile2ModelMap) -> AiDataVersion:
             row = cleaned_row
             # get arzneimittelindex data version
             if ai_data_version is None:
-                ai_data_version = sniff_arzneimittel_version(row)
+                ai_data_version = await sniff_arzneimittel_version(row)
             row_data: Dict = {"ai_version_id": ai_data_version.id}
 
             for field_name, field_info in datacontainer.model.model_fields.items():
@@ -215,13 +282,15 @@ def _load_model(datacontainer: SourceFile2ModelMap) -> AiDataVersion:
                 row_data[field_name] = row[source_csv_column_index]
             parsed_data.append(datacontainer.model.model_validate(row_data))
 
-    asyncio.run(
-        _write_to_db(parsed_data, crud_context_getter=datacontainer.crud_context_func)
-    )
+    await _write_to_db(parsed_data, crud_context_getter=datacontainer.crud_context_func)
+
     return ai_data_version
 
 
-async def _write_to_db(data: List[DrugModelTableBase], crud_context_getter: Callable):
+async def _write_to_db(
+    data: List[DrugModelTableBase | DrugModelTableEnumBase],
+    crud_context_getter: Callable,
+):
     # https://stackoverflow.com/questions/75150942/how-to-get-a-session-from-async-session-generator-fastapi-sqlalchemy
     # session = await anext(get_async_session())
     async with get_async_session_context() as session:

@@ -1,10 +1,12 @@
 from typing import List, Dict
 from pydantic import BaseModel
 from medlogserver.db._session import AsyncSession, get_async_session
+from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import StammRead
 
 
 class MedLogSearchEngineResult(BaseModel):
     pzn: str
+    item: StammRead
     score: int
 
 
@@ -39,7 +41,20 @@ class MedLogDrugSearchEngineBase:
         """This should be a low cost function. It should return False if the index is not existent or in the process of build up."""
         pass
 
-    async def search(self, search_term: str) -> List[MedLogSearchEngineResult]:
+    async def search(
+        self,
+        search_term: str = None,
+        pzn_contains: str = None,
+        packgroesse: str = None,
+        filter_darrform: str = None,
+        filter_appform: str = None,
+        filter_normpackungsgroeße_zuzahlstufe: str = None,
+        filter_atc_level2: str = None,
+        filter_generikakenn: str = None,
+        filter_apopflicht: int = None,
+        filter_preisart: str = None,
+        only_current_medications: bool = False,
+    ) -> List[MedLogSearchEngineResult]:
         pass
 
     async def item_count(self):

@@ -78,7 +78,7 @@ class AiDataVersionCRUD:
             raise raise_exception_if_none
         return vers
 
-    async def get_current(self) -> AiDataVersion:
+    async def get_current(self, none_is_ok: bool = False) -> AiDataVersion:
         query = (
             select(AiDataVersion)
             .where(AiDataVersion.deactivated == False)
@@ -87,11 +87,10 @@ class AiDataVersionCRUD:
         )
         results = await self.session.exec(statement=query)
         res = results.one_or_none()
-        if res is None:
+        if res is None and not none_is_ok:
             raise ValueError(
                 "Could not determine a GKV WiDo Arzneimittel index data version. Maybe no Arzneimittel index was imported yet or there is a bug."
             )
-        log.info(f"RES{res}")
         return res
 
     async def create(

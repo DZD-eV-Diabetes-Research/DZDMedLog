@@ -140,4 +140,24 @@ def sqlmodel_class_field_extradata():
         print("csv_source", type(csv_source), csv_source)
 
 
-sqlmodel_class_field_extradata()
+# sqlmodel_class_field_extradata()
+def seperate_string():
+    import shlex
+
+    def separate_words_with_quotes(input_string: str):
+        return shlex.split(input_string)
+        # Define a regular expression pattern to match quoted and non-quoted substrings
+        pattern = re.compile(r"((\"[^\"]+\")|(-[^\s]+))")
+
+        # Use findall to extract all matched substrings
+        result = pattern.findall(input_string)
+
+        return result
+
+    # Example usage:
+    input_string = "hello world i am 'Tom Maier' ok"
+    result_list = separate_words_with_quotes(input_string)
+    print(result_list)
+
+
+print(seperate_string())

@@ -1,3 +1,4 @@
+from typing import List, Self
 from sqlmodel import Field, String, UUID
 from pydantic import field_validator, model_validator
 
@@ -5,7 +6,23 @@ from medlogserver.db.base import Base, BaseTable
 import uuid
 
 
+class DrugModelTableEnumBase(Base, BaseTable):
+
+    @classmethod
+    def is_enum_table(self) -> bool:
+        return True
+
+    @classmethod
+    def get_static_data(self) -> List[Self]:
+        raise NotImplementedError()
+
+
 class DrugModelTableBase(Base, BaseTable):
+
+    @classmethod
+    def is_enum_table(self) -> bool:
+        return False
+
     @classmethod
     def get_source_csv_filename(self) -> str:
         raise NotImplementedError()

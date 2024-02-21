@@ -30,6 +30,19 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.applikationsform import (
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
+from medlogserver.db.wido_gkv_arzneimittelindex.model.enum_apofplicht import (
+    ApoPflicht,
+)
+from medlogserver.db.wido_gkv_arzneimittelindex.model.enum_biosimilar import (
+    Biosimilar,
+)
+from medlogserver.db.wido_gkv_arzneimittelindex.model.enum_generikakenn import (
+    Generikakennung,
+)
+
+from medlogserver.db.wido_gkv_arzneimittelindex.model.enum_preisart import (
+    Preisart,
+)
 
 
 # https://www.wido.de/fileadmin/Dateien/Dokumente/Publikationen_Produkte/Arzneimittel-Klassifikation/wido_arz_stammdatei_plus_info_2021.pdf

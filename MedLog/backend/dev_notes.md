@@ -54,6 +54,10 @@ https://github.com/yezz123/AuthX
 
 * introduce and implement "TRUSTED_PROXY" setting
 
+### importer
+
+* handle failed import greacefully.
+  * delete allready imported data to make retry possible
 
 # OIDC Token types
 
