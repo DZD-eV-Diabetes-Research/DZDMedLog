@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional
 import shlex
 import datetime
+import uuid
 from sqlmodel import (
     Field,
     select,
@@ -8,13 +9,9 @@ from sqlmodel import (
     Column,
     JSON,
     SQLModel,
-    column,
-    or_,
-    col,
-    funcfilter,
     delete,
 )
-from sqlalchemy.sql.operators import is_not, is_, contains
+from sqlalchemy.sql.operators import is_not, is_, contains, in_op, icontains_op
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db.wido_gkv_arzneimittelindex.search_engines._base import (
     MedLogDrugSearchEngineBase,
@@ -56,7 +53,7 @@ class GenericSQLDrugSearchState(SQLModel, table=True):
     dummy_pk: int = Field(default=1, primary_key=True)
     index_build_up_in_process: bool = Field(default=False)
     last_index_build_at: Optional[datetime.datetime] = Field(default=None)
-    last_index_build_based_on_ai_version_id: Optional[str] = Field(
+    last_index_build_based_on_ai_version_id: Optional[uuid.UUID] = Field(
         default=None, foreign_key="ai_dataversion.id"
     )
     index_item_count: Optional[int] = Field(default=False)
@@ -111,17 +108,6 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 "Cancel build_index for 'GenericSQLDrugSearchEngine'-Engine because build up is allready in progress"
             )
             return
-        print(
-            "state.last_index_build_based_on_ai_version_id",
-            type(state.last_index_build_based_on_ai_version_id),
-            state.last_index_build_based_on_ai_version_id,
-        )
-        print(
-            "self.target_ai_data_version.id",
-            type(self.target_ai_data_version.id),
-            self.target_ai_data_version.id,
-        )
-        print("force_rebuild", type(force_rebuild), force_rebuild)
         if (
             state.last_index_build_based_on_ai_version_id
             == self.target_ai_data_version.id
@@ -249,10 +235,12 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             .replace("“", '"')
             .replace("‘", '"')
         )
-        search_term_words = shlex.split(search_term)
+
         query = select(GenericSQLDrugSearchCache)
+        # pzn filter
         if pzn_contains:
             query = query.where(contains(GenericSQLDrugSearchCache.pzn, pzn_contains))
+        # category filters
         if packgroesse:
             query = query.where(
                 GenericSQLDrugSearchCache.packungsgroesse == packgroesse
@@ -292,7 +280,16 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             )
         if only_current_medications:
             query = query.where(is_(GenericSQLDrugSearchCache.ahdatum, None))
-        # YOu are here
+        # sreach term/words filter
+        search_term_words = shlex.split(search_term)
+        for word in search_term_words:
+            query = query.where(
+                icontains_op(GenericSQLDrugSearchCache.index_content, word)
+            )
+        log.debug(f"SEARCH QUERY: {query}")
+        async with get_async_session_context() as session:
+            res = await session.exec(query)
+            return res.all()
 
     async def _get_state(self) -> GenericSQLDrugSearchState:
         state = None

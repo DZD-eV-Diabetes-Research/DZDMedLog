@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator, List, Optional
 
 from fastapi import Depends
 from pathlib import Path, PurePath
@@ -95,13 +95,23 @@ async def create_admin_if_not_exists():
                 await user_auth_crud.create(admin_user_auth)
 
 
-async def init_drugsearch():
-    from medlogserver.db.wido_gkv_arzneimittelindex.search_engines.sql import (
-        GenericSQLDrugSearchEngine,
-    )
+async def get_current_ai_data_version() -> Optional[AiDataVersion]:
+    async with get_async_session_context() as session:
+        async with get_ai_data_version_crud_context(session) as ai_data_version_crud:
+            return await ai_data_version_crud.get_current(none_is_ok=True)
 
-    search_engine = GenericSQLDrugSearchEngine(target_ai_data_version=AiDataVersion)
-    await search_engine.build_index()
+
+async def init_drugsearch():
+    current_ai_data_version = await get_current_ai_data_version()
+    if current_ai_data_version is not None:
+        from medlogserver.db.wido_gkv_arzneimittelindex.search_engines.sql import (
+            GenericSQLDrugSearchEngine,
+        )
+
+        search_engine = GenericSQLDrugSearchEngine(
+            target_ai_data_version=current_ai_data_version
+        )
+        await search_engine.build_index()
 
 
 async def provision_drug_data():
@@ -124,4 +134,4 @@ async def init_db():
         await conn.run_sync(SQLModel.metadata.create_all)
         await create_admin_if_not_exists()
         await provision_drug_data()
-        # await init_drugsearch()
+        await init_drugsearch()
