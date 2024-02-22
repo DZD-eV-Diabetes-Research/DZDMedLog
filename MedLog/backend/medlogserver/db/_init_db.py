@@ -124,4 +124,4 @@ async def init_db():
         await conn.run_sync(SQLModel.metadata.create_all)
         await create_admin_if_not_exists()
         await provision_drug_data()
-        await init_drugsearch()
+        # await init_drugsearch()
