@@ -80,9 +80,7 @@ class JWTRefreshTokenContainer:
         return datetime.now(timezone.utc) > self.expires_at
 
     def _generate_token(self):
-        self.created_at = datetime.now(timezone.utc) + timedelta(
-            minutes=config.AUTH_REFRESH_TOKEN_EXPIRES_MINUTES
-        )
+        self.created_at = datetime.now(timezone.utc)
         if self.id is None:
             self.id = uuid4()
         self.jwt_token_encoded = jwt.encode(
