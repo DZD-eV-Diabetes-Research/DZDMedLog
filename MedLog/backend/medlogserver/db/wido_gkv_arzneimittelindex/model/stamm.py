@@ -207,7 +207,7 @@ class StammBase(DrugModelTableBase, table=False):
 
     @field_validator("preisart_neu", "preisart_alt", mode="before")
     def fix_empty_apothekenverkaufspreis_preisart_(cls, value) -> int:
-        if value == "":
+        if value == "" or value is None:
             return "A"
         return value
 
@@ -268,7 +268,7 @@ class Stamm(StammBase, table=True):
             "viewonly": True,
         }
     )
-    appform_ref: Applikationsform = Relationship(
+    appform_ref: Optional[Applikationsform] = Relationship(
         sa_relationship_kwargs={
             "lazy": "joined",
             "viewonly": True,
@@ -294,14 +294,14 @@ class Stamm(StammBase, table=True):
         }
     )
 
-    preisart_neu_ref: Preisart = Relationship(
+    preisart_neu_ref: Optional[Preisart] = Relationship(
         sa_relationship_kwargs={
             "foreign_keys": "[Stamm.preisart_neu]",
             "lazy": "joined",
             "viewonly": True,
         }
     )
-    preisart_alt_ref: Preisart = Relationship(
+    preisart_alt_ref: Optional[Preisart] = Relationship(
         sa_relationship_kwargs={
             "lazy": "joined",
             "foreign_keys": "[Stamm.preisart_alt]",
@@ -324,11 +324,11 @@ class Stamm(StammBase, table=True):
 class StammRead(StammBase, table=False):
     ai_version_ref: AiDataVersion
     darrform_ref: Darreichungsform
-    appform_ref: Applikationsform
+    appform_ref: Optional[Applikationsform]
     zuzahlstufe_ref: Optional[Normpackungsgroessen]
     hersteller_ref: Hersteller
     apopflicht_ref: ApoPflicht
-    preisart_neu_ref: Preisart
-    preisart_alt_ref: Preisart
+    preisart_neu_ref: Optional[Preisart]
+    preisart_alt_ref: Optional[Preisart]
     biosimilar_ref: Optional[Biosimilar]
     generikakenn_ref: Generikakennung

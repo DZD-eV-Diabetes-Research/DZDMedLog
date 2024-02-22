@@ -14,9 +14,7 @@ from medlogserver.db._session import get_async_session, get_async_session_contex
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.base import Base, BaseTable
-from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import (
-    Stamm,
-)
+from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import Stamm, StammRead
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
@@ -57,15 +55,8 @@ class StammCRUD(DrugCRUDBase):
         current_version_only: bool = True,
         pagination: PageParams = None,
         keep_pzn_order: bool = True,
-    ) -> Sequence[Stamm]:
-        query = (
-            select(Stamm)
-            .where(col(Stamm.pzn).in_(pzns))
-            .order_by(
-                Stamm.pzn,  # Default order by ID to maintain database order
-                (Stamm.pzn, pzns),
-            )
-        )
+    ) -> Sequence[StammRead]:
+        query = select(Stamm).where(col(Stamm.pzn).in_(pzns))
         log.debug(f"GET MULTIPLE QUERY: {query}")
         if current_version_only:
             current_ai_version: AiDataVersion = await self._get_current_ai_version()
@@ -75,8 +66,8 @@ class StammCRUD(DrugCRUDBase):
 
         results = await self.session.exec(statement=query)
         if keep_pzn_order:
-            db_order: List[Stamm] = results.all()
-            new_order: List[Stamm] = []
+            db_order: List[StammRead] = results.all()
+            new_order: List[StammRead] = []
             for pzn in pzns:
                 db_order_item_index = next(
                     (i for i, obj in enumerate(db_order) if obj.pzn == pzn)
@@ -91,12 +82,12 @@ class StammCRUD(DrugCRUDBase):
         pzn: str,
         ai_version_id: uuid.UUID | str = None,
         raise_exception_if_none: Exception = None,
-    ) -> Optional[Stamm]:
+    ) -> Optional[StammRead]:
         if ai_version_id is None:
             current_ai_version = await self._get_current_ai_version()
             ai_version_id = current_ai_version.id
 
-        query = select(Stamm).where(
+        query = select(StammRead).where(
             Stamm.pzn == pzn and Stamm.ai_version_id == ai_version_id
         )
 

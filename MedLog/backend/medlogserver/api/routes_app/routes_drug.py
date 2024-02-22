@@ -79,6 +79,9 @@ from medlogserver.db.wido_gkv_arzneimittelindex.view import (
 
 from medlogserver.api.base import HTTPMessage
 from medlogserver.api.paginator import pagination_query, PageParams, PaginatedResponse
+from medlogserver.db.wido_gkv_arzneimittelindex.search_engines._base import (
+    MedLogSearchEngineResult,
+)
 
 config = Config()
 
@@ -114,7 +117,7 @@ async def list_all_intakes_of_last_completed_interview(
 
 @fast_api_drug_router.get(
     "/drug/search",
-    response_model=PaginatedResponse[StammRead],
+    response_model=List[MedLogSearchEngineResult],
     description=f"Search medicine/drugs from the system",
 )
 async def list_all_intakes_of_last_completed_interview(
@@ -125,13 +128,35 @@ async def list_all_intakes_of_last_completed_interview(
             min_length=3,
         ),
     ],
-    user: User = Security(get_current_user),
+    pzn_contains: str = None,
+    filter_packgroesse: str = None,
+    filter_darrform: str = None,
+    filter_appform: str = None,
+    filter_normpackungsgroeße_zuzahlstufe: str = None,
+    filter_atc_level2: str = None,
+    filter_generikakenn: str = None,
+    filter_apopflicht: int = None,
+    filter_preisart_neu: str = None,
+    only_current_medications: bool = False,
     pagination: PageParams = Depends(pagination_query),
+    user: User = Security(get_current_user),
     drug_stamm_serach_crud: StammJoinedView = Depends(get_stamm_joined_view),
-) -> PaginatedResponse[StammRead]:
+) -> List[MedLogSearchEngineResult]:
     result_items = await drug_stamm_serach_crud.search(
-        search_term=search_term, pagination=pagination
+        search_term=search_term,
+        pzn_contains=pzn_contains,
+        filter_packgroesse=filter_packgroesse,
+        filter_darrform=filter_darrform,
+        filter_appform=filter_appform,
+        filter_normpackungsgroeße_zuzahlstufe=filter_normpackungsgroeße_zuzahlstufe,
+        filter_atc_level2=filter_atc_level2,
+        filter_generikakenn=filter_generikakenn,
+        filter_apopflicht=filter_apopflicht,
+        filter_preisart_neu=filter_preisart_neu,
+        only_current_medications=only_current_medications,
+        pagination=pagination,
     )
+    return result_items
     # return result_items
     return PaginatedResponse(
         total_count=None,

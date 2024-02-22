@@ -33,27 +33,17 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import Base, BaseTable
-from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import (
-    Stamm,
-    DRUG_SEARCHFIELDS,
-)
-from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
-    AiDataVersion,
-)
 from medlogserver.db.wido_gkv_arzneimittelindex.view._base import DrugViewBase
 from medlogserver.api.paginator import PageParams
-from medlogserver.db.wido_gkv_arzneimittelindex.model.applikationsform import (
-    Applikationsform,
+
+from medlogserver.db.wido_gkv_arzneimittelindex.search_engines._base import (
+    MedLogDrugSearchEngineBase,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
-    AiDataVersion,
+from medlogserver.db.wido_gkv_arzneimittelindex.search_engines.sql import (
+    GenericSQLDrugSearchEngine,
+    MedLogSearchEngineResult,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.model.darrform import Darreichungsform
-from medlogserver.db.wido_gkv_arzneimittelindex.model.hersteller import Hersteller
-from medlogserver.db.wido_gkv_arzneimittelindex.model.normpackungsgroessen import (
-    Normpackungsgroessen,
-)
+
 
 log = get_logger()
 config = Config()
@@ -61,93 +51,38 @@ config = Config()
 
 class StammJoinedView(DrugViewBase):
 
-    async def _generate_rows_match_score(
-        self, row: List[Stamm], search_term: str
-    ) -> int:
-        match_score = 0
-        search_words = search_term.split(" ")
-
-        # look up if the complete search term is in the result. this will score the most
-        if len(search_words) > 1:
-            for field_name in DRUG_SEARCHFIELDS:
-                field_val: str = str(getattr(row, field_name))
-                term_found: bool = False
-                if search_term in field_val:
-                    term_found = True
-                    match_score += 1.3
-                elif search_term.lower() in field_val.lower():
-                    term_found = True
-                    match_score += 1.2
-                if term_found:
-                    # if the term comes up often in the drug description we dont want to count it again and again
-                    break
-        # look up if the single word of the search term are in the result.
-        for s_word in search_words:
-            word_found: bool = False
-            for field_name in DRUG_SEARCHFIELDS:
-                field_val: str = str(getattr(row, field_name))
-                if s_word in field_val:
-                    word_found = True
-                    match_score += 1.1
-                elif s_word.lower() in field_val.lower():
-                    word_found = True
-                    match_score += 1.0
-            if word_found:
-                # if the word comes up often in the drug description we dont want to count it again and again
-                continue
-
-        return match_score
-
-    async def _sort_by_generated_match_score(
-        self, rows: List[Stamm], search_term: str
-    ) -> List[Stamm]:
-        rows_with_match_score: List[Tuple[int, Stamm]] = []
-        for row in rows:
-            rows_with_match_score.append(
-                (
-                    await self._generate_rows_match_score(row, search_term),
-                    row,
-                )
-            )
-        rows_with_match_score
-        return [
-            r[1]
-            for r in sorted(rows_with_match_score, key=lambda x: x[0], reverse=True)
-        ]
-
     async def search(
         self,
-        search_term: str,
-        current_version_only: bool = True,
+        search_term: str = None,
+        pzn_contains: str = None,
+        filter_packgroesse: str = None,
+        filter_darrform: str = None,
+        filter_appform: str = None,
+        filter_normpackungsgroeße_zuzahlstufe: str = None,
+        filter_atc_level2: str = None,
+        filter_generikakenn: str = None,
+        filter_apopflicht: int = None,
+        filter_preisart_neu: str = None,
+        only_current_medications: bool = False,
         pagination: PageParams = None,
-    ) -> Sequence[Stamm]:
-
-        query = (
-            select(Stamm)
-            .join(Applikationsform)
-            .join(Hersteller)
-            .join(Normpackungsgroessen)
-            .join(Darreichungsform)
-        )
-        filters: list = []
-
-        search_words = search_term.split(" ")
-        for search_word in search_words:
-            for field_name in DRUG_SEARCHFIELDS:
-                # todo: add joined tables
-                filter_ = getattr(Stamm, field_name).icontains(search_word)
-                log.debug(f"filter:{filter_}")
-                filters.append(filter_)
-        query = query.where(or_(*filters))
-        if current_version_only:
-            current_ai_version: AiDataVersion = await self._get_current_ai_version()
-            query = query.where(Stamm.ai_version_id == current_ai_version.id)
-        if pagination:
-            query = pagination.append_to_query(query)
-        log.debug(f"Drug Search query: {query}")
-        results = await self.session.exec(statement=query)
-        return await self._sort_by_generated_match_score(
-            results.all(), search_term=search_term
+    ) -> Sequence[MedLogSearchEngineResult]:
+        search_engine: MedLogDrugSearchEngineBase = None
+        if config.DRUG_SEARCHENGINE_CLASS == "GenericSQLDrugSearch":
+            search_engine = GenericSQLDrugSearchEngine(
+                await self._get_current_ai_version()
+            )
+        return await search_engine.search(
+            search_term=search_term,
+            pzn_contains=pzn_contains,
+            filter_packgroesse=filter_packgroesse,
+            filter_darrform=filter_darrform,
+            filter_appform=filter_appform,
+            filter_normpackungsgroeße_zuzahlstufe=filter_normpackungsgroeße_zuzahlstufe,
+            filter_atc_level2=filter_atc_level2,
+            filter_generikakenn=filter_generikakenn,
+            filter_apopflicht=filter_apopflicht,
+            filter_preisart_neu=filter_preisart_neu,
+            only_current_medications=only_current_medications,
         )
 
 

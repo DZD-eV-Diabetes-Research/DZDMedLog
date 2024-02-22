@@ -45,14 +45,14 @@ class MedLogDrugSearchEngineBase:
         self,
         search_term: str = None,
         pzn_contains: str = None,
-        packgroesse: str = None,
+        filter_packgroesse: str = None,
         filter_darrform: str = None,
         filter_appform: str = None,
         filter_normpackungsgroeße_zuzahlstufe: str = None,
         filter_atc_level2: str = None,
         filter_generikakenn: str = None,
         filter_apopflicht: int = None,
-        filter_preisart: str = None,
+        filter_preisart_neu: str = None,
         only_current_medications: bool = False,
     ) -> List[MedLogSearchEngineResult]:
         pass

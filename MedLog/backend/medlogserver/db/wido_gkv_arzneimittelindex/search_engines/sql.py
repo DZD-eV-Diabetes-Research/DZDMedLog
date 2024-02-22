@@ -12,6 +12,7 @@ from sqlmodel import (
     delete,
 )
 from sqlalchemy.sql.operators import is_not, is_, contains, in_op, icontains_op
+from sqlalchemy import case
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db.wido_gkv_arzneimittelindex.search_engines._base import (
     MedLogDrugSearchEngineBase,
@@ -21,13 +22,12 @@ from medlogserver.db._session import AsyncSession, get_async_session
 
 from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import (
     Stamm,
-    StammRead,
     DRUG_SEARCHFIELDS,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.view._base import DrugViewBase
+
 from medlogserver.api.paginator import PageParams
 from medlogserver.db.wido_gkv_arzneimittelindex.model.applikationsform import (
     Applikationsform,
@@ -35,12 +35,12 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.applikationsform import (
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import DrugCRUDBase
 from medlogserver.db.wido_gkv_arzneimittelindex.model.darrform import Darreichungsform
 from medlogserver.db.wido_gkv_arzneimittelindex.model.hersteller import Hersteller
 from medlogserver.db.wido_gkv_arzneimittelindex.model.normpackungsgroessen import (
     Normpackungsgroessen,
 )
+from medlogserver.db.wido_gkv_arzneimittelindex.crud.stamm import get_stamm_crud_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -217,7 +217,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         self,
         search_term: str = None,
         pzn_contains: str = None,
-        packgroesse: str = None,
+        filter_packgroesse: str = None,
         filter_darrform: str = None,
         filter_appform: str = None,
         filter_normpackungsgroeße_zuzahlstufe: str = None,
@@ -235,15 +235,22 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             .replace("“", '"')
             .replace("‘", '"')
         )
-
-        query = select(GenericSQLDrugSearchCache)
+        # this is what i try to achieve:
+        # SELECT x.pzn, case when x.index_content like "%Jakavi L01EJ01 86 10002543 Jakavi 5 mg NOVART01 TAB 140 000002333%" THEN 1 ELSE 0 END as score, x.* FROM generic_sql_drug_search_cache x
+        query = select(
+            GenericSQLDrugSearchCache.pzn,
+            case(
+                (icontains_op(GenericSQLDrugSearchCache.index_content, search_term), 1),
+                else_=0,
+            ).label("score"),
+        )
         # pzn filter
         if pzn_contains:
             query = query.where(contains(GenericSQLDrugSearchCache.pzn, pzn_contains))
         # category filters
-        if packgroesse:
+        if filter_packgroesse:
             query = query.where(
-                GenericSQLDrugSearchCache.packungsgroesse == packgroesse
+                GenericSQLDrugSearchCache.packungsgroesse == filter_packgroesse
             )
         if filter_darrform:
             query = query.where(GenericSQLDrugSearchCache.darrform == filter_darrform)
@@ -286,10 +293,27 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             query = query.where(
                 icontains_op(GenericSQLDrugSearchCache.index_content, word)
             )
+        # extra score when search term occurs cohesive
+
         log.debug(f"SEARCH QUERY: {query}")
         async with get_async_session_context() as session:
-            res = await session.exec(query)
-            return res.all()
+            search_res = await session.exec(query)
+            pzns_with_score = search_res.all()
+            async with get_stamm_crud_context(session=session) as stamm_crud:
+                drugs = await stamm_crud.get_multiple(
+                    pzns=[item[0] for item in pzns_with_score], keep_pzn_order=True
+                )
+                # you are here. check if score makes sense and order by it
+                return [
+                    MedLogSearchEngineResult(
+                        pzn=drug.pzn,
+                        item=drug,
+                        score=next(
+                            item[1] for item in pzns_with_score if item[0] == drug.pzn
+                        ),
+                    )
+                    for drug in drugs
+                ]
 
     async def _get_state(self) -> GenericSQLDrugSearchState:
         state = None
