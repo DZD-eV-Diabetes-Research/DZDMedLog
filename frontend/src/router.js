@@ -9,17 +9,27 @@ const router = createRouter({
     history: createWebHistory(),
     routes: [
         { path: '/', redirect: "/auth" },
-        { path: '/auth', component: Login },
-        { path: '/user', component: UserView, beforeEnter:(to, from, next) => {
-            if(store.getters.access_token){
-                next()
-            } else {
-                next("/")
+        {
+            path: '/auth', component: Login,
+            beforeEnter: (to, from, next) => {
+                if (store.dispatch("userMe")) {
+                    next("/user")
+                } else {
+                    next("/")
+                }
             }
-        }
-    
-    
-    },
+        },
+        {
+            path: '/user', component: UserView,
+            beforeEnter: (to, from, next) => {
+                if (store.dispatch("userMe")) {
+                    next()
+                } else {
+                    next("/")
+                }
+            }
+
+        },
         { path: '/:notFound(.*)', component: NotFound }
     ]
 });
