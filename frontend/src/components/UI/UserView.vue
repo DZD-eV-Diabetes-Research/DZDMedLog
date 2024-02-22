@@ -5,9 +5,19 @@
         <p>This should print your email: {{ $store.getters.email }}</p>
         <p>This should print your display_name: {{ $store.getters.display_name }}</p>
         <p>This should print your roles: {{ $store.getters.roles }}</p>
+        <button @click="logout">logout</button>
     </base-card>
 </template>
 
 <script>
+
+export default {
+    methods: {
+        logout(){
+            console.log("test")
+        }
+    }
+}
+
 
 </script>
