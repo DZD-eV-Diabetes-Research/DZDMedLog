@@ -1,6 +1,6 @@
 export default {
     access_token(state){
-        return state.access_token
+        return state.access_token.result
     },
     refresh_token(state){
         return state.refresh_token
