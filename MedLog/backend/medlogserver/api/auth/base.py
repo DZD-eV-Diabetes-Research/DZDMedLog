@@ -163,6 +163,9 @@ async def get_fresh_access_token(
         token_type, refresh_token = refresh_token_header.split(" ")
 
     r_token = JWTRefreshTokenContainer.from_existing_jwt(refresh_token)
+    log.info(
+        f"r_token.expires_at: {type(r_token.expires_at)} {r_token.expires_at}. Is expired: {r_token.is_expired()}"
+    )
     if r_token.is_expired():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
