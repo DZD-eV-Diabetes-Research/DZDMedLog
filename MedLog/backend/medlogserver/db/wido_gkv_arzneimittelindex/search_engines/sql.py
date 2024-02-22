@@ -111,8 +111,20 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 "Cancel build_index for 'GenericSQLDrugSearchEngine'-Engine because build up is allready in progress"
             )
             return
+        print(
+            "state.last_index_build_based_on_ai_version_id",
+            type(state.last_index_build_based_on_ai_version_id),
+            state.last_index_build_based_on_ai_version_id,
+        )
+        print(
+            "self.target_ai_data_version.id",
+            type(self.target_ai_data_version.id),
+            self.target_ai_data_version.id,
+        )
+        print("force_rebuild", type(force_rebuild), force_rebuild)
         if (
-            state.last_index_build_based_on_ai_version_id == self.target_ai_data_version
+            state.last_index_build_based_on_ai_version_id
+            == self.target_ai_data_version.id
             and not force_rebuild
         ):
             log.warning(
@@ -139,7 +151,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         state = await self._get_state()
         state.index_build_up_in_process = False
         state.last_index_build_at = datetime.datetime.now(tz=datetime.timezone.utc)
-        state.last_index_build_based_on_ai_version_id = self.target_ai_data_version
+        state.last_index_build_based_on_ai_version_id = self.target_ai_data_version.id
         await self._save_state(state)
 
     async def _clear_cache(self, session: AsyncSession, skip_commit: bool = True):
