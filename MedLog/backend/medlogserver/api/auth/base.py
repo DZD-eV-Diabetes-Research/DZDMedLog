@@ -166,6 +166,7 @@ async def get_fresh_access_token(
     log.info(
         f"r_token.expires_at: {type(r_token.expires_at)} {r_token.expires_at}. Is expired: {r_token.is_expired()}"
     )
+    log.info(f"CREATED AT: {r_token.created_at}")
     if r_token.is_expired():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
