@@ -11,13 +11,14 @@
 
 <script>
 
-export default {
-    methods: {
-        logout(){
-            console.log("test")
-        }
-    }
-}
+// export default {
+//     methods: {
+//         logout() {
+//             $store.state.access_token = null
+//             $store.state.refresh_token = null
+//         }
+//     }
+// }
 
 
 </script>
