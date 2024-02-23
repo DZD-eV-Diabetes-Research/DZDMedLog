@@ -141,7 +141,7 @@ async def list_study_permissions(
     response_model=StudyPermisson,
     description=f"List all medicine intakes of one probands last completed interview.",
 )
-async def list_all_intakes_of_last_uncompleted_interview(
+async def get_permission_details(
     permission_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
     permission_crud: StudyPermissonCRUD = Depends(get_study_permission_crud),

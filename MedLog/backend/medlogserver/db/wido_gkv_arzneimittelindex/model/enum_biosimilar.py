@@ -32,8 +32,10 @@ class Biosimilar(DrugModelTableEnumBase, table=True):
         description="biosimilar id",
         sa_type=String(1),
         primary_key=True,
+        schema_extra={"examples": ["N"]},
     )
     bedeutung: str = Field(
         description="Bedeutung",
         sa_type=String(64),
+        schema_extra={"examples": ["Biosimilar"]},
     )

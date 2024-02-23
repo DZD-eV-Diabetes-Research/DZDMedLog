@@ -20,10 +20,12 @@ class Hersteller(DrugModelTableBase, table=True):
         sa_type=String(8),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:2"},
         primary_key=True,
+        schema_extra={"examples": ["BEHR"]},
     )
 
     bedeutung: str = Field(
         description="Bedeutung",
         sa_type=String(70),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:3"},
+        schema_extra={"examples": ["Behring Applied Technology"]},
     )

@@ -5,7 +5,7 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func
 
 import uuid
 from uuid import UUID
@@ -26,16 +26,13 @@ log = get_logger()
 config = Config()
 
 
-class BiosimilarCRUD:
+class BiosimilarCRUD(DrugCRUDBase):
+    _table_ = Biosimilar
+    _ai_versionless_table_: bool = True
 
     def __init__(self, session: AsyncSession):
         self.session = session
         self._current_ai_version: AiDataVersion = None
-
-    async def list(self) -> Sequence[Biosimilar]:
-        query = select(Biosimilar)
-        results = await self.session.exec(statement=query)
-        return results.all()
 
     async def get(
         self,

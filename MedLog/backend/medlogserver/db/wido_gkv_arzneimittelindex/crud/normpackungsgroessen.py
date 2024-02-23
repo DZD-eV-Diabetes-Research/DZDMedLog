@@ -21,25 +21,16 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import DrugCRUDBase
+from medlogserver.api.paginator import PageParams
 
 log = get_logger()
 config = Config()
 
+from sqlmodel import func
+
 
 class NormpackungsgroessenCRUD(DrugCRUDBase):
-
-    async def list(
-        self, current_version_only: bool = True
-    ) -> Sequence[Normpackungsgroessen]:
-        query = select(Normpackungsgroessen)
-        if current_version_only:
-            current_ai_version: AiDataVersion = await self._get_current_ai_version()
-            query = query.where(
-                Normpackungsgroessen.ai_version_id == current_ai_version.id
-            )
-
-        results = await self.session.exec(statement=query)
-        return results.all()
+    _table_ = Normpackungsgroessen
 
     async def get(
         self,

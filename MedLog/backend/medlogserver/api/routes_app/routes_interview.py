@@ -4,7 +4,6 @@ from typing import Annotated, Sequence, List, NoReturn
 from fastapi import (
     Depends,
     Security,
-    FastAPI,
     HTTPException,
     status,
     Query,
@@ -15,59 +14,13 @@ from fastapi import (
 )
 
 from fastapi.responses import JSONResponse
-from fastapi.security import OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from pydantic import BaseModel, Field
-from typing import Annotated
 
 from fastapi import Depends, APIRouter
 
-from medlogserver.api.auth.tokens import (
-    JWTBundleTokenResponse,
-    JWTAccessTokenContainer,
-    JWTRefreshTokenContainer,
-)
-from medlogserver.db.user.user import (
-    get_user_crud,
-    User,
-    UserCRUD,
-    UserCreate,
-    UserUpdate,
-    UserUpdateByUser,
-    UserUpdateByAdmin,
-)
-from medlogserver.db.user.user_auth import (
-    get_user_auth_crud,
-    UserAuth,
-    UserAuthCreate,
-    UserAuthUpdate,
-    UserAuthCRUD,
-    UserAuthRefreshToken,
-    UserAuthRefreshTokenCreate,
-    UserAuthRefreshTokenCRUD,
-    get_user_auth_refresh_token_crud,
-    AllowedAuthSourceTypes,
-)
-from medlogserver.api.auth.base import (
-    TOKEN_ENDPOINT_PATH,
-    oauth2_scheme,
-    user_is_admin,
-    user_is_usermanager,
-    get_current_user,
-    NEEDS_ADMIN_API_INFO,
-    NEEDS_USERMAN_API_INFO,
-)
 
-from medlogserver.db.event.model import Event, EventUpdate
-from medlogserver.db.event.crud import EventCRUD, get_event_crud
+from medlogserver.db.user.user import User
 
 
-from medlogserver.db.user.user_auth_external_oidc_token import (
-    UserAuthExternalOIDCToken,
-    UserAuthExternalOIDCTokenCRUD,
-    get_user_auth_external_oidc_token_crud,
-)
 from medlogserver.config import Config
 from medlogserver.db.interview.model import (
     Interview,
@@ -106,19 +59,6 @@ async def list_all_interviews_of_study(
 
 
 @fast_api_interview_router.get(
-    "/study/{study_id}/proband/{proband_id}/interview",
-    response_model=List[Interview],
-    description=f"List all interviews of one proband.",
-)
-async def list_interviews_of_proband(
-    proband_id: Annotated[str, Path()],
-    study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
-) -> List[Interview]:
-    return await interview_crud.list(filter_by_proband_external_id=proband_id)
-
-
-@fast_api_interview_router.get(
     "/study/{study_id}/event/{event_id}/interview",
     response_model=List[Interview],
     description=f"List all interviews of an event.",
@@ -150,6 +90,19 @@ async def get_interview(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No interview with this id under this event available",
         )
+
+
+@fast_api_interview_router.get(
+    "/study/{study_id}/proband/{proband_id}/interview",
+    response_model=List[Interview],
+    description=f"List all interviews of one proband.",
+)
+async def list_interviews_of_proband(
+    proband_id: Annotated[str, Path()],
+    study_access: UserStudyAccess = Security(user_has_study_access),
+    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+) -> List[Interview]:
+    return await interview_crud.list(filter_by_proband_external_id=proband_id)
 
 
 @fast_api_interview_router.get(

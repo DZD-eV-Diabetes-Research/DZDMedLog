@@ -34,8 +34,10 @@ class ApoPflicht(DrugModelTableEnumBase, table=True):
         description="apopflicht id",
         sa_type=SmallInteger,
         primary_key=True,
+        schema_extra={"examples": ["0"]},
     )
     bedeutung: str = Field(
         description="Bedeutung",
         sa_type=String(60),
+        schema_extra={"examples": ["Nichtarzneimittel"]},
     )

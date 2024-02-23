@@ -26,27 +26,7 @@ config = Config()
 
 
 class StammCRUD(DrugCRUDBase):
-    async def count(self, current_version_only: bool = True) -> Sequence[Stamm]:
-        query = select(func.count(Stamm.pzn))
-        if current_version_only:
-            current_ai_version: AiDataVersion = await self._get_current_ai_version()
-            query = query.where(Stamm.ai_version_id == current_ai_version.id)
-
-        results = await self.session.exec(statement=query)
-        return results.first()
-
-    async def list(
-        self, current_version_only: bool = True, pagination: PageParams = None
-    ) -> Sequence[Stamm]:
-        query = select(Stamm)
-        if current_version_only:
-            current_ai_version: AiDataVersion = await self._get_current_ai_version()
-            query = query.where(Stamm.ai_version_id == current_ai_version.id)
-        if pagination:
-            query = pagination.append_to_query(query)
-        print("QUERY", query)
-        results = await self.session.exec(statement=query)
-        return results.all()
+    _table_ = Stamm
 
     async def get_multiple(
         self,
@@ -80,12 +60,12 @@ class StammCRUD(DrugCRUDBase):
         pzn: str,
         ai_version_id: uuid.UUID | str = None,
         raise_exception_if_none: Exception = None,
-    ) -> Optional[StammRead]:
+    ) -> Optional[Stamm]:
         if ai_version_id is None:
             current_ai_version = await self._get_current_ai_version()
             ai_version_id = current_ai_version.id
 
-        query = select(StammRead).where(
+        query = select(Stamm).where(
             Stamm.pzn == pzn and Stamm.ai_version_id == ai_version_id
         )
 

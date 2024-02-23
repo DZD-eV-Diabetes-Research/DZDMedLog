@@ -13,77 +13,61 @@ from fastapi import (
     Path,
     Response,
 )
-from fastapi.security import OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from pydantic import BaseModel, Field
+
 from typing import Annotated
 
 from fastapi import Depends, APIRouter
 
-from medlogserver.api.auth.tokens import (
-    JWTBundleTokenResponse,
-    JWTAccessTokenContainer,
-    JWTRefreshTokenContainer,
-)
-from medlogserver.db.user.user import (
-    get_user_crud,
-    User,
-    UserCRUD,
-    UserCreate,
-    UserUpdate,
-    UserUpdateByUser,
-    UserUpdateByAdmin,
-)
-from medlogserver.db.user.user_auth import (
-    get_user_auth_crud,
-    UserAuth,
-    UserAuthCreate,
-    UserAuthUpdate,
-    UserAuthCRUD,
-    UserAuthRefreshToken,
-    UserAuthRefreshTokenCreate,
-    UserAuthRefreshTokenCRUD,
-    get_user_auth_refresh_token_crud,
-    AllowedAuthSourceTypes,
-)
+from medlogserver.db.user.user import User
+
+
 from medlogserver.api.auth.base import (
-    TOKEN_ENDPOINT_PATH,
-    oauth2_scheme,
     user_is_admin,
-    user_is_usermanager,
     get_current_user,
     NEEDS_ADMIN_API_INFO,
-    NEEDS_USERMAN_API_INFO,
 )
 from medlogserver.api.routes_app.security import (
     get_current_user,
 )
-from medlogserver.db.event.model import Event, EventUpdate
-from medlogserver.db.event.crud import EventCRUD, get_event_crud
 
-from medlogserver.db.user.user_auth_external_oidc_token import (
-    UserAuthExternalOIDCToken,
-    UserAuthExternalOIDCTokenCRUD,
-    get_user_auth_external_oidc_token_crud,
-)
+
 from medlogserver.config import Config
-from medlogserver.db.wido_gkv_arzneimittelindex.model import Stamm, StammRead
+from medlogserver.db.wido_gkv_arzneimittelindex.model import StammRead
 from medlogserver.db.wido_gkv_arzneimittelindex.crud import StammCRUD, get_stamm_crud
 
-from medlogserver.db.wido_gkv_arzneimittelindex.view import (
-    get_stamm_joined_view,
-    get_stamm_joined_view_context,
-    StammJoinedView,
-)
+
 from medlogserver.db.wido_gkv_arzneimittelindex.drug_search import (
     DrugSearch,
     get_drug_search,
+    SearchEngineNotConfiguredException,
+    SearchEngineNotReadyException,
 )
 from medlogserver.api.base import HTTPMessage
 from medlogserver.api.paginator import pagination_query, PageParams, PaginatedResponse
 from medlogserver.db.wido_gkv_arzneimittelindex.drug_search._base import (
     MedLogSearchEngineResult,
+)
+from medlogserver.db.wido_gkv_arzneimittelindex.model import (
+    Normpackungsgroessen,
+    Darreichungsform,
+    Applikationsform,
+    Generikakennung,
+    ApoPflicht,
+    Preisart,
+)
+from medlogserver.db.wido_gkv_arzneimittelindex.crud import (
+    get_normpackungsgroessen_crud,
+    NormpackungsgroessenCRUD,
+    get_darrform_crud,
+    DarreichungsformCRUD,
+    get_applikationsform_crud,
+    ApplikationsformCRUD,
+    get_generikakenn_crud,
+    GenerikakennungCRUD,
+    get_apopflicht_crud,
+    ApoPflichtCRUD,
+    get_preisart_crud,
+    PreisartCRUD,
 )
 
 config = Config()
@@ -100,10 +84,11 @@ fast_api_drug_router: APIRouter = APIRouter()
 @fast_api_drug_router.get(
     "/drug",
     response_model=PaginatedResponse[StammRead],
-    description=f"List medicine/drugs from the system",
+    description=f"List all medicine/drugs from the system. {NEEDS_ADMIN_API_INFO}",
 )
-async def list_all_intakes_of_last_completed_interview(
+async def list_drugs(
     user: User = Security(get_current_user),
+    is_admin: bool = Security(user_is_admin),
     pagination: PageParams = Depends(pagination_query),
     drug_stamm_crud: StammCRUD = Depends(get_stamm_crud),
 ) -> PaginatedResponse[StammRead]:
@@ -115,7 +100,25 @@ async def list_all_intakes_of_last_completed_interview(
         count=len(result_items),
         items=result_items,
     )
-    # return await drug_stamm_crud.list()
+
+
+@fast_api_drug_router.get(
+    "/drug/by-pzn/{pzn}",
+    response_model=StammRead,
+    description=f"Get a drugs data by its PZN",
+)
+async def get_drug(
+    pzn: str,
+    user: User = Security(get_current_user),
+    drug_stamm_crud: StammCRUD = Depends(get_stamm_crud),
+) -> StammRead:
+    return await drug_stamm_crud.get(
+        pzn=pzn,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No drug found with Pharmazentralnummer '{pzn}'",
+        ),
+    )
 
 
 @fast_api_drug_router.get(
@@ -123,11 +126,11 @@ async def list_all_intakes_of_last_completed_interview(
     response_model=PaginatedResponse[MedLogSearchEngineResult],
     description=f"Search medicine/drugs from the system",
 )
-async def list_all_intakes_of_last_completed_interview(
+async def search_drugs(
     search_term: Annotated[
         str,
         Query(
-            description="A search term. Can be multiple words or a single one. One word must be at least 3 chars or contained in a longer quted string (e.g. 'Salofalk 1 g' instead of Salofalk 1 g)",
+            description="A search term. Can be multiple words or a single one. One word must be at least 3 chars or contained in a longer quoted string (e.g. `'Salofalk 1 g'` instead of `Salofalk 1 g`)",
             min_length=3,
         ),
     ],
@@ -142,23 +145,30 @@ async def list_all_intakes_of_last_completed_interview(
     filter_preisart_neu: str = None,
     only_current_medications: bool = True,
     pagination: PageParams = Depends(pagination_query),
-    user: User = Security(get_current_user),
     drug_search: DrugSearch = Depends(get_drug_search),
+    user: User = Security(get_current_user),
 ) -> PaginatedResponse[MedLogSearchEngineResult]:
-    return await drug_search.search(
-        search_term=search_term,
-        pzn_contains=pzn_contains,
-        filter_packgroesse=filter_packgroesse,
-        filter_darrform=filter_darrform,
-        filter_appform=filter_appform,
-        filter_normpackungsgroeße_zuzahlstufe=filter_normpackungsgroeße_zuzahlstufe,
-        filter_atc_level2=filter_atc_level2,
-        filter_generikakenn=filter_generikakenn,
-        filter_apopflicht=filter_apopflicht,
-        filter_preisart_neu=filter_preisart_neu,
-        only_current_medications=only_current_medications,
-        pagination=pagination,
-    )
+    try:
+        return await drug_search.search(
+            search_term=search_term,
+            pzn_contains=pzn_contains,
+            filter_packgroesse=filter_packgroesse,
+            filter_darrform=filter_darrform,
+            filter_appform=filter_appform,
+            filter_normpackungsgroeße_zuzahlstufe=filter_normpackungsgroeße_zuzahlstufe,
+            filter_atc_level2=filter_atc_level2,
+            filter_generikakenn=filter_generikakenn,
+            filter_apopflicht=filter_apopflicht,
+            filter_preisart_neu=filter_preisart_neu,
+            only_current_medications=only_current_medications,
+            pagination=pagination,
+        )
+    except SearchEngineNotReadyException as err:
+        # the search engine is still warming up. the user hat so wait a bit
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=repr(repr(err))
+        )
+
     return await drug_search.total_drug_count()
     return PaginatedResponse(
         total_count=await drug_search.total_drug_count(),
@@ -167,6 +177,120 @@ async def list_all_intakes_of_last_completed_interview(
         items=result_items,
     )
     # return await drug_stamm_crud.list()
+
+
+@fast_api_drug_router.get(
+    "/drug/enum/normpackungsgroessen",
+    response_model=PaginatedResponse[Normpackungsgroessen],
+    description=f"list normpackungsgroessen",
+)
+async def list_packgroesse(
+    user: User = Security(get_current_user),
+    normp_crud: NormpackungsgroessenCRUD = Depends(get_normpackungsgroessen_crud),
+    pagination: PageParams = Depends(pagination_query),
+) -> PaginatedResponse[Normpackungsgroessen]:
+    res = await normp_crud.list(pagination=pagination)
+    return PaginatedResponse(
+        total_count=await normp_crud.count(),
+        offset=pagination.offset,
+        count=len(res),
+        items=res,
+    )
+
+
+@fast_api_drug_router.get(
+    "/drug/enum/darrform",
+    response_model=PaginatedResponse[Darreichungsform],
+    description=f"list ...",
+)
+async def list_darreichungsforms(
+    user: User = Security(get_current_user),
+    crud: DarreichungsformCRUD = Depends(get_darrform_crud),
+    pagination: PageParams = Depends(pagination_query),
+) -> PaginatedResponse[Darreichungsform]:
+    res = await crud.list(pagination=pagination)
+    return PaginatedResponse(
+        total_count=await crud.count(),
+        offset=pagination.offset,
+        count=len(res),
+        items=res,
+    )
+
+
+@fast_api_drug_router.get(
+    "/drug/enum/appform",
+    response_model=PaginatedResponse[Applikationsform],
+    description=f"list Applikationsform",
+)
+async def list_applikationsforms(
+    user: User = Security(get_current_user),
+    crud: ApplikationsformCRUD = Depends(get_applikationsform_crud),
+    pagination: PageParams = Depends(pagination_query),
+) -> PaginatedResponse[Applikationsform]:
+    res = await crud.list(pagination=pagination)
+    return PaginatedResponse(
+        total_count=await crud.count(),
+        offset=pagination.offset,
+        count=len(res),
+        items=res,
+    )
+
+
+@fast_api_drug_router.get(
+    "/drug/enum/generikakenn",
+    response_model=PaginatedResponse[Generikakennung],
+    description=f"list Generikakennung",
+)
+async def list_generikakenns(
+    user: User = Security(get_current_user),
+    crud: GenerikakennungCRUD = Depends(get_generikakenn_crud),
+    pagination: PageParams = Depends(pagination_query),
+) -> PaginatedResponse[Generikakennung]:
+    res = await crud.list(pagination=pagination)
+    return PaginatedResponse(
+        total_count=await crud.count(),
+        offset=pagination.offset,
+        count=len(res),
+        items=res,
+    )
+
+
+@fast_api_drug_router.get(
+    "/drug/enum/apopflicht",
+    response_model=PaginatedResponse[ApoPflicht],
+    description=f"list ApoPflicht",
+)
+async def list_apopflicht(
+    user: User = Security(get_current_user),
+    crud: ApoPflichtCRUD = Depends(get_apopflicht_crud),
+    pagination: PageParams = Depends(pagination_query),
+) -> PaginatedResponse[ApoPflicht]:
+    res = await crud.list(pagination=pagination)
+    return PaginatedResponse(
+        total_count=await crud.count(),
+        offset=pagination.offset,
+        count=len(res),
+        items=res,
+    )
+
+
+@fast_api_drug_router.get(
+    "/drug/enum/preisart",
+    response_model=PaginatedResponse[Preisart],
+    description=f"list Preisart",
+)
+async def list_apopflicht(
+    user: User = Security(get_current_user),
+    crud: PreisartCRUD = Depends(get_preisart_crud),
+    pagination: PageParams = Depends(pagination_query),
+) -> PaginatedResponse[Preisart]:
+    res = await crud.list(pagination=pagination)
+    return PaginatedResponse(
+        total_count=await crud.count(),
+        offset=pagination.offset,
+        count=len(res),
+        items=res,
+    )
 
 
 """

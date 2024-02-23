@@ -35,8 +35,10 @@ class Preisart(DrugModelTableEnumBase, table=True):
         description="preiart id",
         sa_type=String(1),
         primary_key=True,
+        schema_extra={"examples": ["X"]},
     )
     bedeutung: str = Field(
         description="Bedeutung",
         sa_type=String(30),
+        schema_extra={"examples": ["Ohne Preisangabe"]},
     )

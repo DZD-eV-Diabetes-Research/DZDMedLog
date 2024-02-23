@@ -30,17 +30,20 @@ class AiDataVersion(Base, BaseTable, table=True):
         nullable=False,
         unique=True,
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
+        schema_extra={"examples": ["aca335063279463395e6908f03ae0abb"]},
     )
     # https://www.wido.de/fileadmin/Dateien/Dokumente/Publikationen_Produkte/Arzneimittel-Klassifikation/wido_arz_stammdatei_plus_info_2021.pdf
     dateiversion: str = Field(
         description="Dateiversion",
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:0"},
         sa_type=String(3),
+        schema_extra={"examples": ["52"]},
     )
     datenstand: str = Field(
         description="Monat Datenstand (JJJJMM)",
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:1"},
         sa_type=String(6),
+        schema_extra={"examples": ["202301"]},
     )
     import_completed_at: Optional[datetime] = Field(
         default=None,

@@ -1,19 +1,22 @@
 from typing import List, Dict
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from medlogserver.db._session import AsyncSession, get_async_session
 from medlogserver.api.paginator import PageParams, PaginatedResponse
 from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import StammRead
 
 
 class MedLogSearchEngineResult(BaseModel):
-    pzn: str
-    relevance_score: float
+    pzn: str = Field(examples=["324563"])
+    relevance_score: float = Field(examples=["1.4"])
     item: StammRead
 
 
 class MedLogDrugSearchEngineBase:
     description: str = (
-        "A short descriptionn how this search engine works and what it need to run"
+        "A short descriptionn how this search engine works and what it needs to run"
+    )
+    user_hint: str = (
+        "A hint for the user like 'You can quote string to find drugs with this exact quote: `'vitamin C' aspirin'`"
     )
 
     def __init__(self, sql_session: AsyncSession, config: Dict = None):

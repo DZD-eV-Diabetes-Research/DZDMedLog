@@ -35,8 +35,10 @@ class Generikakennung(DrugModelTableEnumBase, table=True):
         description="generikakenn id",
         sa_type=SmallInteger,
         primary_key=True,
+        schema_extra={"examples": ["0"]},
     )
     bedeutung: str = Field(
         description="Bedeutung",
         sa_type=String(110),
+        schema_extra={"examples": ["Arzneimittel mit Patent- bzw. Schutzfristen"]},
     )

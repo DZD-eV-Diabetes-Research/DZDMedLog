@@ -27,6 +27,7 @@ config = Config()
 
 
 class HerstellerCRUD(DrugCRUDBase):
+    _table_ = Hersteller
 
     async def list(self, current_version_only: bool = True) -> Sequence[Hersteller]:
         query = select(Hersteller)

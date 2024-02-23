@@ -129,7 +129,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 await self._clear_cache(session=session)
                 await self._build_index(session=session)
                 index_item_count = await self._count_cache_items(session=session)
-                session.commit()
+                await session.commit()
             log.info("...building drug search index done.")
         except Exception as err:
             log.error("Building index for 'GenericSQLDrugSearchEngine'-Engine failed")

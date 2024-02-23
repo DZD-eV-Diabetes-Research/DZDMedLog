@@ -65,7 +65,7 @@ class DrugSearch(DrugViewBase):
                     return
                 else:
                     raise SearchEngineNotReadyException(
-                        "The search index is in build up. Please try again later."
+                        "The search index is still building or warming up. Please try again in a little bit."
                     )
         raise SearchEngineNotConfiguredException(
             "Could not find a valid drug search engine configuration. Search will not work."

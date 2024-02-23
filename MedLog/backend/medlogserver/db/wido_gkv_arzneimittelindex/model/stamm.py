@@ -56,26 +56,31 @@ class StammBase(DrugModelTableBase, table=False):
         description="Laufende Nummer (vom WIdO vergeben)",
         sa_type=String(7),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:2"},
+        schema_extra={"examples": ["12903"]},
     )
     stakenn: Optional[str] = Field(
         description="(Sämtliche Arzneimittel eines Handelsnamens)Standardaggregatkennung (zu Lfd. Nr.)",
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:3"},
+        schema_extra={"examples": ["1"]},
     )
     staname: str = Field(
         description="Standardaggregatname (vom WIdO vergeben) (enhält *NV* wenn 'Noch nicht abschließend klassifiziertes Arzneimittel')",
         sa_type=String(70),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:4"},
+        schema_extra={"examples": ["Warfarin"]},
     )
     atc_code: Optional[str] = Field(
         description="ATC-Code (Klassifikation nach WIdO)",
         sa_type=String(7),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:5"},
+        schema_extra={"examples": ["B01AA03"]},
     )
     indgr: str = Field(
         description="Indikationsgruppe (nach Roter Liste 2014)",
         sa_type=String(2),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:6"},
+        schema_extra={"examples": ["20"]},
     )
     #
     pzn: str = Field(
@@ -83,107 +88,125 @@ class StammBase(DrugModelTableBase, table=False):
         sa_type=String(8),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:7"},
         primary_key=True,
+        schema_extra={"examples": ["10066230"]},
     )
     name: str = Field(
         description="Präparatename",
         sa_type=String(100),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:8"},
+        schema_extra={"examples": ["Venenum Fang 5 mg Kriminon"]},
     )
     hersteller_code: str = Field(
-        description="Hersteller (siehe Schlüsselverzeichnis hersteller.txt)",
+        description="Herstellerschlüssel (Siehe `hersteller_ref` für vollen Herstellernamen)",
         sa_type=SmallInteger,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:9"},
         # We have composite foreign key. see __table_args__ at the top of this class
         # foreign_key="drug_hersteller.herstellercode",
+        schema_extra={"examples": ["EMRA  01"]},
     )
 
     darrform: str = Field(
-        description="Darreichungsform(siehe Schlüsselverzeichnis darrform.txt)",
+        description="Darreichungsformschlüssel (Siehe `darrform_ref` für vollen Namen)",
         sa_type=String(5),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:10"},
         # We have composite foreign key. see __table_args__ at the top of this class
         # foreign_key="drug_darrform.darrform",
+        schema_extra={"examples": ["TAB"]},
     )
 
     zuzahlstufe: Optional[str] = Field(
-        description="Normpackungsgröße (siehe Schlüsselverzeichnis norm-packungsgroessen.txt)",
+        description="Normpackungsgrößenschlüssel (Siehe `zuzahlstufe_ref` für vollen Namen)",
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:11"},
         # We have composite foreign key. see __table_args__ at the top of this class
         # foreign_key="drug_normpackungsgroessen.zuzahlstufe",
+        schema_extra={"examples": ["3"]},
     )
     packgroesse: int = Field(
         description="Packungsgröße (in 1/10 Einheiten)",
         sa_type=Integer,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:12"},
+        schema_extra={"examples": ["1000"]},
     )
     dddpk: str = Field(
         description="DDD je Packung (nach WIdO, in 1/1000 Einheiten)",
         sa_type=String(9),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:13"},
+        schema_extra={"examples": ["000066667"]},
     )
     apopflicht: int = Field(
-        description="Apotheken-/Rezeptpflicht",
+        description="Apotheken-/Rezeptpflichtschlüssel (Siehe `apopflicht_ref` für vollen Namen)",
         sa_type=SmallInteger,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:14"},
         foreign_key="drug_enum_apoflicht.apopflicht",
+        schema_extra={"examples": ["0"]},
     )
 
     preisart_alt: Optional[str] = Field(
-        description="Preisart, alt (Schlüssel PreisartTypes)",
+        description="Preisart, alt schlüssel  (Siehe `preisart_alt_ref` für vollen Namen)",
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:15"},
         foreign_key="drug_enum_preisart.preisart",
+        schema_extra={"examples": ["A"]},
     )
     preisart_neu: Optional[str] = Field(
-        description="Preisart, alt (Schlüssel siehe PreisartTypes)",
+        description="Preisart, neu schlüssel  (Siehe `preisart_neu_ref` für vollen Namen)",
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:16"},
         foreign_key="drug_enum_preisart.preisart",
+        schema_extra={"examples": ["A"]},
     )
     preis_alt: int = Field(
         description="Preis alt (in Cent)",
         sa_type=Integer(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:17"},
+        schema_extra={"examples": ["1512"]},
     )
     preis_neu: int = Field(
         description="Preis neu (in Cent)",
         sa_type=Integer(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:18"},
+        schema_extra={"examples": ["1515"]},
     )
     festbetrag: int = Field(
         description="Festbetrag (in Cent)",
         sa_type=Integer(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:19"},
+        schema_extra={"examples": ["1514"]},
     )
     marktzugang: Optional[str] = Field(
         description="Datum Marktzugang (JJJJMMTT)",
         sa_type=String(8),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:20"},
+        schema_extra={"examples": ["20140231"]},
     )
     ahdatum: Optional[str] = Field(
         description="Datum Außer Handel (JJJJMMTT)",
         sa_type=String(8),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:21"},
+        schema_extra={"examples": ["20140331"]},
     )
 
     rueckruf: bool = Field(
         description="Rückruf/zurückgezogen oder zurückgezogen durch Hersteller",
         sa_type=Boolean(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:22"},
+        schema_extra={"examples": [False]},
     )
     generikakenn: int = Field(
         description="Generika-Kennung",
         sa_type=SmallInteger(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:23"},
         foreign_key="drug_enum_generikakenn.generikakenn",
+        schema_extra={"examples": [1]},
     )
     appform: Optional[str] = Field(
-        description="Applikationsform (siehe Schlüsselverzeichnis applikationsform.txt)",
+        description="Applikationsformschlüssel (Siehe `appform_ref` für vollen Namen)",
         sa_type=String(5),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:24"},
         # We have composite foreign key. see __table_args__ at the top of this class
         # foreign_key="drug_applikationsform.appform",
+        schema_extra={"examples": [0]},
     )
     biosimilar: Optional[str] = Field(
         description=dedent(
@@ -194,11 +217,13 @@ class StammBase(DrugModelTableBase, table=False):
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:25"},
         foreign_key="drug_enum_biosimilar.biosimilar",
+        schema_extra={"examples": ["N"]},
     )
     orphan: bool = Field(
         description="Von der EMA mit Orphan Drug Status zugelassene Arzneimittel (Klassifikation zum Stichtag)",
         sa_type=Boolean(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:26"},
+        schema_extra={"examples": ["false"]},
     )
 
     @field_validator("apopflicht", "generikakenn", mode="before")

@@ -4,49 +4,13 @@ from typing import Annotated, Sequence, List, NoReturn
 from fastapi import (
     Depends,
     Security,
-    FastAPI,
     HTTPException,
     status,
-    Query,
-    Body,
-    Form,
-    Path,
-    Response,
 )
-from fastapi.security import OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from pydantic import BaseModel, Field
-from typing import Annotated
+
 
 from fastapi import Depends, APIRouter
 
-from medlogserver.api.auth.tokens import (
-    JWTBundleTokenResponse,
-    JWTAccessTokenContainer,
-    JWTRefreshTokenContainer,
-)
-from medlogserver.db.user.user import (
-    get_user_crud,
-    User,
-    UserCRUD,
-    UserCreate,
-    UserUpdate,
-    UserUpdateByUser,
-    UserUpdateByAdmin,
-)
-from medlogserver.db.user.user_auth import (
-    get_user_auth_crud,
-    UserAuth,
-    UserAuthCreate,
-    UserAuthUpdate,
-    UserAuthCRUD,
-    UserAuthRefreshToken,
-    UserAuthRefreshTokenCreate,
-    UserAuthRefreshTokenCRUD,
-    get_user_auth_refresh_token_crud,
-    AllowedAuthSourceTypes,
-)
 from medlogserver.api.auth.base import (
     TOKEN_ENDPOINT_PATH,
     oauth2_scheme,

@@ -27,15 +27,7 @@ config = Config()
 
 
 class Priscus2PZNCRUD(DrugCRUDBase):
-
-    async def list(self, current_version_only: bool = True) -> Sequence[Priscus2PZN]:
-        query = select(Priscus2PZN)
-        if current_version_only:
-            current_ai_version: AiDataVersion = await self._get_current_ai_version()
-            query = query.where(Priscus2PZN.ai_version_id == current_ai_version.id)
-
-        results = await self.session.exec(statement=query)
-        return results.all()
+    _table_ = Priscus2PZN
 
     async def exists(
         self,

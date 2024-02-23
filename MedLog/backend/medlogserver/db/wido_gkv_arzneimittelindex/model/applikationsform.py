@@ -21,9 +21,11 @@ class Applikationsform(DrugModelTableBase, table=True):
         sa_type=String(5),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:2"},
         primary_key=True,
+        schema_extra={"examples": ["IMP"]},
     )
     bedeutung: str = Field(
         description="Bedeutung",
         sa_type=String(70),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:3"},
+        schema_extra={"examples": ["Implantat"]},
     )
