@@ -262,7 +262,6 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         # if a name starts with the exact search term we add 1.2 to the score
         # if the drug contains the whole search term cohesive it adds 1.1 to the search score.
         # if it also matches the case it adds 1.0 to the score
-        istartswith_op
         score_cases = case(
             (
                 istartswith_op(
