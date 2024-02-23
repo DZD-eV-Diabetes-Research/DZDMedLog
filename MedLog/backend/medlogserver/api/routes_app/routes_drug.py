@@ -127,7 +127,7 @@ async def list_all_intakes_of_last_completed_interview(
     search_term: Annotated[
         str,
         Query(
-            description="A search term. Can be multiple words or a single one. Must be at least 3 chars.",
+            description="A search term. Can be multiple words or a single one. One word must be at least 3 chars or contained in a longer quted string (e.g. 'Salofalk 1 g' instead of Salofalk 1 g)",
             min_length=3,
         ),
     ],
@@ -140,7 +140,7 @@ async def list_all_intakes_of_last_completed_interview(
     filter_generikakenn: str = None,
     filter_apopflicht: int = None,
     filter_preisart_neu: str = None,
-    only_current_medications: bool = False,
+    only_current_medications: bool = True,
     pagination: PageParams = Depends(pagination_query),
     user: User = Security(get_current_user),
     drug_search: DrugSearch = Depends(get_drug_search),

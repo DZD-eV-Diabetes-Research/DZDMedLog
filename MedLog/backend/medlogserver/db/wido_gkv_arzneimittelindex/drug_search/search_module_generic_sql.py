@@ -258,6 +258,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             .replace("‘", '"')
         )
         search_term_tokens = shlex.split(search_term)
+        search_term_tokens = [token for token in search_term_tokens if len(token) > 2]
 
         # if a name starts with the exact search term we add 1.2 to the score
         # if the drug contains the whole search term cohesive it adds 1.1 to the search score.
