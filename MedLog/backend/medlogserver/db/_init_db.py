@@ -59,7 +59,7 @@ config = Config()
 
 
 if config.DRUG_SEARCHENGINE_CLASS == "GenericSQLDrugSearch":
-    from medlogserver.db.wido_gkv_arzneimittelindex.search_engines.sql import (
+    from medlogserver.db.wido_gkv_arzneimittelindex.drug_search.search_module_generic_sql import (
         GenericSQLDrugSearchState,
         GenericSQLDrugSearchCache,
     )
@@ -104,7 +104,7 @@ async def get_current_ai_data_version() -> Optional[AiDataVersion]:
 async def init_drugsearch():
     current_ai_data_version = await get_current_ai_data_version()
     if current_ai_data_version is not None:
-        from medlogserver.db.wido_gkv_arzneimittelindex.search_engines.sql import (
+        from medlogserver.db.wido_gkv_arzneimittelindex.drug_search.search_module_generic_sql import (
             GenericSQLDrugSearchEngine,
         )
 

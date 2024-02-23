@@ -33,7 +33,6 @@ class StammCRUD(DrugCRUDBase):
             query = query.where(Stamm.ai_version_id == current_ai_version.id)
 
         results = await self.session.exec(statement=query)
-        print("results", results)
         return results.first()
 
     async def list(
@@ -57,7 +56,6 @@ class StammCRUD(DrugCRUDBase):
         keep_pzn_order: bool = True,
     ) -> Sequence[StammRead]:
         query = select(Stamm).where(col(Stamm.pzn).in_(pzns))
-        log.debug(f"GET MULTIPLE QUERY: {query}")
         if current_version_only:
             current_ai_version: AiDataVersion = await self._get_current_ai_version()
             query = query.where(Stamm.ai_version_id == current_ai_version.id)

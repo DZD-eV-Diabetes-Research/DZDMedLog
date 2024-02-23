@@ -36,10 +36,10 @@ from medlogserver.log import get_logger
 from medlogserver.db.wido_gkv_arzneimittelindex.view._base import DrugViewBase
 from medlogserver.api.paginator import PageParams
 
-from medlogserver.db.wido_gkv_arzneimittelindex.search_engines._base import (
+from medlogserver.db.wido_gkv_arzneimittelindex.drug_search._base import (
     MedLogDrugSearchEngineBase,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.search_engines.sql import (
+from medlogserver.db.wido_gkv_arzneimittelindex.drug_search.search_module_generic_sql import (
     GenericSQLDrugSearchEngine,
     MedLogSearchEngineResult,
 )

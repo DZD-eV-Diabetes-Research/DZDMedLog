@@ -76,10 +76,13 @@ from medlogserver.db.wido_gkv_arzneimittelindex.view import (
     get_stamm_joined_view_context,
     StammJoinedView,
 )
-
+from medlogserver.db.wido_gkv_arzneimittelindex.drug_search import (
+    DrugSearch,
+    get_drug_search,
+)
 from medlogserver.api.base import HTTPMessage
 from medlogserver.api.paginator import pagination_query, PageParams, PaginatedResponse
-from medlogserver.db.wido_gkv_arzneimittelindex.search_engines._base import (
+from medlogserver.db.wido_gkv_arzneimittelindex.drug_search._base import (
     MedLogSearchEngineResult,
 )
 
@@ -117,7 +120,7 @@ async def list_all_intakes_of_last_completed_interview(
 
 @fast_api_drug_router.get(
     "/drug/search",
-    response_model=List[MedLogSearchEngineResult],
+    response_model=PaginatedResponse[MedLogSearchEngineResult],
     description=f"Search medicine/drugs from the system",
 )
 async def list_all_intakes_of_last_completed_interview(
@@ -140,9 +143,9 @@ async def list_all_intakes_of_last_completed_interview(
     only_current_medications: bool = False,
     pagination: PageParams = Depends(pagination_query),
     user: User = Security(get_current_user),
-    drug_stamm_serach_crud: StammJoinedView = Depends(get_stamm_joined_view),
-) -> List[MedLogSearchEngineResult]:
-    result_items = await drug_stamm_serach_crud.search(
+    drug_search: DrugSearch = Depends(get_drug_search),
+) -> PaginatedResponse[MedLogSearchEngineResult]:
+    return await drug_search.search(
         search_term=search_term,
         pzn_contains=pzn_contains,
         filter_packgroesse=filter_packgroesse,
@@ -156,10 +159,9 @@ async def list_all_intakes_of_last_completed_interview(
         only_current_medications=only_current_medications,
         pagination=pagination,
     )
-    return result_items
-    # return result_items
+    return await drug_search.total_drug_count()
     return PaginatedResponse(
-        total_count=None,
+        total_count=await drug_search.total_drug_count(),
         offset=pagination.offset,
         count=len(result_items),
         items=result_items,

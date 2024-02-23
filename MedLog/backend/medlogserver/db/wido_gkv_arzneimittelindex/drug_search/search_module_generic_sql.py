@@ -1,20 +1,22 @@
 from typing import List, Dict, Optional
 import shlex
+import traceback
 import datetime
 import uuid
-from sqlmodel import (
-    Field,
-    select,
-    delete,
-    Column,
-    JSON,
-    SQLModel,
-    delete,
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel, delete, desc
+from sqlalchemy.sql.operators import (
+    is_not,
+    is_,
+    contains,
+    in_op,
+    icontains_op,
+    contains_op,
+    istartswith_op,
+    op,
 )
-from sqlalchemy.sql.operators import is_not, is_, contains, in_op, icontains_op
-from sqlalchemy import case
+from sqlalchemy import case, func
 from medlogserver.db._session import get_async_session_context
-from medlogserver.db.wido_gkv_arzneimittelindex.search_engines._base import (
+from medlogserver.db.wido_gkv_arzneimittelindex.drug_search._base import (
     MedLogDrugSearchEngineBase,
     MedLogSearchEngineResult,
 )
@@ -28,7 +30,7 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
 
-from medlogserver.api.paginator import PageParams
+from medlogserver.api.paginator import PageParams, PaginatedResponse
 from medlogserver.db.wido_gkv_arzneimittelindex.model.applikationsform import (
     Applikationsform,
 )
@@ -119,25 +121,30 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             return
 
         state.index_build_up_in_process = True
+        index_item_count = None
         await self._save_state(state)
         try:
             log.info("Build drug search index...")
             async with get_async_session_context() as session:
                 await self._clear_cache(session=session)
-                await self._build_index(force_rebuild=force_rebuild, session=session)
+                await self._build_index(session=session)
+                index_item_count = await self._count_cache_items(session=session)
+                session.commit()
             log.info("...building drug search index done.")
         except Exception as err:
             log.error("Building index for 'GenericSQLDrugSearchEngine'-Engine failed")
             # ToDo. We need an extra session here. when there is an sql error the state read/write will be prevented
             state = await self._get_state()
             state.index_build_up_in_process = False
-            state.last_error = repr(err)
+            state.last_error = repr(traceback.format_exc())
             await self._save_state(state)
             raise err
         state = await self._get_state()
         state.index_build_up_in_process = False
         state.last_index_build_at = datetime.datetime.now(tz=datetime.timezone.utc)
         state.last_index_build_based_on_ai_version_id = self.target_ai_data_version.id
+        state.index_item_count = index_item_count
+        state.last_error = None
         await self._save_state(state)
 
     async def _clear_cache(self, session: AsyncSession, skip_commit: bool = True):
@@ -146,7 +153,12 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         if not skip_commit:
             session.commit()
 
-    async def _build_index(self, session: AsyncSession, force_rebuild: bool):
+    async def _count_cache_items(self, session: AsyncSession) -> int:
+        query = select(func.count(GenericSQLDrugSearchCache.pzn))
+        results = await session.exec(statement=query)
+        return results.first()
+
+    async def _build_index(self, session: AsyncSession, skip_commit: bool = True):
 
         stamm_search_fields = []
         for s_field in DRUG_SEARCHFIELDS:
@@ -203,15 +215,24 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 )
             )
         session.add_all(cache_entries)
-        await session.commit()
+        if not skip_commit:
+            await session.commit()
         # print(type(first), dict(zip(res.keys(), first)))
 
     # async def refresh_index(self, force_rebuild: bool = False):
     #    await self.build_index(force_rebuild=True)
 
-    async def index_ready(self):
-        """This should be a low cost function. It should return False if the index is not existent or in the process of build up."""
-        pass
+    async def index_ready(self) -> bool:
+        state = await self._get_state()
+        return (
+            not state.index_build_up_in_process
+            and state.last_index_build_at is not None
+        )
+
+    async def total_item_count(self) -> int:
+        # count of all items that are in the index.
+        state = await self._get_state()
+        return state.index_item_count
 
     async def search(
         self,
@@ -226,7 +247,8 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         filter_apopflicht: int = None,
         filter_preisart_neu: str = None,
         only_current_medications: bool = True,
-    ) -> List[MedLogSearchEngineResult]:
+        pagination: PageParams = None,
+    ) -> PaginatedResponse[MedLogSearchEngineResult]:
         search_term = (
             search_term.replace("'", '"')
             .replace("`", '"')
@@ -235,18 +257,66 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             .replace("“", '"')
             .replace("‘", '"')
         )
-        # this is what i try to achieve:
-        # SELECT x.pzn, case when x.index_content like "%Jakavi L01EJ01 86 10002543 Jakavi 5 mg NOVART01 TAB 140 000002333%" THEN 1 ELSE 0 END as score, x.* FROM generic_sql_drug_search_cache x
+        search_term_tokens = shlex.split(search_term)
+
+        # if a name starts with the exact search term we add 1.2 to the score
+        # if the drug contains the whole search term cohesive it adds 1.1 to the search score.
+        # if it also matches the case it adds 1.0 to the score
+        istartswith_op
+        score_cases = case(
+            (
+                istartswith_op(
+                    GenericSQLDrugSearchCache.index_content,
+                    search_term.replace('"', ""),
+                ),
+                1.2,
+            ),
+            (
+                contains_op(
+                    GenericSQLDrugSearchCache.index_content,
+                    search_term.replace('"', ""),
+                ),
+                1.1,
+            ),
+            (
+                icontains_op(
+                    GenericSQLDrugSearchCache.index_content,
+                    search_term.replace('"', ""),
+                ),
+                1,
+            ),
+            else_=0,
+        )
+
+        for search_token in search_term_tokens:
+            # if a drug contains one search token is add 0.1 to the score
+            # if matches the case it add 0.2 to the score
+            score_cases = score_cases.op("+")(
+                case(
+                    (
+                        contains_op(
+                            GenericSQLDrugSearchCache.index_content, search_token
+                        ),
+                        0.2,
+                    ),
+                    (
+                        icontains_op(
+                            GenericSQLDrugSearchCache.index_content, search_token
+                        ),
+                        0.1,
+                    ),
+                    else_=0,
+                )
+            )
         query = select(
             GenericSQLDrugSearchCache.pzn,
-            case(
-                (icontains_op(GenericSQLDrugSearchCache.index_content, search_term), 1),
-                else_=0,
-            ).label("score"),
+            score_cases.label("score"),
         )
         # pzn filter
         if pzn_contains:
-            query = query.where(contains(GenericSQLDrugSearchCache.pzn, pzn_contains))
+            query = query.where(
+                contains_op(GenericSQLDrugSearchCache.pzn, pzn_contains)
+            )
         # category filters
         if filter_packgroesse:
             query = query.where(
@@ -287,33 +357,41 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             )
         if only_current_medications:
             query = query.where(is_(GenericSQLDrugSearchCache.ahdatum, None))
-        # sreach term/words filter
-        search_term_words = shlex.split(search_term)
-        for word in search_term_words:
-            query = query.where(
-                icontains_op(GenericSQLDrugSearchCache.index_content, word)
-            )
-        # extra score when search term occurs cohesive
+        query = query.where(Column("score") > 0)
+        if pagination:
+            query = pagination.append_to_query(query, no_limit=True)
+        query = query.order_by(desc("score"))
 
         log.debug(f"SEARCH QUERY: {query}")
         async with get_async_session_context() as session:
             search_res = await session.exec(query)
             pzns_with_score = search_res.all()
+
+            result_count = len(pzns_with_score)
+            if pagination.limit:
+                pzns_with_score = pzns_with_score[: pagination.limit]
             async with get_stamm_crud_context(session=session) as stamm_crud:
                 drugs = await stamm_crud.get_multiple(
                     pzns=[item[0] for item in pzns_with_score], keep_pzn_order=True
                 )
                 # you are here. check if score makes sense and order by it
-                return [
-                    MedLogSearchEngineResult(
-                        pzn=drug.pzn,
-                        item=drug,
-                        score=next(
-                            item[1] for item in pzns_with_score if item[0] == drug.pzn
-                        ),
-                    )
-                    for drug in drugs
-                ]
+                return PaginatedResponse(
+                    total_count=result_count,
+                    count=len(pzns_with_score),
+                    offset=pagination.offset,
+                    items=[
+                        MedLogSearchEngineResult(
+                            pzn=drug.pzn,
+                            item=drug,
+                            relevance_score=next(
+                                item[1]
+                                for item in pzns_with_score
+                                if item[0] == drug.pzn
+                            ),
+                        )
+                        for drug in drugs
+                    ],
+                )
 
     async def _get_state(self) -> GenericSQLDrugSearchState:
         state = None

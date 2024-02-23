@@ -1,13 +1,14 @@
 from typing import List, Dict
 from pydantic import BaseModel
 from medlogserver.db._session import AsyncSession, get_async_session
+from medlogserver.api.paginator import PageParams, PaginatedResponse
 from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import StammRead
 
 
 class MedLogSearchEngineResult(BaseModel):
     pzn: str
+    relevance_score: float
     item: StammRead
-    score: int
 
 
 class MedLogDrugSearchEngineBase:
@@ -37,7 +38,7 @@ class MedLogDrugSearchEngineBase:
         """This function is for engines where index build up and refresh follow different processes"""
         await self.build_index(force_rebuild=True)
 
-    async def index_ready(self):
+    async def index_ready(self) -> bool:
         """This should be a low cost function. It should return False if the index is not existent or in the process of build up."""
         pass
 
@@ -54,9 +55,10 @@ class MedLogDrugSearchEngineBase:
         filter_apopflicht: int = None,
         filter_preisart_neu: str = None,
         only_current_medications: bool = False,
-    ) -> List[MedLogSearchEngineResult]:
+        pagination: PageParams = None,
+    ) -> PaginatedResponse[MedLogSearchEngineResult]:
         pass
 
-    async def item_count(self):
+    async def total_item_count(self) -> int:
         # count of all items that are in the index.
         pass

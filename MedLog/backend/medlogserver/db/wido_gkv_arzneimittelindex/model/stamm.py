@@ -35,12 +35,12 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.enum_biosimilar import Bio
 
 
 DRUG_SEARCHFIELDS = (
-    "laufnr",
+    "name",
     "staname",
+    "laufnr",
     "atc_code",
     "indgr",
     "pzn",
-    "name",
     "hersteller_code",
     "darrform",
     "packgroesse",

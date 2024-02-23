@@ -15,9 +15,9 @@ class PageParams(BaseModel):
         examples=[50],
     )
 
-    def append_to_query(self, q):
+    def append_to_query(self, q, no_limit: bool = True):
         q = q.offset(self.offset)
-        if self.limit:
+        if self.limit and not no_limit:
             q = q.limit(self.limit)
         return q
 
