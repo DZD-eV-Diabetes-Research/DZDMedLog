@@ -18,20 +18,20 @@ export default {
             result: response.data,
         })
     },
-    async getToken(context, payload){ 
+    // async getToken(context, payload){ 
  
-        axios.defaults.headers.common = {'refresh-token' : "Bearer " + payload}
+    //     axios.defaults.headers.common = {'refresh-token' : "Bearer " + payload}
 
-        const response = await axios.post('/auth/refresh', {
-            headers: {
-                'Content-Type': 'json',
-            }
-        })
+    //     const response = await axios.post('/auth/refresh', {
+    //         headers: {
+    //             'Content-Type': 'json',
+    //         }
+    //     })
 
-        context.commit('refresh', {
-            result: response.data,
-        })
-    },
+    //     context.commit('refresh', {
+    //         result: response.data,
+    //     })
+    // },
 
     async userMe(context){
 

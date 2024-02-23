@@ -11,18 +11,18 @@ const router = createRouter({
         { path: '/', redirect: "/auth" },
         {
             path: '/auth', component: Login,
-            beforeEnter: (to, from, next) => {
-                if (store.dispatch("userMe")) {
-                    next("/user")
-                } else {
-                    next("/")
-                }
-            }
+            // beforeEnter: (to, from, next) => {
+            //     if (store.getters.access_token) {
+            //         next("/user")
+            //     } else {
+            //         next("/")
+            //     }
+            // }
         },
         {
             path: '/user', component: UserView,
             beforeEnter: (to, from, next) => {
-                if (store.dispatch("userMe")) {
+                if (store.dispatch('userMe')) {
                     next()
                 } else {
                     next("/")
