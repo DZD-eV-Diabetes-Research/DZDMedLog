@@ -13,8 +13,6 @@
                 <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
             </div>
         </form>
-        <!-- <button @click="newToken">New Token</button>
-        <button @click="userMe">About myself</button> -->
     </base-card>
 </template>
 
@@ -37,20 +35,6 @@ export default {
             }
             catch (err) {
                 this.error = err.response
-            }
-        },
-
-        async newToken() {
-            if (!this.$store.getters.refresh_token) {
-                this.error = "Please login first"
-            }
-            else {
-                const payload = this.$store.getters.refresh_token
-                try {
-                    await this.$store.dispatch('getToken', payload)
-                } catch (err) {
-                    this.error = err.response
-                }
             }
         },
 
