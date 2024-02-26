@@ -8,40 +8,73 @@
                 <input id="password" name="password" type="password" v-model.trim="password">
             </div>
             <div>
-                <h1 style="color: red" v-if="error">{{ error }}</h1>
+                <h1 style="color: red" v-if="tokenStore.get_error">{{ tokenStore.get_error }}</h1>
                 <button>Login</button>
                 <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
             </div>
         </form>
+        <button @click="new_token">New Token</button>
+        <button @click="logout">Logout</button>
+        <button @click="test">userMe</button>
+        {{ userStore.get_email }}
+        {{ userStore.get_user_name }}
+        <h1>{{ tokenStore.is_logged_in }}</h1>
+
     </base-card>
 </template>
 
 <script>
 
+import { useTokenStore } from '@/stores/TokenStore'
+import { useUserStore } from '@/stores/UserStore'
+
 export default {
+
+    setup() {
+        const tokenStore = useTokenStore()
+        const userStore = useUserStore()
+        return { tokenStore, userStore }
+    },
+
     data() {
         return {
             userName: "",
             password: "",
             formIsValid: true,
-            error: "",
         }
     },
     methods: {
-
-        async userMe() {
+        test() {
             try {
-                await this.$store.dispatch("userMe")
-            }
-            catch (err) {
-                this.error = err.response
+                this.userStore.userMe()
+            } catch (err) {
+                console.log(err)
+                this.tokenStore.error = err.response
             }
         },
 
+        async new_token() {
+
+            this.tokenStore.error = null
+            const payload = {
+                username: this.userName,
+                password: this.password
+            }
+            this.tokenStore.login(payload)
+
+        },
+
+        async logout() {
+            this.userName = ""
+            this.password = ""
+            this.userStore.$reset()
+            this.tokenStore.$reset()
+        },
+
         async submitForm() {
-            this.error = ""
+            this.tokenStore.error = ""
             if (this.userName === '' || this.password.length === 0) {
-                this.error = "Please enter a valid username and password"
+                this.tokenStore.error = "Please enter a valid username and password"
                 this.formIsValid = false
             }
             const payload = {
@@ -50,22 +83,24 @@ export default {
             }
 
             try {
-                await this.$store.dispatch('login', payload)
+                await this.tokenStore.login(payload)
+                this.tokenStore.is_logged_in = true
 
                 try {
-                    await this.$store.dispatch("userMe")
+                    await this.tokenStore.userMe()
                 }
                 catch (err) {
-                    this.error = err.response
+                    this.tokenStore.error = err.response
                 }
                 this.$router.push("/user")
 
             } catch (err) {
-                this.error = "Wrong username or password"
+                this.tokenStore.error = "Wrong username or password"
             }
-        }
+        },
     }
 }
+
 
 </script>
 

@@ -1,16 +1,37 @@
 import { defineStore } from 'pinia'
 
+import axios from 'axios';
+
 export const useTokenStore = defineStore('TokenStore', {
     state: () => {
         return {
             access_token: null,
             refresh_token: null,
+            is_logged_in : false,
+            error: null,
         }
     },
 
+    getters: {
+        get_error() {
+            return this.error
+        },
+        get_access_token() {
+            return this.access_token
+        },
+        get_refresh_token() {
+            return this.refresh_token
+        },
+        get_logged_status(){
+            return this.is_logged_in
+        }
+    },
+
+
     actions: {
 
-        async login(context, payload) {
+        async login(payload) {
+
             const response = await axios.post('/auth/token', {
                 username: payload.username,
                 password: payload.password
@@ -20,28 +41,28 @@ export const useTokenStore = defineStore('TokenStore', {
                 }
             }
             )
+            this.access_token = response.data.access_token
+            this.refresh_token = response.data.refresh_token
 
-            context.commit('login', {
-                result: response.data,
-            })
         },
 
-        async userMe(context) {
+        async updateAccessToken() {
 
-            const access_token = store.getters.access_token
+            axios.defaults.headers.common = { 'refresh-token': "Bearer " + this.get_refresh_token }
 
-            axios.defaults.headers.common = { 'Authorization': "Bearer " + access_token }
-
-            const response = await axios.get("/user/me")
-            context.commit('userMe', {
-                result: response,
+            try {
+            const response = await axios.post('/auth/refresh', {
+                headers: {
+                    'Content-Type': 'json',
+                }
             })
-        },
 
-        async updateAccessToken(context, token) {
-            context.commit('updateAccessToken', { result: token })
+            this.access_token = response.data.access_token
+        } catch (err) {
+            this.error = err.response.data.detail
         }
-    }
 
-}
-)
+        }
+    },
+    persist: true,
+})
