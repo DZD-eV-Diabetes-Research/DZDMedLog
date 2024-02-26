@@ -7,7 +7,6 @@ export const useTokenStore = defineStore('TokenStore', {
         return {
             access_token: null,
             refresh_token: null,
-            is_logged_in : false,
             error: null,
         }
     },
@@ -22,9 +21,6 @@ export const useTokenStore = defineStore('TokenStore', {
         get_refresh_token() {
             return this.refresh_token
         },
-        get_logged_status(){
-            return this.is_logged_in
-        }
     },
 
 
@@ -64,5 +60,5 @@ export const useTokenStore = defineStore('TokenStore', {
 
         }
     },
-    persist: true,
+    persist: false,
 })

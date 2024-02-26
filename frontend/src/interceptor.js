@@ -1,6 +1,7 @@
 import axios from "axios";
 import router from "./router";
 import { useTokenStore } from '@/stores/TokenStore'
+import { useUserStore } from '@/stores/UserStore'
 
 
 let refresh = false;
@@ -40,9 +41,11 @@ axios.interceptors.response.use(
                     return axios(error.config);
                 }
             } catch (refreshError) {
+                const userStore = useUserStore()
                 refresh = false;
-                //tokenStore.is_logged_in = false
-                router.push("/auth");
+                tokenStore.$reset()
+                userStore.$reset()
+                router.push("/");
                 return Promise.reject(refreshError);
             }
         }

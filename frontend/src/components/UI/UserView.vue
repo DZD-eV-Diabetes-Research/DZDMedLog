@@ -27,6 +27,7 @@ export default {
         logout() {
             this.userStore.$reset()
             this.tokenStore.$reset()
+            this.$router.push("/")
         },
         userMe() {
             try {

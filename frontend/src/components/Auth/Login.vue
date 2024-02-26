@@ -18,7 +18,6 @@
         <button @click="test">userMe</button>
         {{ userStore.get_email }}
         {{ userStore.get_user_name }}
-        <h1>{{ tokenStore.is_logged_in }}</h1>
 
     </base-card>
 </template>
@@ -84,7 +83,6 @@ export default {
 
             try {
                 await this.tokenStore.login(payload)
-                this.tokenStore.is_logged_in = true
 
                 try {
                     await this.tokenStore.userMe()
