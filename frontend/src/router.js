@@ -1,5 +1,6 @@
+//import { useTokenStore } from '@/stores/TokenStore'
 import { createRouter, createWebHistory } from 'vue-router';
-import store from './store/index.js'
+import { useTokenStore } from '@/stores/TokenStore'
 
 import Login from "./components/Auth/Login.vue"
 import UserView from "./components/UI/UserView.vue"
@@ -10,28 +11,60 @@ const router = createRouter({
     routes: [
         { path: '/', redirect: "/auth" },
         {
-            path: '/auth', component: Login,
-            // beforeEnter: (to, from, next) => {
-            //     if (store.getters.access_token) {
-            //         next("/user")
-            //     } else {
-            //         next("/")
-            //     }
-            // }
-        },
-        {
-            path: '/user', component: UserView,
+            path: '/auth',
+            component: Login,
+            meta: { requiresAuth: false }, 
             beforeEnter: (to, from, next) => {
-                if (store.dispatch('userMe')) {
-                    next()
+                const tokenStore = useTokenStore()
+                const refreshToken = tokenStore.get_refresh_token; 
+
+                if (refreshToken) {
+                    next("/user");
                 } else {
-                    next("/")
+                    next();
                 }
             }
-
+        },
+        {
+            path: '/user',
+            component: UserView,
+            meta: { requiresAuth: true }, 
+            beforeEnter: (to, from, next) => {
+                const tokenStore = useTokenStore()
+                const refreshToken = tokenStore.get_refresh_token; 
+                if (refreshToken) {
+                    next();
+                } else {
+                    next("/auth");
+                }
+            }
         },
         { path: '/:notFound(.*)', component: NotFound }
     ]
 });
 
-export default router
+router.beforeEach((to, from, next) => {
+    const tokenStore = useTokenStore();
+    const refreshToken = tokenStore.get_refresh_token;
+    const isLoggedIn = tokenStore.get_logged_status;
+
+    if (to.meta.requiresAuth && (!refreshToken || !isLoggedIn)) {
+        console.log(to.meta.requiresAuth && !refreshToken)
+        next('/auth');
+    } else {
+        next();
+    }
+});
+
+// router.beforeEach((to, from, next) => {
+//     const tokenStore = useTokenStore();
+//     const isLoggedIn = tokenStore.get_logged_status;
+
+//     if (!isLoggedIn) {
+//         next('/auth');
+//     } else {
+//         next();
+//     }
+// });
+
+export default router;
