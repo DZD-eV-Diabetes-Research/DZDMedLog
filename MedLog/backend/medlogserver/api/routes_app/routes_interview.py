@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse
 from fastapi import Depends, APIRouter
 
 
-from medlogserver.db.user.user import User
+from medlogserver.db.user.crud import User
 
 
 from medlogserver.config import Config
@@ -27,7 +27,7 @@ from medlogserver.db.interview.model import (
     InterviewCreate,
     InterviewUpdate,
 )
-from medlogserver.db.interview.crud import InterviewCRUD, get_interview_crud
+from medlogserver.db.interview.crud import InterviewCRUD
 from medlogserver.api.routes_app.security import (
     user_has_studies_access_map,
     user_has_study_access,
@@ -53,7 +53,7 @@ fast_api_interview_router: APIRouter = APIRouter()
 )
 async def list_all_interviews_of_study(
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Interview]:
     return await interview_crud.list(filter_by_study_id=study_access.study.id)
 
@@ -66,7 +66,7 @@ async def list_all_interviews_of_study(
 async def list_interviews_by_study_event(
     event_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Interview]:
     return await interview_crud.list(filter_by_event_id=event_id)
 
@@ -80,7 +80,7 @@ async def get_interview(
     event_id: Annotated[str, Path()],
     interview_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Interview]:
     interview = await interview_crud.get(interview_id=interview_id)
     if interview.event_id == event_id:
@@ -100,7 +100,7 @@ async def get_interview(
 async def list_interviews_of_proband(
     proband_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Interview]:
     return await interview_crud.list(filter_by_proband_external_id=proband_id)
 
@@ -118,7 +118,7 @@ async def list_interviews_of_proband(
 async def get_last_completed_interview(
     proband_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Interview]:
     interview = await interview_crud.get_last_by_proband(
         study_id=study_access.study.id, proband_external_id=proband_id, completed=True
@@ -145,7 +145,7 @@ async def get_last_completed_interview(
 async def get_last_non_completed_interview(
     proband_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Interview]:
     interview = await interview_crud.get_last_by_proband(
         study_id=study_access.study.id, proband_external_id=proband_id, completed=False
@@ -166,7 +166,7 @@ async def create_interview(
     interview: Annotated[InterviewCreate, Body()],
     event_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> User:
     if not study_access.user_has_interviewer_permission():
         raise HTTPException(
@@ -186,7 +186,7 @@ async def update_interview(
     event_id: str,
     interview_update: InterviewUpdate,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> User:
     if not study_access.user_has_interviewer_permission():
         raise HTTPException(
@@ -215,7 +215,7 @@ async def delete_interview(
     interview_id: str,
     event_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> None:
     if not study_access.user_has_interviewer_permission():
         raise HTTPException(

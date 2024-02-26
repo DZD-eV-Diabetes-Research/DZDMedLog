@@ -104,7 +104,6 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
     async def build_index(self, force_rebuild: bool = False):
         # tables will be created with build in MedLog/backend/medlogserver/db/_init_db.py -> init_db() we do not need to take care here.
         state = await self._get_state()
-        log.debug(f"Build index called. Before state {state}")
         if state.index_build_up_in_process:
             log.warning(
                 "Cancel build_index for 'GenericSQLDrugSearchEngine'-Engine because build up is allready in progress"
@@ -399,7 +398,6 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             query = select(GenericSQLDrugSearchState)
             res = await session.exec(query)
             state = res.one_or_none()
-            log.debug(f"SATE:{state}")
         if state is None:
             log.debug("Create new GenericSQLDrugSearchState")
             new_state = GenericSQLDrugSearchState()

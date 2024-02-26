@@ -160,4 +160,16 @@ def seperate_string():
     print(result_list)
 
 
-print(seperate_string())
+# print(seperate_string())
+def pydanticUNset():
+    from pydantic import BaseModel, Field
+
+    class MyClass(BaseModel):
+        id: Optional[int] = Field(default="bla")
+        name: str = Field()
+
+    myobj = MyClass(name="Hello")
+    print(myobj.model_dump(exclude_unset=True))
+
+
+pydanticUNset()

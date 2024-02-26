@@ -1,22 +1,17 @@
 from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated, Dict
 import enum
 from pydantic import validate_email, field_validator, model_validator, StringConstraints
-from pydantic_core import PydanticCustomError
 from fastapi import Depends
-import contextlib
 from typing import Optional
-from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc
 from datetime import datetime, timezone
 import uuid
 from uuid import UUID
 
-from medlogserver.db._session import get_async_session, get_async_session_context
+
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import Base, BaseTable
-from medlogserver.db.event.model import Event
-from medlogserver.db.interview.model import Interview
+from medlogserver.db.base import BaseModel, BaseTable
 
 
 log = get_logger()
@@ -47,7 +42,7 @@ class ConsumedMedsTodayAnswers(str, enum.Enum):
     UNKNOWN = "UNKNOWN"
 
 
-class IntakeCreate(Base, table=False):
+class IntakeCreate(BaseModel, table=False):
     """This class/table also saves some extra question for every interview. This is 1-to-1 what the old IDOM software did. and its a mess.
     i fucking hate it. its unflexible, complex and ugly!
     for a future version we need an extra class/table to store extra question on a per study base.

@@ -30,17 +30,9 @@ from medlogserver.api.auth.tokens import (
     JWTAccessTokenResponse,
     JWTRefreshTokenContainer,
 )
-from medlogserver.db.user.user import get_user_crud, UserCRUD, User
-from medlogserver.db.user.user_auth import (
-    get_user_auth_crud,
-    UserAuthCRUD,
-    UserAuth,
-    UserAuthCreate,
-    get_user_auth_refresh_token_crud,
-    UserAuthRefreshTokenCRUD,
-    UserAuthRefreshToken,
-    AllowedAuthSourceTypes,
-)
+from medlogserver.db.user.crud import UserCRUD, User
+from medlogserver.db.user_auth.crud import UserAuthCRUD
+from medlogserver.db.user_auth_refresh_token.crud import UserAuthRefreshTokenCRUD
 
 log = get_logger()
 config = Config()
@@ -59,7 +51,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl=TOKEN_ENDPOINT_PATH)
 async def get_current_user(
     token: Annotated[str, Security(oauth2_scheme)],
     user_auth_refresh_token_crud: UserAuthRefreshTokenCRUD = Depends(
-        get_user_auth_refresh_token_crud
+        UserAuthRefreshTokenCRUD.get_crud
     ),
 ) -> User:
     credentials_exception = HTTPException(
@@ -133,10 +125,10 @@ async def get_fresh_access_token(
         example="Bearer S0VLU0UhIExFQ0tFUiEK",
         description="Refresh token via `refresh-token` header field",
     ),
-    user_crud: UserCRUD = Depends(get_user_crud),
-    user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
+    user_crud: UserCRUD = Depends(UserCRUD.get_crud),
+    user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
     user_auth_refresh_token_crud: UserAuthRefreshTokenCRUD = Depends(
-        get_user_auth_refresh_token_crud
+        UserAuthRefreshTokenCRUD.get_crud
     ),
 ) -> User:
     token_invalid_exception = HTTPException(

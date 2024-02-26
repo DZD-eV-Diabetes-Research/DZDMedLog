@@ -10,27 +10,31 @@ from sqlmodel import Field, select, delete, Column, JSON, SQLModel
 import uuid
 from uuid import UUID
 
-from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import Base, BaseTable
+from medlogserver.db.base import BaseModel, BaseTable
 from medlogserver.db.study.model import Study, StudyCreate, StudyUpdate
+from medlogserver.db._base_crud import CRUDBase
+from medlogserver.api.paginator import PageParams
 
 log = get_logger()
 config = Config()
 
 
-class StudyCRUD:
+class StudyCRUD(CRUDBase[Study, Study, StudyCreate, StudyUpdate]):
     def __init__(self, session: AsyncSession):
         self.session = session
 
     async def list(
         self,
         show_deactivated: bool = False,
+        pagination: PageParams = None,
     ) -> Sequence[Study]:
         query = select(Study)
         if not show_deactivated:
             query = query.where(Study.deactivated == False)
+        if pagination:
+            query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)
         return results.all()
 
@@ -104,45 +108,3 @@ class StudyCRUD:
         await self.session.commit()
         await self.session.refresh(study)
         return study
-
-    async def update(
-        self,
-        study_update: StudyUpdate,
-        study_id: str | UUID = None,
-        raise_exception_if_not_exists=None,
-    ) -> Study:
-        study_from_db = await self.get(
-            study_id=study_id,
-            raise_exception_if_none=raise_exception_if_not_exists,
-            show_deactivated=True,
-        )
-        for k, v in study_update.model_dump(exclude_unset=True).items():
-            if k in Study.model_fields.keys():
-                setattr(study_from_db, k, v)
-        self.session.add(study_from_db)
-        await self.session.commit()
-        await self.session.refresh(study_from_db)
-        return study_from_db
-
-    async def delete(
-        self,
-        study_id: str | UUID,
-        raise_exception_if_not_exists=None,
-    ) -> Study:
-        user = await self.get(
-            study_id=study_id,
-            raise_exception_if_none=raise_exception_if_not_exists,
-            show_deactivated=True,
-        )
-        if user is not None:
-            delete(user).where(Study.id == study_id)
-        return True
-
-
-async def get_study_crud(
-    session: AsyncSession = Depends(get_async_session),
-) -> AsyncGenerator[StudyCRUD, None]:
-    yield StudyCRUD(session=session)
-
-
-get_study_crud_context = contextlib.asynccontextmanager(get_study_crud)

@@ -90,10 +90,10 @@ from medlogserver.db.wido_gkv_arzneimittelindex.crud.enum_preisart import (
     get_preisart_crud_context,
 )
 
-from medlogserver.db.base import Base, BaseTable
+from medlogserver.db.base import BaseModel, BaseTable
 
 
-class DrugModelTableBase(Base, BaseTable):
+class DrugModelTableBase(BaseModel, BaseTable):
     pass
 
 

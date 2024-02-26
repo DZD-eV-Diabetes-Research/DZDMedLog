@@ -19,7 +19,7 @@ from typing import Annotated
 from fastapi import Depends, APIRouter
 
 
-from medlogserver.db.user.user import (
+from medlogserver.db.user.crud import (
     User,
 )
 
@@ -32,7 +32,7 @@ from medlogserver.api.auth.base import (
 )
 
 from medlogserver.db.study.model import Study, StudyUpdate, StudyCreate
-from medlogserver.db.study.crud import StudyCRUD, get_study_crud
+from medlogserver.db.study.crud import StudyCRUD
 from medlogserver.db.study_permission.model import StudyPermisson
 from medlogserver.db.study_permission.crud import (
     StudyPermissonCRUD,
@@ -66,7 +66,7 @@ async def list_studies(
     study_permissions_helper: UserStudyAccessCollection = Security(
         user_has_studies_access_map
     ),
-    study_crud: StudyCRUD = Depends(get_study_crud),
+    study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
 ) -> User:
 
     # ToDo: This is a pretty cost intensive endpoint/query. Would be a good candiate for some kind of cache. UPDATE: now all in Security(user_has_study_access_map) fix/cache that
@@ -86,7 +86,7 @@ async def list_studies(
 async def create_study(
     study: StudyCreate,
     current_user_is_admin: User = Security(user_is_admin),
-    study_crud: StudyCRUD = Depends(get_study_crud),
+    study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
 ) -> User:
     return await study_crud.create(
         study,
@@ -107,7 +107,7 @@ async def update_study(
     study: Annotated[
         StudyUpdate, Body(description="The study object with updated data")
     ],
-    study_crud: StudyCRUD = Depends(get_study_crud),
+    study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
     study_permission_crud: StudyPermissonCRUD = Depends(get_study_permission_crud),
     current_user: User = Security(get_current_user),
 ) -> Study:
@@ -145,7 +145,7 @@ async def update_study(
 async def delete_study(
     study_id: Annotated[str, Path()],
     current_user_is_admin: User = Security(user_is_admin),
-    study_crud: StudyCRUD = Depends(get_study_crud),
+    study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
 ):
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
