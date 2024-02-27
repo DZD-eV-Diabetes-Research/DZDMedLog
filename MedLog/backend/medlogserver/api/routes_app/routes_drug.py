@@ -33,7 +33,7 @@ from medlogserver.api.routes_app.security import (
 
 from medlogserver.config import Config
 from medlogserver.db.wido_gkv_arzneimittelindex.model import StammRead
-from medlogserver.db.wido_gkv_arzneimittelindex.crud import StammCRUD, get_stamm_crud
+from medlogserver.db.wido_gkv_arzneimittelindex.crud import StammCRUD
 
 
 from medlogserver.db.wido_gkv_arzneimittelindex.drug_search import (
@@ -56,17 +56,11 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model import (
     Preisart,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.crud import (
-    get_normpackungsgroessen_crud,
     NormpackungsgroessenCRUD,
-    get_darrform_crud,
     DarreichungsformCRUD,
-    get_applikationsform_crud,
     ApplikationsformCRUD,
-    get_generikakenn_crud,
     GenerikakennungCRUD,
-    get_apopflicht_crud,
     ApoPflichtCRUD,
-    get_preisart_crud,
     PreisartCRUD,
 )
 
@@ -90,7 +84,7 @@ async def list_drugs(
     user: User = Security(get_current_user),
     is_admin: bool = Security(user_is_admin),
     pagination: PageParams = Depends(pagination_query),
-    drug_stamm_crud: StammCRUD = Depends(get_stamm_crud),
+    drug_stamm_crud: StammCRUD = Depends(StammCRUD.get_crud),
 ) -> PaginatedResponse[StammRead]:
     result_items = await drug_stamm_crud.list(pagination=pagination)
     # return result_items
@@ -110,7 +104,7 @@ async def list_drugs(
 async def get_drug(
     pzn: str,
     user: User = Security(get_current_user),
-    drug_stamm_crud: StammCRUD = Depends(get_stamm_crud),
+    drug_stamm_crud: StammCRUD = Depends(StammCRUD.get_crud),
 ) -> StammRead:
     return await drug_stamm_crud.get(
         pzn=pzn,
@@ -186,7 +180,7 @@ async def search_drugs(
 )
 async def list_packgroesse(
     user: User = Security(get_current_user),
-    normp_crud: NormpackungsgroessenCRUD = Depends(get_normpackungsgroessen_crud),
+    normp_crud: NormpackungsgroessenCRUD = Depends(NormpackungsgroessenCRUD.get_crud),
     pagination: PageParams = Depends(pagination_query),
 ) -> PaginatedResponse[Normpackungsgroessen]:
     res = await normp_crud.list(pagination=pagination)
@@ -205,7 +199,7 @@ async def list_packgroesse(
 )
 async def list_darreichungsforms(
     user: User = Security(get_current_user),
-    crud: DarreichungsformCRUD = Depends(get_darrform_crud),
+    crud: DarreichungsformCRUD = Depends(DarreichungsformCRUD.get_crud),
     pagination: PageParams = Depends(pagination_query),
 ) -> PaginatedResponse[Darreichungsform]:
     res = await crud.list(pagination=pagination)
@@ -224,7 +218,7 @@ async def list_darreichungsforms(
 )
 async def list_applikationsforms(
     user: User = Security(get_current_user),
-    crud: ApplikationsformCRUD = Depends(get_applikationsform_crud),
+    crud: ApplikationsformCRUD = Depends(ApplikationsformCRUD.get_crud),
     pagination: PageParams = Depends(pagination_query),
 ) -> PaginatedResponse[Applikationsform]:
     res = await crud.list(pagination=pagination)
@@ -237,13 +231,26 @@ async def list_applikationsforms(
 
 
 @fast_api_drug_router.get(
+    "/drug/enum/appform/{key}",
+    response_model=Applikationsform,
+    description=f"list Applikationsform",
+)
+async def list_applikationsforms(
+    key: str,
+    user: User = Security(get_current_user),
+    crud: ApplikationsformCRUD = Depends(ApplikationsformCRUD.get_crud),
+) -> Applikationsform:
+    return await crud.get(key=key)
+
+
+@fast_api_drug_router.get(
     "/drug/enum/generikakenn",
     response_model=PaginatedResponse[Generikakennung],
     description=f"list Generikakennung",
 )
 async def list_generikakenns(
     user: User = Security(get_current_user),
-    crud: GenerikakennungCRUD = Depends(get_generikakenn_crud),
+    crud: GenerikakennungCRUD = Depends(GenerikakennungCRUD.get_crud),
     pagination: PageParams = Depends(pagination_query),
 ) -> PaginatedResponse[Generikakennung]:
     res = await crud.list(pagination=pagination)
@@ -262,7 +269,7 @@ async def list_generikakenns(
 )
 async def list_apopflicht(
     user: User = Security(get_current_user),
-    crud: ApoPflichtCRUD = Depends(get_apopflicht_crud),
+    crud: ApoPflichtCRUD = Depends(ApoPflichtCRUD.get_crud),
     pagination: PageParams = Depends(pagination_query),
 ) -> PaginatedResponse[ApoPflicht]:
     res = await crud.list(pagination=pagination)
@@ -281,7 +288,7 @@ async def list_apopflicht(
 )
 async def list_apopflicht(
     user: User = Security(get_current_user),
-    crud: PreisartCRUD = Depends(get_preisart_crud),
+    crud: PreisartCRUD = Depends(PreisartCRUD.get_crud),
     pagination: PageParams = Depends(pagination_query),
 ) -> PaginatedResponse[Preisart]:
     res = await crud.list(pagination=pagination)

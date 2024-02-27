@@ -28,7 +28,14 @@ log = get_logger()
 config = Config()
 
 
-class StudyPermissonCRUD(CRUDBase[StudyPermisson, StudyPermissonHumanReadeable]):
+class StudyPermissonCRUD(
+    CRUDBase[
+        StudyPermisson,
+        StudyPermissonHumanReadeable,
+        StudyPermisson,
+        StudyPermissonUpdate,
+    ]
+):
     def __init__(self, session: AsyncSession):
         self.session = session
 

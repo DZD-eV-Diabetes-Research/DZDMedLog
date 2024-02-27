@@ -42,7 +42,7 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.hersteller import Herstell
 from medlogserver.db.wido_gkv_arzneimittelindex.model.normpackungsgroessen import (
     Normpackungsgroessen,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.crud.stamm import get_stamm_crud_context
+from medlogserver.db.wido_gkv_arzneimittelindex.crud.stamm import StammCRUD
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -369,7 +369,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             result_count = len(pzns_with_score)
             if pagination.limit:
                 pzns_with_score = pzns_with_score[: pagination.limit]
-            async with get_stamm_crud_context(session=session) as stamm_crud:
+            async with StammCRUD.crud_context(session=session) as stamm_crud:
                 drugs = await stamm_crud.get_multiple(
                     pzns=[item[0] for item in pzns_with_score], keep_pzn_order=True
                 )

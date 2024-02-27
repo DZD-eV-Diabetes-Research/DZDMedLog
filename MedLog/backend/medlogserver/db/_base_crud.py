@@ -16,21 +16,12 @@ from sqlmodel import func, select, delete
 from uuid import UUID
 
 from medlogserver.db._session import get_async_session
-from medlogserver.db.wido_gkv_arzneimittelindex.model._base import (
-    DrugModelTableBase,
-)
-from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
-    AiDataVersion,
-)
-from medlogserver.db.wido_gkv_arzneimittelindex.crud.ai_data_version import (
-    AiDataVersionCRUD,
-    get_ai_data_version_crud,
-    get_ai_data_version_crud_context,
-)
+
 from medlogserver.db.base import BaseModel, BaseTable
 from medlogserver.api.paginator import PageParams
 from medlogserver.config import Config
 from medlogserver.log import get_logger
+from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTableBase
 
 log = get_logger()
 config = Config()
@@ -62,7 +53,6 @@ class CRUDBase(
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        cls.table = cls.get_table_cls()
 
     @classmethod
     def _get_generics_def(cls):
@@ -126,17 +116,26 @@ class CRUDBase(
         results = await self.session.exec(statement=query)
         return results.all()
 
-    async def get(
+    async def _get(
         self,
         id_: str | UUID,
         raise_exception_if_none: Exception = None,
     ) -> Optional[GenericCRUDReadType]:
+        # get() could be overwritten in  a child class that why we create an internal _get() function that can be used by other funcs like update()
         query = select(self.get_table_cls()).where(self.get_table_cls().id == id_)
         results = await self.session.exec(statement=query)
         res = results.one_or_none()
         if res is None and raise_exception_if_none:
             raise raise_exception_if_none
         return res
+
+    async def get(
+        self,
+        id_: str | UUID,
+        raise_exception_if_none: Exception = None,
+    ) -> Optional[GenericCRUDReadType]:
+
+        return await self._get(id_, raise_exception_if_none)
 
     async def create(
         self,
@@ -151,19 +150,23 @@ class CRUDBase(
     async def update(
         self,
         update_obj: GenericCRUDUpdateType,
-        id_: str | UUID,
+        id_: str | UUID = None,
         raise_exception_if_not_exists=None,
     ) -> GenericCRUDReadType:
-        event_from_db = await self.get(
-            event_id=id_, raise_exception_if_none=raise_exception_if_not_exists
+        id_ = id_ if id_ is not None else getattr(update_obj, "id", None)
+        if id_ is None:
+            raise ValueError("No id_ (primary key) provided. Could not update")
+        # replace with query or internal get, as get could be overwriten by child class
+        obj_from_db = await self._get(
+            id_=id_, raise_exception_if_none=raise_exception_if_not_exists
         )
         for k, v in update_obj.model_dump(exclude_unset=True).items():
-            if k in self.get_update_cls.model_fields.keys():
-                setattr(event_from_db, k, v)
-        self.session.add(event_from_db)
+            if k in self.get_update_cls().model_fields.keys():
+                setattr(obj_from_db, k, v)
+        self.session.add(obj_from_db)
         await self.session.commit()
-        await self.session.refresh(event_from_db)
-        return event_from_db
+        await self.session.refresh(obj_from_db)
+        return obj_from_db
 
     async def delete(
         self,
@@ -171,11 +174,7 @@ class CRUDBase(
         raise_exception_if_not_exists=None,
     ):
         tbl = self.get_table_cls()
-        existing_obj_query = select(tbl).where(tbl.id == id_)
-        results = await self.session.exec(statement=existing_obj_query)
-        existing_obj = results.one_or_none()
-        if existing_obj is None and raise_exception_if_not_exists:
-            raise raise_exception_if_not_exists
+        existing_obj = await self._get(id_, raise_exception_if_not_exists)
         if existing_obj is not None:
             del_statement = delete(tbl).where(self.tbl.id == id_)
             await self.session.exec(del_statement)

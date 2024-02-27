@@ -34,10 +34,7 @@ from medlogserver.api.auth.base import (
 from medlogserver.db.study.model import Study, StudyUpdate, StudyCreate
 from medlogserver.db.study.crud import StudyCRUD
 from medlogserver.db.study_permission.model import StudyPermisson
-from medlogserver.db.study_permission.crud import (
-    StudyPermissonCRUD,
-    get_study_permission_crud,
-)
+from medlogserver.db.study_permission.crud import StudyPermissonCRUD
 from medlogserver.api.routes_app.security import (
     user_has_studies_access_map,
     UserStudyAccessCollection,
@@ -108,7 +105,7 @@ async def update_study(
         StudyUpdate, Body(description="The study object with updated data")
     ],
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
-    study_permission_crud: StudyPermissonCRUD = Depends(get_study_permission_crud),
+    study_permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
     current_user: User = Security(get_current_user),
 ) -> Study:
     # security

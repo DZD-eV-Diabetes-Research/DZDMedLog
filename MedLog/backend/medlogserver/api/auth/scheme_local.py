@@ -20,6 +20,7 @@ from medlogserver.db.user_auth.crud import (
     UserAuth,
     UserAuthCRUD,
 )
+from medlogserver.db.user_auth_refresh_token.model import UserAuthRefreshTokenCreate
 from medlogserver.db.user_auth_refresh_token.crud import UserAuthRefreshTokenCRUD
 from medlogserver.api.auth.base import TOKEN_ENDPOINT_PATH
 

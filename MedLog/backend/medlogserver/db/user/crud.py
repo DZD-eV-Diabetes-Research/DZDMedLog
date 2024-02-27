@@ -146,17 +146,3 @@ class UserCRUD(CRUDBase[User, User, UserCreate, UserUpdate]):
         await self.session.commit()
         await self.session.refresh(user_from_db)
         return user_from_db
-
-    async def delete(
-        self,
-        user_id: str | UUID,
-        raise_exception_if_not_exists=None,
-    ) -> User:
-        user = await self.get(
-            user_id=user_id,
-            raise_exception_if_none=raise_exception_if_not_exists,
-            show_deactivated=True,
-        )
-        if user is not None:
-            delete(user).where(User.id == user_id)
-        return True

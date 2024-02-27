@@ -29,8 +29,6 @@ from medlogserver.db.wido_gkv_arzneimittelindex.drug_search.search_module_generi
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.crud.ai_data_version import (
     AiDataVersionCRUD,
-    get_ai_data_version_crud,
-    get_ai_data_version_crud_context,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
@@ -79,9 +77,7 @@ class DrugSearch(DrugViewBase):
         self,
     ) -> AiDataVersion:
         if self._current_ai_version is None:
-            async with get_ai_data_version_crud_context(
-                self.session
-            ) as ai_version_crud:
+            async with AiDataVersionCRUD.crud_context(self.session) as ai_version_crud:
                 self._current_ai_version = await ai_version_crud.get_current()
         return self._current_ai_version
 

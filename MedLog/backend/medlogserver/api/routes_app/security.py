@@ -14,10 +14,7 @@ from medlogserver.db.study_permission.model import StudyPermisson
 from medlogserver.db.study.model import Study
 from medlogserver.db.study.crud import StudyCRUD
 from medlogserver.db.study_permission.model import StudyPermisson
-from medlogserver.db.study_permission.crud import (
-    StudyPermissonCRUD,
-    get_study_permission_crud,
-)
+from medlogserver.db.study_permission.crud import StudyPermissonCRUD
 from medlogserver.db.interview.crud import InterviewCRUD
 
 from medlogserver.db.event.crud import EventCRUD
@@ -80,7 +77,7 @@ class UserStudyAccessCollection:
 
     async def init(
         self,
-        study_permisson_crud: StudyPermissonCRUD = Depends(get_study_permission_crud),
+        study_permisson_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
         study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
         study_id: str | uuid.UUID = None,
     ):
@@ -88,7 +85,7 @@ class UserStudyAccessCollection:
         Todo: This is a very costly function. Evaluate if a caching mechanism makes sense here
 
         Args:
-            study_permisson_crud (StudyPermissonCRUD, optional): _description_. Defaults to Depends(get_study_permission_crud).
+            study_permisson_crud (StudyPermissonCRUD, optional): _description_. Defaults to Depends(StudyPermissonCRUD.get_crud).
             study_crud (StudyCRUD, optional): _description_. Defaults to Depends(StudyCRUD.get_crud).
             study_id (str | uuid.UUID, optional): _description_. Defaults to None.
         """

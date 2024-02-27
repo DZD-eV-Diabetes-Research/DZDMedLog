@@ -24,10 +24,7 @@ from medlogserver.db.study_permission.model import (
     StudyPermissonHumanReadeable,
     StudyPermissonUpdate,
 )
-from medlogserver.db.study_permission.crud import (
-    StudyPermissonCRUD,
-    get_study_permission_crud,
-)
+from medlogserver.db.study_permission.crud import StudyPermissonCRUD
 from medlogserver.config import Config
 from medlogserver.api.routes_app.security import (
     user_has_study_access,
@@ -59,7 +56,7 @@ async def list_study_permissions(
         ),
     ] = False,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    permission_crud: StudyPermissonCRUD = Depends(get_study_permission_crud),
+    permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
 ) -> List[StudyPermisson | StudyPermissonHumanReadeable]:
     if not study_access.user_can_manage_study_permissions():
         return HTTPException(
@@ -82,7 +79,7 @@ async def list_study_permissions(
 async def get_permission_details(
     permission_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    permission_crud: StudyPermissonCRUD = Depends(get_study_permission_crud),
+    permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
 ) -> StudyPermisson:
     if not study_access.user_can_manage_study_permissions():
         return HTTPException(
@@ -106,7 +103,7 @@ async def create_or_update_permission(
     user_id: str,
     study_perm: StudyPermissonUpdate,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    permission_crud: StudyPermissonCRUD = Depends(get_study_permission_crud),
+    permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
 ) -> StudyPermisson:
     if not study_access.user_can_manage_study_permissions():
         return HTTPException(
