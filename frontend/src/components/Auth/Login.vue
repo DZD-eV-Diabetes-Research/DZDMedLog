@@ -13,11 +13,6 @@
                 <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
             </div>
         </form>
-        <button @click="new_token">New Token</button>
-        <button @click="logout">Logout</button>
-        <button @click="test">userMe</button>
-        {{ userStore.get_email }}
-        {{ userStore.get_user_name }}
 
     </base-card>
 </template>
@@ -43,26 +38,6 @@ export default {
         }
     },
     methods: {
-        test() {
-            try {
-                this.userStore.userMe()
-            } catch (err) {
-                console.log(err)
-                this.tokenStore.error = err.response
-            }
-        },
-
-        async new_token() {
-
-            this.tokenStore.error = null
-            const payload = {
-                username: this.userName,
-                password: this.password
-            }
-            this.tokenStore.login(payload)
-
-        },
-
         async logout() {
             this.userName = ""
             this.password = ""
@@ -85,7 +60,7 @@ export default {
                 await this.tokenStore.login(payload)
 
                 try {
-                    await this.tokenStore.userMe()
+                    await this.userStore.userMe()
                 }
                 catch (err) {
                     this.tokenStore.error = err.response
