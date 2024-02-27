@@ -13,7 +13,7 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import Base, BaseTable
+from medlogserver.db.base import BaseModel, BaseTable
 from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import Stamm, StammRead
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
@@ -25,7 +25,7 @@ log = get_logger()
 config = Config()
 
 
-class StammCRUD(DrugCRUDBase):
+class StammCRUD(DrugCRUDBase[Stamm, StammRead, Stamm, Stamm]):
     _table_ = Stamm
 
     async def get_multiple(
@@ -54,92 +54,3 @@ class StammCRUD(DrugCRUDBase):
                 new_order.append(item)
             return new_order
         return results.all()
-
-    async def get(
-        self,
-        pzn: str,
-        ai_version_id: uuid.UUID | str = None,
-        raise_exception_if_none: Exception = None,
-    ) -> Optional[Stamm]:
-        if ai_version_id is None:
-            current_ai_version = await self._get_current_ai_version()
-            ai_version_id = current_ai_version.id
-
-        query = select(Stamm).where(
-            Stamm.pzn == pzn and Stamm.ai_version_id == ai_version_id
-        )
-
-        results = await self.session.exec(statement=query)
-        pzn: Stamm | None = results.one_or_none()
-        if pzn is None and raise_exception_if_none:
-            raise raise_exception_if_none
-        return pzn
-
-    async def create(
-        self,
-        stamm_create: Stamm,
-        raise_exception_if_exists: Exception = None,
-    ) -> Stamm:
-        log.debug(f"Create stamm: {stamm_create}")
-        existing_stamm = None
-        if raise_exception_if_exists:
-            existing_stamm = self.get(
-                pzn=stamm_create.pzn,
-                ai_version_id=stamm_create.ai_version_id,
-            )
-
-        if existing_stamm and raise_exception_if_exists:
-            raise raise_exception_if_exists
-        elif existing_stamm:
-            return existing_stamm
-        self.session.add(stamm_create)
-        await self.session.commit()
-        await self.session.refresh(stamm_create)
-        return stamm_create
-
-    async def create_bulk(
-        self,
-        objects: List[Stamm],
-    ) -> Stamm:
-        log.debug(f"Create bulk of stamm")
-        for obj in objects:
-            if not isinstance(obj, Stamm):
-                raise ValueError(f"List item is not a Stamm instance:\n {objects}")
-        self.session.add_all(objects)
-        await self.session.commit()
-
-    async def update(
-        self,
-        stamm_update: Stamm,
-        ai_version_id: str | UUID = None,
-        raise_exception_if_not_exists=None,
-    ) -> Stamm:
-        # atm we dont need (or even dont want) an update endpoint.
-        # after import of the arzneimittelindex data, the data should be kind of "read only"
-        raise NotImplementedError()
-        if ai_version_id is None:
-            current_ai_version = await self._get_current_ai_version()
-            ai_version_id = current_ai_version.id
-
-    async def delete(
-        self,
-        stamm_stamm: str,
-        ai_version_id: str | UUID = None,
-    ) -> Stamm:
-        # atm we dont need (or even dont want) an delete endpoint.
-        # after import of the arzneimittelindex data, the data should be kind of "read only"
-        # deletions will only happen when a whole Arbeimittelindex "version"-set is deleted. that will happen by casade deletion
-        raise NotImplementedError()
-
-        if ai_version_id is None:
-            current_ai_version = await self._get_current_ai_version()
-            ai_version_id = current_ai_version.id
-
-
-async def get_stamm_crud(
-    session: AsyncSession = Depends(get_async_session),
-) -> AsyncGenerator[StammCRUD, None]:
-    yield StammCRUD(session=session)
-
-
-get_stamm_crud_context = contextlib.asynccontextmanager(get_stamm_crud)

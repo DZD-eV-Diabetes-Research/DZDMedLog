@@ -10,23 +10,32 @@ from datetime import datetime
 import uuid
 from uuid import UUID
 
-from medlogserver.db._session import get_async_session, get_async_session_context
+
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import Base, BaseTable
-from medlogserver.db.user.user import User
+from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.user.crud import User
 from medlogserver.db.study.model import Study
 from medlogserver.db.study_permission.model import (
     StudyPermisson,
     StudyPermissonUpdate,
     StudyPermissonHumanReadeable,
 )
+from medlogserver.db._base_crud import CRUDBase
+from medlogserver.api.paginator import PageParams
 
 log = get_logger()
 config = Config()
 
 
-class StudyPermissonCRUD:
+class StudyPermissonCRUD(
+    CRUDBase[
+        StudyPermisson,
+        StudyPermissonHumanReadeable,
+        StudyPermisson,
+        StudyPermissonUpdate,
+    ]
+):
     def __init__(self, session: AsyncSession):
         self.session = session
 
@@ -162,20 +171,6 @@ class StudyPermissonCRUD:
         await self.session.refresh(study_permission_from_db)
         return study_permission_from_db
 
-    async def delete(
-        self,
-        study_permission_id: str | UUID,
-        raise_exception_if_not_exists=None,
-    ) -> StudyPermisson:
-        study_permission = await self.get(
-            study_permission_id=study_permission_id,
-            raise_exception_if_none=raise_exception_if_not_exists,
-            show_deactivated=True,
-        )
-        if study_permission is not None:
-            delete(study_permission).where(StudyPermisson.id == study_permission_id)
-        return True
-
     async def delete_by_user(self, user_id: str | UUID):
         """This delete function can be used to remove all permissions a user have. That can be usefull when an account is deleted.
 
@@ -212,14 +207,3 @@ class StudyPermissonCRUD:
         query = delete(StudyPermisson).where(StudyPermisson.study_id == study_id)
         await self.session.exec(statement=query)
         return True
-
-
-async def get_study_permission_crud(
-    session: AsyncSession = Depends(get_async_session),
-) -> AsyncGenerator[StudyPermissonCRUD, None]:
-    yield StudyPermissonCRUD(session=session)
-
-
-get_study_permission_crud_context = contextlib.asynccontextmanager(
-    get_study_permission_crud
-)

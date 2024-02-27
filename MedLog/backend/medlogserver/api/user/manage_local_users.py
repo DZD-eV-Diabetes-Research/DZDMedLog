@@ -15,8 +15,7 @@ from medlogserver.api.auth.tokens import (
     JWTAccessTokenContainer,
     JWTRefreshTokenContainer,
 )
-from medlogserver.db.user.user import (
-    get_user_crud,
+from medlogserver.db.user.crud import (
     User,
     UserCRUD,
     UserCreate,
@@ -24,16 +23,11 @@ from medlogserver.db.user.user import (
     UserUpdateByUser,
     UserUpdateByAdmin,
 )
-from medlogserver.db.user.user_auth import (
-    get_user_auth_crud,
+from medlogserver.db.user_auth.crud import (
     UserAuth,
     UserAuthCreate,
     UserAuthUpdate,
     UserAuthCRUD,
-    UserAuthRefreshToken,
-    UserAuthRefreshTokenCreate,
-    UserAuthRefreshTokenCRUD,
-    get_user_auth_refresh_token_crud,
     AllowedAuthSourceTypes,
 )
 from medlogserver.api.auth.base import (
@@ -77,16 +71,16 @@ async def create_user(
             description="The password for the created user. If non is defined the user will be created but not able to login until an admin user defines a password.",
         ),
     ] = None,
-    current_user_is_usermanager: bool = Depends(user_is_usermanager),
-    user_crud: UserCRUD = Depends(get_user_crud),
-    user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
+    current_user_is_usermanager: bool = Security(user_is_usermanager),
+    user_crud: UserCRUD = Depends(UserCRUD.get_crud),
+    user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
 ) -> User:
     wrong_login_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Incorrect user_name or password",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    if not current_user_is_usermanager and 1 == 2:
+    if not current_user_is_usermanager:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing role",
@@ -119,7 +113,7 @@ async def list_users(
         default=False, description="Also list deactivated users."
     ),
     is_user_manager: bool = Security(user_is_usermanager),
-    user_crud: UserCRUD = Depends(get_user_crud),
+    user_crud: UserCRUD = Depends(UserCRUD.get_crud),
 ) -> User:
     return await user_crud.list(show_deactivated=incl_deactivated)
 
@@ -143,7 +137,7 @@ async def get_myself(
 async def update_myself(
     patched_user: UserUpdateByUser,
     current_user: User = Security(get_current_user),
-    user_crud: UserCRUD = Depends(get_user_crud),
+    user_crud: UserCRUD = Depends(UserCRUD.get_crud),
 ) -> User:
     return await user_crud.update(patched_user, user_id=current_user.id)
 
@@ -161,7 +155,7 @@ async def set_my_password(
         description="For good measure we require the password twice to mitiage typos.",
     ),
     current_user: User = Security(get_current_user),
-    user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
+    user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
 ) -> bool:
     if new_password != new_password_repeated:
         raise HTTPException(
@@ -194,7 +188,7 @@ async def set_my_password(
 async def get_user(
     user_id: str,
     current_user: bool = Security(user_is_usermanager),
-    user_crud: UserCRUD = Depends(get_user_crud),
+    user_crud: UserCRUD = Depends(UserCRUD.get_crud),
 ) -> User:
     return await user_crud.get(user_id)
 
@@ -210,7 +204,7 @@ async def update_user(
         UserUpdateByAdmin, Body(description="The user object with changed data")
     ],
     current_user_is_user_manager: bool = Security(user_is_usermanager),
-    user_crud: UserCRUD = Depends(get_user_crud),
+    user_crud: UserCRUD = Depends(UserCRUD.get_crud),
 ) -> User:
     return await user_crud.update(user_id, patched_user)
 
@@ -228,7 +222,7 @@ async def set_user_password(
         description="For good measure we require the password twice to mitiage typos.",
     ),
     current_user_is_user_manager: bool = Security(user_is_usermanager),
-    user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
+    user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
 ) -> bool:
     if new_password != new_password_repeated:
         raise HTTPException(
@@ -241,16 +235,3 @@ async def set_user_password(
     updated_user_auth = UserAuthUpdate(password=new_password)
     await user_auth_crud.update(updated_user_auth)
     return True
-
-
-@fast_api_user_manage_router.get(
-    "/user/{user_id}",
-    response_model=User,
-    description=f"Get account data from a user by its id.  {NEEDS_USERMAN_API_INFO}",
-)
-async def get_user(
-    user_id: str,
-    current_user: bool = Security(user_is_usermanager),
-    user_crud: UserCRUD = Depends(get_user_crud),
-) -> User:
-    return await user_crud.get(user_id)

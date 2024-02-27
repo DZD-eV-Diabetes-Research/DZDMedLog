@@ -13,89 +13,24 @@ from fastapi import (
     Path,
     Response,
 )
-from fastapi.security import OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from pydantic import BaseModel, Field
+
 from typing import Annotated
 
 from fastapi import Depends, APIRouter
 
-from medlogserver.api.auth.tokens import (
-    JWTBundleTokenResponse,
-    JWTAccessTokenContainer,
-    JWTRefreshTokenContainer,
-)
-from medlogserver.db.user.user import (
-    get_user_crud,
-    User,
-    UserCRUD,
-    UserCreate,
-    UserUpdate,
-    UserUpdateByUser,
-    UserUpdateByAdmin,
-)
-from medlogserver.db.user.user_auth import (
-    get_user_auth_crud,
-    UserAuth,
-    UserAuthCreate,
-    UserAuthUpdate,
-    UserAuthCRUD,
-    UserAuthRefreshToken,
-    UserAuthRefreshTokenCreate,
-    UserAuthRefreshTokenCRUD,
-    get_user_auth_refresh_token_crud,
-    AllowedAuthSourceTypes,
-)
-from medlogserver.api.auth.base import (
-    TOKEN_ENDPOINT_PATH,
-    oauth2_scheme,
-    user_is_admin,
-    user_is_usermanager,
-    get_current_user,
-    NEEDS_ADMIN_API_INFO,
-    NEEDS_USERMAN_API_INFO,
-)
-
-from medlogserver.db.event.model import Event, EventUpdate
-from medlogserver.db.event.crud import EventCRUD, get_event_crud
 
 from medlogserver.db.study_permission.model import (
     StudyPermisson,
     StudyPermissonHumanReadeable,
     StudyPermissonUpdate,
 )
-from medlogserver.db.study_permission.crud import (
-    StudyPermissonCRUD,
-    get_study_permission_crud,
-)
-
-from medlogserver.db.user.user_auth_external_oidc_token import (
-    UserAuthExternalOIDCToken,
-    UserAuthExternalOIDCTokenCRUD,
-    get_user_auth_external_oidc_token_crud,
-)
+from medlogserver.db.study_permission.crud import StudyPermissonCRUD
 from medlogserver.config import Config
-from medlogserver.db.interview.model import (
-    Interview,
-    InterviewCreate,
-    InterviewUpdate,
-)
-from medlogserver.db.interview.crud import InterviewCRUD, get_interview_crud
-from medlogserver.db.intake.model import (
-    Intake,
-    IntakeCreate,
-    IntakeUpdate,
-)
-from medlogserver.db.intake.crud import IntakeCRUD, get_intake_crud
 from medlogserver.api.routes_app.security import (
-    user_has_studies_access_map,
     user_has_study_access,
     UserStudyAccess,
-    UserStudyAccessCollection,
-    assert_interview_id_is_part_of_study_id,
 )
-from medlogserver.api.base import HTTPMessage
+
 
 config = Config()
 
@@ -121,7 +56,7 @@ async def list_study_permissions(
         ),
     ] = False,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    permission_crud: StudyPermissonCRUD = Depends(get_study_permission_crud),
+    permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
 ) -> List[StudyPermisson | StudyPermissonHumanReadeable]:
     if not study_access.user_can_manage_study_permissions():
         return HTTPException(
@@ -144,7 +79,7 @@ async def list_study_permissions(
 async def get_permission_details(
     permission_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    permission_crud: StudyPermissonCRUD = Depends(get_study_permission_crud),
+    permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
 ) -> StudyPermisson:
     if not study_access.user_can_manage_study_permissions():
         return HTTPException(
@@ -168,7 +103,7 @@ async def create_or_update_permission(
     user_id: str,
     study_perm: StudyPermissonUpdate,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    permission_crud: StudyPermissonCRUD = Depends(get_study_permission_crud),
+    permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
 ) -> StudyPermisson:
     if not study_access.user_can_manage_study_permissions():
         return HTTPException(

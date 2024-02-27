@@ -17,19 +17,14 @@ from medlogserver.api.auth.tokens import (
     JWTBundleTokenResponse,
 )
 from medlogserver.api.base import HTTPErrorResponeRepresentation
-from medlogserver.db.user.user import get_user_crud, User, UserCRUD, UserUpdate
-from medlogserver.db.user.user_auth import (
-    get_user_auth_crud,
-    UserAuth,
+from medlogserver.db.user.crud import User, UserCRUD, UserUpdate
+from medlogserver.db.user_auth.crud import (
     UserAuthCreate,
     UserAuthCRUD,
-    UserAuthRefreshToken,
-    UserAuthRefreshTokenCreate,
-    UserAuthRefreshTokenCRUD,
-    get_user_auth_refresh_token_crud,
     AllowedAuthSourceTypes,
 )
 
+from medlogserver.db.user_auth_refresh_token.crud import UserAuthRefreshTokenCRUD
 
 from medlogserver.db.user.user_auth_external_oidc_token import (
     UserAuthExternalOIDCToken,
@@ -93,11 +88,10 @@ class StarletteOAuthProviderAppContainer:
     async def auth(
         self,
         request: Request,
-        response_model=JWTRefreshTokenResponse,
-        user_crud: UserCRUD = Depends(get_user_crud),
-        user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
+        user_crud: UserCRUD = Depends(UserCRUD.get_crud),
+        user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
         user_auth_access_token_crud: UserAuthRefreshTokenCRUD = Depends(
-            get_user_auth_refresh_token_crud
+            UserAuthRefreshTokenCRUD.get_crud
         ),
         user_auth_external_oidc_token_crud: UserAuthExternalOIDCTokenCRUD = Depends(
             get_user_auth_external_oidc_token_crud

@@ -17,11 +17,11 @@ from fastapi import (
 from fastapi import Depends, APIRouter
 
 
-from medlogserver.db.user.user import User
+from medlogserver.db.user.crud import User
 
 
 from medlogserver.db.event.model import Event, EventUpdate
-from medlogserver.db.event.crud import EventCRUD, get_event_crud
+from medlogserver.db.event.crud import EventCRUD
 
 
 from medlogserver.config import Config
@@ -48,7 +48,7 @@ fast_api_event_router: APIRouter = APIRouter()
 async def list_events(
     hide_completed: bool = Query(False),
     study_access: UserStudyAccess = Security(user_has_study_access),
-    event_crud: EventCRUD = Depends(get_event_crud),
+    event_crud: EventCRUD = Depends(EventCRUD.get_crud),
 ) -> List[Event]:
     return await event_crud.list(
         filter_by_study_id=study_access.study.id, hide_completed=hide_completed
@@ -63,7 +63,7 @@ async def list_events(
 async def create_event(
     event: Event,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    event_crud: EventCRUD = Depends(get_event_crud),
+    event_crud: EventCRUD = Depends(EventCRUD.get_crud),
 ) -> Event:
     if not study_access.user_has_interviewer_permission():
         raise HTTPException(
@@ -88,7 +88,7 @@ async def update_event(
     event_id: str,
     event: EventUpdate,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    event_crud: EventCRUD = Depends(get_event_crud),
+    event_crud: EventCRUD = Depends(EventCRUD.get_crud),
 ) -> Event:
     if not study_access.user_has_interviewer_permission():
         raise HTTPException(
@@ -117,7 +117,7 @@ async def update_event(
 async def delete_event(
     event_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    event_crud: EventCRUD = Depends(get_event_crud),
+    event_crud: EventCRUD = Depends(EventCRUD.get_crud),
 ):
     if not study_access.user_has_interviewer_permission():
         raise HTTPException(

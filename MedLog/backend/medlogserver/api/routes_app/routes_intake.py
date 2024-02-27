@@ -11,45 +11,20 @@ from fastapi import (
 
 from fastapi import Depends, APIRouter
 
-from medlogserver.api.auth.base import (
-    TOKEN_ENDPOINT_PATH,
-    oauth2_scheme,
-    user_is_admin,
-    user_is_usermanager,
-    get_current_user,
-    NEEDS_ADMIN_API_INFO,
-    NEEDS_USERMAN_API_INFO,
-)
-
-from medlogserver.db.event.model import Event, EventUpdate
-from medlogserver.db.event.crud import EventCRUD, get_event_crud
-
-from medlogserver.db.user.user_auth_external_oidc_token import (
-    UserAuthExternalOIDCToken,
-    UserAuthExternalOIDCTokenCRUD,
-    get_user_auth_external_oidc_token_crud,
-)
-from medlogserver.config import Config
-from medlogserver.db.interview.model import (
-    Interview,
-    InterviewCreate,
-    InterviewUpdate,
-)
-from medlogserver.db.interview.crud import InterviewCRUD, get_interview_crud
+from medlogserver.db.interview.crud import InterviewCRUD
 from medlogserver.db.intake.model import (
     Intake,
     IntakeCreate,
     IntakeUpdate,
 )
-from medlogserver.db.intake.crud import IntakeCRUD, get_intake_crud
+from medlogserver.db.intake.crud import IntakeCRUD
 from medlogserver.api.routes_app.security import (
     user_has_studies_access_map,
     user_has_study_access,
     UserStudyAccess,
-    UserStudyAccessCollection,
     assert_interview_id_is_part_of_study_id,
 )
-from medlogserver.api.base import HTTPMessage
+from medlogserver.config import Config
 
 config = Config()
 
@@ -70,7 +45,7 @@ fast_api_intake_router: APIRouter = APIRouter()
 async def list_all_intakes_of_last_completed_interview(
     proband_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(get_intake_crud),
+    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ) -> List[Intake]:
     return await intake_crud.list_last_completed_interview_intakes_by_proband(
         study_id=study_access.study.id, proband_external_id=proband_id
@@ -86,8 +61,8 @@ async def list_all_intakes_of_last_completed_interview(
 async def list_all_intakes_of_last_uncompleted_interview(
     proband_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(get_intake_crud),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Intake]:
     last_uncompleted_interview = await interview_crud.get_last_by_proband(
         study_id=study_access.study.id, proband_external_id=proband_id, completed=False
@@ -109,8 +84,8 @@ async def list_all_intakes_of_last_uncompleted_interview(
 async def list_all_intakes_of_interview(
     interview_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(get_intake_crud),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Intake]:
 
     return await intake_crud.list(
@@ -127,7 +102,7 @@ async def list_all_intakes_of_interview(
 async def get_intake(
     intake_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(get_intake_crud),
+    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ) -> Intake:
     return await intake_crud.get(
         intake_id=intake_id,
@@ -146,8 +121,8 @@ async def create_intake(
     interview_id: str,
     intake: IntakeCreate,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(get_intake_crud),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Intake]:
     if not study_access.user_has_interviewer_permission:
         raise HTTPException(
@@ -175,8 +150,8 @@ async def update_intake(
     intake_id: str,
     intake: IntakeUpdate,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(get_intake_crud),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Intake]:
     if not study_access.user_has_interviewer_permission:
         raise HTTPException(
@@ -203,8 +178,8 @@ async def delete_intake(
     interview_id: str,
     intake_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(get_intake_crud),
-    interview_crud: InterviewCRUD = Depends(get_interview_crud),
+    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Intake]:
     if not study_access.user_has_interviewer_permission:
         raise HTTPException(

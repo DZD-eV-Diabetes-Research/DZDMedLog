@@ -13,8 +13,8 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import Base, BaseTable
-from medlogserver.db.user.user import User
+from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.user.crud import User
 from medlogserver.db.study.model import Study
 
 
@@ -22,7 +22,7 @@ log = get_logger()
 config = Config()
 
 
-class StudyPermissonUpdate(Base, table=False):
+class StudyPermissonUpdate(BaseModel, table=False):
     is_study_viewer: bool = Field(
         default=True,
         description="This is the minimal access to a study. The user can see all data but can not alter anything",

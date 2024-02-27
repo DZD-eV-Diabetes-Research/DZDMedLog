@@ -1,116 +1,40 @@
 from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated
 from pydantic import validate_email, validator, StringConstraints, model_validator
-from pydantic_core import PydanticCustomError
-from fastapi import Depends
-import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel
-
-import uuid
+from sqlmodel import select, delete
 from uuid import UUID
 
-from medlogserver.db._session import get_async_session, get_async_session_context
+
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import Base, BaseTable
-
-# TODO: this generated a circular import we need to seperate model and crud classes
-# from medlogserver.db.user_auth import UserAuthRefreshTokenCRUD
+from medlogserver.db.user.model import (
+    User,
+    UserUpdate,
+    UserUpdateByAdmin,
+    UserUpdateByUser,
+    UserCreate,
+)
+from medlogserver.db._base_crud import CRUDBase
+from medlogserver.api.paginator import PageParams
 
 
 log = get_logger()
 config = Config()
 
 
-class UserBase(Base, table=False):
-    email: Optional[str] = Field(
-        default=None,
-        index=True,
-        max_length=320,
-        schema_extra={"examples": ["clara@uni.wroc.pl", "titor@time.com"]},
-    )
-    display_name: Optional[str] = Field(
-        default=None,
-        max_length=128,
-        min_length=2,
-        schema_extra={"examples": ["Clara Immerwahr", "John Titor"]},
-    )
-
-
-class UserUpdateByUser(UserBase, table=False):
-    pass
-
-
-class UserUpdate(UserBase, table=False):
-    id: Optional[uuid.UUID] = Field(default=None)
-
-
-class UserUpdateByAdmin(UserUpdate, table=False):
-    roles: List[str] = Field(default=[], sa_column=Column(JSON))
-    deactivated: bool = Field(default=False)
-    is_email_verified: bool = Field(default=False)
-
-
-class _UserValidate(UserBase, table=False):
-    @validator("email")
-    def validmail(cls, email):
-        validate_email(email)
-        return email
-
-    @model_validator(mode="after")
-    def val_display_name(self, values):
-        """if no display name is set for now, we copy the identifying `user_name`"""
-        if self.display_name is None:
-            self.display_name = self.user_name
-        return values
-
-
-class _UserWithName(UserBase, table=False):
-    user_name: Annotated[
-        str,
-        StringConstraints(
-            strip_whitespace=True,
-            to_lower=True,
-            pattern=r"^[a-zA-Z0-9-]+$",
-            max_length=128,
-            min_length=3,
-        ),
-    ] = Field(
-        default=None,
-        index=True,
-        unique=True,
-        schema_extra={"examples": ["clara.immerwahr", "titor.extern.times"]},
-    )
-
-
-class UserCreate(_UserWithName, _UserValidate, table=False):
-    pass
-
-
-class User(_UserWithName, UserUpdateByAdmin, BaseTable, table=True):
-    __tablename__ = "user"
-    id: uuid.UUID = Field(
-        default_factory=uuid.uuid4,
-        primary_key=True,
-        index=True,
-        nullable=False,
-        unique=True,
-        # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
-    )
-
-
-class UserCRUD:
+class UserCRUD(CRUDBase[User, User, UserCreate, UserUpdate]):
     def __init__(self, session: AsyncSession):
         self.session = session
 
     async def list(
-        self,
-        show_deactivated: bool = False,
+        self, show_deactivated: bool = False, pagination: PageParams = None
     ) -> Sequence[User]:
         query = select(User)
         if not show_deactivated:
             query = query.where(User.deactivated == False)
+        if pagination:
+            query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)
         return results.all()
 
@@ -222,26 +146,3 @@ class UserCRUD:
         await self.session.commit()
         await self.session.refresh(user_from_db)
         return user_from_db
-
-    async def delete(
-        self,
-        user_id: str | UUID,
-        raise_exception_if_not_exists=None,
-    ) -> User:
-        user = await self.get(
-            user_id=user_id,
-            raise_exception_if_none=raise_exception_if_not_exists,
-            show_deactivated=True,
-        )
-        if user is not None:
-            delete(user).where(User.id == user_id)
-        return True
-
-
-async def get_user_crud(
-    session: AsyncSession = Depends(get_async_session),
-) -> AsyncGenerator[UserCRUD, None]:
-    yield UserCRUD(session=session)
-
-
-get_users_crud_context = contextlib.asynccontextmanager(get_user_crud)

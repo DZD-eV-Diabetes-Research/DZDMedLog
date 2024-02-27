@@ -4,10 +4,10 @@ from datetime import datetime
 from sqlmodel import Field, SQLModel, UniqueConstraint
 from sqlalchemy import String, Integer, Column
 
-from medlogserver.db.base import Base, BaseTable
+from medlogserver.db.base import BaseModel, BaseTable
 
 
-class AiDataVersion(Base, BaseTable, table=True):
+class AiDataVersion(BaseModel, BaseTable, table=True):
     """This is a metadata table and not part of the official Wido GTK Arzneimittelindex.
     We track the "datenstand" and "dateiversion" variants of the source data here.
 

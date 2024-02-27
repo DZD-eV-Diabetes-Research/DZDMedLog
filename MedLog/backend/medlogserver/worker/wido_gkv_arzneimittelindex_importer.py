@@ -37,24 +37,23 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model import (
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.crud import (
     AiDataVersionCRUD,
-    get_ai_data_version_crud_context,
-    get_atc_amtlich_crud_context,
-    get_atc_ai_crud_context,
-    get_applikationsform_crud_context,
-    get_darrform_crud_context,
-    get_ergaenzung_amtlich_crud_context,
-    get_normpackungsgroessen_crud_context,
-    get_priscus2pzn_crud_context,
-    get_sonderbedeutungcode_crud_context,
-    get_recycle_crud_context,
-    get_stamm_aenderungen_crud_context,
-    get_hersteller_crud_context,
-    get_stamm_crud_context,
-    get_sondercode_crud_context,
-    get_preisart_crud_context,
-    get_biosimilar_crud_context,
-    get_generikakenn_crud_context,
-    get_apopflicht_crud_context,
+    ATCAmtlichCRUD,
+    ATCaiCRUD,
+    ApplikationsformCRUD,
+    DarreichungsformCRUD,
+    ATCErgaenzungAmtlichCRUD,
+    NormpackungsgroessenCRUD,
+    Priscus2PZNCRUD,
+    SondercodeBedeutungCRUD,
+    RecycledPZNCRUD,
+    StammAenderungenCRUD,
+    HerstellerCRUD,
+    StammCRUD,
+    SondercodesCRUD,
+    PreisartCRUD,
+    BiosimilarCRUD,
+    GenerikakennungCRUD,
+    ApoPflichtCRUD,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import DrugCRUDBase
 
@@ -72,23 +71,23 @@ config = Config()
 
 wido_gkv_arzneimittelindex_csv_delimiter: str = ";"
 wido_gkv_arzneimittelindex_model_crud_map: Dict[Type[DrugModelTableBase], Callable] = {
-    Preisart: get_preisart_crud_context,
-    Biosimilar: get_biosimilar_crud_context,
-    Generikakennung: get_generikakenn_crud_context,
-    ApoPflicht: get_apopflicht_crud_context,
-    Applikationsform: get_applikationsform_crud_context,
-    ATCai: get_atc_ai_crud_context,
-    ATCAmtlich: get_atc_amtlich_crud_context,
-    Darreichungsform: get_darrform_crud_context,
-    ATCErgaenzungAmtlich: get_ergaenzung_amtlich_crud_context,
-    Hersteller: get_hersteller_crud_context,
-    Normpackungsgroessen: get_normpackungsgroessen_crud_context,
-    Priscus2PZN: get_priscus2pzn_crud_context,
-    RecycledPZN: get_recycle_crud_context,
-    Sondercodes: get_sondercode_crud_context,
-    SondercodeBedeutung: get_sonderbedeutungcode_crud_context,
-    StammAenderungen: get_stamm_aenderungen_crud_context,
-    Stamm: get_stamm_crud_context,
+    Preisart: PreisartCRUD.crud_context,
+    Biosimilar: BiosimilarCRUD.crud_context,
+    Generikakennung: GenerikakennungCRUD.crud_context,
+    ApoPflicht: ApoPflichtCRUD.crud_context,
+    Applikationsform: ApplikationsformCRUD.crud_context,
+    ATCai: ATCaiCRUD.crud_context,
+    ATCAmtlich: ATCAmtlichCRUD.crud_context,
+    Darreichungsform: DarreichungsformCRUD.crud_context,
+    ATCErgaenzungAmtlich: ATCErgaenzungAmtlichCRUD.crud_context,
+    Hersteller: HerstellerCRUD.crud_context,
+    Normpackungsgroessen: NormpackungsgroessenCRUD.crud_context,
+    Priscus2PZN: Priscus2PZNCRUD.crud_context,
+    RecycledPZN: RecycledPZNCRUD.crud_context,
+    Sondercodes: SondercodesCRUD.crud_context,
+    SondercodeBedeutung: SondercodeBedeutungCRUD.crud_context,
+    StammAenderungen: StammAenderungenCRUD.crud_context,
+    Stamm: StammCRUD.crud_context,
 }
 
 
@@ -146,7 +145,7 @@ def _map_filepathes_to_model(source_data_dir: Path | str) -> List[SourceFile2Mod
 async def sniff_arzneimittel_version(testrow: List[str]) -> AiDataVersion:
     async def get_or_create_version_from_db(dateiversion: str, datenstand: str):
         async with get_async_session_context() as session:
-            async with get_ai_data_version_crud_context(session) as ai_version_crud:
+            async with AiDataVersionCRUD.crud_context(session) as ai_version_crud:
                 crud: AiDataVersionCRUD = ai_version_crud
                 existing_version = await crud.get_by_datenstand_and_dateiversion(
                     dateiversion=dateiversion, datenstand=datenstand
@@ -183,7 +182,7 @@ async def sniff_ai_data_version_from_file(file_path: str) -> AiDataVersion:
 async def get_current_ai_data_version_from_db() -> Optional[AiDataVersion]:
     current_ai_data_version = None
     async with get_async_session_context() as session:
-        async with get_ai_data_version_crud_context(session) as ai_data_version_crud:
+        async with AiDataVersionCRUD.crud_context(session) as ai_data_version_crud:
             current_ai_data_version = await ai_data_version_crud.get_current(
                 none_is_ok=True
             )
@@ -303,7 +302,7 @@ def complete_ai_import(version: AiDataVersion) -> AiDataVersion:
 
     async def set_ai_data_version_completed(ai_version: AiDataVersion):
         async with get_async_session_context() as session:
-            async with get_ai_data_version_crud_context(session) as ai_version_crud:
+            async with AiDataVersionCRUD.crud_context(session) as ai_version_crud:
                 crud: AiDataVersionCRUD = ai_version_crud
                 existing_version = await crud.get_by_datenstand_and_dateiversion(
                     dateiversion=ai_version.dateiversion,

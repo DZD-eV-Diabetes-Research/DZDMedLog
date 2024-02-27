@@ -6,19 +6,16 @@ from fastapi import HTTPException, status, Security, Depends, Path
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
-from medlogserver.db.user.user import User
+from medlogserver.db.user.crud import User
 
 from medlogserver.api.auth.base import get_current_user
 from medlogserver.config import Config
 from medlogserver.db.study_permission.model import StudyPermisson
 from medlogserver.db.study.model import Study
-from medlogserver.db.study.crud import StudyCRUD, get_study_crud
+from medlogserver.db.study.crud import StudyCRUD
 from medlogserver.db.study_permission.model import StudyPermisson
-from medlogserver.db.study_permission.crud import (
-    StudyPermissonCRUD,
-    get_study_permission_crud,
-)
-from medlogserver.db.interview.crud import InterviewCRUD, get_interview_crud
+from medlogserver.db.study_permission.crud import StudyPermissonCRUD
+from medlogserver.db.interview.crud import InterviewCRUD
 
 from medlogserver.db.event.crud import EventCRUD
 
@@ -80,16 +77,16 @@ class UserStudyAccessCollection:
 
     async def init(
         self,
-        study_permisson_crud: StudyPermissonCRUD = Depends(get_study_permission_crud),
-        study_crud: StudyCRUD = Depends(get_study_crud),
+        study_permisson_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
+        study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
         study_id: str | uuid.UUID = None,
     ):
         """Gatheres all studies and permission the user has access to. If a study_id is provided only data fpr this study is gathered.
         Todo: This is a very costly function. Evaluate if a caching mechanism makes sense here
 
         Args:
-            study_permisson_crud (StudyPermissonCRUD, optional): _description_. Defaults to Depends(get_study_permission_crud).
-            study_crud (StudyCRUD, optional): _description_. Defaults to Depends(get_study_crud).
+            study_permisson_crud (StudyPermissonCRUD, optional): _description_. Defaults to Depends(StudyPermissonCRUD.get_crud).
+            study_crud (StudyCRUD, optional): _description_. Defaults to Depends(StudyCRUD.get_crud).
             study_id (str | uuid.UUID, optional): _description_. Defaults to None.
         """
         if config.ADMIN_ROLE_NAME in self.user.roles:
@@ -141,10 +138,17 @@ async def user_has_study_access(
 ) -> UserStudyAccess:
     access_helper = UserStudyAccessCollection(user=user)
     await access_helper.init(study_id=study_id)
-    study_access = access_helper.studies_access[study_id]
+    try:
+        study_access = access_helper.studies_access[study_id]
+    except KeyError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Study with id {study_id} does not exist.",
+        )
     if not study_access.user_has_access():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="No access to study."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"No access to study {study_id}.",
         )
     return study_access
 

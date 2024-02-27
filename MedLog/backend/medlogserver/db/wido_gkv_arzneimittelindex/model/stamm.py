@@ -102,7 +102,7 @@ class StammBase(DrugModelTableBase, table=False):
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:9"},
         # We have composite foreign key. see __table_args__ at the top of this class
         # foreign_key="drug_hersteller.herstellercode",
-        schema_extra={"examples": ["EMRA  01"]},
+        schema_extra={"examples": ["BEHR"]},
     )
 
     darrform: str = Field(
@@ -111,7 +111,7 @@ class StammBase(DrugModelTableBase, table=False):
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:10"},
         # We have composite foreign key. see __table_args__ at the top of this class
         # foreign_key="drug_darrform.darrform",
-        schema_extra={"examples": ["TAB"]},
+        schema_extra={"examples": ["ZKA"]},
     )
 
     zuzahlstufe: Optional[str] = Field(
@@ -120,7 +120,7 @@ class StammBase(DrugModelTableBase, table=False):
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:11"},
         # We have composite foreign key. see __table_args__ at the top of this class
         # foreign_key="drug_normpackungsgroessen.zuzahlstufe",
-        schema_extra={"examples": ["3"]},
+        schema_extra={"examples": ["E"]},
     )
     packgroesse: int = Field(
         description="Packungsgröße (in 1/10 Einheiten)",
@@ -147,14 +147,14 @@ class StammBase(DrugModelTableBase, table=False):
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:15"},
         foreign_key="drug_enum_preisart.preisart",
-        schema_extra={"examples": ["A"]},
+        schema_extra={"examples": ["X"]},
     )
     preisart_neu: Optional[str] = Field(
         description="Preisart, neu schlüssel  (Siehe `preisart_neu_ref` für vollen Namen)",
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:16"},
         foreign_key="drug_enum_preisart.preisart",
-        schema_extra={"examples": ["A"]},
+        schema_extra={"examples": ["X"]},
     )
     preis_alt: int = Field(
         description="Preis alt (in Cent)",
@@ -198,7 +198,7 @@ class StammBase(DrugModelTableBase, table=False):
         sa_type=SmallInteger(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:23"},
         foreign_key="drug_enum_generikakenn.generikakenn",
-        schema_extra={"examples": [1]},
+        schema_extra={"examples": [0]},
     )
     appform: Optional[str] = Field(
         description="Applikationsformschlüssel (Siehe `appform_ref` für vollen Namen)",

@@ -9,7 +9,7 @@ from fastapi import HTTPException, status
 import json
 
 #
-from medlogserver.db.user.user import User
+from medlogserver.db.user.crud import User
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -234,7 +234,6 @@ class JWTAccessTokenContainer:
         return self._parent_refresh_token_id
 
     def _generate_token(self):
-        log.info(f"TOKEN AUD: {config.get_server_url().host}")
         self.created_at = datetime.now(timezone.utc)
         self.jwt_token_encoded = jwt.encode(
             claims={

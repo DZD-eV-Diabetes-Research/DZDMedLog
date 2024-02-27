@@ -14,16 +14,18 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import Base, BaseTable
+from medlogserver.db.base import BaseModel, BaseTable
 from medlogserver.db.event.model import Event
 from medlogserver.db.interview.model import Interview, InterviewCreate, InterviewUpdate
+from medlogserver.db._base_crud import CRUDBase
+from medlogserver.api.paginator import PageParams
 
 
 log = get_logger()
 config = Config()
 
 
-class InterviewCRUD:
+class InterviewCRUD(CRUDBase[Interview, Interview, InterviewCreate, InterviewUpdate]):
     def __init__(self, session: AsyncSession):
         self.session = session
 
@@ -32,6 +34,7 @@ class InterviewCRUD:
         filter_by_event_id: str = None,
         filter_by_proband_external_id: str = None,
         filter_by_study_id: str = None,
+        pagination: PageParams = None,
     ) -> Sequence[Interview]:
         query = select(Interview)
         if filter_by_study_id:
@@ -42,20 +45,10 @@ class InterviewCRUD:
             query = query.where(
                 Interview.proband_external_id == filter_by_proband_external_id
             )
+        if pagination:
+            query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)
         return results.all()
-
-    async def get(
-        self,
-        interview_id: str | UUID,
-        raise_exception_if_none: Exception = None,
-    ) -> Optional[Interview]:
-        query = select(Interview).where(Interview.id == interview_id)
-        results = await self.session.exec(statement=query)
-        interview: Interview | None = results.one_or_none()
-        if interview is None and raise_exception_if_none:
-            raise raise_exception_if_none
-        return interview
 
     async def get_last_by_proband(
         self,
@@ -93,48 +86,6 @@ class InterviewCRUD:
             raise raise_exception_if_none
         return interview
 
-    async def create(
-        self,
-        interview: InterviewCreate | Interview,
-    ) -> Interview:
-        log.debug(f"Create interview: {interview}")
-        self.session.add(interview)
-        await self.session.commit()
-        await self.session.refresh(interview)
-        return interview
-
-    async def update(
-        self,
-        interview_id: str | UUID,
-        interview_update: InterviewUpdate,
-        raise_exception_if_not_exists=None,
-    ) -> Interview:
-        interview_from_db = await self.get(
-            interview_id=interview_id,
-            raise_exception_if_none=raise_exception_if_not_exists,
-        )
-        for k, v in interview_update.model_dump(exclude_unset=True).items():
-            if k in InterviewUpdate.model_fields.keys():
-                setattr(interview_from_db, k, v)
-        self.session.add(interview_from_db)
-        await self.session.commit()
-        await self.session.refresh(interview_from_db)
-        return interview_from_db
-
-    async def delete(
-        self,
-        interview_id: str | UUID,
-        raise_exception_if_not_exists=None,
-    ) -> bool:
-        interview = await self.get(
-            interview_id=interview_id,
-            raise_exception_if_none=raise_exception_if_not_exists,
-            show_deactivated=True,
-        )
-        if interview is not None:
-            delete(interview).where(Interview.id == interview_id)
-        return True
-
     async def assert_belongs_to_study(
         self,
         interview_id: str | UUID,
@@ -157,12 +108,3 @@ class InterviewCRUD:
                 raise raise_exception_if_not
             return False
         return True
-
-
-async def get_interview_crud(
-    session: AsyncSession = Depends(get_async_session),
-) -> AsyncGenerator[InterviewCRUD, None]:
-    yield InterviewCRUD(session=session)
-
-
-get_interviews_crud_context = contextlib.asynccontextmanager(get_interview_crud)

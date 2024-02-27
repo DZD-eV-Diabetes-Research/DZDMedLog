@@ -15,30 +15,16 @@ from medlogserver.api.auth.tokens import (
     JWTAccessTokenContainer,
     JWTRefreshTokenContainer,
 )
-from medlogserver.db.user.user import get_user_crud, User, UserCRUD, UserCreate
-from medlogserver.db.user.user_auth import (
-    get_user_auth_crud,
+from medlogserver.db.user.crud import User, UserCRUD, UserCreate
+from medlogserver.db.user_auth.crud import (
     UserAuth,
-    UserAuthCreate,
     UserAuthCRUD,
-    UserAuthRefreshToken,
-    UserAuthRefreshTokenCreate,
-    UserAuthRefreshTokenCRUD,
-    get_user_auth_refresh_token_crud,
-    AllowedAuthSourceTypes,
 )
-from medlogserver.api.auth.base import (
-    TOKEN_ENDPOINT_PATH,
-    oauth2_scheme,
-    user_is_admin,
-    user_is_usermanager,
-)
+from medlogserver.db.user_auth_refresh_token.model import UserAuthRefreshTokenCreate
+from medlogserver.db.user_auth_refresh_token.crud import UserAuthRefreshTokenCRUD
+from medlogserver.api.auth.base import TOKEN_ENDPOINT_PATH
 
-from medlogserver.db.user.user_auth_external_oidc_token import (
-    UserAuthExternalOIDCToken,
-    UserAuthExternalOIDCTokenCRUD,
-    get_user_auth_external_oidc_token_crud,
-)
+
 from medlogserver.config import Config
 
 config = Config()
@@ -58,10 +44,10 @@ fast_api_auth_local_router: APIRouter = APIRouter()
 )
 async def login_for_token_set(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    user_crud: UserCRUD = Depends(get_user_crud),
-    user_auth_crud: UserAuthCRUD = Depends(get_user_auth_crud),
+    user_crud: UserCRUD = Depends(UserCRUD.get_crud),
+    user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
     user_auth_access_token_crud: UserAuthRefreshTokenCRUD = Depends(
-        get_user_auth_refresh_token_crud
+        UserAuthRefreshTokenCRUD.get_crud
     ),
 ) -> JWTBundleTokenResponse:
     wrong_login_exception = HTTPException(

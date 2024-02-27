@@ -42,7 +42,7 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.hersteller import Herstell
 from medlogserver.db.wido_gkv_arzneimittelindex.model.normpackungsgroessen import (
     Normpackungsgroessen,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.crud.stamm import get_stamm_crud_context
+from medlogserver.db.wido_gkv_arzneimittelindex.crud.stamm import StammCRUD
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -104,7 +104,6 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
     async def build_index(self, force_rebuild: bool = False):
         # tables will be created with build in MedLog/backend/medlogserver/db/_init_db.py -> init_db() we do not need to take care here.
         state = await self._get_state()
-        log.debug(f"Build index called. Before state {state}")
         if state.index_build_up_in_process:
             log.warning(
                 "Cancel build_index for 'GenericSQLDrugSearchEngine'-Engine because build up is allready in progress"
@@ -370,7 +369,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             result_count = len(pzns_with_score)
             if pagination.limit:
                 pzns_with_score = pzns_with_score[: pagination.limit]
-            async with get_stamm_crud_context(session=session) as stamm_crud:
+            async with StammCRUD.crud_context(session=session) as stamm_crud:
                 drugs = await stamm_crud.get_multiple(
                     pzns=[item[0] for item in pzns_with_score], keep_pzn_order=True
                 )
@@ -399,7 +398,6 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             query = select(GenericSQLDrugSearchState)
             res = await session.exec(query)
             state = res.one_or_none()
-            log.debug(f"SATE:{state}")
         if state is None:
             log.debug("Create new GenericSQLDrugSearchState")
             new_state = GenericSQLDrugSearchState()

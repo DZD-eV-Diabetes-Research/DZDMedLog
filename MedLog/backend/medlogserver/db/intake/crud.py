@@ -14,16 +14,18 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import Base, BaseTable
+from medlogserver.db.base import BaseModel, BaseTable
 from medlogserver.db.event.model import Event
 from medlogserver.db.interview.model import Interview
 from medlogserver.db.intake.model import Intake, IntakeCreate, IntakeUpdate
+from medlogserver.db._base_crud import CRUDBase
+from medlogserver.api.paginator import PageParams
 
 log = get_logger()
 config = Config()
 
 
-class IntakeCRUD:
+class IntakeCRUD(CRUDBase[Intake, Intake, IntakeCreate, IntakeUpdate]):
     def __init__(self, session: AsyncSession):
         self.session = session
 
@@ -33,6 +35,7 @@ class IntakeCRUD:
         filter_by_interview_id: str = None,
         filter_by_proband_external_id: str = None,
         filter_by_study_id: str = None,
+        pagination: PageParams = None,
     ) -> Sequence[Intake]:
         query = select(Intake)
         # prepare joins
@@ -51,6 +54,8 @@ class IntakeCRUD:
             )
         if filter_by_interview_id:
             query = query.where(Intake.interview_id == filter_by_interview_id)
+        if pagination:
+            query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)
         return results.all()
 
@@ -59,6 +64,7 @@ class IntakeCRUD:
         study_id: str | uuid.UUID,
         proband_external_id: str,
         raise_exception_if_no_last_interview: Exception = None,
+        pagination: PageParams = None,
     ) -> List[Intake]:
 
         last_interview_query = (
@@ -84,6 +90,8 @@ class IntakeCRUD:
             .where(Intake.interview_id == last_interview.id)
             .order_by(Intake.created_at)
         )
+        if pagination:
+            query = pagination.append_to_query(query)
 
         results = await self.session.exec(statement=query)
         intakes: Sequence[Intake] = results.all
@@ -130,44 +138,3 @@ class IntakeCRUD:
         await self.session.commit()
         await self.session.refresh(intake)
         return intake
-
-    async def update(
-        self,
-        intake_id: str | UUID,
-        intake_update: IntakeUpdate,
-        raise_exception_if_not_exists=None,
-    ) -> Intake:
-        intake_from_db = await self.get(
-            intake_id=intake_id,
-            raise_exception_if_none=raise_exception_if_not_exists,
-        )
-        for k, v in intake_update.model_dump(exclude_unset=True).items():
-            if k in IntakeUpdate.model_fields.keys():
-                setattr(intake_from_db, k, v)
-        self.session.add(intake_from_db)
-        await self.session.commit()
-        await self.session.refresh(intake_from_db)
-        return intake_from_db
-
-    async def delete(
-        self,
-        intake_id: str | UUID,
-        raise_exception_if_not_exists=None,
-    ) -> bool:
-        intake = await self.get(
-            intake_id=intake_id,
-            raise_exception_if_none=raise_exception_if_not_exists,
-            show_deactivated=True,
-        )
-        if intake is not None:
-            delete(intake).where(Intake.id == intake_id)
-        return True
-
-
-async def get_intake_crud(
-    session: AsyncSession = Depends(get_async_session),
-) -> AsyncGenerator[IntakeCRUD, None]:
-    yield IntakeCRUD(session=session)
-
-
-get_intakes_crud_context = contextlib.asynccontextmanager(get_intake_crud)
