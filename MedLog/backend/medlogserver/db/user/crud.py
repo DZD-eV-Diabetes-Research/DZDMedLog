@@ -75,7 +75,6 @@ class UserCRUD(CRUDBase[User, User, UserCreate, UserUpdate]):
     async def create(
         self,
         user: UserCreate | User,
-        exists_ok: bool = False,
         raise_exception_if_exists: Exception = None,
     ) -> User:
         if type(user) is UserCreate:
@@ -84,13 +83,13 @@ class UserCRUD(CRUDBase[User, User, UserCreate, UserUpdate]):
         existing_user: User = await self.get_by_user_name(
             user.user_name, show_deactivated=True
         )
-        if existing_user is not None and not exists_ok:
+        if existing_user is not None and raise_exception_if_exists:
             raise (
                 raise_exception_if_exists
                 if raise_exception_if_exists
                 else ValueError(f"User with user_name {user.user_name} already exists")
             )
-        elif existing_user is not None and exists_ok:
+        elif existing_user is not None:
             return existing_user
 
         self.session.add(user)

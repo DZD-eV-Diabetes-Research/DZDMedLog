@@ -11,13 +11,9 @@ import uuid
 from oauthlib.oauth2 import OAuth2Token
 from medlogserver.db.user.crud import User
 from medlogserver.db.user_auth.crud import (
-    get_user_auth_crud,
     UserAuth,
     UserAuthCreate,
     UserAuthCRUD,
-    UserAuthRefreshToken,
-    UserAuthRefreshTokenCRUD,
-    get_user_auth_refresh_token_crud,
     AllowedAuthSourceTypes,
 )
 

@@ -62,6 +62,11 @@ class Config(BaseSettings):
     ADMIN_ROLE_NAME: str = Field(default="medlog-admin")
     USERMANAGER_ROLE_NAME: str = Field(default="medlog-user-manager")
 
+    APP_PROVISIONING_DATA_YAML_FILES: Optional[List[str]] = Field(
+        default_factory=list,
+        description="A list if yaml files to serialize and load into MedLog models and into the DB ",
+    )
+
     APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS: Dict = Field(
         default={
             "PRESCRIBED": "prescribed",

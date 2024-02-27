@@ -42,11 +42,11 @@ class StudyBase(BaseModel, table=False):
     )
 
     @model_validator(mode="after")
-    def val_display_name(self, values):
+    def val_display_name(self):
         """if no display name is set for now, we copy the identifying `name`"""
-        if values["display_name"] is None:
-            values["display_name"] == values["name"]
-        return values
+        if self.display_name is None:
+            self.display_name == self.name
+        return self
 
 
 class StudyUpdate(StudyBase):

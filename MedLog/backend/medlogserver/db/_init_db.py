@@ -20,6 +20,7 @@ from medlogserver.db.user_auth.crud import (
     UserAuthCreate,
     UserAuthCRUD,
 )
+from medlogserver.db.user_auth_refresh_token.model import UserAuthRefreshToken
 from medlogserver.db.interview.model import Interview
 from medlogserver.db.intake.model import Intake
 
@@ -120,6 +121,12 @@ async def provision_drug_data():
         )
 
 
+async def provision_base_data():
+    from medlogserver.worker.provisioning_data_loader import load_provisioning_data
+
+    await load_provisioning_data()
+
+
 async def init_db():
     async with db_engine.begin() as conn:
         log.info(f"Init DB {config.SQL_DATABASE_URL}")
@@ -128,3 +135,4 @@ async def init_db():
         await create_admin_if_not_exists()
         await provision_drug_data()
         await init_drugsearch()
+        await provision_base_data()

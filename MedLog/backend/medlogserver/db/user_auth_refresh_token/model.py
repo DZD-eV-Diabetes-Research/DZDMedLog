@@ -20,7 +20,6 @@ config = Config()
 
 
 class _UserAuthRefreshTokenBase(BaseTable, table=False):
-    __tablename__ = "user_auth_access_token"
     user_auth_id: uuid.UUID = Field(default=None, foreign_key="user_auth.id")
 
 
