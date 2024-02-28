@@ -44,15 +44,17 @@ class StudyCRUD(CRUDBase[Study, Study, StudyCreate, StudyUpdate]):
         show_deactivated: bool = False,
         raise_exception_if_none: Exception = None,
     ) -> Optional[Study]:
+        log.info(f"study_id {study_id}")
         query = select(Study).where(Study.id == study_id)
         if not show_deactivated:
             query = query.where(Study.deactivated == False)
 
         results = await self.session.exec(statement=query)
-        user: Study | None = results.one_or_none()
-        if user is None and raise_exception_if_none:
+        study: Study | None = results.one_or_none()
+        log.info(f"study {study}")
+        if study is None and raise_exception_if_none:
             raise raise_exception_if_none
-        return user
+        return study
 
     async def get_by_name(
         self,

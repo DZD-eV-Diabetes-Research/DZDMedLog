@@ -54,6 +54,7 @@ class StudyUpdate(StudyBase):
 
 
 class StudyCreate(StudyUpdate):
+    id: Optional[uuid.UUID] = Field()
     name: Annotated[
         str,
         StringConstraints(

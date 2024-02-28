@@ -17,7 +17,7 @@ from medlogserver.log import get_logger
 from medlogserver.db.event.model import Event, EventRead, EventUpdate, EventCreate
 from medlogserver.db._base_crud import CRUDBase
 from medlogserver.api.paginator import PageParams
-
+from medlogserver.utils import prep_uuid_for_qry
 
 log = get_logger()
 config = Config()
@@ -33,13 +33,17 @@ class EventCRUD(CRUDBase[Event, EventRead, EventCreate, EventUpdate]):
         hide_completed: bool = False,
         pagination: PageParams = None,
     ) -> Sequence[Event]:
+        if isinstance(filter_by_study_id, str):
+            filter_by_study_id: UUID = UUID(filter_by_study_id)
         log.info(f"Event.Config.order_by {Event.Config.order_by}")
         query = select(Event)
         if filter_by_study_id:
+            # query = query.where(Event.study_id == prep_uuid_for_qry(filter_by_study_id))
             query = query.where(Event.study_id == filter_by_study_id)
         if hide_completed:
             query = query.where(Event.completed == True)
         if pagination:
             query = pagination.append_to_query(query)
+        log.debug(f"List Event query: {query}")
         results = await self.session.exec(statement=query)
         return results.all()

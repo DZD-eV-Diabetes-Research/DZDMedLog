@@ -15,6 +15,10 @@ class Config(BaseSettings):
     LOG_LEVEL: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"] = Field(
         default="WARNING"
     )
+    DEBUG_SQL: bool = Field(
+        default=False,
+        description="If set to true, the sql engine will print out all sql queries to the log.",
+    )
     # Webserver
     SERVER_UVICORN_LOG_LEVEL: Optional[str] = Field(
         default=None,

@@ -50,6 +50,16 @@ class UserUpdateByAdmin(UserUpdate, table=False):
     deactivated: bool = Field(default=False)
     is_email_verified: bool = Field(default=False)
 
+    def is_admin(self):
+        if config.ADMIN_ROLE_NAME in self.roles:
+            return True
+        return False
+
+    def is_usermanager(self):
+        if config.USERMANAGER_ROLE_NAME in self.roles or self.is_admin():
+            return True
+        return False
+
 
 class _UserValidate(UserBase, table=False):
     @validator("email")

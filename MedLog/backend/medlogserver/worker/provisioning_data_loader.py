@@ -82,6 +82,9 @@ async def parse_provisioning_file(path: Path):
 async def load_provsioning_data_item(
     model_cls: Type[BaseModel], crud_cls: Type[CRUDBase], class_data: List[Dict]
 ):
+    log.info(
+        f"Try inserting DB provisionig data for table '{model_cls.__tablename__}' ({model_cls}). Row count: {len(class_data)}"
+    )
     for item in class_data:
         item_instance = model_cls.model_validate(item)
         async with get_async_session_context() as session:
@@ -93,13 +96,10 @@ async def load_provsioning_data_item(
 async def get_medlog_crud_class_and_model_class(
     class_path: str,
 ) -> Tuple[CRUDBase, BaseModel]:
-    print("class_path", class_path)
     module_path, class_name = class_path.rsplit(".", 1)
     module = importlib.import_module(module_path)
     class_obj = getattr(module, class_name)
     for crudcls in CRUD_classes:
-        print("crudcls", crudcls)
-        print("crudcls.get_create_cls()", crudcls.get_create_cls())
         if class_obj == crudcls.get_create_cls():
             return crudcls, class_obj
     raise ValueError(f"Expected '<class {class_path}>'. did not found in {module}")

@@ -1,5 +1,6 @@
 from typing import List
 from pathlib import Path, PurePath
+import uuid
 
 
 def to_path(
@@ -36,3 +37,14 @@ def to_path(
     if absolute:
         result_path = result_path.absolute()
     return result_path
+
+
+def prep_uuid_for_qry(uuid_: str | uuid.UUID) -> str:
+    # hotfix for https://stackoverflow.com/questions/46377715/sqlalchemy-query-filter-does-not-work
+    # find better solution.
+    if isinstance(uuid_, str):
+        return uuid.UUID(uuid_).hex
+    elif isinstance(uuid_, uuid.UUID):
+        return uuid_.hex
+    else:
+        raise ValueError(f"Expected {uuid.UUID} or {str}. got: {type(uuid_)}")

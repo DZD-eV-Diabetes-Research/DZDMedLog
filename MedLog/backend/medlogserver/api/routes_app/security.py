@@ -27,7 +27,7 @@ log = get_logger()
 
 
 class UserStudyAccess:
-    def __init__(self, user: User, study: Study, perm: StudyPermisson):
+    def __init__(self, user: User, study: Study, perm: StudyPermisson = None):
         self.user = user
         self.study = study
         self.user_study_perm = perm
@@ -36,12 +36,12 @@ class UserStudyAccess:
         self,
         as_role: Literal[None, "admin", "viewer", "interviewer"] = "viewer",
     ):
-        if config.ADMIN_ROLE_NAME in self.user.roles:
+        if self.user.is_admin():
             return True
-        if self.study.no_permissions:
+        elif self.study.no_permissions:
             # the study has access permission switched off. all user have access
             return True
-        if self.user_study_perm:
+        elif self.user_study_perm:
             if as_role is None or as_role == "viewer":
                 return (
                     self.user_study_perm.is_study_admin
@@ -59,11 +59,11 @@ class UserStudyAccess:
     def user_has_interviewer_permission(self):
         self.user_has_access(as_role="interviewer")
 
-    def user_is_admin(self):
+    def user_is_study_admin(self):
         self.user_has_access(as_role="admin")
 
     def user_can_manage_study_permissions(self) -> bool:
-        if config.USERMANAGER_ROLE_NAME in self.user.roles or self.user_is_admin:
+        if self.user.is_usermanager() or self.user_is_study_admin():
             return True
         return False
 
@@ -77,8 +77,8 @@ class UserStudyAccessCollection:
 
     async def init(
         self,
-        study_permisson_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
-        study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
+        study_permisson_crud: StudyPermissonCRUD,
+        study_crud: StudyCRUD,
         study_id: str | uuid.UUID = None,
     ):
         """Gatheres all studies and permission the user has access to. If a study_id is provided only data fpr this study is gathered.
@@ -89,16 +89,24 @@ class UserStudyAccessCollection:
             study_crud (StudyCRUD, optional): _description_. Defaults to Depends(StudyCRUD.get_crud).
             study_id (str | uuid.UUID, optional): _description_. Defaults to None.
         """
-        if config.ADMIN_ROLE_NAME in self.user.roles:
-            # lets save us all the data gathering. the user is admin. admins are all access
-            return
-        study_permissions = await study_permisson_crud.list(
-            filter_user_id=self.user.id, filter_study_id=study_id
-        )
+
         if study_id:
             studies_data = [await study_crud.get(study_id)]
         else:
             studies_data = await study_crud.list(show_deactivated=True)
+        print("USER", self.user)
+        if self.user.is_usermanager():
+            # lets save us permission data gathering. the user is admin. admins are all access
+            for study in studies_data:
+                if study is not None:
+                    self.studies_access[study.id] = UserStudyAccess(
+                        self.user, study, None
+                    )
+            return
+
+        study_permissions = await study_permisson_crud.list(
+            filter_user_id=self.user.id, filter_study_id=study_id
+        )
         for study_perm in study_permissions:
             study = next(
                 (s.id for s in studies_data if s.id == study_perm.study_id), None
@@ -112,32 +120,48 @@ class UserStudyAccessCollection:
         self,
         study_id: str | uuid.UUID,
         as_role: Literal[None, "admin", "viewer", "interviewer"] = None,
-    ):
-        if config.ADMIN_ROLE_NAME in self.user.roles:
+    ) -> bool:
+        if self.user.is_admin():
             return True
         self.studies_access[study_id].user_has_access(as_role=as_role)
 
-    def user_is_interviewer(self, study_id):
+    def user_is_interviewer(self, study_id) -> bool:
         self.user_has_access_to(study_id=study_id, as_role="interviewer")
 
-    def user_is_admin(self, study_id):
+    def user_is_admin(self, study_id) -> bool:
         self.user_has_access_to(study_id=study_id, as_role="admin")
 
 
 async def user_has_studies_access_map(
     user: Annotated[User, Security(get_current_user)],
+    study_permisson_crud: Annotated[
+        StudyPermissonCRUD, Depends(StudyPermissonCRUD.get_crud)
+    ],
+    study_crud: Annotated[StudyCRUD, Depends(StudyCRUD.get_crud)],
 ) -> UserStudyAccessCollection:
     access_helper = UserStudyAccessCollection(user=user)
-    await access_helper.init()
+    await access_helper.init(
+        study_crud=study_crud, study_permisson_crud=study_permisson_crud
+    )
     return access_helper
 
 
 async def user_has_study_access(
-    study_id: Annotated[str, Path()] | uuid.UUID,
+    study_id: str | uuid.UUID,
     user: Annotated[User, Security(get_current_user)],
+    study_permisson_crud: Annotated[
+        StudyPermissonCRUD, Depends(StudyPermissonCRUD.get_crud)
+    ],
+    study_crud: Annotated[StudyCRUD, Depends(StudyCRUD.get_crud)],
 ) -> UserStudyAccess:
+    if isinstance(study_id, str):
+        study_id: uuid.UUID = uuid.UUID(study_id)
     access_helper = UserStudyAccessCollection(user=user)
-    await access_helper.init(study_id=study_id)
+    await access_helper.init(
+        study_id=study_id,
+        study_crud=study_crud,
+        study_permisson_crud=study_permisson_crud,
+    )
     try:
         study_access = access_helper.studies_access[study_id]
     except KeyError:
