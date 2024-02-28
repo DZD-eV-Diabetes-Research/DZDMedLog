@@ -1,24 +1,64 @@
 <template>
     <base-card>
-        <h1>Hi {{ $store.getters.user_name }} this is what you should see now</h1>
-        <h3>access {{ $store.getters.access_token }}</h3>
-        <p>This should print your email: {{ $store.getters.email }}</p>
-        <p>This should print your display_name: {{ $store.getters.display_name }}</p>
-        <p>This should print your roles: {{ $store.getters.roles }}</p>
-        <button @click="logout">logout</button>
+        <h3>Hello {{ userStore.get_user_name }}</h3>
+        <div class="button-container">
+            <button @click="showStudies" disabled>Interview durchführen</button>
+            <button @click="showStudies">Studien</button>
+            <button @click="searchMedicaments">Medikament suchen</button>
+        </div>
     </base-card>
 </template>
 
 <script>
 
-// export default {
-//     methods: {
-//         logout() {
-//             $store.state.access_token = null
-//             $store.state.refresh_token = null
-//         }
-//     }
-// }
+import { useTokenStore } from '@/stores/TokenStore'
+import { useUserStore } from '@/stores/UserStore'
+import { useStudyStore } from '@/stores/StudyStore'
 
+export default {
+
+    setup() {
+        const tokenStore = useTokenStore()
+        const userStore = useUserStore()
+        const studyStore = useStudyStore()
+        return { tokenStore, userStore, studyStore }
+    },
+    methods: {
+        userMe() {
+            try {
+                this.userStore.userMe()
+            } catch (err) {
+                console.log(err)
+                this.tokenStore.error = err.response
+            }
+        },
+        showStudies() {
+            try {
+                this.studyStore.myStudies()
+                this.$router.push("/studies")
+            } catch (err) {
+                console.log(err)
+                this.tokenStore.error = err.response
+            }
+        },
+        searchMedicaments() {
+            this.$router.push("/construction")
+        }
+    }
+}
 
 </script>
+
+<style scoped>
+.button-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.button-container button {
+    margin-bottom: 35px;
+    /* Adjust the value as needed */
+}
+</style>

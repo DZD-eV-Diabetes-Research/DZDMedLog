@@ -8,40 +8,40 @@
                 <input id="password" name="password" type="password" v-model.trim="password">
             </div>
             <div>
-                <h1 style="color: red" v-if="error">{{ error }}</h1>
+                <h1 style="color: red" v-if="tokenStore.get_error">{{ tokenStore.get_error }}</h1>
                 <button>Login</button>
                 <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
             </div>
         </form>
+
     </base-card>
 </template>
 
 <script>
 
+import { useTokenStore } from '@/stores/TokenStore'
+import { useUserStore } from '@/stores/UserStore'
+
 export default {
+
+    setup() {
+        const tokenStore = useTokenStore()
+        const userStore = useUserStore()
+        return { tokenStore, userStore }
+    },
+
     data() {
         return {
             userName: "",
             password: "",
             formIsValid: true,
-            error: "",
         }
     },
     methods: {
-
-        async userMe() {
-            try {
-                await this.$store.dispatch("userMe")
-            }
-            catch (err) {
-                this.error = err.response
-            }
-        },
-
         async submitForm() {
-            this.error = ""
+            this.tokenStore.error = ""
             if (this.userName === '' || this.password.length === 0) {
-                this.error = "Please enter a valid username and password"
+                this.tokenStore.error = "Please enter a valid username and password"
                 this.formIsValid = false
             }
             const payload = {
@@ -50,22 +50,23 @@ export default {
             }
 
             try {
-                await this.$store.dispatch('login', payload)
+                await this.tokenStore.login(payload)
 
                 try {
-                    await this.$store.dispatch("userMe")
+                    await this.userStore.userMe()
                 }
                 catch (err) {
-                    this.error = err.response
+                    this.tokenStore.error = err.response
                 }
                 this.$router.push("/user")
 
             } catch (err) {
-                this.error = "Wrong username or password"
+                this.tokenStore.error = "Wrong username or password"
             }
-        }
+        },
     }
 }
+
 
 </script>
 
