@@ -126,10 +126,12 @@ class UserAuthCRUD(CRUDBase[UserAuth, UserAuth, UserAuthCreate, UserAuthUpdate])
         raise_custom_exception_if_exists: Exception = None,
     ) -> UserAuth:
 
-        existing_user_auth = self.get_by_user_id_and_auth_source_and_provider_name(
-            user_id=user_auth_create.user_id,
-            auth_source=user_auth_create.auth_source_type,
-            oidc_provider_name=user_auth_create.oidc_provider_name,
+        existing_user_auth = (
+            await self.get_by_user_id_and_auth_source_and_provider_name(
+                user_id=user_auth_create.user_id,
+                auth_source=user_auth_create.auth_source_type,
+                oidc_provider_name=user_auth_create.oidc_provider_name,
+            )
         )
         if existing_user_auth and not exists_ok and raise_custom_exception_if_exists:
             raise raise_custom_exception_if_exists
