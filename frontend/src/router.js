@@ -3,6 +3,8 @@ import { useTokenStore } from '@/stores/TokenStore'
 
 import Login from "./components/Auth/Login.vue"
 import UserView from "./components/UI/UserView.vue"
+import UserStudies from "./components/UI/UserStudies.vue"
+import PageConstruction from "./components/UI/PageConstruction.vue"
 import NotFound from "./components/UI/NotFound.vue"
 
 const router = createRouter({
@@ -38,6 +40,36 @@ const router = createRouter({
                 }
             }
         },
+        {
+            path: '/studies',
+            component: UserStudies,
+            meta: { requiresAuth: true }, 
+            beforeEnter: (to, from, next) => {
+                const tokenStore = useTokenStore()
+                const refreshToken = tokenStore.get_refresh_token; 
+
+                if (refreshToken) {
+                    next();
+                } else {
+                    next("/auth");
+                }
+            }
+        },
+        {
+            path: '/construction',
+            component: PageConstruction,
+            meta: { requiresAuth: true }, 
+            beforeEnter: (to, from, next) => {
+                const tokenStore = useTokenStore()
+                const refreshToken = tokenStore.get_refresh_token; 
+
+                if (refreshToken) {
+                    next();
+                } else {
+                    next("/auth");
+                }
+            }
+        },
         { path: '/:notFound(.*)', component: NotFound }
     ]
 });
@@ -45,7 +77,6 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
     const tokenStore = useTokenStore();
     const refreshToken = tokenStore.get_refresh_token;
-
 
     if (to.meta.requiresAuth && !refreshToken) {
         next('/auth');

@@ -8,6 +8,7 @@ export const useTokenStore = defineStore('TokenStore', {
             access_token: null,
             refresh_token: null,
             error: null,
+            logged_in: false
         }
     },
 
@@ -21,6 +22,9 @@ export const useTokenStore = defineStore('TokenStore', {
         get_refresh_token() {
             return this.refresh_token
         },
+        get_logged_in(){
+            return this.logged_in
+        }
     },
 
 
@@ -28,17 +32,22 @@ export const useTokenStore = defineStore('TokenStore', {
 
         async login(payload) {
 
-            const response = await axios.post('/auth/token', {
-                username: payload.username,
-                password: payload.password
-            }, {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
+            try {
+                const response = await axios.post('/auth/token', {
+                    username: payload.username,
+                    password: payload.password
+                }, {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
                 }
+                )
+                this.access_token = response.data.access_token
+                this.refresh_token = response.data.refresh_token
+                this.logged_in = true
+            } catch (err) {
+                this.error = err.response.data.detail
             }
-            )
-            this.access_token = response.data.access_token
-            this.refresh_token = response.data.refresh_token
 
         },
 
@@ -47,18 +56,18 @@ export const useTokenStore = defineStore('TokenStore', {
             axios.defaults.headers.common = { 'refresh-token': "Bearer " + this.get_refresh_token }
 
             try {
-            const response = await axios.post('/auth/refresh', {
-                headers: {
-                    'Content-Type': 'json',
-                }
-            })
+                const response = await axios.post('/auth/refresh', {
+                    headers: {
+                        'Content-Type': 'json',
+                    }
+                })
 
-            this.access_token = response.data.access_token
-        } catch (err) {
-            this.error = err.response.data.detail
-        }
+                this.access_token = response.data.access_token
+            } catch (err) {
+                this.error = err.response.data.detail
+            }
 
         }
     },
-    persist: false,
+    persist: true,
 })

@@ -10,7 +10,7 @@ export const useUserStore = defineStore('UserStore', {
             display_name: null,
             roles: null,
             user_name: null,
-            my_api: import.meta.env.VITE_API
+            my_api: import.meta.env.VITE_API,
         }
     },
     getters: {
@@ -37,7 +37,6 @@ export const useUserStore = defineStore('UserStore', {
 
             const response = await axios.get("/user/me")
 
-            this.my_stuff = response
             this.email = response.data.email
             this.display_name = response.data.display_name
             this.roles = response.data.roles
@@ -48,12 +47,7 @@ export const useUserStore = defineStore('UserStore', {
         }
 
         },
-
-        test() {
-            const tokenStore = useTokenStore()
-            tokenStore.error = "Test"
-        }
     }
     ,
-    persist: false,
+    persist: true,
 })
