@@ -15,7 +15,7 @@ import yaml
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.utils import to_path
-from medlogserver.db._session import get_async_session, get_async_session_context
+from medlogserver.db._session import get_async_session_context
 from medlogserver.db import BaseModel, User, UserAuthCreate, StudyCreate, StudyPermisson
 from medlogserver.db import (
     CRUDBase,
