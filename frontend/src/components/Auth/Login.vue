@@ -38,13 +38,6 @@ export default {
         }
     },
     methods: {
-        async logout() {
-            this.userName = ""
-            this.password = ""
-            this.userStore.$reset()
-            this.tokenStore.$reset()
-        },
-
         async submitForm() {
             this.tokenStore.error = ""
             if (this.userName === '' || this.password.length === 0) {

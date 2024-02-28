@@ -6,7 +6,8 @@
 
 export default {
   props: {
-    show: Boolean
+    show: Boolean,
+    title: String
   }
 }
 
@@ -17,11 +18,12 @@ export default {
     <div v-if="show" class="modal-mask">
       <div class="modal-container">
         <div class="modal-header">
-          <slot name="header">
-            <button
+          <button
               class="modal-default-button"
               @click="$emit('close')"
             ><img src="/icons/close.svg" class="modal-default-button-image"></button>
+          <slot name="header">
+            <h3>{{title}}</h3>
           </slot>
         </div>
 
@@ -47,7 +49,7 @@ export default {
 }
 
 .modal-container {
-  width: 300px;
+  width: 50%;
   margin: auto;
   padding: 20px 30px;
   background-color: #fff;

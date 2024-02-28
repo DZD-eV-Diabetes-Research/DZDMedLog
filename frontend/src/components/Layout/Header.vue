@@ -10,16 +10,15 @@
       <div class="nav__logo">
         <img src="/img/logos/dzd.png" alt="DZD">
       </div>
-      <button v-if="tokenStore.get_logged_in" @click="logout">Logout</button>
     </div>
   </header>
+  <button v-if="tokenStore.get_logged_in" @click="logout">Logout</button>
 </template>
 
 <script>
 
 import { useUserStore } from '@/stores/UserStore'
 import { useTokenStore } from '@/stores/TokenStore'
-
 
 export default {
   name: "Header",
@@ -92,15 +91,8 @@ export default {
   }
 }
 
-
 .button {
-  position: absolute;
-  top: 50%;
-  right: var(--layout-padding-x);
-  transform: translateY(+75%);
-  background-color: transparent;
-  /* Make button background transparent */
-  // cursor: pointer; /* Change cursor to pointer on hover */
+  margin-left: auto;
 }
 
 .about {

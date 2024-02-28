@@ -2,9 +2,9 @@
     <base-card>
         <h3>Hello {{ userStore.get_user_name }}</h3>
         <div class="button-container">
-            <button @click="conductInterview">Interview durchführen</button>
+            <button @click="showStudies" disabled>Interview durchführen</button>
+            <button @click="showStudies">Studien</button>
             <button @click="searchMedicaments">Medikament suchen</button>
-            <h1 v-if="tokenStore.error">{{tokenStore.error}}</h1>
         </div>
     </base-card>
 </template>
@@ -32,7 +32,7 @@ export default {
                 this.tokenStore.error = err.response
             }
         },
-        conductInterview() {
+        showStudies() {
             try {
                 this.studyStore.myStudies()
                 this.$router.push("/studies")

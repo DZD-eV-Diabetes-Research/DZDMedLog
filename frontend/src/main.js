@@ -8,6 +8,7 @@ import axios from 'axios';
 import './interceptor.js'
 
 import BaseCard from './components/UI/BaseCard.vue';
+import Modal from './components/UI/Modal.vue'
 
 axios.defaults.baseURL = "http://localhost:8888"
 
@@ -20,5 +21,7 @@ app.use(pinia)
 app.use(router)
 
 app.component('base-card', BaseCard)
+app.component('modal-vue', Modal)
+
 
 app.mount('#app')

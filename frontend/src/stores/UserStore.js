@@ -10,6 +10,7 @@ export const useUserStore = defineStore('UserStore', {
             display_name: null,
             roles: null,
             user_name: null,
+            is_admin:false,
             my_api: import.meta.env.VITE_API,
         }
     },
@@ -41,6 +42,10 @@ export const useUserStore = defineStore('UserStore', {
             this.display_name = response.data.display_name
             this.roles = response.data.roles
             this.user_name = response.data.user_name
+
+            if (this.roles.includes('medlog-admin')){
+                this.is_admin = true
+            }
         }
         catch (err) {
             tokenStore.error = err.response.data.detail
