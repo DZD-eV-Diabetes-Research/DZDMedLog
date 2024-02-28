@@ -318,7 +318,7 @@ async def list_all_intakes_of_last_uncompleted_interview(
     )
     if last_uncompleted_interview:
         return await intake_crud.list(
-            filter_by_interview_id=last_uncompleted_interview.id
+            filter_interview_id=last_uncompleted_interview.id
         )
     else:
         return []
@@ -338,7 +338,7 @@ async def list_all_intakes_of_interview(
 ) -> List[Intake]:
 
     return await intake_crud.list(
-        filter_by_interview_id=interview_id, filter_by_study_id=study_access.study.id
+        filter_interview_id=interview_id, filter_study_id=study_access.study.id
     )
 
 

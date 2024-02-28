@@ -55,7 +55,7 @@ async def list_all_interviews_of_study(
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Interview]:
-    return await interview_crud.list(filter_by_study_id=study_access.study.id)
+    return await interview_crud.list(filter_study_id=study_access.study.id)
 
 
 @fast_api_interview_router.get(
@@ -68,7 +68,7 @@ async def list_interviews_by_study_event(
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Interview]:
-    return await interview_crud.list(filter_by_event_id=event_id)
+    return await interview_crud.list(filter_event_id=event_id)
 
 
 @fast_api_interview_router.get(
@@ -102,7 +102,7 @@ async def list_interviews_of_proband(
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Interview]:
-    return await interview_crud.list(filter_by_proband_external_id=proband_id)
+    return await interview_crud.list(filter_proband_external_id=proband_id)
 
 
 @fast_api_interview_router.get(

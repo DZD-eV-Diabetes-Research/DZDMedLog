@@ -29,6 +29,7 @@ from medlogserver.api.routes_app.security import (
     user_has_study_access,
     UserStudyAccess,
 )
+from medlogserver.api.paginator import PageParams, pagination_query, PaginatedResponse
 
 config = Config()
 
@@ -42,16 +43,28 @@ fast_api_event_router: APIRouter = APIRouter()
 
 @fast_api_event_router.get(
     "/study/{study_id}/event",
-    response_model=List[Event],
+    response_model=PaginatedResponse[Event],
     description=f"List all studies the user has access too.",
 )
 async def list_events(
     hide_completed: bool = Query(False),
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
-) -> List[Event]:
-    return await event_crud.list(
-        filter_by_study_id=study_access.study.id, hide_completed=hide_completed
+    pagination: PageParams = Depends(pagination_query),
+) -> PaginatedResponse[Event]:
+    result_items = await event_crud.list(
+        filter_study_id=study_access.study.id,
+        hide_completed=hide_completed,
+        pagination=pagination,
+    )
+    return PaginatedResponse(
+        total_count=await event_crud.count(
+            filter_study_id=study_access.study.id,
+            hide_completed=hide_completed,
+        ),
+        offset=pagination.offset,
+        count=len(result_items),
+        items=result_items,
     )
 
 

@@ -5,7 +5,16 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, UniqueConstraint
+from sqlmodel import (
+    Field,
+    select,
+    delete,
+    Column,
+    JSON,
+    SQLModel,
+    UniqueConstraint,
+    Relationship,
+)
 from datetime import datetime
 import uuid
 from uuid import UUID
@@ -54,11 +63,10 @@ class StudyPermissonBase(StudyPermissonUpdate, table=False):
     )
 
 
-class StudyPermissonHumanReadeable(StudyPermissonBase, table=False):
+class StudyPermissionRead(StudyPermissonBase, table=False):
     id: uuid.UUID = Field()
-    user_name: str = Field()
-    study_name: str = Field()
-    created_at: datetime = Field()
+    user_ref: User = Field()
+    study_ref: Study = Field()
 
 
 class StudyPermisson(StudyPermissonBase, BaseTable, table=True):
@@ -75,4 +83,16 @@ class StudyPermisson(StudyPermissonBase, BaseTable, table=True):
         nullable=False,
         unique=True,
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
+    )
+    user_ref: User = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        }
+    )
+    study_ref: Study = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        }
     )

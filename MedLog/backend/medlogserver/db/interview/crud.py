@@ -31,19 +31,19 @@ class InterviewCRUD(CRUDBase[Interview, Interview, InterviewCreate, InterviewUpd
 
     async def list(
         self,
-        filter_by_event_id: str = None,
-        filter_by_proband_external_id: str = None,
-        filter_by_study_id: str = None,
+        filter_event_id: str = None,
+        filter_proband_external_id: str = None,
+        filter_study_id: str = None,
         pagination: PageParams = None,
     ) -> Sequence[Interview]:
         query = select(Interview)
-        if filter_by_study_id:
-            query = query.join(Event).where(Event.study_id == filter_by_study_id)
-        if filter_by_event_id:
-            query = query.where(Interview.event_id == filter_by_event_id)
-        if filter_by_proband_external_id:
+        if filter_study_id:
+            query = query.join(Event).where(Event.study_id == filter_study_id)
+        if filter_event_id:
+            query = query.where(Interview.event_id == filter_event_id)
+        if filter_proband_external_id:
             query = query.where(
-                Interview.proband_external_id == filter_by_proband_external_id
+                Interview.proband_external_id == filter_proband_external_id
             )
         if pagination:
             query = pagination.append_to_query(query)

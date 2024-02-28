@@ -18,7 +18,7 @@ from medlogserver.db.study.crud import StudyCRUD
 from medlogserver.db.study_permission.model import (
     StudyPermisson,
     StudyPermissonUpdate,
-    StudyPermissonHumanReadeable,
+    StudyPermissionRead,
 )
 from medlogserver.db.study_permission.crud import StudyPermissonCRUD
 from medlogserver.db.user.model import (

@@ -21,7 +21,7 @@ from fastapi import Depends, APIRouter
 
 from medlogserver.db.study_permission.model import (
     StudyPermisson,
-    StudyPermissonHumanReadeable,
+    StudyPermissionRead,
     StudyPermissonUpdate,
 )
 from medlogserver.db.study_permission.crud import StudyPermissonCRUD
@@ -30,7 +30,7 @@ from medlogserver.api.routes_app.security import (
     user_has_study_access,
     UserStudyAccess,
 )
-
+from medlogserver.api.paginator import PageParams, pagination_query, PaginatedResponse
 
 config = Config()
 
@@ -45,29 +45,28 @@ fast_api_permissions_router: APIRouter = APIRouter()
 #############
 @fast_api_permissions_router.get(
     "/study/{study_id}/permissions",
-    response_model=List[StudyPermisson | StudyPermissonHumanReadeable],
+    response_model=PaginatedResponse[StudyPermissionRead],
     description=f"List all access permissons for a study. User must be system admin, system user manager or study admin to see these.",
 )
 async def list_study_permissions(
-    human_readable: Annotated[
-        bool,
-        Query(
-            description="When set to true, includes user names and study names. which are not part of the table. This can be handy when generating overview lists in the UI.",
-        ),
-    ] = False,
     study_access: UserStudyAccess = Security(user_has_study_access),
     permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
-) -> List[StudyPermisson | StudyPermissonHumanReadeable]:
+    pagination: PageParams = Depends(pagination_query),
+) -> PaginatedResponse[StudyPermissionRead]:
     if not study_access.user_can_manage_study_permissions():
         return HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not allowed to manage study permissions",
         )
-    if human_readable:
-        return await permission_crud.list_human_readable(
-            filter_study_id=study_access.study.id
-        )
-    return await permission_crud.list(filter_study_id=study_access.study.id)
+    result_items = await permission_crud.list(
+        filter_study_id=study_access.study.id, pagination=pagination
+    )
+    return PaginatedResponse(
+        total_count=await permission_crud.count(filter_study_id=study_access.study.id),
+        offset=pagination.offset,
+        count=len(result_items),
+        items=result_items,
+    )
 
 
 ############

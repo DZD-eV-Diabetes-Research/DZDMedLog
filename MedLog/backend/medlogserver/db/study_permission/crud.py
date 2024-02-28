@@ -5,7 +5,16 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, UniqueConstraint
+from sqlmodel import (
+    Field,
+    select,
+    delete,
+    Column,
+    JSON,
+    SQLModel,
+    UniqueConstraint,
+    func,
+)
 from datetime import datetime
 import uuid
 from uuid import UUID
@@ -19,7 +28,7 @@ from medlogserver.db.study.model import Study
 from medlogserver.db.study_permission.model import (
     StudyPermisson,
     StudyPermissonUpdate,
-    StudyPermissonHumanReadeable,
+    StudyPermissionRead,
 )
 from medlogserver.db._base_crud import CRUDBase
 from medlogserver.api.paginator import PageParams
@@ -31,7 +40,7 @@ config = Config()
 class StudyPermissonCRUD(
     CRUDBase[
         StudyPermisson,
-        StudyPermissonHumanReadeable,
+        StudyPermissionRead,
         StudyPermisson,
         StudyPermissonUpdate,
     ]
@@ -39,49 +48,34 @@ class StudyPermissonCRUD(
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    async def count(
+        self,
+        filter_study_id: uuid.UUID | str = None,
+        filter_user_id: uuid.UUID | str = None,
+    ) -> int:
+        query = select(func.count()).select_from(StudyPermisson)
+        if filter_study_id:
+            query = query.where(StudyPermisson.study_id == filter_study_id)
+        if filter_user_id:
+            query = query.where(StudyPermisson.user_id == filter_user_id)
+        results = await self.session.exec(statement=query)
+        return results.first()
+
     async def list(
         self,
         filter_study_id: uuid.UUID | str = None,
         filter_user_id: uuid.UUID | str = None,
+        pagination: PageParams = None,
     ) -> Sequence[StudyPermisson]:
         query = select(StudyPermisson)
         if filter_study_id:
             query = query.where(StudyPermisson.study_id == filter_study_id)
         if filter_user_id:
             query = query.where(StudyPermisson.user_id == filter_user_id)
+        if pagination:
+            query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)
         return results.all()
-
-    async def list_human_readable(
-        self,
-        filter_study_id: uuid.UUID | str = None,
-        filter_user_id: uuid.UUID | str = None,
-    ) -> Sequence[StudyPermissonHumanReadeable]:
-        """As this is a n2m table and only container IDs, readbility is not good. this function injects usernames and study IDs for better readablity.
-        ToDo: candidate for caching
-
-        Args:
-            filter_study_id (uuid.UUID | str, optional): _description_. Defaults to None.
-            filter_user_id (uuid.UUID | str, optional): _description_. Defaults to None.
-
-        Returns:
-            Sequence[StudyPermissonHumanReadeable]: _description_
-        """
-        query = select(StudyPermisson, User, Study).join(User).join(Study)
-        if filter_study_id:
-            query = query.where(StudyPermisson.study_id == filter_study_id)
-        if filter_user_id:
-            query = query.where(StudyPermisson.user_id == filter_user_id)
-        results = await self.session.exec(statement=query)
-        readable_results: List[StudyPermissonHumanReadeable] = []
-        for perm, user, study in results:
-            StudyPermissonHumanReadeable(user)
-            readable_results.append(
-                StudyPermissonHumanReadeable(
-                    user_name=user.user_name, study_name=study.name, **perm
-                )
-            )
-        return readable_results
 
     async def get(
         self,
@@ -110,7 +104,9 @@ class StudyPermissonCRUD(
             raise raise_exception_if_none
         return study_permission
 
-    async def update_or_create_if_not_exists(self, study_permission=StudyPermisson):
+    async def update_or_create_if_not_exists(
+        self, study_permission=StudyPermisson
+    ) -> StudyPermisson:
         existing_study_permission: StudyPermisson = await self.list(
             filter_study_id=study_permission.study_id,
             filter_user_id=study_permission.user_id,
@@ -124,7 +120,8 @@ class StudyPermissonCRUD(
         await self.session.refresh(study_permission)
         return study_permission
 
-    async def create2(
+    # I tested if we can remove this. looks like. todo: remove this func
+    async def create_REMOVE_ME(
         self,
         study_permission: StudyPermisson,
         raise_custom_exception_if_exists: Exception = None,

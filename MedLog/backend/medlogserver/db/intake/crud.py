@@ -31,29 +31,29 @@ class IntakeCRUD(CRUDBase[Intake, Intake, IntakeCreate, IntakeUpdate]):
 
     async def list(
         self,
-        filter_by_event_id: str = None,
-        filter_by_interview_id: str = None,
-        filter_by_proband_external_id: str = None,
-        filter_by_study_id: str = None,
+        filter_event_id: str = None,
+        filter_interview_id: str = None,
+        filter_proband_external_id: str = None,
+        filter_study_id: str = None,
         pagination: PageParams = None,
     ) -> Sequence[Intake]:
         query = select(Intake)
         # prepare joins
-        if filter_by_study_id:
+        if filter_study_id:
             query = query.join(Interview).join(Event)
-        elif filter_by_event_id or filter_by_proband_external_id:
+        elif filter_event_id or filter_proband_external_id:
             query = query.join(Interview)
         # prepare where filters
-        if filter_by_study_id:
-            query = query.where(Event.study_id == filter_by_study_id)
-        if filter_by_event_id:
-            query = query.where(Interview.event_id == filter_by_event_id)
-        if filter_by_proband_external_id:
+        if filter_study_id:
+            query = query.where(Event.study_id == filter_study_id)
+        if filter_event_id:
+            query = query.where(Interview.event_id == filter_event_id)
+        if filter_proband_external_id:
             query = query.where(
-                Interview.proband_external_id == filter_by_proband_external_id
+                Interview.proband_external_id == filter_proband_external_id
             )
-        if filter_by_interview_id:
-            query = query.where(Intake.interview_id == filter_by_interview_id)
+        if filter_interview_id:
+            query = query.where(Intake.interview_id == filter_interview_id)
         if pagination:
             query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)

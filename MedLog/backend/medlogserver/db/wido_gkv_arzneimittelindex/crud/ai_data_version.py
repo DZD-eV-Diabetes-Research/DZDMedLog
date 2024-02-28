@@ -31,18 +31,18 @@ class AiDataVersionCRUD(
         self,
         include_deactivated: bool = False,
         include_incompleted: bool = False,
-        filter_by_datenstand: str = None,
-        filter_by_dateiversion: str = None,
+        filter_datenstand: str = None,
+        filter_dateiversion: str = None,
     ) -> Sequence[AiDataVersion]:
         query = select(AiDataVersion)
         if not include_deactivated:
             query = query.where(AiDataVersion.deactivated == False)
         if not include_incompleted:
             query = query.where(is_not(AiDataVersion.import_completed_at, None))
-        if filter_by_datenstand:
-            query = query.where(AiDataVersion.datenstand == filter_by_datenstand)
-        if filter_by_dateiversion:
-            query = query.where(AiDataVersion.dateiversion == filter_by_dateiversion)
+        if filter_datenstand:
+            query = query.where(AiDataVersion.datenstand == filter_datenstand)
+        if filter_dateiversion:
+            query = query.where(AiDataVersion.dateiversion == filter_dateiversion)
 
         query = query.order_by(desc(AiDataVersion.datenstand))
         results = await self.session.exec(statement=query)

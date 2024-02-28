@@ -5,7 +5,7 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func
 
 import uuid
 from uuid import UUID
@@ -27,19 +27,32 @@ class EventCRUD(CRUDBase[Event, EventRead, EventCreate, EventUpdate]):
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    async def count(
+        self,
+        filter_study_id: uuid.UUID | str = None,
+        hide_completed: bool = False,
+    ) -> int:
+        query = select(func.count()).select_from(Event)
+        if filter_study_id:
+            query = query.where(Event.study_id == filter_study_id)
+        if hide_completed:
+            query = query.where(Event.completed == True)
+        results = await self.session.exec(statement=query)
+        return results.first()
+
     async def list(
         self,
-        filter_by_study_id: UUID = None,
+        filter_study_id: UUID = None,
         hide_completed: bool = False,
         pagination: PageParams = None,
     ) -> Sequence[Event]:
-        if isinstance(filter_by_study_id, str):
-            filter_by_study_id: UUID = UUID(filter_by_study_id)
+        if isinstance(filter_study_id, str):
+            filter_study_id: UUID = UUID(filter_study_id)
         log.info(f"Event.Config.order_by {Event.Config.order_by}")
         query = select(Event)
-        if filter_by_study_id:
-            # query = query.where(Event.study_id == prep_uuid_for_qry(filter_by_study_id))
-            query = query.where(Event.study_id == filter_by_study_id)
+        if filter_study_id:
+            # query = query.where(Event.study_id == prep_uuid_for_qry(filter_study_id))
+            query = query.where(Event.study_id == filter_study_id)
         if hide_completed:
             query = query.where(Event.completed == True)
         if pagination:
