@@ -103,12 +103,12 @@ class UserAuthExternalOIDCTokenCRUD:
 
     async def create(
         self,
-        oidc_token: UserAuthExternalOIDCToken,
+        obj: UserAuthExternalOIDCToken,
         exists_ok: bool = False,
-        raise_exception_if_exists: Exception = None,
+        raise_custom_exception_if_exists: Exception = None,
     ) -> UserAuthExternalOIDCToken:
         query = select(UserAuthExternalOIDCToken).where(
-            UserAuthExternalOIDCToken.oauth_token == oidc_token.oauth_token
+            UserAuthExternalOIDCToken.oauth_token == obj.oauth_token
         )
         results = await self.session.exec(statement=query)
         existing_oidc_token: UserAuthExternalOIDCToken = results.one_or_none()
@@ -117,10 +117,10 @@ class UserAuthExternalOIDCTokenCRUD:
         elif existing_oidc_token and exists_ok:
             return existing_oidc_token
 
-        self.session.add(oidc_token)
+        self.session.add(obj)
         await self.session.commit()
-        await self.session.refresh(oidc_token)
-        return oidc_token
+        await self.session.refresh(obj)
+        return obj
 
     async def delete(
         self,

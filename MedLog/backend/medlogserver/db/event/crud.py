@@ -23,7 +23,7 @@ log = get_logger()
 config = Config()
 
 
-class EventCRUD(CRUDBase[Event, EventRead, EventUpdate, EventCreate]):
+class EventCRUD(CRUDBase[Event, EventRead, EventCreate, EventUpdate]):
     def __init__(self, session: AsyncSession):
         self.session = session
 

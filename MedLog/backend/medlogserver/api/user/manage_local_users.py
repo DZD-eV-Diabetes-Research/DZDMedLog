@@ -88,7 +88,7 @@ async def create_user(
         )
     user_create: User = await user_crud.create(
         user_create,
-        raise_exception_if_exists=HTTPException(
+        raise_custom_exception_if_exists=HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User allready exists",
             headers={"WWW-Authenticate": "Bearer"},

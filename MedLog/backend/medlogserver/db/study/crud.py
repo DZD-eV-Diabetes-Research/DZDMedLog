@@ -70,26 +70,6 @@ class StudyCRUD(CRUDBase[Study, Study, StudyCreate, StudyUpdate]):
             raise raise_exception_if_none
         return study
 
-    async def create(
-        self,
-        study_create: StudyCreate,
-        raise_exception_if_exists: Exception = None,
-    ) -> Study:
-        log.debug(f"Create study: {study_create}")
-
-        existing_study: Study = await self.get_by_name(
-            study_create.name, show_deactivated=True
-        )
-        if existing_study and raise_exception_if_exists:
-            raise raise_exception_if_exists
-        elif existing_study:
-            return existing_study
-        new_study: Study = Study.model_validate(study_create)
-        self.session.add(new_study)
-        await self.session.commit()
-        await self.session.refresh(new_study)
-        return new_study
-
     async def disable(
         self,
         study_id: str | UUID,

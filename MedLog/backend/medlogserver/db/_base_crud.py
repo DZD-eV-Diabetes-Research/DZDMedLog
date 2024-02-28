@@ -8,6 +8,7 @@ from typing import (
     TypeVar,
     Generic,
 )
+from sqlalchemy.exc import IntegrityError
 from fastapi import Depends
 import contextlib
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -140,12 +141,63 @@ class CRUDBase(
     async def create(
         self,
         obj: GenericCRUDCreateType,
+        exists_ok: bool = False,
+        raise_custom_exception_if_exists: Exception = None,
     ) -> GenericCRUDReadType:
-        log.debug(f"Create {self.get_table_cls().__name__}: {obj}")
-        self.session.add(obj)
-        await self.session.commit()
-        await self.session.refresh(obj)
-        return obj
+        log.debug(
+            f"Create {self.get_table_cls().__name__} object of type '{type(obj)}'. Data: <{obj}>"
+        )
+        if exists_ok and raise_custom_exception_if_exists:
+            log.warning(
+                f"'exists_ok' and 'raise_custom_exception_if_exists' are set for creation of '{type(obj)}'. If object exists and 'exists_ok' = True,  it will never raise the Exception."
+            )
+        new_table_obj: GenericCRUDTableType = self.get_table_cls().model_validate(obj)
+        self.session.add(new_table_obj)
+        try:
+            await self.session.commit()
+        except IntegrityError as err:
+            if "UNIQUE constraint failed" in str(err) and exists_ok:
+                log.debug(
+                    f"Object of object of type '{type(obj)}' already exists. Skipping creation. <{obj}>"
+                )
+                await self.session.rollback()
+                return await self.find(
+                    obj,
+                    raise_exception_if_more_than_one_result=ValueError(
+                        f"Failed retrieving existing <{self.get_table_cls()}> object based on <{obj}>. Given attributes are inconclusive and result in multiple possible results."
+                    ),
+                )
+            else:
+                if raise_custom_exception_if_exists:
+                    raise raise_custom_exception_if_exists
+                raise err
+        await self.session.refresh(new_table_obj)
+        return new_table_obj
+
+    async def find(
+        self,
+        obj: GenericCRUDReadType | GenericCRUDUpdateType | GenericCRUDCreateType,
+        raise_exception_if_not_exists: Exception = None,
+        raise_exception_if_more_than_one_result: Exception = None,
+    ) -> Sequence[GenericCRUDReadType]:
+        """Find matching objects in the database, based on the attributes in the given "obj"
+
+        Args:
+            obj (GenericCRUDReadType): _description_
+            raise_exception_if_not_exists (Exception, optional): _description_. Defaults to None.
+        """
+        tbl = self.get_table_cls()
+        query = select(tbl)
+
+        for attr, val in obj.model_dump().items():
+            query = query.where(getattr(tbl, attr) == val)
+        res = await self.session.exec(query)
+        result_objs = res.all()
+        if len(result_objs) == 0 and raise_exception_if_not_exists:
+            raise raise_exception_if_not_exists
+        elif len(result_objs) > 1 and raise_exception_if_more_than_one_result:
+            raise raise_exception_if_more_than_one_result
+        return result_objs
 
     async def update(
         self,

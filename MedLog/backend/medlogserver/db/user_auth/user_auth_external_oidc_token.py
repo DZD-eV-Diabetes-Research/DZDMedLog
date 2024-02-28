@@ -110,7 +110,7 @@ class UserAuthExternalOIDCTokenCRUD:
         self,
         oidc_token: UserAuthExternalOIDCToken,
         exists_ok: bool = False,
-        raise_exception_if_exists: Exception = None,
+        raise_custom_exception_if_exists: Exception = None,
     ) -> UserAuthExternalOIDCToken:
         query = select(UserAuthExternalOIDCToken).where(
             UserAuthExternalOIDCToken.oauth_token == oidc_token.oauth_token

@@ -69,17 +69,6 @@ class UserAuthRefreshTokenCRUD(
 
         return list(user_auth_refresh_tokens)
 
-    async def create(
-        self, user_auth_access_token_create: UserAuthRefreshTokenCreate
-    ) -> UserAuthRefreshToken:
-        user_auth_refresh_token = UserAuthRefreshToken(
-            **user_auth_access_token_create.model_dump()
-        )
-        self.session.add(user_auth_refresh_token)
-        await self.session.commit()
-        await self.session.refresh(user_auth_refresh_token)
-        return user_auth_refresh_token
-
     async def delete(
         self, id: str | uuid.UUID, raise_exception_if_not_exists=None
     ) -> None | Literal[True]:

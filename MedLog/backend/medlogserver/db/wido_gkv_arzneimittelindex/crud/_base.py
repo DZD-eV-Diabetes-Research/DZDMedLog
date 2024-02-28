@@ -133,7 +133,7 @@ class DrugCRUDBase(
     async def create(
         self,
         create_obj: GenericCRUDCreateType,
-        raise_exception_if_exists: Exception = None,
+        raise_custom_exception_if_exists: Exception = None,
     ) -> GenericCRUDReadType:
         table = self.get_table_cls()
         pk = self._get_primary_key()
@@ -151,8 +151,8 @@ class DrugCRUDBase(
         res = await self.session.exec(query_existing)
         existing_obj = res.one_or_none()
         if existing_obj:
-            if raise_exception_if_exists:
-                raise raise_exception_if_exists
+            if raise_custom_exception_if_exists:
+                raise raise_custom_exception_if_exists
             return existing_obj
         self.session.add(create_obj)
         await self.session.commit()
@@ -161,7 +161,7 @@ class DrugCRUDBase(
 
     async def create_bulk(self, objects: List[GenericCRUDCreateType]):
         tbl_class = self.get_table_cls()
-        log.debug(f"Create bulk of {tbl_class.__name__}. Count({len(objects)})")
+        log.info(f"Create bulk of {tbl_class.__name__}. Count({len(objects)})")
         for obj in objects:
             if not isinstance(obj, self.get_create_cls()):
                 raise ValueError(

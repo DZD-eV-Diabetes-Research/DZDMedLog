@@ -27,7 +27,9 @@ config = Config()
 
 class InterviewCreate(BaseModel, table=False):
     event_id: str = Field(foreign_key="event.id")
-    proband_external_id: str = Field()
+    proband_external_id: str = Field(
+        description="A unique ID given to the proband from the studies external probant management system"
+    )
     interview_start_time_utc: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )

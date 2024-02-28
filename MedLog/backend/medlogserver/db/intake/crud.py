@@ -126,15 +126,3 @@ class IntakeCRUD(CRUDBase[Intake, Intake, IntakeCreate, IntakeUpdate]):
         if intake is None and raise_exception_if_none:
             raise raise_exception_if_none
         return intake
-
-    async def create(
-        self,
-        intake: IntakeCreate | Intake,
-    ) -> Intake:
-        log.debug(f"Create intake: {intake}")
-        if type(intake) == IntakeCreate:
-            intake = Intake(**intake.model_dump)
-        self.session.add(intake)
-        await self.session.commit()
-        await self.session.refresh(intake)
-        return intake

@@ -80,25 +80,33 @@ class UserAuthCRUD(CRUDBase[UserAuth, UserAuth, UserAuthCreate, UserAuthUpdate])
             raise raise_exception_if_none
         return user
 
+    async def get_by_user_id_and_auth_source_and_provider_name(
+        self,
+        user_id: str | uuid.UUID,
+        auth_source: AllowedAuthSourceTypes,
+        oidc_provider_name: str = None,
+        raise_exception_if_none: Exception = None,
+    ) -> UserAuth | None:
+        query = select(UserAuth).where(
+            UserAuth.user_id == user_id
+            and UserAuth.auth_source_type == auth_source
+            and UserAuth.oidc_provider_name == oidc_provider_name
+        )
+        results = await self.session.exec(statement=query)
+        user_auth: Sequence[UserAuth] | None = results.one_or_none()
+        if user_auth is None and raise_exception_if_none:
+            raise raise_exception_if_none
+        return user_auth
+
     async def get_local_auth_source_by_user_id(
         self, user_id: str | uuid.UUID, raise_exception_if_none: Exception = None
     ) -> UserAuth | None:
         query = select(UserAuth).where(UserAuth.user_id == user_id)
         results = await self.session.exec(statement=query)
-        user_auths: Sequence[UserAuth] | None = results.all()
+        user_auth: Sequence[UserAuth] | None = results.one_or_none()
 
-        # for good measure we do a sanity check here. one user should only have one "local"-auth entry with a hashed password.
-        if len(user_auths) > 1:
-            # there are multiple local user auths. something is broken. Lets attach an uuid to the error, so we can identify it, if a user reports that.
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details="Something went wrong. Please report this error. Error-id: f5d08a40-6d2e-442f-bd97-b0e3d0f9a2b7",
-            )
-        elif len(user_auths) == 0:
-            if raise_exception_if_none:
-                raise raise_exception_if_none
-            return None
-        user_auth = user_auths[0]
+        if user_auth is None and raise_exception_if_none:
+            raise raise_exception_if_none
         return user_auth
 
     async def get_local_auth_source_by_user_name(
@@ -111,7 +119,24 @@ class UserAuthCRUD(CRUDBase[UserAuth, UserAuth, UserAuthCreate, UserAuthUpdate])
             raise raise_exception_if_none
         return await self.get_local_auth_source_by_user_id(user.id)
 
-    async def create(self, user_auth_create: UserAuthCreate) -> UserAuth:
+    async def create(
+        self,
+        user_auth_create: UserAuthCreate,
+        exists_ok: bool = False,
+        raise_custom_exception_if_exists: Exception = None,
+    ) -> UserAuth:
+
+        existing_user_auth = self.get_by_user_id_and_auth_source_and_provider_name(
+            user_id=user_auth_create.user_id,
+            auth_source=user_auth_create.auth_source_type,
+            oidc_provider_name=user_auth_create.oidc_provider_name,
+        )
+        if existing_user_auth and not exists_ok and raise_custom_exception_if_exists:
+            raise raise_custom_exception_if_exists
+        elif exists_ok and not raise_custom_exception_if_exists:
+            return existing_user_auth
+        # else if existing_user_auth: we let catch the database layer the expection (UNIQUE CONTRAINT error)
+
         password_hashed = None
         if user_auth_create.auth_source_type == AllowedAuthSourceTypes.local:
             if user_auth_create.password is None:
@@ -119,19 +144,17 @@ class UserAuthCRUD(CRUDBase[UserAuth, UserAuth, UserAuthCreate, UserAuthUpdate])
             password_hashed = pwd_context.hash(
                 user_auth_create.password.get_secret_value()
             )
-
         user_vals = {}
 
         for k, v in user_auth_create.model_dump().items():
             log.info(f"{k} {v}")
             if k == "password":
                 user_vals["password_hashed"] = password_hashed
-
             else:
                 user_vals[k] = v
 
         log.debug(f"user_vals {user_vals}")
-        user_auth = UserAuth(**user_vals)
+        user_auth = UserAuth.model_validate(user_vals)
         log.debug(user_auth)
 
         self.session.add(user_auth)

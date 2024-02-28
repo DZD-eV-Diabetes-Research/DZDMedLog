@@ -87,7 +87,7 @@ async def create_study(
 ) -> User:
     return await study_crud.create(
         study,
-        raise_exception_if_exists=HTTPException(
+        raise_custom_exception_if_exists=HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Study with name '{study.name}' allready exists",
         ),

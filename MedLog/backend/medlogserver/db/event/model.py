@@ -43,6 +43,7 @@ class EventCreate(EventUpdate, table=False):
     )
 
     study_id: UUID = Field(foreign_key="study.id")
+    id: Optional[uuid.UUID] = Field()
 
 
 class EventRead(EventCreate, table=False):

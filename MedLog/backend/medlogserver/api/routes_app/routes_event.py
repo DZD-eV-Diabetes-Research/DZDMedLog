@@ -72,7 +72,7 @@ async def create_event(
         )
     return await event_crud.create(
         event,
-        raise_exception_if_exists=HTTPException(
+        raise_custom_exception_if_exists=HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Event with name '{event.name}' allready exists",
         ),

@@ -5,7 +5,7 @@ from typing import AsyncGenerator, List, Optional, Literal, Sequence
 import enum
 import uuid
 from pydantic import SecretStr
-from sqlmodel import Field, Column, Enum
+from sqlmodel import Field, Column, Enum, UniqueConstraint
 from passlib.context import CryptContext
 
 # Internal
@@ -66,6 +66,14 @@ class UserAuth(_UserAuthBase, table=True):
     """
 
     __tablename__ = "user_auth"
+    __table_args__ = (
+        UniqueConstraint(
+            "auth_source_type",
+            "user_id",
+            "oidc_provider_name",
+            name="One auth entry only per user and permission provider.",
+        ),
+    )
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,
         primary_key=True,

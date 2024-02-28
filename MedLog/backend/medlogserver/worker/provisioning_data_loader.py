@@ -16,18 +16,37 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.utils import to_path
 from medlogserver.db._session import get_async_session_context
-from medlogserver.db import BaseModel, User, UserAuthCreate, StudyCreate, StudyPermisson
+from medlogserver.db import (
+    BaseModel,
+    User,
+    UserAuthCreate,
+    StudyCreate,
+    StudyPermisson,
+    EventCreate,
+    Interview,
+)
 from medlogserver.db import (
     CRUDBase,
     UserCRUD,
     UserAuthCRUD,
     StudyCRUD,
     StudyPermissonCRUD,
+    EventCRUD,
+    InterviewCRUD,
+    IntakeCRUD,
 )
 
 log = get_logger()
 config = Config()
-CRUD_classes: List[CRUDBase] = [UserCRUD, UserAuthCRUD, StudyCRUD, StudyPermissonCRUD]
+CRUD_classes: List[CRUDBase] = [
+    UserCRUD,
+    UserAuthCRUD,
+    StudyCRUD,
+    StudyPermissonCRUD,
+    EventCRUD,
+    InterviewCRUD,
+    IntakeCRUD,
+]
 
 
 async def load_provisioning_data():
@@ -68,7 +87,7 @@ async def load_provsioning_data_item(
         async with get_async_session_context() as session:
             async with crud_cls.crud_context(session) as crud:
                 crud: CRUDBase = crud
-                await crud.create(item_instance)
+                await crud.create(item_instance, exists_ok=True)
 
 
 async def get_medlog_crud_class_and_model_class(
@@ -79,7 +98,8 @@ async def get_medlog_crud_class_and_model_class(
     module = importlib.import_module(module_path)
     class_obj = getattr(module, class_name)
     for crudcls in CRUD_classes:
+        print("crudcls", crudcls)
         print("crudcls.get_create_cls()", crudcls.get_create_cls())
         if class_obj == crudcls.get_create_cls():
             return crudcls, class_obj
-    raise ValueError(f"Expected {crudcls.get_create_cls()}. did not found in {module}")
+    raise ValueError(f"Expected '<class {class_path}>'. did not found in {module}")

@@ -49,22 +49,23 @@ class IntakeCreate(BaseModel, table=False):
     fields (with meatdata like options) could be defined in json schema. so clients can generate dynamic forms relatively easy.
     """
 
+    id: Optional[uuid.UUID] = Field()
     interview_id: Optional[str | uuid.UUID] = Field()
     pharmazentralnummer: Annotated[
         str,
         StringConstraints(
             strip_whitespace=True,
             to_upper=True,
-            pattern=r"^(PZN-)|(-)|( -)?\d{8,9}$",
+            pattern=r"^(PZN-)|(-)|( -)?\d{5,9}$",
             max_length=12,
-            min_length=8,
+            min_length=5,
         ),
     ] = Field(
         description="Take the Pharmazentralnummer in many formats, but all formats will be normalized to just a 8 digit number.",
         schema_extra={"examples": ["23894732", "PZN-88888888"]},
     )
     intake_start_time_utc: datetime = Field()
-    intake_end_time_utc: datetime = Field(default=None)
+    intake_end_time_utc: Optional[datetime] = Field(default=None)
     administered_by_doctor: Optional[AdministeredByDoctorAnswers] = Field(default=None)
     intake_regular_or_as_needed: Optional[IntakeRegularOrAsNeededAnswers] = Field(
         default=None,
@@ -74,37 +75,34 @@ class IntakeCreate(BaseModel, table=False):
     regular_intervall_of_daily_dose: Optional[IntervalOfDailyDoseAnswers] = Field(
         default=None
     )
-    as_needed_dose_unit: int
+    as_needed_dose_unit: Optional[int] = Field()
     consumed_meds_today: ConsumedMedsTodayAnswers = Field()
 
     @model_validator(mode="after")
-    def clean_pzn(self, values):
-        values["pharmazentralnummer"] = (
-            values["pharmazentralnummer"]
-            .replace("PZN", "")
+    def clean_pzn(self):
+        # todo:
+        return self
+        self["pharmazentralnummer"] = (
+            self.pharmazentralnummer.replace("PZN", "")
             .replace("-", "")
             .replace(" ", "")
         )
+        self.pharmazentralnummer = self.pharmazentralnummer.rjust(8, 0)
 
-    @field_validator("intake_regular_or_as_needed")
-    def validate_intake_regular_or_as_needed(cls, value, values):
-        if (
-            values["intake_regular_or_as_needed"]
-            == IntakeRegularOrAsNeededAnswers.REGULAR
-        ):
-            if values["as_needed_dose"] is not None:
+    @model_validator(mode="after")
+    def validate_intake_regular_or_as_needed(self):
+        if self.intake_regular_or_as_needed == IntakeRegularOrAsNeededAnswers.REGULAR:
+            if self.as_needed_dose_unit is not None:
                 raise ValueError(
-                    "When choosing regular intake, dose unit muste be empty"
+                    "When choosing regular intake, as_needed_dose_unit must be empty"
                 )
         elif (
-            values["intake_regular_or_as_needed"]
-            == IntakeRegularOrAsNeededAnswers.ASNEEDED
+            self.intake_regular_or_as_needed == IntakeRegularOrAsNeededAnswers.ASNEEDED
         ):
-            if values["regular_intervall_of_daily_dose"] is not None:
+            if self.regular_intervall_of_daily_dose is not None:
                 raise ValueError(
                     "When choosing 'as needed' intake, regular_intervall_of_daily_dose must be empty"
                 )
-        return values["intake_regular_or_as_needed"]
 
 
 class IntakeUpdate(IntakeCreate, table=False):
@@ -119,7 +117,7 @@ class Intake(IntakeCreate, BaseTable, table=True):
         StringConstraints(
             strip_whitespace=True,
             max_length=8,
-            min_length=8,
+            min_length=5,
         ),
     ] = Field(
         description="Pharmazentralnummer as 8 digits only",

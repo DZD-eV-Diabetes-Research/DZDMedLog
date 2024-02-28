@@ -84,7 +84,7 @@ class _UserWithName(UserBase, table=False):
 
 
 class UserCreate(_UserWithName, _UserValidate, table=False):
-    pass
+    id: Optional[uuid.UUID] = Field()
 
 
 class User(_UserWithName, UserUpdateByAdmin, BaseTable, table=True):

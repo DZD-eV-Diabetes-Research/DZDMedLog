@@ -124,10 +124,10 @@ class StudyPermissonCRUD(
         await self.session.refresh(study_permission)
         return study_permission
 
-    async def create(
+    async def create2(
         self,
         study_permission: StudyPermisson,
-        raise_exception_if_exists: Exception = None,
+        raise_custom_exception_if_exists: Exception = None,
     ) -> StudyPermisson:
         log.debug(
             f"Create study permission for user {study_permission.user_id} in study {study_permission.study_id}"
@@ -136,8 +136,8 @@ class StudyPermissonCRUD(
             filter_study_id=study_permission.study_id,
             filter_user_id=study_permission.user_id,
         )
-        if existing_study_permission and raise_exception_if_exists:
-            raise raise_exception_if_exists
+        if existing_study_permission and raise_custom_exception_if_exists:
+            raise raise_custom_exception_if_exists
         elif existing_study_permission:
             return existing_study_permission
         self.session.add(study_permission)
