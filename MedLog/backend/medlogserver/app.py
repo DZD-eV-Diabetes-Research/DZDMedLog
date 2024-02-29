@@ -32,5 +32,5 @@ def add_api_middleware(fastapiapp: FastAPI):
         allow_credentials=True,
     )
     fastapiapp.add_middleware(
-        SessionMiddleware, secret_key=config.SERVER_SESSION_SECRET
+        SessionMiddleware, secret_key=config.SERVER_SESSION_SECRET.get_secret_value()
     )

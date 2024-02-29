@@ -5,6 +5,7 @@ import getversion
 import yaml
 import sys
 import asyncio
+import json
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler(sys.stdout))
@@ -35,8 +36,9 @@ def start():
     )
 
     log.debug("----CONFIG-----")
-    log.debug(yaml.dump(config.model_dump(), sort_keys=False))
+    log.debug(yaml.dump(json.loads(config.model_dump_json()), sort_keys=False))
     log.debug("----CONFIG-END-----")
+
     print(f"LOG_LEVEL: {config.LOG_LEVEL}")
     print(f"UVICORN_LOG_LEVEL: {get_uvicorn_loglevel()}")
 

@@ -92,7 +92,7 @@ class JWTRefreshTokenContainer:
                 "id": str(self.id if self.id else uuid4()),
                 "iat": self.created_at.timestamp(),
             },
-            key=config.AUTH_JWT_SECRET,
+            key=config.AUTH_JWT_SECRET.get_secret_value(),
             algorithm=config.AUTH_JWT_ALGORITHM,
         )
 
@@ -101,7 +101,7 @@ class JWTRefreshTokenContainer:
         try:
             jwt_token_decoded = jwt.decode(
                 jwt_token_encoded,
-                config.AUTH_JWT_SECRET,
+                config.AUTH_JWT_SECRET.get_secret_value(),
                 config.AUTH_JWT_ALGORITHM,
                 audience=str(config.get_server_url()),
             )
@@ -222,7 +222,7 @@ class JWTAccessTokenContainer:
     def jwt_token_decoded(self) -> Dict:
         return jwt.decode(
             self.jwt_token_encoded,
-            config.AUTH_JWT_SECRET,
+            config.AUTH_JWT_SECRET.get_secret_value(),
             config.AUTH_JWT_ALGORITHM,
             audience=config.get_server_url().host,
         )
@@ -247,7 +247,7 @@ class JWTAccessTokenContainer:
                 "id": str(self.id if self.id else uuid4()),
                 "refr_id": str(self._parent_refresh_token_id),
             },
-            key=config.AUTH_JWT_SECRET,
+            key=config.AUTH_JWT_SECRET.get_secret_value(),
             algorithm=config.AUTH_JWT_ALGORITHM,
         )
 
@@ -256,7 +256,7 @@ class JWTAccessTokenContainer:
         try:
             jwt_token_decoded = jwt.decode(
                 jwt_token_encoded,
-                config.AUTH_JWT_SECRET,
+                config.AUTH_JWT_SECRET.get_secret_value(),
                 config.AUTH_JWT_ALGORITHM,
                 audience=config.get_server_url().host,
             )

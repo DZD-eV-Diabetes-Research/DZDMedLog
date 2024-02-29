@@ -1,5 +1,12 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, AnyUrl, SecretStr, AnyHttpUrl, validator, StringConstraints
+from pydantic import (
+    Field,
+    AnyUrl,
+    SecretStr,
+    AnyHttpUrl,
+    validator,
+    StringConstraints,
+)
 from typing import List, Annotated, Optional, Literal, Dict
 from pathlib import Path, PurePath
 import socket
@@ -8,6 +15,8 @@ from textwrap import dedent
 
 env_file_path = Path(__file__).parent / ".env"
 # print(env_file)
+
+#
 
 
 class Config(BaseSettings):
@@ -41,7 +50,7 @@ class Config(BaseSettings):
         description="The protocol detection can fail in certain reverse proxy situations. This option allows you to manually override the automatic detection",
     )
 
-    SERVER_SESSION_SECRET: str = Field(
+    SERVER_SESSION_SECRET: SecretStr = Field(
         description="The secret used to encrypt session state. Provide a long random string.",
         min_length=64,
     )
@@ -61,7 +70,7 @@ class Config(BaseSettings):
     SQL_DATABASE_URL: AnyUrl = Field(default="sqlite+aiosqlite:///./local.sqlite")
 
     ADMIN_USER_NAME: str = Field(default="admin")
-    ADMIN_USER_PW: str = Field()
+    ADMIN_USER_PW: SecretStr = Field()
     ADMIN_USER_EMAIL: Optional[str] = Field(default=None)
     ADMIN_ROLE_NAME: str = Field(default="medlog-admin")
     USERMANAGER_ROLE_NAME: str = Field(default="medlog-user-manager")
@@ -88,7 +97,7 @@ class Config(BaseSettings):
         default=False, description="Self registration of users is not supported yet."
     )
 
-    AUTH_JWT_SECRET: str = Field(
+    AUTH_JWT_SECRET: SecretStr = Field(
         description="The secret used to sign the JWT tokens. Provide a long random string.",
         min_length=64,
     )
@@ -219,8 +228,9 @@ class Config(BaseSettings):
     ###### CONFIG END ######
     # mode_config is fixed variable  in pydantic-settings to control the behaviour of our settings model
     # https://docs.pydantic.dev/latest/api/base_model/#pydantic.main.BaseModel.model_config
-    model_config = SettingsConfigDict(
-        env_nested_delimiter="__",
-        env_file=env_file_path,
-        env_file_encoding="utf-8",
-    )
+
+    class Config:
+        json_encoder = {AnyUrl: lambda v: "FUCK YOU"}
+        env_nested_delimiter = "__"
+        env_file = env_file_path
+        env_file_encoding = "utf-8"

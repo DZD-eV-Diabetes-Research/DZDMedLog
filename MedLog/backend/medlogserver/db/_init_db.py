@@ -83,7 +83,8 @@ async def create_admin_if_not_exists():
                 )
                 admin_user = await user_crud.create(admin_user)
                 admin_user_auth = UserAuthCreate(
-                    user_id=admin_user.id, password=config.ADMIN_USER_PW
+                    user_id=admin_user.id,
+                    password=config.ADMIN_USER_PW.get_secret_value(),
                 )
                 log.info(f"admin_user_auth {admin_user_auth}")
                 await user_auth_crud.create(admin_user_auth)
