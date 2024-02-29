@@ -37,7 +37,7 @@ class StudyBase(BaseModel, table=False):
     deactivated: bool = Field(default=False)
 
     no_permissions: bool = Field(
-        default=False,
+        default=config.APP_STUDY_PERMISSION_SYSTEM_DISABLED_BY_DEFAULT,
         description="If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study.  Admin access still need to be allocated explicit.",
     )
 

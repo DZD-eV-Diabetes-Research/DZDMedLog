@@ -89,6 +89,11 @@ class Config(BaseSettings):
         }
     )
 
+    APP_STUDY_PERMISSION_SYSTEM_DISABLED_BY_DEFAULT: bool = Field(
+        default=False,
+        description="If set to True; all user can access all studies, edit settings and create and edit interviews. This may be utile on small instances with a trusted userbase where user management is wanted/needed.",
+    )
+
     AUTH_LOCAL_LOGIN_IS_ENABLED: bool = Field(
         default=True,
         description="Local DB users are enabled to login. You could disable this, when having an external OIDC provider.",
