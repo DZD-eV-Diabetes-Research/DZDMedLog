@@ -1,9 +1,13 @@
-from typing import Optional, Generic, TypeVar, List, Annotated
+from typing import Optional, Generic, TypeVar, List, Annotated, Literal
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException, Query
 
 
-class PageParams(BaseModel):
+ToBePagedModel = TypeVar("ToBePagedModel")
+
+
+class PageParams(BaseModel, Generic[ToBePagedModel]):
+
     offset: int = Field(
         default=0,
         description="Starting position index of the returned items in the dataset.",
@@ -14,7 +18,7 @@ class PageParams(BaseModel):
         description="Max number if items to be included in the response.",
         examples=[50],
     )
-    order_by: Optional[str] = Field(
+    order_by: Literal[ToBePagedModel.model_fields()] = Field(
         default=None, description="The attribute name to order the results by"
     )
 
@@ -30,11 +34,8 @@ class PageParams(BaseModel):
         return q
 
 
-M = TypeVar("M")
-
-
 # https://docs.pydantic.dev/latest/concepts/models/#generic-models
-class PaginatedResponse(BaseModel, Generic[M]):
+class PaginatedResponse(BaseModel, Generic[ToBePagedModel]):
     total_count: Optional[int] = Field(
         default=None,
         description="Total number of items in the database",
