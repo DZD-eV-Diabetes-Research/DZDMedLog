@@ -2,7 +2,7 @@ from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated
 from pydantic import validate_email, validator, StringConstraints, model_validator
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import select, delete
+from sqlmodel import select, delete, func
 from uuid import UUID
 
 
@@ -26,6 +26,16 @@ config = Config()
 class UserCRUD(CRUDBase[User, User, UserCreate, UserUpdate]):
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    async def count(
+        self,
+        show_deactivated: bool = False,
+    ) -> int:
+        query = select(func.count()).select_from(User)
+        if not show_deactivated:
+            query = query.where(User.deactivated == False)
+        results = await self.session.exec(statement=query)
+        return results.first()
 
     async def list(
         self, show_deactivated: bool = False, pagination: PageParams = None

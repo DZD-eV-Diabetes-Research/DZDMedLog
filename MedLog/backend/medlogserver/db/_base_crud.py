@@ -104,7 +104,7 @@ class CRUDBase(
     ################
 
     async def count(self) -> int:
-        query = select(func.count()).select_from(self.table)
+        query = select(func.count()).select_from(self.get_table_cls())
         results = await self.session.exec(statement=query)
         return results.first()
 

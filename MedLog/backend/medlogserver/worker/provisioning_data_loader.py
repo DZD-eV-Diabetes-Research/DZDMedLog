@@ -50,6 +50,7 @@ CRUD_classes: List[CRUDBase] = [
 
 
 async def load_provisioning_data():
+    log.info("Try loading base data if configured...")
     for data_source_file in config.APP_PROVISIONING_DATA_YAML_FILES:
         data_source_file: Path = to_path(data_source_file)
         if data_source_file.is_file() and data_source_file.exists():

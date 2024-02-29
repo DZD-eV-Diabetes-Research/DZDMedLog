@@ -9,12 +9,8 @@ from pydantic import BaseModel, Field
 from typing import Annotated
 
 from fastapi import Depends, APIRouter
+from medlogserver.api.paginator import pagination_query, PageParams, PaginatedResponse
 
-from medlogserver.api.auth.tokens import (
-    JWTBundleTokenResponse,
-    JWTAccessTokenContainer,
-    JWTRefreshTokenContainer,
-)
 from medlogserver.db.user.crud import (
     User,
     UserCRUD,
@@ -105,7 +101,7 @@ async def create_user(
 
 @fast_api_user_manage_router.get(
     "/user",
-    response_model=List[User],
+    response_model=PaginatedResponse[User],
     description=f"Get account data from a user by its id.  {NEEDS_USERMAN_API_INFO}",
 )
 async def list_users(
@@ -114,8 +110,17 @@ async def list_users(
     ),
     is_user_manager: bool = Security(user_is_usermanager),
     user_crud: UserCRUD = Depends(UserCRUD.get_crud),
-) -> User:
-    return await user_crud.list(show_deactivated=incl_deactivated)
+    pagination: PageParams = Depends(pagination_query),
+) -> PaginatedResponse[User]:
+    users = await user_crud.list(show_deactivated=incl_deactivated)
+    return PaginatedResponse(
+        total_count=await user_crud.count(
+            show_deactivated=incl_deactivated,
+        ),
+        offset=pagination.offset,
+        count=len(users),
+        items=users,
+    )
 
 
 @fast_api_user_manage_router.get(
