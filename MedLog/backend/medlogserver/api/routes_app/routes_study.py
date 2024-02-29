@@ -18,7 +18,7 @@ from typing import Annotated
 
 from fastapi import Depends, APIRouter
 
-
+from medlogserver.api.paginator import PageParams, pagination_query, PaginatedResponse
 from medlogserver.db.user.crud import (
     User,
 )
@@ -54,7 +54,7 @@ fast_api_study_router: APIRouter = APIRouter()
 
 @fast_api_study_router.get(
     "/study",
-    response_model=List[Study],
+    response_model=PaginatedResponse[Study],
     description=f"List all studies the user has access too.",
 )
 async def list_studies(
@@ -64,15 +64,29 @@ async def list_studies(
         user_has_studies_access_map
     ),
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
-) -> User:
+    pagination: PageParams = Depends(pagination_query),
+) -> PaginatedResponse[Study]:
 
-    # ToDo: This is a pretty cost intensive endpoint/query. Would be a good candiate for some kind of cache. UPDATE: now all in Security(user_has_study_access_map) fix/cache that
+    # ToDo: This is a pretty cost intensive endpoint/query. Would be a good candiate for some kind of cache. UPDATE: now all logic is in Security(user_has_study_access_map) fix/cache that
+
+    # Thought (Tim): the pagination is everything but scalable in this Endpoint, because we fetch all studies, check them for permissions and paginate that result.
+    # better would be a pagination on database level.
+    # But we can assume that there will never be an MedLog instance that will host more than a couple of studies.
+    # so everything is fine...
     all_studies = await study_crud.list(show_deactivated=show_deactived)
     allowed_studies: List[Study] = []
+
     for study in all_studies:
         if study_permissions_helper.user_has_access_to(study_id=study.id):
             allowed_studies.append(study)
-    return allowed_studies
+
+    pageinated_allowed_studies = allowed_studies[pagination.offset : pagination.limit]
+    return PaginatedResponse(
+        total_count=len(allowed_studies),
+        offset=pagination.offset,
+        count=len(pageinated_allowed_studies),
+        items=pageinated_allowed_studies,
+    )
 
 
 @fast_api_study_router.post(
