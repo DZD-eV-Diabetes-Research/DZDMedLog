@@ -98,6 +98,7 @@ async def list_all_intakes_of_interview(
     description=f"Get a certain intake record by it id",
 )
 async def get_intake(
+    interview_id: str,
     intake_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
