@@ -43,7 +43,12 @@ from medlogserver.db.wido_gkv_arzneimittelindex.drug_search import (
     SearchEngineNotReadyException,
 )
 from medlogserver.api.base import HTTPMessage
-from medlogserver.api.paginator import pagination_query, PageParams, PaginatedResponse
+from medlogserver.api.paginator import (
+    pagination_query,
+    PageParams,
+    PaginatedResponse,
+    QueryParamsGeneric,
+)
 from medlogserver.db.wido_gkv_arzneimittelindex.drug_search._base import (
     MedLogSearchEngineResult,
 )
@@ -74,6 +79,10 @@ log = get_logger()
 fast_api_drug_router: APIRouter = APIRouter()
 
 
+class StammQueryParams(QueryParamsGeneric[StammRead]):
+    defaults = {"limit": 100}
+
+
 #############
 @fast_api_drug_router.get(
     "/drug",
@@ -83,7 +92,7 @@ fast_api_drug_router: APIRouter = APIRouter()
 async def list_drugs(
     user: User = Security(get_current_user),
     is_admin: bool = Security(user_is_admin),
-    pagination: PageParams = Depends(pagination_query),
+    pagination: StammQueryParams = Depends(StammQueryParams),
     drug_stamm_crud: StammCRUD = Depends(StammCRUD.get_crud),
 ) -> PaginatedResponse[StammRead]:
     result_items = await drug_stamm_crud.list(pagination=pagination)

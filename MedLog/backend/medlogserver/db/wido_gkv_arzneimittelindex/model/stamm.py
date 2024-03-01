@@ -88,6 +88,7 @@ class StammBase(DrugModelTableBase, table=False):
         sa_type=String(8),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:7"},
         primary_key=True,
+        index=True,
         schema_extra={"examples": ["10066230"]},
     )
     name: str = Field(

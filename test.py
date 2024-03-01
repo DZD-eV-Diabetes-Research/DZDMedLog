@@ -173,46 +173,20 @@ def pydanticUNset():
 
 
 def dynamic_pageparam_order_by():
+    import inspect
     from pydantic import Field, BaseModel
     import fastapi
     from fastapi import Depends, Query
-    from typing import Generic, TypeVar, get_type_hints, Annotated
+    from typing import Generic, TypeVar, get_args, Annotated
     import uvicorn
+    import enum
 
     app = fastapi.FastAPI()
     M = TypeVar("M")
 
-    class PageParams(BaseModel, Generic[M]):
-
-        offset: int = Field(
-            default=0,
-            description="Starting position index of the returned items in the dataset.",
-            examples=[200],
-        )
-        limit: Optional[int] = Field(
-            default=100,
-            description="Max number if items to be included in the response.",
-            examples=[50],
-        )
-        """
-        order_by: Literal[
-            tuple(get_type_hints(M).keys() if isinstance(M, BaseModel) else "Generic")
-        ] = Field(
-            default=None, description="The attribute name to order the results by"
-        )
-        """
-        order_by: Literal["ABC", "DEF"] = Field()
-
-        order_desc: Optional[bool] = Field(
-            default=False,
-            description="If set to True order descending otherwise order result ascending",
-        )
-
-        def append_to_query(self, q, no_limit: bool = True):
-            q = q.offset(self.offset)
-            if self.limit and not no_limit:
-                q = q.limit(self.limit)
-            return q
+    class Event(BaseModel):
+        id: int
+        name: str
 
     # https://docs.pydantic.dev/latest/concepts/models/#generic-models
     class PaginatedResponse(BaseModel, Generic[M]):
@@ -232,71 +206,67 @@ def dynamic_pageparam_order_by():
             description="List of items returned in the response following given criteria"
         )
 
-    def pagination_query(
-        offset: int = 0,
-        limit: int = Query(default=100, le=1000),
-        order_by: str = None,
-        order_desc: bool = False,
-    ) -> PageParams:
-        """Function to be included as a "Depends" in a FastAPi route.
+    class MetaQueryParamsChangeTypeHintsForOrderBy(type):
 
-        Args:
-            offset (int, optional): _description_. Defaults to 0.
-            limit (int, optional): _description_. Defaults to Query(default=100, le=1000).
-            order_by (str, optional): _description_. Defaults to None.
-            order_desc (bool, optional): _description_. Defaults to False.
+        def __new__(cls, name, bases, attr):
+            if attr["__orig_bases__"][0] != Generic[M]:
+                target_model_attributes = list(
+                    get_args(attr["__orig_bases__"][0])[0].model_fields.keys()
+                )
+                print("name", name)
+                print("attr", attr)
+                print(
+                    "bases",
+                )
+                new_typing_with_literals = Literal[tuple(target_model_attributes)]
 
-        Returns:
-            PageParams: _description_
-        """
-        return PageParams(
-            offset=offset, limit=limit, order_by=order_by, order_desc=order_desc
-        )
+                print("new_literals", new_typing_with_literals)
+                print(
+                    'bases[0].__init__.__annotations__["order_by"]',
+                    bases[0].__init__.__annotations__["order_by"],
+                )
+                bases[0].__init__.__annotations__["order_by"] = new_typing_with_literals
+                print(
+                    "__init__",
+                    list(inspect.signature(bases[0].__init__).parameters.items())[1:],
+                )
+                for index, init_param_name in enumerate(
+                    list(inspect.signature(bases[0].__init__).parameters.keys())[1:]
+                ):
+                    print("index", index)
+                    print("init_param_name", init_param_name)
+                    print(
+                        "bases[0].__init__.__defaults__[index]",
+                        bases[0].__init__.__defaults__[index],
+                    )
+                    if init_param_name in attr["defaults"]:
+                        print("SET ", init_param_name, "TO ", attr["defaults"])
+                        new_defaults = list(bases[0].__init__.__defaults__)
+                        new_defaults[index] = attr["defaults"][init_param_name]
+                        bases[0].__init__.__defaults__ = tuple(new_defaults)
 
-    class Event(BaseModel):
-        id: int
-        name: str
-        description: Optional[str] = None
+                print("default", bases[0].__init__.__defaults__)
 
-    events: List[Event] = [
-        Event(id=1, name="Party"),
-        Event(id=2, name="Sleep"),
-        Event(id=3, name="Dinner"),
-    ]
+            # print(attr["__init__"])
+            return super().__new__(cls, name, bases, attr)
 
-    @app.get(
-        "/event",
-        response_model=PaginatedResponse[Event],
-        description=f"List all events.",
-    )
-    def list_events(
-        pagination: PageParams[Event] = Depends(pagination_query),
-    ) -> PaginatedResponse[Event]:
-        return PaginatedResponse(
-            total_count=events,
-            offset=pagination.offset,
-            count=len(events),
-            items=events[pagination.offset, pagination.limit],
-        )
-
-    class QueryParams(Generic[M]):
+    class QueryParams(Generic[M], metaclass=MetaQueryParamsChangeTypeHintsForOrderBy):
+        defaults = dict()
 
         def __init__(
             self,
             q: str | None = None,
-            skip: int = 0,
+            skip: Annotated[int, Field(description="This is text")] = 0,
             limit: int = 100,
-            order_by: Literal[
-                tuple(
-                    m.model_fields() if M.__name__ == BaseModel else ["Generic", "FUCK"]
-                )
-            ] = None,
+            order_by: Optional[Literal["Generic", "Placeholder"]] = None,
         ):
-            print("M.__name__", M.__name__)
             self.q = q
             self.skip = skip
             self.limit = limit
             self.order_by = order_by
+
+    class EventQueryParams(QueryParams[Event]):
+        defaults = {"limit": 50}
 
     @app.get(
         "/event2",
@@ -304,7 +274,7 @@ def dynamic_pageparam_order_by():
         description=f"List all events.",
     )
     def list_events2(
-        query: Annotated[QueryParams[Event], Depends(QueryParams)],
+        query: Annotated[EventQueryParams, Depends(EventQueryParams)],
     ) -> PaginatedResponse[Event]:
         return PaginatedResponse(
             total_count=events,
@@ -321,7 +291,7 @@ def dynamic_pageparam_order_by():
 
 
 def GenericTyping():
-    from typing import Generic, Literal, TypeVar, get_type_hints
+    from typing import Generic, Literal, TypeVar, get_type_hints, get_args
     from pydantic import BaseModel
 
     M = TypeVar("M")
@@ -329,7 +299,23 @@ def GenericTyping():
     class MetaQueryParamsChangeTypeHinterForOrderBy(type):
 
         def __new__(cls, name, bases, attr):
-            print("attr.__orig_bases__[0]", "__orig_bases__"][0])
+            if attr["__orig_bases__"][0] != Generic[M]:
+                event_attributes = list(
+                    get_args(attr["__orig_bases__"][0])[0].model_fields.keys()
+                )
+                print("name", name)
+                print("attr", attr)
+                print(
+                    "bases",
+                )
+                bases[0].__init__.__annotations__["order_by"].__dict__["__args__"] = (
+                    tuple(event_attributes)
+                )
+
+                print(
+                    "Event keys",
+                    list(get_args(attr["__orig_bases__"][0])[0].model_fields.keys()),
+                )
 
             # print(attr["__init__"])
             return super().__new__(cls, name, bases, attr)
@@ -339,11 +325,11 @@ def GenericTyping():
         def __init__(
             self,
             items: List[M],
-            order_by: Literal["Generics", "Placeholder"] = None,
+            order_by: Optional[Literal["Generics", "Placeholder"]] = None,
         ):
-            print(get_type_hints(self.__class__.__init__)["items"])
+            # print(get_type_hints(self.__class__.__init__)["items"])
             actual_type = tuple(self.__orig_bases__[0].__args__[0].model_fields.keys())
-            print(actual_type)
+            # print(actual_type)
             self.items = items
             self.order_by = order_by
 
@@ -362,22 +348,4 @@ def GenericTyping():
     print(get_type_hints(EventQueryParams.__init__))
 
 
-GenericTyping()
-"""
-    class QueryParams(Generic[M]):
-
-        def __init__(
-            self,
-            items: List[M],
-            order_by: Literal[
-                tuple(
-                    m.model_fields
-                    if M.__name__ == BaseModel
-                    else ("Generics", "Placeholder")
-                )
-            ] = None,
-        ):
-            print("M.__name__", M.__name__)
-            self.items = items
-            self.order_by = order_by
-"""
+dynamic_pageparam_order_by()
