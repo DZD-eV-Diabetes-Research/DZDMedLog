@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Sequence, List, NoReturn
+from typing import Annotated, Sequence, List, NoReturn, Type
 
 from fastapi import (
     Depends,
@@ -48,6 +48,7 @@ from medlogserver.api.paginator import (
     PageParams,
     PaginatedResponse,
     QueryParamsGeneric,
+    create_query_params_generic_class,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.drug_search._base import (
     MedLogSearchEngineResult,
@@ -79,8 +80,11 @@ log = get_logger()
 fast_api_drug_router: APIRouter = APIRouter()
 
 
-class StammQueryParams(QueryParamsGeneric[StammRead]):
-    defaults = {"limit": 100}
+# class StammQueryParams(QueryParamsGeneric[StammRead]):
+#    defaults = {"limit": 100}
+
+
+StammQueryParams: Type = create_query_params_generic_class(StammRead)
 
 
 #############
@@ -147,7 +151,7 @@ async def search_drugs(
     filter_apopflicht: int = None,
     filter_preisart_neu: str = None,
     only_current_medications: bool = True,
-    pagination: PageParams = Depends(pagination_query),
+    pagination: StammQueryParams = Depends(StammQueryParams),
     drug_search: DrugSearch = Depends(get_drug_search),
     user: User = Security(get_current_user),
 ) -> PaginatedResponse[MedLogSearchEngineResult]:
@@ -182,6 +186,11 @@ async def search_drugs(
     # return await drug_stamm_crud.list()
 
 
+NormpackungsgroessenQueryParams: Type = create_query_params_generic_class(
+    Normpackungsgroessen
+)
+
+
 @fast_api_drug_router.get(
     "/drug/enum/normpackungsgroessen",
     response_model=PaginatedResponse[Normpackungsgroessen],
@@ -190,7 +199,9 @@ async def search_drugs(
 async def list_packgroesse(
     user: User = Security(get_current_user),
     normp_crud: NormpackungsgroessenCRUD = Depends(NormpackungsgroessenCRUD.get_crud),
-    pagination: PageParams = Depends(pagination_query),
+    pagination: NormpackungsgroessenQueryParams = Depends(
+        NormpackungsgroessenQueryParams
+    ),
 ) -> PaginatedResponse[Normpackungsgroessen]:
     res = await normp_crud.list(pagination=pagination)
     return PaginatedResponse(

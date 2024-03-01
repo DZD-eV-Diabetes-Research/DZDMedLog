@@ -1,8 +1,18 @@
-from typing import Optional, Generic, TypeVar, List, Annotated, Literal, get_args
+from typing import Optional, Generic, TypeVar, List, Annotated, Literal, get_args, Type
 import inspect
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException, Query
 from sqlmodel import desc
+from medlogserver.config import Config
+import types
+
+config = Config()
+
+from medlogserver.log import get_logger
+
+log = get_logger()
+
+from medlogserver.db._base_model import BaseModel
 
 ToBePagedModel = TypeVar("ToBePagedModel")
 
@@ -12,30 +22,53 @@ class MetaQueryParamsChangeTypeHintsForOrderBy(type):
     Also it is possbile to define 'defaults' with a dict as a class attribute. This will replace the default-defaults given in QueryParamsGeneric
     """
 
+    exclude_from_order_by: List[str] = ["ai_version_id"]
+
     def __new__(cls, name, bases, attr):
         if attr["__orig_bases__"][0] != Generic[ToBePagedModel]:
             target_model_attributes = list(
                 get_args(attr["__orig_bases__"][0])[0].model_fields.keys()
             )
+            target_model_attributes = [
+                a for a in target_model_attributes if a not in cls.exclude_from_order_by
+            ]
+            print("-----")
+            print("class", attr["__orig_bases__"][0])
+            print("target_model_attributes", target_model_attributes)
+            print("bases[0]", bases[0])
+
             # set typing Literal[<>] values for __init__."order_by"
-            bases[0].__init__.__annotations__["order_by"].__dict__[
-                "__args__"
-            ] = target_model_attributes
+            # bases[0].__init__.__annotations__["order_by"].__dict__[
+            #    "__args__"
+            # ] = target_model_attributes
 
             # overwrite default params in __init__ func according to the generic sub model attr 'defaults' .
+            new_sub_class = super().__new__(cls, name, bases, attr)
+            import copy
+
+            new_sub_class.__init__ = copy.deepcopy(new_sub_class.__init__)
             for index, init_param_name in enumerate(
                 list(inspect.signature(bases[0].__init__).parameters.keys())[1:]
             ):
-                if init_param_name in attr["defaults"]:
-                    print("SET ", init_param_name, "TO ", attr["defaults"])
+
+                if "defaults" in attr and init_param_name in attr["defaults"]:
+                    # print("SET ", init_param_name, "TO ", attr["defaults"])
                     new_defaults = list(bases[0].__init__.__defaults__)
                     new_defaults[index] = attr["defaults"][init_param_name]
                     bases[0].__init__.__defaults__ = tuple(new_defaults)
 
-            print("default", bases[0].__init__.__defaults__)
+            # print("default", bases[0].__init__.__defaults__)
 
-        # print(attr["__init__"])
-        return super().__new__(cls, name, bases, attr)
+            # print(attr["__init__"])
+
+            print("new_sub_class.__init__", new_sub_class.__init__)
+            print("#####")
+            new_sub_class.__init__.__annotations__["order_by"] = Literal[
+                tuple(target_model_attributes)
+            ]
+        else:
+            new_sub_class = super().__new__(cls, name, bases, attr)
+        return new_sub_class
 
 
 class QueryParamsGeneric(
@@ -46,11 +79,11 @@ class QueryParamsGeneric(
     def __init__(
         self,
         offset: Optional[int] = Query(
-            default=None, description="Specify the starting point for result sets/list"
+            default=0, description="Specify the starting point for result sets/list"
         ),
         limit: int = Query(
             default=100,
-            description="Specify the ending point for result sets/list. Setting this value to high can result in a long running queries",
+            description="Specify the max amount of result items",
         ),
         order_by: Literal[
             "Generic",
@@ -60,21 +93,38 @@ class QueryParamsGeneric(
             default=None,
             description="Order the result set by this attribute",
         ),
-        order_desc: Annotated[int, Query(description="Flip the sorting order")] = 0,
+        order_desc: Annotated[
+            bool, Query(description="Flip the sorting order")
+        ] = False,
     ):
         self.offset = offset
         self.limit = limit
         self.order_by = order_by
         self.order_desc = order_desc
 
-    def append_to_query(self, q, no_limit: bool = True):
-        q = q.offset(self.offset)
+    def order(
+        self, items=List[ToBePagedModel], reverse: bool = False
+    ) -> List[ToBePagedModel]:
+        if self.order_by:
+            return sorted(
+                items, key=lambda x: getattr(x, self.order_by), reverse=reverse
+            )
+        else:
+            return items
+
+    def append_to_query(self, sqlmodel_query, no_limit: bool = False):
+        sqlmodel_query = sqlmodel_query.offset(self.offset)
         if self.limit and not no_limit:
-            q = q.limit(self.limit)
-        return q
+            sqlmodel_query = sqlmodel_query.limit(self.limit)
+        if self.order_by:
+            order_field = self.order_by
+            if self.order_desc:
+                order_field = desc(self.order_by)
+            sqlmodel_query = sqlmodel_query.order_by(order_field)
+        return sqlmodel_query
 
 
-class PageParams(BaseModel, Generic[ToBePagedModel]):
+class PageParams(BaseModel):
 
     offset: int = Field(
         default=0,
@@ -96,6 +146,7 @@ class PageParams(BaseModel, Generic[ToBePagedModel]):
     )
 
     def append_to_query(self, sqlmodel_query, no_limit: bool = True):
+        log.warning(f"{PageParams} is deprecated. Switch to QueryParamsGeneric")
         sqlmodel_query = sqlmodel_query.offset(self.offset)
         if self.limit and not no_limit:
             sqlmodel_query = sqlmodel_query.limit(self.limit)
@@ -114,7 +165,7 @@ class PaginatedResponse(BaseModel, Generic[ToBePagedModel]):
         description="Total number of items in the database",
         examples=[300],
     )
-    offset: int = Field(
+    offset: Optional[int] = Field(
         default=0,
         description="Starting position index of the returned items in the dataset.",
         examples=[299],
@@ -147,3 +198,72 @@ async def pagination_query(
     return PageParams(
         offset=offset, limit=limit, order_by=order_by, order_desc=order_desc
     )
+
+
+from typing import Callable
+
+
+def create_query_params_generic_class(
+    base_class: BaseModel, default_offset: int = 0, default_limit: int = 100
+) -> Type:
+    target_model_attributes = tuple(list(base_class.model_fields.keys()))
+    init_annotations = {
+        "offset": Annotated[
+            Optional[int],
+            Query(
+                description="Specify the starting point for result sets/list",
+            ),
+        ],
+        "limit": Annotated[
+            int,
+            Query(
+                description="Specify the max amount of result items",
+            ),
+        ],
+        "order_by": Annotated[
+            Literal[target_model_attributes],
+            Query(
+                description="Order the result set by this attribute",
+            ),
+        ],
+        "order_desc": Annotated[bool, Query(description="Flip the sorting order")],
+    }
+    init_default = (default_offset, default_limit, None, False)
+    init_func: Callable = lambda self, offset, limit, order_by, order_desc: [
+        setattr(self, "offset", offset),
+        setattr(self, "limit", limit),
+        setattr(self, "order_by", order_by),
+        setattr(self, "order_desc", order_desc),
+    ]
+    init_func.__defaults__ = init_default
+    init_func.__annotations__ = init_annotations
+    class_attrs = {
+        "__init__": init_func,
+    }
+    return type(f"{base_class.__name__}QueryParams", (), class_attrs)
+
+    def order(self, items=List[base_class], reverse: bool = False) -> List[base_class]:
+        if self.order_by:
+            return sorted(
+                items, key=lambda x: getattr(x, self.order_by), reverse=reverse
+            )
+        else:
+            return items
+
+    def append_to_query(self, sqlmodel_query, no_limit: bool = False):
+        sqlmodel_query = sqlmodel_query.offset(self.offset)
+        if self.limit and not no_limit:
+            sqlmodel_query = sqlmodel_query.limit(self.limit)
+        if self.order_by:
+            order_field = self.order_by
+            if self.order_desc:
+                order_field = desc(self.order_by)
+            sqlmodel_query = sqlmodel_query.order_by(order_field)
+        return sqlmodel_query
+
+    class_attrs = {
+        "__init__": init_func,
+        "order": order,
+        "append_to_query": append_to_query,
+    }
+    return type(f"{base_class.__name__}QueryParams", (), class_attrs)

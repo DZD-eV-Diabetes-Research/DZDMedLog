@@ -18,7 +18,12 @@ from typing import Annotated
 
 from fastapi import Depends, APIRouter
 
-from medlogserver.api.paginator import PageParams, pagination_query, PaginatedResponse
+from medlogserver.api.paginator import (
+    PageParams,
+    pagination_query,
+    PaginatedResponse,
+    QueryParamsGeneric,
+)
 from medlogserver.db.user.crud import (
     User,
 )
@@ -52,6 +57,10 @@ log = get_logger()
 fast_api_study_router: APIRouter = APIRouter()
 
 
+class StudyQueryParams(QueryParamsGeneric[Study]):
+    defaults = {"limit": 100}
+
+
 @fast_api_study_router.get(
     "/study",
     response_model=PaginatedResponse[Study],
@@ -64,7 +73,7 @@ async def list_studies(
         user_has_studies_access_map
     ),
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
-    pagination: PageParams = Depends(pagination_query),
+    pagination: StudyQueryParams = Depends(StudyQueryParams),
 ) -> PaginatedResponse[Study]:
 
     # ToDo: This is a pretty cost intensive endpoint/query. Would be a good candiate for some kind of cache. UPDATE: now all logic is in Security(user_has_study_access_map) fix/cache that
@@ -79,7 +88,7 @@ async def list_studies(
     for study in all_studies:
         if study_permissions_helper.user_has_access_to(study_id=study.id):
             allowed_studies.append(study)
-
+    allowed_studies = pagination.order(allowed_studies)
     pageinated_allowed_studies = allowed_studies[pagination.offset : pagination.limit]
     return PaginatedResponse(
         total_count=len(allowed_studies),
