@@ -14,7 +14,7 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 from medlogserver.db.event.model import Event
 
 # TODO: this generated a circular import we need to seperate model and crud classes
@@ -25,7 +25,7 @@ log = get_logger()
 config = Config()
 
 
-class InterviewCreate(BaseModel, table=False):
+class InterviewCreate(MedLogBaseModel, table=False):
     event_id: str = Field(foreign_key="event.id")
     proband_external_id: str = Field(
         description="A unique ID given to the proband from the studies external probant management system"

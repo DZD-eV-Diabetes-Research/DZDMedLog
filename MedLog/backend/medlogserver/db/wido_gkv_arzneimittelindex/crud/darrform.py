@@ -13,20 +13,24 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseModel, BaseTable
-from medlogserver.db.wido_gkv_arzneimittelindex.model.darrform import (
-    Darreichungsform,
-)
+from medlogserver.db.base import MedLogBaseModel, BaseTable
+from medlogserver.db.wido_gkv_arzneimittelindex.model.darrform import Darreichungsform
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import DrugCRUDBase
+
+from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import create_drug_crud_base
 
 log = get_logger()
 config = Config()
 
 
 class DarreichungsformCRUD(
-    DrugCRUDBase[Darreichungsform, Darreichungsform, Darreichungsform, Darreichungsform]
+    create_drug_crud_base(
+        table_model=Darreichungsform,
+        read_model=Darreichungsform,
+        create_model=Darreichungsform,
+        update_model=Darreichungsform,
+    )
 ):
     pass

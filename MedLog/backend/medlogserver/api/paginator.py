@@ -16,7 +16,7 @@ log = get_logger()
 
 from medlogserver.db._base_model import MedLogBaseModel
 
-GenericMedLogModel = TypeVar("GenericMedLogModel", bound=MedLogBaseModel)
+GenericMedLogModel = TypeVar("GenericMedLogModel")
 
 
 # https://docs.pydantic.dev/latest/concepts/models/#generic-models

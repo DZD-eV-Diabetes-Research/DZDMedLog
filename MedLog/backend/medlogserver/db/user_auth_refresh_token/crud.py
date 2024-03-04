@@ -24,7 +24,7 @@ from medlogserver.db.user_auth_refresh_token.model import (
     UserAuthRefreshTokenCreate,
     UserAuthRefreshTokenUpdate,
 )
-from medlogserver.db._base_crud import CRUDBase
+from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
@@ -32,12 +32,12 @@ config = Config()
 
 
 class UserAuthRefreshTokenCRUD(
-    CRUDBase[
-        UserAuthRefreshToken,
-        UserAuthRefreshToken,
-        UserAuthRefreshTokenCreate,
-        UserAuthRefreshTokenUpdate,
-    ]
+    create_crud_base(
+        table_model=UserAuthRefreshToken,
+        read_model=UserAuthRefreshToken,
+        create_model=UserAuthRefreshTokenCreate,
+        update_model=UserAuthRefreshTokenUpdate,
+    )
 ):
     def __init__(self, session: AsyncSession):
         self.session = session

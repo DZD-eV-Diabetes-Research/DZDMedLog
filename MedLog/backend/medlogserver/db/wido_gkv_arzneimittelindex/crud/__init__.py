@@ -38,10 +38,10 @@ from medlogserver.db.wido_gkv_arzneimittelindex.crud.enum_generikakenn import (
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.crud.enum_preisart import PreisartCRUD
 
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 
 
-class DrugModelTableBase(BaseModel, BaseTable):
+class DrugModelTableBase(MedLogBaseModel, BaseTable):
     pass
 
 

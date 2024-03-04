@@ -15,14 +15,19 @@ from medlogserver.log import get_logger
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
-from medlogserver.db._base_crud import CRUDBase
+from medlogserver.db._base_crud import create_crud_base
 
 log = get_logger()
 config = Config()
 
 
 class AiDataVersionCRUD(
-    CRUDBase[AiDataVersion, AiDataVersion, AiDataVersion, AiDataVersion]
+    create_crud_base(
+        table_model=AiDataVersion,
+        read_model=AiDataVersion,
+        create_model=AiDataVersion,
+        update_model=AiDataVersion,
+    )
 ):
     def __init__(self, session: AsyncSession):
         self.session = session

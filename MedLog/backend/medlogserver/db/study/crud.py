@@ -12,18 +12,23 @@ from uuid import UUID
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 from medlogserver.db.study.model import Study, StudyCreate, StudyUpdate
-from medlogserver.db._base_crud import CRUDBase
+from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
 config = Config()
 
 
-class StudyCRUD(CRUDBase[Study, Study, StudyCreate, StudyUpdate]):
-    def __init__(self, session: AsyncSession):
-        self.session = session
+class StudyCRUD(
+    create_crud_base(
+        table_model=Study,
+        read_model=Study,
+        create_model=StudyCreate,
+        update_model=StudyUpdate,
+    )
+):
 
     async def list(
         self,

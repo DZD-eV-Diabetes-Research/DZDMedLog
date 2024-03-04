@@ -13,14 +13,14 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 from medlogserver.db.wido_gkv_arzneimittelindex.model.normpackungsgroessen import (
     Normpackungsgroessen,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import DrugCRUDBase
+from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import create_drug_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
@@ -30,11 +30,11 @@ from sqlmodel import func
 
 
 class NormpackungsgroessenCRUD(
-    DrugCRUDBase[
-        Normpackungsgroessen,
-        Normpackungsgroessen,
-        Normpackungsgroessen,
-        Normpackungsgroessen,
-    ]
+    create_drug_crud_base(
+        table_model=Normpackungsgroessen,
+        read_model=Normpackungsgroessen,
+        create_model=Normpackungsgroessen,
+        update_model=Normpackungsgroessen,
+    )
 ):
     pass

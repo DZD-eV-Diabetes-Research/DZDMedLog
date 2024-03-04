@@ -13,14 +13,14 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 
 
 log = get_logger()
 config = Config()
 
 
-class StudyBase(BaseModel, table=False):
+class StudyBase(MedLogBaseModel, table=False):
 
     display_name: Optional[str] = Field(
         default=None,

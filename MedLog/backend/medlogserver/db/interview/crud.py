@@ -14,10 +14,10 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 from medlogserver.db.event.model import Event
 from medlogserver.db.interview.model import Interview, InterviewCreate, InterviewUpdate
-from medlogserver.db._base_crud import CRUDBase
+from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
 
@@ -25,10 +25,14 @@ log = get_logger()
 config = Config()
 
 
-class InterviewCRUD(CRUDBase[Interview, Interview, InterviewCreate, InterviewUpdate]):
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
+class InterviewCRUD(
+    create_crud_base(
+        table_model=Interview,
+        read_model=Interview,
+        create_model=InterviewCreate,
+        update_model=InterviewUpdate,
+    )
+):
     async def list(
         self,
         filter_event_id: str = None,

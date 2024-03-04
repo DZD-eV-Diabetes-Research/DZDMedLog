@@ -9,7 +9,7 @@ from uuid import UUID
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 
 log = get_logger()
 config = Config()
@@ -21,7 +21,7 @@ _name_annotation = Annotated[
 ]
 
 
-class EventUpdate(BaseModel, table=False):
+class EventUpdate(MedLogBaseModel, table=False):
     name: Optional[_name_annotation] = Field(
         default=None,
         index=True,

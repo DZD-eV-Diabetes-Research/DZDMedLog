@@ -20,13 +20,21 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
 
-from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import DrugCRUDBase
+from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import (
+    DrugCRUDBase,
+    create_drug_crud_base,
+)
 
 log = get_logger()
 config = Config()
 
 
 class ApplikationsformCRUD(
-    DrugCRUDBase[Applikationsform, Applikationsform, Applikationsform, Applikationsform]
+    create_drug_crud_base(
+        table_model=Applikationsform,
+        read_model=Applikationsform,
+        create_model=Applikationsform,
+        update_model=Applikationsform,
+    )
 ):
     pass

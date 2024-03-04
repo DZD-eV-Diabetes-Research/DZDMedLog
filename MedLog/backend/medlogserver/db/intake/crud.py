@@ -14,21 +14,25 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 from medlogserver.db.event.model import Event
 from medlogserver.db.interview.model import Interview
 from medlogserver.db.intake.model import Intake, IntakeCreate, IntakeUpdate
-from medlogserver.db._base_crud import CRUDBase
+from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
 config = Config()
 
 
-class IntakeCRUD(CRUDBase[Intake, Intake, IntakeCreate, IntakeUpdate]):
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
+class IntakeCRUD(
+    create_crud_base(
+        table_model=Intake,
+        read_model=Intake,
+        create_model=IntakeCreate,
+        update_model=IntakeUpdate,
+    )
+):
     async def list(
         self,
         filter_event_id: str = None,

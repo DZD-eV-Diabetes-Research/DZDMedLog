@@ -12,7 +12,7 @@ from uuid import UUID
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 
 # TODO: this generated a circular import we need to seperate model and crud classes
 # from medlogserver.db.user_auth import UserAuthRefreshTokenCRUD
@@ -22,7 +22,7 @@ log = get_logger()
 config = Config()
 
 
-class UserBase(BaseModel, table=False):
+class UserBase(MedLogBaseModel, table=False):
     email: Optional[str] = Field(
         default=None,
         index=True,

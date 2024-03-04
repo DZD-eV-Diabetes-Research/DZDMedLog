@@ -22,7 +22,7 @@ from uuid import UUID
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 from medlogserver.db.user.crud import User
 from medlogserver.db.study.model import Study
 from medlogserver.db.study_permission.model import (
@@ -30,7 +30,7 @@ from medlogserver.db.study_permission.model import (
     StudyPermissonUpdate,
     StudyPermissionRead,
 )
-from medlogserver.db._base_crud import CRUDBase
+from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
@@ -38,16 +38,13 @@ config = Config()
 
 
 class StudyPermissonCRUD(
-    CRUDBase[
-        StudyPermisson,
-        StudyPermissionRead,
-        StudyPermisson,
-        StudyPermissonUpdate,
-    ]
+    create_crud_base(
+        table_model=StudyPermisson,
+        read_model=StudyPermissionRead,
+        create_model=StudyPermisson,
+        update_model=StudyPermissonUpdate,
+    )
 ):
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
     async def count(
         self,
         filter_study_id: uuid.UUID | str = None,

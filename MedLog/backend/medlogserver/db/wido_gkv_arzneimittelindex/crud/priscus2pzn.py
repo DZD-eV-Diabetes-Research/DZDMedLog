@@ -13,25 +13,25 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 from medlogserver.db.wido_gkv_arzneimittelindex.model.priscus2pzn import (
     Priscus2PZN,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import DrugCRUDBase
+from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import create_drug_crud_base
 
 log = get_logger()
 config = Config()
 
 
 class Priscus2PZNCRUD(
-    DrugCRUDBase[
-        Priscus2PZN,
-        Priscus2PZN,
-        Priscus2PZN,
-        Priscus2PZN,
-    ]
+    create_drug_crud_base(
+        table_model=Priscus2PZN,
+        read_model=Priscus2PZN,
+        create_model=Priscus2PZN,
+        update_model=Priscus2PZN,
+    )
 ):
     pass

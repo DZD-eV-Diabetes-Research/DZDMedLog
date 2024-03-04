@@ -18,7 +18,7 @@ from uuid import UUID
 
 from medlogserver.db._session import get_async_session
 
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTableBase
@@ -28,9 +28,9 @@ config = Config()
 
 
 GenericCRUDTableType = TypeVar("GenericCRUDTableType", bound=BaseTable)
-GenericCRUDReadType = TypeVar("GenericCRUDReadType", bound=BaseModel)
-GenericCRUDUpdateType = TypeVar("GenericCRUDUpdateType", bound=BaseModel)
-GenericCRUDCreateType = TypeVar("GenericCRUDCreateType", bound=BaseModel)
+GenericCRUDReadType = TypeVar("GenericCRUDReadType", bound=MedLogBaseModel)
+GenericCRUDUpdateType = TypeVar("GenericCRUDUpdateType", bound=MedLogBaseModel)
+GenericCRUDCreateType = TypeVar("GenericCRUDCreateType", bound=MedLogBaseModel)
 
 
 class CRUDBaseMetaClass(type):
@@ -244,3 +244,12 @@ class CRUDBase(
                 )
         self.session.add_all(objects)
         await self.session.commit()
+
+
+def create_crud_base(
+    table_model: MedLogBaseModel,
+    read_model: MedLogBaseModel,
+    create_model: MedLogBaseModel,
+    update_model: MedLogBaseModel,
+) -> Type[CRUDBase]:
+    return CRUDBase[table_model, read_model, create_model, update_model]

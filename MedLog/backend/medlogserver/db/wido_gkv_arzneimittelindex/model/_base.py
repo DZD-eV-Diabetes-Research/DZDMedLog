@@ -2,11 +2,11 @@ from typing import List, Self
 from sqlmodel import Field, String, UUID
 from pydantic import field_validator, model_validator
 
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 import uuid
 
 
-class DrugModelTableEnumBase(BaseModel, BaseTable):
+class DrugModelTableEnumBase(MedLogBaseModel, BaseTable):
 
     @classmethod
     def is_enum_table(self) -> bool:
@@ -17,7 +17,7 @@ class DrugModelTableEnumBase(BaseModel, BaseTable):
         raise NotImplementedError()
 
 
-class DrugModelTableBase(BaseModel, BaseTable):
+class DrugModelTableBase(MedLogBaseModel, BaseTable):
 
     @classmethod
     def is_enum_table(self) -> bool:

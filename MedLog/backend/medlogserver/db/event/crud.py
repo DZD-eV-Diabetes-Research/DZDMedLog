@@ -11,22 +11,25 @@ import uuid
 from uuid import UUID
 
 
-from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.event.model import Event, EventRead, EventUpdate, EventCreate
-from medlogserver.db._base_crud import CRUDBase
+from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
-from medlogserver.utils import prep_uuid_for_qry
+
 
 log = get_logger()
 config = Config()
 
 
-class EventCRUD(CRUDBase[Event, EventRead, EventCreate, EventUpdate]):
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
+class EventCRUD(
+    create_crud_base(
+        table_model=Event,
+        read_model=EventRead,
+        create_model=EventCreate,
+        update_model=EventUpdate,
+    )
+):
     async def count(
         self,
         filter_study_id: uuid.UUID | str = None,

@@ -13,18 +13,26 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 from medlogserver.db.wido_gkv_arzneimittelindex.model.enum_biosimilar import (
     Biosimilar,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import DrugCRUDBase
+from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import create_drug_crud_base
 
 log = get_logger()
 config = Config()
 
 
-class BiosimilarCRUD(DrugCRUDBase[Biosimilar, Biosimilar, Biosimilar, Biosimilar]):
-    _ai_versionless_table_: bool = True
+class BiosimilarCRUD(
+    create_drug_crud_base(
+        table_model=Biosimilar,
+        read_model=Biosimilar,
+        create_model=Biosimilar,
+        update_model=Biosimilar,
+        ai_versionless_table_=True,
+    )
+):
+    pass

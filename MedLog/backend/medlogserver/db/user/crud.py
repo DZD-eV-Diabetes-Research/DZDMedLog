@@ -15,7 +15,7 @@ from medlogserver.db.user.model import (
     UserUpdateByUser,
     UserCreate,
 )
-from medlogserver.db._base_crud import CRUDBase
+from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
 
@@ -23,10 +23,14 @@ log = get_logger()
 config = Config()
 
 
-class UserCRUD(CRUDBase[User, User, UserCreate, UserUpdate]):
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
+class UserCRUD(
+    create_crud_base(
+        table_model=User,
+        read_model=User,
+        create_model=UserCreate,
+        update_model=UserUpdate,
+    )
+):
     async def count(
         self,
         show_deactivated: bool = False,

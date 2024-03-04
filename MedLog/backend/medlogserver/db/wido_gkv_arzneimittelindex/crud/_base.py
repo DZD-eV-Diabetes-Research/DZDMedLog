@@ -18,6 +18,7 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
 from medlogserver.db._base_crud import (
     CRUDBaseMetaClass,
     CRUDBase,
+    create_crud_base,
     GenericCRUDTableType,
     GenericCRUDReadType,
     GenericCRUDCreateType,
@@ -106,8 +107,11 @@ class DrugCRUDBase(
             query = query.where(self.table.ai_version_id == current_ai_version.id)
         if pagination:
             query = pagination.append_to_query(query)
+        print("###QUERY", query)
         results = await self.session.exec(statement=query)
-        return results.all()
+        res = results.all()
+        print("results.all()", res)
+        return res
 
     async def get(
         self,
@@ -169,3 +173,15 @@ class DrugCRUDBase(
                 )
         self.session.add_all(objects)
         await self.session.commit()
+
+
+def create_drug_crud_base(
+    table_model,
+    read_model,
+    create_model,
+    update_model,
+    ai_versionless_table_: bool = False,
+) -> Type[DrugCRUDBase]:
+    drug_base_class = DrugCRUDBase[table_model, read_model, create_model, update_model]
+    drug_base_class._is_ai_versionless_table_ = ai_versionless_table_
+    return drug_base_class

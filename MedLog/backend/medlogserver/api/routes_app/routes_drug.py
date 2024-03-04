@@ -202,9 +202,7 @@ NormpackungsgroessenQueryParams: Type = create_query_params_class(Normpackungsgr
 async def list_packgroesse(
     user: User = Security(get_current_user),
     normp_crud: NormpackungsgroessenCRUD = Depends(NormpackungsgroessenCRUD.get_crud),
-    pagination: NormpackungsgroessenQueryParams = Depends(
-        NormpackungsgroessenQueryParams
-    ),
+    pagination: QueryParamsInterface = Depends(NormpackungsgroessenQueryParams),
 ) -> PaginatedResponse[Normpackungsgroessen]:
     res = await normp_crud.list(pagination=pagination)
     return PaginatedResponse(
@@ -255,6 +253,7 @@ async def list_applikationsforms(
     pagination: QueryParamsInterface = Depends(ApplikationsformQueryParams),
 ) -> PaginatedResponse[Applikationsform]:
     res = await crud.list(pagination=pagination)
+    print("API RES", res)
     return PaginatedResponse(
         total_count=await crud.count(),
         offset=pagination.offset,

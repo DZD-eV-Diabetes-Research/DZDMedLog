@@ -11,7 +11,7 @@ from uuid import UUID
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.base import BaseModel, BaseTable
+from medlogserver.db.base import MedLogBaseModel, BaseTable
 
 
 log = get_logger()
@@ -42,7 +42,7 @@ class ConsumedMedsTodayAnswers(str, enum.Enum):
     UNKNOWN = "UNKNOWN"
 
 
-class IntakeCreate(BaseModel, table=False):
+class IntakeCreate(MedLogBaseModel, table=False):
     """This class/table also saves some extra question for every interview. This is 1-to-1 what the old IDOM software did. and its a mess.
     i fucking hate it. its unflexible, complex and ugly!
     for a future version we need an extra class/table to store extra question on a per study base.

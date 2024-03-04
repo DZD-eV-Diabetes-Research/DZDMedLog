@@ -23,17 +23,21 @@ from medlogserver.db.user_auth.model import (
     AllowedAuthSourceTypes,
     pwd_context,
 )
-from medlogserver.db._base_crud import CRUDBase
+from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
 config = Config()
 
 
-class UserAuthCRUD(CRUDBase[UserAuth, UserAuth, UserAuthCreate, UserAuthUpdate]):
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
+class UserAuthCRUD(
+    create_crud_base(
+        table_model=UserAuth,
+        read_model=UserAuth,
+        create_model=UserAuthCreate,
+        update_model=UserAuthUpdate,
+    )
+):
     async def list_by_user_id(
         self,
         user_id: str | uuid.UUID,
