@@ -332,7 +332,7 @@ PreisartQueryParams: Type[QueryParamsInterface] = create_query_params_class(Prei
     response_model=PaginatedResponse[Preisart],
     description=f"list Preisart",
 )
-async def list_apopflicht(
+async def list_preisart(
     user: User = Security(get_current_user),
     crud: PreisartCRUD = Depends(PreisartCRUD.get_crud),
     pagination: QueryParamsInterface = Depends(PreisartQueryParams),

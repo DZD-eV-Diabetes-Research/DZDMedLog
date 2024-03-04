@@ -1,13 +1,11 @@
 from typing import Optional, Generic, TypeVar, List, Annotated, Literal, Callable, Type
 import inspect
 from pydantic import BaseModel, Field
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Query
 from sqlmodel import desc
 from medlogserver.config import Config
-import types
-from sqlmodel import select
+
 from pydantic import BaseModel
-import sqlmodel
 from sqlmodel.sql import expression as sqlEpression
 
 config = Config()
