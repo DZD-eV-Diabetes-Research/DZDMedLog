@@ -3,7 +3,7 @@ from fastapi import APIRouter, FastAPI
 
 def mount_fast_api_routers(fastapi_app: FastAPI):
     ### AUTH STUFF
-    from medlogserver.api.auth.base import fast_api_auth_base_router
+    from medlogserver.api.auth.routes_base import fast_api_auth_base_router
 
     fastapi_app.include_router(fast_api_auth_base_router, tags=["Auth"])
 

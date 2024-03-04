@@ -31,12 +31,14 @@ from medlogserver.db.user_auth.crud import (
     UserAuthCRUD,
     AllowedAuthSourceTypes,
 )
-from medlogserver.api.auth.base import (
-    TOKEN_ENDPOINT_PATH,
-    oauth2_scheme,
+from medlogserver.api.auth.security import (
     user_is_admin,
     user_is_usermanager,
     get_current_user,
+)
+from medlogserver.api.auth.routes_base import (
+    TOKEN_ENDPOINT_PATH,
+    oauth2_scheme,
     NEEDS_ADMIN_API_INFO,
     NEEDS_USERMAN_API_INFO,
 )

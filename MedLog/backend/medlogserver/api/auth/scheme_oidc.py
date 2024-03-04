@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 # intern imports
 from medlogserver.config import Config
-from medlogserver.api.auth.tokens import (
+from medlogserver.api.auth.model_token import (
     JWTRefreshTokenResponse,
     JWTRefreshTokenContainer,
     JWTAccessTokenContainer,
@@ -24,7 +24,10 @@ from medlogserver.db.user_auth.crud import (
     AllowedAuthSourceTypes,
 )
 
-from medlogserver.db.user_auth_refresh_token.crud import UserAuthRefreshTokenCRUD
+from medlogserver.db.user_auth_refresh_token.crud import (
+    UserAuthRefreshTokenCRUD,
+    UserAuthRefreshTokenCreate,
+)
 
 from medlogserver.db.user.user_auth_external_oidc_token import (
     UserAuthExternalOIDCToken,

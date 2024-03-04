@@ -20,12 +20,12 @@ from fastapi import Depends, APIRouter
 
 from medlogserver.db.user.crud import User
 
-
-from medlogserver.api.auth.base import (
+from medlogserver.api.auth.security import (
     user_is_admin,
+    user_is_usermanager,
     get_current_user,
-    NEEDS_ADMIN_API_INFO,
 )
+from medlogserver.api.auth.routes_base import NEEDS_ADMIN_API_INFO
 from medlogserver.api.routes_app.security import (
     get_current_user,
 )
@@ -94,12 +94,12 @@ StammQueryParams: Type[QueryParamsInterface] = create_query_params_class(StammRe
 async def list_drugs(
     user: User = Security(get_current_user),
     is_admin: bool = Security(user_is_admin),
-    pagination: StammQueryParams = Depends(StammQueryParams),
+    pagination: QueryParamsInterface = Depends(StammQueryParams),
     drug_stamm_crud: StammCRUD = Depends(StammCRUD.get_crud),
 ) -> PaginatedResponse[StammRead]:
     result_items = await drug_stamm_crud.list(pagination=pagination)
     # return result_items
-    return testclass(
+    return pagination(
         total_count=await drug_stamm_crud.count(),
         offset=pagination.offset,
         count=len(result_items),
@@ -268,7 +268,7 @@ async def list_applikationsforms(
     response_model=Applikationsform,
     description=f"list Applikationsform",
 )
-async def list_applikationsforms(
+async def get_applikationsform(
     key: str,
     user: User = Security(get_current_user),
     crud: ApplikationsformCRUD = Depends(ApplikationsformCRUD.get_crud),

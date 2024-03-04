@@ -7,8 +7,11 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 
 from medlogserver.db.user.crud import User
-
-from medlogserver.api.auth.base import get_current_user
+from medlogserver.api.auth.security import (
+    user_is_admin,
+    user_is_usermanager,
+    get_current_user,
+)
 from medlogserver.config import Config
 from medlogserver.db.study_permission.model import StudyPermisson
 from medlogserver.db.study.model import Study

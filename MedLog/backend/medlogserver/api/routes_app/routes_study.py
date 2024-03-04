@@ -27,11 +27,12 @@ from medlogserver.api.paginator import (
 from medlogserver.db.user.crud import (
     User,
 )
-
-from medlogserver.api.auth.base import (
+from medlogserver.api.auth.security import (
     user_is_admin,
     user_is_usermanager,
     get_current_user,
+)
+from medlogserver.api.auth.routes_base import (
     NEEDS_ADMIN_API_INFO,
     NEEDS_USERMAN_API_INFO,
 )

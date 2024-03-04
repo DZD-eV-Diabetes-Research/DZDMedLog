@@ -83,7 +83,7 @@ async def parse_provisioning_file(path: Path):
 async def load_provsioning_data_item(
     model_cls: Type[MedLogBaseModel], crud_cls: Type[CRUDBase], class_data: List[Dict]
 ):
-    log.info(
+    log.debug(
         f"Try inserting DB provisionig data for table '{model_cls.__tablename__}' ({model_cls}). Row count: {len(class_data)}"
     )
     for item in class_data:
