@@ -1,7 +1,7 @@
 from typing import List, Dict
 from pydantic import BaseModel, Field
 from medlogserver.db._session import AsyncSession, get_async_session
-from medlogserver.api.paginator import PageParams, PaginatedResponse
+from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
 from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import StammRead
 
 
@@ -58,7 +58,7 @@ class MedLogDrugSearchEngineBase:
         filter_apopflicht: int = None,
         filter_preisart_neu: str = None,
         only_current_medications: bool = False,
-        pagination: PageParams = None,
+        pagination: QueryParamsInterface = None,
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
         pass
 

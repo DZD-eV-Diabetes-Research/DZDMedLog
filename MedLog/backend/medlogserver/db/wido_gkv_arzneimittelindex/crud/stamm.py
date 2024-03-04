@@ -19,7 +19,7 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import DrugCRUDBase
-from medlogserver.api.paginator import PageParams
+from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
 config = Config()
@@ -32,7 +32,7 @@ class StammCRUD(DrugCRUDBase[Stamm, StammRead, Stamm, Stamm]):
         self,
         pzns: List[str],
         current_version_only: bool = True,
-        pagination: PageParams = None,
+        pagination: QueryParamsInterface = None,
         keep_pzn_order: bool = True,
     ) -> Sequence[StammRead]:
         query = select(Stamm).where(col(Stamm.pzn).in_(pzns))

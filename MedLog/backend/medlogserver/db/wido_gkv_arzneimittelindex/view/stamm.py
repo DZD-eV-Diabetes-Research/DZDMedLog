@@ -34,7 +34,7 @@ from medlogserver.db._session import get_async_session, get_async_session_contex
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.wido_gkv_arzneimittelindex.view._base import DrugViewBase
-from medlogserver.api.paginator import PageParams
+from medlogserver.api.paginator import QueryParamsInterface
 
 from medlogserver.db.wido_gkv_arzneimittelindex.drug_search._base import (
     MedLogDrugSearchEngineBase,
@@ -64,7 +64,7 @@ class StammJoinedView(DrugViewBase):
         filter_apopflicht: int = None,
         filter_preisart_neu: str = None,
         only_current_medications: bool = False,
-        pagination: PageParams = None,
+        pagination: QueryParamsInterface = None,
     ) -> Sequence[MedLogSearchEngineResult]:
         search_engine: MedLogDrugSearchEngineBase = None
         if config.DRUG_SEARCHENGINE_CLASS == "GenericSQLDrugSearch":

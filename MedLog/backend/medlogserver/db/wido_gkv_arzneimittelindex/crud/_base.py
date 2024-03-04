@@ -27,7 +27,7 @@ from medlogserver.db.wido_gkv_arzneimittelindex.crud.ai_data_version import (
     AiDataVersionCRUD,
 )
 
-from medlogserver.api.paginator import PageParams
+from medlogserver.api.paginator import QueryParamsInterface
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -98,7 +98,7 @@ class DrugCRUDBase(
         return results.first()
 
     async def list(
-        self, current_version_only: bool = True, pagination: PageParams = None
+        self, current_version_only: bool = True, pagination: QueryParamsInterface = None
     ) -> Sequence[GenericCRUDReadType]:
         query = select(self.table)
         if not self._is_ai_versionless_table_ and current_version_only:

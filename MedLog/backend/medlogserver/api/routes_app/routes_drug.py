@@ -44,11 +44,9 @@ from medlogserver.db.wido_gkv_arzneimittelindex.drug_search import (
 )
 from medlogserver.api.base import HTTPMessage
 from medlogserver.api.paginator import (
-    pagination_query,
-    PageParams,
     PaginatedResponse,
-    QueryParamsGeneric,
-    create_query_params_generic_class,
+    create_query_params_class,
+    QueryParamsInterface,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.drug_search._base import (
     MedLogSearchEngineResult,
@@ -84,7 +82,7 @@ fast_api_drug_router: APIRouter = APIRouter()
 #    defaults = {"limit": 100}
 
 
-StammQueryParams: Type = create_query_params_generic_class(StammRead)
+StammQueryParams: Type[QueryParamsInterface] = create_query_params_class(StammRead)
 
 
 #############
@@ -101,7 +99,7 @@ async def list_drugs(
 ) -> PaginatedResponse[StammRead]:
     result_items = await drug_stamm_crud.list(pagination=pagination)
     # return result_items
-    return PaginatedResponse(
+    return testclass(
         total_count=await drug_stamm_crud.count(),
         offset=pagination.offset,
         count=len(result_items),
@@ -128,6 +126,13 @@ async def get_drug(
     )
 
 
+MedLogSearchEngineResultQueryParams: Type[QueryParamsInterface] = (
+    create_query_params_class(
+        MedLogSearchEngineResult, non_sortable_attributes=["pzn", "item"]
+    )
+)
+
+
 @fast_api_drug_router.get(
     "/drug/search",
     response_model=PaginatedResponse[MedLogSearchEngineResult],
@@ -151,7 +156,7 @@ async def search_drugs(
     filter_apopflicht: int = None,
     filter_preisart_neu: str = None,
     only_current_medications: bool = True,
-    pagination: StammQueryParams = Depends(StammQueryParams),
+    pagination: QueryParamsInterface = Depends(MedLogSearchEngineResultQueryParams),
     drug_search: DrugSearch = Depends(get_drug_search),
     user: User = Security(get_current_user),
 ) -> PaginatedResponse[MedLogSearchEngineResult]:
@@ -186,9 +191,7 @@ async def search_drugs(
     # return await drug_stamm_crud.list()
 
 
-NormpackungsgroessenQueryParams: Type = create_query_params_generic_class(
-    Normpackungsgroessen
-)
+NormpackungsgroessenQueryParams: Type = create_query_params_class(Normpackungsgroessen)
 
 
 @fast_api_drug_router.get(
@@ -212,6 +215,11 @@ async def list_packgroesse(
     )
 
 
+DarreichungsformQueryParams: Type[QueryParamsInterface] = create_query_params_class(
+    Darreichungsform
+)
+
+
 @fast_api_drug_router.get(
     "/drug/enum/darrform",
     response_model=PaginatedResponse[Darreichungsform],
@@ -220,7 +228,7 @@ async def list_packgroesse(
 async def list_darreichungsforms(
     user: User = Security(get_current_user),
     crud: DarreichungsformCRUD = Depends(DarreichungsformCRUD.get_crud),
-    pagination: PageParams = Depends(pagination_query),
+    pagination: QueryParamsInterface = Depends(DarreichungsformQueryParams),
 ) -> PaginatedResponse[Darreichungsform]:
     res = await crud.list(pagination=pagination)
     return PaginatedResponse(
@@ -231,6 +239,11 @@ async def list_darreichungsforms(
     )
 
 
+ApplikationsformQueryParams: Type[QueryParamsInterface] = create_query_params_class(
+    Applikationsform
+)
+
+
 @fast_api_drug_router.get(
     "/drug/enum/appform",
     response_model=PaginatedResponse[Applikationsform],
@@ -239,7 +252,7 @@ async def list_darreichungsforms(
 async def list_applikationsforms(
     user: User = Security(get_current_user),
     crud: ApplikationsformCRUD = Depends(ApplikationsformCRUD.get_crud),
-    pagination: PageParams = Depends(pagination_query),
+    pagination: QueryParamsInterface = Depends(ApplikationsformQueryParams),
 ) -> PaginatedResponse[Applikationsform]:
     res = await crud.list(pagination=pagination)
     return PaginatedResponse(
@@ -263,6 +276,11 @@ async def list_applikationsforms(
     return await crud.get(key=key)
 
 
+GenerikakennungQueryParams: Type[QueryParamsInterface] = create_query_params_class(
+    Generikakennung
+)
+
+
 @fast_api_drug_router.get(
     "/drug/enum/generikakenn",
     response_model=PaginatedResponse[Generikakennung],
@@ -271,7 +289,7 @@ async def list_applikationsforms(
 async def list_generikakenns(
     user: User = Security(get_current_user),
     crud: GenerikakennungCRUD = Depends(GenerikakennungCRUD.get_crud),
-    pagination: PageParams = Depends(pagination_query),
+    pagination: QueryParamsInterface = Depends(GenerikakennungQueryParams),
 ) -> PaginatedResponse[Generikakennung]:
     res = await crud.list(pagination=pagination)
     return PaginatedResponse(
@@ -282,6 +300,11 @@ async def list_generikakenns(
     )
 
 
+ApoPflichtQueryParams: Type[QueryParamsInterface] = create_query_params_class(
+    ApoPflicht
+)
+
+
 @fast_api_drug_router.get(
     "/drug/enum/apopflicht",
     response_model=PaginatedResponse[ApoPflicht],
@@ -290,7 +313,7 @@ async def list_generikakenns(
 async def list_apopflicht(
     user: User = Security(get_current_user),
     crud: ApoPflichtCRUD = Depends(ApoPflichtCRUD.get_crud),
-    pagination: PageParams = Depends(pagination_query),
+    pagination: QueryParamsInterface = Depends(ApoPflichtQueryParams),
 ) -> PaginatedResponse[ApoPflicht]:
     res = await crud.list(pagination=pagination)
     return PaginatedResponse(
@@ -301,6 +324,9 @@ async def list_apopflicht(
     )
 
 
+PreisartQueryParams: Type[QueryParamsInterface] = create_query_params_class(Preisart)
+
+
 @fast_api_drug_router.get(
     "/drug/enum/preisart",
     response_model=PaginatedResponse[Preisart],
@@ -309,7 +335,7 @@ async def list_apopflicht(
 async def list_apopflicht(
     user: User = Security(get_current_user),
     crud: PreisartCRUD = Depends(PreisartCRUD.get_crud),
-    pagination: PageParams = Depends(pagination_query),
+    pagination: QueryParamsInterface = Depends(PreisartQueryParams),
 ) -> PaginatedResponse[Preisart]:
     res = await crud.list(pagination=pagination)
     return PaginatedResponse(
@@ -318,149 +344,3 @@ async def list_apopflicht(
         count=len(res),
         items=res,
     )
-
-
-"""
-############
-@fast_api_drug_router.get(
-    "/study/{study_id}/proband/{proband_id}/interview/current/intake",
-    response_model=List[Intake],
-    description=f"List all medicine intakes of one probands last completed interview.",
-)
-async def list_all_intakes_of_last_uncompleted_interview(
-    proband_id: str,
-    study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
-    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> List[Intake]:
-    last_uncompleted_interview = await interview_crud.get_last_by_proband(
-        study_id=study_access.study.id, proband_external_id=proband_id, completed=False
-    )
-    if last_uncompleted_interview:
-        return await intake_crud.list(
-            filter_interview_id=last_uncompleted_interview.id
-        )
-    else:
-        return []
-
-
-############
-@fast_api_drug_router.get(
-    "/study/{study_id}/interview/{interview_id}/intake",
-    response_model=List[Intake],
-    description=f"List all medicine intakes of interview.",
-)
-async def list_all_intakes_of_interview(
-    interview_id: str,
-    study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
-    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> List[Intake]:
-
-    return await intake_crud.list(
-        filter_interview_id=interview_id, filter_study_id=study_access.study.id
-    )
-
-
-############
-@fast_api_drug_router.get(
-    "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
-    response_model=Intake,
-    description=f"Get a certain intake record by it id",
-)
-async def get_intake(
-    intake_id: str,
-    study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
-) -> Intake:
-    return await intake_crud.get(
-        intake_id=intake_id,
-        study_id=study_access.study.id,
-        raise_exception_if_none=HTTPException(status_code=status.HTTP_404_NOT_FOUND),
-    )
-
-
-############
-@fast_api_drug_router.post(
-    "/study/{study_id}/interview/{interview_id}/intake",
-    response_model=List[Intake],
-    description=f"Create intake record in certain interview. user must have at least 'interviewer'-permissions on study.",
-)
-async def create_intake(
-    interview_id: str,
-    intake: IntakeCreate,
-    study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
-    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> List[Intake]:
-    if not study_access.user_has_interviewer_permission:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not allowed to create intake",
-        )
-    # lets check if the the interview is part of the study. otherwise caller could evade study permissions here by calling a interview id from another study.
-    assert await assert_interview_id_is_part_of_study_id(
-        study_id=study_access.study.id,
-        interview_id=interview_id,
-        interview_crud=interview_crud,
-    )
-    intake.interview_id == interview_id
-    return await intake_crud.create(intake)
-
-
-############
-@fast_api_drug_router.patch(
-    "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
-    response_model=List[Intake],
-    description=f"Update intake record. user must have at least 'interviewer'-permissions on study.",
-)
-async def update_intake(
-    interview_id: str,
-    intake_id: str,
-    intake: IntakeUpdate,
-    study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
-    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> List[Intake]:
-    if not study_access.user_has_interviewer_permission:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not allowed to create intake",
-        )
-    # lets check if the the interview is part of study. otherwise caller could evade study permissions here by calling a interview id from another study.
-    assert await assert_interview_id_is_part_of_study_id(
-        study_id=study_access.study.id,
-        interview_id=interview_id,
-        interview_crud=interview_crud,
-    )
-    intake.interview_id == interview_id
-    return await intake_crud.update(intake_id, intake)
-
-
-############
-@fast_api_drug_router.delete(
-    "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
-    response_model=List[Intake],
-    description=f"Update intake record. user must have at least 'interviewer'-permissions on study.",
-)
-async def delete_intake(
-    interview_id: str,
-    intake_id: str,
-    study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
-    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> List[Intake]:
-    if not study_access.user_has_interviewer_permission:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not allowed to create intake",
-        )
-    # lets check if the the interview is part of study. otherwise caller could evade study permissions here by calling a interview id from another study.
-    assert await assert_interview_id_is_part_of_study_id(
-        study_id=study_access.study.id,
-        interview_id=interview_id,
-        interview_crud=interview_crud,
-    )
-    log.warning("ToDo: The med record are not deleted yet")
-    return await intake_crud.delete(intake_id)
-"""

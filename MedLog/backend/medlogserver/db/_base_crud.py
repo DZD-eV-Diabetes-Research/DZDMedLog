@@ -12,14 +12,13 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import Depends
 import contextlib
 from sqlmodel.ext.asyncio.session import AsyncSession
-
+from medlogserver.api.paginator import QueryParamsInterface
 from sqlmodel import func, select, delete
 from uuid import UUID
 
 from medlogserver.db._session import get_async_session
 
 from medlogserver.db.base import BaseModel, BaseTable
-from medlogserver.api.paginator import PageParams
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTableBase
@@ -109,7 +108,7 @@ class CRUDBase(
         return results.first()
 
     async def list(
-        self, pagination: PageParams = None
+        self, pagination: QueryParamsInterface = None
     ) -> Sequence[GenericCRUDReadType]:
         query = select(self.get_table_cls())
         if pagination:

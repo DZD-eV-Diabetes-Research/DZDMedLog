@@ -15,7 +15,7 @@ from medlogserver.log import get_logger
 from medlogserver.db.base import BaseModel, BaseTable
 from medlogserver.db.study.model import Study, StudyCreate, StudyUpdate
 from medlogserver.db._base_crud import CRUDBase
-from medlogserver.api.paginator import PageParams
+from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
 config = Config()
@@ -28,7 +28,7 @@ class StudyCRUD(CRUDBase[Study, Study, StudyCreate, StudyUpdate]):
     async def list(
         self,
         show_deactivated: bool = False,
-        pagination: PageParams = None,
+        pagination: QueryParamsInterface = None,
     ) -> Sequence[Study]:
         query = select(Study)
         if not show_deactivated:

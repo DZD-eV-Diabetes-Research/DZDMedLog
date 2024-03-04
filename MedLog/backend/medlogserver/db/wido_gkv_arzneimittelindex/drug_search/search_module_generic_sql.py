@@ -30,7 +30,7 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
     AiDataVersion,
 )
 
-from medlogserver.api.paginator import PageParams, PaginatedResponse
+from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
 from medlogserver.db.wido_gkv_arzneimittelindex.model.applikationsform import (
     Applikationsform,
 )
@@ -246,7 +246,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         filter_apopflicht: int = None,
         filter_preisart_neu: str = None,
         only_current_medications: bool = True,
-        pagination: PageParams = None,
+        pagination: QueryParamsInterface = None,
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
         search_term = (
             search_term.replace("'", '"')
@@ -358,7 +358,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             query = query.where(is_(GenericSQLDrugSearchCache.ahdatum, None))
         query = query.where(Column("score") > 0)
         if pagination:
-            query = pagination.append_to_query(query, no_limit=True)
+            query = pagination.append_to_query(
+                query, ignore_limit=True, ignore_order_by=True
+            )
         query = query.order_by(desc("score"))
 
         log.debug(f"SEARCH QUERY: {query}")
@@ -370,6 +372,8 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             if pagination.limit:
                 pzns_with_score = pzns_with_score[: pagination.limit]
             async with StammCRUD.crud_context(session=session) as stamm_crud:
+                stamm_crud: StammCRUD = stamm_crud  # typing hint help
+
                 drugs = await stamm_crud.get_multiple(
                     pzns=[item[0] for item in pzns_with_score], keep_pzn_order=True
                 )

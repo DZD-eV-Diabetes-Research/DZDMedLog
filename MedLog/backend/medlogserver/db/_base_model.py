@@ -17,7 +17,7 @@ config = Config()
 import uuid
 
 
-class BaseModel(SQLModel):
+class MedLogBaseModel(SQLModel):
     # Abstaractiion layer for SQLModel to be able to introduce global changes later
     pass
 
@@ -57,7 +57,7 @@ class BaseTable(TimestampModel):
     pass
 
 
-class HealthCheck(BaseModel):
+class HealthCheck(MedLogBaseModel):
     name: str
     version: str
     description: str

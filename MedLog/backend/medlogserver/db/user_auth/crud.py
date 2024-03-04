@@ -24,7 +24,7 @@ from medlogserver.db.user_auth.model import (
     pwd_context,
 )
 from medlogserver.db._base_crud import CRUDBase
-from medlogserver.api.paginator import PageParams
+from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
 config = Config()
@@ -40,7 +40,7 @@ class UserAuthCRUD(CRUDBase[UserAuth, UserAuth, UserAuthCreate, UserAuthUpdate])
         filter_auth_source_type: AllowedAuthSourceTypes = None,
         filter_oidc_provider_name: str = None,
         raise_exception_if_none: Exception = None,
-        pagination: PageParams = None,
+        pagination: QueryParamsInterface = None,
     ) -> Sequence[UserAuth]:
         query = select(UserAuth).where(UserAuth.user_id == user_id)
         if filter_auth_source_type:
@@ -63,7 +63,7 @@ class UserAuthCRUD(CRUDBase[UserAuth, UserAuth, UserAuthCreate, UserAuthUpdate])
         filter_auth_source_type: AllowedAuthSourceTypes = None,
         filter_oidc_provider_name: str = None,
         raise_exception_if_none: Exception = None,
-        pagination: PageParams = None,
+        pagination: QueryParamsInterface = None,
     ) -> Sequence[UserAuth]:
         query = select(UserAuth).join(User).where(User.user_name == user_name)
         if filter_auth_source_type:

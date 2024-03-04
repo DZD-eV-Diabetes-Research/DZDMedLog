@@ -25,7 +25,7 @@ from medlogserver.db.user_auth_refresh_token.model import (
     UserAuthRefreshTokenUpdate,
 )
 from medlogserver.db._base_crud import CRUDBase
-from medlogserver.api.paginator import PageParams
+from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
 config = Config()

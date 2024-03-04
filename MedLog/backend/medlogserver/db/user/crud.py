@@ -16,7 +16,7 @@ from medlogserver.db.user.model import (
     UserCreate,
 )
 from medlogserver.db._base_crud import CRUDBase
-from medlogserver.api.paginator import PageParams
+from medlogserver.api.paginator import QueryParamsInterface
 
 
 log = get_logger()
@@ -38,7 +38,7 @@ class UserCRUD(CRUDBase[User, User, UserCreate, UserUpdate]):
         return results.first()
 
     async def list(
-        self, show_deactivated: bool = False, pagination: PageParams = None
+        self, show_deactivated: bool = False, pagination: QueryParamsInterface = None
     ) -> Sequence[User]:
         query = select(User)
         if not show_deactivated:

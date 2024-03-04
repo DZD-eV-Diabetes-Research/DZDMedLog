@@ -19,7 +19,7 @@ from medlogserver.db.event.model import Event
 from medlogserver.db.interview.model import Interview
 from medlogserver.db.intake.model import Intake, IntakeCreate, IntakeUpdate
 from medlogserver.db._base_crud import CRUDBase
-from medlogserver.api.paginator import PageParams
+from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
 config = Config()
@@ -35,7 +35,7 @@ class IntakeCRUD(CRUDBase[Intake, Intake, IntakeCreate, IntakeUpdate]):
         filter_interview_id: str = None,
         filter_proband_external_id: str = None,
         filter_study_id: str = None,
-        pagination: PageParams = None,
+        pagination: QueryParamsInterface = None,
     ) -> Sequence[Intake]:
         query = select(Intake)
         # prepare joins
@@ -64,7 +64,7 @@ class IntakeCRUD(CRUDBase[Intake, Intake, IntakeCreate, IntakeUpdate]):
         study_id: str | uuid.UUID,
         proband_external_id: str,
         raise_exception_if_no_last_interview: Exception = None,
-        pagination: PageParams = None,
+        pagination: QueryParamsInterface = None,
     ) -> List[Intake]:
 
         last_interview_query = (

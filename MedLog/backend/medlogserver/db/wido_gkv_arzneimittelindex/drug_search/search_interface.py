@@ -18,7 +18,7 @@ from medlogserver.db._session import get_async_session
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.wido_gkv_arzneimittelindex.view._base import DrugViewBase
-from medlogserver.api.paginator import PageParams, PaginatedResponse
+from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
 
 from medlogserver.db.wido_gkv_arzneimittelindex.drug_search._base import (
     MedLogDrugSearchEngineBase,
@@ -94,7 +94,7 @@ class DrugSearch(DrugViewBase):
         filter_apopflicht: int = None,
         filter_preisart_neu: str = None,
         only_current_medications: bool = False,
-        pagination: PageParams = None,
+        pagination: QueryParamsInterface = None,
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
         await self._preflight()
         return await self.search_engine.search(

@@ -16,7 +16,7 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.db.event.model import Event, EventRead, EventUpdate, EventCreate
 from medlogserver.db._base_crud import CRUDBase
-from medlogserver.api.paginator import PageParams
+from medlogserver.api.paginator import QueryParamsInterface
 from medlogserver.utils import prep_uuid_for_qry
 
 log = get_logger()
@@ -44,7 +44,7 @@ class EventCRUD(CRUDBase[Event, EventRead, EventCreate, EventUpdate]):
         self,
         filter_study_id: UUID = None,
         hide_completed: bool = False,
-        pagination: PageParams = None,
+        pagination: QueryParamsInterface = None,
     ) -> Sequence[Event]:
         if isinstance(filter_study_id, str):
             filter_study_id: UUID = UUID(filter_study_id)

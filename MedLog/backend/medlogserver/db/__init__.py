@@ -1,5 +1,5 @@
 from typing import Dict, Type
-from medlogserver.db._base_model import BaseModel
+from medlogserver.db._base_model import MedLogBaseModel
 from medlogserver.db._base_crud import CRUDBase
 from medlogserver.db.event.model import Event, EventCreate, EventRead, EventUpdate
 from medlogserver.db.event.crud import EventCRUD

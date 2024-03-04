@@ -18,7 +18,7 @@ from medlogserver.db.base import BaseModel, BaseTable
 from medlogserver.db.event.model import Event
 from medlogserver.db.interview.model import Interview, InterviewCreate, InterviewUpdate
 from medlogserver.db._base_crud import CRUDBase
-from medlogserver.api.paginator import PageParams
+from medlogserver.api.paginator import QueryParamsInterface
 
 
 log = get_logger()
@@ -34,7 +34,7 @@ class InterviewCRUD(CRUDBase[Interview, Interview, InterviewCreate, InterviewUpd
         filter_event_id: str = None,
         filter_proband_external_id: str = None,
         filter_study_id: str = None,
-        pagination: PageParams = None,
+        pagination: QueryParamsInterface = None,
     ) -> Sequence[Interview]:
         query = select(Interview)
         if filter_study_id:

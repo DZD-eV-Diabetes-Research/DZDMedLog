@@ -31,7 +31,7 @@ from medlogserver.db.study_permission.model import (
     StudyPermissionRead,
 )
 from medlogserver.db._base_crud import CRUDBase
-from medlogserver.api.paginator import PageParams
+from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
 config = Config()
@@ -65,7 +65,7 @@ class StudyPermissonCRUD(
         self,
         filter_study_id: uuid.UUID | str = None,
         filter_user_id: uuid.UUID | str = None,
-        pagination: PageParams = None,
+        pagination: QueryParamsInterface = None,
     ) -> Sequence[StudyPermisson]:
         query = select(StudyPermisson)
         if filter_study_id:

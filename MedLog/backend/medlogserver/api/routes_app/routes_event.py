@@ -1,5 +1,6 @@
+from typing import Annotated, Sequence, List, Type
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Sequence, List
+
 
 from fastapi import (
     Depends,
@@ -29,7 +30,11 @@ from medlogserver.api.routes_app.security import (
     user_has_study_access,
     UserStudyAccess,
 )
-from medlogserver.api.paginator import PageParams, pagination_query, PaginatedResponse
+from medlogserver.api.paginator import (
+    PaginatedResponse,
+    create_query_params_class,
+    QueryParamsInterface,
+)
 
 config = Config()
 
@@ -39,6 +44,8 @@ log = get_logger()
 
 
 fast_api_event_router: APIRouter = APIRouter()
+
+EventQueryParams: Type[QueryParamsInterface] = create_query_params_class(Event)
 
 
 @fast_api_event_router.get(
@@ -50,7 +57,7 @@ async def list_events(
     hide_completed: bool = Query(False),
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
-    pagination: PageParams = Depends(pagination_query),
+    pagination: QueryParamsInterface = Depends(EventQueryParams),
 ) -> PaginatedResponse[Event]:
     result_items = await event_crud.list(
         filter_study_id=study_access.study.id,

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Sequence, List
+from typing import Annotated, Sequence, List, Type
 
 from fastapi import (
     Depends,
@@ -19,10 +19,10 @@ from typing import Annotated
 from fastapi import Depends, APIRouter
 
 from medlogserver.api.paginator import (
-    PageParams,
-    pagination_query,
+    QueryParamsInterface,
     PaginatedResponse,
-    QueryParamsGeneric,
+    create_query_params_class,
+    QueryParamsInterface,
 )
 from medlogserver.db.user.crud import (
     User,
@@ -56,9 +56,7 @@ log = get_logger()
 
 fast_api_study_router: APIRouter = APIRouter()
 
-
-class StudyQueryParams(QueryParamsGeneric[Study]):
-    defaults = {"limit": 100}
+StammQueryParams: Type[QueryParamsInterface] = create_query_params_class(Study)
 
 
 @fast_api_study_router.get(
@@ -73,7 +71,7 @@ async def list_studies(
         user_has_studies_access_map
     ),
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
-    pagination: StudyQueryParams = Depends(StudyQueryParams),
+    pagination: StammQueryParams = Depends(StammQueryParams),
 ) -> PaginatedResponse[Study]:
 
     # ToDo: This is a pretty cost intensive endpoint/query. Would be a good candiate for some kind of cache. UPDATE: now all logic is in Security(user_has_study_access_map) fix/cache that
@@ -90,7 +88,7 @@ async def list_studies(
             allowed_studies.append(study)
     allowed_studies = pagination.order(allowed_studies)
     pageinated_allowed_studies = allowed_studies[pagination.offset : pagination.limit]
-    return PaginatedResponse(
+    return PaginatedResponse[Study](
         total_count=len(allowed_studies),
         offset=pagination.offset,
         count=len(pageinated_allowed_studies),

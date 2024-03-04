@@ -1,5 +1,6 @@
+from typing import Annotated, Sequence, List, NoReturn, Type
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Sequence, List, NoReturn
+
 
 from fastapi import (
     Depends,
@@ -30,7 +31,11 @@ from medlogserver.api.routes_app.security import (
     user_has_study_access,
     UserStudyAccess,
 )
-from medlogserver.api.paginator import PageParams, pagination_query, PaginatedResponse
+from medlogserver.api.paginator import (
+    PaginatedResponse,
+    create_query_params_class,
+    QueryParamsInterface,
+)
 
 config = Config()
 
@@ -40,6 +45,10 @@ log = get_logger()
 
 
 fast_api_permissions_router: APIRouter = APIRouter()
+
+StudyPermissonQueryParams: Type[QueryParamsInterface] = create_query_params_class(
+    StudyPermissionRead
+)
 
 
 #############
@@ -51,7 +60,7 @@ fast_api_permissions_router: APIRouter = APIRouter()
 async def list_study_permissions(
     study_access: UserStudyAccess = Security(user_has_study_access),
     permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
-    pagination: PageParams = Depends(pagination_query),
+    pagination: QueryParamsInterface = Depends(StudyPermissonQueryParams),
 ) -> PaginatedResponse[StudyPermissionRead]:
     if not study_access.user_can_manage_study_permissions():
         return HTTPException(

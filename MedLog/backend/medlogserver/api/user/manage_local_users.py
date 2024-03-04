@@ -1,5 +1,6 @@
+from typing import Annotated, Sequence, List, Type
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Sequence, List
+
 
 from fastapi import Depends, Security, FastAPI, HTTPException, status, Query, Body, Form
 from fastapi.security import OAuth2PasswordRequestForm
@@ -9,7 +10,11 @@ from pydantic import BaseModel, Field
 from typing import Annotated
 
 from fastapi import Depends, APIRouter
-from medlogserver.api.paginator import pagination_query, PageParams, PaginatedResponse
+from medlogserver.api.paginator import (
+    PaginatedResponse,
+    create_query_params_class,
+    QueryParamsInterface,
+)
 
 from medlogserver.db.user.crud import (
     User,
@@ -99,6 +104,9 @@ async def create_user(
     return user_create
 
 
+UserQueryParams: Type[QueryParamsInterface] = create_query_params_class(User)
+
+
 @fast_api_user_manage_router.get(
     "/user",
     response_model=PaginatedResponse[User],
@@ -110,7 +118,7 @@ async def list_users(
     ),
     is_user_manager: bool = Security(user_is_usermanager),
     user_crud: UserCRUD = Depends(UserCRUD.get_crud),
-    pagination: PageParams = Depends(pagination_query),
+    pagination: QueryParamsInterface = Depends(UserQueryParams),
 ) -> PaginatedResponse[User]:
     users = await user_crud.list(show_deactivated=incl_deactivated)
     return PaginatedResponse(
