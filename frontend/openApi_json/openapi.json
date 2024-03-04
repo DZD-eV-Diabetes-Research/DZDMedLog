@@ -2264,6 +2264,15 @@
           ],
           "parameters": [
             {
+              "name": "interview_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Interview Id"
+              }
+            },
+            {
               "name": "intake_id",
               "in": "path",
               "required": true,
@@ -4336,7 +4345,7 @@
               "title": "Expires At",
               "description": "The time as POSIX timestamp in UTC when the token expires",
               "examples": [
-                1709303163
+                1709543311
               ]
             },
             "access_token": {
@@ -4376,7 +4385,7 @@
               "title": "Expires At",
               "description": "The time as POSIX timestamp in UTC when the token expires",
               "examples": [
-                1709303163
+                1709543311
               ]
             },
             "refresh_token": {

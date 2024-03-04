@@ -4,5 +4,3 @@
             <p>Return to <a href="/">startpage</a></p>
         </base-card>
 </template>
-
-<!-- openapi-generator-cli generate -i openApi_json/openapi.json -g javascript -o src/openAPI_client -->

@@ -4,3 +4,8 @@
         <p>Return to <router-link to="/user">user page</router-link></p>
     </base-card>
 </template>
+
+<script>
+import {DefaultApi} from '@/openAPI_client'
+
+</script>
