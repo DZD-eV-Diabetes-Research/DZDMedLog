@@ -7,7 +7,7 @@
 
 <script>
 // Import the generated API client
-import { DefaultApi } from '@/openapi-client';
+import { DefaultApi } from '../../openapi-client';
 
 // export default {
 //   data() {
