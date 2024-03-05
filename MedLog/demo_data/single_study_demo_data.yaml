@@ -1,5 +1,5 @@
 items:
-- medlogserver.db.user.model.UserCreate:
+- medlogserver.model.user.UserCreate:
   - user_name: user1
     id: 338e5dbb-22a3-41fe-903d-0b9a04749f5d
     email: clara@uni.wroc.pl
@@ -18,7 +18,7 @@ items:
     email: marie@Lavoisier-lab.fr
     roles: ["admin"]
     display_name: Marie Lavoisier (Admin)
-- medlogserver.db.user_auth.model.UserAuthCreate:
+- medlogserver.model.user_auth.UserAuthCreate:
   - user_id: 338e5dbb-22a3-41fe-903d-0b9a04749f5d
     auth_source_type: local
     password: medlog1234
@@ -32,12 +32,12 @@ items:
     auth_source_type: local
     password: medlog1234
 
-- medlogserver.db.study.model.StudyCreate:
+- medlogserver.model.study.StudyCreate:
   - name: glucose-galore
     id: b6f2c61b-d388-4412-8c9a-461ece251116
     display_name: "Glucose Galore Study (GGS)"
 
-- medlogserver.db.study_permission.model.StudyPermisson:
+- medlogserver.model.study_permission.StudyPermisson:
   - user_id: 338e5dbb-22a3-41fe-903d-0b9a04749f5d
     study_id: b6f2c61b-d388-4412-8c9a-461ece251116
     is_study_interviewer: true
@@ -50,7 +50,7 @@ items:
   - user_id: e337335c-426e-4122-9f1f-2a8a69b18fb0
     study_id: b6f2c61b-d388-4412-8c9a-461ece251116
     is_study_viewer: false
-- medlogserver.db.event.model.EventCreate:
+- medlogserver.model.event.EventCreate:
   - id: ed1e311a-75f2-47dd-bee9-333db4592174
     name: interview-campaign-2023-q2
     completed: true
@@ -59,7 +59,7 @@ items:
     name: interview-campaign-2024-q1
     completed: false
     study_id: b6f2c61b-d388-4412-8c9a-461ece251116
-- medlogserver.db.interview.model.InterviewCreate:
+- medlogserver.model.interview.InterviewCreate:
   - id: 15b593f8-c501-4f44-a8c5-d3dfd2120194
     event_id: ed1e311a-75f2-47dd-bee9-333db4592174
     proband_external_id: "1234"
@@ -67,7 +67,7 @@ items:
     interview_end_time_utc: "2024-02-28 12:01:26.916345+00:00"
     proband_has_taken_meds: True
     interview_number: 123
-- medlogserver.db.intake.model.IntakeCreate:
+- medlogserver.model.intake.IntakeCreate:
   - id: 3d06e7a7-d9b8-4a15-b951-170332a6b1ff
     interview_id: 15b593f8-c501-4f44-a8c5-d3dfd2120194
     pharmazentralnummer: "74464"

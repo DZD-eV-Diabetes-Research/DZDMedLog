@@ -15,7 +15,7 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.utils import to_path
 from medlogserver.db._session import get_async_session, get_async_session_context
-from medlogserver.db.wido_gkv_arzneimittelindex.model import (
+from medlogserver.model.wido_gkv_arzneimittelindex import (
     AiDataVersion,
     Applikationsform,
     ATCai,
@@ -35,7 +35,7 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model import (
     Generikakennung,
     ApoPflicht,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.crud import (
+from medlogserver.db.wido_gkv_arzneimittelindex import (
     AiDataVersionCRUD,
     ATCAmtlichCRUD,
     ATCaiCRUD,
@@ -55,9 +55,9 @@ from medlogserver.db.wido_gkv_arzneimittelindex.crud import (
     GenerikakennungCRUD,
     ApoPflichtCRUD,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.crud._base import DrugCRUDBase
+from medlogserver.db.wido_gkv_arzneimittelindex._base import DrugCRUDBase
 
-from medlogserver.db.wido_gkv_arzneimittelindex.model._base import (
+from medlogserver.model.wido_gkv_arzneimittelindex._base import (
     DrugModelTableBase,
     DrugModelTableEnumBase,
 )

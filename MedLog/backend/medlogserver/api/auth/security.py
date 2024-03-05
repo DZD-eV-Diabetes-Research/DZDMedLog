@@ -30,9 +30,9 @@ from medlogserver.api.auth.model_token import (
     JWTAccessTokenResponse,
     JWTRefreshTokenContainer,
 )
-from medlogserver.db.user.crud import UserCRUD, User
-from medlogserver.db.user_auth.crud import UserAuthCRUD
-from medlogserver.db.user_auth_refresh_token.crud import UserAuthRefreshTokenCRUD
+from medlogserver.db.user import UserCRUD, User
+from medlogserver.db.user_auth import UserAuthCRUD
+from medlogserver.db.user_auth_refresh_token import UserAuthRefreshTokenCRUD
 
 log = get_logger()
 config = Config()

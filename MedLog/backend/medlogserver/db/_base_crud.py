@@ -18,10 +18,10 @@ from uuid import UUID
 
 from medlogserver.db._session import get_async_session
 
-from medlogserver.db.base import MedLogBaseModel, BaseTable
+from medlogserver.model._base_model import MedLogBaseModel, BaseTable
+
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.wido_gkv_arzneimittelindex.model._base import DrugModelTableBase
 
 log = get_logger()
 config = Config()

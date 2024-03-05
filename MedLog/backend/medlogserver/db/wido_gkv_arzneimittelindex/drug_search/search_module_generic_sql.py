@@ -20,29 +20,29 @@ from medlogserver.db.wido_gkv_arzneimittelindex.drug_search._base import (
     MedLogDrugSearchEngineBase,
     MedLogSearchEngineResult,
 )
-from medlogserver.db._session import AsyncSession, get_async_session
+from medlogserver.db._session import AsyncSession
 
-from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import (
+from medlogserver.model.wido_gkv_arzneimittelindex.stamm import (
     Stamm,
     DRUG_SEARCHFIELDS,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
+from medlogserver.model.wido_gkv_arzneimittelindex.ai_data_version import (
     AiDataVersion,
 )
 
 from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
-from medlogserver.db.wido_gkv_arzneimittelindex.model.applikationsform import (
+from medlogserver.model.wido_gkv_arzneimittelindex.applikationsform import (
     Applikationsform,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
+from medlogserver.model.wido_gkv_arzneimittelindex.ai_data_version import (
     AiDataVersion,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.model.darrform import Darreichungsform
-from medlogserver.db.wido_gkv_arzneimittelindex.model.hersteller import Hersteller
-from medlogserver.db.wido_gkv_arzneimittelindex.model.normpackungsgroessen import (
+from medlogserver.model.wido_gkv_arzneimittelindex.darrform import Darreichungsform
+from medlogserver.model.wido_gkv_arzneimittelindex.hersteller import Hersteller
+from medlogserver.model.wido_gkv_arzneimittelindex.normpackungsgroessen import (
     Normpackungsgroessen,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.crud.stamm import StammCRUD
+from medlogserver.db.wido_gkv_arzneimittelindex.stamm import StammCRUD
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 

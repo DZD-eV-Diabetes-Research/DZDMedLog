@@ -14,7 +14,7 @@ from medlogserver.log import get_logger
 
 log = get_logger()
 
-from medlogserver.db._base_model import MedLogBaseModel
+from medlogserver.model._base_model import MedLogBaseModel
 
 GenericMedLogModel = TypeVar("GenericMedLogModel")
 

@@ -9,7 +9,7 @@ from fastapi import HTTPException, status
 import json
 
 #
-from medlogserver.db.user.crud import User
+from medlogserver.db.user import User
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 

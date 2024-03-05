@@ -15,14 +15,14 @@ from medlogserver.api.auth.model_token import (
     JWTAccessTokenContainer,
     JWTRefreshTokenContainer,
 )
-from medlogserver.db.user.crud import User, UserCRUD, UserCreate
-from medlogserver.db.user_auth.crud import (
+from medlogserver.db.user import User, UserCRUD, UserCreate
+from medlogserver.db.user_auth import (
     UserAuth,
     UserAuthCRUD,
 )
-from medlogserver.db.user_auth_refresh_token.model import UserAuthRefreshTokenCreate
-from medlogserver.db.user_auth_refresh_token.crud import UserAuthRefreshTokenCRUD
-from medlogserver.api.auth.routes_base import TOKEN_ENDPOINT_PATH
+from medlogserver.model.user_auth_refresh_token import UserAuthRefreshTokenCreate
+from medlogserver.db.user_auth_refresh_token import UserAuthRefreshTokenCRUD
+from medlogserver.api.routes.routes_auth import TOKEN_ENDPOINT_PATH
 
 
 from medlogserver.config import Config

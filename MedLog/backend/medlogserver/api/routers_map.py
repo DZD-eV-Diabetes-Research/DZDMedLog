@@ -3,7 +3,9 @@ from fastapi import APIRouter, FastAPI
 
 def mount_fast_api_routers(fastapi_app: FastAPI):
     ### AUTH STUFF
-    from medlogserver.api.auth.routes_base import fast_api_auth_base_router
+    from medlogserver.api.routes.routes_auth import (
+        fast_api_auth_base_router,
+    )
 
     fastapi_app.include_router(fast_api_auth_base_router, tags=["Auth"])
 
@@ -11,7 +13,7 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
 
     fastapi_app.include_router(fast_api_auth_local_router, tags=["Auth"])
 
-    from medlogserver.api.user.manage_local_users import (
+    from medlogserver.api.routes.routes_user import (
         fast_api_user_manage_router,
     )
     from medlogserver.api.auth.scheme_oidc import (
@@ -25,33 +27,33 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
     fastapi_app.include_router(fast_api_user_manage_router, tags=["User"])
 
     ### APP - Business logic
-    from medlogserver.api.routes_app.routes_study import fast_api_study_router
+    from medlogserver.api.routes.routes_study import fast_api_study_router
 
     fastapi_app.include_router(fast_api_study_router, tags=["Study"])
 
-    from api.routes_app.routes_study_permission import (
+    from api.routes.routes_study_permission import (
         fast_api_permissions_router,
     )
 
     fastapi_app.include_router(fast_api_permissions_router, tags=["Study Permissions"])
 
-    from medlogserver.api.routes_app.routes_event import fast_api_event_router
+    from medlogserver.api.routes.routes_event import fast_api_event_router
 
     fastapi_app.include_router(fast_api_event_router, tags=["Event"])
 
-    from medlogserver.api.routes_app.routes_interview import (
+    from medlogserver.api.routes.routes_interview import (
         fast_api_interview_router,
     )
 
     fastapi_app.include_router(fast_api_interview_router, tags=["Interview"])
 
-    from api.routes_app.routes_intake import (
+    from api.routes.routes_intake import (
         fast_api_intake_router,
     )
 
     fastapi_app.include_router(fast_api_intake_router, tags=["Intake"])
 
-    from api.routes_app.routes_drug import (
+    from api.routes.routes_drug import (
         fast_api_drug_router,
     )
 

@@ -2,7 +2,7 @@ from typing import List, Dict
 from pydantic import BaseModel, Field
 from medlogserver.db._session import AsyncSession, get_async_session
 from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
-from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import StammRead
+from medlogserver.model.wido_gkv_arzneimittelindex.stamm import StammRead
 
 
 class MedLogSearchEngineResult(BaseModel):

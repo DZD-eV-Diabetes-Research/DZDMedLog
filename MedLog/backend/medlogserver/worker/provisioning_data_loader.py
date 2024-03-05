@@ -16,7 +16,7 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.utils import to_path
 from medlogserver.db._session import get_async_session_context
-from medlogserver.db import (
+from medlogserver.model import (
     MedLogBaseModel,
     User,
     UserAuthCreate,
@@ -25,8 +25,8 @@ from medlogserver.db import (
     EventCreate,
     Interview,
 )
+from medlogserver.db._base_crud import CRUDBase
 from medlogserver.db import (
-    CRUDBase,
     UserCRUD,
     UserAuthCRUD,
     StudyCRUD,
@@ -98,6 +98,7 @@ async def get_medlog_crud_class_and_model_class(
     class_path: str,
 ) -> Tuple[CRUDBase, MedLogBaseModel]:
     module_path, class_name = class_path.rsplit(".", 1)
+    print("module_path", module_path)
     module = importlib.import_module(module_path)
     class_obj = getattr(module, class_name)
     for crudcls in CRUD_classes:

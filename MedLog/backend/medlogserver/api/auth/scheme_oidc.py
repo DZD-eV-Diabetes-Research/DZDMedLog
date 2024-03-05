@@ -17,22 +17,21 @@ from medlogserver.api.auth.model_token import (
     JWTBundleTokenResponse,
 )
 from medlogserver.api.base import HTTPErrorResponeRepresentation
-from medlogserver.db.user.crud import User, UserCRUD, UserUpdate
-from medlogserver.db.user_auth.crud import (
+from medlogserver.db.user import User, UserCRUD, UserUpdate
+from medlogserver.db.user_auth import (
     UserAuthCreate,
     UserAuthCRUD,
     AllowedAuthSourceTypes,
 )
 
-from medlogserver.db.user_auth_refresh_token.crud import (
+from medlogserver.db.user_auth_refresh_token import (
     UserAuthRefreshTokenCRUD,
     UserAuthRefreshTokenCreate,
 )
 
-from medlogserver.db.user.user_auth_external_oidc_token import (
+from medlogserver.db.user_auth_external_oidc_token import (
     UserAuthExternalOIDCToken,
     UserAuthExternalOIDCTokenCRUD,
-    get_user_auth_external_oidc_token_crud,
 )
 
 config = Config()
@@ -97,7 +96,7 @@ class StarletteOAuthProviderAppContainer:
             UserAuthRefreshTokenCRUD.get_crud
         ),
         user_auth_external_oidc_token_crud: UserAuthExternalOIDCTokenCRUD = Depends(
-            get_user_auth_external_oidc_token_crud
+            UserAuthExternalOIDCTokenCRUD.get_crud
         ),
     ):
         try:

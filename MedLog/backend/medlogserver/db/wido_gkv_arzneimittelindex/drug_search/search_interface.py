@@ -17,7 +17,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from medlogserver.db._session import get_async_session
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.db.wido_gkv_arzneimittelindex.view._base import DrugViewBase
 from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
 
 from medlogserver.db.wido_gkv_arzneimittelindex.drug_search._base import (
@@ -27,10 +26,10 @@ from medlogserver.db.wido_gkv_arzneimittelindex.drug_search.search_module_generi
     GenericSQLDrugSearchEngine,
     MedLogSearchEngineResult,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.crud.ai_data_version import (
+from medlogserver.db.wido_gkv_arzneimittelindex.ai_data_version import (
     AiDataVersionCRUD,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.model.ai_data_version import (
+from medlogserver.model.wido_gkv_arzneimittelindex.ai_data_version import (
     AiDataVersion,
 )
 
@@ -46,11 +45,20 @@ class SearchEngineNotConfiguredException(Exception):
     pass
 
 
-class DrugSearch(DrugViewBase):
+class DrugSearch:
     def __init__(self, session: AsyncSession):
         self.session = session
         self._current_ai_version: AiDataVersion = None
         self.search_engine: MedLogDrugSearchEngineBase = None
+
+    async def _get_current_ai_version(
+        self,
+    ) -> AiDataVersion:
+        if self._current_ai_version is None:
+            async with AiDataVersionCRUD.crud_context(self.session) as ai_version_crud:
+                self._current_ai_version = await ai_version_crud.get_current()
+
+        return self._current_ai_version
 
     async def _preflight(self):
         if self.search_engine is None:

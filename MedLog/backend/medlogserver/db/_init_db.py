@@ -8,26 +8,27 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from medlogserver.db._engine import db_engine
 from medlogserver.db._session import get_async_session_context
-from medlogserver.db.study.model import Study
-from medlogserver.db.study_permission.model import StudyPermisson
-from medlogserver.db.event.model import Event
-from medlogserver.db.user.crud import (
+from medlogserver.model.study import Study
+from medlogserver.model.study_permission import StudyPermisson
+from medlogserver.model.event import Event
+from medlogserver.db.user import (
     User,
     UserCRUD,
 )
-from medlogserver.db.user_auth.crud import (
+from medlogserver.db.user_auth import (
     UserAuth,
     UserAuthCreate,
     UserAuthCRUD,
 )
-from medlogserver.db.user_auth_refresh_token.model import UserAuthRefreshToken
-from medlogserver.db.interview.model import Interview
-from medlogserver.db.intake.model import Intake
+from medlogserver.model.user_auth_refresh_token import UserAuthRefreshToken
+from medlogserver.model.interview import Interview
+from medlogserver.model.intake import Intake
 
-from medlogserver.db.user.user_auth_external_oidc_token import (
+from medlogserver.db.user_auth_external_oidc_token import (
     UserAuthExternalOIDCToken,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.model import (
+
+from medlogserver.model.wido_gkv_arzneimittelindex import (
     AiDataVersion,
     Applikationsform,
     ATCai,
@@ -43,7 +44,7 @@ from medlogserver.db.wido_gkv_arzneimittelindex.model import (
     StammAenderungen,
     Stamm,
 )
-from medlogserver.db.wido_gkv_arzneimittelindex.crud import AiDataVersionCRUD
+from medlogserver.db.wido_gkv_arzneimittelindex import AiDataVersionCRUD
 
 from medlogserver.log import get_logger
 from medlogserver.config import Config
