@@ -8,5 +8,7 @@
 <script>
 
 import { DataApi } from '@/openapi-client'; 
-
+const api = new DataApi({
+  basePath: 'http://localhost:8888',
+});
 </script>
