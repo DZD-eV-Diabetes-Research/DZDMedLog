@@ -4,3 +4,11 @@
         <p>Return to <router-link to="/user">user page</router-link></p>
     </base-card>
 </template>
+
+<script>
+import { DataApi } from '@/path/to/generated/client';
+
+const api = new DataApi({
+  basePath: 'http://localhost:8888',
+});
+</script>
