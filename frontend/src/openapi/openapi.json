@@ -1,0 +1,6088 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MedLog REST API",
+    "version": "0.0.1"
+  },
+  "paths": {
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get Fresh Access Token",
+        "description": "Endpoint to get a new/fresh access token. A valid refresh token must be provided. Accepts the refresh token either as a form field **OR** in the 'refresh-token' header field.<br>Returns a new access token on success.",
+        "operationId": "get_fresh_access_token_auth_refresh_post",
+        "parameters": [
+          {
+            "name": "refresh-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Refresh token via `refresh-token` header field",
+              "title": "Refresh-Token"
+            },
+            "description": "Refresh token via `refresh-token` header field",
+            "example": "Bearer S0VLU0UhIExFQ0tFUiEK"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Body_get_fresh_access_token_auth_refresh_post"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JWTAccessTokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/token": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Login For Refresh And Access Token",
+        "operationId": "Login_for_refresh_and_access_token_auth_token_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_Login_for_refresh_and_access_token_auth_token_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JWTBundleTokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Create Local User",
+        "description": "Creates a new user in the local user database. Needs admin or user-manager role.",
+        "operationId": "Create_local_user_user_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_password",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "The password for the created user. If non is defined the user will be created but not able to login until an admin user defines a password.",
+              "title": "User Password"
+            },
+            "description": "The password for the created user. If non is defined the user will be created but not able to login until an admin user defines a password."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "List Users",
+        "description": "Get account data from a user by its id.  Needs admin or user-manager role.",
+        "operationId": "list_users_user_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "incl_deactivated",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Also list deactivated users.",
+              "default": false,
+              "title": "Incl Deactivated"
+            },
+            "description": "Also list deactivated users."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Order By"
+            }
+          },
+          {
+            "name": "order_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Order Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_User_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/me": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get Myself",
+        "description": "Get account data from the current user",
+        "operationId": "get_myself_user_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Update Myself",
+        "description": "Update my user account data.",
+        "operationId": "update_myself_user_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdateByUser"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/user/me/password": {
+      "put": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Set My Password",
+        "description": "Set my password if i am a 'local' user. If my account was provisioned via an external OpenID Connect provider this does nothing except the return value will be `false`.",
+        "operationId": "set_my_password_user_me_password_put",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Body_set_my_password_user_me_password_put"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/user/{user_id}": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get User",
+        "description": "Get account data from a user by its id. Needs admin or user-manager role.",
+        "operationId": "get_user_user__user_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Update User",
+        "description": "Get account data from a user by its id. Needs admin or user-manager role.",
+        "operationId": "update_user_user__user_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UserUpdateByAdmin"
+                  }
+                ],
+                "description": "The user object with changed data",
+                "title": "Patched User"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/{user_id}/password": {
+      "put": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Set User Password",
+        "description": "Set a local users password. If the user is provisioned via an external OpenID Connect provider this does nothing except the return value will be `false`.  Needs admin or user-manager role.",
+        "operationId": "set_user_password_user__user_id__password_put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Body_set_user_password_user__user_id__password_put"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study": {
+      "get": {
+        "tags": [
+          "Study"
+        ],
+        "summary": "List Studies",
+        "description": "List all studies the user has access too.",
+        "operationId": "list_studies_study_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "show_deactived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Show Deactived"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Order By"
+            }
+          },
+          {
+            "name": "order_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Order Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_Study_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Study"
+        ],
+        "summary": "Create Study",
+        "description": "Create a new study. Needs admin role.",
+        "operationId": "create_study_study_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudyCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Study"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}": {
+      "patch": {
+        "tags": [
+          "Study"
+        ],
+        "summary": "Update Study",
+        "description": "Update existing study",
+        "operationId": "update_study_study__study_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Study Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/StudyUpdate"
+                  }
+                ],
+                "description": "The study object with updated data",
+                "title": "Study"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Study"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Study"
+        ],
+        "summary": "Delete Study",
+        "description": "Delete existing study - Not Yet Implented",
+        "operationId": "delete_study_study__study_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/permissions": {
+      "get": {
+        "tags": [
+          "Study Permissions"
+        ],
+        "summary": "List Study Permissions",
+        "description": "List all access permissons for a study. User must be system admin, system user manager or study admin to see these.",
+        "operationId": "list_study_permissions_study__study_id__permissions_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Order By"
+            }
+          },
+          {
+            "name": "order_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Order Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_StudyPermissionRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/permissions/{permission_id}": {
+      "get": {
+        "tags": [
+          "Study Permissions"
+        ],
+        "summary": "Get Permission Details",
+        "description": "List all medicine intakes of one probands last completed interview.",
+        "operationId": "get_permission_details_study__study_id__permissions__permission_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "permission_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Permission Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyPermisson"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/permissions/{user_id}": {
+      "put": {
+        "tags": [
+          "Study Permissions"
+        ],
+        "summary": "Create Or Update Permission",
+        "description": "Create or update new study permision for a user.",
+        "operationId": "create_or_update_permission_study__study_id__permissions__user_id__put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudyPermissonUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyPermissonUpdate"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/event": {
+      "get": {
+        "tags": [
+          "Event"
+        ],
+        "summary": "List Events",
+        "description": "List all studies the user has access too.",
+        "operationId": "list_events_study__study_id__event_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          },
+          {
+            "name": "hide_completed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Hide Completed"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Order By"
+            }
+          },
+          {
+            "name": "order_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Order Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_Event_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Event"
+        ],
+        "summary": "Create Event",
+        "description": "Create a new event.",
+        "operationId": "create_event_study__study_id__event_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Event"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Event"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/event/{event_id}": {
+      "patch": {
+        "tags": [
+          "Event"
+        ],
+        "summary": "Update Event",
+        "description": "Update existing event",
+        "operationId": "update_event_study__study_id__event__event_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Event"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Event"
+        ],
+        "summary": "Delete Event",
+        "description": "Delete existing event - Not Yet Implented",
+        "operationId": "delete_event_study__study_id__event__event_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/interview": {
+      "get": {
+        "tags": [
+          "Interview"
+        ],
+        "summary": "List All Interviews Of Study",
+        "description": "List all interviews of one study.",
+        "operationId": "list_all_interviews_of_study_study__study_id__interview_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Interview"
+                  },
+                  "title": "Response List All Interviews Of Study Study  Study Id  Interview Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/event/{event_id}/interview": {
+      "get": {
+        "tags": [
+          "Interview"
+        ],
+        "summary": "List Interviews By Study Event",
+        "description": "List all interviews of an event.",
+        "operationId": "list_interviews_by_study_event_study__study_id__event__event_id__interview_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Interview"
+                  },
+                  "title": "Response List Interviews By Study Event Study  Study Id  Event  Event Id  Interview Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Interview"
+        ],
+        "summary": "Create Interview",
+        "description": "Create new interview",
+        "operationId": "create_interview_study__study_id__event__event_id__interview_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InterviewCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Interview"
+                  },
+                  "title": "Response Create Interview Study  Study Id  Event  Event Id  Interview Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/event/{event_id}/interview/{interview_id}": {
+      "get": {
+        "tags": [
+          "Interview"
+        ],
+        "summary": "Get Interview",
+        "description": "Get a certain interview by its id.",
+        "operationId": "get_interview_study__study_id__event__event_id__interview__interview_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Interview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Interview"
+        ],
+        "summary": "Update Interview",
+        "description": "Update existing interview",
+        "operationId": "update_interview_study__study_id__event__event_id__interview__interview_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InterviewUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Interview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Interview"
+        ],
+        "summary": "Delete Interview",
+        "description": "Delete existing interview - Not Yet Implented",
+        "operationId": "delete_interview_study__study_id__event__event_id__interview__interview_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/proband/{proband_id}/interview": {
+      "get": {
+        "tags": [
+          "Interview"
+        ],
+        "summary": "List Interviews Of Proband",
+        "description": "List all interviews of one proband.",
+        "operationId": "list_interviews_of_proband_study__study_id__proband__proband_id__interview_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "proband_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proband Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Interview"
+                  },
+                  "title": "Response List Interviews Of Proband Study  Study Id  Proband  Proband Id  Interview Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/proband/{proband_id}/interview/last": {
+      "get": {
+        "tags": [
+          "Interview"
+        ],
+        "summary": "Get Last Completed Interview",
+        "description": "Get the last completed interview of proband.",
+        "operationId": "get_last_completed_interview_study__study_id__proband__proband_id__interview_last_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "proband_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proband Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Interview"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There is no completed interview yet"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/proband/{proband_id}/interview/current": {
+      "get": {
+        "tags": [
+          "Interview"
+        ],
+        "summary": "Get Last Non Completed Interview",
+        "description": "Get the latest non completed interview of proband.",
+        "operationId": "get_last_non_completed_interview_study__study_id__proband__proband_id__interview_current_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "proband_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proband Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Interview"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There is no completed interview yet"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/proband/{proband_id}/interview/last/intake": {
+      "get": {
+        "tags": [
+          "Intake"
+        ],
+        "summary": "List All Intakes Of Last Completed Interview",
+        "description": "List all medicine intakes of one probands last completed interview.",
+        "operationId": "list_all_intakes_of_last_completed_interview_study__study_id__proband__proband_id__interview_last_intake_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "proband_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proband Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Intake"
+                  },
+                  "title": "Response List All Intakes Of Last Completed Interview Study  Study Id  Proband  Proband Id  Interview Last Intake Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/proband/{proband_id}/interview/current/intake": {
+      "get": {
+        "tags": [
+          "Intake"
+        ],
+        "summary": "List All Intakes Of Last Uncompleted Interview",
+        "description": "List all medicine intakes of one probands last completed interview.",
+        "operationId": "list_all_intakes_of_last_uncompleted_interview_study__study_id__proband__proband_id__interview_current_intake_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "proband_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proband Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Intake"
+                  },
+                  "title": "Response List All Intakes Of Last Uncompleted Interview Study  Study Id  Proband  Proband Id  Interview Current Intake Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/interview/{interview_id}/intake": {
+      "get": {
+        "tags": [
+          "Intake"
+        ],
+        "summary": "List All Intakes Of Interview",
+        "description": "List all medicine intakes of interview.",
+        "operationId": "list_all_intakes_of_interview_study__study_id__interview__interview_id__intake_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Intake"
+                  },
+                  "title": "Response List All Intakes Of Interview Study  Study Id  Interview  Interview Id  Intake Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Intake"
+        ],
+        "summary": "Create Intake",
+        "description": "Create intake record in certain interview. user must have at least 'interviewer'-permissions on study.",
+        "operationId": "create_intake_study__study_id__interview__interview_id__intake_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntakeCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Intake"
+                  },
+                  "title": "Response Create Intake Study  Study Id  Interview  Interview Id  Intake Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/{study_id}/interview/{interview_id}/intake/{intake_id}": {
+      "get": {
+        "tags": [
+          "Intake"
+        ],
+        "summary": "Get Intake",
+        "description": "Get a certain intake record by it id",
+        "operationId": "get_intake_study__study_id__interview__interview_id__intake__intake_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          },
+          {
+            "name": "intake_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Intake Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Intake"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Intake"
+        ],
+        "summary": "Update Intake",
+        "description": "Update intake record. user must have at least 'interviewer'-permissions on study.",
+        "operationId": "update_intake_study__study_id__interview__interview_id__intake__intake_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          },
+          {
+            "name": "intake_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Intake Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntakeUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Intake"
+                  },
+                  "title": "Response Update Intake Study  Study Id  Interview  Interview Id  Intake  Intake Id  Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Intake"
+        ],
+        "summary": "Delete Intake",
+        "description": "Update intake record. user must have at least 'interviewer'-permissions on study.",
+        "operationId": "delete_intake_study__study_id__interview__interview_id__intake__intake_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          },
+          {
+            "name": "intake_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Intake Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ],
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Intake"
+                  },
+                  "title": "Response Delete Intake Study  Study Id  Interview  Interview Id  Intake  Intake Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drug": {
+      "get": {
+        "tags": [
+          "Drug"
+        ],
+        "summary": "List Drugs",
+        "description": "List all medicine/drugs from the system. Needs admin role.",
+        "operationId": "list_drugs_drug_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Order By"
+            }
+          },
+          {
+            "name": "order_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Order Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_StammRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drug/by-pzn/{pzn}": {
+      "get": {
+        "tags": [
+          "Drug"
+        ],
+        "summary": "Get Drug",
+        "description": "Get a drugs data by its PZN",
+        "operationId": "get_drug_drug_by_pzn__pzn__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pzn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pzn"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StammRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drug/search": {
+      "get": {
+        "tags": [
+          "Drug"
+        ],
+        "summary": "Search Drugs",
+        "description": "Search medicine/drugs from the system",
+        "operationId": "search_drugs_drug_search_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search_term",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "description": "A search term. Can be multiple words or a single one. One word must be at least 3 chars or contained in a longer quoted string (e.g. `'Salofalk 1 g'` instead of `Salofalk 1 g`)",
+              "title": "Search Term"
+            },
+            "description": "A search term. Can be multiple words or a single one. One word must be at least 3 chars or contained in a longer quoted string (e.g. `'Salofalk 1 g'` instead of `Salofalk 1 g`)"
+          },
+          {
+            "name": "pzn_contains",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Pzn Contains"
+            }
+          },
+          {
+            "name": "filter_packgroesse",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Filter Packgroesse"
+            }
+          },
+          {
+            "name": "filter_darrform",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Filter Darrform"
+            }
+          },
+          {
+            "name": "filter_appform",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Filter Appform"
+            }
+          },
+          {
+            "name": "filter_normpackungsgroeße_zuzahlstufe",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Filter Normpackungsgroeße Zuzahlstufe"
+            }
+          },
+          {
+            "name": "filter_atc_level2",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Filter Atc Level2"
+            }
+          },
+          {
+            "name": "filter_generikakenn",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Filter Generikakenn"
+            }
+          },
+          {
+            "name": "filter_apopflicht",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "title": "Filter Apopflicht"
+            }
+          },
+          {
+            "name": "filter_preisart_neu",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Filter Preisart Neu"
+            }
+          },
+          {
+            "name": "only_current_medications",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Only Current Medications"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Order By"
+            }
+          },
+          {
+            "name": "order_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Order Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_MedLogSearchEngineResult_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drug/enum/normpackungsgroessen": {
+      "get": {
+        "tags": [
+          "Drug"
+        ],
+        "summary": "List Packgroesse",
+        "description": "list normpackungsgroessen",
+        "operationId": "list_packgroesse_drug_enum_normpackungsgroessen_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Order By"
+            }
+          },
+          {
+            "name": "order_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Order Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_Normpackungsgroessen_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drug/enum/darrform": {
+      "get": {
+        "tags": [
+          "Drug"
+        ],
+        "summary": "List Darreichungsforms",
+        "description": "list ...",
+        "operationId": "list_darreichungsforms_drug_enum_darrform_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Order By"
+            }
+          },
+          {
+            "name": "order_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Order Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_Darreichungsform_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drug/enum/appform": {
+      "get": {
+        "tags": [
+          "Drug"
+        ],
+        "summary": "List Applikationsforms",
+        "description": "list Applikationsform",
+        "operationId": "list_applikationsforms_drug_enum_appform_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Order By"
+            }
+          },
+          {
+            "name": "order_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Order Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_Applikationsform_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drug/enum/appform/{key}": {
+      "get": {
+        "tags": [
+          "Drug"
+        ],
+        "summary": "List Applikationsforms",
+        "description": "list Applikationsform",
+        "operationId": "list_applikationsforms_drug_enum_appform__key__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Applikationsform"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drug/enum/generikakenn": {
+      "get": {
+        "tags": [
+          "Drug"
+        ],
+        "summary": "List Generikakenns",
+        "description": "list Generikakennung",
+        "operationId": "list_generikakenns_drug_enum_generikakenn_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Order By"
+            }
+          },
+          {
+            "name": "order_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Order Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_Generikakennung_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drug/enum/apopflicht": {
+      "get": {
+        "tags": [
+          "Drug"
+        ],
+        "summary": "List Apopflicht",
+        "description": "list ApoPflicht",
+        "operationId": "list_apopflicht_drug_enum_apopflicht_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Order By"
+            }
+          },
+          {
+            "name": "order_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Order Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_ApoPflicht_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drug/enum/preisart": {
+      "get": {
+        "tags": [
+          "Drug"
+        ],
+        "summary": "List Apopflicht",
+        "description": "list Preisart",
+        "operationId": "list_apopflicht_drug_enum_preisart_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Order By"
+            }
+          },
+          {
+            "name": "order_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Order Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_Preisart_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdministeredByDoctorAnswers": {
+        "type": "string",
+        "enum": [
+          "prescribed",
+          "recommended",
+          "no",
+          "unknown"
+        ],
+        "title": "AdministeredByDoctorAnswers"
+      },
+      "AiDataVersion": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "examples": [
+              "aca335063279463395e6908f03ae0abb"
+            ]
+          },
+          "dateiversion": {
+            "type": "string",
+            "title": "Dateiversion",
+            "description": "Dateiversion",
+            "examples": [
+              "52"
+            ]
+          },
+          "datenstand": {
+            "type": "string",
+            "title": "Datenstand",
+            "description": "Monat Datenstand (JJJJMM)",
+            "examples": [
+              "202301"
+            ]
+          },
+          "import_completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Completed At",
+            "description": "When starting an import a new AiDataVersion will be made. on completion with no errors this field will be set and the whole Arzneimittelindex is 'armed'/'can be used' "
+          },
+          "deactivated": {
+            "type": "boolean",
+            "title": "Deactivated",
+            "description": "If set to true this arzneimittel index version will be ignored (when not queried for explciet in the crud interface). This can be helpfull e.g. if the last import contained dirty data and one wants to fallback on the previous version.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "dateiversion",
+          "datenstand"
+        ],
+        "title": "AiDataVersion",
+        "description": "This is a metadata table and not part of the official Wido GTK Arzneimittelindex.\nWe track the \"datenstand\" and \"dateiversion\" variants of the source data here.\n\n\nArgs:\n    DrugModelTableBase (_type_): _description_\n    table (bool, optional): _description_. Defaults to True."
+      },
+      "ApoPflicht": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "apopflicht": {
+            "type": "integer",
+            "title": "Apopflicht",
+            "description": "apopflicht id",
+            "examples": [
+              "0"
+            ]
+          },
+          "bedeutung": {
+            "type": "string",
+            "title": "Bedeutung",
+            "description": "Bedeutung",
+            "examples": [
+              "Nichtarzneimittel"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "apopflicht",
+          "bedeutung"
+        ],
+        "title": "ApoPflicht"
+      },
+      "Applikationsform": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "ai_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Ai Version Id",
+            "description": "Foreing key to 'AiDataVersion' ('GKV WiDo Arzneimittel Index' Data Format Version) which contains the information which Arzneimittel Index 'Datenstand' and 'Dateiversion' the row has"
+          },
+          "appform": {
+            "type": "string",
+            "title": "Appform",
+            "description": "Applikationsform",
+            "examples": [
+              "IMP"
+            ]
+          },
+          "bedeutung": {
+            "type": "string",
+            "title": "Bedeutung",
+            "description": "Bedeutung",
+            "examples": [
+              "Implantat"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "ai_version_id",
+          "appform",
+          "bedeutung"
+        ],
+        "title": "Applikationsform"
+      },
+      "Biosimilar": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "biosimilar": {
+            "type": "string",
+            "title": "Biosimilar",
+            "description": "biosimilar id",
+            "examples": [
+              "N"
+            ]
+          },
+          "bedeutung": {
+            "type": "string",
+            "title": "Bedeutung",
+            "description": "Bedeutung",
+            "examples": [
+              "Biosimilar"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "biosimilar",
+          "bedeutung"
+        ],
+        "title": "Biosimilar"
+      },
+      "Body_Login_for_refresh_and_access_token_auth_token_post": {
+        "properties": {
+          "grant_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "password"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Type"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": ""
+          },
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "client_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Secret"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Body_Login_for_refresh_and_access_token_auth_token_post"
+      },
+      "Body_get_fresh_access_token_auth_refresh_post": {
+        "properties": {
+          "refresh_token_form": {
+            "type": "string",
+            "title": "Refresh Token Form"
+          }
+        },
+        "type": "object",
+        "title": "Body_get_fresh_access_token_auth_refresh_post"
+      },
+      "Body_set_my_password_user_me_password_put": {
+        "properties": {
+          "old_password": {
+            "type": "string",
+            "title": "Old Password"
+          },
+          "new_password": {
+            "type": "string",
+            "title": "New Password"
+          },
+          "new_password_repeated": {
+            "type": "string",
+            "title": "New Password Repeated",
+            "description": "For good measure we require the password twice to mitiage typos."
+          }
+        },
+        "type": "object",
+        "title": "Body_set_my_password_user_me_password_put"
+      },
+      "Body_set_user_password_user__user_id__password_put": {
+        "properties": {
+          "new_password": {
+            "type": "string",
+            "title": "New Password"
+          },
+          "new_password_repeated": {
+            "type": "string",
+            "title": "New Password Repeated",
+            "description": "For good measure we require the password twice to mitiage typos."
+          }
+        },
+        "type": "object",
+        "title": "Body_set_user_password_user__user_id__password_put"
+      },
+      "ConsumedMedsTodayAnswers": {
+        "type": "string",
+        "enum": [
+          "Yes",
+          "No",
+          "UNKNOWN"
+        ],
+        "title": "ConsumedMedsTodayAnswers"
+      },
+      "Darreichungsform": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "ai_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Ai Version Id",
+            "description": "Foreing key to 'AiDataVersion' ('GKV WiDo Arzneimittel Index' Data Format Version) which contains the information which Arzneimittel Index 'Datenstand' and 'Dateiversion' the row has"
+          },
+          "darrform": {
+            "type": "string",
+            "title": "Darrform",
+            "description": "Darreichungsform",
+            "examples": [
+              "ZKA"
+            ]
+          },
+          "bedeutung": {
+            "type": "string",
+            "title": "Bedeutung",
+            "description": "Bedeutung",
+            "examples": [
+              "Zerbeißkapsel"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "ai_version_id",
+          "darrform",
+          "bedeutung"
+        ],
+        "title": "Darreichungsform"
+      },
+      "Event": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-zA-Z0-9-]+$",
+            "title": "Name",
+            "examples": [
+              "visit01",
+              "TI12"
+            ]
+          },
+          "completed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed",
+            "description": "Is the event completed. E.g. All study participants have been interviewed.",
+            "default": false
+          },
+          "study_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Study Id"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_id"
+        ],
+        "title": "Event"
+      },
+      "EventUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-zA-Z0-9-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "examples": [
+              "visit01",
+              "TI12"
+            ]
+          },
+          "completed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed",
+            "description": "Is the event completed. E.g. All study participants have been interviewed.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "EventUpdate"
+      },
+      "Generikakennung": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "generikakenn": {
+            "type": "integer",
+            "title": "Generikakenn",
+            "description": "generikakenn id",
+            "examples": [
+              "0"
+            ]
+          },
+          "bedeutung": {
+            "type": "string",
+            "title": "Bedeutung",
+            "description": "Bedeutung",
+            "examples": [
+              "Arzneimittel mit Patent- bzw. Schutzfristen"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "generikakenn",
+          "bedeutung"
+        ],
+        "title": "Generikakennung"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Hersteller": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "ai_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Ai Version Id",
+            "description": "Foreing key to 'AiDataVersion' ('GKV WiDo Arzneimittel Index' Data Format Version) which contains the information which Arzneimittel Index 'Datenstand' and 'Dateiversion' the row has"
+          },
+          "herstellercode": {
+            "type": "string",
+            "title": "Herstellercode",
+            "description": "Hersteller",
+            "examples": [
+              "BEHR"
+            ]
+          },
+          "bedeutung": {
+            "type": "string",
+            "title": "Bedeutung",
+            "description": "Bedeutung",
+            "examples": [
+              "Behring Applied Technology"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "ai_version_id",
+          "herstellercode",
+          "bedeutung"
+        ],
+        "title": "Hersteller"
+      },
+      "Intake": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "interview_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Interview Id"
+          },
+          "pharmazentralnummer": {
+            "type": "string",
+            "maxLength": 8,
+            "minLength": 5,
+            "title": "Pharmazentralnummer",
+            "description": "Pharmazentralnummer as 8 digits only",
+            "examples": [
+              "23894732"
+            ]
+          },
+          "intake_start_time_utc": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Intake Start Time Utc"
+          },
+          "intake_end_time_utc": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intake End Time Utc"
+          },
+          "administered_by_doctor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdministeredByDoctorAnswers"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "intake_regular_or_as_needed": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRegularOrAsNeededAnswers"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version"
+          },
+          "dose_per_day": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dose Per Day"
+          },
+          "regular_intervall_of_daily_dose": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntervalOfDailyDoseAnswers"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "as_needed_dose_unit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Needed Dose Unit"
+          },
+          "consumed_meds_today": {
+            "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "interview_id",
+          "pharmazentralnummer",
+          "intake_start_time_utc",
+          "as_needed_dose_unit",
+          "consumed_meds_today"
+        ],
+        "title": "Intake"
+      },
+      "IntakeCreate": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "interview_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interview Id"
+          },
+          "pharmazentralnummer": {
+            "type": "string",
+            "maxLength": 12,
+            "minLength": 5,
+            "pattern": "^(PZN-)|(-)|( -)?\\d{5,9}$",
+            "title": "Pharmazentralnummer",
+            "description": "Take the Pharmazentralnummer in many formats, but all formats will be normalized to just a 8 digit number.",
+            "examples": [
+              "23894732",
+              "PZN-88888888"
+            ]
+          },
+          "intake_start_time_utc": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Intake Start Time Utc"
+          },
+          "intake_end_time_utc": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intake End Time Utc"
+          },
+          "administered_by_doctor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdministeredByDoctorAnswers"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "intake_regular_or_as_needed": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRegularOrAsNeededAnswers"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version"
+          },
+          "dose_per_day": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dose Per Day"
+          },
+          "regular_intervall_of_daily_dose": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntervalOfDailyDoseAnswers"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "as_needed_dose_unit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Needed Dose Unit"
+          },
+          "consumed_meds_today": {
+            "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "interview_id",
+          "pharmazentralnummer",
+          "intake_start_time_utc",
+          "as_needed_dose_unit",
+          "consumed_meds_today"
+        ],
+        "title": "IntakeCreate",
+        "description": "This class/table also saves some extra question for every interview. This is 1-to-1 what the old IDOM software did. and its a mess.\ni fucking hate it. its unflexible, complex and ugly!\nfor a future version we need an extra class/table to store extra question on a per study base.\nfields (with meatdata like options) could be defined in json schema. so clients can generate dynamic forms relatively easy."
+      },
+      "IntakeRegularOrAsNeededAnswers": {
+        "type": "string",
+        "enum": [
+          "regular",
+          "as needed"
+        ],
+        "title": "IntakeRegularOrAsNeededAnswers"
+      },
+      "IntakeUpdate": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "interview_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interview Id"
+          },
+          "pharmazentralnummer": {
+            "type": "string",
+            "maxLength": 12,
+            "minLength": 5,
+            "pattern": "^(PZN-)|(-)|( -)?\\d{5,9}$",
+            "title": "Pharmazentralnummer",
+            "description": "Take the Pharmazentralnummer in many formats, but all formats will be normalized to just a 8 digit number.",
+            "examples": [
+              "23894732",
+              "PZN-88888888"
+            ]
+          },
+          "intake_start_time_utc": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Intake Start Time Utc"
+          },
+          "intake_end_time_utc": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intake End Time Utc"
+          },
+          "administered_by_doctor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdministeredByDoctorAnswers"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "intake_regular_or_as_needed": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRegularOrAsNeededAnswers"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version"
+          },
+          "dose_per_day": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dose Per Day"
+          },
+          "regular_intervall_of_daily_dose": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntervalOfDailyDoseAnswers"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "as_needed_dose_unit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Needed Dose Unit"
+          },
+          "consumed_meds_today": {
+            "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "interview_id",
+          "pharmazentralnummer",
+          "intake_start_time_utc",
+          "as_needed_dose_unit",
+          "consumed_meds_today"
+        ],
+        "title": "IntakeUpdate"
+      },
+      "IntervalOfDailyDoseAnswers": {
+        "type": "string",
+        "enum": [
+          "regular",
+          "as needed",
+          "every 2. day",
+          "every 3. day",
+          "every 4. day / twice a week",
+          "intervals of one week or more"
+        ],
+        "title": "IntervalOfDailyDoseAnswers"
+      },
+      "Interview": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "proband_external_id": {
+            "type": "string",
+            "title": "Proband External Id",
+            "description": "A unique ID given to the proband from the studies external probant management system"
+          },
+          "interview_start_time_utc": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Interview Start Time Utc"
+          },
+          "interview_end_time_utc": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Interview End Time Utc"
+          },
+          "proband_has_taken_meds": {
+            "type": "boolean",
+            "title": "Proband Has Taken Meds"
+          },
+          "interview_number": {
+            "type": "integer",
+            "title": "Interview Number",
+            "description": "TB: This field is still kind of mysterious to me. In the user interview video the user just filled it with some number. Maybe a process we can automize (shameless plug: https://git.apps.dzd-ev.org/dzdpythonmodules/ptan)?"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "proband_external_id",
+          "proband_has_taken_meds",
+          "interview_number"
+        ],
+        "title": "Interview"
+      },
+      "InterviewCreate": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "proband_external_id": {
+            "type": "string",
+            "title": "Proband External Id",
+            "description": "A unique ID given to the proband from the studies external probant management system"
+          },
+          "interview_start_time_utc": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Interview Start Time Utc"
+          },
+          "interview_end_time_utc": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Interview End Time Utc"
+          },
+          "proband_has_taken_meds": {
+            "type": "boolean",
+            "title": "Proband Has Taken Meds"
+          },
+          "interview_number": {
+            "type": "integer",
+            "title": "Interview Number",
+            "description": "TB: This field is still kind of mysterious to me. In the user interview video the user just filled it with some number. Maybe a process we can automize (shameless plug: https://git.apps.dzd-ev.org/dzdpythonmodules/ptan)?"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "proband_external_id",
+          "proband_has_taken_meds",
+          "interview_number"
+        ],
+        "title": "InterviewCreate"
+      },
+      "InterviewUpdate": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "proband_external_id": {
+            "type": "string",
+            "title": "Proband External Id",
+            "description": "A unique ID given to the proband from the studies external probant management system"
+          },
+          "interview_start_time_utc": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Interview Start Time Utc"
+          },
+          "interview_end_time_utc": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Interview End Time Utc"
+          },
+          "proband_has_taken_meds": {
+            "type": "boolean",
+            "title": "Proband Has Taken Meds"
+          },
+          "interview_number": {
+            "type": "integer",
+            "title": "Interview Number",
+            "description": "TB: This field is still kind of mysterious to me. In the user interview video the user just filled it with some number. Maybe a process we can automize (shameless plug: https://git.apps.dzd-ev.org/dzdpythonmodules/ptan)?"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "proband_external_id",
+          "proband_has_taken_meds",
+          "interview_number"
+        ],
+        "title": "InterviewUpdate"
+      },
+      "JWTAccessTokenResponse": {
+        "properties": {
+          "token_type": {
+            "const": "Bearer",
+            "title": "Token Type",
+            "default": "Bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "description": "The number of seconds until the token expires",
+            "examples": [
+              3600
+            ]
+          },
+          "expires_at": {
+            "type": "integer",
+            "title": "Expires At",
+            "description": "The time as POSIX timestamp in UTC when the token expires",
+            "examples": [
+              1709557513
+            ]
+          },
+          "access_token": {
+            "type": "string",
+            "title": "Access Token",
+            "description": "Token to be used to authenticate against the API",
+            "examples": [
+              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "expires_in",
+          "expires_at",
+          "access_token"
+        ],
+        "title": "JWTAccessTokenResponse"
+      },
+      "JWTBundleTokenResponse": {
+        "properties": {
+          "token_type": {
+            "const": "Bearer",
+            "title": "Token Type",
+            "default": "Bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "description": "The number of seconds until the token expires",
+            "examples": [
+              3600
+            ]
+          },
+          "expires_at": {
+            "type": "integer",
+            "title": "Expires At",
+            "description": "The time as POSIX timestamp in UTC when the token expires",
+            "examples": [
+              1709557513
+            ]
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token",
+            "description": "Refresh token to be used to get new access tokens",
+            "examples": [
+              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+            ]
+          },
+          "access_token": {
+            "type": "string",
+            "title": "Access Token",
+            "description": "Token to be used to authenticate against the API",
+            "examples": [
+              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+            ]
+          },
+          "refresh_token_expires_in": {
+            "type": "integer",
+            "title": "Refresh Token Expires In",
+            "description": "The number of seconds until the token expires",
+            "examples": [
+              3600
+            ]
+          },
+          "refresh_token_expires_at": {
+            "type": "integer",
+            "title": "Refresh Token Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expires_in",
+          "expires_at",
+          "refresh_token",
+          "access_token",
+          "refresh_token_expires_in",
+          "refresh_token_expires_at"
+        ],
+        "title": "JWTBundleTokenResponse"
+      },
+      "MedLogSearchEngineResult": {
+        "properties": {
+          "pzn": {
+            "type": "string",
+            "title": "Pzn",
+            "examples": [
+              "324563"
+            ]
+          },
+          "relevance_score": {
+            "type": "number",
+            "title": "Relevance Score",
+            "examples": [
+              "1.4"
+            ]
+          },
+          "item": {
+            "$ref": "#/components/schemas/StammRead"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pzn",
+          "relevance_score",
+          "item"
+        ],
+        "title": "MedLogSearchEngineResult"
+      },
+      "Normpackungsgroessen": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "ai_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Ai Version Id",
+            "description": "Foreing key to 'AiDataVersion' ('GKV WiDo Arzneimittel Index' Data Format Version) which contains the information which Arzneimittel Index 'Datenstand' and 'Dateiversion' the row has"
+          },
+          "zuzahlstufe": {
+            "type": "string",
+            "title": "Zuzahlstufe",
+            "description": "Normpackungsgröße. Tim: I dont know where the term 'zuzahlstufe' is coming from. It does not make too much sense for me and its confusing compared to the table name `Normpackungsgroessen`. Maybe historic artefact/bug in the Arzneimittelindex or i am just stupid.",
+            "examples": [
+              "E"
+            ]
+          },
+          "bedeutung": {
+            "type": "string",
+            "title": "Bedeutung",
+            "description": "Bedeutung",
+            "examples": [
+              "N1+N3"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "ai_version_id",
+          "zuzahlstufe",
+          "bedeutung"
+        ],
+        "title": "Normpackungsgroessen"
+      },
+      "PaginatedResponse_ApoPflicht_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ApoPflicht"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offset",
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[ApoPflicht]"
+      },
+      "PaginatedResponse_Applikationsform_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Applikationsform"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offset",
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[Applikationsform]"
+      },
+      "PaginatedResponse_Darreichungsform_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Darreichungsform"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offset",
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[Darreichungsform]"
+      },
+      "PaginatedResponse_Event_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offset",
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[Event]"
+      },
+      "PaginatedResponse_Generikakennung_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Generikakennung"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offset",
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[Generikakennung]"
+      },
+      "PaginatedResponse_MedLogSearchEngineResult_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MedLogSearchEngineResult"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offset",
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[MedLogSearchEngineResult]"
+      },
+      "PaginatedResponse_Normpackungsgroessen_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Normpackungsgroessen"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offset",
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[Normpackungsgroessen]"
+      },
+      "PaginatedResponse_Preisart_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Preisart"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offset",
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[Preisart]"
+      },
+      "PaginatedResponse_StammRead_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StammRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offset",
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[StammRead]"
+      },
+      "PaginatedResponse_StudyPermissionRead_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StudyPermissionRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offset",
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[StudyPermissionRead]"
+      },
+      "PaginatedResponse_Study_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Study"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offset",
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[Study]"
+      },
+      "PaginatedResponse_User_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offset",
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[User]"
+      },
+      "Preisart": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "preisart": {
+            "type": "string",
+            "title": "Preisart",
+            "description": "preiart id",
+            "examples": [
+              "X"
+            ]
+          },
+          "bedeutung": {
+            "type": "string",
+            "title": "Bedeutung",
+            "description": "Bedeutung",
+            "examples": [
+              "Ohne Preisangabe"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "preisart",
+          "bedeutung"
+        ],
+        "title": "Preisart"
+      },
+      "StammRead": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "ai_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Ai Version Id",
+            "description": "Foreing key to 'AiDataVersion' ('GKV WiDo Arzneimittel Index' Data Format Version) which contains the information which Arzneimittel Index 'Datenstand' and 'Dateiversion' the row has"
+          },
+          "laufnr": {
+            "type": "string",
+            "title": "Laufnr",
+            "description": "Laufende Nummer (vom WIdO vergeben)",
+            "examples": [
+              "12903"
+            ]
+          },
+          "stakenn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stakenn",
+            "description": "(Sämtliche Arzneimittel eines Handelsnamens)Standardaggregatkennung (zu Lfd. Nr.)",
+            "examples": [
+              "1"
+            ]
+          },
+          "staname": {
+            "type": "string",
+            "title": "Staname",
+            "description": "Standardaggregatname (vom WIdO vergeben) (enhält *NV* wenn 'Noch nicht abschließend klassifiziertes Arzneimittel')",
+            "examples": [
+              "Warfarin"
+            ]
+          },
+          "atc_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atc Code",
+            "description": "ATC-Code (Klassifikation nach WIdO)",
+            "examples": [
+              "B01AA03"
+            ]
+          },
+          "indgr": {
+            "type": "string",
+            "title": "Indgr",
+            "description": "Indikationsgruppe (nach Roter Liste 2014)",
+            "examples": [
+              "20"
+            ]
+          },
+          "pzn": {
+            "type": "string",
+            "title": "Pzn",
+            "description": "Pharmazentralnummer",
+            "examples": [
+              "10066230"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Präparatename",
+            "examples": [
+              "Venenum Fang 5 mg Kriminon"
+            ]
+          },
+          "hersteller_code": {
+            "type": "string",
+            "title": "Hersteller Code",
+            "description": "Herstellerschlüssel (Siehe `hersteller_ref` für vollen Herstellernamen)",
+            "examples": [
+              "BEHR"
+            ]
+          },
+          "darrform": {
+            "type": "string",
+            "title": "Darrform",
+            "description": "Darreichungsformschlüssel (Siehe `darrform_ref` für vollen Namen)",
+            "examples": [
+              "ZKA"
+            ]
+          },
+          "zuzahlstufe": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zuzahlstufe",
+            "description": "Normpackungsgrößenschlüssel (Siehe `zuzahlstufe_ref` für vollen Namen)",
+            "examples": [
+              "E"
+            ]
+          },
+          "packgroesse": {
+            "type": "integer",
+            "title": "Packgroesse",
+            "description": "Packungsgröße (in 1/10 Einheiten)",
+            "examples": [
+              "1000"
+            ]
+          },
+          "dddpk": {
+            "type": "string",
+            "title": "Dddpk",
+            "description": "DDD je Packung (nach WIdO, in 1/1000 Einheiten)",
+            "examples": [
+              "000066667"
+            ]
+          },
+          "apopflicht": {
+            "type": "integer",
+            "title": "Apopflicht",
+            "description": "Apotheken-/Rezeptpflichtschlüssel (Siehe `apopflicht_ref` für vollen Namen)",
+            "examples": [
+              "0"
+            ]
+          },
+          "preisart_alt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preisart Alt",
+            "description": "Preisart, alt schlüssel  (Siehe `preisart_alt_ref` für vollen Namen)",
+            "examples": [
+              "X"
+            ]
+          },
+          "preisart_neu": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preisart Neu",
+            "description": "Preisart, neu schlüssel  (Siehe `preisart_neu_ref` für vollen Namen)",
+            "examples": [
+              "X"
+            ]
+          },
+          "preis_alt": {
+            "type": "integer",
+            "title": "Preis Alt",
+            "description": "Preis alt (in Cent)",
+            "examples": [
+              "1512"
+            ]
+          },
+          "preis_neu": {
+            "type": "integer",
+            "title": "Preis Neu",
+            "description": "Preis neu (in Cent)",
+            "examples": [
+              "1515"
+            ]
+          },
+          "festbetrag": {
+            "type": "integer",
+            "title": "Festbetrag",
+            "description": "Festbetrag (in Cent)",
+            "examples": [
+              "1514"
+            ]
+          },
+          "marktzugang": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marktzugang",
+            "description": "Datum Marktzugang (JJJJMMTT)",
+            "examples": [
+              "20140231"
+            ]
+          },
+          "ahdatum": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ahdatum",
+            "description": "Datum Außer Handel (JJJJMMTT)",
+            "examples": [
+              "20140331"
+            ]
+          },
+          "rueckruf": {
+            "type": "boolean",
+            "title": "Rueckruf",
+            "description": "Rückruf/zurückgezogen oder zurückgezogen durch Hersteller",
+            "examples": [
+              false
+            ]
+          },
+          "generikakenn": {
+            "type": "integer",
+            "title": "Generikakenn",
+            "description": "Generika-Kennung",
+            "examples": [
+              0
+            ]
+          },
+          "appform": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appform",
+            "description": "Applikationsformschlüssel (Siehe `appform_ref` für vollen Namen)",
+            "examples": [
+              0
+            ]
+          },
+          "biosimilar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Biosimilar",
+            "description": "Gentechnologisch bzw. biotechnologisch hergestellte\n                Arzneimittel, zu denen Biosimilars zugelassen und im\n                deutschen Markt verfügbar sind oder waren",
+            "examples": [
+              "N"
+            ]
+          },
+          "orphan": {
+            "type": "boolean",
+            "title": "Orphan",
+            "description": "Von der EMA mit Orphan Drug Status zugelassene Arzneimittel (Klassifikation zum Stichtag)",
+            "examples": [
+              "false"
+            ]
+          },
+          "ai_version_ref": {
+            "$ref": "#/components/schemas/AiDataVersion"
+          },
+          "darrform_ref": {
+            "$ref": "#/components/schemas/Darreichungsform"
+          },
+          "appform_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Applikationsform"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "zuzahlstufe_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Normpackungsgroessen"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hersteller_ref": {
+            "$ref": "#/components/schemas/Hersteller"
+          },
+          "apopflicht_ref": {
+            "$ref": "#/components/schemas/ApoPflicht"
+          },
+          "preisart_neu_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Preisart"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "preisart_alt_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Preisart"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "biosimilar_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Biosimilar"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "generikakenn_ref": {
+            "$ref": "#/components/schemas/Generikakennung"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ai_version_id",
+          "laufnr",
+          "stakenn",
+          "staname",
+          "atc_code",
+          "indgr",
+          "pzn",
+          "name",
+          "hersteller_code",
+          "darrform",
+          "zuzahlstufe",
+          "packgroesse",
+          "dddpk",
+          "apopflicht",
+          "preisart_alt",
+          "preisart_neu",
+          "preis_alt",
+          "preis_neu",
+          "festbetrag",
+          "marktzugang",
+          "ahdatum",
+          "rueckruf",
+          "generikakenn",
+          "appform",
+          "biosimilar",
+          "orphan",
+          "ai_version_ref",
+          "darrform_ref",
+          "appform_ref",
+          "zuzahlstufe_ref",
+          "hersteller_ref",
+          "apopflicht_ref",
+          "preisart_neu_ref",
+          "preisart_alt_ref",
+          "biosimilar_ref",
+          "generikakenn_ref"
+        ],
+        "title": "StammRead"
+      },
+      "Study": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "examples": [
+              "Prädiabetes-Lebensstil-Interventions-Studie (PLIS)",
+              "BARIA-DDZ-Studie"
+            ]
+          },
+          "deactivated": {
+            "type": "boolean",
+            "title": "Deactivated",
+            "default": false
+          },
+          "no_permissions": {
+            "type": "boolean",
+            "title": "No Permissions",
+            "description": "If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study.  Admin access still need to be allocated explicit.",
+            "default": false
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-zA-Z0-9-]+$",
+            "title": "Name",
+            "description": "The identifiying name of the study. This can not be changed later. Must be a '[Slug](https://en.wikipedia.org/wiki/Clean_URL#Slug)'; A human and machine reable string containing no spaces, only numbers, lowered latin-script-letters and dashes. If you need to change the name later, use the display name.",
+            "examples": [
+              "plis",
+              "baria-ddz"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "Study"
+      },
+      "StudyCreate": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "examples": [
+              "Prädiabetes-Lebensstil-Interventions-Studie (PLIS)",
+              "BARIA-DDZ-Studie"
+            ]
+          },
+          "deactivated": {
+            "type": "boolean",
+            "title": "Deactivated",
+            "default": false
+          },
+          "no_permissions": {
+            "type": "boolean",
+            "title": "No Permissions",
+            "description": "If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study.  Admin access still need to be allocated explicit.",
+            "default": false
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-zA-Z0-9-]+$",
+            "title": "Name",
+            "description": "The identifiying name of the study. This can not be changed later. Must be a '[Slug](https://en.wikipedia.org/wiki/Clean_URL#Slug)'; A human and machine reable string containing no spaces, only numbers, lowered latin-script-letters and dashes. If you need to change the name later, use the display name.",
+            "examples": [
+              "plis",
+              "baria-ddz"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "StudyCreate"
+      },
+      "StudyPermissionRead": {
+        "properties": {
+          "is_study_viewer": {
+            "type": "boolean",
+            "title": "Is Study Viewer",
+            "description": "This is the minimal access to a study. The user can see all data but can not alter anything",
+            "default": true
+          },
+          "is_study_interviewer": {
+            "type": "boolean",
+            "title": "Is Study Interviewer",
+            "description": "Study interviewers can create new interview entries for this study.",
+            "default": false
+          },
+          "is_study_admin": {
+            "type": "boolean",
+            "title": "Is Study Admin",
+            "description": "Study admins can give access to the study to new users.",
+            "default": false
+          },
+          "study_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Study Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "user_ref": {
+            "$ref": "#/components/schemas/User"
+          },
+          "study_ref": {
+            "$ref": "#/components/schemas/Study"
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_id",
+          "user_id",
+          "id",
+          "user_ref",
+          "study_ref"
+        ],
+        "title": "StudyPermissionRead"
+      },
+      "StudyPermisson": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "is_study_viewer": {
+            "type": "boolean",
+            "title": "Is Study Viewer",
+            "description": "This is the minimal access to a study. The user can see all data but can not alter anything",
+            "default": true
+          },
+          "is_study_interviewer": {
+            "type": "boolean",
+            "title": "Is Study Interviewer",
+            "description": "Study interviewers can create new interview entries for this study.",
+            "default": false
+          },
+          "is_study_admin": {
+            "type": "boolean",
+            "title": "Is Study Admin",
+            "description": "Study admins can give access to the study to new users.",
+            "default": false
+          },
+          "study_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Study Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_id",
+          "user_id"
+        ],
+        "title": "StudyPermisson"
+      },
+      "StudyPermissonUpdate": {
+        "properties": {
+          "is_study_viewer": {
+            "type": "boolean",
+            "title": "Is Study Viewer",
+            "description": "This is the minimal access to a study. The user can see all data but can not alter anything",
+            "default": true
+          },
+          "is_study_interviewer": {
+            "type": "boolean",
+            "title": "Is Study Interviewer",
+            "description": "Study interviewers can create new interview entries for this study.",
+            "default": false
+          },
+          "is_study_admin": {
+            "type": "boolean",
+            "title": "Is Study Admin",
+            "description": "Study admins can give access to the study to new users.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "StudyPermissonUpdate"
+      },
+      "StudyUpdate": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "examples": [
+              "Prädiabetes-Lebensstil-Interventions-Studie (PLIS)",
+              "BARIA-DDZ-Studie"
+            ]
+          },
+          "deactivated": {
+            "type": "boolean",
+            "title": "Deactivated",
+            "default": false
+          },
+          "no_permissions": {
+            "type": "boolean",
+            "title": "No Permissions",
+            "description": "If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study.  Admin access still need to be allocated explicit.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "StudyUpdate"
+      },
+      "User": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "nullable": false
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 320
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email",
+            "examples": [
+              "clara@uni.wroc.pl",
+              "titor@time.com"
+            ]
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "examples": [
+              "Clara Immerwahr",
+              "John Titor"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles",
+            "default": []
+          },
+          "deactivated": {
+            "type": "boolean",
+            "title": "Deactivated",
+            "default": false
+          },
+          "is_email_verified": {
+            "type": "boolean",
+            "title": "Is Email Verified",
+            "default": false
+          },
+          "user_name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 3,
+            "pattern": "^[a-zA-Z0-9-]+$",
+            "title": "User Name",
+            "examples": [
+              "clara.immerwahr",
+              "titor.extern.times"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "User"
+      },
+      "UserCreate": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 320
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email",
+            "examples": [
+              "clara@uni.wroc.pl",
+              "titor@time.com"
+            ]
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "examples": [
+              "Clara Immerwahr",
+              "John Titor"
+            ]
+          },
+          "user_name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 3,
+            "pattern": "^[a-zA-Z0-9-]+$",
+            "title": "User Name",
+            "examples": [
+              "clara.immerwahr",
+              "titor.extern.times"
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "UserCreate"
+      },
+      "UserUpdateByAdmin": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 320
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email",
+            "examples": [
+              "clara@uni.wroc.pl",
+              "titor@time.com"
+            ]
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "examples": [
+              "Clara Immerwahr",
+              "John Titor"
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles",
+            "default": []
+          },
+          "deactivated": {
+            "type": "boolean",
+            "title": "Deactivated",
+            "default": false
+          },
+          "is_email_verified": {
+            "type": "boolean",
+            "title": "Is Email Verified",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "UserUpdateByAdmin"
+      },
+      "UserUpdateByUser": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 320
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email",
+            "examples": [
+              "clara@uni.wroc.pl",
+              "titor@time.com"
+            ]
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "examples": [
+              "Clara Immerwahr",
+              "John Titor"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "UserUpdateByUser"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "OAuth2PasswordBearer": {
+        "type": "oauth2",
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "/auth/token"
+          }
+        }
+      }
+    }
+  }
+}
