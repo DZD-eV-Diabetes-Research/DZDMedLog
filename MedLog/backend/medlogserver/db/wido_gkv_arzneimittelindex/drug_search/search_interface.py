@@ -78,8 +78,17 @@ class DrugSearch:
         )
 
     async def total_drug_count(self) -> int:
-        self._preflight()
+        await self._preflight()
         return await self.search_engine.total_item_count()
+
+    async def healthy(self) -> bool:
+        try:
+            await self._preflight()
+            await self.search_engine.total_item_count()
+            return True
+        except Exception as e:
+            log.debug(f"Drug search healthcheck was negative with error: {e}")
+            return False
 
     async def _get_current_ai_version(
         self,

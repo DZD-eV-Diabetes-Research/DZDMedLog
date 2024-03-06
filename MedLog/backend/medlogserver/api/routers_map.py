@@ -2,6 +2,12 @@ from fastapi import APIRouter, FastAPI
 
 
 def mount_fast_api_routers(fastapi_app: FastAPI):
+
+    ### Health
+    from medlogserver.api.routes.routes_healthcheck import fast_api_healthcheck_router
+
+    fastapi_app.include_router(fast_api_healthcheck_router, tags=["Health"])
+
     ### AUTH STUFF
     from medlogserver.api.routes.routes_auth import (
         fast_api_auth_base_router,

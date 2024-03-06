@@ -39,17 +39,30 @@ class CRUDBaseMetaClass(type):
         return contextlib.asynccontextmanager(cls.get_crud)
 
 
+class DatabaseInteractionBase(
+    metaclass=CRUDBaseMetaClass,
+):
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    @classmethod
+    async def get_crud(
+        cls,
+        session: AsyncSession = Depends(get_async_session),
+    ) -> AsyncGenerator[Self, None]:
+        yield cls(session=session)
+
+
 class CRUDBase(
+    DatabaseInteractionBase,
     Generic[
         GenericCRUDTableType,
         GenericCRUDReadType,
         GenericCRUDCreateType,
         GenericCRUDUpdateType,
     ],
-    metaclass=CRUDBaseMetaClass,
 ):
-    def __init__(self, session: AsyncSession):
-        self.session = session
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -80,13 +93,6 @@ class CRUDBase(
     @classmethod
     def get_update_cls(cls) -> Type[GenericCRUDUpdateType]:
         return cls._get_generics_def().__args__[3]
-
-    @classmethod
-    async def get_crud(
-        cls,
-        session: AsyncSession = Depends(get_async_session),
-    ) -> AsyncGenerator[Self, None]:
-        yield cls(session=session)
 
     """Moved to metaclass CRUDBaseMetaClass to be an propery. otherwise we had to call "cls.get_crud_context()(session)" which is ugly
     @classmethod

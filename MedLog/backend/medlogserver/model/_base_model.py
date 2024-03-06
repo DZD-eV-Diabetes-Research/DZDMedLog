@@ -55,9 +55,3 @@ class TimestampModel(SQLModel):
 
 class BaseTable(TimestampModel):
     pass
-
-
-class HealthCheck(MedLogBaseModel):
-    name: str
-    version: str
-    description: str

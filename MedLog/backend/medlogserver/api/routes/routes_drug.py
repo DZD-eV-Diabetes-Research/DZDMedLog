@@ -176,7 +176,7 @@ async def search_drugs(
             pagination=pagination,
         )
     except SearchEngineNotReadyException as err:
-        # the search engine is still warming up. the user hat so wait a bit
+        # the search engine is still warming up. the user has to wait a bit
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=repr(repr(err))
         )
