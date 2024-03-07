@@ -6,8 +6,5 @@
 </template>
 
 <script>
-
-import { User } from '@/openapi-client-type';
-
-
+import {UserApi} from '@/openapi-client-type'
 </script>
