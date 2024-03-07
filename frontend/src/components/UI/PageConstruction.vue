@@ -6,6 +6,8 @@
 </template>
 
 <script>
-import { DataApi } from '@/path/to/generated/client';
+
+import { User } from '@/openapi-client-type';
+
 
 </script>
