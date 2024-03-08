@@ -7,4 +7,6 @@
 
 <script>
 import {UserApi} from '@/openapi-client-type'
+import {StudyPermissionsApi} from '@/openapi-client-type'
+
 </script>
