@@ -77,7 +77,7 @@ class QueryParamsInterface:
         sqlmodel_query = sqlmodel_query.offset(self.offset)
         if self.limit and not ignore_limit:
             sqlmodel_query = sqlmodel_query.limit(self.limit)
-        if self.order_by and not ignore_order_by:
+        if hasattr(self, "order_by") and self.order_by and not ignore_order_by:
             order_field = self.order_by
             if self.order_desc:
                 order_field = desc(self.order_by)

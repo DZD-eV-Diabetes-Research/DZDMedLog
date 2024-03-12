@@ -44,11 +44,12 @@ class DrugCRUDBase(
         GenericCRUDUpdateType,
     ]
 ):
-    _is_ai_versionless_table_: bool = False
+    # _is_ai_versionless_table_: bool = False
 
     def __init__(self, session: AsyncSession):
         self.session = session
         self._current_ai_version: AiDataVersion = None
+        self._is_ai_versionless_table_: bool = False
 
     @property
     def table(self):
