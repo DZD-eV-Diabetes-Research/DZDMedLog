@@ -6,24 +6,42 @@ from pydantic import (
     AnyHttpUrl,
     validator,
     StringConstraints,
+    model_validator,
 )
 from typing import List, Annotated, Optional, Literal, Dict
 from pathlib import Path, PurePath
 import socket
 from textwrap import dedent
-
+from medlogserver.utils import get_random_string, val_means_true
 
 env_file_path = Path(__file__).parent / ".env"
-# print(env_file)
-
-#
 
 
 class Config(BaseSettings):
     APP_NAME: str = "DZD MedLog"
     LOG_LEVEL: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"] = Field(
-        default="WARNING"
+        default="INFO"
     )
+    DEMO_MODE: bool = Field(
+        default=False,
+        description="If set to yes, the database will initiate with some demo data and most config mandatory config vars, like crypto secrets will be set to something random.",
+    )
+
+    @model_validator(mode="before")
+    def demo_mode(self_data: dict):
+        if val_means_true(self_data.get("DEMO_MODE", False)):
+            if not self_data.get("SERVER_SESSION_SECRET", None):
+                self_data["SERVER_SESSION_SECRET"] = get_random_string(64)
+            if not self_data.get("AUTH_JWT_SECRET", None):
+                self_data["AUTH_JWT_SECRET"] = get_random_string(64)
+            if not self_data.get("ADMIN_USER_PW", None):
+                self_data["ADMIN_USER_PW"] = "adminadmin"
+            if not self_data.get("APP_PROVISIONING_DATA_YAML_FILES", None):
+                self_data["APP_PROVISIONING_DATA_YAML_FILES"] = [
+                    "./_demo_data/single_study_demo_data.yaml"
+                ]
+        return self_data
+
     DEBUG_SQL: bool = Field(
         default=False,
         description="If set to true, the sql engine will print out all sql queries to the log.",
@@ -231,11 +249,11 @@ class Config(BaseSettings):
     )
 
     ###### CONFIG END ######
-    # mode_config is fixed variable  in pydantic-settings to control the behaviour of our settings model
+    # class Config is a pydantic-settings pre-defined config class to control the behaviour of our settings model
+    # if you dont know what this is you can ignore it.
     # https://docs.pydantic.dev/latest/api/base_model/#pydantic.main.BaseModel.model_config
 
     class Config:
-        json_encoder = {AnyUrl: lambda v: "FUCK YOU"}
         env_nested_delimiter = "__"
         env_file = env_file_path
         env_file_encoding = "utf-8"

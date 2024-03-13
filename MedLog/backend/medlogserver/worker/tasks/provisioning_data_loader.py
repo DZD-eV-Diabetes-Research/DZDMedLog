@@ -98,7 +98,6 @@ async def get_medlog_crud_class_and_model_class(
     class_path: str,
 ) -> Tuple[CRUDBase, MedLogBaseModel]:
     module_path, class_name = class_path.rsplit(".", 1)
-    print("module_path", module_path)
     module = importlib.import_module(module_path)
     class_obj = getattr(module, class_name)
     for crudcls in CRUD_classes:

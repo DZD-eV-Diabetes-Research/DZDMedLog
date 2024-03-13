@@ -6,15 +6,27 @@ import yaml
 import sys
 import asyncio
 import json
+import argparse
 
+arg_parser = argparse.ArgumentParser("DZDMedLog")
+arg_parser.add_argument(
+    "--set_version_file",
+    help="Set this flag to just write the __version__.py file based on the git version. Needed for CI/CD.",
+    action="store_true",
+)
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler(sys.stdout))
 if __name__ == "__main__":
     from pathlib import Path
     import sys, os
 
-    MODULE_DIR = Path(__file__).parent.parent.absolute()
-    sys.path.insert(0, os.path.normpath(MODULE_DIR))
+    MODULE_DIR = Path(__file__).parent
+    MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
+    sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
+
+
+def start_worker():
+    pass
 
 
 def start():
@@ -68,4 +80,14 @@ def start():
 
 
 if __name__ == "__main__":
+    args = arg_parser.parse_args()
+    if args.set_version_file:
+        print("Write `__version__.py` file...")
+        from medlogserver.utils import set_version_file
+
+        version_file = set_version_file(MODULE_DIR)
+        version = version_file.read_text()
+        print(f"Wrote '{version}' into '{version_file.absolute()}'")
+        exit()
+
     start()

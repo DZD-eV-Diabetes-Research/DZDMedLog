@@ -111,7 +111,7 @@ async def init_drugsearch():
 
 
 async def provision_drug_data():
-    from medlogserver.worker.wido_gkv_arzneimittelindex_importer import load_data
+    from medlogserver.worker.tasks.wido_gkv_arzneimittelindex_importer import load_data
 
     prov_data_dir = Path(config.DRUG_TABLE_PROVISIONING_SOURCE_DIR)
     prov_stamm_path = Path(PurePath(prov_data_dir, "stamm.txt"))
@@ -124,7 +124,9 @@ async def provision_drug_data():
 
 
 async def provision_base_data():
-    from medlogserver.worker.provisioning_data_loader import load_provisioning_data
+    from medlogserver.worker.tasks.provisioning_data_loader import (
+        load_provisioning_data,
+    )
 
     await load_provisioning_data()
 
