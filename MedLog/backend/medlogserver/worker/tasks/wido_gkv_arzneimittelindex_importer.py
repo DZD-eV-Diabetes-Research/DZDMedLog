@@ -1,4 +1,5 @@
-from typing import List, Dict, Type, Callable, Optional
+from typing import List, Dict, Type, Callable, Optional, Annotated
+from pydantic import Field
 import os
 import datetime
 import csv
@@ -89,6 +90,187 @@ wido_gkv_arzneimittelindex_model_crud_map: Dict[Type[DrugModelTableBase], Callab
     StammAenderungen: StammAenderungenCRUD.crud_context,
     Stamm: StammCRUD.crud_context,
 }
+
+arzneimittel_index_expected_files: List[str] = [
+    "applikationsform.txt",
+    "atc-ai.txt",
+    "atc-amtlich.txt",
+    "darrform.txt",
+    "ergaenzung_amtlich.txt",
+    "hersteller.txt",
+    "normpackungsgroessen.txt",
+    "priscus2pzn.txt",
+    "recycle.txt",
+    "sonder.txt",
+    "sonderbedeutung.txt",
+    "stamm.txt",
+    "stamm_aenderungen.txt",
+]
+
+
+class WiDoArzneimittelImporter:
+    def __init__(
+        self,
+        source_file: Annotated[
+            Optional[str],
+            Field(
+                default=None,
+                description="Provide a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
+            ),
+        ],
+        source_dir: Annotated[
+            Optional[str],
+            Field(
+                default=None,
+                description="Provide a directory that contains the extracted content of a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
+            ),
+        ],
+    ):
+        self.file_handler = WiDoArzneimittelSourceFileHandler(
+            source_file=source_file, source_dir=source_dir
+        )
+
+    def import_arzneimittelindex(
+        self, rewrite_existing: bool = False, exist_ok: bool = False
+    ):
+        arzneimittel_index_content_dir = (
+            self.file_handler.handle_arzneimittelindex_source(
+                rewrite_existing=rewrite_existing, exist_ok=exist_ok
+            )
+        )
+        # todo: You are here.
+
+
+class WiDoArzneimittelSourceFileHandler:
+
+    def __init__(
+        self,
+        source_file: Annotated[
+            Optional[str],
+            Field(
+                default=None,
+                description="Provide a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
+            ),
+        ],
+        source_dir: Annotated[
+            Optional[str],
+            Field(
+                default=None,
+                description="Provide a directory that contains the extracted content of a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
+            ),
+        ],
+    ):
+        if (source_dir and source_file) or (not source_dir and not source_file):
+            raise ValueError(
+                "Provide either source_file or source_dir not both or none."
+            )
+        if source_dir:
+            self.source_dir: Path = Path(source_dir)
+            self.source_file = None
+        elif source_file:
+            self.source_dir = None
+            self.source_file: Path = Path(source_file)
+
+    def handle_arzneimittelindex_source(
+        self, rewrite_existing: bool = False, exist_ok: bool = False
+    ) -> Path:
+        """(If nessecary) this method unpack a WiDo GKV Arzneimittelindex zip file.
+        It validates the data for existents and non emptiness and
+        returns the diectory that contains the actuall Arzneimittelindex payload files.
+
+        Args:
+            rewrite_existing (bool, optional): _description_. Defaults to False.
+            exist_ok (bool, optional): _description_. Defaults to False.
+
+        Raises:
+            ValueError: _description_
+
+        Returns:
+            pathlib.Path: the diectory that contains the actuall Arzneimittelindex payload files.
+        """
+        if self.source_file:
+            source_dir = self._unpack_ai_zip(
+                rewrite_existing=rewrite_existing, exist_ok=exist_ok
+            )
+        elif self.source_dir:
+            source_dir = self._get_arzneimittelindex_content_dir(self.source_dir)
+            if not self._are_unpacked_ai_index_files_existent_and_non_empty(
+                self.source_dir
+            ):
+                raise ValueError(
+                    f"WiDo GKV Arzneimittelindex in '{source_dir}' does not contains all exptected files or contains empty(corrupt) files."
+                )
+        return source_dir
+
+    def _unpack_ai_zip(
+        self,
+        source_zip_path: str | Path,
+        extract_to_dir: str | Path = None,
+        rewrite_existing: bool = False,
+        exist_ok: bool = False,
+    ) -> Path:
+        # input validation and normalizing
+        if extract_to_dir is None:
+            extract_to_dir = to_path(["/tmp/gkv_ai/", source_zip_path.stem])
+        else:
+            extract_to_dir: Path = to_path(extract_to_dir)
+        source_zip_path: Path = to_path(source_zip_path)
+        if not source_zip_path.is_file():
+            raise ValueError(f"Source zip file does not exist: '{source_zip_path}'")
+        # check for existence
+        if self._are_unpacked_ai_index_files_existent_and_non_empty(extract_to_dir):
+            if not exist_ok:
+                raise FileExistsError(
+                    f"Target directory ('{extract_to_dir}') to unpack Arzneimittelindex is not empty. Maybe you want to call this function with 'exist_ok' set to true."
+                )
+            if exist_ok and not rewrite_existing:
+                return self._get_arzneimittelindex_content_dir(extract_to_dir)
+            elif exist_ok and rewrite_existing:
+                # delete existing data
+                log.debug(f"Delete data in '{extract_to_dir}'")
+                extract_to_dir.unlink()
+        # Unzip
+        extract_to_dir.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(source_zip_path, "r") as zip_ref:
+            zip_ref.extractall(extract_to_dir)
+        return self._get_arzneimittelindex_content_dir(extract_to_dir)
+
+    def _get_arzneimittelindex_content_dir(
+        source_path: Path, raise_if_unknown_pattern: bool = False
+    ):
+        """The actuall content of an unpacked WiDo GKV Arzneimittelindex lies in an extra root directory named after the Arzneimittelindex "datenstand"-version.
+        This function tries to return alway the directory that contains the actuall Arzneimittelindex files.
+
+        Args:
+            source_path (Path): _description_
+        """
+        path_objects: List[Path] = list[source_path.iterdir()]
+        if len(path_objects) == 1:
+            return path_objects[0]
+        elif len(path_objects) > 1:
+            return source_path
+        elif raise_if_unknown_pattern:
+            raise ValueError(
+                f"Can not determine if '{source_path}' is a directory with a WiDo GKV Arzneimittelindex."
+            )
+        return source_path
+
+    def _are_unpacked_ai_index_files_existent_and_non_empty(
+        self,
+        source_path: Path,
+    ) -> bool:
+        source_path = self._get_arzneimittelindex_content_dir(source_path)
+        path_objects: List[Path] = list[source_path.iterdir()]
+        existent_files: List[Path] = [f for f in path_objects if f.is_file()]
+        for expected_file_name in arzneimittel_index_expected_files:
+            expected_and_existent_file: Path = next(
+                [f for f in existent_files if f.name == expected_file_name], None
+            )
+            if expected_and_existent_file is None:
+                return False
+            elif expected_and_existent_file.stat().st_size == 0:
+                return False
+        return True
 
 
 def unpack_data(

@@ -32,6 +32,9 @@ class AiDataVersion(MedLogBaseModel, BaseTable, table=True):
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
         schema_extra={"examples": ["aca335063279463395e6908f03ae0abb"]},
     )
+    source_file_path: str = Field(
+        description="The file from which this data was imported"
+    )
     # https://www.wido.de/fileadmin/Dateien/Dokumente/Publikationen_Produkte/Arzneimittel-Klassifikation/wido_arz_stammdatei_plus_info_2021.pdf
     dateiversion: str = Field(
         description="Dateiversion",
