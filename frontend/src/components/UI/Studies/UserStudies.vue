@@ -93,6 +93,7 @@ export default {
     background-color: #2eb82e;
     color: #fff;
     border: none;
+    border-radius: 5px;
 }
 
 .button-container button:hover {

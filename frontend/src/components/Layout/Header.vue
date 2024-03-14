@@ -2,7 +2,9 @@
   <header class="nav">
     <div class="nav__content">
       <div>
-        <div class="nav__title">DZD MedLog</div>
+        <div class="nav__title">
+          <RouterLink to="/" class="router-link-custom">DZD MedLog</RouterLink>
+        </div>
         <div class="nav__subtitle">
           Your trustworthy medication logging page
         </div>
@@ -12,29 +14,41 @@
       </div>
     </div>
   </header>
-  <button v-if="tokenStore.get_logged_in" @click="logout">Logout</button>
+  <div class="button-container">
+    <button class="logout_button" v-if="tokenStore.get_logged_in" @click="logout">Logout</button>
+    <button class="profile_button" v-if="tokenStore.get_logged_in" @click="my_profile">{{userStore.button_text}}</button>
+  </div>
 </template>
 
 <script>
 
 import { useUserStore } from '@/stores/UserStore'
 import { useTokenStore } from '@/stores/TokenStore'
+import { RouterLink } from 'vue-router';
 
 export default {
   name: "Header",
   setup() {
-        const userStore = useUserStore()
-        const tokenStore = useTokenStore()
-        return { userStore, tokenStore}
+    const userStore = useUserStore()
+    const tokenStore = useTokenStore()
+    return { userStore, tokenStore }
+  },
+  methods: {
+    logout() {
+      this.userStore.$reset()
+      this.tokenStore.$reset()
+      this.$router.push("/")
     },
-
-    methods: {
-      logout() {
-            this.userStore.$reset()
-            this.tokenStore.$reset()
-            this.$router.push("/")
-        },
-}};
+    my_profile() {
+      this.userStore.toggle_profile()
+      if(this.userStore.button_text === "Back"){
+        this.$router.push("/profile")
+      } else {
+        this.$router.go(-1)
+      }
+    }
+  }
+};
 
 
 </script>
@@ -76,6 +90,13 @@ export default {
   font-size: var(--font-size-2xl);
   font-weight: 800;
   color: var(--primary12);
+
+  .router-link-custom {
+    font-size: inherit;
+    font-weight: inherit;
+    text-decoration: none;
+    color: inherit;
+  }
 }
 
 .nav__logo {
@@ -91,10 +112,23 @@ export default {
   }
 }
 
-.button {
+.button-container {
+  display: flex;
+  align-items: center; 
+  margin-top: 0.25rem; 
+  margin-right: 0.25rem; 
+  margin-left: 0.25rem;
+}
+
+.logout_button {
+  margin-right: auto; 
+}
+
+.profile_button {
   margin-left: auto;
 }
 
 .about {
   padding: var(--space-6);
-}</style>
+}
+</style>

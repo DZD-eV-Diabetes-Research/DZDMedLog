@@ -23,7 +23,7 @@ export default {
   width: 100%;
   font-size: var(--font-size-md);
   --link-color: var(--primary8);
-  position: fixed;
+  position: relative;
   bottom: 0;
 }
 

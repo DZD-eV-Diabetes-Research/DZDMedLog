@@ -8,7 +8,7 @@ export const useTokenStore = defineStore('TokenStore', {
             access_token: null,
             refresh_token: null,
             error: null,
-            logged_in: false
+            logged_in: false,
         }
     },
 

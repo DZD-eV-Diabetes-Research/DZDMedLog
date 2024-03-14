@@ -38,6 +38,21 @@ const routes = [
         }
     },
     {
+        path: '/profile',
+        name: 'profile',
+        component: ()=>import('./components/UI/User/UserProfile.vue'),
+        meta: { requiresAuth: true }, 
+        beforeEnter: (to, from, next) => {
+            const tokenStore = useTokenStore()
+            const refreshToken = tokenStore.get_refresh_token; 
+            if (refreshToken) {
+                next();
+            } else {
+                next("/auth");
+            }
+        }
+    },
+    {
         path: '/studies',
         name: 'studies',
         component: ()=>import('./components/UI/Studies/UserStudies.vue'),
