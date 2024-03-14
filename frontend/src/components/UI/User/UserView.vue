@@ -1,5 +1,5 @@
 <template>
-    <base-card>
+    <base-card style="text-align: center;">
         <h3>Hello {{ userStore.get_user_name }}</h3>
         <div class="button-container">
             <button @click="showStudies" disabled>Interview durchführen</button>

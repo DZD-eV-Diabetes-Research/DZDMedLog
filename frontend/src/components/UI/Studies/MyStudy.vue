@@ -56,7 +56,7 @@ export default {
 
 </script>
 
-<style scoped>
+<style>
 .naked {
     display: flex;
     justify-content: space-between; 
