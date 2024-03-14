@@ -1,7 +1,10 @@
 <template>
-    <base-card v-if="!studyStore.studies || studyStore.studies.length === 0">
+    <base-card v-if="!studyStore.studies">
         <h2 v-if="userStore.is_admin">Aktuell sind keine Studien aufgelistet bitte, legen Sie eine Studie an</h2>
         <h2 v-if="!userStore.is_admin">Aktuell sind keine Studien aufgelistet bitte, wenden Sie sich an einen Admin</h2>
+    </base-card>
+    <base-card v-on:click="selectStudy(study)" v-for="study in studyStore.studies.items" :key="study.id" style="text-align: center">
+        <h3>{{ study.display_name }}</h3>
     </base-card>
     <div v-if="userStore.is_admin" class="button-container">
         <button @click="this.showModal = true">Studie anlegen</button>
@@ -55,13 +58,16 @@ export default {
                 this.formIsValid = false
             } else {
                 const payload = {
-                    display_name: this.displayName, 
+                    display_name: this.displayName,
                     name: this.studyName
                 }
                 this.studyStore.createStudy(payload)
-                this.studyStore.myStudies()
+                this.studyStore.listStudies()
                 this.showModal = false
             }
+        },
+        async selectStudy(study) {
+            this.$router.push("/studies/" + study.name)
         }
     }
 }
@@ -70,6 +76,11 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.base-card:hover {
+    background-color: #ededed;
+    cursor: pointer;
+}
+
 .button-container {
     display: flex;
     flex-direction: column;

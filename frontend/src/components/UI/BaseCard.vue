@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="base-card">
         <slot></slot>
     </div>
 </template>

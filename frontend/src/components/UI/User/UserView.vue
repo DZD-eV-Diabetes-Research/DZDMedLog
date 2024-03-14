@@ -15,6 +15,7 @@ import { useTokenStore } from '@/stores/TokenStore'
 import { useUserStore } from '@/stores/UserStore'
 import { useStudyStore } from '@/stores/StudyStore'
 
+
 export default {
 
     setup() {
@@ -34,7 +35,7 @@ export default {
         },
         showStudies() {
             try {
-                this.studyStore.myStudies()
+                this.studyStore.listStudies()
                 this.$router.push("/studies")
             } catch (err) {
                 console.log(err)
