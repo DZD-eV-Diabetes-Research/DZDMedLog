@@ -1,4 +1,4 @@
-from typing import List, Dict, Type, Callable, Optional, Annotated
+from typing import List, Dict, Type, Callable, Optional, Annotated, Generator
 from pydantic import Field
 import os
 import datetime
@@ -91,7 +91,28 @@ wido_gkv_arzneimittelindex_model_crud_map: Dict[Type[DrugModelTableBase], Callab
     Stamm: StammCRUD.crud_context,
 }
 
-arzneimittel_index_expected_files: List[str] = [
+
+wido_gkv_arzneimittelindex_crud_classes: List[DrugCRUDBase] = [
+    PreisartCRUD,
+    BiosimilarCRUD,
+    GenerikakennungCRUD,
+    ApoPflichtCRUD,
+    ApplikationsformCRUD,
+    ATCaiCRUD,
+    ATCAmtlichCRUD,
+    DarreichungsformCRUD,
+    ATCErgaenzungAmtlichCRUD,
+    HerstellerCRUD,
+    NormpackungsgroessenCRUD,
+    Priscus2PZNCRUD,
+    RecycledPZNCRUD,
+    SondercodesCRUD,
+    SondercodeBedeutungCRUD,
+    StammAenderungenCRUD,
+    StammCRUD,
+]
+"""
+arzneimittel_index_expected_files = [
     "applikationsform.txt",
     "atc-ai.txt",
     "atc-amtlich.txt",
@@ -103,42 +124,164 @@ arzneimittel_index_expected_files: List[str] = [
     "recycle.txt",
     "sonder.txt",
     "sonderbedeutung.txt",
-    "stamm.txt",
     "stamm_aenderungen.txt",
+    "stamm.txt",
+]
+"""
+arzneimittel_index_expected_files: List[str] = [
+    model.get_source_csv_filename()
+    for model in [
+        model_crud.get_table_cls()
+        for model_crud in wido_gkv_arzneimittelindex_crud_classes
+    ]
+    if hasattr(model, "get_source_csv_filename")
+    and model.get_source_csv_filename() is not None
 ]
 
 
 class WiDoArzneimittelImporter:
+
     def __init__(
         self,
         source_file: Annotated[
             Optional[str],
-            Field(
-                default=None,
-                description="Provide a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
-            ),
-        ],
+            "Provide a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
+        ] = None,
         source_dir: Annotated[
             Optional[str],
-            Field(
-                default=None,
-                description="Provide a directory that contains the extracted content of a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
-            ),
-        ],
+            "Provide a directory that contains the extracted content of a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
+        ] = None,
     ):
         self.file_handler = WiDoArzneimittelSourceFileHandler(
             source_file=source_file, source_dir=source_dir
         )
+        self.arzneimittel_index_content_dir = None
 
-    def import_arzneimittelindex(
+    async def import_arzneimittelindex(
         self, rewrite_existing: bool = False, exist_ok: bool = False
-    ):
-        arzneimittel_index_content_dir = (
+    ) -> AiDataVersion:
+        self.arzneimittel_index_content_dir = (
             self.file_handler.handle_arzneimittelindex_source(
                 rewrite_existing=rewrite_existing, exist_ok=exist_ok
             )
         )
-        # todo: You are here.
+        ai_data_version_from_source_data: AiDataVersion = (
+            self._sniff_ai_data_version_from_file(
+                Path(
+                    PurePath(
+                        self.arzneimittel_index_content_dir,
+                        arzneimittel_index_expected_files[0],
+                    )
+                )
+            )
+        )
+        ai_data_version_from_db: Optional[AiDataVersion] = (
+            await self._get_arzneimittelindex_version_from_db(
+                ai_data_version_query=ai_data_version_from_source_data
+            )
+        )
+        if ai_data_version_from_db is not None:
+            if not exist_ok and not rewrite_existing:
+                raise ValueError(
+                    f"WiDo Arneimittelindex with version '{ai_data_version_from_db}' already exists. Can not import data from '{self.arzneimittel_index_content_dir.absolute()}'."
+                )
+            if exist_ok and not rewrite_existing:
+                return ai_data_version_from_db
+            elif rewrite_existing:
+                await self._delete_arzneimittelindex_version_from_db(
+                    ai_data_version_id=ai_data_version_from_db.id
+                )
+        for crud_class in wido_gkv_arzneimittelindex_crud_classes:
+            data = self._parse_data(crud_class=crud_class)
+            self._load_data(
+                ai_data_version=ai_data_version_from_source_data,
+                csv_data=data,
+                crud=crud_class,
+            )
+
+    async def _get_arzneimittelindex_version_from_db(
+        self, ai_data_version_query: AiDataVersion
+    ) -> Optional[AiDataVersion]:
+        async with get_async_session_context() as session:
+            async with AiDataVersionCRUD.crud_context(session) as ai_version_crud:
+                crud: AiDataVersionCRUD = ai_version_crud
+                ai_data_version_from_db = await crud.get_by_datenstand_and_dateiversion(
+                    datenstand=ai_data_version_query.datenstand,
+                    dateiversion=ai_data_version_query.dateiversion,
+                )
+                return ai_data_version_from_db
+
+    async def _delete_arzneimittelindex_version_from_db(self, ai_data_version_id: str):
+        async with get_async_session_context() as session:
+            async with AiDataVersionCRUD.crud_context(session) as ai_version_crud:
+                crud: AiDataVersionCRUD = ai_version_crud
+                await crud.delete(id_=ai_data_version_id)
+
+    async def _sniff_ai_data_version_from_file(
+        file_path: str,
+    ) -> AiDataVersion:
+        log.debug(f"Sniff ai data version from {Path(file_path).absolute().resolve()}")
+        with open(file_path, "r") as csvfile:
+            reader_variable = csv.reader(
+                csvfile, delimiter=wido_gkv_arzneimittelindex_csv_delimiter
+            )
+            for row in reader_variable:
+                return AiDataVersion(dateiversion=row[0], datenstand=row[1])
+
+    async def _parse_data(self, crud_class: Type[DrugCRUDBase]):
+
+        data_model: DrugModelTableBase = crud_class.get_table_cls()
+        file_name = data_model.get_source_csv_filename()
+        file_path = Path(PurePath(self.arzneimittel_index_content_dir, file_name))
+        csv_reader = csv.reader(
+            file_path, delimiter=wido_gkv_arzneimittelindex_csv_delimiter
+        )
+        rows: List[List[str]] = []
+        for row in csv_reader:
+            rows.append(row)
+        return rows
+
+    async def _load_data(
+        self,
+        ai_data_version: AiDataVersion,
+        csv_data: List[List[str]],
+        crud: DrugCRUDBase,
+    ):
+        data_model: Type[DrugModelTableBase] = crud.get_create_cls()
+
+        for field_name, field_info in data_model.model_fields.items():
+
+            # we misused the sa_column_kwargs.comment attrribute of the field
+            # to store the information which column index of the source csv is mapped to this mode field
+            # not very elegant but it works for now :)
+            # see for gkvai_source_csv_col_index in "MedLog/backend/medlogserver/db/wido_gkv_arzneimittelindex/model/applikationsform.py" for examples.
+            source_csv_column_index: int = None
+            try:
+                source_csv_column_index = int(
+                    getattr(field_info, "sa_column_kwargs", None)["comment"].split(":")[
+                        1
+                    ]
+                )
+            except TypeError:
+                # there is no gkvai_source_csv_col_index
+                # we can igrnoe this field
+                source_csv_column_index = None
+            if source_csv_column_index is None:
+                continue
+            row_data[field_name] = row[source_csv_column_index]
+        parsed_data.append(datacontainer.model.model_validate(row_data))
+
+    async def _write_to_db(
+        self,
+        data: List[DrugModelTableBase | DrugModelTableEnumBase],
+        crud_context_getter: Callable,
+    ):
+        # https://stackoverflow.com/questions/75150942/how-to-get-a-session-from-async-session-generator-fastapi-sqlalchemy
+        # session = await anext(get_async_session())
+        async with get_async_session_context() as session:
+            async with crud_context_getter(session) as crud:
+                crud: DrugCRUDBase = crud
+                await crud.create_bulk(objects=data)
 
 
 class WiDoArzneimittelSourceFileHandler:
@@ -147,18 +290,12 @@ class WiDoArzneimittelSourceFileHandler:
         self,
         source_file: Annotated[
             Optional[str],
-            Field(
-                default=None,
-                description="Provide a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
-            ),
-        ],
+            "Provide a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
+        ] = None,
         source_dir: Annotated[
             Optional[str],
-            Field(
-                default=None,
-                description="Provide a directory that contains the extracted content of a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
-            ),
-        ],
+            "Provide a directory that contains the extracted content of a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
+        ] = None,
     ):
         if (source_dir and source_file) or (not source_dir and not source_file):
             raise ValueError(
@@ -174,7 +311,7 @@ class WiDoArzneimittelSourceFileHandler:
     def handle_arzneimittelindex_source(
         self, rewrite_existing: bool = False, exist_ok: bool = False
     ) -> Path:
-        """(If nessecary) this method unpack a WiDo GKV Arzneimittelindex zip file.
+        """This method unpacks a WiDo GKV Arzneimittelindex zip file (if nessecary).
         It validates the data for existents and non emptiness and
         returns the diectory that contains the actuall Arzneimittelindex payload files.
 
@@ -273,6 +410,7 @@ class WiDoArzneimittelSourceFileHandler:
         return True
 
 
+##################
 def unpack_data(
     source_zip_path: str | Path, extract_to_dir: str | Path = "/tmp/gkv_ai"
 ) -> str:
@@ -324,7 +462,7 @@ def _map_filepathes_to_model(source_data_dir: Path | str) -> List[SourceFile2Mod
     return source_data_file_to_model_class_name_map
 
 
-async def sniff_arzneimittel_version(testrow: List[str]) -> AiDataVersion:
+async def sniff_arzneimittel_version(testrow: List[str], source_file) -> AiDataVersion:
     async def get_or_create_version_from_db(dateiversion: str, datenstand: str):
         async with get_async_session_context() as session:
             async with AiDataVersionCRUD.crud_context(session) as ai_version_crud:
@@ -336,7 +474,9 @@ async def sniff_arzneimittel_version(testrow: List[str]) -> AiDataVersion:
                     return existing_version
 
                 new_version = AiDataVersion(
-                    dateiversion=dateiversion, datenstand=datenstand
+                    dateiversion=dateiversion,
+                    datenstand=datenstand,
+                    source_file_path=str(source_file),
                 )
                 new_version = await crud.create(new_version)
                 log.info(f"new_version {type(new_version)} {new_version}")
@@ -356,7 +496,6 @@ async def sniff_ai_data_version_from_file(file_path: str) -> AiDataVersion:
         reader_variable = csv.reader(
             csvfile, delimiter=wido_gkv_arzneimittelindex_csv_delimiter
         )
-
         for index, row in enumerate(reader_variable):
             return AiDataVersion(dateiversion=row[0], datenstand=row[1])
 
@@ -438,7 +577,9 @@ async def _load_model(datacontainer: SourceFile2ModelMap) -> AiDataVersion:
             row = cleaned_row
             # get arzneimittelindex data version
             if ai_data_version is None:
-                ai_data_version = await sniff_arzneimittel_version(row)
+                ai_data_version = await sniff_arzneimittel_version(
+                    row, source_file=datacontainer.source_file_path
+                )
             row_data: Dict = {"ai_version_id": ai_data_version.id}
 
             for field_name, field_info in datacontainer.model.model_fields.items():
