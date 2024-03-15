@@ -7,7 +7,8 @@
 export default {
   props: {
     show: Boolean,
-    title: String
+    title: String,
+    titleColor: String
   }
 }
 
@@ -23,7 +24,7 @@ export default {
               @click="$emit('close')"
             ><img src="/icons/close.svg" class="modal-default-button-image"></button>
           <slot name="header">
-            <h3>{{title}}</h3>
+            <h3 :style="{ color: titleColor }">{{title}}</h3>
           </slot>
         </div>
 

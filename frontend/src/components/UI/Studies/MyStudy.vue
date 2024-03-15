@@ -10,7 +10,7 @@
         <button @click="deleteModal=true" class="mybutton delete">Delete</button>
         <button @click="editModal=true" class="mybutton edit">Edit</button>
     </div>
-    <modal-vue class="delete_modal" title="Studie löschen" :show="deleteModal" @close="deleteModal = false">
+    <modal-vue class="delete_modal" title="Studie löschen" :title-color="'#f82727'" :show="deleteModal" @close="deleteModal = false">
         <template #header>
         </template>
         <template #body>
@@ -56,7 +56,7 @@ export default {
 
 </script>
 
-<style>
+<style scoped>
 .naked {
     display: flex;
     justify-content: space-between; 
@@ -98,8 +98,4 @@ export default {
     color: #fff
 }
 
-.delete_modal h3 {
-  margin-top: 0;
-  color: #f82727;
-}
 </style>
