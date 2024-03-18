@@ -111,12 +111,16 @@ async def init_drugsearch():
 
 
 async def provision_drug_data():
-    from medlogserver.worker.tasks.wido_gkv_arzneimittelindex_importer import load_data
+    from medlogserver.worker.tasks.wido_gkv_arzneimittelindex_importer import (
+        import_wido_gkv_arzneimittelindex_data,
+    )
 
     prov_data_dir = Path(config.DRUG_TABLE_PROVISIONING_SOURCE_DIR)
     prov_stamm_path = Path(PurePath(prov_data_dir, "stamm.txt"))
     if prov_stamm_path.exists() and prov_stamm_path.is_file():
-        await load_data(source_data_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR)
+        await import_wido_gkv_arzneimittelindex_data(
+            source_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR, exist_ok=True
+        )
     elif prov_data_dir is not None:
         log.warning(
             "'DRUG_TABLE_PROVISIONING_SOURCE_DIR' is defined in config but no source data dir found. Will skip drug data provsioning"
