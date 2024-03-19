@@ -60,6 +60,5 @@ export default {
 
 .button-container button {
     margin-bottom: 35px;
-    /* Adjust the value as needed */
 }
 </style>

@@ -68,6 +68,11 @@ export default {
   margin: 20px 0;
 }
 
+.modal-body input{
+  border: 2px solid black;
+  border-radius: 5px;
+}
+
 .modal-default-button {
   float: right;
   padding: 0.5em 0.8em;

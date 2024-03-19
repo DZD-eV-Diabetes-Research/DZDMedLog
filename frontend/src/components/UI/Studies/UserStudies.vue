@@ -9,7 +9,7 @@
     <div v-if="userStore.is_admin" class="button-container">
         <button @click="this.showModal = true">Studie anlegen</button>
     </div>
-    <modal-vue title="Studie anlegen" :show="showModal" @close="showModal = false">
+    <modal-vue @close="resetModal" title="Studie anlegen" :show="showModal">
         <template #header>
         </template>
         <template #body>
@@ -53,6 +53,12 @@ export default {
         }
     },
     methods: {
+        resetModal(){
+            this.showModal = false,
+            this.formIsValid = true,
+            this.studyName = "",
+            this.displayName = ""
+        },
         async submitStudy() {
             if (this.studyName.length === 0 || this.displayName.length === 0) {
                 this.formIsValid = false
@@ -64,6 +70,9 @@ export default {
                 this.studyStore.createStudy(payload)
                 this.studyStore.listStudies()
                 this.showModal = false
+                this.formIsValid = true
+                this.studyName = ""
+                this.displayName = ""
             }
         },
         async selectStudy(study) {

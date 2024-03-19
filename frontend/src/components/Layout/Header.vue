@@ -3,7 +3,7 @@
     <div class="nav__content">
       <div>
         <div class="nav__title">
-          <RouterLink to="/" class="router-link-custom">DZD MedLog</RouterLink>
+          <RouterLink @click="reset_profile_button" to="/" class="router-link-custom">DZD MedLog</RouterLink>
         </div>
         <div class="nav__subtitle">
           Your trustworthy medication logging page
@@ -34,6 +34,10 @@ export default {
     return { userStore, tokenStore }
   },
   methods: {
+    reset_profile_button(){
+      this.userStore.button_text= "Profile"
+      this.userStore.view_profile = false
+    },
     logout() {
       this.userStore.$reset()
       this.tokenStore.$reset()

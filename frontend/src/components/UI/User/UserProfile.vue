@@ -7,19 +7,47 @@
     <p v-for="role in userStore.roles">{{ role }}</p>
   </base-card>
   <div class="naked">
-    <button class="edit">Edit</button>
+    <button @click="editModal=true" class="edit">Edit</button>
   </div>
+  <modal-vue title="User bearbeiten" :show="editModal" @close="editModal = false">
+        <template #body>
+          <form @submit.prevent="submitForm">
+                <div class="form__group">
+                    <label for="display_name">Display Name</label>
+                    <input id="display_name" name="Display Name" type="text" v-model.trim="studyName" class="input-field">
+                    <label for="user_mail">Email</label>
+                    <input id="user_mail" name="user_mail" type="email" v-model.trim="displayName" class="input-field">
+                    <p v-if="!formIsValid" style="color: red;">Die Felder dürfen nicht leer sein</p>
+                </div>
+                <div>
+                    <button @click="submitStudy">Anlegen</button>
+                </div>
+            </form>
+        </template>
+    </modal-vue>
 </template>
 
 <script>
 import { useUserStore } from '@/stores/UserStore'
-import { RouterLink } from 'vue-router';
 
 export default {
   setup() {
     const userStore = useUserStore()
     return { userStore }
   },
+  data() {
+      return{
+        editModal : false,
+        formIsValid: true
+      } 
+  },
+  methods:{
+    submitForm(){
+      console.log("hey")
+    }
+  }
+
+
 }
 </script>
 
@@ -44,6 +72,5 @@ export default {
     background-color: #29a329;
     color: #fff
 }
-
 
 </style>

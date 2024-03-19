@@ -34,8 +34,6 @@ export const useStudyStore = defineStore('StudyStore', {
                 axios.defaults.headers.common = { 'Authorization': "Bearer " + tokenStore.get_access_token }
 
                 const response = await axios.get("/study")
-
-                console.log(response.data)
                 this.studies = response.data
             }
             catch (err) {
