@@ -94,7 +94,7 @@ class CRUDBase(
     def get_update_cls(cls) -> Type[GenericCRUDUpdateType]:
         return cls._get_generics_def().__args__[3]
 
-    """Moved to metaclass CRUDBaseMetaClass to be an propery. otherwise we had to call "cls.get_crud_context()(session)" which is ugly
+    """Moved to metaclass CRUDBaseMetaClass to be an property `crud_context`. otherwise we had to call "cls.get_crud_context()(session)" which is ugly
     @classmethod
     def get_crud_context(cls):
         return contextlib.asynccontextmanager(cls.get_crud)

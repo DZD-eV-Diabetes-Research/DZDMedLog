@@ -1,8 +1,10 @@
 from typing import List, Self
-from sqlmodel import Field, String, UUID
+from sqlmodel import Field, String, UUID, Relationship
 from pydantic import field_validator, model_validator
 
 from medlogserver.model._base_model import MedLogBaseModel, BaseTable
+
+
 import uuid
 
 

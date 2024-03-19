@@ -166,7 +166,7 @@ class DrugCRUDBase(
 
     async def create_bulk(self, objects: List[GenericCRUDCreateType]):
         tbl_class = self.get_table_cls()
-        log.info(f"Create bulk of {tbl_class.__name__}. Count({len(objects)})")
+        log.info(f"Create bulk of {tbl_class.__name__} (Count: {len(objects)})...")
         for obj in objects:
             if not isinstance(obj, self.get_create_cls()):
                 raise ValueError(

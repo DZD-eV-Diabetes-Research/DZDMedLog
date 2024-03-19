@@ -31,8 +31,6 @@ from medlogserver.model.wido_gkv_arzneimittelindex.enum_generikakenn import (
 
 from medlogserver.model.wido_gkv_arzneimittelindex.enum_biosimilar import Biosimilar
 
-# TB: Model Fertig, ungetestet
-
 
 DRUG_SEARCHFIELDS = (
     "name",

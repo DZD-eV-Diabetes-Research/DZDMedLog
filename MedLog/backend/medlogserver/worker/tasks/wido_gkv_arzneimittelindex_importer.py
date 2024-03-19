@@ -187,7 +187,8 @@ class WiDoArzneimittelImporter:
                 csv_data=raw_data,
                 crud=crud_class,
             )
-            self._write_to_db(mapped_data)
+            await self._write_to_db(mapped_data, crud_class)
+            # await self._mark_import_as_completed(ai_data_version)
         return ai_data_version
 
     async def _determine_ai_data_version(
@@ -296,13 +297,14 @@ class WiDoArzneimittelImporter:
         data_model: DrugModelTableBase = crud_class.get_table_cls()
         file_name = data_model.get_source_csv_filename()
         file_path = Path(PurePath(self.arzneimittel_index_content_dir, file_name))
-        csv_reader = csv.reader(
-            file_path, delimiter=wido_gkv_arzneimittelindex_csv_delimiter
-        )
-        rows: List[List[str]] = []
-        for row in csv_reader:
-            rows.append(row)
-        return rows
+        with open(file_path) as csvfile:
+            csv_reader = csv.reader(
+                csvfile, delimiter=wido_gkv_arzneimittelindex_csv_delimiter
+            )
+            rows: List[List[str]] = []
+            for row in csv_reader:
+                rows.append(row)
+            return rows
 
     async def _load_data(
         self,
@@ -346,12 +348,12 @@ class WiDoArzneimittelImporter:
     async def _write_to_db(
         self,
         data: List[DrugModelTableBase | DrugModelTableEnumBase],
-        crud_context_getter: Callable,
+        crud_class: DrugCRUDBase,
     ):
         # https://stackoverflow.com/questions/75150942/how-to-get-a-session-from-async-session-generator-fastapi-sqlalchemy
         # session = await anext(get_async_session())
         async with get_async_session_context() as session:
-            async with crud_context_getter(session) as crud:
+            async with crud_class.crud_context(session) as crud:
                 crud: DrugCRUDBase = crud
                 await crud.create_bulk(objects=data)
 
