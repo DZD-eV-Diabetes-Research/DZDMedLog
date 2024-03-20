@@ -55,7 +55,7 @@ class GenericSQLDrugSearchState(SQLModel, table=True):
     dummy_pk: int = Field(default=1, primary_key=True)
     index_build_up_in_process: bool = Field(default=False)
     last_index_build_at: Optional[datetime.datetime] = Field(default=None)
-    last_index_build_based_on_ai_version_id: Optional[uuid.UUID] = Field(
+    last_index_build_based_on_ai_dataversion_id: Optional[uuid.UUID] = Field(
         default=None, foreign_key="ai_dataversion.id"
     )
     index_item_count: Optional[int] = Field(default=False)
@@ -110,7 +110,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             )
             return
         if (
-            state.last_index_build_based_on_ai_version_id
+            state.last_index_build_based_on_ai_dataversion_id
             == self.target_ai_data_version.id
             and not force_rebuild
         ):
@@ -141,7 +141,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         state = await self._get_state()
         state.index_build_up_in_process = False
         state.last_index_build_at = datetime.datetime.now(tz=datetime.timezone.utc)
-        state.last_index_build_based_on_ai_version_id = self.target_ai_data_version.id
+        state.last_index_build_based_on_ai_dataversion_id = (
+            self.target_ai_data_version.id
+        )
         state.index_item_count = index_item_count
         state.last_error = None
         await self._save_state(state)
@@ -184,7 +186,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             .join(Hersteller)
             .join(Normpackungsgroessen)
             .join(Darreichungsform)
-            .where(Stamm.ai_version_id == self.target_ai_data_version.id)
+            .where(Stamm.ai_dataversion_id == self.target_ai_data_version.id)
         )
 
         res = await session.exec(query_all)

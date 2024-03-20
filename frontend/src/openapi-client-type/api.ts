@@ -138,7 +138,7 @@ export interface Applikationsform {
      * @type {string}
      * @memberof Applikationsform
      */
-    'ai_version_id': string;
+    'ai_dataversion_id': string;
     /**
      * Applikationsform
      * @type {string}
@@ -251,7 +251,7 @@ export interface Darreichungsform {
      * @type {string}
      * @memberof Darreichungsform
      */
-    'ai_version_id': string;
+    'ai_dataversion_id': string;
     /**
      * Darreichungsform
      * @type {string}
@@ -411,7 +411,7 @@ export interface Hersteller {
      * @type {string}
      * @memberof Hersteller
      */
-    'ai_version_id': string;
+    'ai_dataversion_id': string;
     /**
      * Hersteller
      * @type {string}
@@ -1014,7 +1014,7 @@ export interface Normpackungsgroessen {
      * @type {string}
      * @memberof Normpackungsgroessen
      */
-    'ai_version_id': string;
+    'ai_dataversion_id': string;
     /**
      * Normpackungsgröße. Tim: I dont know where the term \'zuzahlstufe\' is coming from. It does not make too much sense for me and its confusing compared to the table name `Normpackungsgroessen`. Maybe historic artefact/bug in the Arzneimittelindex or i am just stupid.
      * @type {string}
@@ -1463,7 +1463,7 @@ export interface StammRead {
      * @type {string}
      * @memberof StammRead
      */
-    'ai_version_id': string;
+    'ai_dataversion_id': string;
     /**
      * Laufende Nummer (vom WIdO vergeben)
      * @type {string}
@@ -1692,7 +1692,7 @@ export interface StammReadAppformRef {
      * @type {any}
      * @memberof StammReadAppformRef
      */
-    'ai_version_id': any;
+    'ai_dataversion_id': any;
     /**
      * Applikationsform
      * @type {any}
@@ -1773,7 +1773,7 @@ export interface StammReadZuzahlstufeRef {
      * @type {any}
      * @memberof StammReadZuzahlstufeRef
      */
-    'ai_version_id': any;
+    'ai_dataversion_id': any;
     /**
      * Normpackungsgröße. Tim: I dont know where the term \'zuzahlstufe\' is coming from. It does not make too much sense for me and its confusing compared to the table name `Normpackungsgroessen`. Maybe historic artefact/bug in the Arzneimittelindex or i am just stupid.
      * @type {any}

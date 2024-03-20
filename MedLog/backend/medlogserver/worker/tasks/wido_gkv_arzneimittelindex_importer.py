@@ -106,8 +106,8 @@ wido_gkv_arzneimittelindex_crud_classes: List[DrugCRUDBase] = [
     NormpackungsgroessenCRUD,
     Priscus2PZNCRUD,
     RecycledPZNCRUD,
-    SondercodesCRUD,
     SondercodeBedeutungCRUD,
+    SondercodesCRUD,
     StammAenderungenCRUD,
     StammCRUD,
 ]
@@ -158,21 +158,23 @@ class WiDoArzneimittelImporter:
         self.arzneimittel_index_content_dir = None
 
     async def import_arzneimittelindex(
-        self, rewrite_existing: bool = False, exist_ok: bool = False
+        self, rewrite_non_complete_existing: bool = True, exist_ok: bool = False
     ) -> AiDataVersion:
         self.arzneimittel_index_content_dir = (
             self.file_handler.handle_arzneimittelindex_source(
-                rewrite_existing=rewrite_existing, exist_ok=exist_ok
+                rewrite_non_complete_existing=rewrite_non_complete_existing,
+                exist_ok=exist_ok,
             )
         )
         ai_data_version = await self._determine_ai_data_version(
-            rewrite_existing=rewrite_existing, exist_ok=exist_ok
+            rewrite_non_complete_existing=rewrite_non_complete_existing,
+            exist_ok=exist_ok,
         )
 
         if (
             ai_data_version.import_completed_at is not None
             and exist_ok
-            and not rewrite_existing
+            and not rewrite_non_complete_existing
         ):
             return ai_data_version
         for crud_class in wido_gkv_arzneimittelindex_crud_classes:
@@ -192,7 +194,7 @@ class WiDoArzneimittelImporter:
         return ai_data_version
 
     async def _determine_ai_data_version(
-        self, rewrite_existing: bool = False, exist_ok: bool = False
+        self, rewrite_non_complete_existing: bool = True, exist_ok: bool = False
     ) -> AiDataVersion:
         ai_data_version_from_source_data: AiDataVersion = (
             await self._sniff_ai_data_version_from_file(
@@ -210,15 +212,25 @@ class WiDoArzneimittelImporter:
             )
         )
         if ai_data_version_from_db is not None:
-            if not exist_ok and not rewrite_existing:
-                raise ValueError(
-                    f"WiDo Arneimittelindex with version '{ai_data_version_from_db}' already exists. Can not import data from '{self.arzneimittel_index_content_dir.absolute()}'."
-                )
-            if exist_ok and not rewrite_existing:
+            if ai_data_version_from_db.import_completed_at is None:
+                if not rewrite_non_complete_existing:
+                    raise ValueError(
+                        f"WiDo Arneimittelindex with version '{ai_data_version_from_db}' already exists but was not completed successful \
+                            (Maybe you want to set 'rewrite_non_complete_existing' to True). Can not import data from '{self.arzneimittel_index_content_dir.absolute()}'."
+                    )
+                else:
+                    log.debug(
+                        f"Delete old ai_version entry '{ai_data_version_from_db}'"
+                    )
+                    await self._delete_arzneimittelindex_version_from_db(
+                        ai_data_version_id=ai_data_version_from_db.id
+                    )
+            elif exist_ok:
                 return ai_data_version_from_db
-            elif rewrite_existing:
-                await self._delete_arzneimittelindex_version_from_db(
-                    ai_data_version_id=ai_data_version_from_db.id
+            elif not exist_ok:
+                raise ValueError(
+                    f"WiDo Arneimittelindex with version '{ai_data_version_from_db}' already exists. \
+                            (Maybe you want to set 'exist_ok' to True). Can not import data from '{self.arzneimittel_index_content_dir.absolute()}'."
                 )
         if self.file_handler.source_dir:
             ai_data_version_from_source_data.source_file_path = str(
@@ -339,9 +351,12 @@ class WiDoArzneimittelImporter:
         # Parse source data and map to model
         parsed_and_mapped_data: List[DrugModelTableBase] = []
         for row in csv_data:
-            row_data = {"ai_version_id": ai_data_version.id}
+            row_data = {"ai_dataversion_id": ai_data_version.id}
             for column_index, model_field_name in field_index_mappings.items():
-                row_data[model_field_name] = row[column_index]
+                cell_value = row[column_index]
+                if cell_value == "":
+                    cell_value = None
+                row_data[model_field_name] = cell_value
             parsed_and_mapped_data.append(data_model.model_validate(row_data))
         return parsed_and_mapped_data
 
@@ -383,14 +398,14 @@ class WiDoArzneimittelSourceFileHandler:
             self.source_file: Path = Path(source_file)
 
     def handle_arzneimittelindex_source(
-        self, rewrite_existing: bool = False, exist_ok: bool = False
+        self, rewrite_non_complete_existing: bool = True, exist_ok: bool = False
     ) -> Path:
         """This method unpacks a WiDo GKV Arzneimittelindex zip file (if nessecary).
         It validates the data for existents and non emptiness and
         returns the diectory that contains the actuall Arzneimittelindex payload files.
 
         Args:
-            rewrite_existing (bool, optional): _description_. Defaults to False.
+            rewrite_non_complete_existing (bool, optional): _description_. Defaults to False.
             exist_ok (bool, optional): _description_. Defaults to False.
 
         Raises:
@@ -401,7 +416,8 @@ class WiDoArzneimittelSourceFileHandler:
         """
         if self.source_file:
             source_dir = self._unpack_ai_zip(
-                rewrite_existing=rewrite_existing, exist_ok=exist_ok
+                rewrite_non_complete_existing=rewrite_non_complete_existing,
+                exist_ok=exist_ok,
             )
         elif self.source_dir:
             source_dir = self._get_arzneimittelindex_content_dir(self.source_dir)
@@ -417,7 +433,7 @@ class WiDoArzneimittelSourceFileHandler:
         self,
         source_zip_path: str | Path,
         extract_to_dir: str | Path = None,
-        rewrite_existing: bool = False,
+        rewrite_non_complete_existing: bool = True,
         exist_ok: bool = False,
     ) -> Path:
         # input validation and normalizing
@@ -434,9 +450,9 @@ class WiDoArzneimittelSourceFileHandler:
                 raise FileExistsError(
                     f"Target directory ('{extract_to_dir}') to unpack Arzneimittelindex is not empty. Maybe you want to call this function with 'exist_ok' set to true."
                 )
-            if exist_ok and not rewrite_existing:
+            if exist_ok and not rewrite_non_complete_existing:
                 return self._get_arzneimittelindex_content_dir(extract_to_dir)
-            elif exist_ok and rewrite_existing:
+            elif exist_ok and rewrite_non_complete_existing:
                 # delete existing data
                 log.debug(f"Delete data in '{extract_to_dir}'")
                 extract_to_dir.unlink()
@@ -455,7 +471,7 @@ class WiDoArzneimittelSourceFileHandler:
         Args:
             source_path (Path): _description_
         """
-        print("source_path", type(source_path), source_path)
+        # print("source_path", type(source_path), source_path)
         path_objects: List[Path] = list(source_path.iterdir())
         if len(path_objects) == 1:
             return path_objects[0]
@@ -473,7 +489,6 @@ class WiDoArzneimittelSourceFileHandler:
     ) -> bool:
         source_path = self._get_arzneimittelindex_content_dir(source_path)
         path_objects: List[Path] = list(source_path.iterdir())
-        print("path_objects", type(path_objects), path_objects)
         existent_files: List[Path] = [f for f in path_objects if f.is_file()]
         for expected_file_name in arzneimittel_index_expected_files:
             expected_and_existent_file: Path = next(

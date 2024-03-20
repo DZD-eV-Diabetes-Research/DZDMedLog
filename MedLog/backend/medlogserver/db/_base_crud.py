@@ -233,8 +233,10 @@ class CRUDBase(
         tbl = self.get_table_cls()
         existing_obj = await self._get(id_, raise_exception_if_not_exists)
         if existing_obj is not None:
-            del_statement = delete(tbl).where(self.tbl.id == id_)
-            await self.session.exec(del_statement)
+            del_statement = delete(tbl).where(tbl.id == id_)
+            await self.session.exec(
+                del_statement, execution_options={"PRAGMA": "foreign_keys=ON"}
+            )
             await self.session.commit()
         return
 

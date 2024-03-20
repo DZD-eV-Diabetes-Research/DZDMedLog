@@ -3429,7 +3429,7 @@
             "title": "Created At",
             "nullable": false
           },
-          "ai_version_id": {
+          "ai_dataversion_id": {
             "type": "string",
             "format": "uuid",
             "title": "Ai Version Id",
@@ -3454,7 +3454,7 @@
         },
         "type": "object",
         "required": [
-          "ai_version_id",
+          "ai_dataversion_id",
           "appform",
           "bedeutung"
         ],
@@ -3610,7 +3610,7 @@
             "title": "Created At",
             "nullable": false
           },
-          "ai_version_id": {
+          "ai_dataversion_id": {
             "type": "string",
             "format": "uuid",
             "title": "Ai Version Id",
@@ -3635,7 +3635,7 @@
         },
         "type": "object",
         "required": [
-          "ai_version_id",
+          "ai_dataversion_id",
           "darrform",
           "bedeutung"
         ],
@@ -3778,7 +3778,7 @@
             "title": "Created At",
             "nullable": false
           },
-          "ai_version_id": {
+          "ai_dataversion_id": {
             "type": "string",
             "format": "uuid",
             "title": "Ai Version Id",
@@ -3803,7 +3803,7 @@
         },
         "type": "object",
         "required": [
-          "ai_version_id",
+          "ai_dataversion_id",
           "herstellercode",
           "bedeutung"
         ],
@@ -4464,7 +4464,7 @@
             "title": "Created At",
             "nullable": false
           },
-          "ai_version_id": {
+          "ai_dataversion_id": {
             "type": "string",
             "format": "uuid",
             "title": "Ai Version Id",
@@ -4489,7 +4489,7 @@
         },
         "type": "object",
         "required": [
-          "ai_version_id",
+          "ai_dataversion_id",
           "zuzahlstufe",
           "bedeutung"
         ],
@@ -5135,7 +5135,7 @@
             "title": "Created At",
             "nullable": false
           },
-          "ai_version_id": {
+          "ai_dataversion_id": {
             "type": "string",
             "format": "uuid",
             "title": "Ai Version Id",
@@ -5472,7 +5472,7 @@
         },
         "type": "object",
         "required": [
-          "ai_version_id",
+          "ai_dataversion_id",
           "laufnr",
           "stakenn",
           "staname",

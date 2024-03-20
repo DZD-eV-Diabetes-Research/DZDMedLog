@@ -4,10 +4,18 @@ import uuid
 import enum
 from textwrap import dedent
 from typing import Optional, Dict, Self
-from sqlmodel import Field, ForeignKeyConstraint, Relationship, SQLModel, Index
+from sqlmodel import (
+    Field,
+    ForeignKeyConstraint,
+    Relationship,
+    SQLModel,
+    Index,
+    Constraint,
+    CheckConstraint,
+)
 from sqlalchemy import String, Integer, Column, Boolean, SmallInteger
 from pydantic import field_validator
-
+from sqlalchemy import ForeignKey
 
 from medlogserver.model.wido_gkv_arzneimittelindex._base import DrugModelTableBase
 
@@ -49,7 +57,13 @@ DRUG_SEARCHFIELDS = (
 class StammBase(DrugModelTableBase, table=False):
 
     # https://www.wido.de/fileadmin/Dateien/Dokumente/Publikationen_Produkte/Arzneimittel-Klassifikation/wido_arz_stammdatei_plus_info_2021.pdf
-
+    ai_dataversion_id: uuid.UUID = Field(
+        description="Foreing key to 'AiDataVersion' ('GKV WiDo Arzneimittel Index' Data Format Version) which contains the information which Arzneimittel Index 'Datenstand' and 'Dateiversion' the row has",
+        # foreign_key="ai_dataversion.id",
+        default=None,
+        primary_key=True,
+        sa_column_args=[ForeignKey("ai_dataversion.id", ondelete="CASCADE")],
+    )
     laufnr: str = Field(
         description="Laufende Nummer (vom WIdO vergeben)",
         sa_type=String(7),
@@ -244,34 +258,36 @@ class Stamm(StammBase, table=True):
         Index("idx_drug_search", *DRUG_SEARCHFIELDS),
         ForeignKeyConstraint(
             name="composite_foreign_key_appform",
-            columns=["appform", "ai_version_id"],
+            columns=["appform", "ai_dataversion_id"],
             refcolumns=[
                 "drug_applikationsform.appform",
-                "drug_applikationsform.ai_version_id",
+                "drug_applikationsform.ai_dataversion_id",
             ],
         ),
+        # Todo: You are here. need to find a way to create nullable/optional composite foreign keys. otherwise we will fail inserting stamm entries with e.g. empty appform.
+        # CheckConstraint(name=)
         ForeignKeyConstraint(
             name="composite_foreign_key_hersteller_code",
-            columns=["hersteller_code", "ai_version_id"],
+            columns=["hersteller_code", "ai_dataversion_id"],
             refcolumns=[
                 "drug_hersteller.herstellercode",
-                "drug_hersteller.ai_version_id",
+                "drug_hersteller.ai_dataversion_id",
             ],
         ),
         ForeignKeyConstraint(
             name="composite_foreign_key_darrform",
-            columns=["darrform", "ai_version_id"],
+            columns=["darrform", "ai_dataversion_id"],
             refcolumns=[
                 "drug_darrform.darrform",
-                "drug_darrform.ai_version_id",
+                "drug_darrform.ai_dataversion_id",
             ],
         ),
         ForeignKeyConstraint(
             name="composite_foreign_key_zuzahlstufe",
-            columns=["zuzahlstufe", "ai_version_id"],
+            columns=["zuzahlstufe", "ai_dataversion_id"],
             refcolumns=[
                 "drug_normpackungsgroessen.zuzahlstufe",
-                "drug_normpackungsgroessen.ai_version_id",
+                "drug_normpackungsgroessen.ai_dataversion_id",
             ],
         ),
     )

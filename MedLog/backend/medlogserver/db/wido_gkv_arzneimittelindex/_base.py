@@ -84,7 +84,7 @@ class DrugCRUDBase(
         tbl_class = self.get_table_cls()
         pks = []
         for pk in sqlinspect(tbl_class).primary_key:
-            if pk.name != "ai_version_id":
+            if pk.name != "ai_dataversion_id":
                 pks.append(pk.name)
         if len(pks) == 1:
             return pks[0]
@@ -95,7 +95,7 @@ class DrugCRUDBase(
         query = select(func.count()).select_from(table)
         if not self._is_ai_versionless_table_ and current_version_only:
             current_ai_version: AiDataVersion = await self._get_current_ai_version()
-            query = query.where(table.ai_version_id == current_ai_version.id)
+            query = query.where(table.ai_dataversion_id == current_ai_version.id)
         results = await self.session.exec(statement=query)
         return results.first()
 
@@ -105,7 +105,7 @@ class DrugCRUDBase(
         query = select(self.table)
         if not self._is_ai_versionless_table_ and current_version_only:
             current_ai_version: AiDataVersion = await self._get_current_ai_version()
-            query = query.where(self.table.ai_version_id == current_ai_version.id)
+            query = query.where(self.table.ai_dataversion_id == current_ai_version.id)
         if pagination:
             query = pagination.append_to_query(query)
         print("###QUERY", query)
@@ -117,17 +117,17 @@ class DrugCRUDBase(
     async def get(
         self,
         key: str,
-        ai_version_id: UUID | str = None,
+        ai_dataversion_id: UUID | str = None,
         raise_exception_if_none: Exception = None,
     ) -> Optional[GenericCRUDReadType]:
         tbl_class = self.get_table_cls()
-        if ai_version_id is None and not self._is_ai_versionless_table_:
+        if ai_dataversion_id is None and not self._is_ai_versionless_table_:
             current_ai_version = await self._get_current_ai_version()
-            ai_version_id = current_ai_version.id
+            ai_dataversion_id = current_ai_version.id
         pk = self._get_primary_key()
         query = select(tbl_class).where(getattr(tbl_class, pk) == key)
         if not self._is_ai_versionless_table_:
-            query = query.where(tbl_class.ai_version_id == ai_version_id)
+            query = query.where(tbl_class.ai_dataversion_id == ai_dataversion_id)
 
         results = await self.session.exec(statement=query)
         appform: GenericCRUDReadType | None = results.one_or_none()
@@ -140,18 +140,20 @@ class DrugCRUDBase(
         create_obj: GenericCRUDCreateType,
         raise_custom_exception_if_exists: Exception = None,
     ) -> GenericCRUDReadType:
+
         table = self.get_table_cls()
+        log.debug(f"Create {table.__name__}: {create_obj}")
         pk = self._get_primary_key()
         current_ai_data_version = None
-        if not self._is_ai_versionless_table_:
-            current_ai_data_version = self._get_current_ai_version()
-        log.debug(f"Create {table.__name__}: {create_obj}")
+        if not self._is_ai_versionless_table_ and create_obj.ai_dataversion_id is None:
+            current_ai_data_version = await self._get_current_ai_version()
+
         query_existing = select(table).where(
             getattr(table, pk) == getattr(create_obj, pk)
         )
-        if not self._is_ai_versionless_table_:
+        if not self._is_ai_versionless_table_ and create_obj.ai_dataversion_id is None:
             query_existing = query_existing.where(
-                create_obj.ai_version_id == current_ai_data_version.ai_version_id
+                table.ai_dataversion_id == current_ai_data_version.ai_dataversion_id
             )
         res = await self.session.exec(query_existing)
         existing_obj = res.one_or_none()
@@ -166,14 +168,21 @@ class DrugCRUDBase(
 
     async def create_bulk(self, objects: List[GenericCRUDCreateType]):
         tbl_class = self.get_table_cls()
-        log.info(f"Create bulk of {tbl_class.__name__} (Count: {len(objects)})...")
-        for obj in objects:
-            if not isinstance(obj, self.get_create_cls()):
-                raise ValueError(
-                    f"List item is not a '{self.get_create_cls().__name__}' instance: Expected {self.get_create_cls()} got {type(obj)}\n {obj}"
-                )
-        self.session.add_all(objects)
-        await self.session.commit()
+        if config.LOG_LEVEL == "DEBUG" and 1 == 1 and tbl_class.__name__ == "Stamm":
+            # only for internal debuging. set 1==1 to activate
+            for obj in objects:
+                log.debug(f"obj: {type(obj)}: {obj}")
+                await self.create(obj)
+        else:
+
+            log.info(f"Create bulk of {tbl_class.__name__} (Count: {len(objects)})...")
+            for obj in objects:
+                if not isinstance(obj, self.get_create_cls()):
+                    raise ValueError(
+                        f"List item is not a '{self.get_create_cls().__name__}' instance: Expected {self.get_create_cls()} got {type(obj)}\n {obj}"
+                    )
+            self.session.add_all(objects)
+            await self.session.commit()
 
 
 def create_drug_crud_base(

@@ -45,9 +45,9 @@ from medlogserver.model.wido_gkv_arzneimittelindex import (
     Stamm,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex import AiDataVersionCRUD
-
 from medlogserver.log import get_logger
 from medlogserver.config import Config
+from sqlalchemy.dialects.sqlite.aiosqlite import AsyncAdapt_aiosqlite_connection
 
 log = get_logger()
 config = Config()
@@ -62,6 +62,31 @@ if config.DRUG_SEARCHENGINE_CLASS == "GenericSQLDrugSearch":
 # db_engine = create_async_engine(str(config.SQL_DATABASE_URL), echo=False, future=True)
 
 from medlogserver.db._session import get_async_session
+from sqlalchemy import event, Engine
+from sqlite3 import Connection as SQLite3Connection
+
+
+@event.listens_for(db_engine.sync_engine, "connect")
+def enable_foreign_keys_on_sqlite(dbapi_connection, connection_record):
+    """SQLlite databases disable foreign key contraints by default. This behaviour would prevents us from using things like cascade deletes.
+    This addin enables that on every connect.
+
+    Args:
+        dbapi_connection (_type_): _description_
+        connection_record (_type_): _description_
+    """
+    if isinstance(
+        dbapi_connection,
+        (
+            SQLite3Connection,
+            AsyncAdapt_aiosqlite_connection,
+        ),
+    ):
+
+        log.debug("SQLite Database: Enable PRAGMA foreign_keys")
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 async def create_admin_if_not_exists():
