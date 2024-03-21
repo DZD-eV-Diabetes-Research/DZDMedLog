@@ -143,40 +143,24 @@ class WiDoArzneimittelImporter:
 
     def __init__(
         self,
-        source_file: Annotated[
-            Optional[str],
-            "Provide a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
-        ] = None,
         source_dir: Annotated[
             Optional[str],
             "Provide a directory that contains the extracted content of a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
         ] = None,
     ):
-        self.file_handler = WiDoArzneimittelSourceFileHandler(
-            source_file=source_file, source_dir=source_dir
-        )
-        self.arzneimittel_index_content_dir = None
+        self.arzneimittel_index_content_dir = source_dir
 
     async def import_arzneimittelindex(
         self, rewrite_non_complete_existing: bool = True, exist_ok: bool = False
     ) -> AiDataVersion:
-        self.arzneimittel_index_content_dir = (
-            self.file_handler.handle_arzneimittelindex_source(
-                rewrite_non_complete_existing=rewrite_non_complete_existing,
-                exist_ok=exist_ok,
-            )
-        )
         ai_data_version = await self._determine_ai_data_version(
             rewrite_non_complete_existing=rewrite_non_complete_existing,
             exist_ok=exist_ok,
         )
 
-        if (
-            ai_data_version.import_completed_at is not None
-            and exist_ok
-            and not rewrite_non_complete_existing
-        ):
+        if ai_data_version.import_completed_at is not None and exist_ok:
             return ai_data_version
+
         for crud_class in wido_gkv_arzneimittelindex_crud_classes:
             crud_class: DrugCRUDBase = crud_class
             data_model: DrugModelTableBase = crud_class.get_table_cls()
@@ -190,7 +174,7 @@ class WiDoArzneimittelImporter:
                 crud=crud_class,
             )
             await self._write_to_db(mapped_data, crud_class)
-            # await self._mark_import_as_completed(ai_data_version)
+            await self._mark_import_as_completed(ai_data_version)
         return ai_data_version
 
     async def _determine_ai_data_version(
@@ -219,9 +203,7 @@ class WiDoArzneimittelImporter:
                             (Maybe you want to set 'rewrite_non_complete_existing' to True). Can not import data from '{self.arzneimittel_index_content_dir.absolute()}'."
                     )
                 else:
-                    log.debug(
-                        f"Delete old ai_version entry '{ai_data_version_from_db}'"
-                    )
+                    log.info(f"Delete old ai_version entry '{ai_data_version_from_db}'")
                     await self._delete_arzneimittelindex_version_from_db(
                         ai_data_version_id=ai_data_version_from_db.id
                     )
@@ -232,14 +214,9 @@ class WiDoArzneimittelImporter:
                     f"WiDo Arneimittelindex with version '{ai_data_version_from_db}' already exists. \
                             (Maybe you want to set 'exist_ok' to True). Can not import data from '{self.arzneimittel_index_content_dir.absolute()}'."
                 )
-        if self.file_handler.source_dir:
-            ai_data_version_from_source_data.source_file_path = str(
-                self.file_handler.source_dir
-            )
-        elif self.file_handler.source_file:
-            ai_data_version_from_source_data.source_file_path = str(
-                self.file_handler.source_file
-            )
+        ai_data_version_from_source_data.source_file_path = str(
+            self.arzneimittel_index_content_dir
+        )
         return await self._write_arzneimittelindex_version_to_db(
             ai_data_version=ai_data_version_from_source_data
         )
@@ -260,7 +237,9 @@ class WiDoArzneimittelImporter:
         async with get_async_session_context() as session:
             async with AiDataVersionCRUD.crud_context(session) as ai_version_crud:
                 crud: AiDataVersionCRUD = ai_version_crud
-                await crud.delete(id_=ai_data_version_id)
+                await crud.delete(
+                    id_=ai_data_version_id, force_pragma_foreign_keys=True
+                )
 
     async def _write_arzneimittelindex_version_to_db(
         self, ai_data_version: AiDataVersion
@@ -398,7 +377,7 @@ class WiDoArzneimittelSourceFileHandler:
             self.source_file: Path = Path(source_file)
 
     def handle_arzneimittelindex_source(
-        self, rewrite_non_complete_existing: bool = True, exist_ok: bool = False
+        self, rewrite_existing: bool = True, exist_ok: bool = False
     ) -> Path:
         """This method unpacks a WiDo GKV Arzneimittelindex zip file (if nessecary).
         It validates the data for existents and non emptiness and
@@ -416,7 +395,7 @@ class WiDoArzneimittelSourceFileHandler:
         """
         if self.source_file:
             source_dir = self._unpack_ai_zip(
-                rewrite_non_complete_existing=rewrite_non_complete_existing,
+                rewrite_non_complete_existing=rewrite_existing,
                 exist_ok=exist_ok,
             )
         elif self.source_dir:
@@ -515,5 +494,12 @@ async def import_wido_gkv_arzneimittelindex_data(
         "Do not import if imported successful in the past",
     ] = None,
 ):
-    importer = WiDoArzneimittelImporter(source_file=source_file, source_dir=source_dir)
+    file_handler = WiDoArzneimittelSourceFileHandler(
+        source_file=source_file, source_dir=source_dir
+    )
+    importer = WiDoArzneimittelImporter(
+        source_dir=file_handler.handle_arzneimittelindex_source(
+            rewrite_existing=False, exist_ok=exist_ok
+        ),
+    )
     await importer.import_arzneimittelindex(exist_ok=exist_ok)

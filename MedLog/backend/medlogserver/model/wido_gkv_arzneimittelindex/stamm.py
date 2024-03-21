@@ -245,6 +245,8 @@ class StammBase(DrugModelTableBase, table=False):
 
     @field_validator("preisart_neu", "preisart_alt", mode="before")
     def fix_empty_apothekenverkaufspreis_preisart_(cls, value) -> int:
+        # ToDo: Tim: Is this correct? After reviewing this i am not sure that it is correct what i did here.
+        # review later...
         if value == "" or value is None:
             return "A"
         return value
@@ -265,6 +267,9 @@ class Stamm(StammBase, table=True):
             ],
         ),
         # Todo: You are here. need to find a way to create nullable/optional composite foreign keys. otherwise we will fail inserting stamm entries with e.g. empty appform.
+        # Update/Wontfix: sqlite does not support nullable/optional composite foreign keys constraints (google: SIMPLE mode sqlite composite foreign key) as a fix we disable foreign key constraints for sqlite
+        # and only enable it via "PRAGMA foreign_keys = ON;" when needed (Delete ai_dataversion entry)
+        # review later... there may be a better more generic solution
         # CheckConstraint(name=)
         ForeignKeyConstraint(
             name="composite_foreign_key_hersteller_code",
@@ -331,7 +336,7 @@ class Stamm(StammBase, table=True):
         sa_relationship_kwargs={
             "lazy": "joined",
             "viewonly": True,
-        }
+        },
     )
 
     preisart_neu_ref: Optional[Preisart] = Relationship(

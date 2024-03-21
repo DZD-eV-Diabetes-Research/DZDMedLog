@@ -33,7 +33,6 @@ class StammCRUD(
         update_model=Stamm,
     )
 ):
-
     async def get_multiple(
         self,
         pzns: List[str],

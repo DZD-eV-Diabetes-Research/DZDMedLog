@@ -168,8 +168,10 @@ class DrugCRUDBase(
 
     async def create_bulk(self, objects: List[GenericCRUDCreateType]):
         tbl_class = self.get_table_cls()
-        if config.LOG_LEVEL == "DEBUG" and 1 == 1 and tbl_class.__name__ == "Stamm":
+        if config.LOG_LEVEL == "DEBUG" and tbl_class.__name__ == "Stamm" and 1 == 2:
             # only for internal debuging. set 1==1 to activate
+            # create objects one by one instead of bulk creating.
+            # you can ignore this
             for obj in objects:
                 log.debug(f"obj: {type(obj)}: {obj}")
                 await self.create(obj)

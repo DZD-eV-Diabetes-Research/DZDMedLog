@@ -75,6 +75,10 @@ def enable_foreign_keys_on_sqlite(dbapi_connection, connection_record):
         dbapi_connection (_type_): _description_
         connection_record (_type_): _description_
     """
+    return
+    # this is disabled for now, as sqlite does not support nullable composite keys (SIMPLE foreign key mode as defined in SQL-92 Standard)
+    # we use nullable composite keys in the drug "Stamm"-model :(
+    # instead we force optionally "PRAGMA foreign_keys=ON" on a per delete call base. see MedLog/backend/medlogserver/db/_base_crud.py - CRUDBase.delete()
     if isinstance(
         dbapi_connection,
         (
@@ -82,7 +86,6 @@ def enable_foreign_keys_on_sqlite(dbapi_connection, connection_record):
             AsyncAdapt_aiosqlite_connection,
         ),
     ):
-
         log.debug("SQLite Database: Enable PRAGMA foreign_keys")
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
