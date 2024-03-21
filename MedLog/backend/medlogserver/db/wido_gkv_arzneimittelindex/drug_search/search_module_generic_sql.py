@@ -380,7 +380,8 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                     pzns=[item[0] for item in pzns_with_score], keep_pzn_order=True
                 )
                 # you are here. check if score makes sense and order by it
-
+                for drug in drugs:
+                    print("drug.apopflicht_ref", drug.apopflicht, drug.apopflicht_ref)
                 return PaginatedResponse(
                     total_count=result_count,
                     count=len(pzns_with_score),

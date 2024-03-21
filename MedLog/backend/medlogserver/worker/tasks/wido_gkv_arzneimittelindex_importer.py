@@ -165,14 +165,16 @@ class WiDoArzneimittelImporter:
             crud_class: DrugCRUDBase = crud_class
             data_model: DrugModelTableBase = crud_class.get_table_cls()
             if data_model.is_enum_table():
+                data_model: DrugModelTableEnumBase = data_model
                 # Source that does not come from a csv sheet. Some enums are declared in the some Arzneimittelindex manual.
-                continue
-            raw_data = await self._read_data(crud_class=crud_class)
-            mapped_data = await self._load_data(
-                ai_data_version=ai_data_version,
-                csv_data=raw_data,
-                crud=crud_class,
-            )
+                mapped_data = data_model.get_static_data()
+            else:
+                raw_data = await self._read_data(crud_class=crud_class)
+                mapped_data = await self._load_data(
+                    ai_data_version=ai_data_version,
+                    csv_data=raw_data,
+                    crud=crud_class,
+                )
             await self._write_to_db(mapped_data, crud_class)
             await self._mark_import_as_completed(ai_data_version)
         return ai_data_version

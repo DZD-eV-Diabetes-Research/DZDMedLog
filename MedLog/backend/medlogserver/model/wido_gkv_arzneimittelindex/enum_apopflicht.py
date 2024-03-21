@@ -11,7 +11,7 @@ from medlogserver.model.wido_gkv_arzneimittelindex._base import (
 
 
 class ApoPflicht(DrugModelTableEnumBase, table=True):
-    __tablename__ = "drug_enum_apoflicht"
+    __tablename__ = "drug_enum_apopflicht"
     __table_args__ = {"comment": "Apotheken-/Rezeptpflicht"}
 
     @classmethod
@@ -37,7 +37,7 @@ class ApoPflicht(DrugModelTableEnumBase, table=True):
         schema_extra={"examples": ["0"]},
     )
     bedeutung: str = Field(
-        description="Bedeutung",
+        description="apopflicht Bedeutung",
         sa_type=String(60),
         schema_extra={"examples": ["Nichtarzneimittel"]},
     )

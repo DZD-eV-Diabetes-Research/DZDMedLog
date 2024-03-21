@@ -30,7 +30,9 @@ from medlogserver.model.wido_gkv_arzneimittelindex.hersteller import Hersteller
 from medlogserver.model.wido_gkv_arzneimittelindex.normpackungsgroessen import (
     Normpackungsgroessen,
 )
-from medlogserver.model.wido_gkv_arzneimittelindex.enum_apofplicht import ApoPflicht
+from medlogserver.model.wido_gkv_arzneimittelindex.enum_apopflicht import (
+    ApoPflicht,
+)
 from medlogserver.model.wido_gkv_arzneimittelindex.enum_preisart import Preisart
 
 from medlogserver.model.wido_gkv_arzneimittelindex.enum_generikakenn import (
@@ -57,6 +59,49 @@ DRUG_SEARCHFIELDS = (
 class StammBase(DrugModelTableBase, table=False):
 
     # https://www.wido.de/fileadmin/Dateien/Dokumente/Publikationen_Produkte/Arzneimittel-Klassifikation/wido_arz_stammdatei_plus_info_2021.pdf
+
+    # On composite foreign keys https://github.com/tiangolo/sqlmodel/issues/222
+    __table_args__ = (
+        Index("idx_drug_search", *DRUG_SEARCHFIELDS),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_appform",
+            columns=["appform", "ai_dataversion_id"],
+            refcolumns=[
+                "drug_applikationsform.appform",
+                "drug_applikationsform.ai_dataversion_id",
+            ],
+        ),
+        # Todo: You are here. need to find a way to create nullable/optional composite foreign keys. otherwise we will fail inserting stamm entries with e.g. empty appform.
+        # Update/Wontfix: sqlite does not support nullable/optional composite foreign keys constraints (google: SIMPLE mode sqlite composite foreign key) as a fix we disable foreign key constraints for sqlite
+        # and only enable it via "PRAGMA foreign_keys = ON;" when needed (Delete ai_dataversion entry)
+        # review later... there may be a better more generic solution
+        # CheckConstraint(name=)
+        ForeignKeyConstraint(
+            name="composite_foreign_key_hersteller_code",
+            columns=["hersteller_code", "ai_dataversion_id"],
+            refcolumns=[
+                "drug_hersteller.herstellercode",
+                "drug_hersteller.ai_dataversion_id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_darrform",
+            columns=["darrform", "ai_dataversion_id"],
+            refcolumns=[
+                "drug_darrform.darrform",
+                "drug_darrform.ai_dataversion_id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_zuzahlstufe",
+            columns=["zuzahlstufe", "ai_dataversion_id"],
+            refcolumns=[
+                "drug_normpackungsgroessen.zuzahlstufe",
+                "drug_normpackungsgroessen.ai_dataversion_id",
+            ],
+        ),
+    )
+
     ai_dataversion_id: uuid.UUID = Field(
         description="Foreing key to 'AiDataVersion' ('GKV WiDo Arzneimittel Index' Data Format Version) which contains the information which Arzneimittel Index 'Datenstand' and 'Dateiversion' the row has",
         # foreign_key="ai_dataversion.id",
@@ -151,7 +196,7 @@ class StammBase(DrugModelTableBase, table=False):
         description="Apotheken-/Rezeptpflichtschlüssel (Siehe `apopflicht_ref` für vollen Namen)",
         sa_type=SmallInteger,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:14"},
-        foreign_key="drug_enum_apoflicht.apopflicht",
+        foreign_key="drug_enum_apopflicht.apopflicht",
         schema_extra={"examples": ["0"]},
     )
 
@@ -255,48 +300,6 @@ class StammBase(DrugModelTableBase, table=False):
 class Stamm(StammBase, table=True):
     __tablename__ = "drug_stamm"
 
-    # On composite foreign keys https://github.com/tiangolo/sqlmodel/issues/222
-    __table_args__ = (
-        Index("idx_drug_search", *DRUG_SEARCHFIELDS),
-        ForeignKeyConstraint(
-            name="composite_foreign_key_appform",
-            columns=["appform", "ai_dataversion_id"],
-            refcolumns=[
-                "drug_applikationsform.appform",
-                "drug_applikationsform.ai_dataversion_id",
-            ],
-        ),
-        # Todo: You are here. need to find a way to create nullable/optional composite foreign keys. otherwise we will fail inserting stamm entries with e.g. empty appform.
-        # Update/Wontfix: sqlite does not support nullable/optional composite foreign keys constraints (google: SIMPLE mode sqlite composite foreign key) as a fix we disable foreign key constraints for sqlite
-        # and only enable it via "PRAGMA foreign_keys = ON;" when needed (Delete ai_dataversion entry)
-        # review later... there may be a better more generic solution
-        # CheckConstraint(name=)
-        ForeignKeyConstraint(
-            name="composite_foreign_key_hersteller_code",
-            columns=["hersteller_code", "ai_dataversion_id"],
-            refcolumns=[
-                "drug_hersteller.herstellercode",
-                "drug_hersteller.ai_dataversion_id",
-            ],
-        ),
-        ForeignKeyConstraint(
-            name="composite_foreign_key_darrform",
-            columns=["darrform", "ai_dataversion_id"],
-            refcolumns=[
-                "drug_darrform.darrform",
-                "drug_darrform.ai_dataversion_id",
-            ],
-        ),
-        ForeignKeyConstraint(
-            name="composite_foreign_key_zuzahlstufe",
-            columns=["zuzahlstufe", "ai_dataversion_id"],
-            refcolumns=[
-                "drug_normpackungsgroessen.zuzahlstufe",
-                "drug_normpackungsgroessen.ai_dataversion_id",
-            ],
-        ),
-    )
-
     @classmethod
     def get_source_csv_filename(self) -> str:
         return "stamm.txt"
@@ -334,6 +337,7 @@ class Stamm(StammBase, table=True):
 
     apopflicht_ref: ApoPflicht = Relationship(
         sa_relationship_kwargs={
+            "foreign_keys": "[Stamm.apopflicht]",
             "lazy": "joined",
             "viewonly": True,
         },

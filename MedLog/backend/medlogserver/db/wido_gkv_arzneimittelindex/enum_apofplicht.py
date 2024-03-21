@@ -14,7 +14,7 @@ from medlogserver.db._session import get_async_session, get_async_session_contex
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model._base_model import MedLogBaseModel, BaseTable
-from medlogserver.model.wido_gkv_arzneimittelindex.enum_apofplicht import (
+from medlogserver.model.wido_gkv_arzneimittelindex.enum_apopflicht import (
     ApoPflicht,
 )
 from medlogserver.model.wido_gkv_arzneimittelindex.ai_data_version import (

@@ -30,7 +30,7 @@ from medlogserver.model.wido_gkv_arzneimittelindex.applikationsform import (
 from medlogserver.model.wido_gkv_arzneimittelindex.ai_data_version import (
     AiDataVersion,
 )
-from medlogserver.model.wido_gkv_arzneimittelindex.enum_apofplicht import (
+from medlogserver.model.wido_gkv_arzneimittelindex.enum_apopflicht import (
     ApoPflicht,
 )
 from medlogserver.model.wido_gkv_arzneimittelindex.enum_biosimilar import (
