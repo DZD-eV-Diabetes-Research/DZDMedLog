@@ -50,7 +50,7 @@ def get_random_string(
     return "".join(random.choice(letters) for i in range(length))
 
 
-def val_means_true(s: int | str | bool):
+def val_means_true(s: int | str | bool) -> bool:
     if isinstance(s, bool):
         return s
     if isinstance(s, int) and s == 1:
