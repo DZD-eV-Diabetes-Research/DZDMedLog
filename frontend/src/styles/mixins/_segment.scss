@@ -1,0 +1,86 @@
+/**
+ * layout Component
+ *
+ * layout Mixin for default layout behavior
+ *
+ * eg:
+ *  @include layout(
+ *    $width: var(--layout-width--md),
+ *    $vertical-padding: var(--layout-height-md),
+ *    $vertical-align: "middle", // top, bottom
+ *    $bg-image: true,
+ *    $bg-image-opacity: 0.9,
+ *    $bg-color: #fff
+ *  );
+ **/
+@mixin layout() {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  align-items: center;
+
+  @include layout-container();
+  @include layout-background();
+
+  .layout__content {
+    @include layout-content();
+  }
+}
+
+@mixin layout-container() {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  align-items: center;
+
+  // Implement vertical spacing via top & bottom padding
+  padding-top: var(--layout-padding-top, var(--layout-padding-y));
+  padding-bottom: var(--layout-padding-bottom, var(--layout-padding-y));
+}
+
+@mixin layout-content() {
+  // Default Container-Behavior
+  @include container();
+  max-width: 100%;
+  width: var(--layout-width, 100%);
+  position: relative;
+  top: 0;
+  height: 100%;
+
+  // Set width according to $width variable in %
+  // for all breakpoints above "sm"
+  @include breakpoint(xs) {
+  }
+
+  // Set max-width relative to --layout-content-max-width so 50% of
+  // content width gets 50% of --layout-content-max-width above
+  // "lg" breakpoint instead of 50% of the whole window.
+  @include breakpoint(lg) {
+  }
+
+  z-index: 1;
+  padding-left: var(--layout-padding-x, var(--space-4));
+  padding-right: var(--layout-padding-x, var(--space-4));
+}
+
+@mixin layout-background() {
+  position: relative;
+
+  .layout__bg {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    background-color: var(--layout-bg-color);
+
+    // Only if bg-image is enabled
+      img {
+        object-fit: cover;
+        width: 100%;
+        height: 100%;
+        opacity: var(--layout-bg-image-opacity);
+      }
+  }
+}

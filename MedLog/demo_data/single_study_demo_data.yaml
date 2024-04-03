@@ -1,0 +1,78 @@
+items:
+- medlogserver.model.user.UserCreate:
+  - user_name: user1
+    id: 338e5dbb-22a3-41fe-903d-0b9a04749f5d
+    email: clara@uni.wroc.pl
+    display_name: Clara Immerwahr (User1)
+  - user_name: user2
+    id: 6cb76c19-348e-4620-919d-36ba7642e5e5
+    email: lise@kth.se
+    display_name: Lise Meitner  (User2)
+  - user_name: userman
+    id: 4424ae9b-cd70-4baf-b561-c2bfb6f3d2a2
+    email: emmy@uni-goettingen.de
+    roles: ["usermanager"]
+    display_name: Emmy Noether (Usermanager)
+  - user_name: admin2
+    id: e337335c-426e-4122-9f1f-2a8a69b18fb0
+    email: marie@Lavoisier-lab.fr
+    roles: ["admin"]
+    display_name: Marie Lavoisier (Admin)
+- medlogserver.model.user_auth.UserAuthCreate:
+  - user_id: 338e5dbb-22a3-41fe-903d-0b9a04749f5d
+    auth_source_type: local
+    password: medlog1234
+  - user_id: 6cb76c19-348e-4620-919d-36ba7642e5e5
+    auth_source_type: local
+    password: medlog1234
+  - user_id: 4424ae9b-cd70-4baf-b561-c2bfb6f3d2a2
+    auth_source_type: local
+    password: medlog1234
+  - user_id: e337335c-426e-4122-9f1f-2a8a69b18fb0
+    auth_source_type: local
+    password: medlog1234
+
+- medlogserver.model.study.StudyCreate:
+  - name: glucose-galore
+    id: b6f2c61b-d388-4412-8c9a-461ece251116
+    display_name: "Glucose Galore Study (GGS)"
+
+- medlogserver.model.study_permission.StudyPermisson:
+  - user_id: 338e5dbb-22a3-41fe-903d-0b9a04749f5d
+    study_id: b6f2c61b-d388-4412-8c9a-461ece251116
+    is_study_interviewer: true
+  - user_id: 6cb76c19-348e-4620-919d-36ba7642e5e5
+    study_id: b6f2c61b-d388-4412-8c9a-461ece251116
+    is_study_interviewer: false
+  - user_id: 4424ae9b-cd70-4baf-b561-c2bfb6f3d2a2
+    study_id: b6f2c61b-d388-4412-8c9a-461ece251116
+    is_study_interviewer: true
+  - user_id: e337335c-426e-4122-9f1f-2a8a69b18fb0
+    study_id: b6f2c61b-d388-4412-8c9a-461ece251116
+    is_study_viewer: false
+- medlogserver.model.event.EventCreate:
+  - id: ed1e311a-75f2-47dd-bee9-333db4592174
+    name: interview-campaign-2023-q2
+    completed: true
+    study_id: b6f2c61b-d388-4412-8c9a-461ece251116
+  - id: 123e9e8b-6e0d-4bf6-8ea2-ec1620abb341
+    name: interview-campaign-2024-q1
+    completed: false
+    study_id: b6f2c61b-d388-4412-8c9a-461ece251116
+- medlogserver.model.interview.InterviewCreate:
+  - id: 15b593f8-c501-4f44-a8c5-d3dfd2120194
+    event_id: ed1e311a-75f2-47dd-bee9-333db4592174
+    proband_external_id: "1234"
+    interview_start_time_utc: "2024-02-28 10:01:26.916345+00:00"
+    interview_end_time_utc: "2024-02-28 12:01:26.916345+00:00"
+    proband_has_taken_meds: True
+    interview_number: 123
+- medlogserver.model.intake.IntakeCreate:
+  - id: 3d06e7a7-d9b8-4a15-b951-170332a6b1ff
+    interview_id: 15b593f8-c501-4f44-a8c5-d3dfd2120194
+    pharmazentralnummer: "74464"
+    intake_start_time_utc: "2024-01-22 10:00:00+00:00"
+    administered_by_doctor: prescribed
+    intake_regular_or_as_needed: regular
+    as_needed_dose_unit:
+    consumed_meds_today: "Yes"

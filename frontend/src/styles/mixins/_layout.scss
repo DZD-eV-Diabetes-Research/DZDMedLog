@@ -1,0 +1,118 @@
+// stylelint-disable max-nesting-depth
+
+// Basic Container Styles
+@mixin container() {
+  width: calc(100% - 2 * var(--container-margin));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+// Generates a max-width for the given breakpoint.
+@mixin max-width-breakpoint($breakpoint) {
+  --max-width: #{map-get($map: $breakpoints, $key: #{$breakpoint})};
+  max-width: var(--max-width);
+}
+
+// Replaces the responsive .container Class in Bootstrap
+// Generates responsive Max-Widths that are equal to each Breakpoint
+// Stops at the given $max-breakpoint.
+// For example:
+//   "@include max-width-adaptive(md)" generates max-widths with all
+//   breakpoint widths for each breakpoint until it reaches the "md" sized
+//   breakpoint.
+//  inspired by https://github.com/CodyHouse/codyhouse-framework/blob/master/main/assets/css/base/_util.scss line 683
+@mixin max-width-adaptive($max-breakpoint) {
+  max-width: var(--max-width, none);
+  $breakpointsNr: false;
+  // How many Breakpoints do we have?
+  @each $breakpoint, $value in $breakpoints {
+    @if $breakpoint == $max-breakpoint {
+      $breakpointsNr: index($breakpoints, $breakpoint $value);
+    }
+  }
+  // iterate over each breakpoint
+  @each $breakpoint, $value in $breakpoints {
+    // Current Index of our breakpoint in the breakpoints map array
+    $index: index($breakpoints, $breakpoint $value);
+    @if $index == 1 and $value == $max-breakpoint {
+      // if we are at the lowest breakpoint, just apply a max-width.
+      @include max-width-breakpoint($breakpoint);
+    }
+    @else if $index <= $breakpointsNr {
+      @include breakpoint(#{$breakpoint}) {
+        @include max-width-breakpoint(#{$breakpoint});
+      }
+    }
+  }
+}
+
+// reset user agent style
+@mixin reset {
+  background-color: transparent;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  line-height: inherit;
+  appearance: none;
+}
+
+// --------------------------------
+
+// Accessibility
+
+// --------------------------------
+
+// hide - content made available only to screen readers
+@mixin srHide {
+  position: absolute;
+  clip: rect(1px, 1px, 1px, 1px);
+  clip-path: inset(50%);
+}
+
+// show
+@mixin srShow {
+  position: static;
+  clip: auto;
+  clip-path: none;
+}
+
+%clearfix,
+.clearfix {
+  zoom: 1;
+
+  &::before,
+  &::after {
+    content: " ";
+    display: table;
+  }
+
+  &::after {
+    clear: both;
+  }
+}
+
+@mixin pattern-shadow($direction: "left", $color: "accent") {
+  &::before {
+    content: "";
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background: transparent url(#{"/assets/patterns/" + $color + ".svg"});
+    z-index: -1;
+
+    @if $direction == "right" {
+      top: calc(2 * 23px - 7px);
+      right: calc(-2 * 23px + 7px);
+      left: auto;
+      transform: rotate(180deg);
+    } @else {
+      left: calc(-2 * 23px + 7px);
+      top: calc(2 * 23px + 7px);
+      right: auto;
+      transform: rotate(0deg);
+    }
+  }
+
+  
+}

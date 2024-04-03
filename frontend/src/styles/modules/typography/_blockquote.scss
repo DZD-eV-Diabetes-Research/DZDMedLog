@@ -1,0 +1,19 @@
+.blockquote {
+  font-size: var(--font-size-lg);
+  padding-left: var(--space-4);
+  border-left: var(--space-1) solid var(--accent10);
+  font-style: italic;
+
+  &__body {
+    &::before,
+    &::after {
+      content: '"';
+    }
+  }
+
+  &__footer {
+    margin-top: var(--space-4);
+    color: var(--color-contrast-mid);
+    font-size: var(--font-size-base);
+  }
+}

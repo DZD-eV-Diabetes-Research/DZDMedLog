@@ -1,0 +1,19 @@
+:root {
+  // surface color elevations
+  --color-surface-lower: var(--white);
+  --color-surface-low: var(--white);
+  --color-surface-mid: var(--white); // -> background color for most elements
+  --color-surface-high: var(--white);
+  --color-surface-higher: var(--white);
+
+  // surface contrast colors, used for text and borders
+  --color-contrast-lower: var(--primary8);
+  --color-contrast-low: var(--primary9);
+  --color-contrast-mid: var(--primary10);
+  --color-contrast-high: var(--primary11);
+  --color-contrast-higher: var(--primary12);
+
+  // text colors
+  --color-body: var(--color-contrast-high);
+  --color-heading: var(--color-body);
+}
