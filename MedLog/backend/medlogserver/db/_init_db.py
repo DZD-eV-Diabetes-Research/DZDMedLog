@@ -45,9 +45,9 @@ from medlogserver.model.wido_gkv_arzneimittelindex import (
     Stamm,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex import AiDataVersionCRUD
-
 from medlogserver.log import get_logger
 from medlogserver.config import Config
+from sqlalchemy.dialects.sqlite.aiosqlite import AsyncAdapt_aiosqlite_connection
 
 log = get_logger()
 config = Config()
@@ -62,6 +62,34 @@ if config.DRUG_SEARCHENGINE_CLASS == "GenericSQLDrugSearch":
 # db_engine = create_async_engine(str(config.SQL_DATABASE_URL), echo=False, future=True)
 
 from medlogserver.db._session import get_async_session
+from sqlalchemy import event, Engine
+from sqlite3 import Connection as SQLite3Connection
+
+
+@event.listens_for(db_engine.sync_engine, "connect")
+def enable_foreign_keys_on_sqlite(dbapi_connection, connection_record):
+    """SQLlite databases disable foreign key contraints by default. This behaviour would prevents us from using things like cascade deletes.
+    This addin enables that on every connect.
+
+    Args:
+        dbapi_connection (_type_): _description_
+        connection_record (_type_): _description_
+    """
+    return
+    # this is disabled for now, as sqlite does not support nullable composite keys (SIMPLE foreign key mode as defined in SQL-92 Standard)
+    # we use nullable composite keys in the drug "Stamm"-model :(
+    # instead we force optionally "PRAGMA foreign_keys=ON" on a per delete call base. see MedLog/backend/medlogserver/db/_base_crud.py - CRUDBase.delete()
+    if isinstance(
+        dbapi_connection,
+        (
+            SQLite3Connection,
+            AsyncAdapt_aiosqlite_connection,
+        ),
+    ):
+        log.debug("SQLite Database: Enable PRAGMA foreign_keys")
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 async def create_admin_if_not_exists():
@@ -111,12 +139,16 @@ async def init_drugsearch():
 
 
 async def provision_drug_data():
-    from medlogserver.worker.wido_gkv_arzneimittelindex_importer import load_data
+    from medlogserver.worker.tasks.wido_gkv_arzneimittelindex_importer import (
+        import_wido_gkv_arzneimittelindex_data,
+    )
 
     prov_data_dir = Path(config.DRUG_TABLE_PROVISIONING_SOURCE_DIR)
     prov_stamm_path = Path(PurePath(prov_data_dir, "stamm.txt"))
     if prov_stamm_path.exists() and prov_stamm_path.is_file():
-        await load_data(source_data_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR)
+        await import_wido_gkv_arzneimittelindex_data(
+            source_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR, exist_ok=True
+        )
     elif prov_data_dir is not None:
         log.warning(
             "'DRUG_TABLE_PROVISIONING_SOURCE_DIR' is defined in config but no source data dir found. Will skip drug data provsioning"
@@ -124,7 +156,9 @@ async def provision_drug_data():
 
 
 async def provision_base_data():
-    from medlogserver.worker.provisioning_data_loader import load_provisioning_data
+    from medlogserver.worker.tasks.provisioning_data_loader import (
+        load_provisioning_data,
+    )
 
     await load_provisioning_data()
 

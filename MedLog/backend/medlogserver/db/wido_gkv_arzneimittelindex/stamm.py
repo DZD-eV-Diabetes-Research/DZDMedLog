@@ -33,7 +33,6 @@ class StammCRUD(
         update_model=Stamm,
     )
 ):
-
     async def get_multiple(
         self,
         pzns: List[str],
@@ -44,7 +43,7 @@ class StammCRUD(
         query = select(Stamm).where(col(Stamm.pzn).in_(pzns))
         if current_version_only:
             current_ai_version: AiDataVersion = await self._get_current_ai_version()
-            query = query.where(Stamm.ai_version_id == current_ai_version.id)
+            query = query.where(Stamm.ai_dataversion_id == current_ai_version.id)
         if pagination:
             query = pagination.append_to_query(query)
 

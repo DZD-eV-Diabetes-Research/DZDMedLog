@@ -9,6 +9,7 @@ from typing import (
     Generic,
 )
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import text
 from fastapi import Depends
 import contextlib
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -94,7 +95,7 @@ class CRUDBase(
     def get_update_cls(cls) -> Type[GenericCRUDUpdateType]:
         return cls._get_generics_def().__args__[3]
 
-    """Moved to metaclass CRUDBaseMetaClass to be an propery. otherwise we had to call "cls.get_crud_context()(session)" which is ugly
+    """Moved to metaclass CRUDBaseMetaClass to be an property `crud_context`. otherwise we had to call "cls.get_crud_context()(session)" which is ugly
     @classmethod
     def get_crud_context(cls):
         return contextlib.asynccontextmanager(cls.get_crud)
@@ -229,11 +230,16 @@ class CRUDBase(
         self,
         id_: str | UUID,
         raise_exception_if_not_exists=None,
+        force_pragma_foreign_keys: bool = False,
     ):
         tbl = self.get_table_cls()
         existing_obj = await self._get(id_, raise_exception_if_not_exists)
         if existing_obj is not None:
-            del_statement = delete(tbl).where(self.tbl.id == id_)
+            del_statement = delete(tbl).where(tbl.id == id_)
+            if force_pragma_foreign_keys:
+                # sqlite does disable foreign keys by default. in some cases we need to delete childs of a parent row gets deleted (lookup keyword 'ON_DELETE CASCADE' for details).
+                # if needed set force_pragma_foreign_keys to true
+                await self.session.exec(text("PRAGMA foreign_keys = ON;"))
             await self.session.exec(del_statement)
             await self.session.commit()
         return

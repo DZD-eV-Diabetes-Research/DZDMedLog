@@ -97,7 +97,6 @@ class UserStudyAccessCollection:
             studies_data = [await study_crud.get(study_id)]
         else:
             studies_data = await study_crud.list(show_deactivated=True)
-        print("USER", self.user)
         if self.user.is_usermanager():
             # lets save us permission data gathering. the user is admin. admins are all access
             for study in studies_data:

@@ -9,7 +9,7 @@ from fastapi.logger import logger
 APP_LOGGER_DEFAULT_NAME = "MedLog"
 
 
-# supress "AttributeError: module 'bcrypt' has no attribute '__about__'"-warning
+# suppress "AttributeError: module 'bcrypt' has no attribute '__about__'"-warning
 # https://github.com/pyca/bcrypt/issues/684
 logging.getLogger("passlib").setLevel(logging.ERROR)
 

@@ -223,7 +223,7 @@ class StarletteOAuthProviderAppContainer:
 
 
 def generate_oidc_provider_auth_routhers() -> Generator[APIRouter, None, None]:
-    print("config.AUTH_OIDC_PROVIDERS", config.AUTH_OIDC_PROVIDERS)
+
     for oidc_provider in config.AUTH_OIDC_PROVIDERS:
         authlib_oauth = StarletteOAuthProviderAppContainer(oidc_provider)
         yield authlib_oauth.fast_api_router

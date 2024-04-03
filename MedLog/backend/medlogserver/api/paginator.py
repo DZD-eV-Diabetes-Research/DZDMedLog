@@ -53,7 +53,7 @@ class QueryParamsInterface:
     limit: int = 100
     order_by: Optional[str] = None
     order_desc: bool = False
-    non_sortable_attributes: List[str] = ["ai_version_id"]
+    non_sortable_attributes: List[str] = ["ai_dataversion_id"]
 
     def __init__(offset: Optional[int], limit: int, order_by: str, order_desc: bool):
         raise NotImplementedError(

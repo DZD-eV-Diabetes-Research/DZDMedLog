@@ -160,4 +160,4 @@ cython_debug/
 #.idea/
 *./__pycache__
 *./__pycache__/*
-requirements.txt
+__version__.py
