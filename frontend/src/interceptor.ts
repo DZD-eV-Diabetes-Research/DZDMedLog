@@ -1,20 +1,19 @@
-import axios from "axios";
-import router from "./router";
+import axios, { AxiosError, AxiosRequestHeaders } from "axios";
+import router from "@/router";
 import { useTokenStore } from '@/stores/TokenStore'
 import { useUserStore } from '@/stores/UserStore'
 
-
 let refresh = false;
 
-function setupInterceptor() {
+function setupInterceptor(): void {
     axios.interceptors.response.use(
         (response) => response,
-        async (error) => {
+        async (error: AxiosError) => {
             if (error.response && error.response.status === 401 && !refresh) {
                 refresh = true;
 
-                const tokenStore = useTokenStore()
-                const refresh_token = tokenStore.get_refresh_token
+                const tokenStore = useTokenStore();
+                const refresh_token = tokenStore.refreshToken;
 
                 axios.defaults.headers.common = {
                     "refresh-token": "Bearer " + refresh_token,
@@ -26,26 +25,27 @@ function setupInterceptor() {
                         {},
                         {
                             headers: {
-                                "Content-Type": "json",
+                                "Content-Type": "application/x-www-form-urlencoded",
                             },
                             withCredentials: true,
                         }
                     );
 
                     if (status === 200) {
-
-                        tokenStore.access_token = data.access_token
-                        error.config.headers = {
-                            Authorization: "Bearer " + tokenStore.get_access_token,
-                        };
-                        refresh = false;
-                        return axios(error.config);
+                        tokenStore.accessToken = data.access_token;
+                        if (error.config) {
+                            error.config.headers = {
+                                Authorization: "Bearer " + tokenStore.accessToken,
+                            } as AxiosRequestHeaders;
+                            refresh = false;
+                            return axios(error.config);
+                        }
                     }
                 } catch (refreshError) {
-                    const userStore = useUserStore()
+                    const userStore = useUserStore();
                     refresh = false;
-                    tokenStore.$reset()
-                    userStore.$reset()
+                    tokenStore.$reset();
+                    userStore.$reset();
                     router.push("/");
                     return Promise.reject(refreshError);
                 }
@@ -56,6 +56,6 @@ function setupInterceptor() {
     );
 }
 
-setupInterceptor(); 
+setupInterceptor();
 
-export default setupInterceptor; 
+export default setupInterceptor;

@@ -15,8 +15,8 @@
     </div>
   </header>
   <div class="button-container">
-    <button class="logout_button" v-if="tokenStore.get_logged_in" @click="logout">Logout</button>
-    <button class="profile_button" v-if="tokenStore.get_logged_in" @click="my_profile">{{userStore.button_text}}</button>
+    <button class="logout_button" v-if="tokenStore.loggedStatus" @click="logout">Logout</button>
+    <button class="profile_button" v-if="tokenStore.loggedStatus" @click="my_profile">{{userStore.buttonText}}</button>
   </div>
 </template>
 
@@ -35,8 +35,8 @@ export default {
   },
   methods: {
     reset_profile_button(){
-      this.userStore.button_text= "Profile"
-      this.userStore.view_profile = false
+      this.userStore.buttonText= "Profile"
+      this.userStore.viewProfile = false
     },
     logout() {
       this.userStore.$reset()
@@ -45,7 +45,7 @@ export default {
     },
     my_profile() {
       this.userStore.toggle_profile()
-      if(this.userStore.button_text === "Back"){
+      if(this.userStore.buttonText === "Back"){
         this.$router.push("/profile")
       } else {
         this.$router.go(-1)

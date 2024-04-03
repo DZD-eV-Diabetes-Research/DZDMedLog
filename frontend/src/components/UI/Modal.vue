@@ -1,16 +1,23 @@
-<script>
+<script setup lang="ts">
 
 /**
  * Source: https://vuejs.org/examples/#modal
  */
 
-export default {
-  props: {
-    show: Boolean,
-    title: String,
-    titleColor: String
-  }
+import { defineProps } from 'vue';
+
+interface Props {
+  show: boolean,
+  title: string,
+  titleColor: string,
 }
+
+const props = withDefaults(defineProps<Props>(), {
+  show: false,
+  title: "string",
+  titleColor: '#42b983'
+})
+
 
 </script>
 
@@ -19,12 +26,10 @@ export default {
     <div v-if="show" class="modal-mask">
       <div class="modal-container">
         <div class="modal-header">
-          <button
-              class="modal-default-button"
-              @click="$emit('close')"
-            ><img src="/icons/close.svg" class="modal-default-button-image"></button>
+          <button class="modal-default-button" @click="$emit('close')"><img src="/icons/close.svg"
+              class="modal-default-button-image"></button>
           <slot name="header">
-            <h3 :style="{ color: titleColor }">{{title}}</h3>
+            <h3 :style="{ color: titleColor }">{{ title }}</h3>
           </slot>
         </div>
 
@@ -68,7 +73,7 @@ export default {
   margin: 20px 0;
 }
 
-.modal-body input{
+.modal-body input {
   border: 2px solid black;
   border-radius: 5px;
 }

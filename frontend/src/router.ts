@@ -1,8 +1,8 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHistory, RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
 import { useTokenStore } from '@/stores/TokenStore'
 
-import Login from "./components/Auth/Login.vue"
-import UserView from "./components/UI/User/UserView.vue"
+import Login from "@/components/Authentication/Login.vue"
+import UserView from "@/components/UI/User/UserView.vue"
 
 const routes = [
     { path: '/', redirect: "/auth" },
@@ -11,9 +11,9 @@ const routes = [
         name: 'authentication',
         component: Login,
         meta: { requiresAuth: false }, 
-        beforeEnter: (to, from, next) => {
+        beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
             const tokenStore = useTokenStore()
-            const refreshToken = tokenStore.get_refresh_token; 
+            const refreshToken = tokenStore.refreshToken; 
 
             if (refreshToken) {
                 next("/user");
@@ -27,9 +27,9 @@ const routes = [
         name: 'user',
         component: UserView,
         meta: { requiresAuth: true }, 
-        beforeEnter: (to, from, next) => {
+        beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
             const tokenStore = useTokenStore()
-            const refreshToken = tokenStore.get_refresh_token; 
+            const refreshToken = tokenStore.refreshToken; 
             if (refreshToken) {
                 next();
             } else {
@@ -40,11 +40,11 @@ const routes = [
     {
         path: '/profile',
         name: 'profile',
-        component: ()=>import('./components/UI/User/UserProfile.vue'),
+        component: ()=>import('@/components/UI/User/UserProfile.vue'),
         meta: { requiresAuth: true }, 
-        beforeEnter: (to, from, next) => {
+        beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
             const tokenStore = useTokenStore()
-            const refreshToken = tokenStore.get_refresh_token; 
+            const refreshToken = tokenStore.refreshToken; 
             if (refreshToken) {
                 next();
             } else {
@@ -55,11 +55,11 @@ const routes = [
     {
         path: '/studies',
         name: 'studies',
-        component: ()=>import('./components/UI/Studies/UserStudies.vue'),
+        component: ()=>import('@/components/UI/Studies/UserStudies.vue'),
         meta: { requiresAuth: true }, 
-        beforeEnter: (to, from, next) => {
+        beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
             const tokenStore = useTokenStore()
-            const refreshToken = tokenStore.get_refresh_token; 
+            const refreshToken = tokenStore.refreshToken
 
             if (refreshToken) {
                 next();
@@ -73,9 +73,9 @@ const routes = [
         name: 'study',
         component: ()=>import('./components/UI/Studies/MyStudy.vue'),
         meta: { requiresAuth: true }, 
-        beforeEnter: (to, from, next) => {
+        beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
             const tokenStore = useTokenStore()
-            const refreshToken = tokenStore.get_refresh_token; 
+            const refreshToken = tokenStore.refreshToken; 
 
             if (refreshToken) {
                 next();
@@ -87,11 +87,12 @@ const routes = [
     {
         path: '/construction',
         name: 'construction',
-        component: ()=>import('./components/UI/PageConstruction.vue'),
+        component: ()=>import('@/components/UI/PageConstruction.vue'),
         meta: { requiresAuth: true }, 
-        beforeEnter: (to, from, next) => {
+        beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+            console.log(to, from);
             const tokenStore = useTokenStore()
-            const refreshToken = tokenStore.get_refresh_token; 
+            const refreshToken = tokenStore.refreshToken; 
 
             if (refreshToken) {
                 next();
@@ -108,9 +109,9 @@ const router = createRouter({
     routes
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
     const tokenStore = useTokenStore();
-    const refreshToken = tokenStore.get_refresh_token;
+    const refreshToken = tokenStore.refreshToken;
 
     if (to.meta.requiresAuth && !refreshToken) {
         next('/auth');

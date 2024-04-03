@@ -21,22 +21,15 @@
   </div>
   <Footer />
 </template>
-<script>
-  import Footer from './Footer.vue';
-  import Header from './Header.vue';
-  export default {
-    name: 'Layout',
-    components: {
-      Footer, Header,
-    },
-    data() {
-    return {
-      showAbout: false,
-    };
-  },
 
-  }
+<script setup lang="ts">
+import { ref } from 'vue';
+import Footer from './Footer.vue';
+import Header from './Header.vue';
+
+const showAbout = ref(false);
 </script>
+
 <style lang="scss">
   .layout {
     padding-top: 0 !important;

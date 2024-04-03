@@ -1,15 +1,16 @@
 <template>
     <base-card v-if="!studyStore.studies">
-        <h2 v-if="userStore.is_admin">Aktuell sind keine Studien aufgelistet bitte, legen Sie eine Studie an</h2>
-        <h2 v-if="!userStore.is_admin">Aktuell sind keine Studien aufgelistet bitte, wenden Sie sich an einen Admin</h2>
+        <h2 v-if="userStore.isAdmin">Aktuell sind keine Studien aufgelistet bitte, legen Sie eine Studie an</h2>
+        <h2 v-if="!userStore.isAdmin">Aktuell sind keine Studien aufgelistet bitte, wenden Sie sich an einen Admin</h2>
     </base-card>
-    <base-card v-on:click="selectStudy(study)" v-for="study in studyStore.studies.items" :key="study.id" style="text-align: center">
+    <base-card v-on:click="selectStudy(study)" v-for="study in studyStore.studies.items" :key="study.id"
+        style="text-align: center">
         <h3>{{ study.display_name }}</h3>
     </base-card>
-    <div v-if="userStore.is_admin" class="button-container">
-        <button @click="this.showModal = true">Studie anlegen</button>
+    <div v-if="userStore.isAdmin" class="button-container">
+        <button @click="showModal = true">Studie anlegen</button>
     </div>
-    <modal-vue @close="resetModal" title="Studie anlegen" :show="showModal">
+    <modal-vue @close="resetModal" title="Studie anlegen" :show="showModal" :title-color="'#42b983'">
         <template #header>
         </template>
         <template #body>
@@ -29,56 +30,47 @@
     </modal-vue>
 </template>
 
-<script>
+<script setup lang="ts">
+
+import { ref } from 'vue';
+import router from '@/router.ts';
 
 import { useTokenStore } from '@/stores/TokenStore'
 import { useUserStore } from '@/stores/UserStore'
 import { useStudyStore } from '@/stores/StudyStore'
 
-export default {
+const tokenStore = useTokenStore()
+const userStore = useUserStore()
+const studyStore = useStudyStore()
 
-    setup() {
-        const tokenStore = useTokenStore()
-        const userStore = useUserStore()
-        const studyStore = useStudyStore()
-        return { tokenStore, userStore, studyStore }
-    },
+const showModal = ref<boolean>(false)
+const formIsValid = ref<boolean>(true)
+const studyName = ref<string>("")
+const displayName = ref<string>("")
 
-    data() {
-        return {
-            showModal: false,
-            formIsValid: true,
-            studyName: "",
-            displayName: ""
+function resetModal(): void {
+    showModal.value = false;
+    formIsValid.value = true;
+    studyName.value = "";
+    displayName.value = "";
+}
+
+async function submitStudy() {
+    if (studyName.length === 0 || displayName.length === 0) {
+        this.formIsValid = false
+    } else {
+        const payload = {
+            display_name: displayName,
+            name: studyName
         }
-    },
-    methods: {
-        resetModal(){
-            this.showModal = false,
-            this.formIsValid = true,
-            this.studyName = "",
-            this.displayName = ""
-        },
-        async submitStudy() {
-            if (this.studyName.length === 0 || this.displayName.length === 0) {
-                this.formIsValid = false
-            } else {
-                const payload = {
-                    display_name: this.displayName,
-                    name: this.studyName
-                }
-                this.studyStore.createStudy(payload)
-                this.studyStore.listStudies()
-                this.showModal = false
-                this.formIsValid = true
-                this.studyName = ""
-                this.displayName = ""
-            }
-        },
-        async selectStudy(study) {
-            this.$router.push("/studies/" + study.name)
-        }
+        studyStore.createStudy(payload)
+        studyStore.listStudies()
+        resetModal()
     }
+}
+
+async function selectStudy(study) {
+    router.push("/studies/" + study.name)
 }
 
 

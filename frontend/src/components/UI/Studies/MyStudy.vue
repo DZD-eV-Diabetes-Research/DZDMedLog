@@ -17,7 +17,7 @@
             <h1>not yet implemented</h1>
         </template>
     </modal-vue>
-    <modal-vue class="edit_modal" title="Studie bearbeiten" :show="editModal" @close="editModal = false">
+    <modal-vue class="edit_modal" title="Studie bearbeiten" :title-color="'#42b983'" :show="editModal" @close="editModal = false">
         <template #header>
         </template>
         <template #body>
@@ -26,33 +26,24 @@
     </modal-vue>
 </template>
 
-<script>
-import { useStudyStore } from '@/stores/StudyStore'
+
+<script setup lang="ts">
+
+import { ref } from 'vue';
+import { computed } from 'vue';
 import { RouterLink } from 'vue-router'
-import { useUserStore } from '@/stores/UserStore';
+import router from '@/router.ts';
 
+import { useStudyStore } from '@/stores/StudyStore'
+const studyStore = useStudyStore()
 
-export default {
+const deleteModal= ref<boolean>(false)
+const editModal= ref<boolean>(false)
 
-    setup() {
-        const studyStore = useStudyStore()
-        const userStore = useUserStore()
-        return { studyStore, userStore }
-    },
-    data() {
-        return {
-            deleteModal: false,
-            editModal: false
-        }
-    },
-    computed: {
-        study() {
-            return this.studyStore.studies.items.find(({ name }) => name === this.$route.params.study)
-        }
-    },
-    methods: {
-    }
-}
+const study = computed(() => {
+      const studyName = router.currentRoute.value.params.study;
+      return studyStore.studies.items.find(({ name }: {name:string}) => name === studyName);
+    });
 
 </script>
 

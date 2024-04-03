@@ -1,24 +1,26 @@
 {
-  "name": "dzd-webapp-template",
-  "version": "0.0.1",
+  "name": "medlog-typescript",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vue-tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "axios": "^1.6.7",
+    "axios": "^1.6.8",
     "pinia": "^2.1.7",
     "pinia-plugin-persistedstate": "^3.2.1",
-    "sass": "^1.56.1",
-    "vue": "^3.2.41",
-    "vue-axios": "^3.5.2",
-    "vue-router": "^4.2.5",
-    "vuex": "^4.1.0",
-    "vuex-persistedstate": "^4.1.0"
+    "router": "^2.0.0-beta.2",
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^3.1.2",
-    "vite": "^3.1.8"
+    "@vitejs/plugin-vue": "^5.0.4",
+    "sass": "^1.72.0",
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0",
+    "vue-tsc": "^2.0.6"
   }
 }

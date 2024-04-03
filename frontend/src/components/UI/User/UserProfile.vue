@@ -1,8 +1,8 @@
 <template>
   <base-card style="text-align: center;">
-    <h3>User name: {{ userStore.user_name }}</h3>
+    <h3>User name: {{ userStore.userName }}</h3>
     <h5>Email: {{ userStore.email }}</h5>
-    <h5>Display name: {{ userStore.display_name }}</h5>
+    <h5>Display name: {{ userStore.displayName }}</h5>
     <h5>Roles:</h5>
     <p v-for="role in userStore.roles">{{ role }}</p>
   </base-card>
@@ -19,36 +19,30 @@
                     <input id="user_mail" name="user_mail" type="email" v-model.trim="displayName" class="input-field">
                     <p v-if="!formIsValid" style="color: red;">Die Felder dürfen nicht leer sein</p>
                 </div>
-                <div>
+                <!-- <div>
                     <button @click="submitStudy">Anlegen</button>
-                </div>
+                </div> -->
             </form>
         </template>
     </modal-vue>
 </template>
 
-<script>
+<script setup lang="ts">
 import { useUserStore } from '@/stores/UserStore'
+import { ref } from 'vue';
 
-export default {
-  setup() {
-    const userStore = useUserStore()
-    return { userStore }
-  },
-  data() {
-      return{
-        editModal : false,
-        formIsValid: true
-      } 
-  },
-  methods:{
-    submitForm(){
-      console.log("hey")
-    }
-  }
+const userStore = useUserStore()
+
+const editModal = ref<boolean>(false);
+const formIsValid = ref<boolean>(true);
+const studyName = ref<string>("")
+const displayName = ref<string>("")
 
 
+function submitForm(){
+  console.log("Hey")
 }
+
 </script>
 
 <style scoped>
