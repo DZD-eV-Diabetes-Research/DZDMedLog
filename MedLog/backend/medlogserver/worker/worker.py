@@ -7,7 +7,7 @@ from apscheduler.triggers.cron import CronTrigger
 from medlogserver.worker.tasks.provisioning_data_loader import load_provisioning_data
 from medlogserver.worker.tasks.refresh_token_cleaner import clean_tokens
 from medlogserver.worker.tasks.wido_gkv_arzneimittelindex_importer import (
-    import_wido_gkv_arzneimittelindex_data,
+    background_job_gkv_arzneimittelindex_data,
 )
 from medlogserver.config import Config
 from medlogserver.log import get_logger
@@ -22,11 +22,11 @@ async def _setup_scheduled_background_tasks(event_loop=None) -> AsyncIOScheduler
     scheduler = AsyncIOScheduler(event_loop=event_loop)
     scheduler.add_job(
         func=clean_tokens,
-        trigger=CronTrigger(minute="*"),
+        trigger=CronTrigger(minute="5"),
         max_instances=1,
     )
     scheduler.add_job(
-        func=import_wido_gkv_arzneimittelindex_data,
+        func=background_job_gkv_arzneimittelindex_data,
         trigger=CronTrigger(minute="*"),
         max_instances=1,
     )
@@ -63,4 +63,6 @@ def run_background_worker(
         background_worker_process.start()
         log.info(f"Started background worker (Process: {background_worker_process})")
     else:
+        if event_loop is None:
+            event_loop = asyncio.get_event_loop()
         event_loop.create_task(_start_background_scheduler(event_loop))

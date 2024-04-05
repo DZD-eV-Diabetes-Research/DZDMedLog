@@ -7,9 +7,6 @@ import sys
 import asyncio
 import json
 import argparse
-import signal
-
-signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 arg_parser = argparse.ArgumentParser("DZDMedLog")
 arg_parser.add_argument(
@@ -17,6 +14,22 @@ arg_parser.add_argument(
     help="Set this flag to just write the __version__.py file based on the git version. Needed for CI/CD.",
     action="store_true",
 )
+arg_parser.add_argument(
+    "--run_worker_only",
+    help="Set this flag to just run the background worker without the unvicorn webserver.",
+    action="store_true",
+)
+log = logging.getLogger(__name__)
+log.addHandler(logging.StreamHandler(sys.stdout))
+if __name__ == "__main__":
+    from pathlib import Path
+    import sys, os
+
+    MODULE_DIR = Path(__file__).parent
+    MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
+    sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
+
+
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler(sys.stdout))
 if __name__ == "__main__":
@@ -58,12 +71,11 @@ def start():
     print(f"UVICORN_LOG_LEVEL: {get_uvicorn_loglevel()}")
 
     from medlogserver.db._init_db import init_db
-
-    # asyncio.run(init_db())
     import uvicorn
     from uvicorn.config import LOGGING_CONFIG
     from medlogserver.app import app, add_api_middleware
     from medlogserver.api.routers_map import mount_fast_api_routers
+    from medlogserver.worker.worker import run_background_worker
 
     mount_fast_api_routers(app)
     add_api_middleware(app)
@@ -82,11 +94,6 @@ def start():
         loop=event_loop,
     )
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
-
-    from medlogserver.worker.worker import run_background_worker
-    from medlogserver.worker.tasks.provisioning_data_loader import (
-        load_provisioning_data,
-    )
 
     event_loop.run_until_complete(init_db())
     if config.BACKGROUND_WORKER_IN_EXTRA_PROCESS:
@@ -107,5 +114,10 @@ if __name__ == "__main__":
         version = version_file.read_text()
         print(f"Wrote '{version}' into '{version_file.absolute()}'")
         exit()
+    if args.run_worker_only:
+        print("Run only background server.")
+        from medlogserver.worker.worker import run_background_worker
+
+        run_background_worker(run_in_extra_process=False)
 
     start()
