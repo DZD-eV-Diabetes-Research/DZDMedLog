@@ -1,16 +1,20 @@
 from typing import List
 import datetime
+import dramatiq
 
 #
 from medlogserver.model.user_auth_refresh_token import UserAuthRefreshToken
 from medlogserver.db.user_auth_refresh_token import UserAuthRefreshTokenCRUD
 from medlogserver.db._session import get_async_session_context
+from medlogserver.config import Config
+from medlogserver.log import get_logger
+
+
+log = get_logger()
+config = Config()
 
 
 class RefreshTokenCleaner:
-    def __init__(self):
-        pass
-
     async def remove_expired_tokens(self):
         async with get_async_session_context() as session:
             async with UserAuthRefreshTokenCRUD.crud_context(
@@ -25,3 +29,9 @@ class RefreshTokenCleaner:
                         or token.deactivated
                     ):
                         crud.delete(id=token.id)
+
+
+async def clean_tokens():
+    log.info("Run Background Task: Clean tokens...")
+    await RefreshTokenCleaner().remove_expired_tokens()
+    log.info("Done Background Task: Clean tokens")

@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 import logging
 import os
 import getversion
@@ -7,6 +7,9 @@ import sys
 import asyncio
 import json
 import argparse
+import signal
+
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 arg_parser = argparse.ArgumentParser("DZDMedLog")
 arg_parser.add_argument(
@@ -56,7 +59,7 @@ def start():
 
     from medlogserver.db._init_db import init_db
 
-    asyncio.run(init_db())
+    # asyncio.run(init_db())
     import uvicorn
     from uvicorn.config import LOGGING_CONFIG
     from medlogserver.app import app, add_api_middleware
@@ -69,14 +72,29 @@ def start():
         "handlers": ["default"],
         "level": get_loglevel(),
     }
-
-    uvicorn.run(
-        app,
+    event_loop = asyncio.get_event_loop()
+    uvicorn_config = uvicorn.Config(
+        app=app,
         host=config.SERVER_LISTENING_HOST,
-        log_level=get_uvicorn_loglevel(),
         port=config.SERVER_LISTENING_PORT,
+        log_level=get_uvicorn_loglevel(),
         log_config=uvicorn_log_config,
+        loop=event_loop,
     )
+    uvicorn_server = uvicorn.Server(config=uvicorn_config)
+
+    from medlogserver.worker.worker import run_background_worker
+    from medlogserver.worker.tasks.provisioning_data_loader import (
+        load_provisioning_data,
+    )
+
+    if config.BACKGROUND_WORKER_IN_EXTRA_PROCESS:
+        # import multiprocessing_logging
+        # from medlogserver.log import logger
+        # multiprocessing_logging.install_mp_handler(logger)
+        run_background_worker(run_in_extra_process=True)
+    event_loop.run_until_complete(load_provisioning_data())
+    event_loop.run_until_complete(uvicorn_server.serve())
 
 
 if __name__ == "__main__":
