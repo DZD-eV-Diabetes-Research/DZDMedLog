@@ -88,12 +88,12 @@ def start():
         load_provisioning_data,
     )
 
+    event_loop.run_until_complete(init_db())
     if config.BACKGROUND_WORKER_IN_EXTRA_PROCESS:
         # import multiprocessing_logging
         # from medlogserver.log import logger
         # multiprocessing_logging.install_mp_handler(logger)
         run_background_worker(run_in_extra_process=True)
-    event_loop.run_until_complete(load_provisioning_data())
     event_loop.run_until_complete(uvicorn_server.serve())
 
 
