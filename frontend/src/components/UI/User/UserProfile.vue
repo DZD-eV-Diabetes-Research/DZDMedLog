@@ -9,7 +9,7 @@
   <div class="naked">
     <button @click="editModal=true" class="edit">Edit</button>
   </div>
-  <modal-vue title="User bearbeiten" :show="editModal" @close="editModal = false">
+  <modal-vue title="User bearbeiten" :show="editModal" @close="editModal = false" :titleColor="'#42b983'">
         <template #body>
           <form @submit.prevent="submitForm">
                 <div class="form__group">
