@@ -6,6 +6,9 @@ import App from '@/App.vue'
 import router from '@/router.ts'
 import '@/style.css'
 
+import Vueform from '@vueform/vueform'
+import vueformConfig from './../vueform.config'
+
 import BaseCard from '@/components/UI/BaseCard.vue';
 import Modal from '@/components/UI/Modal.vue' 
 
@@ -20,6 +23,8 @@ const pinia = createPinia()
 app.use(pinia)
 pinia.use(piniaPluginPersistedstate)
 app.use(router)
+
+app.use(Vueform, vueformConfig)
 
 app.component('base-card', BaseCard)
 app.component('modal-vue', Modal)
