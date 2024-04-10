@@ -19,9 +19,6 @@
                     <input id="user_mail" name="user_mail" type="email" v-model.trim="displayName" class="input-field">
                     <p v-if="!formIsValid" style="color: red;">Die Felder dürfen nicht leer sein</p>
                 </div>
-                <!-- <div>
-                    <button @click="submitStudy">Anlegen</button>
-                </div> -->
             </form>
         </template>
     </modal-vue>

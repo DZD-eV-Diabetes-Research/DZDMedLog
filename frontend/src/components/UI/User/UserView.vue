@@ -2,7 +2,7 @@
     <base-card style="text-align: center;">
         <h3>Hello {{ userStore.userName }}</h3>
         <div class="button-container">
-            <button @click="showStudies" disabled>Interview durchführen</button>
+            <button @click="showStudies">Interview durchführen</button>
             <button @click="showStudies">Studien</button>
             <button @click="searchMedicaments">Medikament suchen</button>
         </div>
