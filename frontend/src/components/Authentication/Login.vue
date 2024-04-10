@@ -1,69 +1,45 @@
 <template>
     <base-card>
-        <form @submit.prevent="submitForm">
-            <div class="form__group">
-                <label for="user-name">User Name</label>
-                <input id="user-name" name="user-name" type="text" v-model.trim="userName">
-                <label for="password">Password</label>
-                <input id="password" name="password" type="password" v-model.trim="password">
-            </div>
-            <div>
-                <h1 style="color: red" v-if="tokenStore.error">{{ tokenStore.error }}</h1>
-                <button>Login</button>
-                <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
-            </div>
-        </form>
+        <h4 v-if="tokenStore.error" style="color: red">{{ tokenStore.error }}</h4>
+        <Vueform :endpoint="false" @submit="submitLogin">
+            <TextElement name="user-name" input-type="text" label="User Name" rules="required" />
+            <TextElement name="password" input-type="password" label="Password" rules="required" />
+            <ButtonElement name="login" button-label="Login" :submits="true" align="center" />
+        </Vueform>
+        <p>No account? <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a></p>
     </base-card>
+
 </template>
 
 <script setup lang="ts">
 
-import { ref } from 'vue';
 import router from '@/router.ts';
 
 import { useTokenStore } from '@/stores/TokenStore';
-import { useUserStore } from '@/stores/UserStore';
+//import { useUserStore } from '@/stores/UserStore';
+import BaseCard from '@/components/UI/BaseCard.vue';
 
 const tokenStore = useTokenStore();
-const userStore = useUserStore();
+//const userStore = useUserStore();
 
-const userName = ref<string>("");
-const password = ref<string>("");
-const formIsValid = ref<boolean>(true);
 
-async function submitForm(): Promise<void> {
-    tokenStore.error = "";
+async function submitLogin(response: any): Promise<void> {
 
-    if (!userName.value || password.value.length === 0) {
-        tokenStore.error = "Please enter a valid username and password";
-        formIsValid.value = false;
-    }
+    tokenStore.error = ""
+
     const payload = {
-        username: userName.value,
-        password: password.value        
+        username: response.data['user-name'],
+        password: response.data['password']
     };
-    
     try {
         await tokenStore.login(payload);
-
-        try {
-            await userStore.userMe();
-        } catch (err: any) {            
-            tokenStore.error = err.response;
-        }
-
-        router.push("/user")
-
-    } catch (err) {      
-        tokenStore.error = "Wrong username or password";
+        console.log(payload);
+    } catch (error: any) {
+        console.log("HEY");
+        console.log(error);
     }
+    //userStore.userMe()
+    router.push("/user")
 }
-</script>
 
-<style lang="scss">
-input[type="text"],
-input[type="password"] {
-    border: 2px solid black;
-    border-radius: 4px;
-}
-</style>
+</script>

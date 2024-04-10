@@ -32,7 +32,7 @@ export const useTokenStore = defineStore('TokenStoreNew', {
                 this.loggedStatus = true
 
             } catch(err:any) {
-                this.error = err.response.data.detail
+                this.error = "Wrong username or password"
             }
 
         },
