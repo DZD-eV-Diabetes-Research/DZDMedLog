@@ -119,5 +119,5 @@ if __name__ == "__main__":
         from medlogserver.worker.worker import run_background_worker
 
         run_background_worker(run_in_extra_process=False)
-
-    start()
+    else:
+        start()
