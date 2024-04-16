@@ -1,13 +1,11 @@
-# Dev
+# Local Setup and running
 
 ##  Install req only
 
 
-
-
 `python -m pip install pip-tools -U`
 
-`pip-compile -o requirements.txt pyproject.toml`
+`python -m piptools compile -o MedLog/backend/requirements.txt MedLog/backend/pyproject.toml`
 
 `pip install -r MedLog/backend/requirements.txt -U`
 

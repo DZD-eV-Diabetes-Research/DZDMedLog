@@ -5,4 +5,8 @@ if [ -z "$docker_tag" ]; then
     docker_tag="dzdmedlog:latest"
 fi
 echo "Build docker image with tag '$docker_tag'"
-docker build -t $docker_tag -f MedLog/backend/Dockerfile MedLog/backend/
+docker build . -t $docker_tag -f Dockerfile.server
+
+echo "Docker image produced: $docker_tag"
+echo "Run with:"
+echo "     docker run $docker_tag"
