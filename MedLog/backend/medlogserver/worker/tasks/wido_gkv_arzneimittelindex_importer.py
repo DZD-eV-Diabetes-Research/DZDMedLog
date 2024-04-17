@@ -494,7 +494,7 @@ async def import_wido_gkv_arzneimittelindex_data(
     exist_ok: Annotated[
         bool,
         "Do not import if imported successful in the past",
-    ] = None,
+    ] = False,
 ):
     file_handler = WiDoArzneimittelSourceFileHandler(
         source_file=source_file, source_dir=source_dir
@@ -511,6 +511,10 @@ async def background_job_gkv_arzneimittelindex_data():
     log.info(
         "Start background job ('background_job_gkv_arzneimittelindex_data'): Check and import new arzneimittel index data..."
     )
+    log.warning(
+        "Background import jobs for gkv_arzneimittelindex_data not yet implemetned. Skip import."
+    )
+    return
     raise NotImplementedError(
         "Background import jobs for gkv_arzneimittelindex_data not yet implemetned"
     )

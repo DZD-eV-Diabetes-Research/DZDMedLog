@@ -96,6 +96,10 @@ class Config(BaseSettings):
         default=True,
         description="If set to True the background service will start in an extra Process next to the webserver. If set to False, the backgroundworker will not run. You have to setup an extra instance of the worker.",
     )
+    BACKGROUND_WORKER_TIDY_UP_FINISHED_JOBS_AFTER_N_MIN: Optional[int] = Field(
+        description="Jobs like the import of new Arzneimitteldata, are queued in the database. For debuging porposes you might want to keep the job info in the queue table for a while. If set to 'None', finished jobs will remain in the DB forever.",
+        default=60 * 24 * 7,
+    )
     APP_PROVISIONING_DATA_YAML_FILES: Optional[List[str]] = Field(
         default_factory=list,
         description="A list if yaml files to serialize and load into MedLog models and into the DB ",

@@ -9,6 +9,7 @@ from medlogserver.worker.tasks.refresh_token_cleaner import clean_tokens
 from medlogserver.worker.tasks.wido_gkv_arzneimittelindex_importer import (
     background_job_gkv_arzneimittelindex_data,
 )
+from medlogserver.worker.ad_hoc_job_runner import run_adhoc_jobs
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -26,8 +27,8 @@ async def _setup_scheduled_background_tasks(event_loop=None) -> AsyncIOScheduler
         max_instances=1,
     )
     scheduler.add_job(
-        func=background_job_gkv_arzneimittelindex_data,
-        trigger=CronTrigger(minute="*"),
+        func=run_adhoc_jobs,
+        trigger=CronTrigger(second="30"),
         max_instances=1,
     )
     return scheduler

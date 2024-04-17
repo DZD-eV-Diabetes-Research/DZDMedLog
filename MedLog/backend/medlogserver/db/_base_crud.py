@@ -209,7 +209,7 @@ class CRUDBase(
 
     async def update(
         self,
-        update_obj: GenericCRUDUpdateType,
+        update_obj: GenericCRUDUpdateType | GenericCRUDTableType,
         id_: str | UUID = None,
         raise_exception_if_not_exists=None,
     ) -> GenericCRUDReadType:
