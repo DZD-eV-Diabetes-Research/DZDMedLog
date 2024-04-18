@@ -57,7 +57,7 @@ class HealthcheckRead(DatabaseInteractionBase):
         results = await self.session.exec(statement=query)
         if results.first() == 1:
             healthcheck.db_working = True
-        # drug imported?
+        # drugs imported?
         async with AiDataVersionCRUD.crud_context(self.session) as Ai_dataversion_crud:
             Ai_dataversion_crud: AiDataVersionCRUD = Ai_dataversion_crud
             ai_version = await Ai_dataversion_crud.get_current(none_is_ok=True)
