@@ -17,6 +17,10 @@ const userStore = useUserStore()
 const studyStore = useStudyStore();
 const router = useRouter()
 
+async function conductInterview(url:string) {
+    studyStore.listStudies()
+    router.push({ path: "/interview" })
+}
 
 async function showStudies(url:string) {
     studyStore.listStudies()
