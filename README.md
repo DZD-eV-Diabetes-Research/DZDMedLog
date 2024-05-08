@@ -8,10 +8,10 @@
 
 ## How to run
 
-1. 'cd Medlog/frontend'
-1. 'yarn'
-1. 'yarn dev'
+1. `cd Medlog/frontend`
+1. `yarn`
+1. `yarn dev`
 
 1. Add the localhost address to the server.env file
-1. Start the Server
+1. Start the Server (`cd ../..`)
 1. `python3 MedLog/backend/medlogserver/main.py`
