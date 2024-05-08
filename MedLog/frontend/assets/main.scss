@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "./mixins/";
+@import "./variables/";
+@import "./modules/base";
+@import "./modules/typography";
+@import "./modules/form";
+
+body {
+    background-color: white;
+}
