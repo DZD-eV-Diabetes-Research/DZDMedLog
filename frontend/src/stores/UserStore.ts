@@ -45,6 +45,7 @@ export const useUserStore = defineStore('UserStoreNew', {
             catch (err: any) {
                 tokenStore.error = err.response.data.detail
             }
+            
         },
         async toggle_profile() {
             this.viewProfile = !this.viewProfile
@@ -53,6 +54,23 @@ export const useUserStore = defineStore('UserStoreNew', {
                 this.userMe()
             } else {
                 this.buttonText = "Profile"
+            }
+        },
+        async updateUser(payload: any) {
+            const tokenStore = useTokenStore()
+            
+            try {
+                axios.defaults.headers.common = { 'Authorization': "Bearer " + tokenStore.accessToken }
+                await axios.patch("/user/me", {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    "email": payload.email,
+                    "display_name": payload.display_name
+                })
+            }
+            catch (err: any) {
+                tokenStore.error = err.response.data.detail
             }
         }
     },

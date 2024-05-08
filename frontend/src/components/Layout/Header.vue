@@ -37,6 +37,7 @@ export default {
     reset_profile_button(){
       this.userStore.buttonText= "Profile"
       this.userStore.viewProfile = false
+      this.userStore.userMe()
     },
     logout() {
       this.userStore.$reset()

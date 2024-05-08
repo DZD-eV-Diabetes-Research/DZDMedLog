@@ -1,4 +1,7 @@
 <template>
+    <div class="center">
+        <h1>Studien</h1>
+    </div>
     <base-card v-if="!studyStore.studies">
         <h2 v-if="userStore.isAdmin">Aktuell sind keine Studien aufgelistet bitte, legen Sie eine Studie an</h2>
         <h2 v-if="!userStore.isAdmin">Aktuell sind keine Studien aufgelistet bitte, wenden Sie sich an einen Admin</h2>
@@ -14,7 +17,7 @@
         <template #header>
         </template>
         <template #body>
-            <form @submit.prevent="submitForm">
+            <form @submit.prevent="submitStudy">
                 <div class="form__group">
                     <label for="study-name">Studienname</label>
                     <input id="study-name" name="study-name" type="text" v-model.trim="studyName">
@@ -69,7 +72,7 @@ async function submitStudy() {
     }
 }
 
-async function selectStudy(study) {
+async function selectStudy(study:any) {
     router.push("/studies/" + study.name)
 }
 
@@ -99,5 +102,12 @@ async function selectStudy(study) {
 
 .button-container button:hover {
     background-color: #29a329;
+}
+
+.center {
+    text-align: center;
+    margin: auto;
+    width: 50%;
+    padding: 10px;
 }
 </style>

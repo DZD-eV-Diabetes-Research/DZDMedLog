@@ -85,12 +85,60 @@ const routes = [
         }
     },
     {
+        path: '/interview/',
+        name: 'interview',
+        component: ()=>import('./components/UI/Interview/InterviewOverview.vue'),
+        meta: { requiresAuth: true }, 
+        beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+            const tokenStore = useTokenStore()
+            const refreshToken = tokenStore.refreshToken; 
+
+            if (refreshToken) {
+                next();
+            } else {
+                next("/auth");
+            }
+        }
+    },
+    {
+        path: '/interview/:study',
+        name: 'interview_study',
+        component: ()=>import('./components/UI/Interview/InterviewStudy.vue'),
+        meta: { requiresAuth: true }, 
+        beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+            const tokenStore = useTokenStore()
+            const refreshToken = tokenStore.refreshToken; 
+
+            if (refreshToken) {
+                next();
+            } else {
+                next("/auth");
+            }
+        }
+    },
+    {
+        path: '/interview/:study/:interview_id',
+        name: 'interview_study_interview_id',
+        component: ()=>import('./components/UI/Interview/InterviewStudyCampaign.vue'),
+        meta: { requiresAuth: true }, 
+        props: true,
+        beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+            const tokenStore = useTokenStore()
+            const refreshToken = tokenStore.refreshToken; 
+
+            if (refreshToken) {
+                next();
+            } else {
+                next("/auth");
+            }
+        }
+    },
+    {
         path: '/construction',
         name: 'construction',
         component: ()=>import('@/components/UI/PageConstruction.vue'),
         meta: { requiresAuth: true }, 
         beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
-            console.log(to, from);
             const tokenStore = useTokenStore()
             const refreshToken = tokenStore.refreshToken; 
 
