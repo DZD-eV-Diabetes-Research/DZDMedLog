@@ -9,12 +9,22 @@
 <script setup lang="ts">
 
 const studyStore = useStudyStore()
-
 const route = useRoute()
-const study = studyStore.getStudy(route.params.id)
 
+const study = computed(() => {
+    const studyId = route.params.id;
+    return studyStore.studies.items.find(({ id }: { id: string }) => id === studyId);
+});
+
+function test(){
+    console.log("test");
+}
 
 </script>
 
 <style scoped>
+.base-card:hover {
+    background-color: #ededed;
+    cursor: pointer;
+}
 </style>
