@@ -14,12 +14,14 @@ interface Study {
 
 interface MyState {
     studies: Study[],
+    event: string,
 }
 
 export const useStudyStore = defineStore('StudyStoreNew', {
     
     state: (): MyState => ({
         studies: [],
+        event: "",
     }),
     actions: {
         async listStudies(): Promise<void> {
@@ -54,6 +56,21 @@ export const useStudyStore = defineStore('StudyStoreNew', {
                             'Content-Type': 'json',
                         }
                     })
+            }
+            catch (err: any) {
+                tokenStore.error = err.response.data.detail
+            }
+        },
+        async listEvents(studyID:string) {
+            const tokenStore = useTokenStore()
+            tokenStore.error = ""
+
+            try {
+                axios.defaults.headers.common = { 'Authorization': "Bearer " + tokenStore.accessToken }
+
+                const response = await axios.get("study/" + studyID + "/event")
+                this.event = response.data
+                
             }
             catch (err: any) {
                 tokenStore.error = err.response.data.detail

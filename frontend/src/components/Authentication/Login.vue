@@ -16,11 +16,11 @@
 import router from '@/router.ts';
 
 import { useTokenStore } from '@/stores/TokenStore';
-//import { useUserStore } from '@/stores/UserStore';
+import { useUserStore } from '@/stores/UserStore';
 import BaseCard from '@/components/UI/BaseCard.vue';
 
 const tokenStore = useTokenStore();
-//const userStore = useUserStore();
+const userStore = useUserStore();
 
 
 async function submitLogin(response: any): Promise<void> {
@@ -33,12 +33,11 @@ async function submitLogin(response: any): Promise<void> {
     };
     try {
         await tokenStore.login(payload);
-        console.log(payload);
     } catch (error: any) {
         console.log("HEY");
         console.log(error);
     }
-    //userStore.userMe()
+    userStore.userMe()
     router.push("/user")
 }
 

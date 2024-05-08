@@ -7,7 +7,7 @@
     <p v-for="role in userStore.roles">{{ role }}</p>
   </base-card>
   <div class="naked">
-    <button @click="editModal=true" class="edit">Edit</button>
+    <button @click="editModal = true" class="edit">Edit</button>
   </div>
   <modal-vue title="User bearbeiten" :show="editModal" @close="editModal = false" :titleColor="'#42b983'">
         <template #body>
@@ -32,36 +32,46 @@ const userStore = useUserStore()
 
 const editModal = ref<boolean>(false);
 const formIsValid = ref<boolean>(true);
-const studyName = ref<string>("")
+const email = ref<string>("")
 const displayName = ref<string>("")
 
 
-function submitForm(){
-  console.log("Hey")
+async function submitForm() {
+  const payload = {
+    "email": email.value,
+    "display_name": displayName.value
+  }
+  try {
+    await userStore.updateUser(payload);
+    await userStore.userMe();
+  } catch (error: any) {
+    console.log(error.message);
+  }
+
+  editModal.value = false
 }
 
 </script>
 
 <style scoped>
 .naked {
-    display: flex;
-    justify-content: space-between; 
-    align-items: center;
-    margin: 1rem 30rem;
-    border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1rem 30rem;
+  border-radius: 12px;
 }
 
 .edit {
-    background-color: #50e469;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    margin: auto;
+  background-color: #50e469;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  margin: auto;
 }
 
 .edit:hover {
-    background-color: #29a329;
-    color: #fff
+  background-color: #29a329;
+  color: #fff
 }
-
 </style>

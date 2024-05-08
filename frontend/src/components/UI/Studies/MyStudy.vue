@@ -7,17 +7,21 @@
         <p>{{ study }}</p>
     </base-card>
     <div v-if="study" class="naked">
-        <button @click="deleteModal=true" class="mybutton delete">Delete</button>
-        <button @click="editModal=true" class="mybutton edit">Edit</button>
+        <div class="button-container">
+            <button @click="deleteModal = true" class="mybutton delete">Delete</button>
+            <button @click="editModal = true" class="mybutton edit">Edit</button>
+        </div>
     </div>
-    <modal-vue class="delete_modal" title="Studie löschen" :title-color="'#f82727'" :show="deleteModal" @close="deleteModal = false">
+    <modal-vue class="delete_modal" title="Studie löschen" :title-color="'#f82727'" :show="deleteModal"
+        @close="deleteModal = false">
         <template #header>
         </template>
         <template #body>
             <h1>not yet implemented</h1>
         </template>
     </modal-vue>
-    <modal-vue class="edit_modal" title="Studie bearbeiten" :title-color="'#42b983'" :show="editModal" @close="editModal = false">
+    <modal-vue class="edit_modal" title="Studie bearbeiten" :title-color="'#42b983'" :show="editModal"
+        @close="editModal = false">
         <template #header>
         </template>
         <template #body>
@@ -37,23 +41,29 @@ import router from '@/router.ts';
 import { useStudyStore } from '@/stores/StudyStore'
 const studyStore = useStudyStore()
 
-const deleteModal= ref<boolean>(false)
-const editModal= ref<boolean>(false)
+const deleteModal = ref<boolean>(false)
+const editModal = ref<boolean>(false)
 
 const study = computed(() => {
-      const studyName = router.currentRoute.value.params.study;
-      return studyStore.studies.items.find(({ name }: {name:string}) => name === studyName);
-    });
+    const studyName = router.currentRoute.value.params.study;
+    return studyStore.studies.items.find(({ name }: { name: string }) => name === studyName);
+});
 
 </script>
 
 <style scoped>
 .naked {
     display: flex;
-    justify-content: space-between; 
+    justify-content: center;
     align-items: center;
-    margin: 1rem 30rem;
     border-radius: 12px;
+    margin: auto;
+    width: 50%;
+}
+
+.button-container {
+    display: flex;
+    justify-content: center; 
 }
 
 .mybutton {
@@ -61,7 +71,7 @@ const study = computed(() => {
     color: #fff;
     border: none;
     padding: 0.5rem 1rem;
-    margin-right: 1.95rem;
+    margin: 0 10%;
     border-radius: 5px;
 }
 
@@ -88,5 +98,4 @@ const study = computed(() => {
     background-color: #29a329;
     color: #fff
 }
-
 </style>

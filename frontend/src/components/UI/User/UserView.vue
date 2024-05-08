@@ -2,7 +2,7 @@
     <base-card style="text-align: center;">
         <h3>Hello {{ userStore.userName }}</h3>
         <div class="button-container">
-            <button @click="showStudies">Interview durchführen</button>
+            <button @click="conductInterview">Interview durchführen</button>
             <button @click="showStudies">Studien</button>
             <button @click="searchMedicaments">Medikament suchen</button>
         </div>
@@ -26,6 +26,16 @@ function showStudies(): void {
     try {
         studyStore.listStudies()
         router.push("/studies")
+    } catch (err: any) {
+        console.log(err)
+        tokenStore.error = err.response
+    }
+}
+
+function conductInterview(){
+    try {
+        studyStore.listStudies()
+        router.push("/interview")
     } catch (err: any) {
         console.log(err)
         tokenStore.error = err.response
