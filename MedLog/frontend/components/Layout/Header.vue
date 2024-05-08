@@ -3,7 +3,9 @@
     <div class="nav__content">
       <div>
         <div class="nav__title">
-          <a @click="back" class="anchor" href="/">DZD Medlog</a>
+          <NuxtLink class="anchor" to="/user">
+            DZD Medlog
+          </NuxtLink>
         </div>
         <div class="nav__subtitle">
           Your trustworthy medication logging page
@@ -16,7 +18,7 @@
   </header>
   <div class="button-container">
     <button class="logout_button" v-if="tokenStore.loggedIn" @click="logout()">Logout</button>
-    <button class="profile_button" v-if="tokenStore.loggedIn" @click="my_profile()">{{userStore.buttonText}}</button>
+    <button class="profile_button" v-if="tokenStore.loggedIn" @click="my_profile()">{{ userStore.buttonText }}</button>
   </div>
 </template>
 
@@ -26,19 +28,19 @@ const userStore = useUserStore();
 const router = useRouter()
 
 function logout() {
-      this.userStore.$reset()
-      this.tokenStore.$reset()
-      router.push({ path: "/" })
+  this.userStore.$reset()
+  this.tokenStore.$reset()
+  router.push({ path: "/" })
 }
 
 function my_profile() {
-      userStore.toggle_profile()
-      if(userStore.buttonText === "Back"){
-        router.push({ path: "/profile" })
-      } else {
-        router.go(-1)
-      }
-    }
+  userStore.toggle_profile()
+  if (userStore.buttonText === "Back") {
+    router.push({ path: "/profile" })
+  } else {
+    router.go(-1)
+  }
+}
 
 function back() {
   const router = useRouter()
@@ -51,7 +53,7 @@ function back() {
 @import "../../assets/mixins";
 @import "../../assets/variables/breakpoints";
 
-.anchor{  
+.anchor {
   color: #20282D;
   margin-top: var(--space-4);
   font-family: var(--font-family-heading);
