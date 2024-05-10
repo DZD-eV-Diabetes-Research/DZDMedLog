@@ -1,0 +1,18 @@
+#OIDC='{"client_id":"xxxxx","client_secret":"xxxxxxx","discovery_endpoint":"xxxxx"}'
+# This is example data for a local OIDC dev instance of Authentik. see ./test_env  in this repo for more info
+LOG_LEVEL=INFO
+DEBUG_SQL=False
+AUTH_OIDC_PROVIDERS='[{"CLIENT_ID":"FfgBVFx2H11q8Dz6HDmh8ASIuqolKZd7q7IUsZn2","CLIENT_SECRET":"m5WZWMZjZBUCgHTI9puGhIJjebY3iDkMNf4qfd7yrV77NgtbVzKpJWlU32DITbBMgmTxbdOShZAPrH9sjvO71RPZMOOlxCr5C3IAiYMdyKsqV4dapX3bkO23gqNqT1sY","DISCOVERY_ENDPOINT":"http://172.25.0.12:9000/application/o/medlog/.well-known/openid-configuration"}]'
+#AUTH_OIDC_PROVIDERS__0__CLIENT_ID=FfgBVFx2H11q8Dz6HDmh8ASIuqolKZd7q7IUsZn2
+#AUTH_OIDC_PROVIDERS__0__CLIENT_SECRET=m5WZWMZjZBUCgHTI9puGhIJjebY3iDkMNf4qfd7yrV77NgtbVzKpJWlU32DITbBMgmTxbdOShZAPrH9sjvO71RPZMOOlxCr5C3IAiYMdyKsqV4dapX3bkO23gqNqT1sY
+#AUTH_OIDC_PROVIDERS__0__DISCOVERY_ENDPOINT=http://172.25.0.12:9000/application/o/medlog/.well-known/openid-configuration
+#AUTH_OIDC_PROVIDERS__0__JWT_SECRET=osdxfuhv0843thgf38o4uiwtghw09a4tghq423iwzrthfgukrshfgjwerhgfkjgsds
+CLIENT_URL="http://localhost:3000"
+AUTH_JWT_SECRET=osdxfuhv0843thgf38o4uiwtghw09a4tghq423iwzrthfgukrshfgjwerhgfkjgsds
+SERVER_SESSION_SECRET=a89o0üfhq890ühwgiuwagfig2890wefgskdgfhjlkraghvbo3784wtfgrkjgfzlwr
+SERVER_LISTENING_PORT=8888
+ADMIN_USER_PW=password123
+ADMIN_USER_EMAIL=user@test.de
+SERVER_HOSTNAME=localhost:8888
+AUTH_ACCESS_TOKEN_EXPIRES_MINUTES=100000
+APP_PROVISIONING_DATA_YAML_FILES='["MedLog/backend/medlogserver/_demo_data/single_study_demo_data.yaml"]'
