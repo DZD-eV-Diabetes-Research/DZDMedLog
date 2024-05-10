@@ -31,9 +31,7 @@ export const useStudyStore = defineStore('StudyStore', {
                     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
                 })
             
-            this.studies = data
-            console.log(data);
-            
+            this.studies = data            
             }
             catch (err: any) {
                 tokenStore.error = err.response.data.detail
@@ -54,6 +52,11 @@ export const useStudyStore = defineStore('StudyStore', {
             catch (err: any) {
                 tokenStore.error = err.response.data.detail
             }
+        },
+        getStudy(id:string) {
+            
+            const foundItem = this.studies.items.find(item => item.id === id)
+            return foundItem
         }
     },
     persist: true

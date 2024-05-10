@@ -20,9 +20,8 @@ const userStore = useUserStore()
 const studyStore = useStudyStore()
 const router = useRouter()
 
-function selectStudy(a){
-    console.log(a.id);
-    router.push({ path: "/studies/" + a.id })
+function selectStudy(study){
+    router.push({ path: "/studies/" + study.id })
 }
 
 </script>

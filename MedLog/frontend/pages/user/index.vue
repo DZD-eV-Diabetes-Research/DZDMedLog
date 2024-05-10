@@ -5,7 +5,7 @@
         <div class="button-container">
             <button @click="conductInterview()">Interview durchführen</button>
             <button @click="showStudies()">Studien</button>
-            <button @click="searchMedicaments">Medikament suchen</button>
+            <button @click="searchMedicaments()">Medikament suchen</button>
         </div>
     </UIBaseCard>
     </Layout>
@@ -27,7 +27,9 @@ async function showStudies(url:string) {
     router.push({ path: "/studies" })
 }
 
-
+async function searchMedicaments(url:string) {
+    router.push({path: "/search"})
+}
 
 </script>
 
