@@ -29,15 +29,17 @@ You can check if everything went as planned, by typing the following commands in
     9.5.1
 
 
-### I recommend using [Yarn](www.google.com) instead of npm as a package manager, it is faster and more secure
+### I recommend using [Yarn](https://classic.yarnpkg.com/en/docs/install) instead of npm as a package manager, it is faster and more secure
 
-Yarn installation:
+Yarn (v1) installation:
 
-`npm install --global yar`
+    npm install --global yar
 
 Again check the installation via:
 
-`yarn --version`
+    yarn --version
+
+For Version 3+ see the installation [here](https://v3.yarnpkg.com/getting-started/install)
 
 ## Usefull VS-Code Extensions
 
