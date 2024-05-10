@@ -11,7 +11,7 @@ interface UserStore {
 
 }
 
-export const useUserStore = defineStore('UserStore',{
+export const useUserStore = defineStore('UserStore', {
     id: "user-store",
     state: (): UserStore => ({
         email: "",
@@ -25,25 +25,25 @@ export const useUserStore = defineStore('UserStore',{
     actions: {
         async userMe() {
             const tokenStore = useTokenStore()
-            try{
+            try {
                 const runtimeConfig = useRuntimeConfig()
                 const data = await $fetch(runtimeConfig.public.baseURL + "user/me", {
-                method: "GET",
-                headers: {'Authorization': "Bearer " + tokenStore.access_token},
-              })
+                    method: "GET",
+                    headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+                })
 
-            this.email = data.email
-            this.displayName = data.display_name
-            this.roles = data.roles
-            this.userName = data.user_name
+                this.email = data.email
+                this.displayName = data.display_name
+                this.roles = data.roles
+                this.userName = data.user_name
 
-            if (this.roles.includes('medlog-admin')) {
-                this.isAdmin = true
-            };
-              
+                if (this.roles.includes('medlog-admin')) {
+                    this.isAdmin = true
+                };
 
-            } catch(err){
-                console.log(err);   
+
+            } catch (err) {
+                console.log(err);
             }
         },
         async toggle_profile() {
@@ -54,7 +54,7 @@ export const useUserStore = defineStore('UserStore',{
             } else {
                 this.buttonText = "Profile"
             }
-        },    
+        },
     },
     persist: true
 }) 
