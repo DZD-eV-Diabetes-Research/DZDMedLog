@@ -13,12 +13,20 @@ If not alreade installed, install the current [Node.js](https://nodejs.org/en) L
 You can check if everything went as planned, by typing the following commands in your terminal:
 
     node -v
-    ('vXX.XX.X' expected output ) 
 
-and
+<br>
+
+    example output 
+    v21.02.1 
+
+<br>
 
     npm -v
-    ('X.X.X' expected output)
+
+<br>
+
+    example output
+    9.5.1
 
 
 ### I recommend using [Yarn](www.google.com) instead of npm as a package manager, it is faster and more secure
