@@ -45,6 +45,7 @@ from medlogserver.model.wido_gkv_arzneimittelindex import (
     Stamm,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex import AiDataVersionCRUD
+from medlogserver.db.worker_job import WorkerJob
 from medlogserver.log import get_logger
 from medlogserver.config import Config
 from sqlalchemy.dialects.sqlite.aiosqlite import AsyncAdapt_aiosqlite_connection
@@ -151,7 +152,7 @@ async def provision_drug_data():
         )
     elif prov_data_dir is not None:
         log.warning(
-            "'DRUG_TABLE_PROVISIONING_SOURCE_DIR' is defined in config but no source data dir found. Will skip drug data provsioning"
+            f"'DRUG_TABLE_PROVISIONING_SOURCE_DIR' is defined in config (`{prov_data_dir}`) but no source data dir found. Will skip drug data provsioning"
         )
 
 

@@ -150,13 +150,12 @@ class CRUDBase(
         exists_ok: bool = False,
         raise_custom_exception_if_exists: Exception = None,
     ) -> GenericCRUDReadType:
-        log.debug(
-            f"Create {self.get_table_cls().__name__} object of type '{type(obj)}'. Data: <{obj}>"
-        )
+
         if exists_ok and raise_custom_exception_if_exists:
             log.warning(
                 f"'exists_ok' and 'raise_custom_exception_if_exists' are set for creation of '{type(obj)}'. If object exists and 'exists_ok' = True,  it will never raise the Exception."
             )
+
         new_table_obj: GenericCRUDTableType = self.get_table_cls().model_validate(obj)
         self.session.add(new_table_obj)
         try:
@@ -177,6 +176,9 @@ class CRUDBase(
                 if raise_custom_exception_if_exists:
                     raise raise_custom_exception_if_exists
                 raise err
+        log.debug(
+            f"Created {self.get_table_cls().__name__} object of type '{type(obj)}'. Data: <{obj}>"
+        )
         await self.session.refresh(new_table_obj)
         return new_table_obj
 
@@ -207,7 +209,7 @@ class CRUDBase(
 
     async def update(
         self,
-        update_obj: GenericCRUDUpdateType,
+        update_obj: GenericCRUDUpdateType | GenericCRUDTableType,
         id_: str | UUID = None,
         raise_exception_if_not_exists=None,
     ) -> GenericCRUDReadType:

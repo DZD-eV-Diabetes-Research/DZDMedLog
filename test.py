@@ -333,9 +333,6 @@ def GenericTyping():
             self.items = items
             self.order_by = order_by
 
-        def fuck(self):
-            pass
-
     class Event(BaseModel):
         id: int
         name: str
@@ -348,4 +345,15 @@ def GenericTyping():
     print(get_type_hints(EventQueryParams.__init__))
 
 
-dynamic_pageparam_order_by()
+def get_enum_by_str():
+    from enum import Enum
+
+    class MyEnum(str, Enum):
+        ONE = 1
+        TWO = 2
+
+    val = "ONE"
+    print(MyEnum[val].value)
+
+
+get_enum_by_str()

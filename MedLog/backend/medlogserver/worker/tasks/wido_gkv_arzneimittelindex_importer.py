@@ -4,7 +4,7 @@ import os
 import datetime
 import csv
 
-# import dramatiq
+import dramatiq
 import asyncio
 import zipfile
 from pathlib import Path, PurePath
@@ -494,7 +494,7 @@ async def import_wido_gkv_arzneimittelindex_data(
     exist_ok: Annotated[
         bool,
         "Do not import if imported successful in the past",
-    ] = None,
+    ] = False,
 ):
     file_handler = WiDoArzneimittelSourceFileHandler(
         source_file=source_file, source_dir=source_dir
@@ -505,3 +505,20 @@ async def import_wido_gkv_arzneimittelindex_data(
         ),
     )
     await importer.import_arzneimittelindex(exist_ok=exist_ok)
+
+
+async def background_job_gkv_arzneimittelindex_data():
+    log.info(
+        "Start background job ('background_job_gkv_arzneimittelindex_data'): Check and import new arzneimittel index data..."
+    )
+    log.warning(
+        "Background import jobs for gkv_arzneimittelindex_data not yet implemetned. Skip import."
+    )
+    return
+    raise NotImplementedError(
+        "Background import jobs for gkv_arzneimittelindex_data not yet implemetned"
+    )
+    # Todo: you are here. we need to create a new table. sth like 'ai_data_import_jobs' which rows can be created from the userinterface (by uploading a new gkv_arzneimittelindex_data zip)
+    # this backgroundjobn will pick up these, run them and delete the row from ai_data_import_jobs
+    async with get_async_session_context() as session:
+        pass
