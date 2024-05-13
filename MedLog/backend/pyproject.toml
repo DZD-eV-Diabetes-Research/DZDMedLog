@@ -36,7 +36,6 @@ dependencies = [
     "getversion",
     "pip-tools",
     "python-multipart",
-    "dramatiq[all]",
     "apscheduler",
 ]
 dynamic = ["version"]
