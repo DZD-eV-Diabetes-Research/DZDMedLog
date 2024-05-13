@@ -90,7 +90,7 @@ async def create_event(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to create new event",
         )
-    event_create = EventCreate(**event, study_id=study_access.study.id)
+    event_create = EventCreate(**event.model_dump(), study_id=study_access.study.id)
     return await event_crud.create(
         event_create,
         raise_custom_exception_if_exists=HTTPException(

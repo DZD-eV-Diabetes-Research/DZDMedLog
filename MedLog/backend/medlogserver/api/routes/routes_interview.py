@@ -174,7 +174,7 @@ async def create_interview(
             status_code=status.HTTP_401_UNAUTHORIZED,
             details="User not authorized to create interview in this study",
         )
-    create_interview_ = InterviewCreate(**interview)
+    create_interview_ = InterviewCreate(**interview.model_dump())
     create_interview_.event_id = event_id
     return await interview_crud.create(interview)
 

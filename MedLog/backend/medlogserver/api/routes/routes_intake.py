@@ -135,7 +135,7 @@ async def create_intake(
         interview_id=interview_id,
         interview_crud=interview_crud,
     )
-    intake_create = IntakeCreate(**intake)
+    intake_create = IntakeCreate(**intake.model_dump())
     intake_create.interview_id == interview_id
     return await intake_crud.create(intake)
 
