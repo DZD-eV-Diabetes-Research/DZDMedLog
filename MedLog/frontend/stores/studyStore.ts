@@ -38,21 +38,6 @@ export const useStudyStore = defineStore('StudyStore', {
             }
         },
 
-        // async listEvents(studyID: string) {
-        //     const tokenStore = useTokenStore()
-        //     tokenStore.error = ""
-
-        //     try {
-        //         axios.defaults.headers.common = { 'Authorization': "Bearer " + tokenStore.accessToken }
-
-        //         const response = await axios.get("study/" + studyID + "/event")
-        //         this.event = response.data
-
-        //     }
-        //     catch (err: any) {
-        //         tokenStore.error = err.response.data.detail
-        //     }
-        // },
         async getStudy(id:string) {
             
             const foundItem = this.studies.items.find(item => item.id === id)
@@ -76,7 +61,7 @@ export const useStudyStore = defineStore('StudyStore', {
             catch (err: any) {
                 tokenStore.error = err.response.data.detail
             }
-        }
+        },
     },
     persist: true
 })

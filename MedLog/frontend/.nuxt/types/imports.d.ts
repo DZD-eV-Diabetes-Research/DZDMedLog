@@ -111,12 +111,12 @@ declare global {
   const useColorMode: typeof import('../../node_modules/@nuxtjs/color-mode/dist/runtime/composables')['useColorMode']
   const useCookie: typeof import('../../node_modules/nuxt/dist/app/composables/cookie')['useCookie']
   const useCopyToClipboard: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useCopyToClipboard')['useCopyToClipboard']
+  const useCreateEvent: typeof import('../../composables/useCreateEvent')['useCreateEvent']
   const useCssModule: typeof import('../../node_modules/vue')['useCssModule']
   const useCssVars: typeof import('../../node_modules/vue')['useCssVars']
   const useError: typeof import('../../node_modules/nuxt/dist/app/composables/error')['useError']
   const useFetch: typeof import('../../node_modules/nuxt/dist/app/composables/fetch')['useFetch']
   const useFormGroup: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useFormGroup')['useFormGroup']
-  const useGetCurrentDate: typeof import('../../composables/getCurrentDate')['useGetCurrentDate']
   const useHead: typeof import('../../node_modules/@unhead/vue')['useHead']
   const useHeadSafe: typeof import('../../node_modules/@unhead/vue')['useHeadSafe']
   const useHydration: typeof import('../../node_modules/nuxt/dist/app/composables/hydrate')['useHydration']
@@ -151,6 +151,7 @@ declare global {
   const useSlideover: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useSlideover')['useSlideover']
   const useSlots: typeof import('../../node_modules/vue')['useSlots']
   const useState: typeof import('../../node_modules/nuxt/dist/app/composables/state')['useState']
+  const useStringDoc: typeof import('../../composables/stringDoc')['useStringDoc']
   const useStudyStore: typeof import('../../stores/studyStore')['useStudyStore']
   const useTimer: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useTimer')['useTimer']
   const useToast: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useToast')['useToast']
@@ -289,12 +290,12 @@ declare module 'vue' {
     readonly useColorMode: UnwrapRef<typeof import('../../node_modules/@nuxtjs/color-mode/dist/runtime/composables')['useColorMode']>
     readonly useCookie: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/cookie')['useCookie']>
     readonly useCopyToClipboard: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useCopyToClipboard')['useCopyToClipboard']>
+    readonly useCreateEvent: UnwrapRef<typeof import('../../composables/useCreateEvent')['useCreateEvent']>
     readonly useCssModule: UnwrapRef<typeof import('../../node_modules/vue')['useCssModule']>
     readonly useCssVars: UnwrapRef<typeof import('../../node_modules/vue')['useCssVars']>
     readonly useError: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/error')['useError']>
     readonly useFetch: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/fetch')['useFetch']>
     readonly useFormGroup: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useFormGroup')['useFormGroup']>
-    readonly useGetCurrentDate: UnwrapRef<typeof import('../../composables/getCurrentDate')['useGetCurrentDate']>
     readonly useHead: UnwrapRef<typeof import('../../node_modules/@unhead/vue')['useHead']>
     readonly useHeadSafe: UnwrapRef<typeof import('../../node_modules/@unhead/vue')['useHeadSafe']>
     readonly useHydration: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/hydrate')['useHydration']>
@@ -329,6 +330,7 @@ declare module 'vue' {
     readonly useSlideover: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useSlideover')['useSlideover']>
     readonly useSlots: UnwrapRef<typeof import('../../node_modules/vue')['useSlots']>
     readonly useState: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/state')['useState']>
+    readonly useStringDoc: UnwrapRef<typeof import('../../composables/stringDoc')['useStringDoc']>
     readonly useStudyStore: UnwrapRef<typeof import('../../stores/studyStore')['useStudyStore']>
     readonly useTimer: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useTimer')['useTimer']>
     readonly useToast: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useToast')['useToast']>
@@ -460,12 +462,12 @@ declare module '@vue/runtime-core' {
     readonly useColorMode: UnwrapRef<typeof import('../../node_modules/@nuxtjs/color-mode/dist/runtime/composables')['useColorMode']>
     readonly useCookie: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/cookie')['useCookie']>
     readonly useCopyToClipboard: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useCopyToClipboard')['useCopyToClipboard']>
+    readonly useCreateEvent: UnwrapRef<typeof import('../../composables/useCreateEvent')['useCreateEvent']>
     readonly useCssModule: UnwrapRef<typeof import('../../node_modules/vue')['useCssModule']>
     readonly useCssVars: UnwrapRef<typeof import('../../node_modules/vue')['useCssVars']>
     readonly useError: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/error')['useError']>
     readonly useFetch: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/fetch')['useFetch']>
     readonly useFormGroup: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useFormGroup')['useFormGroup']>
-    readonly useGetCurrentDate: UnwrapRef<typeof import('../../composables/getCurrentDate')['useGetCurrentDate']>
     readonly useHead: UnwrapRef<typeof import('../../node_modules/@unhead/vue')['useHead']>
     readonly useHeadSafe: UnwrapRef<typeof import('../../node_modules/@unhead/vue')['useHeadSafe']>
     readonly useHydration: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/hydrate')['useHydration']>
@@ -500,6 +502,7 @@ declare module '@vue/runtime-core' {
     readonly useSlideover: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useSlideover')['useSlideover']>
     readonly useSlots: UnwrapRef<typeof import('../../node_modules/vue')['useSlots']>
     readonly useState: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/state')['useState']>
+    readonly useStringDoc: UnwrapRef<typeof import('../../composables/stringDoc')['useStringDoc']>
     readonly useStudyStore: UnwrapRef<typeof import('../../stores/studyStore')['useStudyStore']>
     readonly useTimer: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useTimer')['useTimer']>
     readonly useToast: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useToast')['useToast']>
