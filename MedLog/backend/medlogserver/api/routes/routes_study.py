@@ -37,7 +37,7 @@ from medlogserver.api.routes.routes_auth import (
     NEEDS_USERMAN_API_INFO,
 )
 
-from medlogserver.model.study import Study, StudyUpdate, StudyCreate
+from medlogserver.model.study import Study, StudyUpdate, StudyCreate, StudyCreateAPI
 from medlogserver.db.study import StudyCRUD
 from medlogserver.model.study_permission import StudyPermisson
 from medlogserver.db.study_permission import StudyPermissonCRUD
@@ -57,7 +57,7 @@ log = get_logger()
 
 fast_api_study_router: APIRouter = APIRouter()
 
-StammQueryParams: Type[QueryParamsInterface] = create_query_params_class(Study)
+StudyQueryParams: Type[QueryParamsInterface] = create_query_params_class(Study)
 
 
 @fast_api_study_router.get(
@@ -72,7 +72,7 @@ async def list_studies(
         user_has_studies_access_map
     ),
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
-    pagination: StammQueryParams = Depends(StammQueryParams),
+    pagination: QueryParamsInterface = Depends(StudyQueryParams),
 ) -> PaginatedResponse[Study]:
 
     # ToDo: This is a pretty cost intensive endpoint/query. Would be a good candiate for some kind of cache. UPDATE: now all logic is in Security(user_has_study_access_map) fix/cache that
@@ -103,12 +103,13 @@ async def list_studies(
     description=f"Create a new study. {NEEDS_ADMIN_API_INFO}",
 )
 async def create_study(
-    study: StudyCreate,
+    study: StudyCreateAPI,
     current_user_is_admin: User = Security(user_is_admin),
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
-) -> User:
+) -> Study:
+    study_create = StudyCreate(**study)
     return await study_crud.create(
-        study,
+        study_create,
         raise_custom_exception_if_exists=HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Study with name '{study.name}' allready exists",

@@ -16,6 +16,7 @@ from medlogserver.model.intake import (
     Intake,
     IntakeCreate,
     IntakeUpdate,
+    IntakeCreateAPI,
 )
 from medlogserver.db.intake import IntakeCRUD
 from medlogserver.api.study_access import (
@@ -113,16 +114,16 @@ async def get_intake(
 ############
 @fast_api_intake_router.post(
     "/study/{study_id}/interview/{interview_id}/intake",
-    response_model=List[Intake],
+    response_model=Intake,
     description=f"Create intake record in certain interview. user must have at least 'interviewer'-permissions on study.",
 )
 async def create_intake(
     interview_id: str,
-    intake: IntakeCreate,
+    intake: IntakeCreateAPI,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> List[Intake]:
+) -> Intake:
     if not study_access.user_has_interviewer_permission:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -134,14 +135,15 @@ async def create_intake(
         interview_id=interview_id,
         interview_crud=interview_crud,
     )
-    intake.interview_id == interview_id
+    intake_create = IntakeCreate(**intake)
+    intake_create.interview_id == interview_id
     return await intake_crud.create(intake)
 
 
 ############
 @fast_api_intake_router.patch(
     "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
-    response_model=List[Intake],
+    response_model=Intake,
     description=f"Update intake record. user must have at least 'interviewer'-permissions on study.",
 )
 async def update_intake(
@@ -151,7 +153,7 @@ async def update_intake(
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> List[Intake]:
+) -> Intake:
     if not study_access.user_has_interviewer_permission:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -163,14 +165,12 @@ async def update_intake(
         interview_id=interview_id,
         interview_crud=interview_crud,
     )
-    intake.interview_id == interview_id
     return await intake_crud.update(intake_id, intake)
 
 
 ############
 @fast_api_intake_router.delete(
     "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
-    response_model=List[Intake],
     description=f"Update intake record. user must have at least 'interviewer'-permissions on study.",
 )
 async def delete_intake(
@@ -179,7 +179,7 @@ async def delete_intake(
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> List[Intake]:
+):
     if not study_access.user_has_interviewer_permission:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

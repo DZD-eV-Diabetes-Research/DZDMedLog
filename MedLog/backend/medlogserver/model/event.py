@@ -21,7 +21,16 @@ _name_annotation = Annotated[
 ]
 
 
-class EventUpdate(MedLogBaseModel, table=False):
+class EventCreateAPI(MedLogBaseModel, table=False):
+    name: _name_annotation = Field(
+        default=None,
+        index=True,
+        unique=True,
+        schema_extra={"examples": ["visit01", "TI12"]},
+    )
+
+
+class EventUpdate(EventCreateAPI, table=False):
     name: Optional[_name_annotation] = Field(
         default=None,
         index=True,
