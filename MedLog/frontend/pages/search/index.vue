@@ -1,5 +1,9 @@
 <template>
     <Layout>
-       <Search/>
+       <DrugSearch/>
     </Layout>
 </template>
+
+<script setup lang="ts">
+
+</script>
