@@ -38,25 +38,44 @@ export const useStudyStore = defineStore('StudyStore', {
             }
         },
 
-        async listEvents(studyID: string) {
+        // async listEvents(studyID: string) {
+        //     const tokenStore = useTokenStore()
+        //     tokenStore.error = ""
+
+        //     try {
+        //         axios.defaults.headers.common = { 'Authorization': "Bearer " + tokenStore.accessToken }
+
+        //         const response = await axios.get("study/" + studyID + "/event")
+        //         this.event = response.data
+
+        //     }
+        //     catch (err: any) {
+        //         tokenStore.error = err.response.data.detail
+        //     }
+        // },
+        async getStudy(id:string) {
+            
+            const foundItem = this.studies.items.find(item => item.id === id)
+            return foundItem
+        },
+
+        async createStudy(display_name: string): Promise<void>{
             const tokenStore = useTokenStore()
             tokenStore.error = ""
-
+            
+            let body = {"display_name": display_name}
+            
             try {
-                axios.defaults.headers.common = { 'Authorization': "Bearer " + tokenStore.accessToken }
-
-                const response = await axios.get("study/" + studyID + "/event")
-                this.event = response.data
-
+                const runtimeConfig = useRuntimeConfig()
+                const data = await $fetch(runtimeConfig.public.baseURL + "study", {
+                    method: "POST",
+                    headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+                    body,
+                })      
             }
             catch (err: any) {
                 tokenStore.error = err.response.data.detail
             }
-        },
-        getStudy(id:string) {
-            
-            const foundItem = this.studies.items.find(item => item.id === id)
-            return foundItem
         }
     },
     persist: true

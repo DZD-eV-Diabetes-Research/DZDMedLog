@@ -22,13 +22,9 @@
                             class="space-y-4"
                             @submit="createStudy">
                         <h3>Studie anlegen</h3>
-                        <UFormGroup label="Display Name" name="display_name">
-                            <UInput v-model="state.display_name" required />
+                        <UFormGroup label="Studienname" name="study_name">
+                            <UInput v-model="state.study_name" required />
                         </UFormGroup>
-                        <UFormGroup label="Abkürzing" name="abbreviation">
-                            <UInput v-model="state.abbreviation" required />
-                        </UFormGroup>
-                        <UCheckbox v-model="state.deactivated" name="deactivated" label="Deactivated" />
                         <UButton type="submit" label="Studie anlegen" color="green" variant="soft"
                             class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
                     </UForm>
@@ -48,23 +44,17 @@ const router = useRouter()
 
 const showModal = ref(false)
 const state = reactive({
-    display_name: "",
-    deactivated: false,
-    no_permissions: false,
-    id: "",
-    abbreviation: ""
+    study_name: "",
 });
 
 const schema = object({
-    display_name: string().required("Required"),
-    abbreviation: string().required("Required"),
+    study_name: string().required("Required"),
 });
 
 function createStudy() {
     showModal.value = false
-    console.log(state.display_name.trim());
-    console.log(state.abbreviation.trim().replace(" ", ""));
-    console.log(state.deactivated)
+    studyStore.createStudy(state.study_name.trim())
+    studyStore.listStudies()
 }
 
 function selectStudy(study) {
