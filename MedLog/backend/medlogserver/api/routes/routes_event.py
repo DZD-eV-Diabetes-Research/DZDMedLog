@@ -21,7 +21,7 @@ from fastapi import Depends, APIRouter
 from medlogserver.db.user import User
 
 
-from medlogserver.model.event import Event, EventUpdate
+from medlogserver.model.event import Event, EventUpdate, EventCreate, EventCreateAPI
 from medlogserver.db.event import EventCRUD
 
 
@@ -81,7 +81,7 @@ async def list_events(
     description=f"Create a new event.",
 )
 async def create_event(
-    event: Event,
+    event: EventCreateAPI,
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
 ) -> Event:
@@ -90,8 +90,9 @@ async def create_event(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to create new event",
         )
+    event_create = EventCreate(**event, study_id=study_access.study.id)
     return await event_crud.create(
-        event,
+        event_create,
         raise_custom_exception_if_exists=HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Event with name '{event.name}' allready exists",

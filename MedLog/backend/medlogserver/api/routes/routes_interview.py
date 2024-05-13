@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Sequence, List, NoReturn
+from typing import Annotated, Sequence, List, NoReturn, Optional
 
 from fastapi import (
     Depends,
@@ -26,6 +26,7 @@ from medlogserver.model.interview import (
     Interview,
     InterviewCreate,
     InterviewUpdate,
+    InterviewCreateAPI,
 )
 from medlogserver.db.interview import InterviewCRUD
 from medlogserver.api.study_access import (
@@ -81,7 +82,7 @@ async def get_interview(
     interview_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> List[Interview]:
+) -> Interview:
     interview = await interview_crud.get(interview_id=interview_id)
     if interview.event_id == event_id:
         return interview
@@ -107,7 +108,7 @@ async def list_interviews_of_proband(
 
 @fast_api_interview_router.get(
     "/study/{study_id}/proband/{proband_id}/interview/last",
-    response_model=Interview,
+    response_model=Optional[Interview],
     description=f"Get the last completed interview of proband.",
     responses={
         status.HTTP_204_NO_CONTENT: {
@@ -119,7 +120,7 @@ async def get_last_completed_interview(
     proband_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> List[Interview]:
+) -> Optional[Interview]:
     interview = await interview_crud.get_last_by_proband(
         study_id=study_access.study.id, proband_external_id=proband_id, completed=True
     )
@@ -134,7 +135,7 @@ async def get_last_completed_interview(
 
 @fast_api_interview_router.get(
     "/study/{study_id}/proband/{proband_id}/interview/current",
-    response_model=Interview,
+    response_model=Optional[Interview],
     description=f"Get the latest non completed interview of proband.",
     responses={
         status.HTTP_204_NO_CONTENT: {
@@ -146,7 +147,7 @@ async def get_last_non_completed_interview(
     proband_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> List[Interview]:
+) -> Optional[Interview]:
     interview = await interview_crud.get_last_by_proband(
         study_id=study_access.study.id, proband_external_id=proband_id, completed=False
     )
@@ -159,20 +160,22 @@ async def get_last_non_completed_interview(
 
 @fast_api_interview_router.post(
     "/study/{study_id}/event/{event_id}/interview",
-    response_model=List[Interview],
+    response_model=Interview,
     description=f"Create new interview",
 )
 async def create_interview(
-    interview: Annotated[InterviewCreate, Body()],
+    interview: Annotated[InterviewCreateAPI, Body()],
     event_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> User:
+) -> Interview:
     if not study_access.user_has_interviewer_permission():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             details="User not authorized to create interview in this study",
         )
+    create_interview_ = InterviewCreate(**interview)
+    create_interview_.event_id = event_id
     return await interview_crud.create(interview)
 
 
@@ -193,7 +196,7 @@ async def update_interview(
             status_code=status.HTTP_401_UNAUTHORIZED,
             details="User not authorized to create interview in this study",
         )
-    interview_from_db = await interview_crud.get(interview_id)
+    interview_from_db: Interview = await interview_crud.get(interview_id)
     if interview_from_db is None or interview_from_db.event_id != event_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -25,8 +25,7 @@ log = get_logger()
 config = Config()
 
 
-class InterviewCreate(MedLogBaseModel, table=False):
-    event_id: str = Field(foreign_key="event.id")
+class InterviewCreateAPI(MedLogBaseModel, table=False):
     proband_external_id: str = Field(
         description="A unique ID given to the proband from the studies external probant management system"
     )
@@ -38,6 +37,10 @@ class InterviewCreate(MedLogBaseModel, table=False):
     interview_number: int = Field(
         description="TB: This field is still kind of mysterious to me. In the user interview video the user just filled it with some number. Maybe a process we can automize (shameless plug: https://git.apps.dzd-ev.org/dzdpythonmodules/ptan)?"
     )
+
+
+class InterviewCreate(InterviewCreateAPI, table=False):
+    event_id: str = Field(foreign_key="event.id")
 
 
 class InterviewUpdate(InterviewCreate, table=False):

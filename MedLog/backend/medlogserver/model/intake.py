@@ -42,15 +42,13 @@ class ConsumedMedsTodayAnswers(str, enum.Enum):
     UNKNOWN = "UNKNOWN"
 
 
-class IntakeCreate(MedLogBaseModel, table=False):
+class IntakeCreateAPI(MedLogBaseModel, table=False):
     """This class/table also saves some extra question for every interview. This is 1-to-1 what the old IDOM software did. and its a mess.
     i fucking hate it. its unflexible, complex and ugly!
     for a future version we need an extra class/table to store extra question on a per study base.
     fields (with meatdata like options) could be defined in json schema. so clients can generate dynamic forms relatively easy.
     """
 
-    id: Optional[uuid.UUID] = Field()
-    interview_id: Optional[str | uuid.UUID] = Field()
     pharmazentralnummer: Annotated[
         str,
         StringConstraints(
@@ -105,7 +103,18 @@ class IntakeCreate(MedLogBaseModel, table=False):
                 )
 
 
-class IntakeUpdate(IntakeCreate, table=False):
+class IntakeCreate(IntakeCreateAPI, table=False):
+    """This class/table also saves some extra question for every interview. This is 1-to-1 what the old IDOM software did. and its a mess.
+    i fucking hate it. its unflexible, complex and ugly!
+    for a future version we need an extra class/table to store extra question on a per study base.
+    fields (with meatdata like options) could be defined in json schema. so clients can generate dynamic forms relatively easy.
+    """
+
+    id: Optional[uuid.UUID] = Field()
+    interview_id: Optional[str | uuid.UUID] = Field()
+
+
+class IntakeUpdate(IntakeCreateAPI, table=False):
     pass
 
 
