@@ -56,7 +56,7 @@ class StudyUpdate(StudyCreateAPI):
 
 
 class StudyCreate(StudyUpdate):
-    id: Optional[uuid.UUID] = Field()
+    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4)
 
 
 class Study(StudyCreate, BaseTable, table=True):

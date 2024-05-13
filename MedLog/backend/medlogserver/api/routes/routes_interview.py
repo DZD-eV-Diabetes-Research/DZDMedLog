@@ -174,9 +174,11 @@ async def create_interview(
             status_code=status.HTTP_401_UNAUTHORIZED,
             details="User not authorized to create interview in this study",
         )
-    create_interview_ = InterviewCreate(**interview.model_dump())
-    create_interview_.event_id = event_id
-    return await interview_crud.create(interview)
+    interview_create = InterviewCreate(
+        event_id=event_id, **interview.model_dump(exclude_unset=True)
+    )
+    # create_interview_.event_id = event_id
+    return await interview_crud.create(interview_create)
 
 
 @fast_api_interview_router.patch(

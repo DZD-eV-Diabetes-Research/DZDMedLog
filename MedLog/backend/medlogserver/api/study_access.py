@@ -39,6 +39,7 @@ class UserStudyAccess:
         self,
         as_role: Literal[None, "admin", "viewer", "interviewer"] = "viewer",
     ):
+        log.debug(f"USER '{self.user}' IS ADMIN: {self.user.is_admin()}")
         if self.user.is_admin():
             return True
         elif self.study.no_permissions:
@@ -59,11 +60,11 @@ class UserStudyAccess:
             elif as_role == "admin":
                 return self.user_study_perm.is_study_admin
 
-    def user_has_interviewer_permission(self):
-        self.user_has_access(as_role="interviewer")
+    def user_has_interviewer_permission(self) -> bool:
+        return self.user_has_access(as_role="interviewer")
 
-    def user_is_study_admin(self):
-        self.user_has_access(as_role="admin")
+    def user_is_study_admin(self) -> bool:
+        return self.user_has_access(as_role="admin")
 
     def user_can_manage_study_permissions(self) -> bool:
         if self.user.is_usermanager() or self.user_is_study_admin():

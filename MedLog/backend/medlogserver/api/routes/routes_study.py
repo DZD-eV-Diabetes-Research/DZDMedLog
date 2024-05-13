@@ -107,7 +107,7 @@ async def create_study(
     current_user_is_admin: User = Security(user_is_admin),
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
 ) -> Study:
-    study_create = StudyCreate(**study.model_dump())
+    study_create = StudyCreate(**study.model_dump(exclude_unset=True))
     return await study_crud.create(
         study_create,
         raise_custom_exception_if_exists=HTTPException(

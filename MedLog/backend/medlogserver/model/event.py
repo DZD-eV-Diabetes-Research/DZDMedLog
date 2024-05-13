@@ -52,7 +52,7 @@ class EventCreate(EventUpdate, table=False):
     )
 
     study_id: UUID = Field(foreign_key="study.id")
-    id: Optional[uuid.UUID] = Field()
+    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4)
 
 
 class EventRead(EventCreate, table=False):

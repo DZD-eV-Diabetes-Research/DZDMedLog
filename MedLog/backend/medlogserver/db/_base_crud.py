@@ -155,7 +155,6 @@ class CRUDBase(
             log.warning(
                 f"'exists_ok' and 'raise_custom_exception_if_exists' are set for creation of '{type(obj)}'. If object exists and 'exists_ok' = True,  it will never raise the Exception."
             )
-
         new_table_obj: GenericCRUDTableType = self.get_table_cls().model_validate(obj)
         self.session.add(new_table_obj)
         try:
