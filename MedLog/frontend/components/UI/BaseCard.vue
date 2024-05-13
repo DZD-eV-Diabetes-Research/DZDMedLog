@@ -6,6 +6,7 @@
 
 <style scoped>
 div {
+    text-align: center;
     margin: 2rem auto;
     max-width: 40rem;
     padding: 1rem;
