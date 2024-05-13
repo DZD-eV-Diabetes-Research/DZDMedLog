@@ -112,7 +112,7 @@ async def create_study(
         study_create,
         raise_custom_exception_if_exists=HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Study with name '{study.name}' allready exists",
+            detail=f"Study with name '{study.display_name}' allready exists",
         ),
     )
 
