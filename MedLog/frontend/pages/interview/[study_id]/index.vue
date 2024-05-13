@@ -51,9 +51,6 @@ function newInterview(item) {
 function createEvent() {
 
     useCreateEvent(state.name.trim(), route.params.study_id)
-    
-    console.log(route.params.study_id);
-    console.log(state.name.trim());
     showModal.value = false
 }
 
