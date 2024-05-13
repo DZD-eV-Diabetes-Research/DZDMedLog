@@ -25,8 +25,9 @@ export const useTokenStore = defineStore('TokenStore',{
             body.append("username", username) 
             body.append("password", password)
           
+            const runtimeConfig = useRuntimeConfig()
             try{
-              const data = await $fetch("http://localhost:8888/auth/token", {
+              const data = await $fetch(runtimeConfig.public.baseURL + "auth/token", {
                 method: "POST",
                 body,
               }) 
