@@ -1,6 +1,12 @@
 from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated, Dict
 import enum
-from pydantic import validate_email, field_validator, model_validator, StringConstraints
+from pydantic import (
+    validate_email,
+    field_validator,
+    model_validator,
+    StringConstraints,
+    ValidationInfo,
+)
 from fastapi import Depends
 from typing import Optional
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc
@@ -101,6 +107,7 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
                 raise ValueError(
                     "When choosing 'as needed' intake, regular_intervall_of_daily_dose must be empty"
                 )
+        return self
 
 
 class IntakeCreate(IntakeCreateAPI, table=False):
@@ -110,8 +117,13 @@ class IntakeCreate(IntakeCreateAPI, table=False):
     fields (with meatdata like options) could be defined in json schema. so clients can generate dynamic forms relatively easy.
     """
 
-    id: Optional[uuid.UUID] = Field()
-    interview_id: Optional[str | uuid.UUID] = Field()
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    interview_id: uuid.UUID = Field(foreign_key="interview.id")
+
+    @field_validator("interview_id")
+    @classmethod
+    def foreign_key_to_uuid(cls, v: str | uuid.UUID, info: ValidationInfo) -> uuid.UUID:
+        return MedLogBaseModel.id_to_uuid(v, info)
 
 
 class IntakeUpdate(IntakeCreateAPI, table=False):
@@ -120,7 +132,6 @@ class IntakeUpdate(IntakeCreateAPI, table=False):
 
 class Intake(IntakeCreate, BaseTable, table=True):
     __tablename__ = "intake"
-    interview_id: uuid.UUID = Field(foreign_key="interview.id")
     pharmazentralnummer: Annotated[
         str,
         StringConstraints(

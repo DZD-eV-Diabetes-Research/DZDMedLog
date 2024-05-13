@@ -1,5 +1,11 @@
 from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated
-from pydantic import validate_email, validator, StringConstraints
+from pydantic import (
+    validate_email,
+    validator,
+    StringConstraints,
+    field_validator,
+    ValidationInfo,
+)
 from pydantic_core import PydanticCustomError
 from fastapi import Depends
 import contextlib
@@ -61,6 +67,11 @@ class StudyPermissonBase(StudyPermissonUpdate, table=False):
         default=False,
         description="Study admins can give access to the study to new users.",
     )
+
+    @field_validator("user_id", "study_id")
+    @classmethod
+    def foreign_key_to_uuid(cls, v: str | uuid.UUID, info: ValidationInfo) -> uuid.UUID:
+        return MedLogBaseModel.id_to_uuid(v, info)
 
 
 class StudyPermissionRead(StudyPermissonBase, table=False):

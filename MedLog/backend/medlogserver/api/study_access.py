@@ -39,7 +39,6 @@ class UserStudyAccess:
         self,
         as_role: Literal[None, "admin", "viewer", "interviewer"] = "viewer",
     ):
-        log.debug(f"USER '{self.user}' IS ADMIN: {self.user.is_admin()}")
         if self.user.is_admin():
             return True
         elif self.study.no_permissions:

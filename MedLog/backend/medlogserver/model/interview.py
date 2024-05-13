@@ -1,5 +1,11 @@
 from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated
-from pydantic import validate_email, validator, StringConstraints
+from pydantic import (
+    validate_email,
+    validator,
+    StringConstraints,
+    field_validator,
+    ValidationInfo,
+)
 from pydantic_core import PydanticCustomError
 from fastapi import Depends
 import contextlib
@@ -40,7 +46,12 @@ class InterviewCreateAPI(MedLogBaseModel, table=False):
 
 
 class InterviewCreate(InterviewCreateAPI, table=False):
-    event_id: str = Field(foreign_key="event.id")
+    event_id: uuid.UUID = Field(foreign_key="event.id")
+
+    @field_validator("event_id")
+    @classmethod
+    def foreign_key_to_uuid(cls, v: str | uuid.UUID, info: ValidationInfo) -> uuid.UUID:
+        return MedLogBaseModel.id_to_uuid(v, info)
 
 
 class InterviewUpdate(InterviewCreate, table=False):

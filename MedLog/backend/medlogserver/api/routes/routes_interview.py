@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Sequence, List, NoReturn, Optional
-
+import uuid
 from fastapi import (
     Depends,
     Security,
@@ -28,7 +28,10 @@ from medlogserver.model.interview import (
     InterviewUpdate,
     InterviewCreateAPI,
 )
+
 from medlogserver.db.interview import InterviewCRUD
+from medlogserver.model.event import Event
+from medlogserver.db.event import EventCRUD
 from medlogserver.api.study_access import (
     user_has_studies_access_map,
     user_has_study_access,
@@ -167,6 +170,7 @@ async def create_interview(
     interview: Annotated[InterviewCreateAPI, Body()],
     event_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
+    event_crud: EventCRUD = Depends(EventCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> Interview:
     if not study_access.user_has_interviewer_permission():
@@ -174,8 +178,15 @@ async def create_interview(
             status_code=status.HTTP_401_UNAUTHORIZED,
             details="User not authorized to create interview in this study",
         )
+    event: Event = await event_crud.get(
+        event_id,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No event found with id '{event_id}'",
+        ),
+    )
     interview_create = InterviewCreate(
-        event_id=event_id, **interview.model_dump(exclude_unset=True)
+        event_id=event.id, **interview.model_dump(exclude_unset=True)
     )
     # create_interview_.event_id = event_id
     return await interview_crud.create(interview_create)

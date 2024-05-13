@@ -1,15 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Sequence, List, NoReturn
 
-from fastapi import (
-    Depends,
-    Security,
-    HTTPException,
-    status,
-)
-
-
-from fastapi import Depends, APIRouter
+from fastapi import Depends, Security, APIRouter, HTTPException, status, Body, Path
+import uuid
 
 from medlogserver.db.interview import InterviewCRUD
 from medlogserver.model.intake import (
@@ -118,8 +111,8 @@ async def get_intake(
     description=f"Create intake record in certain interview. user must have at least 'interviewer'-permissions on study.",
 )
 async def create_intake(
-    interview_id: str,
-    intake: IntakeCreateAPI,
+    intake: Annotated[IntakeCreateAPI, Body()],
+    interview_id: Annotated[str, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
@@ -135,9 +128,12 @@ async def create_intake(
         interview_id=interview_id,
         interview_crud=interview_crud,
     )
-    intake_create = IntakeCreate(**intake.model_dump())
-    intake_create.interview_id == interview_id
-    return await intake_crud.create(intake)
+    log.debug(f"create_intake(): intake: {intake}")
+    log.debug(f"interview_id: {interview_id}")
+    # ToDo: Casting to uuid is a hotfix here. it should be validated/transformed in the model itself
+    # interview_id = uuid.UUID(interview_id)
+    intake_create = IntakeCreate(interview_id=interview_id, **intake.model_dump())
+    return await intake_crud.create(intake_create)
 
 
 ############

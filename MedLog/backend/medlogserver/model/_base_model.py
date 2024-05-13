@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import Field
+from pydantic import Field, field_validator, ValidationInfo
 from sqlalchemy import text
 import uuid
 
@@ -18,8 +18,15 @@ import uuid
 
 
 class MedLogBaseModel(SQLModel):
-    # Abstaractiion layer for SQLModel to be able to introduce global changes later
-    pass
+    # Absolute base class. All model classes will inherhit from this class.
+
+    # cast all ids to UUIDs
+    @field_validator("id", check_fields=False)
+    @classmethod
+    def id_to_uuid(cls, v: str | uuid.UUID, info: ValidationInfo) -> uuid.UUID:
+        if isinstance(v, str):
+            v = uuid.UUID(v)
+        return v
 
 
 """ 

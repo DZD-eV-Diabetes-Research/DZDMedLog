@@ -103,14 +103,13 @@ class InterviewCRUD(
         query = (
             select(Event)
             .join(Interview)
-            .where(
-                Event.id == Interview.event_id
-                and Event.study_id == study_id
-                and Interview.id == interview_id
-            )
+            .where(Event.study_id == study_id and Interview.id == interview_id)
         )
+        log.debug(f"##query: {query}")
         results = await self.session.exec(statement=query)
+
         event: Event | None = results.first()
+        log.debug(f"##query: {query} \nRESULT: {event}")
         if event is None:
             if raise_exception_if_not:
                 raise raise_exception_if_not

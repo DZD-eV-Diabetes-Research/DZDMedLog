@@ -1,5 +1,11 @@
 from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated
-from pydantic import validate_email, validator, StringConstraints
+from pydantic import (
+    validate_email,
+    validator,
+    StringConstraints,
+    field_validator,
+    ValidationInfo,
+)
 from fastapi import Depends
 from typing import Optional
 from sqlmodel import Field
@@ -53,6 +59,11 @@ class EventCreate(EventUpdate, table=False):
 
     study_id: UUID = Field(foreign_key="study.id")
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4)
+
+    @field_validator("study_id")
+    @classmethod
+    def foreign_key_to_uuid(cls, v: str | uuid.UUID, info: ValidationInfo) -> uuid.UUID:
+        return MedLogBaseModel.id_to_uuid(v, info)
 
 
 class EventRead(EventCreate, table=False):
