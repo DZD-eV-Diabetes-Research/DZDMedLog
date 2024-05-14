@@ -23,7 +23,9 @@ config = Config()
 
 _name_annotation = Annotated[
     str,
-    StringConstraints(strip_whitespace=True, pattern=r"^[a-zA-Z0-9-]+$", max_length=64),
+    StringConstraints(
+        strip_whitespace=True, pattern=r"^[a-zA-Z0-9- ]+$", max_length=64
+    ),
 ]
 
 
