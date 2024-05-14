@@ -1,6 +1,6 @@
 <template>
     <Layout>
-        <UIBaseCard @click="newInterview(item)" v-for="item in [...events.items].reverse()" style="text-align: center">
+        <UIBaseCard @click="newInterview(item)" v-for="item in reversedEvents" style="text-align: center">
             <h3>{{ useStringDoc(item.name) }}</h3>
         </UIBaseCard>
         <UIBaseCard v-if="userStore.isAdmin" class="noHover">
@@ -25,7 +25,11 @@
 <script setup lang="ts">
 
 import { object, string, type InferType } from "yup";
+import { computed } from 'vue';
 
+const reversedEvents = computed(() => {
+    return [...events.value.items].reverse();
+});
 
 const userStore = useUserStore()
 const tokenStore = useTokenStore()
@@ -39,7 +43,7 @@ const schema = object({
     name: string().required("Required"),
 });
 
-const { data: events } = await useFetch(`http://localhost:8888/study/${route.params.study_id}/event`, {
+const { data: events, refresh } = await useFetch(`http://localhost:8888/study/${route.params.study_id}/event`, {
     method: "GET",
     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
@@ -48,10 +52,14 @@ function newInterview(item) {
     router.push({ path: "/interview/" + route.params.study_id + '/event/' + item.id })
 }
 
-function createEvent() {
-
-    useCreateEvent(state.name.trim(), route.params.study_id)
-    showModal.value = false
+async function createEvent() {
+    try {
+        await useCreateEvent(state.name.trim(), route.params.study_id);
+        showModal.value = false;
+        await refresh();
+    } catch (error) {
+        console.error("Failed to create event: ", error);
+    }
 }
 
 </script>

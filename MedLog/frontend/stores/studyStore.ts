@@ -39,7 +39,7 @@ export const useStudyStore = defineStore('StudyStore', {
         },
 
         async getStudy(id:string) {
-            
+            console.log("here");
             const foundItem = this.studies.items.find(item => item.id === id)
             return foundItem
         },
