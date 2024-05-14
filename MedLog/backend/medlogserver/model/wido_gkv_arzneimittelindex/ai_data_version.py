@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional
+from typing import Optional, List, Self
 from datetime import datetime
 from sqlmodel import Field, SQLModel, UniqueConstraint, Relationship
 from sqlalchemy import String, Integer, Column
@@ -16,6 +16,10 @@ class AiDataVersion(MedLogBaseModel, BaseTable, table=True):
         DrugModelTableBase (_type_): _description_
         table (bool, optional): _description_. Defaults to True.
     """
+
+    @classmethod
+    def get_static_data(self) -> List[Self]:
+        return []
 
     __tablename__ = "ai_dataversion"
     __table_args__ = (
