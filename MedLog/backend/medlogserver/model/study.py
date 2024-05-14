@@ -26,6 +26,7 @@ class StudyCreateAPI(MedLogBaseModel, table=False):
         default=None,
         index=True,
         max_length=128,
+        unique=True,
         schema_extra={
             "examples": [
                 "Prädiabetes-Lebensstil-Interventions-Studie (PLIS)",
@@ -40,17 +41,7 @@ class StudyCreateAPI(MedLogBaseModel, table=False):
 
 
 class StudyUpdate(StudyCreateAPI):
-    display_name: Optional[str] = Field(
-        default=None,
-        index=True,
-        max_length=128,
-        schema_extra={
-            "examples": [
-                "Prädiabetes-Lebensstil-Interventions-Studie (PLIS)",
-                "BARIA-DDZ-Studie",
-            ]
-        },
-    )
+    pass
 
     deactivated: bool = Field(default=False)
 
