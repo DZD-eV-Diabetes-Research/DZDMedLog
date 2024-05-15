@@ -36,9 +36,10 @@ class InterviewCreateAPI(MedLogBaseModel, table=False):
         description="A unique ID given to the proband from the studies external probant management system"
     )
     interview_start_time_utc: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Defaults to current time.",
     )
-    interview_end_time_utc: datetime = Field(default=None)
+    interview_end_time_utc: Optional[datetime] = Field(default=None)
     proband_has_taken_meds: bool = Field()
     interview_number: int = Field(
         description="TB: This field is still kind of mysterious to me. In the user interview video the user just filled it with some number. Maybe a process we can automize (shameless plug: https://git.apps.dzd-ev.org/dzdpythonmodules/ptan)?"
