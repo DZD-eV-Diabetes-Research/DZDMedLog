@@ -9,11 +9,12 @@ export async function useCreateInterview(study_id:string, event_id:string, proba
 
     try {
         const runtimeConfig = useRuntimeConfig()
-        const data = await $fetch(runtimeConfig.public.baseURL + "study/" + study_id + "/event/" + event_id + "/interview", {
+        const response = await $fetch(runtimeConfig.public.baseURL + "study/" + study_id + "/event/" + event_id + "/interview", {
             method: "POST",
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
             body,
-        })      
+        })
+        return response     
     }
     catch (err: any) {
         tokenStore.error = err.response.data.detail

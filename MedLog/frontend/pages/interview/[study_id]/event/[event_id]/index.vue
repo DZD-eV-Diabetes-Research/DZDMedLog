@@ -1,6 +1,6 @@
 <template>
     <Layout>
-        <UIBaseCard style="text-align: center">
+        <UIBaseCard style="text-align: center" class="noHover">
             <UButton 
                 @click="showModal = true"
                 label="New Interview"
@@ -27,7 +27,7 @@
                     </div>
                 </UModal>
         </UIBaseCard>
-        <UIBaseCard v-for="interview in interviews">
+        <UIBaseCard @click="seeStuff(interview)" v-for="interview in interviews">
             <h5>Interview Number: {{ interview.interview_number }}</h5>
             <p>Probanden-ID: {{ interview.proband_external_id }}</p>
         </UIBaseCard>
@@ -64,6 +64,11 @@ const schema = object({
     interviewNumber: number().required("Required")
 });
 
+async function seeStuff(interview) {
+    console.log(interview);
+}
+
+
 async function createInterview() { 
     let takenMeds
         if (selected.value === "true"){
@@ -86,3 +91,17 @@ const { data: interviews, refresh } = await useFetch(`http://localhost:8888/stud
 })
 
 </script>
+
+<style scoped>
+
+.base-card:hover {
+    background-color: #ededed;
+    cursor: pointer;
+}
+
+.noHover:hover {
+    background-color: white;
+    cursor: default;
+}
+
+</style>
