@@ -7,7 +7,8 @@ interface UserStore {
     userName: string,
     isAdmin: boolean,
     viewProfile: boolean,
-    buttonText: string
+    buttonText: string,
+    userID: string
 
 }
 
@@ -20,7 +21,8 @@ export const useUserStore = defineStore('UserStore', {
         userName: "",
         isAdmin: false,
         viewProfile: false,
-        buttonText: "Profile"
+        buttonText: "Profile",
+        userID: ""
     }),
     actions: {
         async userMe() {
@@ -36,6 +38,7 @@ export const useUserStore = defineStore('UserStore', {
                 this.displayName = data.display_name
                 this.roles = data.roles
                 this.userName = data.user_name
+                this.userID = data.id
 
                 if (this.roles.includes('medlog-admin')) {
                     this.isAdmin = true
