@@ -33,7 +33,7 @@ You can check if everything went as planned, by typing the following commands in
 
 Yarn (v1) installation:
 
-    npm install --global yar
+    npm install --global yarn
 
 Again check the installation via:
 
