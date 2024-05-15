@@ -8,7 +8,7 @@
                     <UForm :schema="interviewSchema" :state="interviewState" class="space-y-4"
                         @submit="createInterview()">
                         <h3>Neues Interview anlegen für</h3>
-                        <h4>{{ useStringDoc(currentItem.name) }}</h4>
+                        <h4>{{ currentItem?.name ? useStringDoc(currentItem.name) : '' }} </h4>
                         <UFormGroup label="Probanden-ID" name="subjectID">
                             <UInput v-model="interviewState.subjectID" required />
                         </UFormGroup>
