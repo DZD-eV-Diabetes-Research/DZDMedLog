@@ -86,7 +86,7 @@ async def get_interview(
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> Interview:
-    interview = await interview_crud.get(interview_id=interview_id)
+    interview: Interview = await interview_crud.get(interview_id)
     if interview.event_id == event_id:
         return interview
     else:
