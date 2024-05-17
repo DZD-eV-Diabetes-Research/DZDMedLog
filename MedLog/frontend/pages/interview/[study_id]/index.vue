@@ -89,7 +89,9 @@ const eventSchema = object({
     name: string().required("Required"),
 });
 
-const { data: events, refresh } = await useFetch(`http://localhost:8888/study/${route.params.study_id}/event`, {
+const runtimeConfig = useRuntimeConfig()
+
+const { data: events, refresh } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event`, {
     method: "GET",
     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
@@ -128,7 +130,7 @@ async function createInterview() {
 
 watch(showInterviewModal, (newValue) => {
     if (!newValue) {
-        currentItem.value = null; // Reset the currentItem when the modal is closed
+        currentItem.value = null; 
     }
 });
 
