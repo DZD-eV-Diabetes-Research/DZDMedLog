@@ -37,7 +37,7 @@ fast_api_intake_router: APIRouter = APIRouter()
     description=f"List all medicine intakes of one probands last completed interview.",
 )
 async def list_all_intakes_of_last_completed_interview(
-    proband_id: str,
+    proband_id: uuid.UUID,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ) -> List[Intake]:
@@ -53,7 +53,7 @@ async def list_all_intakes_of_last_completed_interview(
     description=f"List all medicine intakes of one probands last completed interview.",
 )
 async def list_all_intakes_of_last_uncompleted_interview(
-    proband_id: str,
+    proband_id: uuid.UUID,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
@@ -74,7 +74,7 @@ async def list_all_intakes_of_last_uncompleted_interview(
     description=f"List all medicine intakes of interview.",
 )
 async def list_all_intakes_of_interview(
-    interview_id: str,
+    interview_id: uuid.UUID,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
@@ -92,8 +92,8 @@ async def list_all_intakes_of_interview(
     description=f"Get a certain intake record by it id",
 )
 async def get_intake(
-    interview_id: str,
-    intake_id: str,
+    interview_id: uuid.UUID,
+    intake_id: uuid.UUID,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ) -> Intake:
@@ -143,8 +143,8 @@ async def create_intake(
     description=f"Update intake record. user must have at least 'interviewer'-permissions on study.",
 )
 async def update_intake(
-    interview_id: str,
-    intake_id: str,
+    interview_id: uuid.UUID,
+    intake_id: uuid.UUID,
     intake: IntakeUpdate,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
@@ -170,8 +170,8 @@ async def update_intake(
     description=f"Update intake record. user must have at least 'interviewer'-permissions on study.",
 )
 async def delete_intake(
-    interview_id: str,
-    intake_id: str,
+    interview_id: uuid.UUID,
+    intake_id: uuid.UUID,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),

@@ -1,6 +1,6 @@
 from typing import Annotated, Sequence, List, Type
 from datetime import datetime, timedelta, timezone
-
+import uuid
 
 from fastapi import (
     Depends,
@@ -106,7 +106,7 @@ async def create_event(
     description=f"Update existing event",
 )
 async def update_event(
-    event_id: str,
+    event_id: uuid.UUID,
     event: EventUpdate,
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
@@ -136,7 +136,7 @@ async def update_event(
     },
 )
 async def delete_event(
-    event_id: str,
+    event_id: uuid.UUID,
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
 ):

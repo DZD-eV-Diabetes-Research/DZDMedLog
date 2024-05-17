@@ -1,6 +1,6 @@
 from typing import Annotated, Sequence, List, NoReturn, Type
 from datetime import datetime, timedelta, timezone
-
+import uuid
 
 from fastapi import (
     Depends,
@@ -85,7 +85,7 @@ async def list_study_permissions(
     description=f"List all medicine intakes of one probands last completed interview.",
 )
 async def get_permission_details(
-    permission_id: str,
+    permission_id: uuid.UUID,
     study_access: UserStudyAccess = Security(user_has_study_access),
     permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
 ) -> StudyPermisson:
@@ -108,7 +108,7 @@ async def get_permission_details(
     description=f"Create or update new study permision for a user.",
 )
 async def create_or_update_permission(
-    user_id: str,
+    user_id: uuid.UUID,
     study_perm: StudyPermissonUpdate,
     study_access: UserStudyAccess = Security(user_has_study_access),
     permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),

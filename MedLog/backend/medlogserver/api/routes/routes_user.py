@@ -1,6 +1,6 @@
 from typing import Annotated, Sequence, List, Type
 from datetime import datetime, timedelta, timezone
-
+import uuid
 
 from fastapi import Depends, Security, FastAPI, HTTPException, status, Query, Body, Form
 from fastapi.security import OAuth2PasswordRequestForm
@@ -197,7 +197,7 @@ async def set_my_password(
     description=f"Get account data from a user by its id. {NEEDS_USERMAN_API_INFO}",
 )
 async def get_user(
-    user_id: str,
+    user_id: uuid.UUID,
     current_user: bool = Security(user_is_usermanager),
     user_crud: UserCRUD = Depends(UserCRUD.get_crud),
 ) -> User:
@@ -210,7 +210,7 @@ async def get_user(
     description=f"Get account data from a user by its id. {NEEDS_USERMAN_API_INFO}",
 )
 async def update_user(
-    user_id: str,
+    user_id: uuid.UUID,
     patched_user: Annotated[
         UserUpdateByAdmin, Body(description="The user object with changed data")
     ],
@@ -226,7 +226,7 @@ async def update_user(
     description=f"Set a local users password. If the user is provisioned via an external OpenID Connect provider this does nothing except the return value will be `false`.  {NEEDS_USERMAN_API_INFO}",
 )
 async def set_user_password(
-    user_id: str,
+    user_id: uuid.UUID,
     new_password: str = Form(default=None),
     new_password_repeated: str = Form(
         default=None,

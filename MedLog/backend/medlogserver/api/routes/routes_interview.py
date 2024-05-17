@@ -68,7 +68,7 @@ async def list_all_interviews_of_study(
     description=f"List all interviews of an event.",
 )
 async def list_interviews_by_study_event(
-    event_id: Annotated[str, Path()],
+    event_id: Annotated[uuid.UUID, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Interview]:
@@ -81,12 +81,13 @@ async def list_interviews_by_study_event(
     description=f"Get a certain interview by its id.",
 )
 async def get_interview(
-    event_id: Annotated[str, Path()],
-    interview_id: Annotated[str, Path()],
+    event_id: Annotated[uuid.UUID, Path()],
+    interview_id: Annotated[uuid.UUID, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> Interview:
     interview: Interview = await interview_crud.get(interview_id)
+    log.info((interview.event_id, event_id, interview.event_id == event_id))
     if interview.event_id == event_id:
         return interview
     else:
@@ -198,8 +199,8 @@ async def create_interview(
     description=f"Update existing interview",
 )
 async def update_interview(
-    interview_id: str,
-    event_id: str,
+    interview_id: uuid.UUID,
+    event_id: uuid.UUID,
     interview_update: InterviewUpdate,
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
@@ -228,8 +229,8 @@ async def update_interview(
     },
 )
 async def delete_interview(
-    interview_id: str,
-    event_id: str,
+    interview_id: uuid.UUID,
+    event_id: uuid.UUID,
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> None:
