@@ -21,7 +21,9 @@ const tokenStore = useTokenStore()
 const route = useRoute()
 const study = await studyStore.getStudy(route.params.id)
 
-const { data: interviews, refresh } = await useFetch(`http://localhost:8888/study/${route.params.id}/interview`, {
+const runtimeConfig = useRuntimeConfig()
+
+const { data: interviews, refresh } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.id}/interview`, {
     method: "GET",
     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
