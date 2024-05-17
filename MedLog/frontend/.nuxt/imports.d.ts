@@ -28,6 +28,7 @@ export { withCtx, withDirectives, withKeys, withMemo, withModifiers, withScopeId
 export { injectHead, useHead, useSeoMeta, useHeadSafe, useServerHead, useServerSeoMeta, useServerHeadSafe } from '@unhead/vue';
 export { useStringDoc } from '../composables/stringDoc';
 export { useCreateEvent } from '../composables/useCreateEvent';
+export { useCreateInterview } from '../composables/useCreateInterview';
 export { useStudyStore } from '../stores/studyStore';
 export { useTokenStore } from '../stores/tokenStore';
 export { useUserStore } from '../stores/userStore';

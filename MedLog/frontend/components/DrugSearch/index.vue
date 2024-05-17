@@ -1,7 +1,7 @@
 <template>
         <UIBaseCard>
             <UFormGroup label="Medikament" name="drug">
-                <UInput v-model="state.drug" placeholder="Medikament oder PZN eingeben" />
+                <UInput v-model="state.drug" placeholder="Medikament oder PZN eingeben" icon="i-heroicons-magnifying-glass-20-solid"/>
             </UFormGroup>
             <div v-if="drugList.items.length > 0">
                 <ul>
