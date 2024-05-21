@@ -1,6 +1,7 @@
 
 interface _GlobalComponents {
       'DrugSearch': typeof import("../components/DrugSearch/index.vue")['default']
+    'IntakeQuestion': typeof import("../components/IntakeQuestion/index.vue")['default']
     'LayoutFooter': typeof import("../components/Layout/Footer.vue")['default']
     'LayoutHeader': typeof import("../components/Layout/Header.vue")['default']
     'Layout': typeof import("../components/Layout/index.vue")['default']
@@ -84,6 +85,7 @@ interface _GlobalComponents {
     'UModals': typeof import("../node_modules/nuxt/dist/app/components/server-placeholder")['default']
     'USlideovers': typeof import("../node_modules/nuxt/dist/app/components/server-placeholder")['default']
       'LazyDrugSearch': typeof import("../components/DrugSearch/index.vue")['default']
+    'LazyIntakeQuestion': typeof import("../components/IntakeQuestion/index.vue")['default']
     'LazyLayoutFooter': typeof import("../components/Layout/Footer.vue")['default']
     'LazyLayoutHeader': typeof import("../components/Layout/Header.vue")['default']
     'LazyLayout': typeof import("../components/Layout/index.vue")['default']
@@ -181,6 +183,7 @@ declare module 'vue' {
 }
 
 export const DrugSearch: typeof import("../components/DrugSearch/index.vue")['default']
+export const IntakeQuestion: typeof import("../components/IntakeQuestion/index.vue")['default']
 export const LayoutFooter: typeof import("../components/Layout/Footer.vue")['default']
 export const LayoutHeader: typeof import("../components/Layout/Header.vue")['default']
 export const Layout: typeof import("../components/Layout/index.vue")['default']
@@ -264,6 +267,7 @@ export const Body: typeof import("../node_modules/nuxt/dist/head/runtime/compone
 export const UModals: typeof import("../node_modules/nuxt/dist/app/components/server-placeholder")['default']
 export const USlideovers: typeof import("../node_modules/nuxt/dist/app/components/server-placeholder")['default']
 export const LazyDrugSearch: typeof import("../components/DrugSearch/index.vue")['default']
+export const LazyIntakeQuestion: typeof import("../components/IntakeQuestion/index.vue")['default']
 export const LazyLayoutFooter: typeof import("../components/Layout/Footer.vue")['default']
 export const LazyLayoutHeader: typeof import("../components/Layout/Header.vue")['default']
 export const LazyLayout: typeof import("../components/Layout/index.vue")['default']

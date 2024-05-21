@@ -6,9 +6,17 @@ export default defineNuxtConfig({
     "@": resolve(__dirname, "/")
   },
   devtools: { enabled: true },
-  modules: ['@pinia/nuxt', '@pinia-plugin-persistedstate/nuxt', "@nuxt/ui"],
+  modules: [
+    '@pinia/nuxt',
+    '@pinia-plugin-persistedstate/nuxt',
+    "@nuxt/ui",
+    "dayjs-nuxt"
+  ],
   pinia: {
     storesDirs: ['./stores/**', './custom-folder/stores/**'],
+  },
+  dayjs: {
+    plugins: ['utc'],
   },
   css: [
     "~/assets/main.scss"

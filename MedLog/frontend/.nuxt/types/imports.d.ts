@@ -115,6 +115,8 @@ declare global {
   const useCreateInterview: typeof import('../../composables/useCreateInterview')['useCreateInterview']
   const useCssModule: typeof import('../../node_modules/vue')['useCssModule']
   const useCssVars: typeof import('../../node_modules/vue')['useCssVars']
+  const useDayjs: typeof import('../../node_modules/dayjs-nuxt/dist/runtime/composables/dayjs')['useDayjs']
+  const useDrugStore: typeof import('../../stores/drugStore')['useDrugStore']
   const useError: typeof import('../../node_modules/nuxt/dist/app/composables/error')['useError']
   const useFetch: typeof import('../../node_modules/nuxt/dist/app/composables/fetch')['useFetch']
   const useFormGroup: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useFormGroup')['useFormGroup']
@@ -295,6 +297,8 @@ declare module 'vue' {
     readonly useCreateInterview: UnwrapRef<typeof import('../../composables/useCreateInterview')['useCreateInterview']>
     readonly useCssModule: UnwrapRef<typeof import('../../node_modules/vue')['useCssModule']>
     readonly useCssVars: UnwrapRef<typeof import('../../node_modules/vue')['useCssVars']>
+    readonly useDayjs: UnwrapRef<typeof import('../../node_modules/dayjs-nuxt/dist/runtime/composables/dayjs')['useDayjs']>
+    readonly useDrugStore: UnwrapRef<typeof import('../../stores/drugStore')['useDrugStore']>
     readonly useError: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/error')['useError']>
     readonly useFetch: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/fetch')['useFetch']>
     readonly useFormGroup: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useFormGroup')['useFormGroup']>
@@ -468,6 +472,8 @@ declare module '@vue/runtime-core' {
     readonly useCreateInterview: UnwrapRef<typeof import('../../composables/useCreateInterview')['useCreateInterview']>
     readonly useCssModule: UnwrapRef<typeof import('../../node_modules/vue')['useCssModule']>
     readonly useCssVars: UnwrapRef<typeof import('../../node_modules/vue')['useCssVars']>
+    readonly useDayjs: UnwrapRef<typeof import('../../node_modules/dayjs-nuxt/dist/runtime/composables/dayjs')['useDayjs']>
+    readonly useDrugStore: UnwrapRef<typeof import('../../stores/drugStore')['useDrugStore']>
     readonly useError: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/error')['useError']>
     readonly useFetch: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/fetch')['useFetch']>
     readonly useFormGroup: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useFormGroup')['useFormGroup']>

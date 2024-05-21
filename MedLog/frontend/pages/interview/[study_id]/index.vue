@@ -24,7 +24,7 @@
                 </div>
             </UModal>
 
-        <UIBaseCard v-if="userStore.isAdmin" class="noHover">
+        <UIBaseCard v-if="userStore.isAdmin" class="noHover" :naked="true">
             <UButton @click="showEventModal = true" label="Event anlegen" color="green" variant="soft"
                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
             <UModal v-model="showEventModal">

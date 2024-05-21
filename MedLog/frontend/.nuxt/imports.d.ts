@@ -29,6 +29,7 @@ export { injectHead, useHead, useSeoMeta, useHeadSafe, useServerHead, useServerS
 export { useStringDoc } from '../composables/stringDoc';
 export { useCreateEvent } from '../composables/useCreateEvent';
 export { useCreateInterview } from '../composables/useCreateInterview';
+export { useDrugStore } from '../stores/drugStore';
 export { useStudyStore } from '../stores/studyStore';
 export { useTokenStore } from '../stores/tokenStore';
 export { useUserStore } from '../stores/userStore';
@@ -47,5 +48,6 @@ export { useUI } from '../node_modules/@nuxt/ui/dist/runtime/composables/useUI';
 export { defineStore, acceptHMRUpdate, usePinia, storeToRefs } from '../node_modules/@pinia/nuxt/dist/runtime/composables';
 export { persistedState } from '../node_modules/@pinia-plugin-persistedstate/nuxt/dist/runtime/storages';
 export { useColorMode } from '../node_modules/@nuxtjs/color-mode/dist/runtime/composables';
+export { useDayjs } from '../node_modules/dayjs-nuxt/dist/runtime/composables/dayjs';
 export { useNuxtDevTools } from '../node_modules/@nuxt/devtools/dist/runtime/use-nuxt-devtools';
 export { definePageMeta } from '../node_modules/nuxt/dist/pages/runtime/composables';

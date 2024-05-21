@@ -12,7 +12,7 @@
             style="text-align: center">
             <h3>{{ study.display_name }}</h3>
         </UIBaseCard>
-        <UIBaseCard v-if="userStore.isAdmin" class="noHover">
+        <UIBaseCard v-if="userStore.isAdmin" class="noHover" :naked="true">
             <UButton @click="showModal = true" label="Studie anlegen" color="green" variant="soft"
                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
             <UModal v-model="showModal">

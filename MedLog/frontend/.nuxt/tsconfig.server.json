@@ -109,6 +109,9 @@
       "#color-mode-options": [
         "./color-mode-options"
       ],
+      "#dayjs": [
+        "../node_modules/dayjs-nuxt/dist/runtime/composables/dayjs"
+      ],
       "#tailwind-config": [
         "./tailwind.config"
       ],
@@ -125,6 +128,7 @@
     "../node_modules/@nuxtjs/color-mode/runtime/server",
     "../node_modules/@nuxtjs/tailwindcss/runtime/server",
     "../node_modules/@nuxt/ui/runtime/server",
+    "../node_modules/dayjs-nuxt/runtime/server",
     "../node_modules/@nuxt/devtools/runtime/server",
     "../node_modules/@nuxt/telemetry/runtime/server",
     "./types/nitro.d.ts",
