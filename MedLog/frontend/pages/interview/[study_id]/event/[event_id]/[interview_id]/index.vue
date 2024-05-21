@@ -17,7 +17,7 @@
                     <UInput type="number" v-model="dose"/>
                 </UFormGroup>
                 <UFormGroup label="Einnahme (Uhrzeit)">
-                    <UInput type="time" v-model="time"/>
+                    <UInput type="date" v-model="time"/>
                 </UFormGroup>
                 <URadioGroup v-model="selected" legend="Wurden heute Medikamente eingenommen?" :options="options" />
                 <UButton @click="saveIntake" label="Save Intake" color="green" variant="soft"
