@@ -72,6 +72,7 @@ const dose = ref(null)
 console.log(Date.now());
 
 console.log(dayjs(Date.now()).utc().toString());
+console.log(typeof dayjs(Date.now()).utc());
 
 
 function saveIntake() {
