@@ -71,7 +71,7 @@ items:
   - id: 3d06e7a7-d9b8-4a15-b951-170332a6b1ff
     interview_id: 15b593f8-c501-4f44-a8c5-d3dfd2120194
     pharmazentralnummer: "74464"
-    intake_start_time_utc: "2024-01-22 10:00:00+00:00"
+    intake_start_time_utc: "2024-01-22"
     administered_by_doctor: prescribed
     intake_regular_or_as_needed: regular
     as_needed_dose_unit:
