@@ -10,7 +10,7 @@ from pydantic import (
 from fastapi import Depends
 from typing import Optional
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 import uuid
 from uuid import UUID
 
@@ -68,8 +68,8 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
         description="Take the Pharmazentralnummer in many formats, but all formats will be normalized to just a 8 digit number.",
         schema_extra={"examples": ["23894732", "PZN-88888888"]},
     )
-    intake_start_time_utc: datetime = Field()
-    intake_end_time_utc: Optional[datetime] = Field(default=None)
+    intake_start_time_utc: date = Field()
+    intake_end_time_utc: Optional[date] = Field(default=None)
     administered_by_doctor: Optional[AdministeredByDoctorAnswers] = Field(default=None)
     intake_regular_or_as_needed: Optional[IntakeRegularOrAsNeededAnswers] = Field(
         default=None,
