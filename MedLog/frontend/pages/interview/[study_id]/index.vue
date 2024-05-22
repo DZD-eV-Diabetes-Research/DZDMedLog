@@ -54,6 +54,7 @@ const reversedEvents = computed(() => {
 
 const userStore = useUserStore()
 const tokenStore = useTokenStore()
+const studyStore = useStudyStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -61,6 +62,7 @@ const showInterviewModal = ref(false)
 const showEventModal = ref(false)
 const currentItem = ref("test")
 
+studyStore.event = ""
 
 const interviewState = reactive({
     subjectID: "",
@@ -96,9 +98,9 @@ const { data: events, refresh } = await useFetch(`${runtimeConfig.public.baseURL
     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
 
-function newInterview(item) {
-    router.push({ path: "/interview/" + route.params.study_id + '/event/' + item.id })
-}
+// function newInterview(item) {
+//     router.push({ path: "/interview/" + route.params.study_id + '/event/' + item.id })
+// }
 
 function openInterviewModal(item) {
     currentItem.value = item;    
@@ -122,7 +124,8 @@ async function createInterview() {
     try {        
         showInterviewModal.value = false;
         const responseData = await useCreateInterview(route.params.study_id, myItem.id, interviewState.subjectID, takenMeds, interviewState.interviewNumber);
-        router.push({ path: "/interview/" + route.params.study_id + '/event/' + myItem.id + "/" + responseData.id})
+        studyStore.event = useStringDoc(myItem.name)
+        router.push({ path: "/interview/" + route.params.study_id + '/event/' + myItem.id + "/id/" + responseData.id})
     } catch (error) {
         console.error("Failed to create event: ", error);
     }

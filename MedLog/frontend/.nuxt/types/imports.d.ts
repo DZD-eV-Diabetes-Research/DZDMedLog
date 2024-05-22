@@ -112,6 +112,7 @@ declare global {
   const useCookie: typeof import('../../node_modules/nuxt/dist/app/composables/cookie')['useCookie']
   const useCopyToClipboard: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useCopyToClipboard')['useCopyToClipboard']
   const useCreateEvent: typeof import('../../composables/useCreateEvent')['useCreateEvent']
+  const useCreateIntake: typeof import('../../composables/useCreateIntake')['useCreateIntake']
   const useCreateInterview: typeof import('../../composables/useCreateInterview')['useCreateInterview']
   const useCssModule: typeof import('../../node_modules/vue')['useCssModule']
   const useCssVars: typeof import('../../node_modules/vue')['useCssVars']
@@ -294,6 +295,7 @@ declare module 'vue' {
     readonly useCookie: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/cookie')['useCookie']>
     readonly useCopyToClipboard: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useCopyToClipboard')['useCopyToClipboard']>
     readonly useCreateEvent: UnwrapRef<typeof import('../../composables/useCreateEvent')['useCreateEvent']>
+    readonly useCreateIntake: UnwrapRef<typeof import('../../composables/useCreateIntake')['useCreateIntake']>
     readonly useCreateInterview: UnwrapRef<typeof import('../../composables/useCreateInterview')['useCreateInterview']>
     readonly useCssModule: UnwrapRef<typeof import('../../node_modules/vue')['useCssModule']>
     readonly useCssVars: UnwrapRef<typeof import('../../node_modules/vue')['useCssVars']>
@@ -469,6 +471,7 @@ declare module '@vue/runtime-core' {
     readonly useCookie: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/cookie')['useCookie']>
     readonly useCopyToClipboard: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useCopyToClipboard')['useCopyToClipboard']>
     readonly useCreateEvent: UnwrapRef<typeof import('../../composables/useCreateEvent')['useCreateEvent']>
+    readonly useCreateIntake: UnwrapRef<typeof import('../../composables/useCreateIntake')['useCreateIntake']>
     readonly useCreateInterview: UnwrapRef<typeof import('../../composables/useCreateInterview')['useCreateInterview']>
     readonly useCssModule: UnwrapRef<typeof import('../../node_modules/vue')['useCssModule']>
     readonly useCssVars: UnwrapRef<typeof import('../../node_modules/vue')['useCssVars']>
