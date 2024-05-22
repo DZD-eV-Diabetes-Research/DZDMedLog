@@ -118,7 +118,7 @@ async def get_drug(
     drug_stamm_crud: StammCRUD = Depends(StammCRUD.get_crud),
 ) -> StammRead:
     return await drug_stamm_crud.get(
-        pzn=pzn,
+        pzn,
         raise_exception_if_none=HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No drug found with Pharmazentralnummer '{pzn}'",
