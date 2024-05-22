@@ -33,9 +33,16 @@
             <h4>Medikamenteneinnahme von Proband: {{ interview.proband_external_id }}</h4>
             <div v-if="intakes.length > 0">
                 <ul v-for="intake in intakes" :key="intake.id">
-                    <li>
-                        test: {{ drugDetailsMap[intake.pharmazentralnummer] }}
+                    <li v-if="drugDetailsMap[intake.pharmazentralnummer]">
+                        <h5>Medikament Details: {{ drugDetailsMap[intake.pharmazentralnummer].name }} </h5>
                         <p>PZN: {{ intake.pharmazentralnummer }}</p>
+                        <p>Dose: {{ intake.as_needed_dose_unit }}</p>
+                        <p>Starttime: {{ intake.intake_start_time_utc }}</p>
+                        <p>Medicine taken today: {{ intake.consumed_meds_today }}</p>
+                        <br>
+                    </li>
+                    <li v-else>
+                        Loading drug details...
                     </li>
                 </ul>
             </div>
@@ -104,7 +111,6 @@ watchEffect(() => {
 });
 
 async function saveIntake() {
-    // const bool = selected.value === "true" ? true : false
     const date = dayjs(time.value).utc().format("YYYY-MM-DD")
     const pzn =  drugStore.item.pzn
     const myDose = dose.value.toString()
@@ -112,12 +118,10 @@ async function saveIntake() {
     try {        
         showForm.value = false;
         const responseData = await useCreateIntake(route.params.study_id, route.params.interview_id, pzn, date, myDose, selected.value);
-        console.log(responseData);
         refresh()
     } catch (error) {
         console.error("Failed to create Intake: ", error);
     }
-    console.log(bool, date, dose.value, drugStore.item.pzn); 
 }
 
 </script>
