@@ -1,0 +1,2 @@
+This is the default data that is inserted into the database. Thet path to the file is hardcoded and can not be changed.
+If you need to dynamicly load/provision data on a per instance base (like default users) have a look at the config var APP_PROVISIONING_DATA_YAML_FILES

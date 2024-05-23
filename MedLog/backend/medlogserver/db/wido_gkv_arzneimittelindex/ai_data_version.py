@@ -48,6 +48,7 @@ class AiDataVersionCRUD(
             query = query.where(AiDataVersion.datenstand == filter_datenstand)
         if filter_dateiversion:
             query = query.where(AiDataVersion.dateiversion == filter_dateiversion)
+        query = query.where(AiDataVersion.dateiversion != "user-custom-drugs")
 
         query = query.order_by(desc(AiDataVersion.datenstand))
         results = await self.session.exec(statement=query)
@@ -76,6 +77,7 @@ class AiDataVersionCRUD(
             select(AiDataVersion)
             .where(AiDataVersion.deactivated == False)
             .where(is_not(AiDataVersion.import_completed_at, None))
+            .where(AiDataVersion.dateiversion != "user-custom-drugs")
             .order_by(desc(AiDataVersion.datenstand))
         )
         results = await self.session.exec(statement=query)
