@@ -23,7 +23,7 @@ app = FastAPI(
 
 
 def add_api_middleware(fastapiapp: FastAPI):
-    # TODO FIX THIS: ONLY FOR DEV
+    # TODO FIX THIS: ONLY FOR DEV!!!
     fastapiapp.add_middleware(
         CORSMiddleware,
         allow_origins=[config.CLIENT_URL, str(config.get_server_url())],
