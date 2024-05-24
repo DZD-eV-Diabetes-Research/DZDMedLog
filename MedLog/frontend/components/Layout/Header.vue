@@ -3,7 +3,7 @@
     <div class="nav__content">
       <div>
         <div class="nav__title">
-          <NuxtLink class="anchor" to="/user">
+          <NuxtLink class="anchor" to="/user" @click="resetStore">
             DZD Medlog
           </NuxtLink>
         </div>
@@ -11,6 +11,11 @@
           Your trustworthy medication logging page
         </div>
       </div>
+      <div class="activeStudy">
+      <p>User: {{ userStore.userName }}</p>
+      <p v-if="route.params.study_id">Study: {{studyName}}</p>
+      <p v-if="studyStore.event !== ''">Event: {{ studyStore.event }}</p>
+    </div>
       <div class="nav__logo">
         <img src="/img/logos/dzd.png" alt="DZD" />
       </div>
@@ -23,13 +28,29 @@
 </template>
 
 <script setup>
+import { ref, watchEffect } from 'vue';
+
 const tokenStore = useTokenStore();
 const userStore = useUserStore();
-const router = useRouter()
+const studyStore = useStudyStore();
+const router = useRouter();
+const route = useRoute();
+const studyName = ref('');
+
+
+watchEffect(async () => {
+  if (route.params.study_id) {
+    const study = await studyStore.getStudy(route.params.study_id);
+    studyName.value = study ? study.display_name : 'Study not found';
+  } else {
+    studyName.value = ''; 
+  }
+});
+
 
 function logout() {
-  this.userStore.$reset()
-  this.tokenStore.$reset()
+  userStore.$reset()
+  tokenStore.$reset()
   router.push({ path: "/" })
 }
 
@@ -42,9 +63,8 @@ function my_profile() {
   }
 }
 
-function back() {
-  const router = useRouter()
-  router.push({ path: "/" })
+function resetStore() {
+  studyStore.$reset()
 }
 
 </script>
