@@ -60,7 +60,7 @@ const router = useRouter()
 
 const showInterviewModal = ref(false)
 const showEventModal = ref(false)
-const currentItem = ref("test")
+const currentItem = ref(null)
 
 studyStore.event = ""
 
