@@ -22,6 +22,7 @@ from medlogserver.db.user import User
 
 
 from medlogserver.model.event import Event, EventUpdate, EventCreate, EventCreateAPI
+from medlogserver.db.interview import InterviewCRUD, Interview
 from medlogserver.db.event import EventCRUD
 
 
@@ -51,7 +52,7 @@ EventQueryParams: Type[QueryParamsInterface] = create_query_params_class(Event)
 @fast_api_event_router.get(
     "/study/{study_id}/event",
     response_model=PaginatedResponse[Event],
-    description=f"List all studies the user has access too.",
+    description=f"List all events of a study.",
 )
 async def list_events(
     hide_completed: bool = Query(False),
@@ -159,4 +160,32 @@ async def delete_event(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"No event with id '{event_id}'",
         ),
+    )
+
+
+@fast_api_event_router.get(
+    "/study/{study_id}/proband/{proband_id}/event",
+    response_model=PaginatedResponse[Event],
+    description=f"List all events in which a proband has allready participated.",
+)
+async def list_events(
+    hide_completed: bool = Query(False),
+    study_access: UserStudyAccess = Security(user_has_study_access),
+    event_crud: EventCRUD = Depends(EventCRUD.get_crud),
+    interview_crud: InterviewCRUD = Depends(EventCRUD.get_crud),
+    pagination: QueryParamsInterface = Depends(EventQueryParams),
+) -> PaginatedResponse[Event]:
+    result_items = await event_crud.list(
+        filter_study_id=study_access.study.id,
+        hide_completed=hide_completed,
+        pagination=pagination,
+    )
+    return PaginatedResponse(
+        total_count=await event_crud.count(
+            filter_study_id=study_access.study.id,
+            hide_completed=hide_completed,
+        ),
+        offset=pagination.offset,
+        count=len(result_items),
+        items=result_items,
     )
