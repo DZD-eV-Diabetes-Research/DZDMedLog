@@ -71,11 +71,11 @@ class StammBase(DrugModelTableBase, table=False):
                 "drug_applikationsform.ai_dataversion_id",
             ],
         ),
-        # Todo: You are here. need to find a way to create nullable/optional composite foreign keys. otherwise we will fail inserting stamm entries with e.g. empty appform.
-        # Update/Wontfix: sqlite does not support nullable/optional composite foreign keys constraints (google: SIMPLE mode sqlite composite foreign key) as a fix we disable foreign key constraints for sqlite
-        # and only enable it via "PRAGMA foreign_keys = ON;" when needed (Delete ai_dataversion entry)
+        # Todo: need to find a way to create nullable/optional composite foreign keys. otherwise we will fail inserting stamm entries with e.g. empty appform.
+        # Update/Wontfix on this ToDo: sqlite does not support nullable/optional composite foreign keys constraints (google keywords: SIMPLE mode sqlite composite foreign key).
+        # As a fix we disable foreign key constraints for sqlite
+        # and only enable it via "PRAGMA foreign_keys = ON;" when needed (e.g. On Delete ai_dataversion entry)
         # review later... there may be a better more generic solution
-        # CheckConstraint(name=)
         ForeignKeyConstraint(
             name="composite_foreign_key_hersteller_code",
             columns=["hersteller_code", "ai_dataversion_id"],
