@@ -19,7 +19,11 @@ from fastapi import Depends, APIRouter
 
 
 from medlogserver.db.user import User
-
+from medlogserver.api.auth.security import (
+    user_is_admin,
+    user_is_usermanager,
+    get_current_user,
+)
 
 from medlogserver.config import Config
 from medlogserver.model.interview import (
@@ -170,11 +174,12 @@ async def get_last_non_completed_interview(
 async def create_interview(
     interview: Annotated[InterviewCreateAPI, Body()],
     event_id: Annotated[str, Path()],
+    user: Annotated[User, Security(get_current_user)],
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> Interview:
-    if not study_access.user_has_interviewer_permission():
+    if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             details="User not authorized to create interview in this study",
@@ -187,7 +192,9 @@ async def create_interview(
         ),
     )
     interview_create = InterviewCreate(
-        event_id=event.id, **interview.model_dump(exclude_unset=True)
+        event_id=event.id,
+        interviewer_user_id=user.id,
+        **interview.model_dump(exclude_unset=True),
     )
     # create_interview_.event_id = event_id
     return await interview_crud.create(interview_create)
@@ -205,7 +212,7 @@ async def update_interview(
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> User:
-    if not study_access.user_has_interviewer_permission():
+    if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             details="User not authorized to create interview in this study",
@@ -234,7 +241,7 @@ async def delete_interview(
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> None:
-    if not study_access.user_has_interviewer_permission():
+    if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to update event",

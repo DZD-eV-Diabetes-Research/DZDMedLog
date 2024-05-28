@@ -30,32 +30,36 @@ export const useStudyStore = defineStore('StudyStore', {
                     method: "GET",
                     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
                 })
-            
-            this.studies = data            
+
+                this.studies = data
             }
             catch (err: any) {
                 tokenStore.error = err.response.data.detail
             }
         },
 
-        async getStudy(id:string) {
-            const foundItem = this.studies.items.find(item => item.id === id)
-            return foundItem
+        async getStudy(id: string) {
+            if (this.studies.length === 0) {
+            }
+            else {
+                const foundItem = this.studies.items.find(item => item.id === id)
+                return foundItem
+            }
         },
 
-        async createStudy(display_name: string): Promise<void>{
+        async createStudy(display_name: string): Promise<void> {
             const tokenStore = useTokenStore()
             tokenStore.error = ""
-            
-            let body = {"display_name": display_name}
-            
+
+            let body = { "display_name": display_name }
+
             try {
                 const runtimeConfig = useRuntimeConfig()
                 const data = await $fetch(runtimeConfig.public.baseURL + "study", {
                     method: "POST",
                     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
                     body,
-                })      
+                })
             }
             catch (err: any) {
                 tokenStore.error = err.response.data.detail

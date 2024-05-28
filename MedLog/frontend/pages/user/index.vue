@@ -4,7 +4,7 @@
         <h3>Hello {{userStore.userName}}</h3>
         <div class="button-container">
             <button @click="conductInterview()">Interview durchführen</button>
-            <button @click="showStudies()">Studien</button>
+            <button @click="showStudies()">Studien Design</button>
             <button @click="searchMedicaments()">Medikament suchen</button>
         </div>
     </UIBaseCard>

@@ -98,10 +98,6 @@ const { data: events, refresh } = await useFetch(`${runtimeConfig.public.baseURL
     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
 
-// function newInterview(item) {
-//     router.push({ path: "/interview/" + route.params.study_id + '/event/' + item.id })
-// }
-
 function openInterviewModal(item) {
     currentItem.value = item;    
     showInterviewModal.value = true;

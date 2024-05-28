@@ -18,15 +18,17 @@
                     <p>PZN: {{ drugStore.item.pzn }}</p>
                     <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
                 </div>
-                <UFormGroup label="Dosis">
-                    <UInput type="number" v-model="dose"/>
-                </UFormGroup>
-                <UFormGroup label="Einnahme (Uhrzeit)">
-                    <UInput type="date" v-model="time"/>
-                </UFormGroup>
-                <URadioGroup v-model="selected" legend="Wurden heute Medikamente eingenommen?" :options="options" />
-                <UButton @click="saveIntake" label="Save Intake" color="green" variant="soft"
-                    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+                <UForm @submit="saveIntake" :state="state" :schema="schema" class="space-y-4">
+                    <UFormGroup label="Dosis" style="border-color: red;">
+                        <UInput type="number" v-model="state.dose"/>
+                    </UFormGroup>
+                    <UFormGroup label="Einnahme (Uhrzeit)">
+                        <UInput type="date" v-model="state.time"/>
+                    </UFormGroup>
+                    <URadioGroup v-model="state.selected" legend="Wurden heute Medikamente eingenommen?" :options="options" />
+                    <UButton type="submit" label="Save Intake" color="green" variant="soft"
+                        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+                </UForm>
             </UIBaseCard>
         </div>
         <UIBaseCard>
@@ -53,7 +55,8 @@
 <script setup lang="ts">
 import dayjs from 'dayjs';
 import { watchEffect } from 'vue';
-
+import type { FormSubmitEvent } from "#ui/types";
+import { object, number, date, string, type InferType } from "yup";
 
 const route = useRoute()
 const tokenStore = useTokenStore()
@@ -88,21 +91,37 @@ const options = [{
     label: "Unbekannst"
 }]
 
-const selected = ref("Yes")
-const time = ref(null)
-const dose = ref(null)
+const state = reactive({
+    selected: "Yes", 
+    time: null,
+    dose: null
+});
+
+const schema = object({
+    selected: string().required("Required"),
+    time: date().required("Required"),
+    dose: number().min(0, "Hallo" ),
+});
+
+type Schema = InferType<typeof schema>;
+
 
 const drugDetailsMap = ref({});
 
+
 async function fetchDrugDetails(pzn) {
     if (!drugDetailsMap.value[pzn]) {
-        const response = await useFetch(`${runtimeConfig.public.baseURL}drug/by-pzn/${pzn}`, {
+        try {
+        const response = await $fetch(`${runtimeConfig.public.baseURL}drug/by-pzn/${pzn}`, {
             method: "GET",
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
         });
-        drugDetailsMap.value[pzn] = response.data;
+        drugDetailsMap.value[pzn] = response;
+    } 
+    catch (error) {
+        console.log(error);
     }
-}
+}}
 
 watchEffect(() => {
     intakes.value.forEach(intake => {
@@ -111,13 +130,13 @@ watchEffect(() => {
 });
 
 async function saveIntake() {
-    const date = dayjs(time.value).utc().format("YYYY-MM-DD")
+    const date = dayjs(state.time).utc().format("YYYY-MM-DD")
     const pzn =  drugStore.item.pzn
-    const myDose = dose.value.toString()
+    const myDose = state.dose.toString()
 
     try {        
         showForm.value = false;
-        const responseData = await useCreateIntake(route.params.study_id, route.params.interview_id, pzn, date, myDose, selected.value);
+        const responseData = await useCreateIntake(route.params.study_id, route.params.interview_id, pzn, date, myDose, state.selected);
         refresh()
     } catch (error) {
         console.error("Failed to create Intake: ", error);

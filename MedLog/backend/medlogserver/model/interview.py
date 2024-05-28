@@ -41,28 +41,21 @@ class InterviewCreateAPI(MedLogBaseModel, table=False):
     )
     interview_end_time_utc: Optional[datetime] = Field(default=None)
     proband_has_taken_meds: bool = Field()
-    interview_number: int = Field(
-        description="TB: This field is still kind of mysterious to me. In the user interview video the user just filled it with some number. Maybe a process we can automize (shameless plug: https://git.apps.dzd-ev.org/dzdpythonmodules/ptan)?"
-    )
 
 
 class InterviewCreate(InterviewCreateAPI, table=False):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
     event_id: uuid.UUID = Field(foreign_key="event.id")
-
-    @field_validator("event_id")
-    @classmethod
-    def foreign_key_to_uuid(cls, v: str | uuid.UUID, info: ValidationInfo) -> uuid.UUID:
-        return MedLogBaseModel.id_to_uuid(v, info)
+    interviewer_user_id: uuid.UUID = Field(foreign_key="user.id")
 
 
-class InterviewUpdate(InterviewCreate, table=False):
+class InterviewUpdate(InterviewCreateAPI, table=False):
     pass
 
 
 class Interview(InterviewCreate, BaseTable, table=True):
     __tablename__ = "interview"
     id: uuid.UUID = Field(
-        default_factory=uuid.uuid4,
         primary_key=True,
         index=True,
         nullable=False,

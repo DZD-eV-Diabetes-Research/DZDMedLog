@@ -135,6 +135,7 @@ class CRUDBase(
         if res is None and raise_exception_if_none:
             raise raise_exception_if_none
         return res
+    
 
     async def get(
         self,
@@ -143,6 +144,18 @@ class CRUDBase(
     ) -> Optional[GenericCRUDReadType]:
 
         return await self._get(id_, raise_exception_if_none)
+
+    async def get_multiple(
+        self,
+        ids: List[UUID],
+        raise_exception_if_objects_missing: Exception = None,
+    ) -> List[GenericCRUDReadType]:
+        query = select(self.get_table_cls()).where(self.get_table_cls().id._in(ids))
+        results = await self.session.exec(statement=query)
+        res = results.all()
+        if len(res) != len(ids) and raise_exception_if_objects_missing:
+            raise raise_exception_if_objects_missing
+        return res
 
     async def create(
         self,
