@@ -81,7 +81,7 @@ async function createInterview() {
         showModal.value = false;
         await refresh();
     } catch (error) {
-        console.error("Failed to create event: ", error);
+        console.error("Failed to create event: ", error.detail);
     }   
 }
 
