@@ -60,9 +60,9 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
         StringConstraints(
             strip_whitespace=True,
             to_upper=True,
-            pattern=r"^(PZN-)|(-)|( -)?\d{5,9}$",
+            pattern=r"^(PZN-)|(-)|( -)?\d{2,9}$",
             max_length=12,
-            min_length=5,
+            min_length=2,
         ),
     ] = Field(
         description="Take the Pharmazentralnummer in many formats, but all formats will be normalized to just a 8 digit number.",
@@ -137,7 +137,7 @@ class Intake(IntakeCreate, BaseTable, table=True):
         StringConstraints(
             strip_whitespace=True,
             max_length=8,
-            min_length=5,
+            min_length=2,
         ),
     ] = Field(
         description="Pharmazentralnummer as 8 digits only",
