@@ -36,6 +36,10 @@ class EventCreateAPI(MedLogBaseModel, table=False):
         unique=True,
         schema_extra={"examples": ["visit01", "TI12"]},
     )
+    order_position: int = Field(
+        default=0,
+        description="A ranked value to sort this event if its contained in list of events.",
+    )
 
 
 class EventUpdate(EventCreateAPI, table=False):
@@ -70,6 +74,13 @@ class EventCreate(EventUpdate, table=False):
 
 class EventRead(EventCreate, table=False):
     id: uuid.UUID = Field()
+
+
+class EventReadPerProband(EventRead, table=False):
+    proband_id: str = Field(description="the ID of the proband.")
+    proband_interview_count: int = Field(
+        description="How many interviews has the proband in this event."
+    )
 
 
 class Event(EventRead, BaseTable, table=True):

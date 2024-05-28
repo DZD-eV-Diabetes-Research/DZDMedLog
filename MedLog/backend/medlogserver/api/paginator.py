@@ -23,7 +23,7 @@ GenericMedLogModel = TypeVar("GenericMedLogModel")
 class PaginatedResponse(BaseModel, Generic[GenericMedLogModel]):
     total_count: Optional[int] = Field(
         default=None,
-        description="Total number of items in the database",
+        description="Total number of items in the database.",
         examples=[300],
     )
     offset: Optional[int] = Field(
@@ -77,7 +77,11 @@ class QueryParamsInterface:
         sqlmodel_query = sqlmodel_query.offset(self.offset)
         if self.limit and not ignore_limit:
             sqlmodel_query = sqlmodel_query.limit(self.limit)
-        if hasattr(self, "order_by") and self.order_by and not ignore_order_by:
+        if (
+            hasattr(self, "order_by")
+            and self.order_by is not None
+            and not ignore_order_by
+        ):
             order_field = self.order_by
             if self.order_desc:
                 order_field = desc(self.order_by)
@@ -89,6 +93,7 @@ def create_query_params_class(
     base_class: MedLogBaseModel,
     default_offset: int = QueryParamsInterface.offset,
     default_limit: int = QueryParamsInterface.limit,
+    default_order_by_attr: str = None,
     non_sortable_attributes: List[str] = None,
 ) -> Type[QueryParamsInterface]:
     if non_sortable_attributes is None:
@@ -154,7 +159,7 @@ def create_query_params_class(
                 self, offset, limit, order_by, order_desc
             )
         )
-        init_default = (default_offset, default_limit, None, False)
+        init_default = (default_offset, default_limit, default_order_by_attr, False)
     init_func.__defaults__ = init_default
     init_func.__annotations__ = init_annotations
 

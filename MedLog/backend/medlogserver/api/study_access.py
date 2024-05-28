@@ -59,7 +59,7 @@ class UserStudyAccess:
             elif as_role == "admin":
                 return self.user_study_perm.is_study_admin
 
-    def user_has_interviewer_permission(self) -> bool:
+    def user_is_study_interviewer(self) -> bool:
         return self.user_has_access(as_role="interviewer")
 
     def user_is_study_admin(self) -> bool:
@@ -149,7 +149,7 @@ async def user_has_studies_access_map(
 
 
 async def user_has_study_access(
-    study_id: str | uuid.UUID,
+    study_id: uuid.UUID,
     user: Annotated[User, Security(get_current_user)],
     study_permisson_crud: Annotated[
         StudyPermissonCRUD, Depends(StudyPermissonCRUD.get_crud)

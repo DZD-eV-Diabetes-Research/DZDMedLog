@@ -174,7 +174,7 @@ async def create_interview(
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> Interview:
-    if not study_access.user_has_interviewer_permission():
+    if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             details="User not authorized to create interview in this study",
@@ -205,7 +205,7 @@ async def update_interview(
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> User:
-    if not study_access.user_has_interviewer_permission():
+    if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             details="User not authorized to create interview in this study",
@@ -234,7 +234,7 @@ async def delete_interview(
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> None:
-    if not study_access.user_has_interviewer_permission():
+    if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to update event",

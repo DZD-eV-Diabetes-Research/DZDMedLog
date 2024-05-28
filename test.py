@@ -356,4 +356,15 @@ def get_enum_by_str():
     print(MyEnum[val].value)
 
 
-get_enum_by_str()
+def get_class_attr_as_str():
+    from pydantic import BaseModel
+
+    class Event(BaseModel):
+        order_pos: str
+
+    attr_name = Event.order_pos
+    print(type(attr_name), attr_name)
+    # does not work :(
+
+
+get_class_attr_as_str()
