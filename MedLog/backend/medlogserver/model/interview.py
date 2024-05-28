@@ -41,12 +41,12 @@ class InterviewCreateAPI(MedLogBaseModel, table=False):
     )
     interview_end_time_utc: Optional[datetime] = Field(default=None)
     proband_has_taken_meds: bool = Field()
-    interviewer_user_id: uuid.UUID =  Field(foreign_key="user.id")
 
 
 class InterviewCreate(InterviewCreateAPI, table=False):
-    id: Optional[uuid.UUID]
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
     event_id: uuid.UUID = Field(foreign_key="event.id")
+    interviewer_user_id: uuid.UUID = Field(foreign_key="user.id")
 
 
 class InterviewUpdate(InterviewCreateAPI, table=False):
@@ -56,7 +56,6 @@ class InterviewUpdate(InterviewCreateAPI, table=False):
 class Interview(InterviewCreate, BaseTable, table=True):
     __tablename__ = "interview"
     id: uuid.UUID = Field(
-        default_factory=uuid.uuid4,
         primary_key=True,
         index=True,
         nullable=False,
