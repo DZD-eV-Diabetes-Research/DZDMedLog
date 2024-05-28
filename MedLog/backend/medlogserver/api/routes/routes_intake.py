@@ -112,7 +112,7 @@ async def get_intake(
 )
 async def create_intake(
     intake: Annotated[IntakeCreateAPI, Body()],
-    interview_id: Annotated[str, Path()],
+    interview_id: Annotated[uuid.UUID, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),

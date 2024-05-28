@@ -21,7 +21,6 @@ config = Config()
 
 
 class StudyCreateAPI(MedLogBaseModel, table=False):
-
     display_name: Optional[str] = Field(
         default=None,
         index=True,
