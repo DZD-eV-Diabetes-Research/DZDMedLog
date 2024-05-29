@@ -123,7 +123,9 @@ class EventCRUD(
         return results
 
     async def reorder_events(self, ids: List[uuid.UUID]) -> List[EventRead]:
-        query = select(Event).where(col(Interview.id).in_(ids))
+        log.debug(("reorder_events ids:", ids))
+        query = select(Event).where(col(Event.id).in_(ids))
+        log.debug(query)
         sequence = 10
         query_result = await self.session.exec(statement=query)
         event_objs: List[Event] = query_result.all()
@@ -136,3 +138,4 @@ class EventCRUD(
         # save/commit new event order
         self.session.add_all(event_objs)
         await self.session.commit()
+        return event_objs

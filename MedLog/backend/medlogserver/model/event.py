@@ -72,7 +72,7 @@ class EventCreate(EventUpdate, table=False):
         return MedLogBaseModel.id_to_uuid(v, info)
 
 
-class EventRead(EventCreate, table=False):
+class EventRead(EventCreate, BaseTable, table=False):
     id: uuid.UUID = Field()
 
 
@@ -83,7 +83,7 @@ class EventReadPerProband(EventRead, table=False):
     )
 
 
-class Event(EventRead, BaseTable, table=True):
+class Event(EventRead, table=True):
     __tablename__ = "event"
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,
