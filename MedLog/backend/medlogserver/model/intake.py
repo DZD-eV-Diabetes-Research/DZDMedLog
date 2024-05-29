@@ -74,7 +74,7 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
         default=None,
         schema_extra={
             "examples": [
-                "ab1b8b63-cc1f-4ac0-8d0d-5dffad322e0c",
+                None,
                 "231583a9-95bf-4876-8b41-3c77ff396101",
             ]
         },
