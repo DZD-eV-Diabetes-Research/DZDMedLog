@@ -2,6 +2,9 @@ from medlogserver.db.wido_gkv_arzneimittelindex.ai_data_version import (
     AiDataVersionCRUD,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex.stamm import StammCRUD
+from medlogserver.db.wido_gkv_arzneimittelindex.stamm_user_custom import (
+    StammUserCustomCRUD,
+)
 from medlogserver.db.wido_gkv_arzneimittelindex.stamm_aenderungen import (
     StammAenderungenCRUD,
 )

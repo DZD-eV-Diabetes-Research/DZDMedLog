@@ -8,9 +8,6 @@ from sqlalchemy import ForeignKey
 from medlogserver.model.wido_gkv_arzneimittelindex._base import DrugModelTableBase
 
 
-# TB: Model fertig. ungetestet
-
-
 class ATCai(DrugModelTableBase, table=True):
     __tablename__ = "drug_atc_ai"
     __table_args__ = {

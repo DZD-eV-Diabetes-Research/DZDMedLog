@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Sequence, List, NoReturn, Type
-
+import uuid
 from fastapi import (
     Depends,
     Security,
@@ -32,8 +32,14 @@ from medlogserver.api.study_access import (
 
 
 from medlogserver.config import Config
-from medlogserver.model.wido_gkv_arzneimittelindex import StammRead
-from medlogserver.db.wido_gkv_arzneimittelindex import StammCRUD
+from medlogserver.model.wido_gkv_arzneimittelindex import (
+    StammRead,
+    StammUserCustomRead,
+    StammRoot,
+    StammUserCustomCreateAPI,
+    StammUserCustom,
+)
+from medlogserver.db.wido_gkv_arzneimittelindex import StammCRUD, StammUserCustomCRUD
 
 
 from medlogserver.db.wido_gkv_arzneimittelindex.drug_search import (
@@ -343,3 +349,42 @@ async def list_preisart(
         count=len(res),
         items=res,
     )
+
+
+@fast_api_drug_router.post(
+    "/drug/user-custom",
+    response_model=StammUserCustomRead,
+    description=f"Create a custom drug which one could not be found in the Arzneimittelindex.",
+)
+async def create_user_custom_drug(
+    drug_create: StammUserCustomCreateAPI,
+    user: User = Security(get_current_user),
+    crud: StammUserCustomCRUD = Depends(StammUserCustomCRUD.get_crud),
+) -> StammUserCustomRead:
+    drug = StammUserCustom(created_by_user=user.id, **drug_create.model_dump())
+    return await crud.create(drug)
+
+
+@fast_api_drug_router.get(
+    "/drug/user-custom/my",
+    response_model=PaginatedResponse[StammUserCustomRead],
+    description=f"List my own custom drugs.",
+)
+async def list_users_custom_drugs(
+    user: User = Security(get_current_user),
+    crud: StammUserCustomCRUD = Depends(StammUserCustomCRUD.get_crud),
+) -> PaginatedResponse[StammUserCustomRead]:
+    return await crud.list(filter_user_id=user.id)
+
+
+@fast_api_drug_router.get(
+    "/drug/user-custom/{drug_custom_id}",
+    response_model=StammUserCustomRead,
+    description=f"List my own custom drugs.",
+)
+async def get_user_custom_drugs(
+    drug_custom_id: uuid.UUID,
+    user: User = Security(get_current_user),
+    crud: StammUserCustomCRUD = Depends(StammUserCustomCRUD.get_crud),
+) -> StammUserCustomRead:
+    return await crud.get(id=drug_custom_id)

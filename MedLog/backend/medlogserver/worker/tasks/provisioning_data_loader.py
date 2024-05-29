@@ -63,7 +63,8 @@ class DataProvisioner:
             raise ValueError(
                 "Unexpected format in provisioning data file at '{path}'. Data provisining will be canceled."
             )
-
+        if "items" in file_content and file_content["items"] is None:
+            return
         for data_item in file_content["items"]:
             for class_path, class_data in data_item.items():
                 crud_class, model_class = (

@@ -5,8 +5,6 @@ from sqlalchemy import String, Integer, Column
 from sqlalchemy import ForeignKey
 from medlogserver.model.wido_gkv_arzneimittelindex._base import DrugModelTableBase
 
-# TB: Model fertig. ungetestet (und siehe den Kommentar in zeile 33)
-
 
 class RecycledPZN(DrugModelTableBase, table=True):
     __tablename__ = "drug_recycle"

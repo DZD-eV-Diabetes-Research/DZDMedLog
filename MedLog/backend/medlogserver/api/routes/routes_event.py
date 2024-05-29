@@ -175,7 +175,7 @@ async def delete_event(
 @fast_api_event_router.post(
     "/study/{study_id}/event/order",
     response_model=List[EventRead],
-    description=f"This endpoint accepts a list of event objects or IDs and assigns a sequential integer to each event's order_position attribute based on their order in the input list. The first event in the list will be assigned order_position 10, the second event will be assigned order_position 20, and so on.",
+    description=f"This endpoint accepts a list of event objects or IDs and assigns a sequential integer to each event's order_position attribute based on their order in the input list. The first event in the list will be assigned `order_position`: `10`, the second event will be assigned  `order_position`: `20`, and so on.",
 )
 async def reorder_events(
     events: List[EventRead | Event | uuid.UUID],
