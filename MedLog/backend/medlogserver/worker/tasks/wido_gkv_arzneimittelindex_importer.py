@@ -263,7 +263,7 @@ class WiDoArzneimittelImporter:
         file_path: str,
     ) -> AiDataVersion:
         log.debug(f"Sniff ai data version from {Path(file_path).absolute().resolve()}")
-        with open(file_path, "r") as csvfile:
+        with open(file_path, "r", encoding='utf-8') as csvfile:
             reader_variable = csv.reader(
                 csvfile, delimiter=wido_gkv_arzneimittelindex_csv_delimiter
             )
@@ -289,7 +289,7 @@ class WiDoArzneimittelImporter:
         data_model: DrugModelTableBase = crud_class.get_table_cls()
         file_name = data_model.get_source_csv_filename()
         file_path = Path(PurePath(self.arzneimittel_index_content_dir, file_name))
-        with open(file_path) as csvfile:
+        with open(file_path, encoding='utf-8') as csvfile:
             csv_reader = csv.reader(
                 csvfile, delimiter=wido_gkv_arzneimittelindex_csv_delimiter
             )
