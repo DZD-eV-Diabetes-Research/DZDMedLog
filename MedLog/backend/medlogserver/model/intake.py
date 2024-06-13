@@ -56,7 +56,7 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
     """
 
     pharmazentralnummer: Annotated[
-        str,
+        Optional[str],
         StringConstraints(
             strip_whitespace=True,
             to_upper=True,
@@ -66,7 +66,18 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
         ),
     ] = Field(
         description="Take the Pharmazentralnummer in many formats, but all formats will be normalized to just a 8 digit number.",
+        default=None,
         schema_extra={"examples": ["23894732", "PZN-88888888"]},
+    )
+    custom_drug_id: Optional[uuid.UUID] = Field(
+        description="Alternative to pharmazentralnummer. If a drug is not findable in the Arzeimittelindex, and the pharmazentralnummer(pzn) is unknown, the id of a custom drug can be provided.",
+        default=None,
+        schema_extra={
+            "examples": [
+                None,
+                "231583a9-95bf-4876-8b41-3c77ff396101",
+            ]
+        },
     )
     intake_start_time_utc: date = Field()
     intake_end_time_utc: Optional[date] = Field(default=None)
@@ -107,6 +118,18 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
                 raise ValueError(
                     "When choosing 'as needed' intake, regular_intervall_of_daily_dose must be empty"
                 )
+        return self
+
+    @model_validator(mode="after")
+    def either_set_pzn_or_custom_drug(self):
+        if not self.pharmazentralnummer and not self.custom_drug_id:
+            raise ValueError(
+                "Can not create intake record. Either `pharmazentralnummer` or `custom_drug_id` must be set. Both are empty atm."
+            )
+        if self.pharmazentralnummer and self.custom_drug_id:
+            raise ValueError(
+                "Can not create intake record. Either `pharmazentralnummer` or `custom_drug_id` must be set. Both are set atm."
+            )
         return self
 
 

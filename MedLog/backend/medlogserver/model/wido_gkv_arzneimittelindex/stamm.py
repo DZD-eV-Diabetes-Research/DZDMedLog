@@ -16,7 +16,7 @@ from sqlmodel import (
 from sqlalchemy import String, Integer, Column, Boolean, SmallInteger
 from pydantic import field_validator
 from sqlalchemy import ForeignKey
-
+from medlogserver.db._base_crud import BaseTable
 from medlogserver.model.wido_gkv_arzneimittelindex._base import DrugModelTableBase
 
 from medlogserver.model.wido_gkv_arzneimittelindex.applikationsform import (
@@ -56,13 +56,173 @@ DRUG_SEARCHFIELDS = (
 )
 
 
-class StammBase(DrugModelTableBase, table=False):
+class StammRoot(DrugModelTableBase, table=False):
+    """Root class for drug entries. This is the common base for WiDo Arzneimittelindex drugs and user defined drugs.
+
+    Args:
+        DrugModelTableBase (_type_): _description_
+        table (bool, optional): _description_. Defaults to False.
+    """
+
+    pzn: Optional[str] = Field(
+        description="Pharmazentralnummer",
+        sa_type=String(8),
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:7"},
+        primary_key=False,
+        index=True,
+        schema_extra={"examples": ["10066230"]},
+    )
+    name: str = Field(
+        description="Präparatename",
+        sa_type=String(100),
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:8"},
+        schema_extra={"examples": ["Venenum Fang 5 mg Kriminon"]},
+    )
+    hersteller_code: Optional[str] = Field(
+        description="Herstellerschlüssel (Siehe `hersteller_ref` für vollen Herstellernamen)",
+        sa_type=SmallInteger,
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:9"},
+        # We have composite foreign key. see __table_args__ at the top of this class
+        # foreign_key="drug_hersteller.herstellercode",
+        schema_extra={"examples": ["BEHR"]},
+    )
+    darrform: str = Field(
+        description="Darreichungsformschlüssel (Siehe `darrform_ref` für vollen Namen)",
+        sa_type=String(5),
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:10"},
+        # We have composite foreign key. see __table_args__ at the top of this class
+        # foreign_key="drug_darrform.darrform",
+        schema_extra={"examples": ["ZKA"]},
+    )
+    appform: Optional[str] = Field(
+        description="Applikationsformschlüssel (Siehe `appform_ref` für vollen Namen)",
+        sa_type=String(5),
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:24"},
+        # We have composite foreign key. see __table_args__ at the top of this class
+        # foreign_key="drug_applikationsform.appform",
+        schema_extra={"examples": [0]},
+    )
+    hersteller_code: Optional[str] = Field(
+        description="Herstellerschlüssel (Siehe `hersteller_ref` für vollen Herstellernamen)",
+        sa_type=SmallInteger,
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:9"},
+        # We have composite foreign key. see __table_args__ at the top of this class
+        # foreign_key="drug_hersteller.herstellercode",
+        schema_extra={"examples": ["BEHR"]},
+    )
+    atc_code: Optional[str] = Field(
+        description="ATC-Code (Klassifikation nach WIdO)",
+        sa_type=String(7),
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:5"},
+        schema_extra={"examples": ["B01AA03"]},
+    )
+    packgroesse: Optional[int] = Field(
+        description="Packungsgröße (in 1/10 Einheiten)",
+        sa_type=Integer,
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:12"},
+        schema_extra={"examples": ["1000"]},
+    )
+
+
+class StammUserCustomBase(StammRoot, table=False):
+    __table_args__ = (
+        # Index("idx_drug_search", *DRUG_SEARCHFIELDS),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_appform_custom_drug",
+            columns=["appform", "ai_dataversion_id"],
+            refcolumns=[
+                "drug_applikationsform.appform",
+                "drug_applikationsform.ai_dataversion_id",
+            ],
+        ),
+        # Todo: need to find a way to create nullable/optional composite foreign keys. otherwise we will fail inserting stamm entries with e.g. empty appform.
+        # Update/Wontfix on this ToDo: sqlite does not support nullable/optional composite foreign keys constraints (google keywords: SIMPLE mode sqlite composite foreign key).
+        # As a fix we disable foreign key constraints for sqlite
+        # and only enable it via "PRAGMA foreign_keys = ON;" when needed (e.g. On Delete ai_dataversion entry)
+        # review later... there may be a better more generic solution
+        ForeignKeyConstraint(
+            name="composite_foreign_key_hersteller_code_custom_drug",
+            columns=["hersteller_code", "ai_dataversion_id"],
+            refcolumns=[
+                "drug_hersteller.herstellercode",
+                "drug_hersteller.ai_dataversion_id",
+            ],
+        ),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_darrform_custom_drug",
+            columns=["darrform", "ai_dataversion_id"],
+            refcolumns=[
+                "drug_darrform.darrform",
+                "drug_darrform.ai_dataversion_id",
+            ],
+        ),
+    )
+    ai_dataversion_id: uuid.UUID = Field(
+        description="Foreing key to 'AiDataVersion'. Custom drug still need this to refernce their look-up list like darrform, herstellercode,... which are always thight to a specific ai_data_version.",
+        # foreign_key="ai_dataversion.id",
+        default=None,
+        primary_key=False,
+        sa_column_args=[ForeignKey("ai_dataversion.id", ondelete="CASCADE")],
+    )
+
+
+class StammUserCustomCreateAPI(StammRoot, table=False):
+    pass
+
+
+class StammUserCustom(StammUserCustomBase, BaseTable, table=True):
+    __tablename__ = "drug_stamm_user_custom"
+
+    created_by_user: uuid.UUID = Field(foreign_key="user.id")
+    id: uuid.UUID = Field(
+        default_factory=uuid.uuid4,
+        primary_key=True,
+        index=True,
+        nullable=False,
+        unique=True,
+        # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
+    )
+    ai_version_ref: AiDataVersion = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        }
+    )
+    darrform_ref: Darreichungsform = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        }
+    )
+    appform_ref: Optional[Applikationsform] = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        }
+    )
+    hersteller_ref: Optional[Hersteller] = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "viewonly": True,
+        }
+    )
+
+
+class StammUserCustomRead(StammUserCustomBase, table=False):
+    id: uuid.UUID = Field()
+    ai_version_ref: AiDataVersion
+    darrform_ref: Darreichungsform
+    appform_ref: Optional[Applikationsform]
+    hersteller_ref: Optional[Hersteller]
+
+
+class StammBase(StammRoot, table=False):
 
     # https://www.wido.de/fileadmin/Dateien/Dokumente/Publikationen_Produkte/Arzneimittel-Klassifikation/wido_arz_stammdatei_plus_info_2021.pdf
 
     # On composite foreign keys https://github.com/tiangolo/sqlmodel/issues/222
     __table_args__ = (
-        Index("idx_drug_search", *DRUG_SEARCHFIELDS),
+        # Index("idx_drug_search", *DRUG_SEARCHFIELDS),
         ForeignKeyConstraint(
             name="composite_foreign_key_appform",
             columns=["appform", "ai_dataversion_id"],
@@ -93,7 +253,7 @@ class StammBase(DrugModelTableBase, table=False):
             ],
         ),
         ForeignKeyConstraint(
-            name="composite_foreign_key_zuzahlstufe",
+            name="composite_foreign_key_normpackungsgroessen_zuzahlstufe",
             columns=["zuzahlstufe", "ai_dataversion_id"],
             refcolumns=[
                 "drug_normpackungsgroessen.zuzahlstufe",
@@ -108,6 +268,14 @@ class StammBase(DrugModelTableBase, table=False):
         default=None,
         primary_key=True,
         sa_column_args=[ForeignKey("ai_dataversion.id", ondelete="CASCADE")],
+    )
+    pzn: Optional[str] = Field(
+        description="Pharmazentralnummer",
+        sa_type=String(8),
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:7"},
+        primary_key=True,
+        index=True,
+        schema_extra={"examples": ["10066230"]},
     )
     laufnr: str = Field(
         description="Laufende Nummer (vom WIdO vergeben)",
@@ -127,12 +295,7 @@ class StammBase(DrugModelTableBase, table=False):
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:4"},
         schema_extra={"examples": ["Warfarin"]},
     )
-    atc_code: Optional[str] = Field(
-        description="ATC-Code (Klassifikation nach WIdO)",
-        sa_type=String(7),
-        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:5"},
-        schema_extra={"examples": ["B01AA03"]},
-    )
+
     indgr: str = Field(
         description="Indikationsgruppe (nach Roter Liste 2014)",
         sa_type=String(2),
@@ -148,12 +311,6 @@ class StammBase(DrugModelTableBase, table=False):
         index=True,
         schema_extra={"examples": ["10066230"]},
     )
-    name: str = Field(
-        description="Präparatename",
-        sa_type=String(100),
-        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:8"},
-        schema_extra={"examples": ["Venenum Fang 5 mg Kriminon"]},
-    )
     hersteller_code: str = Field(
         description="Herstellerschlüssel (Siehe `hersteller_ref` für vollen Herstellernamen)",
         sa_type=SmallInteger,
@@ -162,16 +319,6 @@ class StammBase(DrugModelTableBase, table=False):
         # foreign_key="drug_hersteller.herstellercode",
         schema_extra={"examples": ["BEHR"]},
     )
-
-    darrform: str = Field(
-        description="Darreichungsformschlüssel (Siehe `darrform_ref` für vollen Namen)",
-        sa_type=String(5),
-        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:10"},
-        # We have composite foreign key. see __table_args__ at the top of this class
-        # foreign_key="drug_darrform.darrform",
-        schema_extra={"examples": ["ZKA"]},
-    )
-
     zuzahlstufe: Optional[str] = Field(
         description="Normpackungsgrößenschlüssel (Siehe `zuzahlstufe_ref` für vollen Namen)",
         sa_type=String(1),
@@ -256,14 +403,6 @@ class StammBase(DrugModelTableBase, table=False):
         sa_type=SmallInteger(),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:23"},
         foreign_key="drug_enum_generikakenn.generikakenn",
-        schema_extra={"examples": [0]},
-    )
-    appform: Optional[str] = Field(
-        description="Applikationsformschlüssel (Siehe `appform_ref` für vollen Namen)",
-        sa_type=String(5),
-        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:24"},
-        # We have composite foreign key. see __table_args__ at the top of this class
-        # foreign_key="drug_applikationsform.appform",
         schema_extra={"examples": [0]},
     )
     biosimilar: Optional[str] = Field(

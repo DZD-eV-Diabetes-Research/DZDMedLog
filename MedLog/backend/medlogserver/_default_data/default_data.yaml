@@ -1,7 +1,7 @@
 items:
-  - medlogserver.model.wido_gkv_arzneimittelindex.ai_data_version.AiDataVersion:
-      - id: 0ed47419-2c8d-42a8-aab3-dcabcaf5ab4c
-        source_file_path: "This is a default entry, under which all user custom drugs are listed."
-        dateiversion: user-custom-drugs
-        datenstand: NA
-        deactivated: false
+  #- medlogserver.model.wido_gkv_arzneimittelindex.ai_data_version.AiDataVersion:
+  #    - id: 0ed47419-2c8d-42a8-aab3-dcabcaf5ab4c
+  #      source_file_path: "This is a default entry, under which all user custom drugs are listed."
+  #      dateiversion: user-custom-drugs
+  #      datenstand: NA
+  #      deactivated: false

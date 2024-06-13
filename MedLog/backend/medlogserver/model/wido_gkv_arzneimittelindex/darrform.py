@@ -8,8 +8,6 @@ from medlogserver.model.wido_gkv_arzneimittelindex._base import DrugModelTableBa
 
 # from medlogserver.db.wido_gkv_arzneimittelindex.model.stamm import Stamm
 
-# TB: Model fertig. ungetestet
-
 
 class Darreichungsform(DrugModelTableBase, table=True):
     __tablename__ = "drug_darrform"

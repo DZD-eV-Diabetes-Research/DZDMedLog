@@ -5,8 +5,6 @@ from sqlalchemy import String, Integer, Column
 from sqlalchemy import ForeignKey
 from medlogserver.model.wido_gkv_arzneimittelindex._base import DrugModelTableBase
 
-# TB: Model fertig. ungetestet
-
 
 class Normpackungsgroessen(DrugModelTableBase, table=True):
     __tablename__ = "drug_normpackungsgroessen"
@@ -16,7 +14,10 @@ class Normpackungsgroessen(DrugModelTableBase, table=True):
         return "normpackungsgroessen.txt"
 
     zuzahlstufe: str = Field(
-        description="Normpackungsgröße. Tim: I dont know where the term 'zuzahlstufe' is coming from. It does not make too much sense for me and its confusing compared to the table name `Normpackungsgroessen`. Maybe historic artefact/bug in the Arzneimittelindex or i am just stupid.",
+        description="""Normpackungsgröße. Tim: I dont know where the term 'zuzahlstufe' is coming from. 
+        It does not make too much sense for me and its confusing compared to the table name `Normpackungsgroessen`. 
+        Maybe historic artefact/bug in the Arzneimittelindex or i am just stupid.
+        If this assumption is correct, a better designation for this column would be sth. like `normpackungsgroessen_id` or `normpackungsgroessen_code`""",
         sa_type=String(1),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:2"},
         primary_key=True,

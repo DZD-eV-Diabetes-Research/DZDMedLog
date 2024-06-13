@@ -6,9 +6,6 @@ from sqlalchemy import ForeignKey
 from medlogserver.model.wido_gkv_arzneimittelindex._base import DrugModelTableBase
 
 
-# TB: Model fertig. ungetestet
-
-
 class SondercodeBedeutung(DrugModelTableBase, table=True):
     __tablename__ = "drug_sonderbedeutung"
 
