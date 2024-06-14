@@ -1,10 +1,5 @@
 <template>
     <Layout>
-        <div style="text-align: center">
-            <h4>{{ study.display_name }}</h4>
-            <h5>{{ studyStore.event }}</h5>
-        </div>
-        <br>
         <UIBaseCard :naked="true">
             <UButton @click="showForm = !showForm" label="Create Intake" color="green" variant="soft"
                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />

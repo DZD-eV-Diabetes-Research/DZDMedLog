@@ -7,15 +7,18 @@
             DZD Medlog
           </NuxtLink>
         </div>
-        <div class="nav__subtitle">
+        <!-- <div class="nav__subtitle">
           Your trustworthy medication logging page
+        </div> -->
+      </div>
+      <div class="activeStudy-container">
+        <div class="activeStudy">
+          <p :class="{ invisible: !userStore.userName }" class="flex-item">User: {{ userStore.userName }}</p>
+          <p :class="{ invisible: !route.params.study_id }" class="flex-item">Study: {{ studyName }}</p>
+          <p :class="{ invisible: studyStore.event === '' }" class="flex-item">Event: {{ studyStore.event }}</p>
+          <!-- <p class="flex-item">Pid: </p> -->
         </div>
       </div>
-      <div class="activeStudy">
-      <p>User: {{ userStore.userName }}</p>
-      <p v-if="route.params.study_id">Study: {{studyName}}</p>
-      <p v-if="studyStore.event !== ''">Event: {{ studyStore.event }}</p>
-    </div>
       <div class="nav__logo">
         <img src="/img/logos/dzd.png" alt="DZD" />
       </div>
@@ -43,13 +46,14 @@ watchEffect(async () => {
     const study = await studyStore.getStudy(route.params.study_id);
     studyName.value = study ? study.display_name : 'Study not found';
   } else {
-    studyName.value = ''; 
+    studyName.value = '';
   }
 });
 
 
 function logout() {
   userStore.$reset()
+  studyStore.$reset()
   tokenStore.$reset()
   router.push({ path: "/" })
 }
@@ -159,5 +163,37 @@ function resetStore() {
 
 .about {
   padding: var(--space-6);
+}
+
+.fixed-size {
+  height: 24px;
+  width: 500px;
+}
+
+.invisible {
+  visibility: hidden;
+}
+
+.activeStudy-container {
+  display: flex;
+  justify-content: center;
+  flex: 1; 
+}
+
+.activeStudy {
+  display: flex;
+  flex-direction: column; 
+  align-items: flex-start; 
+  gap: -10px; 
+  width: 500px; 
+  margin-left: 125px;
+}
+
+.flex-item {
+  height: 27px; 
+  width: 100%; 
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis;
 }
 </style>
