@@ -8,9 +8,19 @@
             <h2 v-if="!userStore.isAdmin">Aktuell sind keine Studien aufgelistet bitte, wenden Sie sich an einen Admin
             </h2>
         </UIBaseCard>
-        <UIBaseCard class="active" @click="selectStudy(study)" v-for="study in studyStore.studies.items" :key="study.id"
-            style="text-align: center">
+        <UIBaseCard class="active" v-for="study in studyStore.studies.items" :key="study.id" style="text-align: center">
             <h3>{{ study.display_name }}</h3>
+            <UForm :schema="schema" :state="state" class="space-y-4" @submit="pushFurther(study)">
+                <UFormGroup label="ProbandenID" name="probandID">
+                    <UInput v-model="state.probandID" />
+                </UFormGroup>
+                <UButton color="green" variant="soft"
+                    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+                    type="submit">
+                    Suchen
+                </UButton>
+            </UForm>
+
         </UIBaseCard>
         <UModal v-model="showInterviewModal">
             <div class="p-4" style="text-align: center">
@@ -51,6 +61,13 @@
 import { object, string, type InferType, number } from 'yup'
 import type { FormSubmitEvent } from '#ui/types'
 
+const userStore = useUserStore()
+const studyStore = useStudyStore()
+const tokenStore = useTokenStore()
+const probandStore = useProbandStore()
+const router = useRouter()
+const runtimeConfig = useRuntimeConfig()
+
 const schema = object({
     probandID: string().required('Required'),
 })
@@ -61,104 +78,17 @@ const state = reactive({
     probandID: undefined,
 })
 
-async function test(event: FormSubmitEvent<Schema>) {
-    console.log(event.data);
-    
-}
-
-async function onSubmit (event: FormSubmitEvent<Schema>) {
-  // Do something with event.data
-  console.log(event.data)
-}
-
-const userStore = useUserStore()
-const studyStore = useStudyStore()
-const tokenStore = useTokenStore()
-const router = useRouter()
-const route = useRoute()
-const runtimeConfig = useRuntimeConfig()
-
-const showInterviewModal = ref(false)
-const studyEvents = ref([]);
-const selectedStudy = ref()
-const selectedEvent = ref()
-
-const toggleAccordion = ref(true)
-
-const interviewState = reactive({
-    subjectID: "",
-    interviewNumber: null
-});
-
-const options = [{
-    value: "false",
-    label: "Nein"
-}, {
-    value: "true",
-    label: "Ja"
-}]
-
-const selected = ref("true")
-
-const interviewSchema = object({
-    subjectID: string().required("Required"),
-    interviewNumber: number().required("Required")
-});
-
-const accordionItems = [{
-    label: 'Create Event',
-    icon: 'i-heroicons-information-circle',
-    slot: 'create-event',
-}]
-
-async function selectStudy(study) {
+async function pushFurther(study) {
     try {
-        const events = await $fetch(`${runtimeConfig.public.baseURL}study/${study.id}/event`, {
+        const response = await $fetch(`${runtimeConfig.public.baseURL}study/${study.id}/proband/${state.probandID}/interview`, {
             method: "GET",
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-        })
-        selectedStudy.value = study
-        showInterviewModal.value = true
-        studyEvents.value = events.items.map(event => ({ id: event.id, event: event, label: useStringDoc(event.name) }));
-        studyEvents.value = studyEvents.value.slice().sort((a, b) => a.label.localeCompare(b.label)).reverse();
-        selectedEvent.value = studyEvents.value[0]
-
+        });
+        probandStore.interviews = response
+        probandStore.probandID = state.probandID
+        router.push({ path: "/interview/proband/" + state.probandID + "/study/" + study.id })
     } catch (error) {
         console.log(error);
-    }
-}
-
-async function createInterview() {
-    let takenMeds = selected.value === "true"
-
-    try {
-        showInterviewModal.value = false;
-        const responseData = await useCreateInterview(selectedStudy.value.id, selectedEvent.value.id, interviewState.subjectID, takenMeds, interviewState.interviewNumber);
-        studyStore.event = selectedEvent.value.event.name
-        router.push({ path: "/interview/" + selectedStudy.value.id + '/event/' + selectedEvent.value.id + "/id/" + responseData.id })
-    } catch (error) {
-        console.error("Failed to create Interview: ", error);
-    }
-}
-
-const eventState = reactive({ name: "" });
-const eventSchema = object({
-    name: string().required("Required"),
-});
-
-async function createEvent() {
-    try {
-        await useCreateEvent(eventState.name.trim(), selectedStudy.value.id);
-
-        const events = await $fetch(`${runtimeConfig.public.baseURL}study/${selectedStudy.value.id}/event`, {
-            method: "GET",
-            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-        })
-        studyEvents.value = events.items.map(event => ({ id: event.id, event: event, label: useStringDoc(event.name) }));
-        studyEvents.value = studyEvents.value.slice().sort((a, b) => a.label.localeCompare(b.label)).reverse();
-        selectedEvent.value = studyEvents.value[0];
-    } catch (error) {
-        console.error("Failed to create event: ", error);
     }
 }
 
