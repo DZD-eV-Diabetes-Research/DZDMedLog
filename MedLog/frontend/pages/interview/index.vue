@@ -11,19 +11,6 @@
         <UIBaseCard class="active" @click="selectStudy(study)" v-for="study in studyStore.studies.items" :key="study.id"
             style="text-align: center">
             <h3>{{ study.display_name }}</h3>
-            <UForm :schema="schema" :state="state" class="space-y-4" @submit="test">
-                <UFormGroup label="ProbandenID" name="probandID">
-                    <UInput v-model="state.probandID" />
-                </UFormGroup>
-                <UButton
-              color="green"
-              variant="soft"
-              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-              type="submit"
-            >
-                Suchen
-            </UButton>
-            </UForm>
         </UIBaseCard>
         <UModal v-model="showInterviewModal">
             <div class="p-4" style="text-align: center">
