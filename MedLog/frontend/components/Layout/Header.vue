@@ -15,6 +15,7 @@
         <div class="activeStudy">
           <p :class="{ invisible: !userStore.userName }" class="flex-item">User: {{ userStore.userName }}</p>
           <p :class="{ invisible: !route.params.study_id }" class="flex-item">Study: {{ studyName }}</p>
+          <p :class="{ invisible: !probandStore.probandID }" class="flex-item">ProbandenID: {{ probandStore.probandID }}</p>
           <p :class="{ invisible: studyStore.event === '' }" class="flex-item">Event: {{ studyStore.event }}</p>
           <!-- <p class="flex-item">Pid: </p> -->
         </div>
@@ -36,6 +37,7 @@ import { ref, watchEffect } from 'vue';
 const tokenStore = useTokenStore();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
+const probandStore = useProbandStore()
 const router = useRouter();
 const route = useRoute();
 const studyName = ref('');
@@ -55,6 +57,7 @@ function logout() {
   userStore.$reset()
   studyStore.$reset()
   tokenStore.$reset()
+  probandStore.$reset()
   router.push({ path: "/" })
 }
 
@@ -68,6 +71,7 @@ function my_profile() {
 }
 
 function resetStore() {
+  probandStore.$reset()
   studyStore.$reset()
 }
 
