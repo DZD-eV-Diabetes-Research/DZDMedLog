@@ -54,6 +54,7 @@ async function pushFurther(study) {
         });
         probandStore.interviews = response
         probandStore.probandID = state.probandID
+
         router.push({ path: "/interview/proband/" + state.probandID + "/study/" + study.id })
     } catch (error) {
         console.log(error);
