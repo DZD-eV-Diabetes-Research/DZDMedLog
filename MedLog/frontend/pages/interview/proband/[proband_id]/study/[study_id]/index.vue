@@ -3,29 +3,12 @@
     Route params
     <br>
     {{ route.params }}
-    <!-- <br>
-    <br>
-    Probandstore interviews 
-    <br>
-    {{ probandStore.interviews }}
-    <br>
-    <br>
-    Events
-    <br>
-    <p> {{ events }}</p>
-    <br>
-    <br>
-    {{ completedItems }}
-    <br>
-    <br>
-    <br>
-    Incompleted Items {{ incompletedItems  }} -->
     <div class="card-container">
       <UIBaseCard>
         <h5>Zukünftige Interviews</h5>
         <UInputMenu v-model="selectedIncompleteEvent" :options="incompletedItems" />
         <br>
-        <UButton @click="test(selectedIncompleteEvent)" color="green" variant="soft"
+        <UButton @click="showInterviewModal = !showInterviewModal" color="green" variant="soft"
           class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
           Interview Durchführen
         </UButton>
@@ -40,15 +23,75 @@
         </UButton>
       </UIBaseCard>
     </div>
-    {{ intake }}
+    <UModal v-model="showInterviewModal">
+      <div class="p-4" style="text-align: center">
+        <UForm :schema="interviewSchema" :state="interviewState" class="space-y-4" @submit="test">
+          <h5>Interview anlegen für:</h5>
+          <h5>{{ selectedIncompleteEvent.label }}</h5>
+          <UFormGroup label="Probanden-ID" name="subjectID">
+            <UInput v-model="interviewState.subjectID" required />
+          </UFormGroup>
+        </UForm>
+
+        <!-- <UForm :schema="interviewSchema" :state="interviewState" class="space-y-4" @submit="createInterview()">
+                    <h5>Interview anlegen für:</h5>
+                    <h5>{{selectedStudy.display_name}}</h5>
+                    <UFormGroup label="Probanden-ID" name="subjectID">
+                        <UInput v-model="interviewState.subjectID" required />
+                    </UFormGroup>
+                    <UFormGroup label="Interview-Nummer" name="interviewNumber">
+                        <UInput v-model="interviewState.interviewNumber" type="number" required />
+                    </UFormGroup>
+                    <URadioGroup v-model="selected" style="border: 'border border-black'"
+                        legend="Haben Sie Diabetes-Medikamente in den vergangenen 12 Monaten bzw. andere Medikamente in den letzten 7 Tagen eingenommen?"
+                        :options="options" />
+                    <UInputMenu v-model="selectedEvent" :options="studyEvents" />
+                    <UAccordion :items="accordionItems">
+                        <template #create-event>
+                            <UForm :schema="eventSchema" :state="eventState" class="space-y-4" @submit="createEvent">
+                                <UFormGroup label="Event Name" name="name">
+                                    <UInput v-model="eventState.name" required
+                                        placeholder="Interview Campaign Year Quarter" />
+                                </UFormGroup>
+                                <UButton type="submit" label="Event anlegen" color="green" variant="soft"
+                                    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+                            </UForm>
+                        </template>
+</UAccordion>
+<UButton type="submit" label="Interview anlegen" color="green" variant="soft"
+  class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+</UForm> -->
+      </div>
+    </UModal>
+    {{ selectedIncompleteEvent }}
   </Layout>
 </template>
 
 <script setup lang="ts">
 
+const interviewState = reactive({
+  subjectID: "",
+  interviewNumber: null
+});
+
+const interviewSchema = object({
+  subjectID: string().required("Required"),
+  interviewNumber: number().required("Required")
+});
+
+const showForm = ref(false)
+
+import dayjs from 'dayjs';
+import { watchEffect } from 'vue';
+import type { FormSubmitEvent } from "#ui/types";
+import { object, number, date, string, type InferType } from "yup";
+
+
 const route = useRoute()
 const runtimeConfig = useRuntimeConfig()
 const tokenStore = useTokenStore()
+const drugStore = useDrugStore()
+const studyStore = useStudyStore()
 const probandStore = useProbandStore()
 
 const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event`, {
@@ -56,22 +99,16 @@ const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/${
   headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
 
+const showInterviewModal = ref(false)
 const selectedCompleteEvent = ref()
 const selectedIncompleteEvent = ref()
 const completedItems = ref([]);
 const incompletedItems = ref([]);
 
 const { data: intake, refresh } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event`, {
-    method: "GET",
-    headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+  method: "GET",
+  headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
-
-function test(selected_item) {
-  console.log(selected_item);
-}
-function test2(selected_item) {
-  console.log(selected_item);
-}
 
 function createEventList(events) {
   if (events && events.items) {
@@ -81,6 +118,7 @@ function createEventList(events) {
       event: event,
       label: event.name
     })).sort((a, b) => a.label.localeCompare(b.label)).reverse()
+
     incompletedItems.value = events.items.filter(item => !item.completed);
     incompletedItems.value = incompletedItems.value.map(event => ({
       id: event.id,
@@ -88,6 +126,7 @@ function createEventList(events) {
       label: event.name
     })).sort((a, b) => a.label.localeCompare(b.label)).reverse()
   }
+
   selectedCompleteEvent.value = completedItems.value[0]
   selectedIncompleteEvent.value = incompletedItems.value[0]
 }
@@ -98,8 +137,10 @@ watch(events, (newEvents) => {
   }
 }, { immediate: true })
 
-
-
+async function test(event: FormSubmitEvent<Schema>) {
+  // Do something with event.data
+  console.log(event.data)
+}
 
 </script>
 
@@ -171,6 +212,8 @@ import type { FormSubmitEvent } from '#ui/types'
 import { async } from '../../../../../../composables/useCreateIntake';
 import { useStudyStore } from '../../../../../../stores/studyStore';
 import { useProbandStore } from '../../../../../../stores/probandStore';
+import { UForm, UButton } from '../../../../../../.nuxt/components';
+import { type } from '../../../../../../.nuxt/types/imports';
 
 const schema = object({
     probandID: string().required('Required'),
