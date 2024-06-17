@@ -41,30 +41,30 @@
                     <template #newDrug="{ content }">
                         <div class="new-drug-box">
                             <UForm :schema="newDrugSchema" :state="newDrugState" class="space-y-4" @submit="test">
-                                <UFormGroup label="PZN" name="pzn">
-                                    <UInput v-model="newDrugState.pzn" />
-                                </UFormGroup>
-                                <UFormGroup label="Name" name="name">
+                                <UFormGroup label="Name" name="name" required>
                                     <UInput v-model="newDrugState.name" />
+                                </UFormGroup>
+                                <UFormGroup label="PZN" name="pzn">
+                                    <UInput v-model="newDrugState.pzn" placeholder="Falls bekannt"/>
                                 </UFormGroup>
                                 <UFormGroup label="Herstellercode" name="herstellerCode">
-                                    <UInput v-model="newDrugState.name" />
+                                    <UInput v-model="newDrugState.herstellerCode" placeholder="Falls bekannt"/>
                                 </UFormGroup>
                                 <UFormGroup label="Darreichungsform" name="darrform">
-                                    <UInput v-model="newDrugState.name" />
+                                    <UInput v-model="newDrugState.darrform" placeholder="Falls bekannt"/>
                                 </UFormGroup>
                                 <UFormGroup label="Applikationsform" name="appform">
-                                    <UInput v-model="newDrugState.name" />
+                                    <UInput v-model="newDrugState.appform" placeholder="Falls bekannt"/>
                                 </UFormGroup>
                                 <UFormGroup label="ATC-Code" name="atc_code">
-                                    <UInput v-model="newDrugState.name" />
+                                    <UInput v-model="newDrugState.atc_code" placeholder="Falls bekannt"/>
                                 </UFormGroup>
                                 <UFormGroup label="Packungsgroesse" name="packgroesse">
-                                    <UInput v-model="newDrugState.name" />
+                                    <UInput v-model="newDrugState.packgroesse" placeholder="Falls bekannt"/>
                                 </UFormGroup>
                                 <UButton type="submit" color="green" variant="soft"
                                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
-                                    Submit
+                                    Neues Medikament speichern
                                 </UButton>
                             </UForm>
                         </div>
@@ -96,17 +96,17 @@
 <script setup lang="ts">
 
 const newDrugState = reactive({
-    pzn: null,
+    pzn: "",
     name: null,
-    herstellerCode: null,
-    darrform: null,
-    appform: null,
-    atc_code: null,
-    packgroesse: null
+    herstellerCode: "",
+    darrform: "",
+    appform: "",
+    atc_code: "",
+    packgroesse: 0
 })
 
 const newDrugSchema = object({
-    pzn: string().required('Required'),
+    pzn: string(),
     name: string().required('Required'),
     herstellerCode: string(),
     darrform: string(),
