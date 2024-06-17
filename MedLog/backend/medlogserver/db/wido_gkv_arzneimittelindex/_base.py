@@ -147,13 +147,14 @@ class DrugCRUDBase(
         current_ai_data_version = None
         if not self._is_ai_versionless_table_ and create_obj.ai_dataversion_id is None:
             current_ai_data_version = await self._get_current_ai_version()
+            create_obj.ai_dataversion_id = current_ai_data_version.id
 
         query_existing = select(table).where(
             getattr(table, pk) == getattr(create_obj, pk)
         )
         if not self._is_ai_versionless_table_ and create_obj.ai_dataversion_id is None:
             query_existing = query_existing.where(
-                table.ai_dataversion_id == current_ai_data_version.ai_dataversion_id
+                table.ai_dataversion_id == current_ai_data_version.id
             )
         res = await self.session.exec(query_existing)
         existing_obj = res.one_or_none()
