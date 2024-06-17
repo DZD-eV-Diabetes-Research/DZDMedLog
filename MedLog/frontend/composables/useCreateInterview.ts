@@ -1,4 +1,4 @@
-export async function useCreateInterview(study_id:string, event_id:string, proband_external_id: string, proband_has_taken_meds:boolean, interview_number:number): Promise<void>{
+export async function useCreateInterview(study_id:string, event_id:string, proband_external_id: string, proband_has_taken_meds:boolean, interview_number:number): Promise<any>{
     const tokenStore = useTokenStore()
     tokenStore.error = ""
     

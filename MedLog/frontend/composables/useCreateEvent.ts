@@ -4,7 +4,7 @@ export async function useCreateEvent(name: string, study_id:string): Promise<voi
     
     let body = {"name": name}
     
-    try {
+    try {        
         const runtimeConfig = useRuntimeConfig()
         const data = await $fetch(runtimeConfig.public.baseURL + "study/" + study_id + "/event", {
             method: "POST",
