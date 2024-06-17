@@ -21,7 +21,7 @@ export const useUserStore = defineStore('UserStore', {
         userName: "",
         isAdmin: false,
         viewProfile: false,
-        buttonText: "Profile",
+        buttonText: "Toggle to User",
         userID: ""
     }),
     actions: {
@@ -50,14 +50,22 @@ export const useUserStore = defineStore('UserStore', {
             }
         },
         async toggle_profile() {
-            this.viewProfile = !this.viewProfile
-            if (this.viewProfile === true) {
-                this.buttonText = "Back"
-                this.userMe()
+            this.isAdmin = !this.isAdmin
+            if (this.isAdmin) {
+                this.buttonText = "Toggle to User"
             } else {
-                this.buttonText = "Profile"
+                this.buttonText = "Toggle to Admin"
             }
         },
+        // async toggle_profile() {
+        //     this.viewProfile = !this.viewProfile
+        //     if (this.viewProfile === true) {
+        //         this.buttonText = "Back"
+        //         this.userMe()
+        //     } else {
+        //         this.buttonText = "Profile"
+        //     }
+        // },
     },
     persist: true
 }) 

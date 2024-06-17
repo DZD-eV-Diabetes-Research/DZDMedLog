@@ -10,9 +10,9 @@
             class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
             Interview Durchführen
           </UButton>
-          <UButton @click="showEventModal = !showEventModal" color="green" variant="soft"
+          <UButton v-if="userStore.isAdmin" @click="showEventModal = !showEventModal" color="green" variant="soft"
             class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
-            Event anlegen
+            Neues Event anlegen
           </UButton>
         </div>
       </UIBaseCard>
@@ -20,7 +20,7 @@
         <h5>Durchgeführte Interviews</h5>
         <UInputMenu v-model="selectedCompleteEvent" :options="completedItems" />
         <br>
-        <UButton @click="console.log('Hallo')" color="blue" variant="soft"
+        <UButton @click="editEvent(selectedCompleteEvent.id)" color="blue" variant="soft"
           class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white">
           Interview Bearbeiten
         </UButton>
@@ -51,7 +51,7 @@ const tokenStore = useTokenStore()
 const userStore = useUserStore()
 const studyStore = useStudyStore()
 
-const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event`, {
+const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
   method: "GET",
   headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
@@ -64,20 +64,20 @@ const incompletedItems = ref([]);
 
 const eventState = reactive({ name: "" });
 const eventSchema = object({
-    name: string().required("Required"),
+  name: string().required("Required"),
 });
 
 
 function createEventList(events) {
   if (events && events.items) {
-    completedItems.value = events.items.filter(item => item.completed);
+    completedItems.value = events.items.filter(item => item.proband_interview_count > 0);
     completedItems.value = completedItems.value.map(event => ({
       id: event.id,
       event: event,
       label: event.name
     })).sort((a, b) => a.label.localeCompare(b.label)).reverse()
 
-    incompletedItems.value = events.items.filter(item => !item.completed);
+    incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
     incompletedItems.value = incompletedItems.value.map(event => ({
       id: event.id,
       event: event,
@@ -97,29 +97,45 @@ watch(events, (newEvents) => {
 
 
 async function createEvent() {
-    try {
-        await useCreateEvent(eventState.name.trim(), route.params.study_id);
+  try {
+    await useCreateEvent(eventState.name.trim(), route.params.study_id);
 
-        const events = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event`, {
-            method: "GET",
-            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-        })
-        incompletedItems.value = events.items.map(event => ({ id: event.id, event: event, label: useStringDoc(event.name) }));
-        incompletedItems.value = incompletedItems.value.slice().sort((a, b) => a.label.localeCompare(b.label)).reverse();
-        selectedIncompleteEvent.value = incompletedItems.value[0];
-        showEventModal.value = !showEventModal.value
-    } catch (error) {
-        console.error("Failed to create event: ", error);
-    }
+    const events = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
+      method: "GET",
+      headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+    })
+    incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
+    incompletedItems.value = incompletedItems.value.map(event => ({
+      id: event.id,
+      event: event,
+      label: event.name
+    })).sort((a, b) => a.label.localeCompare(b.label)).reverse()
+    selectedIncompleteEvent.value = incompletedItems.value[0];
+    showEventModal.value = !showEventModal.value
+  } catch (error) {
+    console.error("Failed to create event: ", error);
+  }
 }
 
-async function createInterview(){
-  try{
+async function createInterview() {
+  try {
     const interview = await useCreateInterview(route.params.study_id, selectedIncompleteEvent.value.id, route.params.proband_id, true, userStore.userID)
     studyStore.event = selectedIncompleteEvent.value.event.name
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + selectedIncompleteEvent.value.id + "/interview/" + interview.id)
   }
-  catch(error){
+  catch (error) {
+    console.log(error);
+  }
+}
+
+async function editEvent(eventId: string) {
+  try {
+    const result = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${eventId}/interview`, {
+      method: "GET",
+      headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+    })
+    router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + eventId + "/interview/" + result[0].id)
+  } catch (error) {
     console.log(error);
   }
 }
