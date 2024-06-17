@@ -2,7 +2,7 @@
   <Layout>
     <div class="card-container">
       <UIBaseCard>
-        <h5>Zukünftige Interviews</h5>
+        <h5>Unbearbeitete Events</h5>
         <UInputMenu v-model="selectedIncompleteEvent" :options="incompletedItems" />
         <br>
         <div class="button-container">
@@ -17,7 +17,7 @@
         </div>
       </UIBaseCard>
       <UIBaseCard>
-        <h5>Durchgeführte Interviews</h5>
+        <h5>Bearbeitete Events</h5>
         <UInputMenu v-model="selectedCompleteEvent" :options="completedItems" />
         <br>
         <UButton @click="editEvent(selectedCompleteEvent.id)" color="blue" variant="soft"
