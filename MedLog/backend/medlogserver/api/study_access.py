@@ -17,9 +17,10 @@ from medlogserver.model.study_permission import StudyPermisson
 from medlogserver.model.study import Study
 from medlogserver.db.study import StudyCRUD
 from medlogserver.model.study_permission import StudyPermisson
+from medlogserver.model.intake import Intake
 from medlogserver.db.study_permission import StudyPermissonCRUD
 from medlogserver.db.interview import InterviewCRUD
-
+from medlogserver.db.intake import IntakeCRUD
 from medlogserver.db.event import EventCRUD
 
 config = Config()
@@ -179,7 +180,7 @@ async def user_has_study_access(
     return study_access
 
 
-async def assert_interview_id_is_part_of_study_id(
+async def assert_interview_is_part_of_study(
     study_id: str,
     interview_id: str,
     interview_crud: InterviewCRUD,
@@ -187,4 +188,16 @@ async def assert_interview_id_is_part_of_study_id(
     # todo: another candiate for caching
     return await interview_crud.assert_belongs_to_study(
         interview_id=interview_id, study_id=study_id
+    )
+
+
+async def assert_intake_is_part_of_study(
+    study_id: str,
+    intake_id: str,
+    intake_crud: IntakeCRUD,
+):
+    # todo: another candiate for caching
+    intake: Intake = await intake_crud.get(id_=intake_id)
+    return await intake_crud.assert_belongs_to_study(
+        intake_id=intake_id, study_id=study_id
     )

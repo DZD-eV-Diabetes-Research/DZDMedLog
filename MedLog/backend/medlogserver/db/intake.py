@@ -130,3 +130,26 @@ class IntakeCRUD(
         if intake is None and raise_exception_if_none:
             raise raise_exception_if_none
         return intake
+
+    async def assert_belongs_to_study(
+        self,
+        intake_id: UUID,
+        study_id: UUID,
+        raise_exception_if_not=None,
+    ) -> bool:
+        query = (
+            select(Intake)
+            .join(Interview)
+            .join(Event)
+            .where(Event.study_id == study_id and Intake.id == intake_id)
+        )
+        log.debug(f"##query: {query}")
+        results = await self.session.exec(statement=query)
+
+        intake: Event | None = results.first()
+        log.debug(f"##query: {query} \nRESULT: {intake}")
+        if intake is None:
+            if raise_exception_if_not:
+                raise raise_exception_if_not
+            return False
+        return True

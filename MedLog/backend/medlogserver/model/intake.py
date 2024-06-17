@@ -166,7 +166,6 @@ class Intake(IntakeCreate, BaseTable, table=True):
         description="Pharmazentralnummer as 8 digits only",
         schema_extra={"examples": ["23894732"]},
     )
-
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,
         primary_key=True,
