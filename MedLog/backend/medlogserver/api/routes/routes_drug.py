@@ -64,6 +64,7 @@ from medlogserver.model.wido_gkv_arzneimittelindex import (
     Generikakennung,
     ApoPflicht,
     Preisart,
+    Hersteller,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex import (
     NormpackungsgroessenCRUD,
@@ -72,6 +73,7 @@ from medlogserver.db.wido_gkv_arzneimittelindex import (
     GenerikakennungCRUD,
     ApoPflichtCRUD,
     PreisartCRUD,
+    HerstellerCRUD,
 )
 
 config = Config()
@@ -341,6 +343,31 @@ async def list_preisart(
     user: User = Security(get_current_user),
     crud: PreisartCRUD = Depends(PreisartCRUD.get_crud),
     pagination: QueryParamsInterface = Depends(PreisartQueryParams),
+) -> PaginatedResponse[Preisart]:
+    res = await crud.list(pagination=pagination)
+    return PaginatedResponse(
+        total_count=await crud.count(),
+        offset=pagination.offset,
+        count=len(res),
+        items=res,
+    )
+
+
+HerstellerQueryParams: Type[QueryParamsInterface] = create_query_params_class(
+    Hersteller
+)
+
+
+@fast_api_drug_router.get(
+    "/drug/enum/hersteller",
+    response_model=PaginatedResponse[Hersteller],
+    description=f"list or search herstellers",
+)
+async def list_hersteller(
+    search_term: str = None,
+    user: User = Security(get_current_user),
+    crud: HerstellerCRUD = Depends(HerstellerCRUD.get_crud),
+    pagination: QueryParamsInterface = Depends(HerstellerQueryParams),
 ) -> PaginatedResponse[Preisart]:
     res = await crud.list(pagination=pagination)
     return PaginatedResponse(
