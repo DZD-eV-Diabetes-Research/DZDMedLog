@@ -1,5 +1,6 @@
 <template>
   <Layout>
+    {{ route.params }}
     <div class="card-container">
       <UIBaseCard>
         <h5>Unbearbeitete Events</h5>
@@ -75,14 +76,14 @@ function createEventList(events) {
       id: event.id,
       event: event,
       label: event.name
-    })).sort((a, b) => a.label.localeCompare(b.label)).reverse()
+    })).sort().reverse()
 
     incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
     incompletedItems.value = incompletedItems.value.map(event => ({
       id: event.id,
       event: event,
       label: event.name
-    })).sort((a, b) => a.label.localeCompare(b.label)).reverse()
+    })).sort().reverse()
   }
 
   selectedCompleteEvent.value = completedItems.value[0]
@@ -109,7 +110,7 @@ async function createEvent() {
       id: event.id,
       event: event,
       label: event.name
-    })).sort((a, b) => a.label.localeCompare(b.label)).reverse()
+    })).sort().reverse()
     selectedIncompleteEvent.value = incompletedItems.value[0];
     showEventModal.value = !showEventModal.value
   } catch (error) {
