@@ -63,6 +63,23 @@ class IntakeCRUD(
         results = await self.session.exec(statement=query)
         return results.all()
 
+    async def count(
+        self,
+        filter_event_id: str = None,
+        filter_interview_id: str = None,
+        filter_proband_external_id: str = None,
+        filter_study_id: str = None,
+    ) -> int:
+        # Todo that is stupid. we need a batter way to return total count for pagination, then repeat the query.
+        return len(
+            await self.list(
+                filter_event_id=filter_event_id,
+                filter_interview_id=filter_interview_id,
+                filter_proband_external_id=filter_proband_external_id,
+                filter_study_id=filter_study_id,
+            )
+        )
+
     async def list_last_completed_interview_intakes_by_proband(
         self,
         study_id: str | uuid.UUID,

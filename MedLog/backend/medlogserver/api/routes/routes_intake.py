@@ -177,11 +177,21 @@ async def list_all_intakes(
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     pagination: QueryParamsInterface = Depends(IntakeQueryParams),
 ) -> PaginatedResponse[Intake]:
-    return await intake_crud.list(
+    intakes = await intake_crud.list(
         filter_study_id=study_access.study.id,
         filter_proband_external_id=proband_id,
         filter_interview_id=interview_id,
         pagination=pagination,
+    )
+    return PaginatedResponse(
+        total_count=await intake_crud.count(
+            filter_study_id=study_access.study.id,
+            filter_proband_external_id=proband_id,
+            filter_interview_id=interview_id,
+        ),
+        offset=pagination.offset,
+        count=len(intakes),
+        items=intakes,
     )
 
 
