@@ -15,8 +15,8 @@
         <div class="activeStudy">
           <p :class="{ invisible: !userStore.userName }" class="flex-item">User: {{ userStore.userName }}</p>
           <p :class="{ invisible: !route.params.study_id }" class="flex-item">Study: {{ studyName }}</p>
+          <p :class="{ invisible: !probandStore.probandID }" class="flex-item">ProbandenID: {{ probandStore.probandID }}</p>
           <p :class="{ invisible: studyStore.event === '' }" class="flex-item">Event: {{ studyStore.event }}</p>
-          <!-- <p class="flex-item">Pid: </p> -->
         </div>
       </div>
       <div class="nav__logo">
@@ -26,7 +26,7 @@
   </header>
   <div class="button-container">
     <button class="logout_button" v-if="tokenStore.loggedIn" @click="logout()">Logout</button>
-    <button class="profile_button" v-if="tokenStore.loggedIn" @click="my_profile()">{{ userStore.buttonText }}</button>
+    <button :class="profileButtonClass" v-if="tokenStore.loggedIn" @click="toggelProfile()">{{ userStore.buttonText }}</button>
   </div>
 </template>
 
@@ -36,6 +36,7 @@ import { ref, watchEffect } from 'vue';
 const tokenStore = useTokenStore();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
+const probandStore = useProbandStore()
 const router = useRouter();
 const route = useRoute();
 const studyName = ref('');
@@ -55,21 +56,36 @@ function logout() {
   userStore.$reset()
   studyStore.$reset()
   tokenStore.$reset()
+  probandStore.$reset()
   router.push({ path: "/" })
 }
 
-function my_profile() {
+function toggelProfile() {
   userStore.toggle_profile()
-  if (userStore.buttonText === "Back") {
-    router.push({ path: "/profile" })
-  } else {
-    router.go(-1)
-  }
 }
+// function toggelProfile() {
+//   userStore.toggle_profile()
+//   if (userStore.buttonText === "Back") {
+//     router.push({ path: "/profile" })
+//   } else {
+//     router.go(-1)
+//   }
+// }
 
 function resetStore() {
+  probandStore.$reset()
   studyStore.$reset()
 }
+
+
+const profileButtonClass = computed(() => {
+  let baseClass = 'profile_button'
+  if (userStore.buttonText === 'Toggle to User') {
+    return `${baseClass} toggle_to_user`
+  } else {
+    return `${baseClass} toggle_to_admin`
+  }
+})
 
 </script>
 
@@ -159,6 +175,15 @@ function resetStore() {
 
 .profile_button {
   margin-left: auto;
+  color: #34c868;
+}
+
+.toggle_to_user {
+  color: #34c868;
+}
+
+.toggle_to_admin {
+  color: #8ac4fa;
 }
 
 .about {

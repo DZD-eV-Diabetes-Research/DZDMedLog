@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 
 interface DrugState {
-    item: any
+    item: Object
     intake_start_time_utc: string
     as_needed_does_unit: number
     consumed_meds_today: boolean
@@ -11,7 +11,6 @@ interface DrugState {
 export const useDrugStore = defineStore('DrugStore',{
     id: "drug-store",
     state: (): DrugState => ({
-        
         item: null,
         intake_start_time_utc: "",
         as_needed_does_unit: 0,
