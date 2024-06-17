@@ -52,15 +52,22 @@ IntakeQueryParams: Type[QueryParamsInterface] = create_query_params_class(
 
 ############
 @fast_api_intake_router.get(
-    "/study/{study_id}/intake/{intake_id}",
+    "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
     response_model=Intake,
     description=f"Get a certain intake record by it id",
 )
 async def get_intake(
     intake_id: uuid.UUID,
+    interview_id: Annotated[uuid.UUID, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ) -> Intake:
+    await assert_intake_is_part_of_study(
+        study_id=study_access.study.id,
+        intake_id=intake_id,
+        intake_crud=intake_crud,
+        interview_id=interview_id,
+    )
     return await intake_crud.get(
         intake_id=intake_id,
         study_id=study_access.study.id,
@@ -87,7 +94,7 @@ async def create_intake(
             detail="Not allowed to create intake",
         )
     # lets check if the the interview is part of the study. otherwise caller could evade study permissions here by calling a interview id from another study.
-    assert await assert_interview_is_part_of_study(
+    await assert_interview_is_part_of_study(
         study_id=study_access.study.id,
         interview_id=interview_id,
         interview_crud=interview_crud,
@@ -102,13 +109,14 @@ async def create_intake(
 
 ############
 @fast_api_intake_router.patch(
-    "/study/{study_id}/intake/{intake_id}",
+    "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
     response_model=Intake,
     description=f"Update intake record. user must have at least 'interviewer'-permissions on study.",
 )
 async def update_intake(
     intake_id: uuid.UUID,
     intake: IntakeUpdate,
+    interview_id: Annotated[uuid.UUID, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ) -> Intake:
@@ -118,24 +126,25 @@ async def update_intake(
             detail="Not allowed to create intake",
         )
     # lets check if the the interview is part of study. otherwise caller could evade study permissions here by calling a interview id from another study.
-    assert await assert_intake_is_part_of_study(
+    await assert_intake_is_part_of_study(
         study_id=study_access.study.id,
         intake_id=intake_id,
         intake_crud=intake_crud,
+        interview_id=interview_id,
     )
     return await intake_crud.update(intake_id, intake)
 
 
 ############
 @fast_api_intake_router.delete(
-    "/study/{study_id}/intake/{intake_id}",
+    "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
     description=f"Update intake record. user must have at least 'interviewer'-permissions on study.",
 )
 async def delete_intake(
     intake_id: uuid.UUID,
+    interview_id: Annotated[uuid.UUID, Path()],
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
-    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ):
     if not study_access.user_is_study_interviewer:
         raise HTTPException(
@@ -143,10 +152,11 @@ async def delete_intake(
             detail="Not allowed to create intake",
         )
     # lets check if the the interview is part of study. otherwise caller could evade study permissions here by calling a interview id from another study.
-    assert await assert_intake_is_part_of_study(
+    await assert_intake_is_part_of_study(
         study_id=study_access.study.id,
         intake_id=intake_id,
         intake_crud=intake_crud,
+        interview_id=interview_id,
     )
     log.warning("ToDo: The med record are not deleted yet")
     return await intake_crud.delete(intake_id)

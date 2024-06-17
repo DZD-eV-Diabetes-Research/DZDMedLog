@@ -185,19 +185,31 @@ async def assert_interview_is_part_of_study(
     interview_id: str,
     interview_crud: InterviewCRUD,
 ):
-    # todo: another candiate for caching
+    error = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Something went wrong: Interview with id {interview_id} is not part of study with id {study_id}.",
+    )
     return await interview_crud.assert_belongs_to_study(
-        interview_id=interview_id, study_id=study_id
+        interview_id=interview_id, study_id=study_id, raise_exception_if_not=error
     )
 
 
 async def assert_intake_is_part_of_study(
-    study_id: str,
-    intake_id: str,
-    intake_crud: IntakeCRUD,
+    study_id: str, intake_id: str, intake_crud: IntakeCRUD, interview_id: str = None
 ):
-    # todo: another candiate for caching
+    error = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Something went wrong: Intake with id {intake_id} is not parts of study with id {study_id}.",
+    )
+    if interview_id is not None:
+        error = HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Something went wrong: Intake with id {intake_id} is not parts of study with id {study_id} or not part of interview with id {interview_id}.",
+        )
     intake: Intake = await intake_crud.get(id_=intake_id)
     return await intake_crud.assert_belongs_to_study(
-        intake_id=intake_id, study_id=study_id
+        intake_id=intake_id,
+        study_id=study_id,
+        interview_id=interview_id,
+        raise_exception_if_not=error,
     )

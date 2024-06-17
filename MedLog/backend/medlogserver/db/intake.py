@@ -135,6 +135,7 @@ class IntakeCRUD(
         self,
         intake_id: UUID,
         study_id: UUID,
+        interview_id: UUID = None,
         raise_exception_if_not=None,
     ) -> bool:
         query = (
@@ -143,6 +144,8 @@ class IntakeCRUD(
             .join(Event)
             .where(Event.study_id == study_id and Intake.id == intake_id)
         )
+        if interview_id is not None:
+            query = query.where(Interview.id == interview_id)
         log.debug(f"##query: {query}")
         results = await self.session.exec(statement=query)
 
