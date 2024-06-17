@@ -38,83 +38,68 @@
         </UForm>
       </div>
     </UModal>
+    event: {{ intakes.items[0].event.name }}
+    medikament: {{ intakes.items[0].drug.staname }}
+    darrreichung: {{ intakes.items[0].drug.darrform_ref.darrform  }}
+    Hersteller: {{ intakes.items[0].drug.hersteller_ref.bedeutung }}
+    <br>
+    {{ intakes }}
     <div>
       <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
         <UInput v-model="q" placeholder="Filter people..." />
       </div>
-
       <UTable :rows="filteredRows" :columns="columns" />
     </div>
-    {{ intakes.items }}
   </Layout>
 </template>
 
 <script setup lang="ts">
 
 const columns = [{
-  key: 'id',
-  label: 'ID'
+  key: 'event',
+  label: 'Event'
 }, {
-  key: 'name',
-  label: 'Name'
+  key: 'drug',
+  label: 'Medikament'
 }, {
-  key: 'title',
-  label: 'Title'
-}, {
-  key: 'email',
-  label: 'Email'
-}, {
-  key: 'role',
-  label: 'Role'
+  key: 'dose',
+  label: 'Dosis'
 }]
 
-const people = [{
-  id: 1,
-  name: 'Lindsay Walton',
-  title: 'Front-end Developer',
-  email: 'lindsay.walton@example.com',
-  role: 'Member'
+const drugs = [{
+  event: 'T01',
+  drug: 'Aspirin',
+  dose: '1',
 }, {
-  id: 2,
-  name: 'Courtney Henry',
-  title: 'Designer',
-  email: 'courtney.henry@example.com',
-  role: 'Admin'
-}, {
-  id: 3,
-  name: 'Tom Cook',
-  title: 'Director of Product',
-  email: 'tom.cook@example.com',
-  role: 'Member'
-}, {
-  id: 4,
-  name: 'Whitney Francis',
-  title: 'Copywriter',
-  email: 'whitney.francis@example.com',
-  role: 'Admin'
-}, {
-  id: 5,
-  name: 'Leonard Krasner',
-  title: 'Senior Designer',
-  email: 'leonard.krasner@example.com',
-  role: 'Owner'
-}, {
-  id: 6,
-  name: 'Floyd Miles',
-  title: 'Principal Designer',
-  email: 'floyd.miles@example.com',
-  role: 'Member'
+  event: 'T02',
+  drug: 'Cetaphil',
+  dose: '2',
+},
+{
+  event: 'T04',
+  drug: 'Cetaphil',
+  dose: '2',
+}, 
+{
+  event: 'T03',
+  drug: 'Cetaphil',
+  dose: '2',
+},
+{
+  event: 'T03',
+  drug: 'Paracetamol',
+  dose: '3',
 }]
 
 const q = ref('')
 
 const filteredRows = computed(() => {
   if (!q.value) {
-    return people
+    return drugs
   }
 
-  return people.filter((person) => {
-    return Object.values(person).some((value) => {
+  return drugs.filter((drugs) => {
+    return Object.values(drugs).some((value) => {
       return String(value).toLowerCase().includes(q.value.toLowerCase())
     })
   })
@@ -134,7 +119,7 @@ const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/${
   headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
 
-const { data: intakes } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake`, {
+const { data: intakes } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`, {
   method: "GET",
   headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
