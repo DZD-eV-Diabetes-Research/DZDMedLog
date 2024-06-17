@@ -19,6 +19,7 @@ from medlogserver.model.intake import (
     IntakeCreate,
     IntakeUpdate,
     IntakeCreateAPI,
+    IntakeDetailListItem,
 )
 from medlogserver.db.intake import IntakeCRUD
 from medlogserver.api.study_access import (
@@ -178,6 +179,39 @@ async def list_all_intakes(
     pagination: QueryParamsInterface = Depends(IntakeQueryParams),
 ) -> PaginatedResponse[Intake]:
     intakes = await intake_crud.list(
+        filter_study_id=study_access.study.id,
+        filter_proband_external_id=proband_id,
+        filter_interview_id=interview_id,
+        pagination=pagination,
+    )
+    return PaginatedResponse(
+        total_count=await intake_crud.count(
+            filter_study_id=study_access.study.id,
+            filter_proband_external_id=proband_id,
+            filter_interview_id=interview_id,
+        ),
+        offset=pagination.offset,
+        count=len(intakes),
+        items=intakes,
+    )
+
+
+#############
+@fast_api_intake_router.get(
+    "/study/{study_id}/proband/{proband_id}/intake/details",
+    response_model=PaginatedResponse[IntakeDetailListItem],
+    description=f"List all medicine intakes of one proband, but as detailed table that includes Event, Interview and Drug details.",
+)
+async def list_all_intakes_detailed(
+    proband_id: str,
+    interview_id: Annotated[
+        uuid.UUID, Query(description="Filter intakes by a certain interview.")
+    ] = None,
+    study_access: UserStudyAccess = Security(user_has_study_access),
+    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
+    pagination: QueryParamsInterface = Depends(IntakeQueryParams),
+) -> PaginatedResponse[IntakeDetailListItem]:
+    intakes = await intake_crud.list_detailed(
         filter_study_id=study_access.study.id,
         filter_proband_external_id=proband_id,
         filter_interview_id=interview_id,

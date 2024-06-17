@@ -13,7 +13,12 @@ from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc
 from datetime import datetime, timezone, date
 import uuid
 from uuid import UUID
-
+from medlogserver.model.event import Event
+from medlogserver.model.interview import Interview
+from medlogserver.model.wido_gkv_arzneimittelindex.stamm import (
+    StammRead,
+    StammUserCustomRead,
+)
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
@@ -174,3 +179,9 @@ class Intake(IntakeCreate, BaseTable, table=True):
         unique=True,
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
+
+
+class IntakeDetailListItem(IntakeCreate, BaseTable, table=False):
+    interview: Interview
+    event: Event
+    drug: StammRead | StammUserCustomRead

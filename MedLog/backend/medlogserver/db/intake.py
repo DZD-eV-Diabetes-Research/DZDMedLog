@@ -7,6 +7,7 @@ import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc
+
 from datetime import datetime, timezone
 import uuid
 from uuid import UUID
@@ -17,7 +18,20 @@ from medlogserver.log import get_logger
 from medlogserver.model._base_model import MedLogBaseModel, BaseTable
 from medlogserver.model.event import Event
 from medlogserver.model.interview import Interview
-from medlogserver.model.intake import Intake, IntakeCreate, IntakeUpdate
+from medlogserver.model.intake import (
+    Intake,
+    IntakeCreate,
+    IntakeUpdate,
+    IntakeDetailListItem,
+)
+from medlogserver.model.wido_gkv_arzneimittelindex.stamm import (
+    StammRead,
+    StammUserCustomRead,
+)
+from medlogserver.db.wido_gkv_arzneimittelindex.stamm import StammCRUD
+from medlogserver.db.wido_gkv_arzneimittelindex.stamm_user_custom import (
+    StammUserCustomCRUD,
+)
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
@@ -79,6 +93,58 @@ class IntakeCRUD(
                 filter_study_id=filter_study_id,
             )
         )
+
+    async def list_detailed(
+        self,
+        filter_event_id: str = None,
+        filter_interview_id: str = None,
+        filter_proband_external_id: str = None,
+        filter_study_id: str = None,
+        pagination: QueryParamsInterface = None,
+    ) -> Sequence[IntakeDetailListItem]:
+        query = select(Intake, Interview, Event).select_from(Intake)
+        query = query.join(Interview).join(Event)
+        # prepare where filters
+        if filter_study_id:
+            query = query.where(Event.study_id == filter_study_id)
+        if filter_event_id:
+            query = query.where(Interview.event_id == filter_event_id)
+        if filter_proband_external_id:
+            query = query.where(
+                Interview.proband_external_id == filter_proband_external_id
+            )
+        if filter_interview_id:
+            query = query.where(Intake.interview_id == filter_interview_id)
+        if pagination:
+            query = pagination.append_to_query(query)
+        results = await self.session.exec(statement=query)
+        detailed_intakes: List[IntakeDetailListItem] = []
+        for intake, interview, event in results:
+            drug: StammRead | StammUserCustomRead = None
+            if intake.pharmazentralnummer is None and intake.custom_drug_id is not None:
+                async with StammUserCustomCRUD.crud_context(
+                    session=self.session
+                ) as drug_crud:
+                    # for code completion only
+                    drug_crud: StammUserCustomCRUD = drug_crud
+
+                    drug = await drug_crud.get(intake.custom_drug_id)
+            elif intake.pharmazentralnummer is not None:
+                async with StammCRUD.crud_context(session=self.session) as drug_crud:
+                    # for code completion only
+                    drug_crud: StammCRUD = drug_crud
+
+                    drug = await drug_crud.get(intake.pharmazentralnummer)
+            detailed_intakes.append(
+                IntakeDetailListItem(
+                    **intake.model_dump(),
+                    event=event,
+                    interview=interview,
+                    drug=drug,
+                )
+            )
+
+        return detailed_intakes
 
     async def list_last_completed_interview_intakes_by_proband(
         self,
