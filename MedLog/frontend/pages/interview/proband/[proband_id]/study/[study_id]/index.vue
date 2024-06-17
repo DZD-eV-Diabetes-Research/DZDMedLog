@@ -45,7 +45,7 @@
 
       <UTable :rows="filteredRows" :columns="columns" />
     </div>
-    {{ interview }}
+    {{ intakes.items }}
   </Layout>
 </template>
 
@@ -134,7 +134,7 @@ const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/${
   headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
 
-const { data: interview } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview`, {
+const { data: intakes } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake`, {
   method: "GET",
   headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
