@@ -2,13 +2,11 @@ import { defineStore } from 'pinia'
 
 interface ProbandState {
     probandID: string 
-    interviews : Array
+    interviews : any[]
 }
 
 export const useProbandStore = defineStore('ProbandStore',{
-    id: "proband-store",
     state: (): ProbandState => ({
-        
         probandID: "",
         interviews: null
     }),
