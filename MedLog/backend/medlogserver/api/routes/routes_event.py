@@ -100,6 +100,10 @@ async def create_event(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to create new event",
         )
+    if event.order_position is None:
+        all_events = await event_crud.list(filter_study_id=study_access.study.id)
+        highest_existing_order_position = max([e.order_position for e in all_events])
+        event.order_position = highest_existing_order_position + 10
     event_create = EventCreate(**event.model_dump(), study_id=study_access.study.id)
     return await event_crud.create(
         event_create,

@@ -36,9 +36,9 @@ class EventCreateAPI(MedLogBaseModel, table=False):
         unique=True,
         schema_extra={"examples": ["visit01", "TI12"]},
     )
-    order_position: int = Field(
-        default=0,
-        description="A ranked value to sort this event if its contained in list of events.",
+    order_position: Optional[int] = Field(
+        default=None,
+        description="A ranked value to sort this event if its contained in list of events. If not provided, it will default to highest sort order compared to existing events in this study.",
     )
 
 
