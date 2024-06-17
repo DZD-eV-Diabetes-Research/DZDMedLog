@@ -37,7 +37,7 @@
                                     :class="[open && 'rotate-90']" />
                             </template>
                         </UButton>
-                    </template>
+                    </template>                    
                     <template #newDrug="{ content }">
                         <div class="new-drug-box">
                             <UForm :schema="newDrugSchema" :state="newDrugState" class="space-y-4" @submit="test">
@@ -146,6 +146,7 @@ const { data: intakes, refresh } = await useFetch(`${runtimeConfig.public.baseUR
 })
 
 const items = [{ label: 'Neues Medikament anlegen', slot: 'newDrug' }]
+const additionalItems = [{ label: 'Weitere Informationen', slot: 'additionalInfo' }]
 
 const study = await studyStore.getStudy(route.params.study_id)
 
