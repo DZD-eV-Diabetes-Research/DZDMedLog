@@ -100,7 +100,7 @@ class StammRoot(DrugModelTableBase, table=False):
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:24"},
         # We have composite foreign key. see __table_args__ at the top of this class
         # foreign_key="drug_applikationsform.appform",
-        schema_extra={"examples": [0]},
+        schema_extra={"examples": ["IMP"]},
     )
     hersteller_code: Optional[str] = Field(
         description="Herstellerschlüssel (Siehe `hersteller_ref` für vollen Herstellernamen)",
