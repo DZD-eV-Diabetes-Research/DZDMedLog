@@ -73,7 +73,7 @@ class EventCRUD(
 
     async def list_by_proband(
         self,
-        proband_id: UUID = None,
+        proband_id: str = None,
         exlude_empty_events: bool = False,
         filter_study_id: UUID = None,
         hide_completed: bool = False,

@@ -169,7 +169,7 @@ async def delete_intake(
     description=f"List all medicine intakes of one proband.",
 )
 async def list_all_intakes(
-    proband_id: uuid.UUID,
+    proband_id: str,
     interview_id: Annotated[
         uuid.UUID, Query(description="Filter intakes by a certain interview.")
     ] = None,
@@ -192,7 +192,7 @@ async def list_all_intakes(
     description=f"List all medicine intakes of one probands last completed interview.",
 )
 async def get_intakes_of_last_interview_by_propband(
-    proband_id: uuid.UUID,
+    proband_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ) -> List[Intake]:
@@ -208,7 +208,7 @@ async def get_intakes_of_last_interview_by_propband(
     description=f"List all medicine intakes of one probands last completed interview.",
 )
 async def list_all_intakes_of_last_completed_interview(
-    proband_id: uuid.UUID,
+    proband_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ) -> List[Intake]:
@@ -224,7 +224,7 @@ async def list_all_intakes_of_last_completed_interview(
     description=f"List all medicine intakes of one probands last completed interview.",
 )
 async def list_all_intakes_of_last_uncompleted_interview(
-    proband_id: uuid.UUID,
+    proband_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
