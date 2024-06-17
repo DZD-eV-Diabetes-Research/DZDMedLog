@@ -178,9 +178,9 @@ async def list_all_intakes(
     pagination: QueryParamsInterface = Depends(IntakeQueryParams),
 ) -> PaginatedResponse[Intake]:
     return await intake_crud.list(
-        study_id=study_access.study.id,
-        proband_external_id=proband_id,
-        interview_id=interview_id,
+        filter_study_id=study_access.study.id,
+        filter_proband_external_id=proband_id,
+        filter_interview_id=interview_id,
         pagination=pagination,
     )
 
