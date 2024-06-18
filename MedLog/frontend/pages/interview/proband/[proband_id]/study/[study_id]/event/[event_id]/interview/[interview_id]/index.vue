@@ -79,7 +79,7 @@
                     <UInput v-model="q" placeholder="Tabelle Filtern" />
                 </div>
                 <UTable :rows="rows" :columns="columns">
-                    <template #actions-data="{ row }">
+                    <template v-if="userStore.isAdmin" #actions-data="{ row }">
                         <UDropdown :items="myOptions(row)">
                             <UButton color="gray" variant="ghost" icon="i-heroicons-ellipsis-horizontal-20-solid" />
                         </UDropdown>
@@ -190,6 +190,7 @@ const route = useRoute()
 const tokenStore = useTokenStore()
 const drugStore = useDrugStore()
 const studyStore = useStudyStore()
+const userStore = useUserStore()
 const runtimeConfig = useRuntimeConfig()
 
 drugStore.item = null
