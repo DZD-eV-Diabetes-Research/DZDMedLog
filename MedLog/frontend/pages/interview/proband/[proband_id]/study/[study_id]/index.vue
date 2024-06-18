@@ -39,7 +39,7 @@
     </UModal>
     <br>
     <div class="tableDiv">
-      <h4 style="text-align: center; padding-top: 25px;d">Medikamentenübersicht</h4>
+      <h4 style="text-align: center; padding-top: 25px;">Medikamentenübersicht</h4>
       <div>
         <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
           <UInput v-model="q" placeholder="Tabelle Filtern" />

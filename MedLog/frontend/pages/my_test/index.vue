@@ -1,14 +1,20 @@
-<template>
-    <div>
-      <UTable :rows="rows" />
-  
-      <div class="flex justify-front px-3 py-3.5 border-t border-blue-1250 dark:border-blue-1700">
-        <UPagination v-model="page" :page-count="pageCount" :total="people.length" />
-      </div>
-    </div>
-  </template>  
-
 <script setup lang="ts">
+const columns = [{
+  key: 'name',
+  label: 'Name'
+}, {
+  key: 'title',
+  label: 'Title'
+}, {
+  key: 'email',
+  label: 'Email'
+}, {
+  key: 'role',
+  label: 'Role'
+}, {
+  key: 'actions'
+}]
+
 const people = [{
   id: 1,
   name: 'Lindsay Walton',
@@ -45,54 +51,29 @@ const people = [{
   title: 'Principal Designer',
   email: 'floyd.miles@example.com',
   role: 'Member'
-}, {
-  id: 7,
-  name: 'Emily Selman',
-  title: 'VP, User Experience',
-  email: '',
-  role: 'Admin'
-}, {
-  id: 8,
-  name: 'Kristin Watson',
-  title: 'VP, Human Resources',
-  email: '',
-  role: 'Member'
-}, {
-  id: 9,
-  name: 'Emma Watson',
-  title: 'Front-end Developer',
-  email: '',
-  role: 'Member'
-}, {
-  id: 10,
-  name: 'John Doe',
-  title: 'Designer',
-  email: '',
-  role: 'Admin'
-}, {
-  id: 11,
-  name: 'Jane Doe',
-  title: 'Director of Product',
-  email: '',
-  role: 'Member'
-}, {
-  id: 12,
-  name: 'John Smith',
-  title: 'Copywriter',
-  email: '',
-  role: 'Admin'
-}, {
-  id: 13,
-  name: 'Jane Smith',
-  title: 'Senior Designer',
-  email: '',
-  role: 'Owner'
 }]
 
-const page = ref(1)
-const pageCount = 5
+const items = (row) => [
+  [{
+    label: 'Edit',
+    icon: 'i-heroicons-pencil-square-20-solid',
+    click: () => console.log('Edit', row)
+  }, {
+       label: 'Delete',
+    icon: 'i-heroicons-trash-20-solid',
+    click: () => console.log('Delete', row)
+  }]
+]
 
-const rows = computed(() => {
-  return people.slice((page.value - 1) * pageCount, (page.value) * pageCount)
-})
+const selected = ref()
 </script>
+
+<template>
+  <UTable :rows="people" :columns="columns">
+    <template #actions-data="{ row }">
+      <UDropdown :items="items(row)">
+        <UButton class="test" color="gray" variant="ghost" icon="i-heroicons-ellipsis-horizontal-20-solid" />
+      </UDropdown>
+    </template>
+  </UTable>
+</template>
