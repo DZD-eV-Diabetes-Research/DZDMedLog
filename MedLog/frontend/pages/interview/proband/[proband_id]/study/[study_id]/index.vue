@@ -1,6 +1,5 @@
 <template>
   <Layout>
-    {{ route.params }}
     <div class="card-container">
       <UIBaseCard>
         <h5>Unbearbeitete Events</h5>
@@ -38,68 +37,69 @@
         </UForm>
       </div>
     </UModal>
-    event: {{ intakes.items[0].event.name }}
-    medikament: {{ intakes.items[0].drug.staname }}
-    darrreichung: {{ intakes.items[0].drug.darrform_ref.darrform  }}
-    Hersteller: {{ intakes.items[0].drug.hersteller_ref.bedeutung }}
     <br>
-    {{ intakes }}
-    <div>
-      <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
-        <UInput v-model="q" placeholder="Filter people..." />
+    <div class="tableDiv">
+      <h4 style="text-align: center; padding-top: 25px;d">Medikamentenübersicht</h4>
+      <div>
+        <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
+          <UInput v-model="q" placeholder="Tabelle Filtern" />
+        </div>
+        <UTable :rows="rows" :columns="columns">
+        </UTable>
+        <div v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount" class="flex justify-center px-3 py-3.5 border-t 
+        dark:border-green-700 dark:border-red-500">
+      <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
+            wrapper: 'flex items-center gap-1',
+            rounded: 'rounded-sm',
+            default: {
+              activeButton: {
+                variant: 'outline',
+              }
+            }
+          }"/>
+    </div>
       </div>
-      <UTable :rows="filteredRows" :columns="columns" />
     </div>
   </Layout>
 </template>
 
 <script setup lang="ts">
 
+const page = ref(1)
+const pageCount = 15
+
+const rows = computed(() => {
+  const data = q.value ? filteredRows.value : tableContent.value;
+  return data.slice((page.value - 1) * pageCount, page.value * pageCount);
+})
+
 const columns = [{
   key: 'event',
-  label: 'Event'
+  label: 'Event',
+  sortable: true
 }, {
   key: 'drug',
-  label: 'Medikament'
+  label: 'Medikament',
+  sortable: true
 }, {
-  key: 'dose',
-  label: 'Dosis'
-}]
-
-const drugs = [{
-  event: 'T01',
-  drug: 'Aspirin',
-  dose: '1',
+  key: 'darr',
+  label: 'Darreichungsform',
+  sortable: true
 }, {
-  event: 'T02',
-  drug: 'Cetaphil',
-  dose: '2',
-},
-{
-  event: 'T04',
-  drug: 'Cetaphil',
-  dose: '2',
-}, 
-{
-  event: 'T03',
-  drug: 'Cetaphil',
-  dose: '2',
-},
-{
-  event: 'T03',
-  drug: 'Paracetamol',
-  dose: '3',
+  key: 'manufac',
+  label: 'Hersteller',
+  sortable: true
 }]
 
 const q = ref('')
 
 const filteredRows = computed(() => {
   if (!q.value) {
-    return drugs
+    return tableContent.value
   }
 
-  return drugs.filter((drugs) => {
-    return Object.values(drugs).some((value) => {
+  return tableContent.value.filter((tableContent) => {
+    return Object.values(tableContent).some((value) => {
       return String(value).toLowerCase().includes(q.value.toLowerCase())
     })
   })
@@ -208,6 +208,30 @@ async function editEvent(eventId: string) {
   }
 }
 
+const tableContent = ref([])
+
+async function createIntakeList() {
+
+  try {
+    const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`, {
+      method: "GET",
+      headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+    })
+    if (intakes && intakes.items) {
+      tableContent.value = intakes.items.map(item => ({
+        event: item.event.name,
+        drug: item.drug.name,
+        darr: item.drug.darrform_ref.darrform,
+        manufac: item.drug.hersteller_ref.bedeutung
+      }))
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+createIntakeList()
+
 </script>
 
 <style scoped>
@@ -228,4 +252,11 @@ async function editEvent(eventId: string) {
   padding: 0 1rem;
   gap: 1rem;
 }
+
+.tableDiv {
+  border-radius: 10px;
+  border-width: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+}
+
 </style>
