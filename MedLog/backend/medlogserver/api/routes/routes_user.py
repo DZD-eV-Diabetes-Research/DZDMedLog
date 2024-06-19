@@ -150,7 +150,7 @@ async def update_myself(
     current_user: User = Security(get_current_user),
     user_crud: UserCRUD = Depends(UserCRUD.get_crud),
 ) -> User:
-    return await user_crud.update(patched_user, user_id=current_user.id)
+    return await user_crud.update(user_update=patched_user, user_id=current_user.id)
 
 
 @fast_api_user_manage_router.put(
@@ -217,7 +217,7 @@ async def update_user(
     current_user_is_user_manager: bool = Security(user_is_usermanager),
     user_crud: UserCRUD = Depends(UserCRUD.get_crud),
 ) -> User:
-    return await user_crud.update(user_id, patched_user)
+    return await user_crud.update(user_update=patched_user, user_id=user_id)
 
 
 @fast_api_user_manage_router.put(
@@ -244,5 +244,5 @@ async def set_user_password(
     if old_user_auth is None:
         return False
     updated_user_auth = UserAuthUpdate(password=new_password)
-    await user_auth_crud.update(updated_user_auth)
+    await user_auth_crud.update(user_auth_update=updated_user_auth, id=old_user_auth.id)
     return True
