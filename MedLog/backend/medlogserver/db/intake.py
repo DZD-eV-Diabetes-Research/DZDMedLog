@@ -134,7 +134,7 @@ class IntakeCRUD(
                 async with StammCRUD.crud_context(session=self.session) as drug_crud:
                     # for code completion only
                     drug_crud: StammCRUD = drug_crud
-                    log.debug("get drug")
+                    # log.debug("get drug")
                     drug = await drug_crud.get(
                         intake.pharmazentralnummer,
                         # raise_exception_if_none=HTTPException(
@@ -142,7 +142,7 @@ class IntakeCRUD(
                         #    detail=f"Drug with PZN {intake.pharmazentralnummer} not found",
                         # ),
                     )
-            log.debug(f"drug ({type(drug)}): {drug} ")
+            # log.debug(f"drug ({type(drug)}): {drug} ")
             detailed_intakes.append(
                 IntakeDetailListItem(
                     **intake.model_dump(),
