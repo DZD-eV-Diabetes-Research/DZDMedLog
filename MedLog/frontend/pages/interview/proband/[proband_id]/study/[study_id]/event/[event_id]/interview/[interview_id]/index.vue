@@ -1,5 +1,6 @@
 <template>
     <Layout>
+        {{ route.params }}
         <UIBaseCard :naked="true">
             <UButton @click="showForm = !showForm" label="Eingabe Präparat" color="green" variant="soft"
                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
@@ -99,10 +100,54 @@
                 </div>
             </div>
         </div>
+        <UModal v-model="deleteModalVisibility">
+            <div class="p-4">
+                <div style="text-align: center;">
+                    <h4 style="color:red">Sie löschen folgenden Eintrag: </h4>
+                    <br>
+                    <h4>{{ drugToDelete.drug }}</h4>
+                    <br>
+                    <p style="color: red">PZN: {{ drugToDelete.pzn }}</p>
+                    <br>
+                    <UForm :schema="deleteSchema" :state="deleteState" class="space-y-4" @submit="deleteIntake">
+                        <UFormGroup label="Zum löschen die PZN eintragen" name="pzn">
+                            <UInput v-model="deleteState.pzn" color="red" :placeholder="drugToDelete.pzn"/>
+                        </UFormGroup>
+                        <br>
+                        <UButton type="submit" color="red" variant="soft"
+                        class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white">
+                            Eintrag löschen
+                        </UButton>
+                    </UForm>
+                </div>
+            </div>
+        </UModal>
     </Layout>
 </template>
 
 <script setup lang="ts">
+
+import dayjs from 'dayjs';
+import { watchEffect } from 'vue';
+import type { FormSubmitEvent } from "#ui/types";
+import { object, number, date, string, type InferType } from "yup";
+
+const deleteSchema = object({
+    pzn: string().required('Required').test('is-dynamic-value', 'PZN muss übereinstimmen', function(value) {
+      return value === drugToDelete.value.pzn;
+    }),
+})
+
+type DeleteSchema = InferType<typeof deleteSchema>
+
+const deleteState = reactive({
+    pzn: undefined
+})
+
+async function onSubmit (event: FormSubmitEvent<DeleteSchema>) {
+  // Do something with event.data
+  console.log(event.data)
+}
 
 const page = ref(1)
 const pageCount = 15
@@ -113,6 +158,9 @@ const rows = computed(() => {
 })
 
 const columns = [{
+    key: 'pzn',
+    label: 'PZN'
+}, {
     key: 'drug',
     label: 'Medikament',
     sortable: true
@@ -132,13 +180,41 @@ const myOptions = (row) => [
     [{
         label: 'Bearbeiten',
         icon: 'i-heroicons-pencil-square-20-solid',
-        click: () => console.log('Edit', row)
+        click: () => editIntake(row)
     }, {
         label: 'Delete',
         icon: 'i-heroicons-trash-20-solid',
-        click: () => console.log('Delete', row)
+        click: () => openDeleteModal(row)
     }]
 ]
+
+const deleteModalVisibility = ref(false)
+const drugToDelete = ref()
+
+async function openDeleteModal(row: object) {
+    deleteModalVisibility.value = !deleteModalVisibility.value
+    drugToDelete.value = row
+}
+
+async function editIntake(row: object) {
+    try {
+        console.log(row.id);
+    } catch (error) {
+        console.log(error);
+    }
+}
+async function deleteIntake() {
+    try {
+        console.log(drugToDelete.id);
+        await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.id}`, {
+            method: "DELETE",
+            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+        })
+        createIntakeList()
+    } catch (error) {
+        console.log(error);
+    }
+}
 
 const q = ref('')
 
@@ -180,11 +256,6 @@ type NewDrugSchema = Infertype<typeof newDrugSchema>
 async function test() {
     console.log("hello");
 }
-
-import dayjs from 'dayjs';
-import { watchEffect } from 'vue';
-import type { FormSubmitEvent } from "#ui/types";
-import { object, number, date, string, type InferType } from "yup";
 
 const route = useRoute()
 const tokenStore = useTokenStore()
@@ -259,9 +330,11 @@ async function createIntakeList() {
         })
         if (intakes && intakes.items) {
             tableContent.value = intakes.items.map(item => ({
+                pzn: item.pharmazentralnummer,
                 drug: item.drug.name,
                 darr: item.drug.darrform_ref.darrform,
-                manufac: item.drug.hersteller_ref.bedeutung
+                manufac: item.drug.hersteller_ref.bedeutung,
+                id: item.id
             }))
         }
     } catch (error) {
