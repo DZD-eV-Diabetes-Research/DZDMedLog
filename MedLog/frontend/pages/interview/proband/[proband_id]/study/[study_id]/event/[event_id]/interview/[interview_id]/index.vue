@@ -2,7 +2,7 @@
     <Layout>
         {{ route.params }}
         <UIBaseCard :naked="true">
-            <UButton @click="showForm = !showForm" label="Eingabe Präparat" color="green" variant="soft"
+            <UButton @click="openIntakeForm()" label="Eingabe Präparat" color="green" variant="soft"
                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
         </UIBaseCard>
         <div v-if="showForm">
@@ -144,9 +144,8 @@ const deleteState = reactive({
     pzn: undefined
 })
 
-async function onSubmit (event: FormSubmitEvent<DeleteSchema>) {
-  // Do something with event.data
-  console.log(event.data)
+async function test() {
+    console.log("hallo");
 }
 
 const page = ref(1)
@@ -164,9 +163,20 @@ const columns = [{
     key: 'drug',
     label: 'Medikament',
     sortable: true
-}, {
+}, 
+{
+    key: 'dose',
+    label: 'Dosis',
+    sortable: true
+},
+{
+    key: 'startTime',
+    label: 'Einnahme Start',
+    sortable: true
+},
+{
     key: 'darr',
-    label: 'Darreichungsform',
+    label: 'Darreichung',
     sortable: true
 }, {
     key: 'manufac',
@@ -182,7 +192,7 @@ const myOptions = (row) => [
         icon: 'i-heroicons-pencil-square-20-solid',
         click: () => editIntake(row)
     }, {
-        label: 'Delete',
+        label: 'Löschen',
         icon: 'i-heroicons-trash-20-solid',
         click: () => openDeleteModal(row)
     }]
@@ -192,7 +202,8 @@ const deleteModalVisibility = ref(false)
 const drugToDelete = ref()
 
 async function openDeleteModal(row: object) {
-    deleteModalVisibility.value = !deleteModalVisibility.value
+    deleteState.pzn = ""
+    deleteModalVisibility.value = true
     drugToDelete.value = row
 }
 
@@ -205,11 +216,11 @@ async function editIntake(row: object) {
 }
 async function deleteIntake() {
     try {
-        console.log(drugToDelete.id);
-        await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.id}`, {
+        await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.id}`, {
             method: "DELETE",
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
         })
+        deleteModalVisibility.value = false
         createIntakeList()
     } catch (error) {
         console.log(error);
@@ -253,10 +264,6 @@ const newDrugSchema = object({
 
 type NewDrugSchema = Infertype<typeof newDrugSchema>
 
-async function test() {
-    console.log("hello");
-}
-
 const route = useRoute()
 const tokenStore = useTokenStore()
 const drugStore = useDrugStore()
@@ -277,6 +284,14 @@ const additionalItems = [{ label: 'Weitere Informationen', slot: 'additionalInfo
 const study = await studyStore.getStudy(route.params.study_id)
 
 const showForm = ref(false)
+
+async function openIntakeForm() {
+    showForm.value = !showForm.value
+    state.selected = "Yes"
+    state.time = null
+    state.dose = null
+    drugStore.$reset()
+}
 
 const options = [{
     value: "Yes",
@@ -332,6 +347,8 @@ async function createIntakeList() {
             tableContent.value = intakes.items.map(item => ({
                 pzn: item.pharmazentralnummer,
                 drug: item.drug.name,
+                dose: item.as_needed_dose_unit,
+                startTime: item.intake_start_time_utc, 
                 darr: item.drug.darrform_ref.darrform,
                 manufac: item.drug.hersteller_ref.bedeutung,
                 id: item.id
