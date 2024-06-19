@@ -133,6 +133,8 @@ async def update_intake(
         intake_crud=intake_crud,
         interview_id=interview_id,
     )
+    log.debug(f"intake_id ({type(intake_id)}): {intake_id}")
+    log.debug(f"intake ({type(intake)}): {intake}")
     return await intake_crud.update(intake_id, intake)
 
 

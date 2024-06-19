@@ -138,6 +138,10 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
         return self
 
 
+class IntakeUpdate(IntakeCreateAPI, table=False):
+    pass
+
+
 class IntakeCreate(IntakeCreateAPI, table=False):
     """This class/table also saves some extra question for every interview. This is 1-to-1 what the old IDOM software did. and its a mess.
     i fucking hate it. its unflexible, complex and ugly!
@@ -152,10 +156,6 @@ class IntakeCreate(IntakeCreateAPI, table=False):
     @classmethod
     def foreign_key_to_uuid(cls, v: str | uuid.UUID, info: ValidationInfo) -> uuid.UUID:
         return MedLogBaseModel.id_to_uuid(v, info)
-
-
-class IntakeUpdate(IntakeCreateAPI, table=False):
-    pass
 
 
 class Intake(IntakeCreate, BaseTable, table=True):
