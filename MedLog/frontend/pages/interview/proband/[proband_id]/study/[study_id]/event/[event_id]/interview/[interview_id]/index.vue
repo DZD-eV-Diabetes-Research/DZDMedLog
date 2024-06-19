@@ -1,6 +1,5 @@
 <template>
     <Layout>
-        {{ route.params }}
         <UIBaseCard :naked="true">
             <UButton @click="openIntakeForm()" label="Eingabe Präparat" color="green" variant="soft"
                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
@@ -99,6 +98,10 @@
                     }" />
                 </div>
             </div>
+            <div style="text-align: center;">
+            <UButton @click="backToOverview()" label="Zurück zur Übersicht" color="green" variant="soft"
+                class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" style="margin: 25px;"/>
+            </div>
         </div>
         <UModal v-model="deleteModalVisibility">
             <div class="p-4">
@@ -131,6 +134,8 @@ import dayjs from 'dayjs';
 import { watchEffect } from 'vue';
 import type { FormSubmitEvent } from "#ui/types";
 import { object, number, date, string, type InferType } from "yup";
+
+
 
 const deleteSchema = object({
     pzn: string().required('Required').test('is-dynamic-value', 'PZN muss übereinstimmen', function(value) {
@@ -265,6 +270,7 @@ const newDrugSchema = object({
 type NewDrugSchema = Infertype<typeof newDrugSchema>
 
 const route = useRoute()
+const router = useRouter()
 const tokenStore = useTokenStore()
 const drugStore = useDrugStore()
 const studyStore = useStudyStore()
@@ -360,6 +366,10 @@ async function createIntakeList() {
 }
 
 createIntakeList()
+
+async function backToOverview() {
+    router.push({ path: '/interview/proband/' + route.params.proband_id + '/study/' + route.params.study_id })
+}
 
 
 </script>
