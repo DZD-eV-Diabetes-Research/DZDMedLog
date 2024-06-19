@@ -208,7 +208,7 @@ async def assert_intake_is_part_of_study(
         )
     intake: Intake = await intake_crud.get(id_=intake_id)
     return await intake_crud.assert_belongs_to_study(
-        intake_id=intake_id,
+        intake_id=intake.id,
         study_id=study_id,
         interview_id=interview_id,
         raise_exception_if_not=error,

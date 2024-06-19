@@ -186,7 +186,7 @@ class IntakeCRUD(
 
     async def get(
         self,
-        intake_id: str | UUID,
+        id_: str | UUID,
         study_id: str | UUID = None,
         raise_exception_if_none: Exception = None,
     ) -> Optional[Intake]:
@@ -207,7 +207,7 @@ class IntakeCRUD(
         if study_id:
             # caller provided a study id to double check if Interview runs under this study.
             query = query.join(Interview).join(Event).where(Event.study_id == study_id)
-        query = query.where(Intake.id == intake_id)
+        query = query.where(Intake.id == id_)
         results = await self.session.exec(statement=query)
         intake: Intake | None = results.one_or_none()
         if intake is None and raise_exception_if_none:
