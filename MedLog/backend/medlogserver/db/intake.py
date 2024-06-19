@@ -2,7 +2,7 @@ from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated,
 import enum
 from pydantic import validate_email, field_validator, model_validator, StringConstraints
 from pydantic_core import PydanticCustomError
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -121,6 +121,7 @@ class IntakeCRUD(
         detailed_intakes: List[IntakeDetailListItem] = []
         for intake, interview, event in results:
             drug: StammRead | StammUserCustomRead = None
+            log.debug(f"intake: {intake}")
             if intake.pharmazentralnummer is None and intake.custom_drug_id is not None:
                 async with StammUserCustomCRUD.crud_context(
                     session=self.session
@@ -133,8 +134,15 @@ class IntakeCRUD(
                 async with StammCRUD.crud_context(session=self.session) as drug_crud:
                     # for code completion only
                     drug_crud: StammCRUD = drug_crud
-
-                    drug = await drug_crud.get(intake.pharmazentralnummer)
+                    log.debug("get drug")
+                    drug = await drug_crud.get(
+                        intake.pharmazentralnummer,
+                        # raise_exception_if_none=HTTPException(
+                        #    status_code=status.HTTP_404_NOT_FOUND,
+                        #    detail=f"Drug with PZN {intake.pharmazentralnummer} not found",
+                        # ),
+                    )
+            log.debug(f"drug ({type(drug)}): {drug} ")
             detailed_intakes.append(
                 IntakeDetailListItem(
                     **intake.model_dump(),

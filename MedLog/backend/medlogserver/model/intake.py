@@ -184,4 +184,4 @@ class Intake(IntakeCreate, BaseTable, table=True):
 class IntakeDetailListItem(IntakeCreate, BaseTable, table=False):
     interview: Interview
     event: Event
-    drug: StammRead | StammUserCustomRead
+    drug: Optional[StammRead | StammUserCustomRead] = None

@@ -126,14 +126,15 @@ class DrugCRUDBase(
             ai_dataversion_id = current_ai_version.id
         pk = self._get_primary_key()
         query = select(tbl_class).where(getattr(tbl_class, pk) == key)
+        log.debug(f"Get drug query: {query}")
         if not self._is_ai_versionless_table_:
             query = query.where(tbl_class.ai_dataversion_id == ai_dataversion_id)
 
         results = await self.session.exec(statement=query)
-        appform: GenericCRUDReadType | None = results.one_or_none()
-        if appform is None and raise_exception_if_none:
+        res_obj: GenericCRUDReadType | None = results.one_or_none()
+        if res_obj is None and raise_exception_if_none:
             raise raise_exception_if_none
-        return appform
+        return res_obj
 
     async def create(
         self,
