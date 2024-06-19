@@ -1,6 +1,5 @@
 <template>
   <Layout>
-    {{ route.params }}
     <div class="card-container">
       <UIBaseCard>
         <h5>Unbearbeitete Events</h5>
@@ -38,83 +37,69 @@
         </UForm>
       </div>
     </UModal>
-    <div>
-      <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
-        <UInput v-model="q" placeholder="Filter people..." />
-      </div>
-
-      <UTable :rows="filteredRows" :columns="columns" />
+    <br>
+    <div class="tableDiv">
+      <h4 style="text-align: center; padding-top: 25px;">Medikamentenübersicht</h4>
+      <div>
+        <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
+          <UInput v-model="q" placeholder="Tabelle Filtern" />
+        </div>
+        <UTable :rows="rows" :columns="columns">
+        </UTable>
+        <div v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount" class="flex justify-center px-3 py-3.5 border-t 
+        dark:border-green-700 dark:border-red-500">
+      <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
+            wrapper: 'flex items-center gap-1',
+            rounded: 'rounded-sm',
+            default: {
+              activeButton: {
+                variant: 'outline',
+              }
+            }
+          }"/>
     </div>
-    {{ intakes.items }}
+      </div>
+    </div>
   </Layout>
 </template>
 
 <script setup lang="ts">
 
-const columns = [{
-  key: 'id',
-  label: 'ID'
-}, {
-  key: 'name',
-  label: 'Name'
-}, {
-  key: 'title',
-  label: 'Title'
-}, {
-  key: 'email',
-  label: 'Email'
-}, {
-  key: 'role',
-  label: 'Role'
-}]
+const page = ref(1)
+const pageCount = 15
 
-const people = [{
-  id: 1,
-  name: 'Lindsay Walton',
-  title: 'Front-end Developer',
-  email: 'lindsay.walton@example.com',
-  role: 'Member'
+const rows = computed(() => {
+  const data = q.value ? filteredRows.value : tableContent.value;
+  return data.slice((page.value - 1) * pageCount, page.value * pageCount);
+})
+
+const columns = [{
+  key: 'event',
+  label: 'Event',
+  sortable: true
 }, {
-  id: 2,
-  name: 'Courtney Henry',
-  title: 'Designer',
-  email: 'courtney.henry@example.com',
-  role: 'Admin'
+  key: 'drug',
+  label: 'Medikament',
+  sortable: true
 }, {
-  id: 3,
-  name: 'Tom Cook',
-  title: 'Director of Product',
-  email: 'tom.cook@example.com',
-  role: 'Member'
+  key: 'darr',
+  label: 'Darreichungsform',
+  sortable: true
 }, {
-  id: 4,
-  name: 'Whitney Francis',
-  title: 'Copywriter',
-  email: 'whitney.francis@example.com',
-  role: 'Admin'
-}, {
-  id: 5,
-  name: 'Leonard Krasner',
-  title: 'Senior Designer',
-  email: 'leonard.krasner@example.com',
-  role: 'Owner'
-}, {
-  id: 6,
-  name: 'Floyd Miles',
-  title: 'Principal Designer',
-  email: 'floyd.miles@example.com',
-  role: 'Member'
+  key: 'manufac',
+  label: 'Hersteller',
+  sortable: true
 }]
 
 const q = ref('')
 
 const filteredRows = computed(() => {
   if (!q.value) {
-    return people
+    return tableContent.value
   }
 
-  return people.filter((person) => {
-    return Object.values(person).some((value) => {
+  return tableContent.value.filter((tableContent) => {
+    return Object.values(tableContent).some((value) => {
       return String(value).toLowerCase().includes(q.value.toLowerCase())
     })
   })
@@ -134,7 +119,7 @@ const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/${
   headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
 
-const { data: intakes } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake`, {
+const { data: intakes } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`, {
   method: "GET",
   headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
@@ -223,6 +208,30 @@ async function editEvent(eventId: string) {
   }
 }
 
+const tableContent = ref([])
+
+async function createIntakeList() {
+
+  try {
+    const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`, {
+      method: "GET",
+      headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+    })
+    if (intakes && intakes.items) {
+      tableContent.value = intakes.items.map(item => ({
+        event: item.event.name,
+        drug: item.drug.name,
+        darr: item.drug.darrform_ref.darrform,
+        manufac: item.drug.hersteller_ref.bedeutung
+      }))
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+createIntakeList()
+
 </script>
 
 <style scoped>
@@ -243,4 +252,11 @@ async function editEvent(eventId: string) {
   padding: 0 1rem;
   gap: 1rem;
 }
+
+.tableDiv {
+  border-radius: 10px;
+  border-width: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+}
+
 </style>

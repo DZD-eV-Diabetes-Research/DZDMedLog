@@ -20,40 +20,7 @@
                     Suchen
                 </UButton>
             </UForm>
-
         </UIBaseCard>
-        <UModal v-model="showInterviewModal">
-            <div class="p-4" style="text-align: center">
-                <UForm :schema="interviewSchema" :state="interviewState" class="space-y-4" @submit="createInterview()">
-                    <h5>Interview anlegen für:</h5>
-                    <h5>{{selectedStudy.display_name}}</h5>
-                    <UFormGroup label="Probanden-ID" name="subjectID">
-                        <UInput v-model="interviewState.subjectID" required />
-                    </UFormGroup>
-                    <UFormGroup label="Interview-Nummer" name="interviewNumber">
-                        <UInput v-model="interviewState.interviewNumber" type="number" required />
-                    </UFormGroup>
-                    <URadioGroup v-model="selected" style="border: 'border border-black'"
-                        legend="Haben Sie Diabetes-Medikamente in den vergangenen 12 Monaten bzw. andere Medikamente in den letzten 7 Tagen eingenommen?"
-                        :options="options" />
-                    <UInputMenu v-model="selectedEvent" :options="studyEvents" />
-                    <UAccordion :items="accordionItems">
-                        <template #create-event>
-                            <UForm :schema="eventSchema" :state="eventState" class="space-y-4" @submit="createEvent">
-                                <UFormGroup label="Event Name" name="name">
-                                    <UInput v-model="eventState.name" required
-                                        placeholder="Interview Campaign Year Quarter" />
-                                </UFormGroup>
-                                <UButton type="submit" label="Event anlegen" color="green" variant="soft"
-                                    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
-                            </UForm>
-                        </template>
-</UAccordion>
-<UButton type="submit" label="Interview anlegen" color="green" variant="soft"
-    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
-</UForm>
-</div>
-</UModal>
     </Layout>
 </template>
 

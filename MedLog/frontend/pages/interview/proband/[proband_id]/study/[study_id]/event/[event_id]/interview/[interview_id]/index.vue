@@ -37,7 +37,7 @@
                                     :class="[open && 'rotate-90']" />
                             </template>
                         </UButton>
-                    </template>                    
+                    </template>
                     <template #newDrug="{ content }">
                         <div class="new-drug-box">
                             <UForm :schema="newDrugSchema" :state="newDrugState" class="space-y-4" @submit="test">
@@ -45,25 +45,25 @@
                                     <UInput v-model="newDrugState.name" />
                                 </UFormGroup>
                                 <UFormGroup label="PZN" name="pzn">
-                                    <UInput v-model="newDrugState.pzn" placeholder="Falls bekannt"/>
+                                    <UInput v-model="newDrugState.pzn" placeholder="Falls bekannt" />
                                 </UFormGroup>
                                 <UFormGroup label="Herstellercode" name="herstellerCode">
-                                    <UInput v-model="newDrugState.herstellerCode" placeholder="Falls bekannt"/>
+                                    <UInput v-model="newDrugState.herstellerCode" placeholder="Falls bekannt" />
                                 </UFormGroup>
                                 <UFormGroup label="Darreichungsform" name="darrform">
-                                    <UInput v-model="newDrugState.darrform" placeholder="Falls bekannt"/>
+                                    <UInput v-model="newDrugState.darrform" placeholder="Falls bekannt" />
                                 </UFormGroup>
                                 <UFormGroup label="Applikationsform" name="appform">
-                                    <UInput v-model="newDrugState.appform" placeholder="Falls bekannt"/>
+                                    <UInput v-model="newDrugState.appform" placeholder="Falls bekannt" />
                                 </UFormGroup>
                                 <UFormGroup label="ATC-Code" name="atc_code">
-                                    <UInput v-model="newDrugState.atc_code" placeholder="Falls bekannt"/>
+                                    <UInput v-model="newDrugState.atc_code" placeholder="Falls bekannt" />
                                 </UFormGroup>
                                 <UFormGroup label="Packungsgroesse" name="packgroesse">
-                                    <UInput v-model="newDrugState.packgroesse" placeholder="Falls bekannt"/>
+                                    <UInput v-model="newDrugState.packgroesse" placeholder="Falls bekannt" />
                                 </UFormGroup>
                                 <UButton type="submit" color="green" variant="soft"
-                                class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
+                                    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
                                     Neues Medikament speichern
                                 </UButton>
                             </UForm>
@@ -72,28 +72,87 @@
                 </UAccordion>
             </UIBaseCard>
         </div>
-        <UIBaseCard>
-            <h4>Medikamenteneinnahme von Proband: {{ interview.proband_external_id }}</h4>
-            <div v-if="intakes.length > 0">
-                <ul v-for="intake in intakes" :key="intake.id">
-                    <li v-if="drugDetailsMap[intake.pharmazentralnummer]">
-                        <h5>Medikament Details: {{ drugDetailsMap[intake.pharmazentralnummer].name }} </h5>
-                        <p>PZN: {{ intake.pharmazentralnummer }}</p>
-                        <p>Dose: {{ intake.as_needed_dose_unit }}</p>
-                        <p>Starttime: {{ intake.intake_start_time_utc }}</p>
-                        <p>Medicine taken today: {{ intake.consumed_meds_today }}</p>
-                        <br>
-                    </li>
-                    <li v-else>
-                        Loading drug details...
-                    </li>
-                </ul>
+        <div class="tableDiv">
+            <h4 style="text-align: center; padding-top: 25px;d">Medikamentenübersicht</h4>
+            <div>
+                <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
+                    <UInput v-model="q" placeholder="Tabelle Filtern" />
+                </div>
+                <UTable :rows="rows" :columns="columns">
+                    <template v-if="userStore.isAdmin" #actions-data="{ row }">
+                        <UDropdown :items="myOptions(row)">
+                            <UButton color="gray" variant="ghost" icon="i-heroicons-ellipsis-horizontal-20-solid" />
+                        </UDropdown>
+                    </template>
+                </UTable>
+                <div v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount" class="flex justify-center px-3 py-3.5 border-t 
+        dark:border-green-700 dark:border-red-500">
+                    <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
+                        wrapper: 'flex items-center gap-1',
+                        rounded: 'rounded-sm',
+                        default: {
+                            activeButton: {
+                                variant: 'outline',
+                            }
+                        }
+                    }" />
+                </div>
             </div>
-        </UIBaseCard>
+        </div>
     </Layout>
 </template>
 
 <script setup lang="ts">
+
+const page = ref(1)
+const pageCount = 15
+
+const rows = computed(() => {
+    const data = q.value ? filteredRows.value : tableContent.value;
+    return data.slice((page.value - 1) * pageCount, page.value * pageCount);
+})
+
+const columns = [{
+    key: 'drug',
+    label: 'Medikament',
+    sortable: true
+}, {
+    key: 'darr',
+    label: 'Darreichungsform',
+    sortable: true
+}, {
+    key: 'manufac',
+    label: 'Hersteller',
+    sortable: true
+}, {
+    key: 'actions'
+}]
+
+const myOptions = (row) => [
+    [{
+        label: 'Bearbeiten',
+        icon: 'i-heroicons-pencil-square-20-solid',
+        click: () => console.log('Edit', row)
+    }, {
+        label: 'Delete',
+        icon: 'i-heroicons-trash-20-solid',
+        click: () => console.log('Delete', row)
+    }]
+]
+
+const q = ref('')
+
+const filteredRows = computed(() => {
+    if (!q.value) {
+        return tableContent.value
+    }
+
+    return tableContent.value.filter((tableContent) => {
+        return Object.values(tableContent).some((value) => {
+            return String(value).toLowerCase().includes(q.value.toLowerCase())
+        })
+    })
+})
 
 const newDrugState = reactive({
     pzn: "",
@@ -131,16 +190,12 @@ const route = useRoute()
 const tokenStore = useTokenStore()
 const drugStore = useDrugStore()
 const studyStore = useStudyStore()
+const userStore = useUserStore()
 const runtimeConfig = useRuntimeConfig()
 
 drugStore.item = null
 
-const { data: interview } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${route.params.event_id}/interview/${route.params.interview_id}`, {
-    method: "GET",
-    headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-})
-
-const { data: intakes, refresh } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake`, {
+const { data: intakes, refresh } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`, {
     method: "GET",
     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
@@ -179,27 +234,6 @@ type Schema = InferType<typeof schema>;
 
 const drugDetailsMap = ref({});
 
-async function fetchDrugDetails(pzn) {
-    if (!drugDetailsMap.value[pzn]) {
-        try {
-            const response = await $fetch(`${runtimeConfig.public.baseURL}drug/by-pzn/${pzn}`, {
-                method: "GET",
-                headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-            });
-            drugDetailsMap.value[pzn] = response;
-        }
-        catch (error) {
-            console.log(error);
-        }
-    }
-}
-
-watchEffect(() => {
-    intakes.value.forEach(intake => {
-        fetchDrugDetails(intake.pharmazentralnummer);
-    });
-});
-
 async function saveIntake() {
     const date = dayjs(state.time).utc().format("YYYY-MM-DD")
     const pzn = drugStore.item.pzn
@@ -208,11 +242,35 @@ async function saveIntake() {
     try {
         showForm.value = false;
         const responseData = await useCreateIntake(route.params.study_id, route.params.interview_id, pzn, date, myDose, state.selected);
-        refresh()
+        createIntakeList()
     } catch (error) {
         console.error("Failed to create Intake: ", error);
     }
 }
+
+const tableContent = ref([])
+
+async function createIntakeList() {
+
+    try {
+        const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`, {
+            method: "GET",
+            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+        })
+        if (intakes && intakes.items) {
+            tableContent.value = intakes.items.map(item => ({
+                drug: item.drug.name,
+                darr: item.drug.darrform_ref.darrform,
+                manufac: item.drug.hersteller_ref.bedeutung
+            }))
+        }
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+createIntakeList()
+
 
 </script>
 
@@ -224,11 +282,17 @@ async function saveIntake() {
     background-color: white;
 }
 
-.new-drug-box{
+.new-drug-box {
     padding: 20px;
     border-style: solid;
     border-color: #adecc0;
     border-radius: 10px;
     border-width: 2px;
+}
+
+.tableDiv {
+    border-radius: 10px;
+    border-width: 2px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
 }
 </style>
