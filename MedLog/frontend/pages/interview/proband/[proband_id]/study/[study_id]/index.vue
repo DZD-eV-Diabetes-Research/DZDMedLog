@@ -48,7 +48,7 @@
         </UTable>
         <div v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount" class="flex justify-center px-3 py-3.5 border-t 
         dark:border-green-700 dark:border-red-500">
-      <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
+          <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
             wrapper: 'flex items-center gap-1',
             rounded: 'rounded-sm',
             default: {
@@ -56,8 +56,8 @@
                 variant: 'outline',
               }
             }
-          }"/>
-    </div>
+          }" />
+        </div>
       </div>
     </div>
   </Layout>
@@ -74,22 +74,35 @@ const rows = computed(() => {
 })
 
 const columns = [{
-  key: 'event',
-  label: 'Event',
-  sortable: true
+  key: 'pzn',
+  label: 'PZN'
 }, {
   key: 'drug',
   label: 'Medikament',
   sortable: true
-}, {
+},
+{
+  key: 'dose',
+  label: 'Dosis',
+  sortable: true
+},
+{
+  key: 'startTime',
+  label: 'Einnahme Start',
+  sortable: true
+},
+{
   key: 'darr',
-  label: 'Darreichungsform',
+  label: 'Darreichung',
   sortable: true
 }, {
   key: 'manufac',
   label: 'Hersteller',
   sortable: true
+}, {
+  key: 'actions'
 }]
+
 
 const q = ref('')
 
@@ -219,10 +232,13 @@ async function createIntakeList() {
     })
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map(item => ({
-        event: item.event.name,
+        pzn: item.pharmazentralnummer,
         drug: item.drug.name,
+        dose: item.as_needed_dose_unit,
+        startTime: item.intake_start_time_utc,
         darr: item.drug.darrform_ref.darrform,
-        manufac: item.drug.hersteller_ref.bedeutung
+        manufac: item.drug.hersteller_ref.bedeutung,
+        id: item.id
       }))
     }
   } catch (error) {
@@ -258,5 +274,4 @@ createIntakeList()
   border-width: 2px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
 }
-
 </style>

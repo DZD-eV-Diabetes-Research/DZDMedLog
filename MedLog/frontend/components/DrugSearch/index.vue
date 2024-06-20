@@ -120,6 +120,20 @@ const totalPages = computed(() => {
     return Math.ceil(drugList.count / state.itemsPerPage);
 });
 
+const props = defineProps<{ drug?: string }>();
+
+watch(
+    () => props.drug,
+    (newDrug) => {
+        if (newDrug) {
+            state.drug = newDrug;
+            fetchDrugs();
+        }
+    },
+    { immediate: true }
+);
+
+
 </script>
 
 <style scoped>
