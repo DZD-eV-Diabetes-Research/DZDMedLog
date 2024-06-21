@@ -1,83 +1,82 @@
 <template>
-  <UIBaseCard>
-    <div style="text-align: center;">
-      <!-- <h4 style="color:red">Sie löschen folgenden Eintrag: </h4>
-      <br>
-      <h4>{{ drugToDelete.drug }}</h4>
-      <br>
-      <p style="color: red">PZN: {{ drugToDelete.pzn }}</p>
-      <br> -->
-      <UForm :schema="deleteSchema" :state="deleteState" class="space-y-4" @submit="onSubmit">
-        <UFormGroup label="Zum löschen die PZN eintragen" name="pzn">
-          <UInput v-model="deleteState.pzn" color="red" :placeholder="drugToDelete.pzn" />
-        </UFormGroup>
-        <br>
-        <UButton type="submit" color="red" variant="soft"
-          class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white">
-          Eintrag löschen
-        </UButton>
-      </UForm>
+  <UModal v-model="editModalVisibility">
+    <div class="p-4">
+      <div style="text-align: center;">
+        <IntakeQuestion />
+        <div v-if="drugStore.item">
+          <br>
+          <p>Medikament: {{ drugStore.item.item.name }}</p>
+          <p>PZN: {{ drugStore.item.pzn }}</p>
+          <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
+        </div>
+        <UForm @submit="onSubmit" :state="editState" :schema="editSchema" class="space-y-4">
+          <UFormGroup label="Dosis" style="border-color: red;">
+            <UInput type="number" v-model="editState.dose" name="dose" color="blue" />
+          </UFormGroup>
+          <UFormGroup label="Einnahme (Datum)">
+            <UInput type="date" v-model="editState.time" name="time" color="blue" />
+          </UFormGroup>
+          <URadioGroup v-model="editState.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
+            :options="editOptions" />
+          <UButton type="submit" label="Bearbeiten" color="blue" variant="soft"
+            class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" />
+        </UForm>
+      </div>
     </div>
-  </UIBaseCard>
-  
-  <UIBaseCard>
-    <UForm :schema="schema" :state="state" class="space-y-4" @submit="onSubmit2">
-    <UFormGroup label="Email" name="email">
-      <UInput v-model="state.email" />
-    </UFormGroup>
-
-    <UFormGroup label="Password" name="password">
-      <UInput v-model="state.password" type="password" />
-    </UFormGroup>
-
-    <UButton type="submit">
-      Submit
-    </UButton>
-  </UForm>
-  </UIBaseCard>
+  </UModal>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
-import { object, string, type InferType } from "yup";
-import type { FormSubmitEvent } from "#ui/types";
+import { object, string, date, number, type InferType } from 'yup'
+import type { FormSubmitEvent } from '#ui/types'
 
-const deleteSchema = object({
-  pzn: string().required('Required').test('is-dynamic-value', 'PZN muss übereinstimmen', function (value) {
-    return value == drugToDelete.pzn;
-  }),
-});
+const drugStore = useDrugStore()
 
-type DeleteSchema = InferType<typeof deleteSchema>;
+const editModalVisibility = ref(true)
 
-const deleteState = reactive({
-  pzn: '',
-});
-
-const deleteModalVisibility = ref(true);
-const drugToDelete = reactive({ drug: "hallo", pzn: "1234" });
-
-async function onSubmit(event: FormSubmitEvent<DeleteSchema>) {
-  // Do something with event.data
-  console.log(event.data)
-}
-
-const schema = object({
-  email: string().email('Invalid email').required('Required'),
-  password: string()
-    .min(8, 'Must be at least 8 characters')
-    .required('Required')
+const editSchema = object({
+  selected: string().required("Required"),
+  time: date().required("Required"),
+  dose: number().min(0, "Hallo"),
 })
 
 type Schema = InferType<typeof schema>
 
-const state = reactive({
-  email: undefined,
-  password: undefined
+const editState = reactive({
+  selected: "Yes",
+  time: null,
+  dose: null
 })
 
-async function onSubmit2 (event: FormSubmitEvent<Schema>) {
+
+const editOptions = [{
+  value: "Yes",
+  label: 'Ja'
+}, {
+  value: "No",
+  label: 'Nein',
+}, {
+  value: "UNKNOWN",
+  label: "Unbekannt"
+}]
+
+async function onSubmit(event: FormSubmitEvent<Schema>) {
   // Do something with event.data
-  console.log(event.data)
+  const body = {
+    pharmazentralnummer: drugStore.item.pzn,
+    custom_drug_id: null,
+    intake_start_time_utc: editState.time,
+    intake_end_time_utc: null,
+    administered_by_doctor: "prescribed",
+    intake_regular_or_as_needed: "regular",
+    dose_per_day: editState.dose,
+    regular_intervall_of_daily_dose: "regular",
+    as_needed_dose_unit: null,
+    consumed_meds_today: editState.selected
+  }
+
+  console.log(body)
+  console.log(drugStore.item.item);
+  
 }
 </script>

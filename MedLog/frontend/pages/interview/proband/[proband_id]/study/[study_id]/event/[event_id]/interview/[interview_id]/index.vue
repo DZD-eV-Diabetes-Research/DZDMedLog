@@ -15,12 +15,12 @@
                 </div>
                 <UForm @submit="saveIntake" :state="state" :schema="schema" class="space-y-4">
                     <UFormGroup label="Dosis" style="border-color: red;">
-                        <UInput type="number" v-model="state.dose" />
+                        <UInput type="number" v-model="state.dose" name="dose" />
                     </UFormGroup>
-                    <UFormGroup label="Einnahme (Uhrzeit)">
-                        <UInput type="date" v-model="state.time" />
+                    <UFormGroup label="Einnahme (Datum)">
+                        <UInput type="date" v-model="state.time" name="time" />
                     </UFormGroup>
-                    <URadioGroup v-model="state.selected" legend="Wurden heute Medikamente eingenommen?"
+                    <URadioGroup v-model="state.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
                         :options="options" />
                     <UButton type="submit" label="Speichern" color="green" variant="soft"
                         class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
@@ -99,8 +99,9 @@
                 </div>
             </div>
             <div style="text-align: center;">
-            <UButton @click="backToOverview()" label="Zurück zur Übersicht" color="green" variant="soft"
-                class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" style="margin: 25px;"/>
+                <UButton @click="backToOverview()" label="Zurück zur Übersicht" color="green" variant="soft"
+                    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+                    style="margin: 25px;" />
             </div>
         </div>
         <UModal v-model="deleteModalVisibility">
@@ -114,13 +115,38 @@
                     <br>
                     <UForm :schema="deleteSchema" :state="deleteState" class="space-y-4" @submit="deleteIntake">
                         <UFormGroup label="Zum löschen die PZN eintragen" name="pzn">
-                            <UInput v-model="deleteState.pzn" color="red" :placeholder="drugToDelete.pzn"/>
+                            <UInput v-model="deleteState.pzn" color="red" :placeholder="drugToDelete.pzn" />
                         </UFormGroup>
                         <br>
                         <UButton type="submit" color="red" variant="soft"
-                        class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white">
+                            class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white">
                             Eintrag löschen
                         </UButton>
+                    </UForm>
+                </div>
+            </div>
+        </UModal>
+        <UModal v-model="editModalVisibility">
+            <div class="p-4">
+                <div style="text-align: center;">
+                    <IntakeQuestion :drug="toEditDrug" />
+                    <div v-if="drugStore.item">
+                        <br>
+                        <p>Medikament: {{ drugStore.item.item.name }}</p>
+                        <p>PZN: {{ drugStore.item.pzn }}</p>
+                        <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
+                    </div>
+                    <UForm @submit="editEntry" :state="editState" :schema="editSchema" class="space-y-4">
+                        <UFormGroup label="Dosis" style="border-color: red;">
+                            <UInput type="number" v-model="editState.dose" name="dose" color="blue" />
+                        </UFormGroup>
+                        <UFormGroup label="Einnahme (Datum)">
+                            <UInput type="date" v-model="editState.time" name="time" color="blue" />
+                        </UFormGroup>
+                        <URadioGroup v-model="editState.selected" legend="Wurden heute Medikamente eingenommen?"
+                            name="selected" :options="editOptions" />
+                        <UButton type="submit" label="Bearbeiten" color="blue" variant="soft"
+                            class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" />
                     </UForm>
                 </div>
             </div>
@@ -135,11 +161,86 @@ import { watchEffect } from 'vue';
 import type { FormSubmitEvent } from "#ui/types";
 import { object, number, date, string, type InferType } from "yup";
 
+const toEditDrug = ref()
 
+const editModalVisibility = ref(false)
+
+const editSchema = object({
+    selected: string().required("Required"),
+    time: date().required("Required"),
+    dose: number().min(0, "Hallo"),
+})
+
+type EditSchema = InferType<typeof editSchema>
+
+const editState = reactive({
+    selected: "Yes",
+    time: null,
+    dose: null
+})
+
+
+const editOptions = [{
+    value: "Yes",
+    label: 'Ja'
+}, {
+    value: "No",
+    label: 'Nein',
+}, {
+    value: "UNKNOWN",
+    label: "Unbekannt"
+}]
+
+const toEditDrugId = ref()
+
+async function editModalVisibilityFunction(row: object) {
+    try {
+        editModalVisibility.value = true
+        editState.time = row.startTime
+        editState.dose = row.dose
+        toEditDrug.value = row.drug
+        toEditDrugId.value = row.id
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+
+async function editEntry() {
+
+    try {
+        const fetchBody = {
+            pharmazentralnummer: drugStore.item.pzn,
+            custom_drug_id: null,
+            intake_start_time_utc: editState.time,
+            intake_end_time_utc: null,
+            administered_by_doctor: "prescribed",
+            intake_regular_or_as_needed: "regular",
+            dose_per_day: editState.dose,
+            regular_intervall_of_daily_dose: "regular",
+            as_needed_dose_unit: null,
+            consumed_meds_today: editState.selected
+        }
+
+        await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${toEditDrugId.value}`, {
+            method: "PATCH",
+            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+            body: fetchBody
+
+        })
+
+        toEditDrugId.value = null
+        editModalVisibility.value = false
+        createIntakeList()
+
+    } catch (error) {
+        console.log(error);
+    }
+}
 
 const deleteSchema = object({
-    pzn: string().required('Required').test('is-dynamic-value', 'PZN muss übereinstimmen', function(value) {
-      return value === drugToDelete.value.pzn;
+    pzn: string().required('Required').test('is-dynamic-value', 'PZN muss übereinstimmen', function (value) {
+        return value === drugToDelete.value.pzn;
     }),
 })
 
@@ -168,7 +269,7 @@ const columns = [{
     key: 'drug',
     label: 'Medikament',
     sortable: true
-}, 
+},
 {
     key: 'dose',
     label: 'Dosis',
@@ -195,7 +296,7 @@ const myOptions = (row) => [
     [{
         label: 'Bearbeiten',
         icon: 'i-heroicons-pencil-square-20-solid',
-        click: () => editIntake(row)
+        click: () => editModalVisibilityFunction(row)
     }, {
         label: 'Löschen',
         icon: 'i-heroicons-trash-20-solid',
@@ -214,7 +315,7 @@ async function openDeleteModal(row: object) {
 
 async function editIntake(row: object) {
     try {
-        console.log(row.id);
+        console.log(row);
     } catch (error) {
         console.log(error);
     }
@@ -353,8 +454,8 @@ async function createIntakeList() {
             tableContent.value = intakes.items.map(item => ({
                 pzn: item.pharmazentralnummer,
                 drug: item.drug.name,
-                dose: item.as_needed_dose_unit,
-                startTime: item.intake_start_time_utc, 
+                dose: item.dose_per_day,
+                startTime: item.intake_start_time_utc,
                 darr: item.drug.darrform_ref.darrform,
                 manufac: item.drug.hersteller_ref.bedeutung,
                 id: item.id
