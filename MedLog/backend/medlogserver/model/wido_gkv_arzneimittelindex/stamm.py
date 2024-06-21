@@ -79,6 +79,7 @@ class StammRoot(DrugModelTableBase, table=False):
         schema_extra={"examples": ["Venenum Fang 5 mg Kriminon"]},
     )
     hersteller_code: Optional[str] = Field(
+        default=None,
         description="Herstellerschlüssel (Siehe `hersteller_ref` für vollen Herstellernamen)",
         sa_type=SmallInteger,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:9"},
@@ -86,7 +87,8 @@ class StammRoot(DrugModelTableBase, table=False):
         # foreign_key="drug_hersteller.herstellercode",
         schema_extra={"examples": ["BEHR"]},
     )
-    darrform: str = Field(
+    darrform: Optional[str] = Field(
+        default=None,
         description="Darreichungsformschlüssel (Siehe `darrform_ref` für vollen Namen)",
         sa_type=String(5),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:10"},
@@ -95,6 +97,7 @@ class StammRoot(DrugModelTableBase, table=False):
         schema_extra={"examples": ["ZKA"]},
     )
     appform: Optional[str] = Field(
+        default=None,
         description="Applikationsformschlüssel (Siehe `appform_ref` für vollen Namen)",
         sa_type=String(5),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:24"},
@@ -103,6 +106,7 @@ class StammRoot(DrugModelTableBase, table=False):
         schema_extra={"examples": ["IMP"]},
     )
     hersteller_code: Optional[str] = Field(
+        default=None,
         description="Herstellerschlüssel (Siehe `hersteller_ref` für vollen Herstellernamen)",
         sa_type=SmallInteger,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:9"},
@@ -111,12 +115,14 @@ class StammRoot(DrugModelTableBase, table=False):
         schema_extra={"examples": ["BEHR"]},
     )
     atc_code: Optional[str] = Field(
+        default=None,
         description="ATC-Code (Klassifikation nach WIdO)",
         sa_type=String(7),
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:5"},
         schema_extra={"examples": ["B01AA03"]},
     )
     packgroesse: Optional[int] = Field(
+        default=None,
         description="Packungsgröße (in 1/10 Einheiten)",
         sa_type=Integer,
         sa_column_kwargs={"comment": "gkvai_source_csv_col_index:12"},

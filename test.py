@@ -368,3 +368,7 @@ def get_class_attr_as_str():
 
 
 get_class_attr_as_str()
+
+
+def omop_test():
+    from OMOPModel import "OMOP_CDM_5.4_sqlmodels"
