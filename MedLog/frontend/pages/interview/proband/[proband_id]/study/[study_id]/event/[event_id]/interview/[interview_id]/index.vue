@@ -1,8 +1,10 @@
 <template>
     <Layout>
         <UIBaseCard :naked="true">
-            <UButton @click="openIntakeForm()" label="Eingabe Präparat" color="green" variant="soft"
+            <UButton @click="openIntakeForm()" label="Eingabe Präparat" color="green" variant="soft" style="margin-right: 10px;"
                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+                <UButton v-if="tableContent.length == 0" @click="openIntakeForm()" label="Medikamente übernehmen" color="blue" variant="soft" style="margin-left: 10px;"
+                class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" />
         </UIBaseCard>
         <div v-if="showForm">
             <UIBaseCard>
@@ -40,7 +42,7 @@
                     </template>
                     <template #newDrug="{ content }">
                         <div class="new-drug-box">
-                            <UForm :schema="newDrugSchema" :state="newDrugState" class="space-y-4" @submit="test">
+                            <UForm :schema="newDrugSchema" :state="newDrugState" class="space-y-4" @submit="createNewDrug">
                                 <UFormGroup label="Name" name="name" required>
                                     <UInput v-model="newDrugState.name" />
                                 </UFormGroup>
@@ -73,7 +75,7 @@
             </UIBaseCard>
         </div>
         <div class="tableDiv">
-            <h4 style="text-align: center; padding-top: 25px;d">Medikamentenübersicht</h4>
+            <h4 style="text-align: center; padding-top: 25px;">Probandenhistorie</h4>
             <div>
                 <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
                     <UInput v-model="q" placeholder="Tabelle Filtern" />
@@ -138,7 +140,7 @@
                     </div>
                     <UForm @submit="editEntry" :state="editState" :schema="editSchema" class="space-y-4">
                         <UFormGroup label="Dosis" style="border-color: red;">
-                            <UInput type="number" v-model="editState.dose" name="dose" color="blue" />
+                            <UInput type="number" v-model="editState.dose" name="editState.dose" color="blue" />
                         </UFormGroup>
                         <UFormGroup label="Einnahme (Datum)">
                             <UInput type="date" v-model="editState.time" name="time" color="blue" />
@@ -250,10 +252,6 @@ const deleteState = reactive({
     pzn: undefined
 })
 
-async function test() {
-    console.log("hallo");
-}
-
 const page = ref(1)
 const pageCount = 15
 
@@ -313,13 +311,6 @@ async function openDeleteModal(row: object) {
     drugToDelete.value = row
 }
 
-async function editIntake(row: object) {
-    try {
-        console.log(row);
-    } catch (error) {
-        console.log(error);
-    }
-}
 async function deleteIntake() {
     try {
         await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.id}`, {
@@ -347,9 +338,19 @@ const filteredRows = computed(() => {
     })
 })
 
+async function createNewDrug() {
+    console.log(newDrugState.name);    
+    console.log(newDrugState.pzn);    
+    console.log(newDrugState.herstellerCode);    
+    console.log(newDrugState.darrform);    
+    console.log(newDrugState.appform);    
+    console.log(newDrugState.atc_code);    
+    console.log(newDrugState.packgroesse);    
+}
+
 const newDrugState = reactive({
     pzn: "",
-    name: null,
+    name: "",
     herstellerCode: "",
     darrform: "",
     appform: "",

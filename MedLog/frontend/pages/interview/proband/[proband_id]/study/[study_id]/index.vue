@@ -39,7 +39,7 @@
     </UModal>
     <br>
     <div class="tableDiv">
-      <h4 style="text-align: center; padding-top: 25px;">Medikamentenübersicht</h4>
+      <h4 style="text-align: center; padding-top: 25px;">Probandenhistorie</h4>
       <div>
         <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
           <UInput v-model="q" placeholder="Tabelle Filtern" />
@@ -74,6 +74,10 @@ const rows = computed(() => {
 })
 
 const columns = [{
+  key: 'event',
+  label: 'Event',
+  sortable: true
+},{
   key: 'pzn',
   label: 'PZN'
 }, {
@@ -232,6 +236,7 @@ async function createIntakeList() {
     })
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map(item => ({
+        event: item.event.name,
         pzn: item.pharmazentralnummer,
         drug: item.drug.name,
         dose: item.as_needed_dose_unit,
