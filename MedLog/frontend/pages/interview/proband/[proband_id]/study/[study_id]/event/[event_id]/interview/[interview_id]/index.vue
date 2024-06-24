@@ -429,7 +429,7 @@ type Schema = InferType<typeof schema>;
 const drugDetailsMap = ref({});
 
 async function saveIntake() {
-    const date = dayjs(state.time).utc().format("YYYY-MM-DD")
+    const date = dayjs(state.time).utc().format("DD-MM-YYYY")
     const pzn = drugStore.item.pzn
     const myDose = state.dose.toString()
 
