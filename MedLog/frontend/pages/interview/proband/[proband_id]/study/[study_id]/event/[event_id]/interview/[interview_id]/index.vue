@@ -1,9 +1,11 @@
 <template>
     <Layout>
         <UIBaseCard :naked="true">
-            <UButton @click="openIntakeForm()" label="Eingabe Präparat" color="green" variant="soft" style="margin-right: 10px;"
+            <UButton @click="openIntakeForm()" label="Eingabe Präparat" color="green" variant="soft"
+                style="margin-right: 10px;"
                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
-                <UButton v-if="tableContent.length == 0" @click="openIntakeForm()" label="Medikamente übernehmen" color="blue" variant="soft" style="margin-left: 10px;"
+            <UButton v-if="tableContent.length == 0" @click="openIntakeForm()" label="Medikamente übernehmen"
+                color="blue" variant="soft" style="margin-left: 10px;"
                 class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" />
         </UIBaseCard>
         <div v-if="showForm">
@@ -42,7 +44,8 @@
                     </template>
                     <template #newDrug="{ content }">
                         <div class="new-drug-box">
-                            <UForm :schema="newDrugSchema" :state="newDrugState" class="space-y-4" @submit="createNewDrug">
+                            <UForm :schema="newDrugSchema" :state="newDrugState" class="space-y-4"
+                                @submit="createNewDrug">
                                 <UFormGroup label="Name" name="name" required>
                                     <UInput v-model="newDrugState.name" />
                                 </UFormGroup>
@@ -339,13 +342,13 @@ const filteredRows = computed(() => {
 })
 
 async function createNewDrug() {
-    console.log(newDrugState.name);    
-    console.log(newDrugState.pzn);    
-    console.log(newDrugState.herstellerCode);    
-    console.log(newDrugState.darrform);    
-    console.log(newDrugState.appform);    
-    console.log(newDrugState.atc_code);    
-    console.log(newDrugState.packgroesse);    
+    console.log(newDrugState.name);
+    console.log(newDrugState.pzn);
+    console.log(newDrugState.herstellerCode);
+    console.log(newDrugState.darrform);
+    console.log(newDrugState.appform);
+    console.log(newDrugState.atc_code);
+    console.log(newDrugState.packgroesse);
 }
 
 const newDrugState = reactive({
@@ -429,7 +432,7 @@ type Schema = InferType<typeof schema>;
 const drugDetailsMap = ref({});
 
 async function saveIntake() {
-    const date = dayjs(state.time).utc().format("DD-MM-YYYY")
+    const date = dayjs(state.time).utc().format("YYYY-MM-DD")
     const pzn = drugStore.item.pzn
     const myDose = state.dose.toString()
 
