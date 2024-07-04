@@ -1,60 +1,99 @@
 <template>
   <Layout>
-    <UIBaseCard>
-      <UButton @click="getCompletedEvents(detail)" label="Medikamente übernehmen" color="blue" variant="soft"
-        style="margin-left: 10px;"
-        class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" />
-    </UIBaseCard>
-    <div class="oldDrugs">
-      {{ selectedCompleteEvent }}
-      <USelectMenu v-model="selectedCompleteEvent" :options="completedItems" />
+  <div class="row">
+    <div class="col-2">
+      <div class="form-group">
+        <div
+          class="btn-group-vertical buttons"
+          role="group"
+          aria-label="Basic example"
+        >
+          <button class="btn btn-secondary" @click="add">Add</button>
+          <button class="btn btn-secondary" @click="replace">Replace</button>
+        </div>
+
+        <div class="form-check">
+          <input
+            id="disabled"
+            type="checkbox"
+            v-model="enabled"
+            class="form-check-input"
+          />
+          <label class="form-check-label" for="disabled">DnD enabled</label>
+        </div>
+      </div>
     </div>
-    event: {{ detail.items[0].event.name }}
-    <br>
-    interview_id: {{ detail.items[0].interview_id }}
-    <br>
-    {{ completedItems }}
-  </Layout>
+
+    <div class="col-6">
+      <h3>Draggable {{ draggingInfo }}</h3>
+
+      <Draggable
+        :list="list"
+        :disabled="!enabled"
+        item-key="name"
+        class="list-group"
+        ghost-class="ghost"
+        :move="checkMove"
+        @start="dragging = true"
+        @end="dragging = false"
+      >
+        <template #item="{ element }">
+          <div class="list-group-item" :class="{ 'not-draggable': !enabled }">
+            {{ element.name }}
+          </div>
+        </template>
+      </Draggable>
+    </div>
+
+    <rawDisplayer class="col-3" :value="list" title="List" />
+  </div>
+</Layout>
 </template>
 
-<script setup lang="ts">
-const tokenStore = useTokenStore()
-const route = useRoute()
-const runtimeConfig = useRuntimeConfig()
+<script setup>
+import { ref } from 'vue';
 
-const selectedCompleteEvent = ref()
-const completedItems = ref([]);
+let id = 1;
+const enabled = ref(true);
+const list = ref([
+  { name: 'John', id: 0 },
+  { name: 'Joao', id: 1 },
+  { name: 'Jean', id: 2 }
+]);
+const dragging = ref(false);
 
-const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/b6f2c61b-d388-4412-8c9a-461ece251116/proband/1234/event`, {
-  method: "GET",
-  headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-})
-
-const { data: detail } = await useFetch(`${runtimeConfig.public.baseURL}study/b6f2c61b-d388-4412-8c9a-461ece251116/proband/1234/intake/details`, {
-  method: "GET",
-  headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-})
-
-
-
-async function getCompletedEvents(detail) {
-  completedItems.value = detail
-  // completedItems.value = completedItems.value.map(event => ({
-  //     id: event.id,
-  //     event: event,
-  //     label: event.name
-  //   })) 
-  //   selectedCompleteEvent.value = completedItems.value[0]
+function add() {
+  list.value.push({ name: `Juan ${id}`, id: id++ });
 }
 
+function replace() {
+  list.value = [{ name: 'Edgard', id: id++ }];
+}
+
+function checkMove(e) {
+  console.log(`Future index: ${e.draggedContext.futureIndex}`);
+}
+
+const draggingInfo = computed(() => {
+  return dragging.value ? 'under drag' : '';
+});
 </script>
 
 <style scoped>
-
-.oldDrugs{
-  border: 2px;
-  border-style: solid;
-  border-color: #3a82f6;
+.buttons {
+  margin-top: 35px;
 }
 
+.ghost {
+  opacity: 0.5;
+  background: #c8ebfb;
+}
+
+.not-draggable {
+  cursor: no-drop;
+}
 </style>
+
+<!-- <template>
+  test
+</template> -->
