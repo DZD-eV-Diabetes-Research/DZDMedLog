@@ -1,39 +1,15 @@
 <template>
   <Layout>
   <div class="row">
-    <div class="col-2">
-      <div class="form-group">
-        <div
-          class="btn-group-vertical buttons"
-          role="group"
-          aria-label="Basic example"
-        >
-          <button class="btn btn-secondary" @click="add">Add</button>
-          <button class="btn btn-secondary" @click="replace">Replace</button>
-        </div>
-
-        <div class="form-check">
-          <input
-            id="disabled"
-            type="checkbox"
-            v-model="enabled"
-            class="form-check-input"
-          />
-          <label class="form-check-label" for="disabled">DnD enabled</label>
-        </div>
-      </div>
-    </div>
-
     <div class="col-6">
       <h3>Draggable {{ draggingInfo }}</h3>
 
       <Draggable
-        :list="list"
+        :list="events.items"
         :disabled="!enabled"
         item-key="name"
         class="list-group"
         ghost-class="ghost"
-        :move="checkMove"
         @start="dragging = true"
         @end="dragging = false"
       >
@@ -44,35 +20,28 @@
         </template>
       </Draggable>
     </div>
-
-    <rawDisplayer class="col-3" :value="list" title="List" />
   </div>
+  <UButton @click="enabled = !enabled">test</UButton>
 </Layout>
 </template>
 
 <script setup>
 import { ref } from 'vue';
+const tokenStore = useTokenStore()
+
+
+const { data: events } = await useFetch(`http://localhost:8888/study/b6f2c61b-d388-4412-8c9a-461ece251116/event`, {
+  method: "GET",
+  headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+})
 
 let id = 1;
 const enabled = ref(true);
-const list = ref([
-  { name: 'John', id: 0 },
-  { name: 'Joao', id: 1 },
-  { name: 'Jean', id: 2 }
-]);
 const dragging = ref(false);
 
-function add() {
-  list.value.push({ name: `Juan ${id}`, id: id++ });
-}
-
-function replace() {
-  list.value = [{ name: 'Edgard', id: id++ }];
-}
-
-function checkMove(e) {
-  console.log(`Future index: ${e.draggedContext.futureIndex}`);
-}
+// function checkMove(e) {
+//   console.log(`Future index: ${e.draggedContext.futureIndex}`);
+// }
 
 const draggingInfo = computed(() => {
   return dragging.value ? 'under drag' : '';
@@ -80,7 +49,7 @@ const draggingInfo = computed(() => {
 </script>
 
 <style scoped>
-.buttons {
+.UButtons {
   margin-top: 35px;
 }
 
@@ -93,7 +62,3 @@ const draggingInfo = computed(() => {
   cursor: no-drop;
 }
 </style>
-
-<!-- <template>
-  test
-</template> -->

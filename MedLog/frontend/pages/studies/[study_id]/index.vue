@@ -3,15 +3,29 @@
         <div class="center">
             <h3>{{ study.display_name }}</h3>
         </div>
-        <UIBaseCard v-for="event in reversedEvents" v-if="reversedEvents.length > 0">
-           <h4> {{ useStringDoc(event.name) }} </h4>
-        </UIBaseCard>
-        <UIBaseCard v-else>
+        <Draggable
+        :list="events.items"
+        :disabled="!enabled"
+        item-key="name"
+        class="list-group"
+        ghost-class="ghost"
+        @start="dragging = true"
+        @end="dragging = false"
+      >
+        <template #item="{ element }">
+          <div class="list-group-item" :class="{ 'not-draggable': !enabled }">
+            <UIBaseCard class="events" :class="{ 'sorted': isSorted }">{{ element.name }}</UIBaseCard>
+          </div>
+        </template>
+      </Draggable>
+        <UIBaseCard v-if="reversedEvents.length === 0">
             <h5>Keine Events in der Studie aufgezeichnet</h5>
         </UIBaseCard>
         <UIBaseCard v-if="userStore.isAdmin" class="noHover" :naked="true">
             <UButton @click="showEventModal = true" label="Event anlegen" color="green" variant="soft"
                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+            <UButton @click="toggleSort" :label="sortButton" color="blue" variant="soft"
+                class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" />
             <UModal v-model="showEventModal">
                 <div class="p-4" style="text-align: center;">
                     <UForm :schema="eventSchema" :state="eventState" class="space-y-4" @submit="createEvent">
@@ -30,6 +44,14 @@
 
 <script setup lang="ts">
 
+let id = 1;
+const enabled = ref(false);
+const dragging = ref(false);
+
+const draggingInfo = computed(() => {
+  return dragging.value ? 'under drag' : '';
+});
+
 
 import { boolean, number, object, string, type InferType } from "yup";
 import { computed } from 'vue';
@@ -39,6 +61,9 @@ const tokenStore = useTokenStore()
 const userStore = useUserStore()
 const runtimeConfig = useRuntimeConfig()
 const route = useRoute()
+
+const isSorted = ref(false);
+const sortButton = ref("Events Sortieren")
 
 const showEventModal = ref(false)
 const study = await studyStore.getStudy(route.params.study_id)
@@ -57,6 +82,27 @@ const eventState = reactive({ name: "" });
 const eventSchema = object({
     name: string().required("Required"),
 });
+
+const test = ref([])
+
+async function toggleSort() {
+    if (sortButton.value === "Sortierung Speichern"){
+        sortButton.value = "Events Sortieren"
+
+        events.value.items.map(element => {
+            test.value.push(element)
+            });
+        // await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/order}`, {
+        //     method: "POST",
+        //     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+        //     body: test.value
+        // })
+    } else {
+        sortButton.value = "Sortierung Speichern"
+    }
+    isSorted.value = !isSorted.value;
+    enabled.value = !enabled.value
+}
 
 async function createEvent() {
     try {
@@ -77,6 +123,20 @@ async function createEvent() {
     margin: auto;
     width: 50%;
     padding: 10px;
+}
+
+.events {
+    text-align: center;
+    margin: 1rem auto;
+    max-width: 40rem;
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+}
+
+.sorted {
+    cursor: move;
+    background-color: #cee4fc;
 }
 
 </style>
