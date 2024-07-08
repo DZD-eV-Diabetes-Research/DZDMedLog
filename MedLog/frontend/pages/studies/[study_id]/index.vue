@@ -92,11 +92,11 @@ async function toggleSort() {
         events.value.items.map(element => {
             test.value.push(element)
             });
-        // await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/order}`, {
-        //     method: "POST",
-        //     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-        //     body: test.value
-        // })
+        await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/order`, {
+            method: "POST",
+            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+            body: test.value
+        })
     } else {
         sortButton.value = "Sortierung Speichern"
     }
