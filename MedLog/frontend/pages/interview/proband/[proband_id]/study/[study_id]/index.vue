@@ -159,15 +159,17 @@ function createEventList(events) {
     completedItems.value = completedItems.value.map(event => ({
       id: event.id,
       event: event,
-      label: event.name
-    })).sort().reverse()
+      label: event.name,
+      order: event.order_position
+    })).sort((a,b) => b.order - a.order)
 
     incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
     incompletedItems.value = incompletedItems.value.map(event => ({
       id: event.id,
       event: event,
-      label: event.name
-    })).sort().reverse()
+      label: event.name,
+      order: event.order_position
+    })).sort((a,b) => b.order - a.order)
   }
 
   selectedCompleteEvent.value = completedItems.value[0]

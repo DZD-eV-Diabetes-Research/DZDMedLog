@@ -18,7 +18,7 @@
           </div>
         </template>
       </Draggable>
-        <UIBaseCard v-if="reversedEvents.length === 0">
+        <UIBaseCard v-if="events.items.length === 0">
             <h5>Keine Events in der Studie aufgezeichnet</h5>
         </UIBaseCard>
         <UIBaseCard v-if="userStore.isAdmin" class="noHover" :naked="true">
@@ -72,10 +72,6 @@ const { data: events, refresh } = await useFetch(`${runtimeConfig.public.baseURL
     method: "GET",
     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
-
-const reversedEvents = computed(() => {
-    return [...events.value.items].reverse();
-});
 
 const eventState = reactive({ name: "" });
 
