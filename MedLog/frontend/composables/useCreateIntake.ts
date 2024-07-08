@@ -5,6 +5,7 @@ export async function useCreateIntake(study_id:string, interview_id:string, pzn:
     let body = {"pharmazentralnummer": pzn,
                 "intake_start_time_utc": intake_start_time,
                 "as_needed_dose_unit": dose_unit,
+                "dose_per_day": dose_unit,
                 "consumed_meds_today": meds_today
     }    
 
