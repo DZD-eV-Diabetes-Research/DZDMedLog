@@ -1,82 +1,64 @@
 <template>
-  <UModal v-model="editModalVisibility">
-    <div class="p-4">
-      <div style="text-align: center;">
-        <IntakeQuestion />
-        <div v-if="drugStore.item">
-          <br>
-          <p>Medikament: {{ drugStore.item.item.name }}</p>
-          <p>PZN: {{ drugStore.item.pzn }}</p>
-          <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
-        </div>
-        <UForm @submit="onSubmit" :state="editState" :schema="editSchema" class="space-y-4">
-          <UFormGroup label="Dosis" style="border-color: red;">
-            <UInput type="number" v-model="editState.dose" name="dose" color="blue" />
-          </UFormGroup>
-          <UFormGroup label="Einnahme (Datum)">
-            <UInput type="date" v-model="editState.time" name="time" color="blue" />
-          </UFormGroup>
-          <URadioGroup v-model="editState.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
-            :options="editOptions" />
-          <UButton type="submit" label="Bearbeiten" color="blue" variant="soft"
-            class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" />
-        </UForm>
-      </div>
+  <Layout>
+  <div class="row">
+    <div class="col-6">
+      <h3>Draggable {{ draggingInfo }}</h3>
+
+      <Draggable
+        :list="events.items"
+        :disabled="!enabled"
+        item-key="name"
+        class="list-group"
+        ghost-class="ghost"
+        @start="dragging = true"
+        @end="dragging = false"
+      >
+        <template #item="{ element }">
+          <div class="list-group-item" :class="{ 'not-draggable': !enabled }">
+            {{ element.name }}
+          </div>
+        </template>
+      </Draggable>
     </div>
-  </UModal>
+  </div>
+  <UButton @click="enabled = !enabled">test</UButton>
+</Layout>
 </template>
 
-<script setup lang="ts">
-import { object, string, date, number, type InferType } from 'yup'
-import type { FormSubmitEvent } from '#ui/types'
+<script setup>
+import { ref } from 'vue';
+const tokenStore = useTokenStore()
 
-const drugStore = useDrugStore()
 
-const editModalVisibility = ref(true)
-
-const editSchema = object({
-  selected: string().required("Required"),
-  time: date().required("Required"),
-  dose: number().min(0, "Hallo"),
+const { data: events } = await useFetch(`http://localhost:8888/study/b6f2c61b-d388-4412-8c9a-461ece251116/event`, {
+  method: "GET",
+  headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
 
-type Schema = InferType<typeof schema>
+let id = 1;
+const enabled = ref(true);
+const dragging = ref(false);
 
-const editState = reactive({
-  selected: "Yes",
-  time: null,
-  dose: null
-})
+// function checkMove(e) {
+//   console.log(`Future index: ${e.draggedContext.futureIndex}`);
+// }
 
-
-const editOptions = [{
-  value: "Yes",
-  label: 'Ja'
-}, {
-  value: "No",
-  label: 'Nein',
-}, {
-  value: "UNKNOWN",
-  label: "Unbekannt"
-}]
-
-async function onSubmit(event: FormSubmitEvent<Schema>) {
-  // Do something with event.data
-  const body = {
-    pharmazentralnummer: drugStore.item.pzn,
-    custom_drug_id: null,
-    intake_start_time_utc: editState.time,
-    intake_end_time_utc: null,
-    administered_by_doctor: "prescribed",
-    intake_regular_or_as_needed: "regular",
-    dose_per_day: editState.dose,
-    regular_intervall_of_daily_dose: "regular",
-    as_needed_dose_unit: null,
-    consumed_meds_today: editState.selected
-  }
-
-  console.log(body)
-  console.log(drugStore.item.item);
-  
-}
+const draggingInfo = computed(() => {
+  return dragging.value ? 'under drag' : '';
+});
 </script>
+
+<style scoped>
+.UButtons {
+  margin-top: 35px;
+}
+
+.ghost {
+  opacity: 0.5;
+  background: #c8ebfb;
+}
+
+.not-draggable {
+  cursor: no-drop;
+}
+</style>
