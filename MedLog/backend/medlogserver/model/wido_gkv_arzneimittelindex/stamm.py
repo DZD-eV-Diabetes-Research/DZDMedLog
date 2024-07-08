@@ -173,7 +173,14 @@ class StammUserCustomBase(StammRoot, table=False):
 
 
 class StammUserCustomCreateAPI(StammRoot, table=False):
-    pass
+    darrform: str = Field(
+        description="Darreichungsformschlüssel",
+        sa_type=String(5),
+        sa_column_kwargs={"comment": "gkvai_source_csv_col_index:10"},
+        # We have composite foreign key. see __table_args__ at the top of this class
+        # foreign_key="drug_darrform.darrform",
+        schema_extra={"examples": ["ZKA"]},
+    )
 
 
 class StammUserCustom(StammUserCustomBase, BaseTable, table=True):
