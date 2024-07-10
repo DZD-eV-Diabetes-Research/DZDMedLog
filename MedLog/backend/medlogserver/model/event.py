@@ -32,6 +32,7 @@ _name_field = Field(
     default=None,
     index=True,
     unique=False,
+    description="A (study wide) unique name for the Event."
     schema_extra={"examples": ["visit01", "TI12"]},
 )
 

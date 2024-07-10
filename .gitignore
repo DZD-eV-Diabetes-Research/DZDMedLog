@@ -363,3 +363,4 @@ yarn-error.log*
 .nitro
 .cache
 dist
+local.sqlite-journal
