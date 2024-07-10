@@ -434,7 +434,7 @@ const drugDetailsMap = ref({});
 async function saveIntake() {
     const date = dayjs(state.time).utc().format("YYYY-MM-DD")
     const pzn = drugStore.item.pzn
-    const myDose = state.dose.toString()
+    const myDose = state.dose
 
     try {
         showForm.value = false;

@@ -18,7 +18,7 @@
           </div>
         </template>
       </Draggable>
-        <UIBaseCard v-if="reversedEvents.length === 0">
+        <UIBaseCard v-if="events.items.length === 0">
             <h5>Keine Events in der Studie aufgezeichnet</h5>
         </UIBaseCard>
         <UIBaseCard v-if="userStore.isAdmin" class="noHover" :naked="true">
@@ -73,10 +73,6 @@ const { data: events, refresh } = await useFetch(`${runtimeConfig.public.baseURL
     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
 
-const reversedEvents = computed(() => {
-    return [...events.value.items].reverse();
-});
-
 const eventState = reactive({ name: "" });
 
 const eventSchema = object({
@@ -92,11 +88,11 @@ async function toggleSort() {
         events.value.items.map(element => {
             test.value.push(element)
             });
-        // await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/order}`, {
-        //     method: "POST",
-        //     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-        //     body: test.value
-        // })
+        await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/order`, {
+            method: "POST",
+            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+            body: test.value
+        })
     } else {
         sortButton.value = "Sortierung Speichern"
     }
