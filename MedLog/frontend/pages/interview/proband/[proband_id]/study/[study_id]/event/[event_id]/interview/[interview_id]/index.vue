@@ -18,11 +18,11 @@
                     <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
                 </div>
                 <UForm @submit="saveIntake" :state="state" :schema="schema" class="space-y-4">
-                    <UFormGroup label="Dosis" style="border-color: red;">
-                        <UInput type="number" v-model="state.dose" name="dose" />
+                    <UFormGroup label="Dosis" style="border-color: red;" name="dose">
+                        <UInput type="number" v-model="state.dose"/>
                     </UFormGroup>
-                    <UFormGroup label="Einnahme (Datum)">
-                        <UInput type="date" v-model="state.time" name="time" />
+                    <UFormGroup label="Einnahme (Datum)" name="time">
+                        <UInput type="date" v-model="state.time" />
                     </UFormGroup>
                     <URadioGroup v-model="state.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
                         :options="options" />
@@ -345,6 +345,7 @@ const filteredRows = computed(() => {
 })
 
 async function createNewDrug() {
+    try {
     const date = dayjs(Date()).format("YYYY-MM-DD")
     const myDose = newDrugState.dose
     const response = await $fetch(`${runtimeConfig.public.baseURL}drug/user-custom`, {
@@ -365,12 +366,12 @@ async function createNewDrug() {
     const pzn = newDrugState.pzn ? newDrugState.pzn : null
     
     await useCreateIntake(route.params.study_id, route.params.interview_id, pzn, date, myDose, "Yes", response.id);
+        
+    router.go()
 
-    // try {
-    //     await useCreateIntake(route.params.study_id, route.params.interview_id, newDrugState.pzn, date, myDose, "Yes");
-    // } catch (error) {
-    //     console.error("Failed to create Intake: ", error);
-    // }
+    } catch (error) {
+                console.error("Failed to create Intake: ", error);
+            }
 }
 
 const newDrugState = reactive({
@@ -479,14 +480,15 @@ async function createIntakeList() {
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
         })
         if (intakes && intakes.items) {
+            console.log("here");
             tableContent.value = intakes.items.map(item => ({
                 pzn: item.pharmazentralnummer,
                 drug: item.drug.name,
                 dose: item.dose_per_day,
                 startTime: item.intake_start_time_utc,
                 darr: item.drug.darrform_ref.darrform,
-                manufac: item.drug.hersteller_ref.bedeutung,
-                id: item.id
+                manufac: item.drug.hersteller_ref ? item.drug.hersteller_ref.bedeutung : null,
+                id: item.id ? item.id : item.custom_drug_id
             }))
         }
     } catch (error) {

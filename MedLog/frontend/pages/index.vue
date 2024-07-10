@@ -14,7 +14,6 @@
           <UFormGroup label="User Name" name="username">
             <UInput v-model="state.username" />
           </UFormGroup>
-
           <UFormGroup label="Password" name="password">
             <UInput v-model="state.password" type="password" />
           </UFormGroup>
