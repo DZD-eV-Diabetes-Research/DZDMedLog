@@ -4,9 +4,9 @@
             <UButton @click="openIntakeForm()" label="Eingabe Präparat" color="green" variant="soft"
                 style="margin-right: 10px;"
                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
-            <UButton v-if="tableContent.length == 0" @click="openIntakeForm()" label="Medikamente übernehmen"
+            <!-- <UButton v-if="tableContent.length == 0" @click="openIntakeForm()" label="Medikamente übernehmen"
                 color="blue" variant="soft" style="margin-left: 10px;"
-                class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" />
+                class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" /> -->
         </UIBaseCard>
         <div v-if="showForm">
             <UIBaseCard>
@@ -49,14 +49,14 @@
                                 <UFormGroup label="Name" name="name" required>
                                     <UInput v-model="newDrugState.name" />
                                 </UFormGroup>
+                                <UFormGroup label="Darreichungsform" name="darrform" required>
+                                    <UInput v-model="newDrugState.darrform" />
+                                </UFormGroup>
                                 <UFormGroup label="PZN" name="pzn">
                                     <UInput v-model="newDrugState.pzn" placeholder="Falls bekannt" />
                                 </UFormGroup>
                                 <UFormGroup label="Herstellercode" name="herstellerCode">
                                     <UInput v-model="newDrugState.herstellerCode" placeholder="Falls bekannt" />
-                                </UFormGroup>
-                                <UFormGroup label="Darreichungsform" name="darrform">
-                                    <UInput v-model="newDrugState.darrform" placeholder="Falls bekannt" />
                                 </UFormGroup>
                                 <UFormGroup label="Applikationsform" name="appform">
                                     <UInput v-model="newDrugState.appform" placeholder="Falls bekannt" />
@@ -77,7 +77,7 @@
                 </UAccordion>
             </UIBaseCard>
         </div>
-        <div class="tableDiv">
+        <div class="tableDiv" v-if="tableContent.length > 0">
             <h4 style="text-align: center; padding-top: 25px;">Probandenhistorie</h4>
             <div>
                 <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
@@ -365,7 +365,7 @@ const newDrugSchema = object({
     pzn: string(),
     name: string().required('Required'),
     herstellerCode: string(),
-    darrform: string(),
+    darrform: string().required('Required'),
     appform: string(),
     atc_code: string(),
     packgroesse: number()
