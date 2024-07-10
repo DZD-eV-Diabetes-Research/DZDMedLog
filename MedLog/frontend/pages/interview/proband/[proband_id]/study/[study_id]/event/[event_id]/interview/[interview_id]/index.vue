@@ -52,6 +52,9 @@
                                 <UFormGroup label="Darreichungsform" name="darrform" required>
                                     <UInput v-model="newDrugState.darrform" />
                                 </UFormGroup>
+                                <UFormGroup label="Dosis" name="dose">
+                                    <UInput v-model="newDrugState.dose" />
+                                </UFormGroup>
                                 <UFormGroup label="PZN" name="pzn">
                                     <UInput v-model="newDrugState.pzn" placeholder="Falls bekannt" />
                                 </UFormGroup>
@@ -342,18 +345,38 @@ const filteredRows = computed(() => {
 })
 
 async function createNewDrug() {
-    console.log(newDrugState.name);
-    console.log(newDrugState.pzn);
-    console.log(newDrugState.herstellerCode);
-    console.log(newDrugState.darrform);
-    console.log(newDrugState.appform);
-    console.log(newDrugState.atc_code);
-    console.log(newDrugState.packgroesse);
+    const date = dayjs(Date()).format("YYYY-MM-DD")
+    const myDose = newDrugState.dose
+    const response = await $fetch(`${runtimeConfig.public.baseURL}drug/user-custom`, {
+            method: "POST",
+            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+            body: {
+                created_at: date,
+                pzn: newDrugState.pzn ? newDrugState.pzn : null,
+                name: newDrugState.name ? newDrugState.name : null,
+                hersteller_code: newDrugState.herstellerCode ? newDrugState.herstellerCode : null,
+                darrform: newDrugState.darrform ? newDrugState.darrform : null,
+                appform: newDrugState.appform ? newDrugState.appform : null,
+                atc_code: newDrugState.atc_code ? newDrugState.atc_code : null,
+                packgroesse: newDrugState.packgroesse ? newDrugState.packgroesse : null 
+            }
+        })
+
+    const pzn = newDrugState.pzn ? newDrugState.pzn : null
+    
+    await useCreateIntake(route.params.study_id, route.params.interview_id, pzn, date, myDose, "Yes", response.id);
+
+    // try {
+    //     await useCreateIntake(route.params.study_id, route.params.interview_id, newDrugState.pzn, date, myDose, "Yes");
+    // } catch (error) {
+    //     console.error("Failed to create Intake: ", error);
+    // }
 }
 
 const newDrugState = reactive({
     pzn: "",
     name: "",
+    dose: "",
     herstellerCode: "",
     darrform: "",
     appform: "",
@@ -364,6 +387,7 @@ const newDrugState = reactive({
 const newDrugSchema = object({
     pzn: string(),
     name: string().required('Required'),
+    dose: number(),
     herstellerCode: string(),
     darrform: string().required('Required'),
     appform: string(),
@@ -432,7 +456,7 @@ type Schema = InferType<typeof schema>;
 const drugDetailsMap = ref({});
 
 async function saveIntake() {
-    const date = dayjs(state.time).utc().format("YYYY-MM-DD")
+    const date = dayjs(state.time).format("YYYY-MM-DD")
     const pzn = drugStore.item.pzn
     const myDose = state.dose
 

@@ -1,8 +1,9 @@
-export async function useCreateIntake(study_id:string, interview_id:string, pzn: string, intake_start_time:string, dose_unit:number, meds_today:boolean): Promise<void>{
+export async function useCreateIntake(study_id:string, interview_id:string, pzn: string | null = null, intake_start_time:string, dose_unit:number, meds_today:boolean, custom_drug_id:string | null = null): Promise<void>{
     const tokenStore = useTokenStore()
     tokenStore.error = ""
     
     let body = {"pharmazentralnummer": pzn,
+                "custom_drug_id": custom_drug_id,
                 "intake_start_time_utc": intake_start_time,
                 "as_needed_dose_unit": dose_unit,
                 "dose_per_day": dose_unit,
