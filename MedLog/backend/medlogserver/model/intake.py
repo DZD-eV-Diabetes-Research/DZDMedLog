@@ -161,7 +161,7 @@ class IntakeCreate(IntakeCreateAPI, table=False):
 class Intake(IntakeCreate, BaseTable, table=True):
     __tablename__ = "intake"
     pharmazentralnummer: Annotated[
-        str,
+        Optional[str],
         StringConstraints(
             strip_whitespace=True,
             max_length=8,
@@ -169,6 +169,7 @@ class Intake(IntakeCreate, BaseTable, table=True):
         ),
     ] = Field(
         description="Pharmazentralnummer as 8 digits only",
+        default=None,
         schema_extra={"examples": ["23894732"]},
     )
     id: uuid.UUID = Field(
