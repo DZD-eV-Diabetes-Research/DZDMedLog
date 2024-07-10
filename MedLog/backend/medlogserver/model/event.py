@@ -8,7 +8,7 @@ from pydantic import (
 )
 from fastapi import Depends
 from typing import Optional
-from sqlmodel import Field
+from sqlmodel import Field, UniqueConstraint
 
 import uuid
 from uuid import UUID
@@ -28,14 +28,16 @@ _name_annotation = Annotated[
     ),
 ]
 
+_name_field = Field(
+    default=None,
+    index=True,
+    unique=False,
+    schema_extra={"examples": ["visit01", "TI12"]},
+)
+
 
 class EventCreateAPI(MedLogBaseModel, table=False):
-    name: _name_annotation = Field(
-        default=None,
-        index=True,
-        unique=True,
-        schema_extra={"examples": ["visit01", "TI12"]},
-    )
+    name: _name_annotation = _name_field
     order_position: Optional[int] = Field(
         default=None,
         description="A ranked value to sort this event if its contained in list of events. If not provided, it will default to highest sort order compared to existing events in this study.",
@@ -43,12 +45,7 @@ class EventCreateAPI(MedLogBaseModel, table=False):
 
 
 class EventUpdate(EventCreateAPI, table=False):
-    name: Optional[_name_annotation] = Field(
-        default=None,
-        index=True,
-        unique=True,
-        schema_extra={"examples": ["visit01", "TI12"]},
-    )
+    name: Optional[_name_annotation] = _name_field
     completed: Optional[bool] = Field(
         default=False,
         description="Is the event completed. E.g. All study participants have been interviewed.",
@@ -56,12 +53,7 @@ class EventUpdate(EventCreateAPI, table=False):
 
 
 class EventCreate(EventUpdate, table=False):
-    name: _name_annotation = Field(
-        default=None,
-        index=True,
-        unique=True,
-        schema_extra={"examples": ["visit01", "TI12"]},
-    )
+    name: _name_annotation = _name_field
 
     study_id: UUID = Field(foreign_key="study.id")
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4)
@@ -85,6 +77,9 @@ class EventReadPerProband(EventRead, table=False):
 
 class Event(EventRead, table=True):
     __tablename__ = "event"
+    __table_args__ = (
+        UniqueConstraint("name", "study_id", name="unique_eventname_per_study"),
+    )
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,
         primary_key=True,
