@@ -80,7 +80,7 @@
                 </UAccordion>
             </UIBaseCard>
         </div>
-        <div class="tableDiv" v-if="tableContent.length > 0">
+        <div class="tableDiv">
             <h4 style="text-align: center; padding-top: 25px;">Probandenhistorie</h4>
             <div>
                 <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
@@ -419,7 +419,7 @@ const additionalItems = [{ label: 'Weitere Informationen', slot: 'additionalInfo
 
 const study = await studyStore.getStudy(route.params.study_id)
 
-const showForm = ref(false)
+const showForm = ref(true)
 
 async function openIntakeForm() {
     showForm.value = !showForm.value
@@ -480,7 +480,6 @@ async function createIntakeList() {
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
         })
         if (intakes && intakes.items) {
-            console.log("here");
             tableContent.value = intakes.items.map(item => ({
                 pzn: item.pharmazentralnummer,
                 drug: item.drug.name,
@@ -488,7 +487,8 @@ async function createIntakeList() {
                 startTime: item.intake_start_time_utc,
                 darr: item.drug.darrform_ref.darrform,
                 manufac: item.drug.hersteller_ref ? item.drug.hersteller_ref.bedeutung : null,
-                id: item.id ? item.id : item.custom_drug_id
+                // customDrug: item.custom_drug_id ? true: false,
+                class: item.custom_drug_id ? 'bg-yellow-500/50 dark:bg-yellow-400/50' : null
             }))
         }
     } catch (error) {
