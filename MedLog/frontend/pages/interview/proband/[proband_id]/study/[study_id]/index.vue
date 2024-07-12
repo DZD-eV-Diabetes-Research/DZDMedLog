@@ -39,7 +39,7 @@
     </UModal>
     <br>
     <div class="tableDiv">
-      <h4 style="text-align: center; padding-top: 25px;">Probandenhistorie</h4>
+      <h4 style="text-align: center; padding-top: 25px;">Medikationshistorie</h4>
       <div>
         <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
           <UInput v-model="q" placeholder="Tabelle Filtern" />
