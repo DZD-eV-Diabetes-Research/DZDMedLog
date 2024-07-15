@@ -65,8 +65,23 @@
 
 <script setup lang="ts">
 
+import { object, number, date, string, type InferType } from "yup";
+
+// general constants
+
+const route = useRoute()
+const router = useRouter()
+const runtimeConfig = useRuntimeConfig()
+const tokenStore = useTokenStore()
+const userStore = useUserStore()
+const studyStore = useStudyStore()
+
+// table
+
 const page = ref(1)
 const pageCount = 15
+
+const tableContent = ref([])
 
 const rows = computed(() => {
   const data = q.value ? filteredRows.value : tableContent.value;
@@ -122,66 +137,23 @@ const filteredRows = computed(() => {
   })
 })
 
-import { object, number, date, string, type InferType } from "yup";
-
-const route = useRoute()
-const router = useRouter()
-const runtimeConfig = useRuntimeConfig()
-const tokenStore = useTokenStore()
-const userStore = useUserStore()
-const studyStore = useStudyStore()
-
 const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
   method: "GET",
   headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
 
-const { data: intakes } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`, {
-  method: "GET",
-  headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-})
+// Completed Events
+
+const selectedCompleteEvent = ref()
+const completedItems = ref([]);
+
+// Create new events
 
 const showEventModal = ref(false)
-const selectedCompleteEvent = ref()
-const selectedIncompleteEvent = ref()
-const completedItems = ref([]);
-const incompletedItems = ref([]);
-
 const eventState = reactive({ name: "" });
 const eventSchema = object({
   name: string().required("Required"),
 });
-
-
-function createEventList(events) {
-  if (events && events.items) {
-    completedItems.value = events.items.filter(item => item.proband_interview_count > 0);
-    completedItems.value = completedItems.value.map(event => ({
-      id: event.id,
-      event: event,
-      label: event.name,
-      order: event.order_position
-    })).sort((a,b) => b.order - a.order)
-
-    incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
-    incompletedItems.value = incompletedItems.value.map(event => ({
-      id: event.id,
-      event: event,
-      label: event.name,
-      order: event.order_position
-    })).sort((a,b) => b.order - a.order)
-  }
-
-  selectedCompleteEvent.value = completedItems.value[0]
-  selectedIncompleteEvent.value = incompletedItems.value[0]
-}
-
-watch(events, (newEvents) => {
-  if (newEvents) {
-    createEventList(newEvents)
-  }
-}, { immediate: true })
-
 
 async function createEvent() {
   try {
@@ -215,6 +187,43 @@ async function createInterview() {
   }
 }
 
+// Incompleted Events
+
+const selectedIncompleteEvent = ref()
+const incompletedItems = ref([]);
+
+// REST 
+
+
+function createEventList(events) {
+  if (events && events.items) {
+    completedItems.value = events.items.filter(item => item.proband_interview_count > 0);
+    completedItems.value = completedItems.value.map(event => ({
+      id: event.id,
+      event: event,
+      label: event.name,
+      order: event.order_position
+    })).sort((a,b) => b.order - a.order)
+
+    incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
+    incompletedItems.value = incompletedItems.value.map(event => ({
+      id: event.id,
+      event: event,
+      label: event.name,
+      order: event.order_position
+    })).sort((a,b) => b.order - a.order)
+  }
+
+  selectedCompleteEvent.value = completedItems.value[0]
+  selectedIncompleteEvent.value = incompletedItems.value[0]
+}
+
+watch(events, (newEvents) => {
+  if (newEvents) {
+    createEventList(newEvents)
+  }
+}, { immediate: true })
+
 async function editEvent(eventId: string) {
   try {
     const result = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${eventId}/interview`, {
@@ -228,26 +237,32 @@ async function editEvent(eventId: string) {
   }
 }
 
-const tableContent = ref([])
-
 async function createIntakeList() {
-
   try {
-    const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`, {
-      method: "GET",
-      headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-    })
+    const intakes = await $fetch(
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`,
+      {
+        method: "GET",
+        headers: { Authorization: "Bearer " + tokenStore.access_token },
+      }
+    );
     if (intakes && intakes.items) {
-      tableContent.value = intakes.items.map(item => ({
+      tableContent.value = intakes.items.map((item) => ({
         event: item.event.name,
         pzn: item.pharmazentralnummer,
         drug: item.drug.name,
-        dose: item.as_needed_dose_unit,
+        dose: item.dose_per_day,
         startTime: item.intake_start_time_utc,
         darr: item.drug.darrform_ref.darrform,
-        manufac: item.drug.hersteller_ref.bedeutung,
-        id: item.id
-      }))
+        manufac: item.drug.hersteller_ref
+          ? item.drug.hersteller_ref.bedeutung
+          : null,
+        id: item.id ? item.id : item.custom_drug_id,
+        custom: item.custom_drug_id ? true : false,
+        class: item.custom_drug_id
+          ? "bg-yellow-500/50 dark:bg-yellow-400/50"
+          : null,
+      }));
     }
   } catch (error) {
     console.log(error);

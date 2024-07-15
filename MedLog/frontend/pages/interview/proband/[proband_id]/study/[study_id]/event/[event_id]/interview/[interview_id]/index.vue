@@ -13,7 +13,7 @@
                 color="blue" variant="soft" style="margin-left: 10px;"
                 class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" /> -->
     </UIBaseCard>
-    <div v-if="showForm">
+    <div v-if="showIntakeForm">
       <UIBaseCard>
         <IntakeQuestion />
         <p v-if="!drugChosen" style="text-align:center; color:red">Ein Medikament muss ausgewählt werden</p>
@@ -51,13 +51,13 @@
         </UForm>
         <br />
         <UButton
-          @click="isOpen = !isOpen"
+          @click="customDrugModalVisibility = !customDrugModalVisibility"
           label="Ungelistetes Medikament aufnehmen"
           color="blue"
           variant="soft"
           class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"
         />
-        <UModal v-model="isOpen">
+        <UModal v-model="customDrugModalVisibility">
           <div class="p-4">
             <UForm :schema="newDrugSchema" :state="newDrugState" class="space-y-4"
                                 @submit="createNewDrug">
@@ -181,29 +181,6 @@
               Eintrag löschen
             </UButton>
           </UForm>
-          <!-- <UForm v-else="drugToDelete.custom"
-            :schema="deleteSchema"
-            :state="deleteState"
-            class="space-y-4"
-            @submit="deleteIntake"
-          >
-            <UFormGroup label="Zum löschen die PZN eintragen" name="pzn">
-              <UInput
-                v-model="deleteState.pzn"
-                color="red"
-                :placeholder="drugToDelete.pzn"
-              />
-            </UFormGroup>
-            <br />
-            <UButton
-              type="submit"
-              color="red"
-              variant="soft"
-              class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white"
-            >
-              Eintrag löschen
-            </UButton>
-          </UForm> -->
         </div>
       </div>
     </UModal>
@@ -261,14 +238,93 @@
 
 <script setup lang="ts">
 import dayjs from "dayjs";
-import { watchEffect } from "vue";
-import type { FormSubmitEvent } from "#ui/types";
 import { object, number, date, string, type InferType } from "yup";
 
+// general constants
+
+const route = useRoute();
+const router = useRouter();
+const tokenStore = useTokenStore();
+const drugStore = useDrugStore();
+const studyStore = useStudyStore();
+const userStore = useUserStore();
+const runtimeConfig = useRuntimeConfig();
+
+drugStore.item = null;
+createIntakeList();
+
+// Intakeform
+
 const drugChosen = ref(true)
+const showIntakeForm = ref(true);
+
+const state = reactive({
+  selected: "Yes",
+  time: null,
+  dose: null,
+});
+
+const schema = object({
+  selected: string().required("Required"),
+  time: date().required("Required"),
+  dose: number().min(0, "Hallo"),
+});
+
+type Schema = InferType<typeof schema>;
+
+async function openIntakeForm() {
+  showIntakeForm.value = !showIntakeForm.value;
+  state.selected = "Yes";
+  state.time = null;
+  state.dose = null;
+  drugStore.$reset();
+}
+
+const options = [
+  {
+    value: "Yes",
+    label: "Ja",
+  },
+  {
+    value: "No",
+    label: "Nein",
+  },
+  {
+    value: "UNKNOWN",
+    label: "Unbekannt",
+  },
+];
+
+async function saveIntake() {    
+  drugChosen.value = true
+  if (!drugStore.item){
+    drugChosen.value = false
+    return
+  }
+
+  const date = dayjs(state.time).format("YYYY-MM-DD");
+  const pzn = drugStore.item.pzn;
+  const myDose = state.dose;
+
+  try {
+    showIntakeForm.value = false;
+    const responseData = await useCreateIntake(
+      route.params.study_id,
+      route.params.interview_id,
+      pzn,
+      date,
+      myDose,
+      state.selected
+    );
+    createIntakeList();
+  } catch (error) {
+    console.error("Failed to create Intake: ", error);
+  }
+}
+
+// Editform Modal
 
 const toEditDrug = ref();
-
 const editModalVisibility = ref(false);
 
 const editSchema = object({
@@ -276,8 +332,6 @@ const editSchema = object({
   time: date().required("Required"),
   dose: number().min(0, "Hallo"),
 });
-
-type EditSchema = InferType<typeof editSchema>;
 
 const editState = reactive({
   selected: "Yes",
@@ -301,11 +355,6 @@ const editOptions = [
 ];
 
 const toEditDrugId = ref();
-const isOpen = ref(false);
-
-async function test() {
-  console.log("test");
-}
 
 async function editModalVisibilityFunction(row: object) {
   try {
@@ -351,10 +400,15 @@ async function editEntry() {
   }
 }
 
+// Deleteform Modal
+
+const deleteModalVisibility = ref(false);
+const drugToDelete = ref();
+
 const deleteSchema = object({
   drug: string()
     .required("Required")
-    .test("is-dynamic-value", "PZN muss übereinstimmen", function (value) {
+    .test("is-dynamic-value", "Name muss übereinstimmen", function (value) {
       return value === drugToDelete.value.drug;
     }),
 });
@@ -364,6 +418,30 @@ type DeleteSchema = InferType<typeof deleteSchema>;
 const deleteState = reactive({
   drug: undefined,
 });
+
+async function openDeleteModal(row: object) {
+  deleteState.drug = "";
+  deleteModalVisibility.value = true;
+  drugToDelete.value = row;
+}
+
+async function deleteIntake() {
+  try {
+    await $fetch(
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.id}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: "Bearer " + tokenStore.access_token },
+      }
+    );
+    deleteModalVisibility.value = false;
+    createIntakeList();
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+// Table
 
 const page = ref(1);
 const pageCount = 15;
@@ -423,31 +501,6 @@ const myOptions = (row) => [
   ],
 ];
 
-const deleteModalVisibility = ref(false);
-const drugToDelete = ref();
-
-async function openDeleteModal(row: object) {
-  deleteState.drug = "";
-  deleteModalVisibility.value = true;
-  drugToDelete.value = row;
-}
-
-async function deleteIntake() {
-  try {
-    await $fetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.id}`,
-      {
-        method: "DELETE",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
-      }
-    );
-    deleteModalVisibility.value = false;
-    createIntakeList();
-  } catch (error) {
-    console.log(error);
-  }
-}
-
 const q = ref("");
 
 const filteredRows = computed(() => {
@@ -461,6 +514,12 @@ const filteredRows = computed(() => {
     });
   });
 });
+
+const tableContent = ref([]);
+
+// Customelement Modal
+
+const customDrugModalVisibility = ref(false);
 
 async function createNewDrug() {
   try {
@@ -530,100 +589,17 @@ const newDrugSchema = object({
 
 type NewDrugSchema = Infertype<typeof newDrugSchema>;
 
-const route = useRoute();
-const router = useRouter();
-const tokenStore = useTokenStore();
-const drugStore = useDrugStore();
-const studyStore = useStudyStore();
-const userStore = useUserStore();
-const runtimeConfig = useRuntimeConfig();
+// REST
 
-drugStore.item = null;
-
-const { data: intakes, refresh } = await useFetch(
-  `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`,
-  {
-    method: "GET",
-    headers: { Authorization: "Bearer " + tokenStore.access_token },
-  }
-);
-
-const items = [{ label: "Neues Medikament anlegen", slot: "newDrug" }];
-const additionalItems = [
-  { label: "Weitere Informationen", slot: "additionalInfo" },
-];
-
-const study = await studyStore.getStudy(route.params.study_id);
-
-const showForm = ref(true);
-
-async function openIntakeForm() {
-  showForm.value = !showForm.value;
-  state.selected = "Yes";
-  state.time = null;
-  state.dose = null;
-  drugStore.$reset();
-}
-
-const options = [
-  {
-    value: "Yes",
-    label: "Ja",
-  },
-  {
-    value: "No",
-    label: "Nein",
-  },
-  {
-    value: "UNKNOWN",
-    label: "Unbekannt",
-  },
-];
-
-const state = reactive({
-  selected: "Yes",
-  time: null,
-  dose: null,
-});
-
-const schema = object({
-  selected: string().required("Required"),
-  time: date().required("Required"),
-  dose: number().min(0, "Hallo"),
-});
-
-type Schema = InferType<typeof schema>;
-
-const drugDetailsMap = ref({});
-
-async function saveIntake() {    
-  drugChosen.value = true
-  if (!drugStore.item){
-    drugChosen.value = false
-    return
-  }
-
-  const date = dayjs(state.time).format("YYYY-MM-DD");
-  const pzn = drugStore.item.pzn;
-  const myDose = state.dose;
-
-  try {
-    showForm.value = false;
-    const responseData = await useCreateIntake(
+async function backToOverview() {
+  router.push({
+    path:
+      "/interview/proband/" +
+      route.params.proband_id +
+      "/study/" +
       route.params.study_id,
-      route.params.interview_id,
-      pzn,
-      date,
-      myDose,
-      state.selected
-    );
-    createIntakeList();
-  } catch (error) {
-    console.error("Failed to create Intake: ", error);
-  }
+  });
 }
-
-const tableContent = ref([]);
 
 async function createIntakeList() {
   try {
@@ -656,17 +632,6 @@ async function createIntakeList() {
   }
 }
 
-createIntakeList();
-
-async function backToOverview() {
-  router.push({
-    path:
-      "/interview/proband/" +
-      route.params.proband_id +
-      "/study/" +
-      route.params.study_id,
-  });
-}
 </script>
 
 <style scoped>
