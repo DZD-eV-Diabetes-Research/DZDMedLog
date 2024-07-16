@@ -16,7 +16,9 @@
     <div v-if="showIntakeForm">
       <UIBaseCard>
         <IntakeQuestion />
-        <p v-if="!drugChosen" style="text-align:center; color:red">Ein Medikament muss ausgewählt werden</p>
+        <p v-if="!drugChosen" style="text-align: center; color: red">
+          Ein Medikament muss ausgewählt werden
+        </p>
         <div v-if="drugStore.item">
           <br />
           <p>Medikament: {{ drugStore.item.item.name }}</p>
@@ -51,7 +53,7 @@
         </UForm>
         <br />
         <UButton
-          @click="customDrugModalVisibility = !customDrugModalVisibility"
+          @click="openCustomModal()"
           label="Ungelistetes Medikament aufnehmen"
           color="blue"
           variant="soft"
@@ -59,42 +61,86 @@
         />
         <UModal v-model="customDrugModalVisibility">
           <div class="p-4">
-            <UForm :schema="newDrugSchema" :state="newDrugState" class="space-y-4"
-                                @submit="createNewDrug">
-                                <div style="text-align:center">
-                                <h4>Hiermit wird einmalig ein Medikament angelegt, das in der Medikamentensuche nicht gefunden wurde</h4>
-                                </div>
-                                <UFormGroup label="Name" name="name" required>
-                                    <UInput v-model="newDrugState.name" />
-                                </UFormGroup>
-                                <UFormGroup label="Darreichungsform" name="darrform" required>
-                                    <UInput v-model="newDrugState.darrform" />
-                                </UFormGroup>
-                                <UFormGroup label="Dosis" name="dose">
-                                    <UInput v-model="newDrugState.dose" />
-                                </UFormGroup>
-                                <UFormGroup label="PZN" name="pzn">
-                                    <UInput v-model="newDrugState.pzn" placeholder="Falls bekannt" />
-                                </UFormGroup>
-                                <UFormGroup label="Herstellercode" name="herstellerCode">
-                                    <UInput v-model="newDrugState.herstellerCode" placeholder="Falls bekannt" />
-                                </UFormGroup>
-                                <UFormGroup label="Applikationsform" name="appform">
-                                    <UInput v-model="newDrugState.appform" placeholder="Falls bekannt" />
-                                </UFormGroup>
-                                <UFormGroup label="ATC-Code" name="atc_code">
-                                    <UInput v-model="newDrugState.atc_code" placeholder="Falls bekannt" />
-                                </UFormGroup>
-                                <UFormGroup label="Packungsgroesse" name="packgroesse">
-                                    <UInput v-model="newDrugState.packgroesse" placeholder="Falls bekannt" />
-                                </UFormGroup>
-                                <div style="text-align:center">
-                                <UButton type="submit" color="blue" variant="soft"
-                                    class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white">
-                                    Ungelistetes Medikament Speichern
-                                </UButton>
-                            </div>
-                            </UForm>
+            <UForm
+              :schema="newDrugSchema"
+              :state="newDrugState"
+              class="space-y-4"
+              @submit="createNewDrug"
+            >
+              <div style="text-align: center">
+                <h4>
+                  Hiermit wird einmalig ein Medikament angelegt, das in der
+                  Medikamentensuche nicht gefunden wurde
+                </h4>
+              </div>
+              <UFormGroup label="Name" name="name" required>
+                <UInput v-model="newDrugState.name" />
+              </UFormGroup>
+              <UFormGroup label="Darreichungsform" name="darrform" required>
+                <h5 v-if="showDarrFormError" style="color: red">
+                  Darreichungsform ist benötigt
+                </h5>
+                <UCommandPalette
+                  v-if="!selectedDosageForm"
+                  v-model="selectedDosageForm"
+                  :autoselect="false"
+                  :groups="[
+                    { key: 'dosageFormTable', commands: dosageFormTable },
+                  ]"
+                  :fuse="{ resultLimit: 5, fuseOptions: { threshold: 0.1 } }"
+                />
+                <p
+                  v-else
+                  @click="selectedDosageForm = null"
+                  class="selectedDarrForm"
+                >
+                  {{ selectedDosageForm.label }}
+                </p>
+              </UFormGroup>
+              <UFormGroup label="Dosis" name="dose">
+                <UInput v-model="newDrugState.dose" />
+              </UFormGroup>
+              <UFormGroup label="PZN" name="pzn">
+                <UInput
+                  v-model="newDrugState.pzn"
+                  placeholder="Falls bekannt"
+                />
+              </UFormGroup>
+              <UFormGroup label="Herstellercode" name="herstellerCode">
+                <UInput
+                  v-model="newDrugState.herstellerCode"
+                  placeholder="Falls bekannt"
+                />
+              </UFormGroup>
+              <UFormGroup label="Applikationsform" name="appform">
+                <UInput
+                  v-model="newDrugState.appform"
+                  placeholder="Falls bekannt"
+                />
+              </UFormGroup>
+              <UFormGroup label="ATC-Code" name="atc_code">
+                <UInput
+                  v-model="newDrugState.atc_code"
+                  placeholder="Falls bekannt"
+                />
+              </UFormGroup>
+              <UFormGroup label="Packungsgroesse" name="packgroesse">
+                <UInput
+                  v-model="newDrugState.packgroesse"
+                  placeholder="Falls bekannt"
+                />
+              </UFormGroup>
+              <div style="text-align: center">
+                <UButton
+                  type="submit"
+                  color="blue"
+                  variant="soft"
+                  class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"
+                >
+                  Ungelistetes Medikament Speichern
+                </UButton>
+              </div>
+            </UForm>
           </div>
         </UModal>
       </UIBaseCard>
@@ -255,7 +301,7 @@ createIntakeList();
 
 // Intakeform
 
-const drugChosen = ref(true)
+const drugChosen = ref(true);
 const showIntakeForm = ref(true);
 
 const state = reactive({
@@ -295,11 +341,11 @@ const options = [
   },
 ];
 
-async function saveIntake() {    
-  drugChosen.value = true
-  if (!drugStore.item){
-    drugChosen.value = false
-    return
+async function saveIntake() {
+  drugChosen.value = true;
+  if (!drugStore.item) {
+    drugChosen.value = false;
+    return;
   }
 
   const date = dayjs(state.time).format("YYYY-MM-DD");
@@ -517,14 +563,22 @@ const filteredRows = computed(() => {
 
 const tableContent = ref([]);
 
-// Customelement Modal
+// CustomElement Modal
 
 const customDrugModalVisibility = ref(false);
+const showDarrFormError = ref(false);
+
+async function openCustomModal() {
+  customDrugModalVisibility.value = !customDrugModalVisibility.value;
+  showDarrFormError.value = false;
+}
 
 async function createNewDrug() {
+  showDarrFormError.value = false;
+  const date = dayjs(Date()).format("YYYY-MM-DD");
+  const myDose = newDrugState.dose;
+
   try {
-    const date = dayjs(Date()).format("YYYY-MM-DD");
-    const myDose = newDrugState.dose;
     const response = await $fetch(
       `${runtimeConfig.public.baseURL}drug/user-custom`,
       {
@@ -537,7 +591,7 @@ async function createNewDrug() {
           hersteller_code: newDrugState.herstellerCode
             ? newDrugState.herstellerCode
             : null,
-          darrform: newDrugState.darrform ? newDrugState.darrform : null,
+          darrform: selectedDosageForm.value.darrform,
           appform: newDrugState.appform ? newDrugState.appform : null,
           atc_code: newDrugState.atc_code ? newDrugState.atc_code : null,
           packgroesse: newDrugState.packgroesse
@@ -548,7 +602,6 @@ async function createNewDrug() {
     );
 
     const pzn = newDrugState.pzn ? newDrugState.pzn : null;
-
     await useCreateIntake(
       route.params.study_id,
       route.params.interview_id,
@@ -562,13 +615,16 @@ async function createNewDrug() {
     router.go();
   } catch (error) {
     console.error("Failed to create Intake: ", error);
+    if (error.message === "Cannot read properties of undefined (reading 'darrform')") {
+      showDarrFormError.value = true;
+    }
   }
 }
 
 const newDrugState = reactive({
   pzn: "",
   name: "",
-  dose: "",
+  dose: 0,
   herstellerCode: "",
   darrform: "",
   appform: "",
@@ -581,13 +637,31 @@ const newDrugSchema = object({
   name: string().required("Required"),
   dose: number(),
   herstellerCode: string(),
-  darrform: string().required("Required"),
+  darrform: string(),
   appform: string(),
   atc_code: string(),
   packgroesse: number(),
 });
 
-type NewDrugSchema = Infertype<typeof newDrugSchema>;
+const dosageFormTable = ref();
+const selectedDosageForm = ref();
+
+async function getDosageForm() {
+  const dosageForm = await $fetch(
+    `${runtimeConfig.public.baseURL}drug/enum/darrform`,
+    {
+      method: "GET",
+      headers: { Authorization: "Bearer " + tokenStore.access_token },
+    }
+  );
+
+  dosageFormTable.value = dosageForm.items.map((item) => ({
+    id: item.bedeutung + " (" + item.darrform + ")",
+    label: item.bedeutung + " (" + item.darrform + ")",
+    bedeutung: item.bedeutung,
+    darrform: item.darrform,
+  }));
+}
 
 // REST
 
@@ -632,6 +706,7 @@ async function createIntakeList() {
   }
 }
 
+getDosageForm();
 </script>
 
 <style scoped>
@@ -654,5 +729,10 @@ async function createIntakeList() {
   border-radius: 10px;
   border-width: 2px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+}
+
+.selectedDarrForm:hover {
+  color: #22c55e;
+  cursor: pointer;
 }
 </style>

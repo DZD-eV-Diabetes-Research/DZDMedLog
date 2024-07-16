@@ -1,64 +1,29 @@
 <template>
   <Layout>
-  <div class="row">
-    <div class="col-6">
-      <h3>Draggable {{ draggingInfo }}</h3>
-
-      <Draggable
-        :list="events.items"
-        :disabled="!enabled"
-        item-key="name"
-        class="list-group"
-        ghost-class="ghost"
-        @start="dragging = true"
-        @end="dragging = false"
-      >
-        <template #item="{ element }">
-          <div class="list-group-item" :class="{ 'not-draggable': !enabled }">
-            {{ element.name }}
-          </div>
-        </template>
-      </Draggable>
-    </div>
-  </div>
-  <UButton @click="enabled = !enabled">test</UButton>
+    <UCommandPalette
+    v-model="selected"
+    nullable
+    :autoselect="false"
+    :groups="[{ key: 'people', commands: people }]"
+    :fuse="{ resultLimit: 6, fuseOptions: { threshold: 0.1 } }"
+  />
+  {{selected}}
 </Layout>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-const tokenStore = useTokenStore()
+const people = [
+  { id: 1, label: 'Wade Cooper' },
+  { id: 2, label: 'Arlene Mccoy' },
+  { id: 3, label: 'Devon Webb' },
+  { id: 4, label: 'Tom Cook' },
+  { id: 5, label: 'Tanya Fox' },
+  { id: 6, label: 'Hellen Schmidt' },
+  { id: 7, label: 'Caroline Schultz' },
+  { id: 8, label: 'Mason Heaney' },
+  { id: 9, label: 'Claudie Smitham' },
+  { id: 10, label: 'Emil Schaefer' }
+]
 
-
-const { data: events } = await useFetch(`http://localhost:8888/study/b6f2c61b-d388-4412-8c9a-461ece251116/event`, {
-  method: "GET",
-  headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-})
-
-let id = 1;
-const enabled = ref(true);
-const dragging = ref(false);
-
-// function checkMove(e) {
-//   console.log(`Future index: ${e.draggedContext.futureIndex}`);
-// }
-
-const draggingInfo = computed(() => {
-  return dragging.value ? 'under drag' : '';
-});
+const selected = ref()
 </script>
-
-<style scoped>
-.UButtons {
-  margin-top: 35px;
-}
-
-.ghost {
-  opacity: 0.5;
-  background: #c8ebfb;
-}
-
-.not-draggable {
-  cursor: no-drop;
-}
-</style>
