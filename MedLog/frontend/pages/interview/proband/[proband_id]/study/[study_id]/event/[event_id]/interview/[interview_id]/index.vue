@@ -31,10 +31,10 @@
           :schema="schema"
           class="space-y-4"
         >
-          <UFormGroup label="Dosis" style="border-color: red" name="dose">
+          <UFormGroup label="Dosis" style="border-color: red" name="dose" required>
             <UInput type="number" v-model="state.dose" />
           </UFormGroup>
-          <UFormGroup label="Einnahme (Datum)" name="time">
+          <UFormGroup label="Einnahme (Datum)" name="time" required>
             <UInput type="date" v-model="state.time" />
           </UFormGroup>
           <URadioGroup
@@ -78,7 +78,7 @@
               </UFormGroup>
               <UFormGroup label="Darreichungsform" name="darrform" required>
                 <h5 v-if="showDarrFormError" style="color: red">
-                  Darreichungsform ist benötigt
+                  Darreichungsform wird benötigt
                 </h5>
                 <UCommandPalette
                   v-if="!selectedDosageForm"
@@ -298,6 +298,7 @@ const runtimeConfig = useRuntimeConfig();
 
 drugStore.item = null;
 createIntakeList();
+getDosageForm();
 
 // Intakeform
 
@@ -306,14 +307,14 @@ const showIntakeForm = ref(true);
 
 const state = reactive({
   selected: "Yes",
-  time: null,
+  time: dayjs(Date()).format("YYYY-MM-DD"),
   dose: null,
 });
 
 const schema = object({
   selected: string().required("Required"),
   time: date().required("Required"),
-  dose: number().min(0, "Hallo"),
+  dose: number().min(0, "Required"),
 });
 
 type Schema = InferType<typeof schema>;
@@ -321,7 +322,7 @@ type Schema = InferType<typeof schema>;
 async function openIntakeForm() {
   showIntakeForm.value = !showIntakeForm.value;
   state.selected = "Yes";
-  state.time = null;
+  state.time = dayjs(Date()).format("YYYY-MM-DD");
   state.dose = null;
   drugStore.$reset();
 }
@@ -351,7 +352,7 @@ async function saveIntake() {
   const date = dayjs(state.time).format("YYYY-MM-DD");
   const pzn = drugStore.item.pzn;
   const myDose = state.dose;
-
+  
   try {
     showIntakeForm.value = false;
     const responseData = await useCreateIntake(
@@ -567,6 +568,8 @@ const tableContent = ref([]);
 
 const customDrugModalVisibility = ref(false);
 const showDarrFormError = ref(false);
+const selectedDosageForm = ref();
+const dosageFormTable = ref();
 
 async function openCustomModal() {
   customDrugModalVisibility.value = !customDrugModalVisibility.value;
@@ -614,7 +617,10 @@ async function createNewDrug() {
 
     router.go();
   } catch (error) {
-    console.error("Failed to create Intake: ", error);
+    console.log("Failed to create Intake: ", error);
+    if (selectedDosageForm.value === undefined){
+      showDarrFormError.value = true
+    }
     if (error.message === "Cannot read properties of undefined (reading 'darrform')") {
       showDarrFormError.value = true;
     }
@@ -642,9 +648,6 @@ const newDrugSchema = object({
   atc_code: string(),
   packgroesse: number(),
 });
-
-const dosageFormTable = ref();
-const selectedDosageForm = ref();
 
 async function getDosageForm() {
   const dosageForm = await $fetch(
@@ -705,8 +708,6 @@ async function createIntakeList() {
     console.log(error);
   }
 }
-
-getDosageForm();
 </script>
 
 <style scoped>

@@ -137,11 +137,6 @@ const filteredRows = computed(() => {
   })
 })
 
-const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
-  method: "GET",
-  headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-})
-
 // Completed Events
 
 const selectedCompleteEvent = ref()
@@ -194,6 +189,10 @@ const incompletedItems = ref([]);
 
 // REST 
 
+const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
+  method: "GET",
+  headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+})
 
 function createEventList(events) {
   if (events && events.items) {
