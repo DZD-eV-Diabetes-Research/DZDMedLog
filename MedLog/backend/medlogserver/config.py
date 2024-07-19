@@ -255,8 +255,14 @@ class Config(BaseSettings):
         default="GKV_AI_StammPlus/202301",
     )
 
+    EXPORT_CACHE_DIR: str = Field(
+        default="../export_cache",
+        description="The directory to store the result of export jobs (CSV files, JSON files,...).",
+    )
+
     ###### CONFIG END ######
-    # class Config is a pydantic-settings pre-defined config class to control the behaviour of our settings model
+    # "class Config:" is a pydantic-settings pre-defined config class to control the behaviour of our settings model
+    # you could call it a "meta config" class
     # if you dont know what this is you can ignore it.
     # https://docs.pydantic.dev/latest/api/base_model/#pydantic.main.BaseModel.model_config
 

@@ -31,6 +31,7 @@ class WorkerJobUpdate(MedLogBaseModel, table=False):
     run_started_at: Optional[datetime.datetime] = None
     run_finished_at: Optional[datetime.datetime] = None
     error: Optional[str] = None
+    result: Optional[str] = None
 
 
 class WorkerJob(WorkerJobCreate, WorkerJobUpdate, BaseTable, table=True):
