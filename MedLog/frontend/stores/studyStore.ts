@@ -46,25 +46,6 @@ export const useStudyStore = defineStore('StudyStore', {
                 return foundItem
             }
         },
-
-        async createStudy(display_name: string): Promise<void> {
-            const tokenStore = useTokenStore()
-            tokenStore.error = ""
-
-            let body = { "display_name": display_name }
-
-            try {
-                const runtimeConfig = useRuntimeConfig()
-                const data = await $fetch(runtimeConfig.public.baseURL + "study", {
-                    method: "POST",
-                    headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-                    body,
-                })
-            }
-            catch (err: any) {
-                tokenStore.error = err.response.data.detail
-            }
-        },
     },
     persist: true
 })
