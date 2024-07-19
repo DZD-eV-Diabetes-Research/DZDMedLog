@@ -109,7 +109,7 @@ async def load_provisioning_data():
 
     root_path = Path(__main__.__file__).parent
     default_data_yaml_path = Path(
-        PurePath(root_path, Path("_default_data/default_data.yaml"))
+        PurePath(root_path, Path("../provisioning_data/default_data/default_data.yaml"))
     )
     print("default_data_yaml_path", default_data_yaml_path)
     data_provisioner = DataProvisioner(default_data_yaml_path)

@@ -38,7 +38,7 @@ class Config(BaseSettings):
                 self_data["ADMIN_USER_PW"] = "adminadmin"
             if not self_data.get("APP_PROVISIONING_DATA_YAML_FILES", None):
                 self_data["APP_PROVISIONING_DATA_YAML_FILES"] = [
-                    "./_demo_data/single_study_demo_data.yaml"
+                    "../provisioning_data/demo_data/single_study_demo_data.yaml"
                 ]
         return self_data
 
