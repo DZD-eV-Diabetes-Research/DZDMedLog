@@ -2,6 +2,9 @@ export async function useCreateIntake(study_id: string, interview_id: string, pz
     const tokenStore = useTokenStore()
     tokenStore.error = ""
 
+    let regular_intervall_of_daily_dose_final: null|string = null
+    let dose_unit_final: null|number = null
+
     if (source_of_drug_information === "Probandenangabe") {
         source_of_drug_information = "Study participant: verbal specification"
     } else if (source_of_drug_information === "Medikamentenpackung: PZN gescannt") {
@@ -25,13 +28,26 @@ export async function useCreateIntake(study_id: string, interview_id: string, pz
 
     if (intake_regular_or_as_needed === "regelmäßig") {
         intake_regular_or_as_needed = "regular"
+        if (regular_intervall_of_daily_dose === "unbekannt"){
+            regular_intervall_of_daily_dose = "Unknown"
+        } else if (regular_intervall_of_daily_dose === "täglich") {
+            regular_intervall_of_daily_dose = "Daily"
+        } else if (regular_intervall_of_daily_dose === "jeden 2. Tag") {
+            regular_intervall_of_daily_dose = "every 2. day"
+        } else if (regular_intervall_of_daily_dose === "jeden 3. Tag") {
+            regular_intervall_of_daily_dose = "every 3. day"
+        } else if (regular_intervall_of_daily_dose === "jeden 4. Tag = 2x pro Woche") {
+            regular_intervall_of_daily_dose = "every 4. day / twice a week"
+        } else {
+            regular_intervall_of_daily_dose = "intervals of one week or more"
+        }
+        regular_intervall_of_daily_dose_final = regular_intervall_of_daily_dose
+        dose_unit_final = dose_unit
     } else {
         intake_regular_or_as_needed = "as needed"
     }
 
-    if (regular_intervall_of_daily_dose === "unbekannt"){
-        regular_intervall_of_daily_dose = 
-    }
+   
 
 
     let body = {
@@ -41,11 +57,14 @@ export async function useCreateIntake(study_id: string, interview_id: string, pz
         "intake_start_time_utc": intake_start_time,
         "intake_end_time_utc": intake_end_time,
         "intake_regular_or_as_needed": intake_regular_or_as_needed,
-        "dose_per_day": dose_unit,
-        "regular_intervall_of_daily_dose": regular_intervall_of_daily_dose,
+        "dose_per_day": dose_unit_final,
+        "regular_intervall_of_daily_dose": regular_intervall_of_daily_dose_final,
         "as_needed_dose_unit": null,
         "consumed_meds_today": meds_today
     }
+
+    console.log(body);
+    
 
     try {
         const runtimeConfig = useRuntimeConfig()

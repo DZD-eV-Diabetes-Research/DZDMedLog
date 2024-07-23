@@ -317,6 +317,7 @@
         </div>
       </div>
     </UModal>
+    {{tableContent}}
   </Layout>
 </template>
 
@@ -416,6 +417,8 @@ async function saveIntake() {
 
   const source_of_drug_information = selectedSourceItem.value
 
+  const start_time = state.startTime
+  const end_time = state.endTime
   const date = dayjs(state.startTime).format("YYYY-MM-DD");
   const pzn = drugStore.item.pzn;
   const myDose = state.dose;
@@ -427,7 +430,10 @@ async function saveIntake() {
       route.params.interview_id,
       pzn,
       source_of_drug_information,
-      date,
+      start_time,
+      end_time,
+      selectedFrequency.value,
+      selectedInterval.value,
       myDose,
       state.selected
     );
