@@ -53,6 +53,18 @@ class ConsumedMedsTodayAnswers(str, enum.Enum):
     UNKNOWN = "UNKNOWN"
 
 
+class SourceOfDrugInformationAnwers(str, enum.Enum):
+    DRUG_PACK_SCANNED_PZN = "Medication package: Scanned PZN"
+    DRUG_PACK_TYPED_PZN = "Medication package: Typed in PZN"
+    DRUG_PACK_NAME = "Medication package: Drug name"
+    DRUG_LEAFLET = "Medication leaflet"
+    MEDICATION_PLAN = "Study participant: medication plan"
+    PRESCRIPTION = "Study participant: Medication prescription"
+    PARTICIPANT_SPECIFICATION = "Study participant: verbal specification"
+    FOLLOW_UP_PZN = "Follow up via phone/message: Typed in PZN"
+    FOLLOW_UP_DRUG_NAME = "Follow up via phone/message: Medication name"
+
+
 class IntakeCreateAPI(MedLogBaseModel, table=False):
     """This class/table also saves some extra question for every interview. This is 1-to-1 what the old IDOM software did. and its a mess.
     i fucking hate it. its unflexible, complex and ugly!
@@ -73,6 +85,10 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
         description="Take the Pharmazentralnummer in many formats, but all formats will be normalized to just a 8 digit number.",
         default=None,
         schema_extra={"examples": ["23894732", "PZN-88888888"]},
+    )
+    source_of_drug_information: Optional[SourceOfDrugInformationAnwers] = Field(
+        default=None,
+        description="How was the drug/medication identified.",
     )
     custom_drug_id: Optional[uuid.UUID] = Field(
         description="Alternative to pharmazentralnummer. If a drug is not findable in the Arzeimittelindex, and the pharmazentralnummer(pzn) is unknown, the id of a custom drug can be provided.",
