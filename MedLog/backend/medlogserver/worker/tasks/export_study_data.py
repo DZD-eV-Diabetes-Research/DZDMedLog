@@ -1,6 +1,7 @@
 from typing import Literal, Dict, List, Any
 from pathlib import Path, PurePath
-
+import json
+import csv
 import uuid
 from pydantic import BaseModel
 
@@ -63,26 +64,44 @@ class StudyDataExporter:
         self.events: List[Event] = []
         self.interviews: List[Interview] = []
 
-    async def run(self):
-        await self._parse_provisioning_file(self.data_file)
+    async def run(self) -> str:
+        job_result = await self.export_data_and_write_to_file()
+        return str(job_result)
 
-    async def export_data(self):
+    async def export_data_and_write_to_file(self) -> Path:
+
         data = await self._gather_export_data()
         if self.format == "json":
-            for obj in data
+            export = []
+            for container_obj in data:
+                container_obj: ExportDataContainer = container_obj
+                export.append(container_obj.to_dict())
+            with open(self.target_file, "w", encoding="utf-8") as target_file:
+                json.dump(export, target_file, ensure_ascii=False, indent=4)
+        elif self.format == "csv":
+            export = []
+            for container_obj in data:
+                container_obj: ExportDataContainer = container_obj
+                export.append(container_obj.to_flat_dict())
+            with open(self.target_file, "w", encoding="utf-8") as target_file:
+                writer = csv.writer(target_file)
+                writer.writerows(export)
+        else:
+            return None
+        return self.target_file
 
     async def _get_study_data(self) -> Study:
         async with get_async_session_context() as session:
             async with StudyCRUD.crud_context(session) as study_crud:
                 study_crud: StudyCRUD = study_crud
-                return study_crud.get(study_id=self.study_id)
+                return await study_crud.get(study_id=self.study_id)
 
     async def _get_event_data(self, event_id: uuid.UUID) -> Event:
         if not self.events:
             async with get_async_session_context() as session:
                 async with EventCRUD.crud_context(session) as event_crud:
                     event_crud: EventCRUD = event_crud
-                    self.events = event_crud.list(filter_study_id=self.study_id)
+                    self.events = await event_crud.list(filter_study_id=self.study_id)
         return next(e for e in self.events if e.id == event_id)
 
     async def _get_interview_data(self, interview_id: uuid.UUID) -> Interview:
@@ -90,7 +109,9 @@ class StudyDataExporter:
             async with get_async_session_context() as session:
                 async with InterviewCRUD.crud_context(session) as interview_crud:
                     interview_crud: InterviewCRUD = interview_crud
-                    self.interviews = interview_crud.list(filter_study_id=self.study_id)
+                    self.interviews = await interview_crud.list(
+                        filter_study_id=self.study_id
+                    )
         return next(i for i in self.interviews if i.id == interview_id)
 
     async def _gather_export_data(self) -> List[ExportDataContainer]:
@@ -108,6 +129,7 @@ class StudyDataExporter:
                     event_data = await self._get_event_data(
                         event_id=interview_data.event_id
                     )
+                    print("study_data", study_data)
                     export_data.append(
                         ExportDataContainer(
                             study=study_data,
@@ -117,7 +139,3 @@ class StudyDataExporter:
                         )
                     )
         return export_data
-
-
-async def load_provisioning_data():
-    log.info("Run export job...")

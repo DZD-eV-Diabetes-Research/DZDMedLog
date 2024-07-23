@@ -43,11 +43,20 @@ class WorkerAdHocJobRunner:
             log.error(error, exc_info=True)
             raise error
 
+    @classmethod
+    async def add_job(cls, job: WorkerJobCreate):
+        async with get_async_session_context() as session:
+            async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
+                crud: WorkerJobCRUD = worker_job_crud
+                job = await crud.create(job)
+                return job
+
     async def _update_job(self, job: WorkerJobUpdate | WorkerJob) -> WorkerJob:
         async with get_async_session_context() as session:
             async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
                 crud: WorkerJobCRUD = worker_job_crud
-                return crud.update(job)
+                job = await crud.update(job)
+                return job
 
     async def _get_jobs(
         self, filter_job_state: Optional[WorkerJobState]
@@ -87,7 +96,9 @@ class WorkerAdHocJobRunner:
     async def _run_job(self, job: WorkerJob) -> WorkerJob:
         log.info(f"Run adhoc job: {job}")
         job_func: Awaitable = Tasks[job.task].value
-        await job_func(**job.params)
+        result = await job_func(**job.params)
+        job.result = result
+        return job
 
     async def _tidy_up_old_jobs(self):
         if self.delete_finished_jobs_after_n_minutes:
