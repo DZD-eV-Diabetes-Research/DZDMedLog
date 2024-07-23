@@ -1,7 +1,7 @@
 <template>
         <UIBaseCard>
             <UFormGroup label="Medikament" name="drug">
-                <UInput v-model="state.drug" placeholder="Medikament oder PZN eingeben" icon="i-heroicons-magnifying-glass-20-solid"/>
+                <UInput v-model="state.drug" placeholder="Medikament/PZN oder ATC-Code eingeben" icon="i-heroicons-magnifying-glass-20-solid"/>
             </UFormGroup>
             <div v-if="drugList.items.length > 0">
                 <ul>
@@ -50,8 +50,8 @@
 import { ref, watch, reactive } from 'vue';
 
 const hoveredItem = ref(null);
-
 const tokenStore = useTokenStore()
+const runTimeConfig = useRuntimeConfig();
 
 const state = reactive({
     drug: '',
@@ -69,7 +69,7 @@ let myDrugs = ref([]);
 const fetchDrugs = async () => {
     if (state.drug.length >= 3) {
         try {
-            const response = await fetch(`http://localhost:8888/drug/search?search_term=${state.drug}&only_current_medications=true&offset=0&limit=100`, {
+            const response = await fetch(`${runTimeConfig}/drug/search?search_term=${state.drug}&only_current_medications=true&offset=0&limit=100`, {
                 method: "GET",
                 headers: { 'Authorization': "Bearer " + tokenStore.access_token },
             });
