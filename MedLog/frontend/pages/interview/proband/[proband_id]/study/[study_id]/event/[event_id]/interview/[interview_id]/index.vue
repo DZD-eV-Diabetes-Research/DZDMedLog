@@ -360,11 +360,14 @@ type Schema = InferType<typeof schema>;
 
 const sourceItems = [
   "Probandenangabe",
-  "Medikamentenpackung",
+  "Medikamentenpackung: PZN gescannt",
+  "Medikamentenpackung: PZN getippt",
+  "Medikamentenpackung: Arzneimittelname",
   "Beipackzettel",
   "Medikamentenplan",
   "Rezept",
-  "Nacherhebung",
+  "Nacherhebung: Tastatureingabe der PZN",
+  "Nacherhebung: Arzneimittelname",
 ];
 const selectedSourceItem = ref(sourceItems[0]);
 
@@ -378,8 +381,6 @@ const intervallOfDose = [
   "jeden 3. Tag",
   "jeden 4. Tag = 2x pro Woche",
   "Im Abstand von 1 Woche und mehr",
-  "Im Abstand von 1 Monat und mehr",
-  "Im Abstand von 1 Jahr und mehr",
 ];
 const selectedInterval = ref(intervallOfDose[0]);
 
@@ -413,6 +414,8 @@ async function saveIntake() {
     return;
   }
 
+  const source_of_drug_information = selectedSourceItem.value
+
   const date = dayjs(state.startTime).format("YYYY-MM-DD");
   const pzn = drugStore.item.pzn;
   const myDose = state.dose;
@@ -423,11 +426,12 @@ async function saveIntake() {
       route.params.study_id,
       route.params.interview_id,
       pzn,
+      source_of_drug_information,
       date,
       myDose,
       state.selected
     );
-    createIntakeList();
+    // createIntakeList();
   } catch (error) {
     console.error("Failed to create Intake: ", error);
   }

@@ -1,14 +1,51 @@
-export async function useCreateIntake(study_id:string, interview_id:string, pzn: string | null = null, intake_start_time:string, dose_unit:number, meds_today:boolean, custom_drug_id:string | null = null): Promise<void>{
+export async function useCreateIntake(study_id: string, interview_id: string, pzn: string | null = null, source_of_drug_information: string, intake_start_time: string, intake_end_time: string | null = null, intake_regular_or_as_needed: string, regular_intervall_of_daily_dose: string, dose_unit: number, meds_today: boolean, custom_drug_id: string | null = null): Promise<void> {
     const tokenStore = useTokenStore()
     tokenStore.error = ""
-    
-    let body = {"pharmazentralnummer": pzn,
-                "custom_drug_id": custom_drug_id,
-                "intake_start_time_utc": intake_start_time,
-                "as_needed_dose_unit": dose_unit,
-                "dose_per_day": dose_unit,
-                "consumed_meds_today": meds_today
-    }    
+
+    if (source_of_drug_information === "Probandenangabe") {
+        source_of_drug_information = "Study participant: verbal specification"
+    } else if (source_of_drug_information === "Medikamentenpackung: PZN gescannt") {
+        source_of_drug_information = "Medication package: Scanned PZN"
+    } else if (source_of_drug_information === "Medikamentenpackung: PZN getippt") {
+        source_of_drug_information = "Medication package: Typed in PZN"
+    } else if (source_of_drug_information === "Medikamentenpackung: Arzneimittelname") {
+        source_of_drug_information = "Medication package: Drug name"
+    } else if (source_of_drug_information === "Beipackzettel") {
+        source_of_drug_information = "Medication leaflet"
+    } else if (source_of_drug_information === "Medikamentenplan") {
+        source_of_drug_information = "Study participant: medication plan"
+    } else if (source_of_drug_information === "Rezept") {
+        source_of_drug_information = "Study participant: Medication prescription"
+    } else if (source_of_drug_information === "Nacherhebung: Tastatureingabe der PZN") {
+        source_of_drug_information = "Follow up via phone/message: Typed in PZN"
+    } else if (source_of_drug_information === "Nacherhebung: Arzneimittelname") {
+        source_of_drug_information = "Follow up via phone/message: Medication name"
+    }
+
+
+    if (intake_regular_or_as_needed === "regelmäßig") {
+        intake_regular_or_as_needed = "regular"
+    } else {
+        intake_regular_or_as_needed = "as needed"
+    }
+
+    if (regular_intervall_of_daily_dose === "unbekannt"){
+        regular_intervall_of_daily_dose = 
+    }
+
+
+    let body = {
+        "custom_drug_id": custom_drug_id,
+        "pharmazentralnummer": pzn,
+        "source_of_drug_information": source_of_drug_information,
+        "intake_start_time_utc": intake_start_time,
+        "intake_end_time_utc": intake_end_time,
+        "intake_regular_or_as_needed": intake_regular_or_as_needed,
+        "dose_per_day": dose_unit,
+        "regular_intervall_of_daily_dose": regular_intervall_of_daily_dose,
+        "as_needed_dose_unit": null,
+        "consumed_meds_today": meds_today
+    }
 
     try {
         const runtimeConfig = useRuntimeConfig()
