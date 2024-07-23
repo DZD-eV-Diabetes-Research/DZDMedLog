@@ -39,8 +39,8 @@ class IntakeRegularOrAsNeededAnswers(str, enum.Enum):
 
 
 class IntervalOfDailyDoseAnswers(str, enum.Enum):
-    UNKNOWN = "regular"
-    DAILY = "as needed"
+    UNKNOWN = "Unkown"
+    DAILY = "Daily"
     EVERY_SECOND_DAY = "every 2. day"
     EVERY_THIRD_DAY = "every 3. day"
     EVERY_FOURTH_DAY = "every 4. day / twice a week"
