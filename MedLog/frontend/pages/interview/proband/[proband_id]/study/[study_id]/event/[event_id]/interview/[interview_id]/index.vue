@@ -24,6 +24,12 @@
           <p>Medikament: {{ drugStore.item.item.name }}</p>
           <p>PZN: {{ drugStore.item.pzn }}</p>
           <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
+          <p>
+            Darreichungsform: {{ drugStore.item.item.darrform_ref.bedeutung }}
+          </p>
+          <p>
+            Applikationsform: {{ drugStore.item.item.appform_ref.bedeutung }}
+          </p>
         </div>
         <UForm
           @submit="saveIntake()"
@@ -31,12 +37,44 @@
           :schema="schema"
           class="space-y-4"
         >
-          <UFormGroup label="Dosis" style="border-color: red" name="dose" required>
-            <UInput type="number" v-model="state.dose" />
+          <div style="padding-top: 2.5%">
+            <UFormGroup label="Quelle der Arzneimittelangabe">
+              <USelect v-model="selectedSourceItem" :options="sourceItems" />
+            </UFormGroup>
+          </div>
+          <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?">
+            <USelect v-model="selectedFrequency" :options="frequency" />
           </UFormGroup>
-          <UFormGroup label="Einnahme (Datum)" name="time" required>
-            <UInput type="date" v-model="state.time" />
-          </UFormGroup>
+          <div class="flex-container">
+            <UFormGroup
+              label="Dosis pro Einnahme"
+              style="border-color: red"
+              name="dose"
+            >
+              <UInput
+                type="number"
+                v-model="state.dose"
+                :disabled="selectedFrequency !== 'regelmäßig'"
+                :color="selectedFrequency !== 'regelmäßig' ? 'gray' : 'white'"
+              />
+            </UFormGroup>
+            <UFormGroup label="Intervall der Tagesdosen">
+              <USelect
+                v-model="selectedInterval"
+                :options="intervallOfDose"
+                :disabled="selectedFrequency !== 'regelmäßig'"
+                :color="selectedFrequency !== 'regelmäßig' ? 'gray' : 'white'"
+              />
+            </UFormGroup>
+          </div>
+          <div class="flex-container">
+            <UFormGroup label="Einnahme Beginn (Datum)" name="startTime">
+              <UInput type="date" v-model="state.startTime" />
+            </UFormGroup>
+            <UFormGroup label="Einnahme Ende (Datum)" name="endTime">
+              <UInput type="date" v-model="state.endTime" />
+            </UFormGroup>
+          </div>
           <URadioGroup
             v-model="state.selected"
             legend="Wurden heute Medikamente eingenommen?"
@@ -87,7 +125,7 @@
                   :groups="[
                     { key: 'dosageFormTable', commands: dosageFormTable },
                   ]"
-                  :fuse="{ resultLimit: 5, fuseOptions: { threshold: 0.1 } }"
+                  :fuse="{ resultLimit: 5, fuseOptions: { threshold: 0.2 } }"
                 />
                 <p
                   v-else
@@ -257,8 +295,8 @@
             <UFormGroup label="Einnahme (Datum)">
               <UInput
                 type="date"
-                v-model="editState.time"
-                name="time"
+                v-model="editState.startTime"
+                name="startTime"
                 color="blue"
               />
             </UFormGroup>
@@ -307,22 +345,48 @@ const showIntakeForm = ref(true);
 
 const state = reactive({
   selected: "Yes",
-  time: dayjs(Date()).format("YYYY-MM-DD"),
-  dose: null,
+  startTime: dayjs(Date()).format("YYYY-MM-DD"),
+  endTime: null,
+  dose: 1,
 });
 
 const schema = object({
   selected: string().required("Required"),
-  time: date().required("Required"),
+  startTime: date().required("Required"),
   dose: number().min(0, "Required"),
 });
 
 type Schema = InferType<typeof schema>;
 
+const sourceItems = [
+  "Probandenangabe",
+  "Medikamentenpackung",
+  "Beipackzettel",
+  "Medikamentenplan",
+  "Rezept",
+  "Nacherhebung",
+];
+const selectedSourceItem = ref(sourceItems[0]);
+
+const frequency = ["nach Bedarf", "regelmäßig"];
+const selectedFrequency = ref(frequency[0]);
+
+const intervallOfDose = [
+  "unbekannt",
+  "täglich",
+  "jeden 2. Tag",
+  "jeden 3. Tag",
+  "jeden 4. Tag = 2x pro Woche",
+  "Im Abstand von 1 Woche und mehr",
+  "Im Abstand von 1 Monat und mehr",
+  "Im Abstand von 1 Jahr und mehr",
+];
+const selectedInterval = ref(intervallOfDose[0]);
+
 async function openIntakeForm() {
   showIntakeForm.value = !showIntakeForm.value;
   state.selected = "Yes";
-  state.time = dayjs(Date()).format("YYYY-MM-DD");
+  state.startTime = dayjs(Date()).format("YYYY-MM-DD");
   state.dose = null;
   drugStore.$reset();
 }
@@ -349,10 +413,10 @@ async function saveIntake() {
     return;
   }
 
-  const date = dayjs(state.time).format("YYYY-MM-DD");
+  const date = dayjs(state.startTime).format("YYYY-MM-DD");
   const pzn = drugStore.item.pzn;
   const myDose = state.dose;
-  
+
   try {
     showIntakeForm.value = false;
     const responseData = await useCreateIntake(
@@ -376,13 +440,13 @@ const editModalVisibility = ref(false);
 
 const editSchema = object({
   selected: string().required("Required"),
-  time: date().required("Required"),
+  startTime: date().required("Required"),
   dose: number().min(0, "Hallo"),
 });
 
 const editState = reactive({
   selected: "Yes",
-  time: null,
+  startTime: null,
   dose: null,
 });
 
@@ -406,7 +470,7 @@ const toEditDrugId = ref();
 async function editModalVisibilityFunction(row: object) {
   try {
     editModalVisibility.value = true;
-    editState.time = row.startTime;
+    editState.startTime = row.startTime;
     editState.dose = row.dose;
     toEditDrug.value = row.drug;
     toEditDrugId.value = row.id;
@@ -420,7 +484,7 @@ async function editEntry() {
     const fetchBody = {
       pharmazentralnummer: drugStore.item.pzn,
       custom_drug_id: null,
-      intake_start_time_utc: editState.time,
+      intake_start_time_utc: editState.startTime,
       intake_end_time_utc: null,
       administered_by_doctor: "prescribed",
       intake_regular_or_as_needed: "regular",
@@ -618,10 +682,13 @@ async function createNewDrug() {
     router.go();
   } catch (error) {
     console.log("Failed to create Intake: ", error);
-    if (selectedDosageForm.value === undefined){
-      showDarrFormError.value = true
+    if (selectedDosageForm.value === undefined) {
+      showDarrFormError.value = true;
     }
-    if (error.message === "Cannot read properties of undefined (reading 'darrform')") {
+    if (
+      error.message ===
+      "Cannot read properties of undefined (reading 'darrform')"
+    ) {
       showDarrFormError.value = true;
     }
   }
@@ -669,6 +736,7 @@ async function getDosageForm() {
 // REST
 
 async function backToOverview() {
+  studyStore.event = ""
   router.push({
     path:
       "/interview/proband/" +
@@ -735,5 +803,26 @@ async function createIntakeList() {
 .selectedDarrForm:hover {
   color: #22c55e;
   cursor: pointer;
+}
+
+.flex-container {
+  display: flex;
+  gap: 16px;
+}
+
+.flex-container > * {
+  flex: 1;
+}
+
+.custom-disabled {
+  background-color: #c2c2c2;
+  border-style: solid !important;
+  border-color: white;
+}
+
+.custom-border input {
+  color: sky;
+  border-style: dotted !important;
+  border-color: green !important;
 }
 </style>

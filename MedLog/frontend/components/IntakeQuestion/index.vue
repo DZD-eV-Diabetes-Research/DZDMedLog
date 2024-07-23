@@ -1,7 +1,7 @@
 <template>
     <UIBaseCard :naked="true">
-        <UFormGroup label="Medikament" name="drug">
-            <UInput v-model="state.drug" placeholder="Medikament oder PZN eingeben" icon="i-heroicons-magnifying-glass-20-solid"/>
+        <UFormGroup label="Medikament" name="drug" required>
+            <UInput v-model="state.drug" placeholder="Medikament/PZN oder ATC-Code eingeben" icon="i-heroicons-magnifying-glass-20-solid"/>
         </UFormGroup>
         <div v-if="drugList.items.length > 0">
             <ul>
@@ -14,10 +14,10 @@
                     Größe: {{ item.item.packgroesse }}
                     <div class="info" v-if="hoveredItem === item"
                     :style="{ left: '-21%', top:'-10%'}">
-                    <p><strong>Sta-Name</strong></p>
-                    <p>{{item.item.staname}}</p>
-                    <p><strong>Hersteller</strong></p>
-                    <p>{{ item.item.hersteller_ref.bedeutung }}</p>
+                    <p><strong>Darreichungsform</strong></p>
+                    <p>{{ item.item.darrform_ref.bedeutung }}</p>
+                    <p><strong>Applikationsform</strong></p>
+                    <p>{{ item.item.appform_ref.bedeutung }}</p>
                 </div>
                 </li>
             </ul>
@@ -40,6 +40,7 @@ import { ref, watch, reactive } from 'vue';
 const hoveredItem = ref(null);
 const tokenStore = useTokenStore()
 const drugStore = useDrugStore()
+const runtimeConfig = useRuntimeConfig();
 
 const state = reactive({
 drug: '',
@@ -55,7 +56,7 @@ count: 0
 const fetchDrugs = async () => {
 if (state.drug.length >= 3) {
     try {
-        const response = await fetch(`http://localhost:8888/drug/search?search_term=${state.drug}&only_current_medications=true&offset=0&limit=100`, {
+        const response = await fetch(`${runtimeConfig.public.baseURL}drug/search?search_term=${state.drug}&only_current_medications=true&offset=0&limit=100`, {
             method: "GET",
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
         });
