@@ -60,3 +60,8 @@ class Study(StudyCreate, BaseTable, table=True):
         unique=True,
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
+
+
+class StudyExport(Study, table=False):
+    deactivated: bool = Field(exclude=True)
+    no_permissions: bool = Field(exclude=True)

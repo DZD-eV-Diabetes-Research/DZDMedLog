@@ -15,7 +15,7 @@ from medlogserver.db import (
     InterviewCRUD,
     IntakeCRUD,
 )
-from medlogserver.model import Intake, Event, Study, Interview
+from medlogserver.model import Intake, Event, StudyExport, Study, Interview
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
@@ -25,7 +25,7 @@ config = Config()
 
 
 class ExportDataContainer(BaseModel):
-    study: Study
+    study: StudyExport
     event: Event
     interview: Interview
     intake: Intake
@@ -79,22 +79,31 @@ class StudyDataExporter:
             with open(self.target_file, "w", encoding="utf-8") as target_file:
                 json.dump(export, target_file, ensure_ascii=False, indent=4)
         elif self.format == "csv":
-            export = []
+            export: List[Dict] = []
             for container_obj in data:
                 container_obj: ExportDataContainer = container_obj
                 export.append(container_obj.to_flat_dict())
             with open(self.target_file, "w", encoding="utf-8") as target_file:
                 writer = csv.writer(target_file)
-                writer.writerows(export)
+                writer.writerow(export[0].keys())
+                for row_data in export:
+
+                    writer.writerow(row_data.values())
         else:
             return None
         return self.target_file
 
-    async def _get_study_data(self) -> Study:
+    async def _get_study_data(self) -> StudyExport:
         async with get_async_session_context() as session:
             async with StudyCRUD.crud_context(session) as study_crud:
                 study_crud: StudyCRUD = study_crud
-                return await study_crud.get(study_id=self.study_id)
+                study_export = {}
+                study = await study_crud.get(study_id=self.study_id)
+
+                for prop in StudyExport.model_fields.keys():
+                    study_export[prop] = getattr(study, prop)
+
+                return StudyExport(**study_export)
 
     async def _get_event_data(self, event_id: uuid.UUID) -> Event:
         if not self.events:

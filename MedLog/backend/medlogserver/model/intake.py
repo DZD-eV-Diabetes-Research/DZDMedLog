@@ -22,7 +22,7 @@ from medlogserver.model.wido_gkv_arzneimittelindex.stamm import (
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable
+from medlogserver.model._base_model import MedLogBaseModel, BaseTable, ExportBaseModel
 
 
 log = get_logger()
@@ -180,6 +180,10 @@ class Intake(IntakeCreate, BaseTable, table=True):
         unique=True,
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
+
+
+class IntakeExport(Intake, ExportBaseModel, table=False):
+    pass
 
 
 class IntakeDetailListItem(IntakeCreate, BaseTable, table=False):

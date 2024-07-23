@@ -13,7 +13,7 @@ from medlogserver.model.study_permission import (
     StudyPermisson,
     StudyPermissonUpdate,
 )
-from medlogserver.model.study import Study, StudyCreate, StudyUpdate
+from medlogserver.model.study import Study, StudyCreate, StudyUpdate, StudyExport
 from medlogserver.model.user_auth_refresh_token import (
     UserAuthRefreshToken,
     UserAuthRefreshTokenCreate,

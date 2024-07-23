@@ -62,3 +62,7 @@ class TimestampModel(SQLModel):
 
 class BaseTable(TimestampModel):
     pass
+
+
+class ExportBaseModel(MedLogBaseModel):
+    created_at: datetime = Field(exclude=True)
