@@ -182,8 +182,9 @@ class Intake(IntakeCreate, BaseTable, table=True):
     )
 
 
-class IntakeExport(Intake, ExportBaseModel, table=False):
-    pass
+class IntakeExport(Intake, table=False):
+    created_at: datetime = Field(exclude=True)
+    interview_id: UUID = Field(exclude=True)
 
 
 class IntakeDetailListItem(IntakeCreate, BaseTable, table=False):

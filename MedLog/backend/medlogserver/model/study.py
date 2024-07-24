@@ -6,14 +6,14 @@ import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel
-
+import datetime
 import uuid
 from uuid import UUID
 
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable
+from medlogserver.model._base_model import MedLogBaseModel, BaseTable, ExportBaseModel
 
 
 log = get_logger()
@@ -65,3 +65,4 @@ class Study(StudyCreate, BaseTable, table=True):
 class StudyExport(Study, table=False):
     deactivated: bool = Field(exclude=True)
     no_permissions: bool = Field(exclude=True)
+    created_at: datetime.datetime = Field(exclude=True)

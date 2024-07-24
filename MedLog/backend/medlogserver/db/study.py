@@ -49,7 +49,6 @@ class StudyCRUD(
         show_deactivated: bool = False,
         raise_exception_if_none: Exception = None,
     ) -> Optional[Study]:
-        log.info(f"study_id {study_id}")
         query = select(Study).where(Study.id == study_id)
         if not show_deactivated:
             query = query.where(Study.deactivated == False)

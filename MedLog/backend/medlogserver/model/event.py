@@ -6,6 +6,7 @@ from pydantic import (
     field_validator,
     ValidationInfo,
 )
+import datetime
 from fastapi import Depends
 from typing import Optional
 from sqlmodel import Field, UniqueConstraint
@@ -93,3 +94,9 @@ class Event(EventRead, table=True):
     class Config:
         # default sorting order
         order_by = "name"
+
+
+class EventExport(Event, table=False):
+    created_at: datetime.datetime = Field(exclude=True)
+    completed: bool = Field(exclude=True)
+    study_id: UUID = Field(exclude=True)

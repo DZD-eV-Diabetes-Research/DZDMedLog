@@ -135,7 +135,6 @@ class CRUDBase(
         if res is None and raise_exception_if_none:
             raise raise_exception_if_none
         return res
-    
 
     async def get(
         self,

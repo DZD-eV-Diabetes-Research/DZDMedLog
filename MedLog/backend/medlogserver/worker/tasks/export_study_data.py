@@ -15,7 +15,16 @@ from medlogserver.db import (
     InterviewCRUD,
     IntakeCRUD,
 )
-from medlogserver.model import Intake, Event, StudyExport, Study, Interview
+from medlogserver.model import (
+    IntakeExport,
+    Intake,
+    EventExport,
+    Event,
+    StudyExport,
+    Study,
+    InterviewExport,
+    Interview,
+)
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
@@ -26,18 +35,23 @@ config = Config()
 
 class ExportDataContainer(BaseModel):
     study: StudyExport
-    event: Event
-    interview: Interview
-    intake: Intake
+    event: EventExport
+    interview: InterviewExport
+    intake: IntakeExport
 
     # def _filter_values(self, obj):
     #    _block_props_config = {Study: [], Event: [], Intake: []}
 
     def to_flat_dict(self) -> Dict[str, Any]:
         values = {}
-        for obj in [self.study, self.event, self.interview, self.intake]:
+        for obj, obj_class_name in [
+            (self.study, "study"),
+            (self.event, "event"),
+            (self.interview, "interview"),
+            (self.intake, "intake"),
+        ]:
             obj: BaseModel = obj
-            obj_class_name = obj.__class__.__name__.lower()
+            # obj_class_name = obj.__class__.__name__.lower()
             for prop_name, prop_value in obj.model_dump().items():
                 if not prop_name.startswith(obj_class_name):
                     values[f"{obj_class_name}_{prop_name}"] = prop_value
@@ -69,7 +83,6 @@ class StudyDataExporter:
         return str(job_result)
 
     async def export_data_and_write_to_file(self) -> Path:
-
         data = await self._gather_export_data()
         if self.format == "json":
             export = []
@@ -87,7 +100,6 @@ class StudyDataExporter:
                 writer = csv.writer(target_file)
                 writer.writerow(export[0].keys())
                 for row_data in export:
-
                     writer.writerow(row_data.values())
         else:
             return None
@@ -97,30 +109,31 @@ class StudyDataExporter:
         async with get_async_session_context() as session:
             async with StudyCRUD.crud_context(session) as study_crud:
                 study_crud: StudyCRUD = study_crud
-                study_export = {}
                 study = await study_crud.get(study_id=self.study_id)
+                return StudyExport(**study.model_dump())
 
-                for prop in StudyExport.model_fields.keys():
-                    study_export[prop] = getattr(study, prop)
-
-                return StudyExport(**study_export)
-
-    async def _get_event_data(self, event_id: uuid.UUID) -> Event:
+    async def _get_event_data(self, event_id: uuid.UUID) -> EventExport:
         if not self.events:
             async with get_async_session_context() as session:
                 async with EventCRUD.crud_context(session) as event_crud:
                     event_crud: EventCRUD = event_crud
-                    self.events = await event_crud.list(filter_study_id=self.study_id)
+                    events = await event_crud.list(filter_study_id=self.study_id)
+                    # cast into export format
+                    self.events = [EventExport(**e.model_dump()) for e in events]
         return next(e for e in self.events if e.id == event_id)
 
-    async def _get_interview_data(self, interview_id: uuid.UUID) -> Interview:
+    async def _get_interview_data(self, interview_id: uuid.UUID) -> InterviewExport:
         if not self.interviews:
             async with get_async_session_context() as session:
                 async with InterviewCRUD.crud_context(session) as interview_crud:
                     interview_crud: InterviewCRUD = interview_crud
-                    self.interviews = await interview_crud.list(
+                    interviews = await interview_crud.list(
                         filter_study_id=self.study_id
                     )
+                    # cast into export format
+                    self.interviews = [
+                        InterviewExport(**i.model_dump()) for i in interviews
+                    ]
         return next(i for i in self.interviews if i.id == interview_id)
 
     async def _gather_export_data(self) -> List[ExportDataContainer]:
@@ -138,7 +151,6 @@ class StudyDataExporter:
                     event_data = await self._get_event_data(
                         event_id=interview_data.event_id
                     )
-                    print("study_data", study_data)
                     export_data.append(
                         ExportDataContainer(
                             study=study_data,
