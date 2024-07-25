@@ -15,7 +15,7 @@
     </UIBaseCard>
     <div v-if="showIntakeForm">
       <UIBaseCard>
-        <IntakeQuestion />
+          <IntakeQuestion />
         <p v-if="!drugChosen" style="text-align: center; color: red">
           Ein Medikament muss ausgewählt werden
         </p>
@@ -271,7 +271,7 @@
     <UModal v-model="editModalVisibility">
       <div class="p-4">
         <div style="text-align: center">
-          <IntakeQuestion :drug="toEditDrug" />
+          <IntakeQuestion :drug="toEditDrug" :edit="true" :custom="customDrug" color="blue"/>
           <div v-if="drugStore.item">
             <br />
             <p>Medikament: {{ drugStore.item.item.name }}</p>
@@ -317,7 +317,6 @@
         </div>
       </div>
     </UModal>
-    {{tableContent}}
   </Layout>
 </template>
 
@@ -415,11 +414,10 @@ async function saveIntake() {
     return;
   }
 
-  const source_of_drug_information = selectedSourceItem.value
+  const source_of_drug_information = selectedSourceItem.value;
 
-  const start_time = state.startTime
-  const end_time = state.endTime
-  const date = dayjs(state.startTime).format("YYYY-MM-DD");
+  const start_time = state.startTime;
+  const end_time = state.endTime;
   const pzn = drugStore.item.pzn;
   const myDose = state.dose;
 
@@ -437,7 +435,7 @@ async function saveIntake() {
       myDose,
       state.selected
     );
-    // createIntakeList();
+    createIntakeList();
   } catch (error) {
     console.error("Failed to create Intake: ", error);
   }
@@ -476,9 +474,12 @@ const editOptions = [
 ];
 
 const toEditDrugId = ref();
+const customDrug = ref()
 
 async function editModalVisibilityFunction(row: object) {
   try {
+    drugStore.$reset();
+    customDrug.value = row.custom;
     editModalVisibility.value = true;
     editState.startTime = row.startTime;
     editState.dose = row.dose;
@@ -583,23 +584,28 @@ const columns = [
     sortable: true,
   },
   {
+    key: "source",
+    label: "Quelle der Angabe",
+    sortable: true,
+  },
+  {
     key: "dose",
     label: "Dosis",
     sortable: true,
   },
   {
-    key: "startTime",
-    label: "Einnahme Start",
+    key: "intervall",
+    label: "Intervall",
+    sortable: true,
+  },
+  {
+    key: "time",
+    label: "Einnahme Zeitraum",
     sortable: true,
   },
   {
     key: "darr",
     label: "Darreichung",
-    sortable: true,
-  },
-  {
-    key: "manufac",
-    label: "Hersteller",
     sortable: true,
   },
   {
@@ -683,7 +689,11 @@ async function createNewDrug() {
       route.params.study_id,
       route.params.interview_id,
       pzn,
+      null,
       date,
+      null,
+      null,
+      null,
       myDose,
       "Yes",
       response.id
@@ -746,7 +756,7 @@ async function getDosageForm() {
 // REST
 
 async function backToOverview() {
-  studyStore.event = ""
+  studyStore.event = "";
   router.push({
     path:
       "/interview/proband/" +
@@ -765,16 +775,25 @@ async function createIntakeList() {
         headers: { Authorization: "Bearer " + tokenStore.access_token },
       }
     );
+
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map((item) => ({
         pzn: item.pharmazentralnummer,
+        source: useDrugSourceTranslator(item.source_of_drug_information, null),
         drug: item.drug.name,
         dose: item.dose_per_day,
+        intervall: useIntervallDoseTranslator(
+          item.regular_intervall_of_daily_dose,
+          null
+        ),
+        time: item.intake_start_time_utc + " - " + item.intake_end_time_utc,
         startTime: item.intake_start_time_utc,
-        darr: item.drug.darrform_ref.darrform,
-        manufac: item.drug.hersteller_ref
-          ? item.drug.hersteller_ref.bedeutung
-          : null,
+        endTime: item.intake_end_time_utc,
+        darr:
+          item.drug.darrform_ref.bedeutung +
+          " (" +
+          item.drug.darrform_ref.darrform +
+          ")",
         id: item.id ? item.id : item.custom_drug_id,
         custom: item.custom_drug_id ? true : false,
         class: item.custom_drug_id
