@@ -65,8 +65,8 @@ class WorkerAdHocJobRunner:
         jobs: List[WorkerJob] = []
         async with get_async_session_context() as session:
             async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
-                crud: WorkerJobCRUD = worker_job_crud
-                jobs: List[WorkerJob] = await crud.list()
+                worker_job_crud: WorkerJobCRUD = worker_job_crud
+                jobs: List[WorkerJob] = await worker_job_crud.list()
                 for job in jobs:
                     if filter_job_state is None or job.state == filter_job_state:
                         jobs.append(job)

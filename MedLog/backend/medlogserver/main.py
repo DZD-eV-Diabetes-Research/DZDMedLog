@@ -80,8 +80,8 @@ def start():
     log.debug("----CONFIG-----")
     log.debug(yaml.dump(json.loads(config.model_dump_json()), sort_keys=False))
     log.debug("----CONFIG-END-----")
-    test_exporter()
-    exit()
+    # test_exporter()
+    # exit()
     print(f"LOG_LEVEL: {config.LOG_LEVEL}")
     print(f"UVICORN_LOG_LEVEL: {get_uvicorn_loglevel()}")
 

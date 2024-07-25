@@ -160,3 +160,22 @@ class StudyDataExporter:
                         )
                     )
         return export_data
+
+
+async def export_study_intake_data(
+    study_id: uuid.UUID | str, format: str, job_id: uuid.UUID | str
+):
+    log.info(f"Export study data (job_id: {job_id})...")
+    if isinstance(study_id, str):
+        study_id: uuid.UUID = uuid.UUID(study_id)
+    import __main__
+
+    export_cache_path = PurePath(
+        config.EXPORT_CACHE_DIR, str(job_id), f"export_study_{study_id}.{format}"
+    )
+    exporter = StudyDataExporter(
+        study_id=study_id, format=format, target_file=export_cache_path
+    )
+    result = await exporter.run()
+    log.info(f"Exported study data (job_id: {job_id}) to '{export_cache_path}'")
+    return result

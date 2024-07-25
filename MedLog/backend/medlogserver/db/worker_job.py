@@ -43,6 +43,8 @@ class WorkerJobCRUD(
         hide_user_jobs: bool = False,
         pagination: QueryParamsInterface = None,
     ) -> Sequence[WorkerJob]:
+        if filter_tags is None:
+            filter_tags = []
         if isinstance(filter_user_id, str):
             filter_user_id: UUID = UUID(filter_user_id)
         # log.info(f"Event.Config.order_by {Event.Config.order_by}")
@@ -58,6 +60,7 @@ class WorkerJobCRUD(
             query = query.filter(col(WorkerJob.tags).contains(f_tag))
         if pagination:
             query = pagination.append_to_query(query)
+        print("list_job_query", query)
 
         # log.debug(f"List Event query: {query}")
         results = await self.session.exec(statement=query)

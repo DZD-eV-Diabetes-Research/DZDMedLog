@@ -20,9 +20,12 @@ class WorkerJobState(str, Enum):
 
 
 class WorkerJobCreate(MedLogBaseModel, table=False):
+    id: Optional[uuid.UUID] = Field(
+        description="The job id will be automaticly generated, on the backend. If there is a need to know it inbefore it can be provied here. Otherwise just leave it as `None`."
+    )
     task: Tasks = Field(sa_column=Column(JSON))
     params: Dict = Field(default_factory=dict, sa_column=Column(JSON))
-    user_id = Optional[uuid.UUID] = Field(
+    user_id: Optional[uuid.UUID] = Field(
         foreign_key="user.id",
         description="If Job was triggered by a certain user this should contain the users id, otherwise its a system job.",
     )
