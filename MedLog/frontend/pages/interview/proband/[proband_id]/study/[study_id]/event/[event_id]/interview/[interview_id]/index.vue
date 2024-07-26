@@ -15,7 +15,7 @@
     </UIBaseCard>
     <div v-if="showIntakeForm">
       <UIBaseCard>
-          <IntakeQuestion />
+          <IntakeQuestion/>
         <p v-if="!drugChosen" style="text-align: center; color: red">
           Ein Medikament muss ausgewählt werden
         </p>
@@ -268,7 +268,7 @@
         </div>
       </div>
     </UModal>
-    <UModal v-model="editModalVisibility">
+    <UModal v-model="editModalVisibility" @close="drugStore.$reset()">
       <div class="p-4">
         <div style="text-align: center">
           <IntakeQuestion :drug="toEditDrug" :edit="true" :custom="customDrug" color="blue"/>

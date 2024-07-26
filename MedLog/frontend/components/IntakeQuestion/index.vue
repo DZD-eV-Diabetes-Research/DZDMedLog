@@ -5,7 +5,7 @@
         v-model="state.drug"
         placeholder="Medikament/PZN oder ATC-Code eingeben"
         icon="i-heroicons-magnifying-glass-20-solid"
-        color="blue"
+        :color="props.color"
       />
     </UFormGroup>
     <div v-if="isLoading && props.edit">
