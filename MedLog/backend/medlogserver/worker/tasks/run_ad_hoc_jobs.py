@@ -1,4 +1,4 @@
-from typing import List, Callable, Awaitable, Optional
+from typing import List, Callable, Awaitable, Optional, Type
 import datetime
 import traceback
 from medlogserver.db._session import get_async_session_context
@@ -9,7 +9,8 @@ from medlogserver.model.worker_job import (
     WorkerJobUpdate,
     WorkerJobState,
 )
-from medlogserver.worker import Tasks
+from medlogserver.worker.tasks import Tasks
+from medlogserver.worker.task import TaskBase
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -43,14 +44,6 @@ class WorkerAdHocJobRunner:
             log.error(error, exc_info=True)
             raise error
 
-    @classmethod
-    async def add_job(cls, job: WorkerJobCreate):
-        async with get_async_session_context() as session:
-            async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
-                crud: WorkerJobCRUD = worker_job_crud
-                job = await crud.create(job)
-                return job
-
     async def _update_job(self, job: WorkerJobUpdate | WorkerJob) -> WorkerJob:
         async with get_async_session_context() as session:
             async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
@@ -61,16 +54,12 @@ class WorkerAdHocJobRunner:
     async def _get_jobs(
         self, filter_job_state: Optional[WorkerJobState]
     ) -> List[WorkerJob]:
-
-        jobs: List[WorkerJob] = []
         async with get_async_session_context() as session:
             async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
                 worker_job_crud: WorkerJobCRUD = worker_job_crud
-                jobs: List[WorkerJob] = await worker_job_crud.list()
-                for job in jobs:
-                    if filter_job_state is None or job.state == filter_job_state:
-                        jobs.append(job)
-        return jobs
+                return await worker_job_crud.list(
+                    filter_job_state=filter_job_state, filter_intervalled_job=False
+                )
 
     async def _pick_up_queued_jobs(self) -> List[WorkerJob]:
         return await self._get_jobs(filter_job_state=WorkerJobState.QUEUED)
@@ -78,27 +67,12 @@ class WorkerAdHocJobRunner:
     async def _process_jobs(self, jobs: List[WorkerJob]) -> List[WorkerJob]:
         finished_jobs: List[WorkerJob] = []
         for job in jobs:
-            job.run_started_at = datetime.datetime.now(tz=datetime.UTC)
-            job = await self._update_job(job)
-            try:
-                job = await self._run_job(job)
-            except Exception as error:
-                log.error(f"Job '{job}' failed. Error: {str(error)}", exc_info=True)
-                job.error = repr(traceback.format_exc())
-                job = await self._update_job(job)
-                finished_jobs.append(job)
-                continue
-            job.run_finished_at = datetime.datetime.now(tz=datetime.UTC)
-            self._update_job(job)
-            finished_jobs.append(job)
+            job_task_class: Type[TaskBase] = job.task.value
+            job_task = job_task_class(
+                job=job, task_parms=job.task_params, instant_run=False
+            )
+            await job_task.start()
         return finished_jobs
-
-    async def _run_job(self, job: WorkerJob) -> WorkerJob:
-        log.info(f"Run adhoc job: {job}")
-        job_func: Awaitable = Tasks[job.task].value
-        result = await job_func(**job.params)
-        job.result = result
-        return job
 
     async def _tidy_up_old_jobs(self):
         if self.delete_finished_jobs_after_n_minutes:
@@ -113,6 +87,10 @@ class WorkerAdHocJobRunner:
                 )
                 if job_age.total_seconds() > max_age_sec:
                     log.debug(f"Remove obsolete job {job}")
+                    await job.task.value(
+                        job=job, task_parms=job.task_params, instant_run=False
+                    ).clean_up()
+                    await self._delete_job(job)
 
     async def _delete_job(self, job: WorkerJob):
         async with get_async_session_context() as session:
@@ -121,8 +99,9 @@ class WorkerAdHocJobRunner:
                 await crud.delete(job.id)
 
 
-async def run_adhoc_jobs():
-    runner = WorkerAdHocJobRunner(
-        delete_finished_jobs_after_n_minutes=config.BACKGROUND_WORKER_TIDY_UP_FINISHED_JOBS_AFTER_N_MIN
-    )
-    await runner.run()
+class TaskRunAdHocJobs(TaskBase):
+    async def work():
+        runner = WorkerAdHocJobRunner(
+            delete_finished_jobs_after_n_minutes=config.BACKGROUND_WORKER_TIDY_UP_FINISHED_JOBS_AFTER_N_MIN
+        )
+        return await runner.run()

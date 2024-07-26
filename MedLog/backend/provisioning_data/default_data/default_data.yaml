@@ -5,3 +5,16 @@ items:
   #      dateiversion: user-custom-drugs
   #      datenstand: NA
   #      deactivated: false
+  - medlogserver.model.worker_job.WorkerJobCreate:
+      - task: clean_tokens
+        task_params: null
+        user_id: null
+        tags: ["background"]
+        interval_params:
+          minutes: 1
+      - task: run_adhoc_jobs
+        task_params: null
+        user_id: null
+        tags: ["background"]
+        interval_params:
+          seconds: 10

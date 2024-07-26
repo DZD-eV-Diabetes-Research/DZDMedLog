@@ -40,6 +40,7 @@ class WorkerJobCRUD(
         filter_user_id: Optional[UUID] = None,
         filter_job_state: Optional[WorkerJobState] = None,
         filter_tags: Optional[List[str]] = None,
+        filter_intervalled_job: Optional[bool] = None,
         hide_user_jobs: bool = False,
         pagination: QueryParamsInterface = None,
     ) -> Sequence[WorkerJob]:
@@ -60,6 +61,12 @@ class WorkerJobCRUD(
             query = query.filter(col(WorkerJob.tags).contains(f_tag))
         if pagination:
             query = pagination.append_to_query(query)
+        if filter_intervalled_job is not None:
+            if filter_intervalled_job == True:
+                query = query.where(WorkerJob.interval_params != None)
+            elif filter_intervalled_job == False:
+                query = query.where(WorkerJob.interval_params == None)
+
         print("list_job_query", query)
 
         # log.debug(f"List Event query: {query}")

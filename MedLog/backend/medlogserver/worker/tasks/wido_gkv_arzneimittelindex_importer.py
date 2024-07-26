@@ -8,7 +8,7 @@ import asyncio
 import zipfile
 from pathlib import Path, PurePath
 from dataclasses import dataclass
-
+from medlogserver.worker import Tasks, TaskBase
 
 # internal imports
 from medlogserver.config import Config
@@ -263,7 +263,7 @@ class WiDoArzneimittelImporter:
         file_path: str,
     ) -> AiDataVersion:
         log.debug(f"Sniff ai data version from {Path(file_path).absolute().resolve()}")
-        with open(file_path, "r", encoding='utf-8') as csvfile:
+        with open(file_path, "r", encoding="utf-8") as csvfile:
             reader_variable = csv.reader(
                 csvfile, delimiter=wido_gkv_arzneimittelindex_csv_delimiter
             )
@@ -289,7 +289,7 @@ class WiDoArzneimittelImporter:
         data_model: DrugModelTableBase = crud_class.get_table_cls()
         file_name = data_model.get_source_csv_filename()
         file_path = Path(PurePath(self.arzneimittel_index_content_dir, file_name))
-        with open(file_path, encoding='utf-8') as csvfile:
+        with open(file_path, encoding="utf-8") as csvfile:
             csv_reader = csv.reader(
                 csvfile, delimiter=wido_gkv_arzneimittelindex_csv_delimiter
             )
@@ -481,43 +481,28 @@ class WiDoArzneimittelSourceFileHandler:
         return True
 
 
-async def import_wido_gkv_arzneimittelindex_data(
-    source_file: Annotated[
-        Optional[str],
-        "Provide a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
-    ] = None,
-    source_dir: Annotated[
-        Optional[str],
-        "Provide a directory that contains the extracted content of a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
-    ] = None,
-    exist_ok: Annotated[
-        bool,
-        "Do not import if imported successful in the past",
-    ] = False,
-):
-    file_handler = WiDoArzneimittelSourceFileHandler(
-        source_file=source_file, source_dir=source_dir
-    )
-    importer = WiDoArzneimittelImporter(
-        source_dir=file_handler.handle_arzneimittelindex_source(
-            rewrite_existing=False, exist_ok=exist_ok
-        ),
-    )
-    await importer.import_arzneimittelindex(exist_ok=exist_ok)
-
-
-async def background_job_gkv_arzneimittelindex_data():
-    log.info(
-        "Start background job ('background_job_gkv_arzneimittelindex_data'): Check and import new arzneimittel index data..."
-    )
-    log.warning(
-        "Background import jobs for gkv_arzneimittelindex_data not yet implemetned. Skip import."
-    )
-    return
-    raise NotImplementedError(
-        "Background import jobs for gkv_arzneimittelindex_data not yet implemetned"
-    )
-    # Todo: you are here. we need to create a new table. sth like 'ai_data_import_jobs' which rows can be created from the userinterface (by uploading a new gkv_arzneimittelindex_data zip)
-    # this backgroundjobn will pick up these, run them and delete the row from ai_data_import_jobs
-    async with get_async_session_context() as session:
-        pass
+class TaskImportGKVArnzeimittelIndexData(TaskBase):
+    async def work(
+        self,
+        source_file: Annotated[
+            Optional[str],
+            "Provide a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
+        ] = None,
+        source_dir: Annotated[
+            Optional[str],
+            "Provide a directory that contains the extracted content of a GKV Arzneimittelindex zip file as provided by WiDo (Wissenschaftlichen Instituts der AOK)",
+        ] = None,
+        exist_ok: Annotated[
+            bool,
+            "Do not import if imported successful in the past",
+        ] = False,
+    ):
+        file_handler = WiDoArzneimittelSourceFileHandler(
+            source_file=source_file, source_dir=source_dir
+        )
+        importer = WiDoArzneimittelImporter(
+            source_dir=file_handler.handle_arzneimittelindex_source(
+                rewrite_existing=False, exist_ok=exist_ok
+            ),
+        )
+        await importer.import_arzneimittelindex(exist_ok=exist_ok)

@@ -3,6 +3,7 @@ import datetime
 
 
 #
+from medlogserver.worker import Tasks, TaskBase
 from medlogserver.model.user_auth_refresh_token import UserAuthRefreshToken
 from medlogserver.db.user_auth_refresh_token import UserAuthRefreshTokenCRUD
 from medlogserver.db._session import get_async_session_context
@@ -31,7 +32,8 @@ class RefreshTokenCleaner:
                         crud.delete(id=token.id)
 
 
-async def clean_tokens():
-    log.info("Run Background Task: Clean tokens...")
-    await RefreshTokenCleaner().remove_expired_tokens()
-    log.info("Done Background Task: Clean tokens")
+class TaskCleanTokens(TaskBase):
+    async def work(self):
+        log.info("Run Background Task: Clean tokens...")
+        await RefreshTokenCleaner().remove_expired_tokens()
+        log.info("Done Background Task: Clean tokens")

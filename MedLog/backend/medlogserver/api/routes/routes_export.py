@@ -27,7 +27,6 @@ from medlogserver.db.user import User
 from medlogserver.db.user_auth import UserAuthCRUD
 
 from medlogserver.model.worker_job import WorkerJobCreate, WorkerJob, WorkerJobState
-from medlogserver.worker.ad_hoc_job_runner import WorkerAdHocJobRunner
 from medlogserver.db.worker_job import WorkerJobCRUD
 
 from medlogserver.config import Config
@@ -50,7 +49,6 @@ log = get_logger()
 
 fast_api_export_router: APIRouter = APIRouter()
 
-WorkerJobQueryParams: Type[QueryParamsInterface] = create_query_params_class(WorkerJob)
 
 exception_job_not_existing = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
@@ -74,6 +72,11 @@ class ExportJob(BaseModel):
         )
 
 
+ExportJobQueryParams: Type[QueryParamsInterface] = create_query_params_class(
+    ExportJob, default_order_by_attr="created_at"
+)
+
+
 @fast_api_export_router.get(
     "/study/{study_id}/export",
     response_model=PaginatedResponse[ExportJob],
@@ -84,7 +87,7 @@ async def list_export_jobs(
     current_user: User = Depends(get_current_user),
     study_access: UserStudyAccess = Security(user_has_study_access),
     worker_job_crud: WorkerJobCRUD = Depends(WorkerJobCRUD.get_crud),
-    pagination: QueryParamsInterface = Depends(WorkerJobQueryParams),
+    pagination: QueryParamsInterface = Depends(ExportJobQueryParams),
 ) -> PaginatedResponse[ExportJob]:
     result_items = await worker_job_crud.list(
         filter_user_id=current_user.id,
@@ -123,8 +126,9 @@ async def create_export(
     job_id = uuid.uuid4()
     system_job = WorkerJobCreate(
         id=job_id,
-        task=Tasks.EXPORT_STUDY_INTAKES,
-        params={
+        user_id=current_user.id,
+        task=Tasks(Tasks.EXPORT_STUDY_INTAKES).name,
+        task_params={
             "study_id": str(study_access.study.id),
             "format": format,
             "job_id": job_id,
@@ -188,5 +192,14 @@ async def download_export(
             f"User '{current_user.user_name}' requested job with id '{export_job_id}' which belongs to another user. Access was denied, but maybe something fishy is ging on here..."
         )
         raise exception_job_not_existing
-    FileResponse(path=worker_job.result,headers=,media_type=,filename=,content_disposition_type=)
+    media_type = (
+        "text/csv" if worker_job.task_params["format"] == "csv" else "application/json"
+    )
+    FileResponse(
+        path=worker_job.result,
+        # headers="",
+        media_type="media_type",
+        filename=f"medlog_export_{study_access.study.id}_{worker_job.run_started_at}.{worker_job.task_params['format']}",
+        content_disposition_type="attachment",
+    )
     return FileResponse(worker_job.result)

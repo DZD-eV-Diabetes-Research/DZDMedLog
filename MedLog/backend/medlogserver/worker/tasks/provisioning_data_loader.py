@@ -6,6 +6,9 @@ from dataclasses import dataclass
 import yaml
 
 # internal imports
+from medlogserver.worker.task import TaskBase
+from medlogserver.worker.tasks import Tasks
+
 from medlogserver.db.wido_gkv_arzneimittelindex import AiDataVersionCRUD
 from medlogserver.config import Config
 from medlogserver.log import get_logger
@@ -103,18 +106,22 @@ class DataProvisioner:
         raise ValueError(f"Expected '<class {class_path}>'. did not found in {module}")
 
 
-async def load_provisioning_data():
-    log.info("Loading default data...")
-    import __main__
+class TaskLoadProvisioningData(TaskBase):
+    async def work(self):
+        log.info("Loading default data...")
+        import __main__
 
-    root_path = Path(__main__.__file__).parent
-    default_data_yaml_path = Path(
-        PurePath(root_path, Path("../provisioning_data/default_data/default_data.yaml"))
-    )
-    print("default_data_yaml_path", default_data_yaml_path)
-    data_provisioner = DataProvisioner(default_data_yaml_path)
-    await data_provisioner.run()
-    log.info("Try loading base data if configured...")
-    for data_source_file in config.APP_PROVISIONING_DATA_YAML_FILES:
-        data_provisioner = DataProvisioner(data_source_file)
+        root_path = Path(__main__.__file__).parent
+        default_data_yaml_path = Path(
+            PurePath(
+                root_path, Path("../provisioning_data/default_data/default_data.yaml")
+            )
+        )
+        print("default_data_yaml_path", default_data_yaml_path)
+        data_provisioner = DataProvisioner(default_data_yaml_path)
         await data_provisioner.run()
+        log.info("Try loading base data if configured...")
+        for data_source_file in config.APP_PROVISIONING_DATA_YAML_FILES:
+            data_provisioner = DataProvisioner(data_source_file)
+            await data_provisioner.run()
+        return None

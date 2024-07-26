@@ -4,7 +4,8 @@ import json
 import csv
 import uuid
 from pydantic import BaseModel
-
+from medlogserver.worker.task import TaskBase
+from medlogserver.worker.ad_hoc_job_runner import WorkerJob
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db import (
     UserCRUD,
@@ -179,3 +180,24 @@ async def export_study_intake_data(
     result = await exporter.run()
     log.info(f"Exported study data (job_id: {job_id}) to '{export_cache_path}'")
     return result
+
+
+class TaskExportStudyIntakeData(TaskBase):
+    async def work(self, study_id: str):
+        log.info(f"Export study data (job_id: {self.job.id})...")
+        if isinstance(study_id, str):
+            study_id: uuid.UUID = uuid.UUID(study_id)
+
+        export_cache_path = PurePath(
+            config.EXPORT_CACHE_DIR,
+            str(self.job.id),
+            f"export_study_{study_id}.{format}",
+        )
+        exporter = StudyDataExporter(
+            study_id=study_id, format=format, target_file=export_cache_path
+        )
+        result = await exporter.run()
+        log.info(
+            f"Exported study data (job_id: {self.job.id}) to '{export_cache_path}'"
+        )
+        return result
