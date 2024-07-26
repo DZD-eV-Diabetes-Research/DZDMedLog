@@ -3,7 +3,7 @@ import datetime
 
 
 #
-from medlogserver.worker import Tasks, TaskBase
+from medlogserver.worker.task import TaskBase
 from medlogserver.model.user_auth_refresh_token import UserAuthRefreshToken
 from medlogserver.db.user_auth_refresh_token import UserAuthRefreshTokenCRUD
 from medlogserver.db._session import get_async_session_context

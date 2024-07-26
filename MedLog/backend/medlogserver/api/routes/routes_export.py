@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse
 
 import enum
 from fastapi import Depends, APIRouter
-from medlogserver.worker import Tasks
+from medlogserver.worker.tasks import Tasks
 from medlogserver.api.auth.security import (
     user_is_admin,
     user_is_usermanager,
@@ -127,7 +127,7 @@ async def create_export(
     system_job = WorkerJobCreate(
         id=job_id,
         user_id=current_user.id,
-        task=Tasks(Tasks.EXPORT_STUDY_INTAKES).name,
+        task_name=Tasks(Tasks.EXPORT_STUDY_INTAKES).name,
         task_params={
             "study_id": str(study_access.study.id),
             "format": format,

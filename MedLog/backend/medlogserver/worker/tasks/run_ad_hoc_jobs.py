@@ -1,6 +1,7 @@
 from typing import List, Callable, Awaitable, Optional, Type
 import datetime
 import traceback
+import pathlib
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db.worker_job import WorkerJobCRUD
 from medlogserver.model.worker_job import (
@@ -9,7 +10,7 @@ from medlogserver.model.worker_job import (
     WorkerJobUpdate,
     WorkerJobState,
 )
-from medlogserver.worker.tasks import Tasks
+from medlogserver.worker.tasks import Tasks, import_task_class
 from medlogserver.worker.task import TaskBase
 from medlogserver.config import Config
 from medlogserver.log import get_logger
@@ -44,13 +45,6 @@ class WorkerAdHocJobRunner:
             log.error(error, exc_info=True)
             raise error
 
-    async def _update_job(self, job: WorkerJobUpdate | WorkerJob) -> WorkerJob:
-        async with get_async_session_context() as session:
-            async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
-                crud: WorkerJobCRUD = worker_job_crud
-                job = await crud.update(job)
-                return job
-
     async def _get_jobs(
         self, filter_job_state: Optional[WorkerJobState]
     ) -> List[WorkerJob]:
@@ -67,11 +61,12 @@ class WorkerAdHocJobRunner:
     async def _process_jobs(self, jobs: List[WorkerJob]) -> List[WorkerJob]:
         finished_jobs: List[WorkerJob] = []
         for job in jobs:
-            job_task_class: Type[TaskBase] = job.task.value
+            # Type[TaskBase]
+            job_task_class = import_task_class(Tasks[job.task_name])
             job_task = job_task_class(
                 job=job, task_parms=job.task_params, instant_run=False
             )
-            await job_task.start()
+            await job_task.job_start()
         return finished_jobs
 
     async def _tidy_up_old_jobs(self):
@@ -87,7 +82,8 @@ class WorkerAdHocJobRunner:
                 )
                 if job_age.total_seconds() > max_age_sec:
                     log.debug(f"Remove obsolete job {job}")
-                    await job.task.value(
+                    job_task_class = import_task_class(Tasks[job.task_name])
+                    await job_task_class(
                         job=job, task_parms=job.task_params, instant_run=False
                     ).clean_up()
                     await self._delete_job(job)
@@ -100,7 +96,7 @@ class WorkerAdHocJobRunner:
 
 
 class TaskRunAdHocJobs(TaskBase):
-    async def work():
+    async def work(self):
         runner = WorkerAdHocJobRunner(
             delete_finished_jobs_after_n_minutes=config.BACKGROUND_WORKER_TIDY_UP_FINISHED_JOBS_AFTER_N_MIN
         )

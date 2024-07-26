@@ -111,7 +111,7 @@ def start():
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
 
     event_loop.run_until_complete(init_db())
-    if config.BACKGROUND_WORKER_IN_EXTRA_PROCESS:
+    if config.BACKGROUND_WORKER_START_IN_EXTRA_PROCESS:
         # import multiprocessing_logging
         # from medlogserver.log import logger
         # multiprocessing_logging.install_mp_handler(logger)

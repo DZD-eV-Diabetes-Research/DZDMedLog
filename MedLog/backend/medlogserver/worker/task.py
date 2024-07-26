@@ -15,17 +15,26 @@ config = Config()
 class TaskBase:
     def __init__(
         self,
-        job: WorkerJob,
+        job: WorkerJob = None,
         task_params: Dict = None,
         instant_run: bool = False,
     ):
         self.job = job
-        self.task_params = task_params
+        self.task_params = task_params if task_params is not None else {}
         if instant_run:
-            event_loop = asyncio.get_event_loop()
-            event_loop.create_task(self.start())
+            # event_loop = asyncio.get_event_loop() # -> RuntimeError There is no current event loop in thread 'asyncio_0'
+            try:
+                event_loop = asyncio.get_event_loop()
+                event_loop.create_task(self.job_start())
+            except RuntimeError:
+                event_loop = asyncio.new_event_loop()
+                event_loop.run_until_complete(self.job_start())
 
-    async def start(self):
+    async def job_start(self):
+        if self.job is None:
+            raise ValueError(
+                f"Task '{self.__class__.__name__}' can not run in context of a job, as no job was given on initilization."
+            )
         log.info(f"Run job: {self.job}")
         self.job.run_started_at = datetime.datetime.now(tz=datetime.UTC)
         self.job = await self._update_job(self.job)
@@ -33,16 +42,16 @@ class TaskBase:
         result = None
         try:
             result = await self.work(**self.task_params)
-        except Exception as error:
-            log.error(f"Job '{self.job}' failed. Error: {str(error)}", exc_info=True)
+        except Exception as er:
+            log.error(f"Job '{self.job}' failed. Error: {str(er)}", exc_info=True)
             error = repr(traceback.format_exc())
 
-        await self._finish(result, error)
+        await self.job_finish(result, error)
 
     async def work(self):
         raise NotImplementedError()
 
-    async def _finish(self, result: str = None, error: str = None):
+    async def job_finish(self, result: str = None, error: str = None):
         job_update = WorkerJobUpdate(
             id=self.job.id,
             run_finished_at=datetime.datetime.now(tz=datetime.UTC),

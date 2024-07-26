@@ -5,7 +5,6 @@ import csv
 import uuid
 from pydantic import BaseModel
 from medlogserver.worker.task import TaskBase
-from medlogserver.worker.ad_hoc_job_runner import WorkerJob
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db import (
     UserCRUD,

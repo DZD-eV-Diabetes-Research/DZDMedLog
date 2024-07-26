@@ -141,13 +141,13 @@ async def init_drugsearch():
 
 async def provision_drug_data():
     from medlogserver.worker.tasks.wido_gkv_arzneimittelindex_importer import (
-        import_wido_gkv_arzneimittelindex_data,
+        TaskImportGKVArnzeimittelIndexData,
     )
 
     prov_data_dir = Path(config.DRUG_TABLE_PROVISIONING_SOURCE_DIR)
     prov_stamm_path = Path(PurePath(prov_data_dir, "stamm.txt"))
     if prov_stamm_path.exists() and prov_stamm_path.is_file():
-        await import_wido_gkv_arzneimittelindex_data(
+        await TaskImportGKVArnzeimittelIndexData().work(
             source_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR, exist_ok=True
         )
     elif prov_data_dir is not None:
@@ -158,10 +158,10 @@ async def provision_drug_data():
 
 async def provision_base_data():
     from medlogserver.worker.tasks.provisioning_data_loader import (
-        load_provisioning_data,
+        TaskLoadProvisioningData,
     )
 
-    await load_provisioning_data()
+    await TaskLoadProvisioningData().work()
 
 
 async def init_db():

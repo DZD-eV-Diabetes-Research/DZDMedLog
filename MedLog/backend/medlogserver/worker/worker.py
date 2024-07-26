@@ -2,15 +2,17 @@ from typing import List
 import asyncio
 import multiprocessing
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
-from apscheduler.triggers.interval import IntervalTrigger
-from medlogserver.worker.tasks.refresh_token_cleaner import clean_tokens
 
-from medlogserver.config import Config
-from medlogserver.log import get_logger
+from apscheduler.triggers.interval import IntervalTrigger
+
+
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db.worker_job import WorkerJobCRUD
 from medlogserver.model.worker_job import WorkerJob
+from medlogserver.worker.tasks import Tasks, import_task_class
+import threading
+from medlogserver.config import Config
+from medlogserver.log import get_logger
 
 log = get_logger()
 config = Config()
@@ -27,9 +29,15 @@ async def _inital_setup_scheduled_background_tasks(event_loop=None) -> AsyncIOSc
             )
     scheduler = AsyncIOScheduler(event_loop=event_loop)
     for b_job in background_jobs:
+        log.debug(("event_loop", event_loop, "thread", threading.current_thread().name))
+        task_class = import_task_class(Tasks[b_job.task_name].value)
         scheduler.add_job(
-            func=b_job.task,
-            kwargs={"job": b_job, "task_params": {}, "instant_run": True},
+            func=task_class,
+            kwargs={
+                "job": b_job,
+                "task_params": b_job.task_params,
+                "instant_run": True,
+            },
             trigger=IntervalTrigger(**b_job.interval_params),
         )
     return scheduler

@@ -16,7 +16,6 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model._base_model import MedLogBaseModel, BaseTable
 
-from medlogserver.worker.tasks import Tasks
 
 log = get_logger()
 config = Config()
@@ -31,10 +30,11 @@ class WorkerJobState(str, Enum):
 
 class WorkerJobCreate(MedLogBaseModel, table=False):
     id: Optional[uuid.UUID] = Field(
-        description="The job id will be automaticly generated, on the backend. If there is a need to know it inbefore it can be provied here. Otherwise just leave it as `None`."
+        description="The job id will be automaticly generated, on the backend. If there is a need to know it inbefore it can be provied here. Otherwise just leave it as `None`.",
+        default=None,
     )
-    task: Tasks = Field(description="Class that will executed as task.")
-    task_params: Dict = Field(default_factory=dict, sa_column=Column(JSON))
+    task_name: str = Field(description="Class that will executed as task.")
+    task_params: Optional[Dict] = Field(default_factory=dict, sa_column=Column(JSON))
     user_id: Optional[uuid.UUID] = Field(
         foreign_key="user.id",
         description="If Job was triggered by a certain user this should contain the users id, otherwise its a system job.",
@@ -44,7 +44,7 @@ class WorkerJobCreate(MedLogBaseModel, table=False):
         description="A list of strings, can help to categorize, filter and/or find specific jobs or job categories.",
         sa_column=Column(JSON),
     )
-    interval_params: Optional[Dict[str, str]] = Field(
+    interval_params: Optional[Dict[str, int]] = Field(
         description="If the task needs to rerun in an interval define dictonary of apscheduler params as strings (https://apscheduler.readthedocs.io/en/3.x/modules/triggers/interval.html#module-apscheduler.triggers.interval). If nothing is set the task will runce once and the job will be cleaned up.",
         default=None,
         sa_column=Column(JSON),
