@@ -1,29 +1,24 @@
 <template>
   <Layout>
-    <UCommandPalette
-    v-model="selected"
-    nullable
-    :autoselect="false"
-    :groups="[{ key: 'people', commands: people }]"
-    :fuse="{ resultLimit: 6, fuseOptions: { threshold: 0.1 } }"
-  />
-  {{selected}}
+    <br>
+    <UInput v-model="value" label="eng"/>
+    <button @click="test(value, null)">eng</button>
+    <button @click="test(null, value)">de</button>
+    {{result}}
 </Layout>
 </template>
 
-<script setup>
-const people = [
-  { id: 1, label: 'Wade Cooper' },
-  { id: 2, label: 'Arlene Mccoy' },
-  { id: 3, label: 'Devon Webb' },
-  { id: 4, label: 'Tom Cook' },
-  { id: 5, label: 'Tanya Fox' },
-  { id: 6, label: 'Hellen Schmidt' },
-  { id: 7, label: 'Caroline Schultz' },
-  { id: 8, label: 'Mason Heaney' },
-  { id: 9, label: 'Claudie Smitham' },
-  { id: 10, label: 'Emil Schaefer' }
-]
+<script setup lang="ts">
 
-const selected = ref()
+  const value = ref('')
+  const result = ref()
+
+  async function test(eng=null, de=null) {
+    if (eng !== null){
+    result.value = useDrugSourceTranslator(value.value, null)
+    } else 
+    {
+      result.value = useDrugSourceTranslator(null, value.value)
+    }
+  }
 </script>
