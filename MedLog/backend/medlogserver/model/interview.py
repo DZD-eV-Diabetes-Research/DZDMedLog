@@ -62,3 +62,8 @@ class Interview(InterviewCreate, BaseTable, table=True):
         unique=True,
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
+
+
+class InterviewExport(Interview, table=False):
+    created_at: datetime = Field(exclude=True)
+    event_id: uuid.UUID = Field(foreign_key="event.id", exclude=True)

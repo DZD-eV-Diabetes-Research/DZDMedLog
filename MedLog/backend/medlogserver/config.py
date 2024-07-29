@@ -92,13 +92,14 @@ class Config(BaseSettings):
     ADMIN_USER_EMAIL: Optional[str] = Field(default=None)
     ADMIN_ROLE_NAME: str = Field(default="medlog-admin")
     USERMANAGER_ROLE_NAME: str = Field(default="medlog-user-manager")
-    BACKGROUND_WORKER_IN_EXTRA_PROCESS: bool = Field(
+    BACKGROUND_WORKER_START_IN_EXTRA_PROCESS: bool = Field(
         default=True,
         description="If set to True the background service will start in an extra Process next to the webserver. If set to False, the backgroundworker will not run. You have to setup an extra instance of the worker.",
     )
     BACKGROUND_WORKER_TIDY_UP_FINISHED_JOBS_AFTER_N_MIN: Optional[int] = Field(
         description="Jobs like the import of new Arzneimitteldata, are queued in the database. For debuging porposes you might want to keep the job info in the queue table for a while. If set to 'None', finished jobs will remain in the DB forever.",
-        default=60 * 24 * 7,
+        # default=60 * 24 * 1,
+        default=1,
     )
     APP_PROVISIONING_DATA_YAML_FILES: Optional[List[str]] = Field(
         default_factory=list,
@@ -255,8 +256,14 @@ class Config(BaseSettings):
         default="GKV_AI_StammPlus/202301",
     )
 
+    EXPORT_CACHE_DIR: str = Field(
+        default="./export_cache",
+        description="The directory to store the result of export jobs (CSV files, JSON files,...).",
+    )
+
     ###### CONFIG END ######
-    # class Config is a pydantic-settings pre-defined config class to control the behaviour of our settings model
+    # "class Config:" is a pydantic-settings pre-defined config class to control the behaviour of our settings model
+    # you could call it a "meta config" class
     # if you dont know what this is you can ignore it.
     # https://docs.pydantic.dev/latest/api/base_model/#pydantic.main.BaseModel.model_config
 

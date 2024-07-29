@@ -135,7 +135,7 @@ async def list_users(
     description="Get account data from the current user",
 )
 async def get_myself(
-    current_user: UserAuthCRUD = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> User:
     return current_user
 

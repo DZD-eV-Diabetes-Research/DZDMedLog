@@ -45,6 +45,20 @@ def start_worker():
     pass
 
 
+def test_exporter():
+    from medlogserver.worker.tasks.export_study_data import StudyDataExporter
+    import uuid
+
+    ex = StudyDataExporter(
+        study_id=uuid.UUID("b6f2c61b-d388-4412-8c9a-461ece251116"),
+        format_="csv",
+        target_file="./export.csv",
+    )
+    event_loop = asyncio.get_event_loop()
+    res = event_loop.run_until_complete(ex.run())
+    print(res)
+
+
 def start():
     import medlogserver
     from medlogserver.config import Config
@@ -66,7 +80,8 @@ def start():
     log.debug("----CONFIG-----")
     log.debug(yaml.dump(json.loads(config.model_dump_json()), sort_keys=False))
     log.debug("----CONFIG-END-----")
-
+    # test_exporter()
+    # exit()
     print(f"LOG_LEVEL: {config.LOG_LEVEL}")
     print(f"UVICORN_LOG_LEVEL: {get_uvicorn_loglevel()}")
 
@@ -96,7 +111,7 @@ def start():
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
 
     event_loop.run_until_complete(init_db())
-    if config.BACKGROUND_WORKER_IN_EXTRA_PROCESS:
+    if config.BACKGROUND_WORKER_START_IN_EXTRA_PROCESS:
         # import multiprocessing_logging
         # from medlogserver.log import logger
         # multiprocessing_logging.install_mp_handler(logger)

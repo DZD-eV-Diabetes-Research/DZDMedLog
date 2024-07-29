@@ -58,7 +58,7 @@ class EventCRUD(
     ) -> Sequence[Event]:
         if isinstance(filter_study_id, str):
             filter_study_id: UUID = UUID(filter_study_id)
-        log.info(f"Event.Config.order_by {Event.Config.order_by}")
+        # log.info(f"Event.Config.order_by {Event.Config.order_by}")
         query = select(Event)
         if filter_study_id:
             # query = query.where(Event.study_id == prep_uuid_for_qry(filter_study_id))
@@ -67,7 +67,7 @@ class EventCRUD(
             query = query.where(Event.completed == True)
         if pagination:
             query = pagination.append_to_query(query)
-        log.debug(f"List Event query: {query}")
+        # log.debug(f"List Event query: {query}")
         results = await self.session.exec(statement=query)
         return results.all()
 
