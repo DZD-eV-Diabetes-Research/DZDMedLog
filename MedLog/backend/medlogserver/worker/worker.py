@@ -28,9 +28,13 @@ async def _inital_setup_scheduled_background_tasks(event_loop=None) -> AsyncIOSc
                 filter_intervalled_job=True
             )
     scheduler = AsyncIOScheduler(event_loop=event_loop)
+    log.debug(f"Register background job: {background_jobs}")
     for b_job in background_jobs:
         log.debug(("event_loop", event_loop, "thread", threading.current_thread().name))
         task_class = import_task_class(Tasks[b_job.task_name].value)
+        log.info(
+            f"Add Scheduled job {task_class} with intervall {b_job.interval_params}"
+        )
         scheduler.add_job(
             func=task_class,
             kwargs={

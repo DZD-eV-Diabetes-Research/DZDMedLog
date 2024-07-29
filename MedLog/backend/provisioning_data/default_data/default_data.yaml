@@ -10,13 +10,13 @@ items:
         task_name: CLEAN_TOKENS
         task_params: null
         user_id: null
-        tags: ["background"]
+        tags: ["background-job"]
         interval_params:
           minutes: 1
       - id: dc2c3027-3609-4217-aa10-97ad453d7ebc
         task_name: RUN_ADHOC_JOBS
         task_params: null
         user_id: null
-        tags: ["background"]
+        tags: ["background-job"]
         interval_params:
           seconds: 10

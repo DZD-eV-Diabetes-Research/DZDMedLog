@@ -65,11 +65,16 @@ class ExportJob(BaseModel):
 
     @classmethod
     def from_worker_job(cls, job: WorkerJob):
-        return ExportJob(
+        export_job = ExportJob(
             export_id=job.id,
-            state=job.state,
+            state=job.get_state(),
             created_at=job.created_at,
         )
+        if job.get_state() == WorkerJobState.SUCCESS:
+            export_job.download_file_path = (
+                f"study/{job.task_params['study_id']}/export/{job.id}/download"
+            )
+        return export_job
 
 
 ExportJobQueryParams: Type[QueryParamsInterface] = create_query_params_class(
@@ -95,11 +100,10 @@ async def list_export_jobs(
         filter_job_state=filter_job_state,
         pagination=pagination,
     )
-    total_count = worker_job_crud.count(
+    total_count = await worker_job_crud.count(
         filter_user_id=current_user.id,
         filter_tags=["export", str(study_access.study.id)],
         filter_job_state=filter_job_state,
-        pagination=pagination,
     )
     export_jobs: List[ExportJob] = []
     for job in result_items:
@@ -130,8 +134,7 @@ async def create_export(
         task_name=Tasks(Tasks.EXPORT_STUDY_INTAKES).name,
         task_params={
             "study_id": str(study_access.study.id),
-            "format": format,
-            "job_id": job_id,
+            "format_": format,
         },
         tags=["export", str(study_access.study.id)],
     )
@@ -164,10 +167,6 @@ async def get_export(
         raise exception_job_not_existing
 
     export_job = ExportJob.from_worker_job(worker_job)
-    if worker_job.state == WorkerJobState.SUCCESS:
-        export_job.download_file_path = (
-            f"study/{study_access.study.id}/export/{export_job_id}/download"
-        )
 
 
 @fast_api_export_router.get(
@@ -193,13 +192,13 @@ async def download_export(
         )
         raise exception_job_not_existing
     media_type = (
-        "text/csv" if worker_job.task_params["format"] == "csv" else "application/json"
+        "text/csv" if worker_job.task_params["format_"] == "csv" else "application/json"
     )
     FileResponse(
-        path=worker_job.result,
+        path=worker_job.last_result,
         # headers="",
         media_type="media_type",
-        filename=f"medlog_export_{study_access.study.id}_{worker_job.run_started_at}.{worker_job.task_params['format']}",
+        filename=f"medlog_export_{study_access.study.id}_{worker_job.run_started_at}.{worker_job.task_params['format_']}",
         content_disposition_type="attachment",
     )
-    return FileResponse(worker_job.result)
+    return FileResponse(worker_job.last_result)

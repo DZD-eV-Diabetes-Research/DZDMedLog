@@ -41,11 +41,12 @@ class TaskBase:
         error = None
         result = None
         try:
+            log.debug(f"self.task_params: {self.task_params}")
             result = await self.work(**self.task_params)
         except Exception as er:
             log.error(f"Job '{self.job}' failed. Error: {str(er)}", exc_info=True)
             error = repr(traceback.format_exc())
-
+        log.debug(f"RESULT {self}: {result}")
         await self.job_finish(result, error)
 
     async def work(self):
@@ -55,8 +56,8 @@ class TaskBase:
         job_update = WorkerJobUpdate(
             id=self.job.id,
             run_finished_at=datetime.datetime.now(tz=datetime.UTC),
-            result=result,
-            error=error,
+            last_result=result,
+            last_error=error,
         )
         await self._update_job(job_update)
 

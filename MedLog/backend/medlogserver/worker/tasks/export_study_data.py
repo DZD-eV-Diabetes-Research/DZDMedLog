@@ -70,10 +70,10 @@ class ExportDataContainer(BaseModel):
 
 class StudyDataExporter:
     def __init__(
-        self, study_id: uuid.UUID, format: Literal["csv", "json"], target_file: Path
+        self, study_id: uuid.UUID, format_: Literal["csv", "json"], target_file: Path
     ):
         self.study_id = study_id
-        self.format = format
+        self.format = format_
         self.target_file = target_file
         self.events: List[Event] = []
         self.interviews: List[Interview] = []
@@ -84,6 +84,7 @@ class StudyDataExporter:
 
     async def export_data_and_write_to_file(self) -> Path:
         data = await self._gather_export_data()
+        Path(self.target_file.parent).mkdir(parents=True, exist_ok=True)
         if self.format == "json":
             export = []
             for container_obj in data:
@@ -174,7 +175,7 @@ async def export_study_intake_data(
         config.EXPORT_CACHE_DIR, str(job_id), f"export_study_{study_id}.{format}"
     )
     exporter = StudyDataExporter(
-        study_id=study_id, format=format, target_file=export_cache_path
+        study_id=study_id, format_=format, target_file=export_cache_path
     )
     result = await exporter.run()
     log.info(f"Exported study data (job_id: {job_id}) to '{export_cache_path}'")
@@ -182,7 +183,8 @@ async def export_study_intake_data(
 
 
 class TaskExportStudyIntakeData(TaskBase):
-    async def work(self, study_id: str):
+
+    async def work(self, study_id: str | uuid.UUID, format_: str):
         log.info(f"Export study data (job_id: {self.job.id})...")
         if isinstance(study_id, str):
             study_id: uuid.UUID = uuid.UUID(study_id)
@@ -190,10 +192,10 @@ class TaskExportStudyIntakeData(TaskBase):
         export_cache_path = PurePath(
             config.EXPORT_CACHE_DIR,
             str(self.job.id),
-            f"export_study_{study_id}.{format}",
+            f"export_study_{study_id}.{format_}",
         )
         exporter = StudyDataExporter(
-            study_id=study_id, format=format, target_file=export_cache_path
+            study_id=study_id, format_=format_, target_file=export_cache_path
         )
         result = await exporter.run()
         log.info(

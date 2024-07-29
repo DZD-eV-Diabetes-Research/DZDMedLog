@@ -256,7 +256,7 @@ class Config(BaseSettings):
     )
 
     EXPORT_CACHE_DIR: str = Field(
-        default="../export_cache",
+        default="./export_cache",
         description="The directory to store the result of export jobs (CSV files, JSON files,...).",
     )
 

@@ -8,10 +8,10 @@ from typing import (
     Dict,
     TYPE_CHECKING,
 )
-from sqlmodel import Field, Column, JSON
+from sqlmodel import Field, Column, JSON, Enum
 import datetime
 import uuid
-from enum import Enum
+import enum
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model._base_model import MedLogBaseModel, BaseTable
@@ -21,7 +21,7 @@ log = get_logger()
 config = Config()
 
 
-class WorkerJobState(str, Enum):
+class WorkerJobState(str, enum.Enum):
     QUEUED = "queued"
     RUNNING = "running"
     FAILED = "failed"
@@ -34,7 +34,10 @@ class WorkerJobCreate(MedLogBaseModel, table=False):
         default=None,
     )
     task_name: str = Field(description="Class that will executed as task.")
-    task_params: Optional[Dict] = Field(default_factory=dict, sa_column=Column(JSON))
+    task_params: Optional[Dict] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON),
+    )
     user_id: Optional[uuid.UUID] = Field(
         foreign_key="user.id",
         description="If Job was triggered by a certain user this should contain the users id, otherwise its a system job.",
@@ -57,8 +60,8 @@ class WorkerJobUpdate(MedLogBaseModel, table=False):
     )
     run_started_at: Optional[datetime.datetime] = None
     run_finished_at: Optional[datetime.datetime] = None
-    error: Optional[str] = None
-    result: Optional[str] = None
+    last_error: Optional[str] = None
+    last_result: Optional[str] = None
 
 
 class WorkerJob(WorkerJobCreate, WorkerJobUpdate, BaseTable, table=True):
@@ -72,9 +75,8 @@ class WorkerJob(WorkerJobCreate, WorkerJobUpdate, BaseTable, table=True):
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
 
-    @property
-    def state(self) -> WorkerJobState:
-        if self.error is not None:
+    def get_state(self) -> WorkerJobState:
+        if self.last_error is not None:
             return WorkerJobState.FAILED
         elif self.run_started_at is None and self.run_finished_at is None:
             return WorkerJobState.QUEUED

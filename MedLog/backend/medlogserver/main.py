@@ -51,7 +51,7 @@ def test_exporter():
 
     ex = StudyDataExporter(
         study_id=uuid.UUID("b6f2c61b-d388-4412-8c9a-461ece251116"),
-        format="csv",
+        format_="csv",
         target_file="./export.csv",
     )
     event_loop = asyncio.get_event_loop()

@@ -39,7 +39,7 @@ class WorkerAdHocJobRunner:
             finished_jobs = await self._process_jobs(queued_jobs)
             await self._tidy_up_old_jobs()
             log.debug("...finished background adhoc job runner.")
-            return finished_jobs
+            return f"Jobs that did run {finished_jobs}"
         except Exception as error:
             # Lost some error raises. lets log explicit. To be investigated what happend here...
             log.error(error, exc_info=True)
@@ -62,11 +62,13 @@ class WorkerAdHocJobRunner:
         finished_jobs: List[WorkerJob] = []
         for job in jobs:
             # Type[TaskBase]
-            job_task_class = import_task_class(Tasks[job.task_name])
+            log.info(f"Run adhoc job {job.task_name}...")
+            job_task_class = import_task_class(Tasks[job.task_name].value)
             job_task = job_task_class(
-                job=job, task_parms=job.task_params, instant_run=False
+                job=job, task_params=job.task_params, instant_run=False
             )
             await job_task.job_start()
+            log.info(f"Adhoc Job {job.task_name} done.")
         return finished_jobs
 
     async def _tidy_up_old_jobs(self):
@@ -77,6 +79,11 @@ class WorkerAdHocJobRunner:
                 filter_job_state=WorkerJobState.SUCCESS
             )
             for job in failed_jobs + succeeded_jobs:
+                # HOTFIX: sqlite doesnot support timezone aware dates(?)
+                if job.run_finished_at.tzinfo is None:
+                    job.run_finished_at = job.run_finished_at.replace(
+                        tzinfo=datetime.UTC
+                    )
                 job_age: datetime.timedelta = (
                     datetime.datetime.now(tz=datetime.UTC) - job.run_finished_at
                 )

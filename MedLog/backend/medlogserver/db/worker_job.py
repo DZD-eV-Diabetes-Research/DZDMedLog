@@ -6,6 +6,7 @@ import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, col, func
+from sqlalchemy.sql.operators import is_, is_not, or_, and_
 
 import uuid
 from uuid import UUID
@@ -44,6 +45,9 @@ class WorkerJobCRUD(
         hide_user_jobs: bool = False,
         pagination: QueryParamsInterface = None,
     ) -> Sequence[WorkerJob]:
+        log.debug(
+            f"filter_user_id: {filter_user_id}\nfilter_job_state: {filter_job_state}\nfilter_tags: {filter_tags}\nfilter_intervalled_job: {filter_intervalled_job}\nhide_user_jobs: {hide_user_jobs}\n"
+        )
         if filter_tags is None:
             filter_tags = []
         if isinstance(filter_user_id, str):
@@ -53,46 +57,55 @@ class WorkerJobCRUD(
         if filter_user_id:
             # query = query.where(Event.study_id == prep_uuid_for_qry(filter_study_id))
             query = query.where(WorkerJob.user_id == filter_user_id)
-        if filter_job_state:
-            query = query.where(WorkerJob.state == filter_job_state)
         if hide_user_jobs:
-            query = query.where(WorkerJob.user_id is None)
+            query = query.where(is_(WorkerJob.user_id, None))
         for f_tag in filter_tags:
             query = query.filter(col(WorkerJob.tags).contains(f_tag))
         if pagination:
             query = pagination.append_to_query(query)
         if filter_intervalled_job is not None:
             if filter_intervalled_job == True:
-                query = query.where(WorkerJob.interval_params != None)
+                query = query.where(
+                    and_(
+                        is_not(WorkerJob.interval_params, None),
+                        is_not(WorkerJob.interval_params, "null"),
+                    )
+                )
             elif filter_intervalled_job == False:
-                query = query.where(WorkerJob.interval_params == None)
-
+                query = query.where(
+                    or_(
+                        is_(WorkerJob.interval_params, None),
+                        is_(WorkerJob.interval_params, "null"),
+                    )
+                )
         print("list_job_query", query)
 
         # log.debug(f"List Event query: {query}")
         results = await self.session.exec(statement=query)
-        return results.all()
+
+        if filter_job_state is not None:
+            result_objs = [
+                o for o in results.all() if o.get_state() == filter_job_state
+            ]
+        else:
+            result_objs = results.all()
+        print("list_job_query_result_obj", result_objs)
+        return result_objs
 
     async def count(
         self,
         filter_user_id: Optional[UUID] = None,
         filter_job_state: Optional[WorkerJobState] = None,
         filter_tags: Optional[List[str]] = None,
+        filter_intervalled_job: Optional[bool] = None,
         hide_user_jobs: bool = False,
     ) -> Sequence[WorkerJob]:
-        if isinstance(filter_user_id, str):
-            filter_user_id: UUID = UUID(filter_user_id)
-        # log.info(f"Event.Config.order_by {Event.Config.order_by}")
-        query = select(func.count()).select_from(WorkerJob)
-        if filter_user_id:
-            # query = query.where(Event.study_id == prep_uuid_for_qry(filter_study_id))
-            query = query.where(WorkerJob.user_id == filter_user_id)
-        if filter_job_state:
-            query = query.where(WorkerJob.state == filter_job_state)
-        if hide_user_jobs:
-            query = query.where(WorkerJob.user_id is None)
-        for f_tag in filter_tags:
-            query = query.filter(col(WorkerJob.tags).contains(f_tag))
-        # log.debug(f"List Event query: {query}")
-        results = await self.session.exec(statement=query)
-        return results.first()
+        return len(
+            await self.list(
+                filter_user_id=filter_user_id,
+                filter_job_state=filter_job_state,
+                filter_tags=filter_tags,
+                filter_intervalled_job=filter_intervalled_job,
+                hide_user_jobs=hide_user_jobs,
+            )
+        )

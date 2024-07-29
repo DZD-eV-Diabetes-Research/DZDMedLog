@@ -365,3 +365,4 @@ yarn-error.log*
 dist
 local.sqlite-journal
 export.csv
+export_cache/
