@@ -89,9 +89,9 @@ class WorkerAdHocJobRunner:
                 )
                 if job_age.total_seconds() > max_age_sec:
                     log.debug(f"Remove obsolete job {job}")
-                    job_task_class = import_task_class(Tasks[job.task_name])
+                    job_task_class = import_task_class(Tasks[job.task_name].value)
                     await job_task_class(
-                        job=job, task_parms=job.task_params, instant_run=False
+                        job=job, task_params=job.task_params, instant_run=False
                     ).clean_up()
                     await self._delete_job(job)
 

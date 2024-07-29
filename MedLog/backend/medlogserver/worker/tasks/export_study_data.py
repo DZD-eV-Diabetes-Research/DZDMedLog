@@ -1,6 +1,7 @@
 from typing import Literal, Dict, List, Any
 from pathlib import Path, PurePath
 import json
+import shutil
 import csv
 import uuid
 from pydantic import BaseModel
@@ -202,3 +203,15 @@ class TaskExportStudyIntakeData(TaskBase):
             f"Exported study data (job_id: {self.job.id}) to '{export_cache_path}'"
         )
         return result
+
+    async def clean_up(self):
+        # delete export result file.
+        # to be sure there is no falsy path in the job.last_result field and we accidentaly delete something outside of the cache dir
+        # lets check if the last_result field.
+        if (
+            self.job.last_result is not None
+            or self.job.last_result != ""
+            and Path(config.EXPORT_CACHE_DIR) in Path(self.job.last_result)
+            and Path(self.job.last_result).exists()
+        ):
+            shutil.rmtree(Path(self.job.last_result).parent)
