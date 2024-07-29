@@ -8,12 +8,12 @@
         :color="props.color"
       />
     </UFormGroup>
-    <div v-if="isLoading && props.edit">
+    <div v-if="isLoading && props.edit && !props.custom">
       <br />
       <UProgress animation="elastic" color="blue" />
       <br />
     </div>
-    <div v-else>
+    <div>
       <div v-if="drugList.items.length > 0">
         <ul>
           <li
@@ -56,17 +56,18 @@
         v-if="drugList.count == 0 && state.drug.length >= 3"
         style="text-align: center"
       >
-        <div v-if="!props.custom">
-        <h4>Es konnte kein Medikament zu folgender Eingabe gefunden werden:</h4>
-        <h3>{{ state.drug }}</h3>
+        <div v-if="!initialLoad">
+          <h4>
+            Es konnte kein Medikament zu folgender Eingabe gefunden werden:
+          </h4>
+          <h3>{{ state.drug }}</h3>
         </div>
       </div>
       <div v-if="props.custom && !drugStore.item">
-            <h4>Custom Medikament</h4>
-            <h3>{{customDrug}}</h3>
-        </div>
+        <h4>Custom Medikament</h4>
+        <h3>{{ customDrug }}</h3>
+      </div>
     </div>
-
   </UIBaseCard>
 </template>
 
@@ -91,14 +92,13 @@ const drugList = reactive({
 
 const isLoading = ref(true);
 const initialLoad = ref(true);
-const customDrug = ref()
+const customDrug = ref();
 
 const fetchDrugs = async (edit: boolean, custom: boolean) => {
   if (props.custom && initialLoad.value) {
-    isLoading.value = false
-    initialLoad.value = false
+    initialLoad.value = false;
     customDrug.value = state.drug;
-    state.drug = ""
+    state.drug = "";
     return;
   } else {
     if (state.drug.length >= 3) {
@@ -110,13 +110,14 @@ const fetchDrugs = async (edit: boolean, custom: boolean) => {
             headers: { Authorization: "Bearer " + tokenStore.access_token },
           }
         );
-
         if (!response.ok) throw new Error("Failed to fetch");
         const data = await response.json();
-        if (edit && !custom && initialLoad.value) {
+
+        if (props.edit && initialLoad.value) {
           printMedication(data.items[0]);
-          isLoading.value = false;
+          state.drug = ""
           initialLoad.value = false;
+          isLoading.value = false;
           return;
         }
         drugList.items = data.items || [];
@@ -169,7 +170,9 @@ watch(
   (newDrug) => {
     if (newDrug) {
       state.drug = newDrug;
-      fetchDrugs();
+      if (!initialLoad.value) {
+        fetchDrugs();
+      }
     }
   },
   { immediate: true }

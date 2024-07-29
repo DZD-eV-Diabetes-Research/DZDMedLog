@@ -24,7 +24,7 @@ export default function (eng:string|null = null, de:string|null = null) {
   ]
 
   if (eng === null && de === null) {
-    return null
+    return ""
   }
 
   if (eng !== null){    
