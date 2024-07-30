@@ -108,10 +108,8 @@ class DrugCRUDBase(
             query = query.where(self.table.ai_dataversion_id == current_ai_version.id)
         if pagination:
             query = pagination.append_to_query(query)
-        print("###QUERY", query)
         results = await self.session.exec(statement=query)
         res = results.all()
-        print("results.all()", res)
         return res
 
     async def get(

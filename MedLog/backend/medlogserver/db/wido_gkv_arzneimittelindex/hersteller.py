@@ -56,8 +56,6 @@ class HerstellerCRUD(
         if pagination:
             query = pagination.append_to_query(query)
 
-        print("###QUERY", query)
         results = await self.session.exec(statement=query)
         res = results.all()
-        print("results.all()", res)
         return res

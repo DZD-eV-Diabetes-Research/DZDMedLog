@@ -60,17 +60,6 @@ def val_means_true(s: int | str | bool) -> bool:
     return False
 
 
-def prep_uuid_for_qry(uuid_: str | uuid.UUID) -> str:
-    # hotfix for https://stackoverflow.com/questions/46377715/sqlalchemy-query-filter-does-not-work
-    # find better solution.
-    if isinstance(uuid_, str):
-        return uuid.UUID(uuid_).hex
-    elif isinstance(uuid_, uuid.UUID):
-        return uuid_.hex
-    else:
-        raise ValueError(f"Expected {uuid.UUID} or {str}. got: {type(uuid_)}")
-
-
 def set_version_file(base_dir=Path("./")) -> Path:
     import medlogserver
     from importlib import reload

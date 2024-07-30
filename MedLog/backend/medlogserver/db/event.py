@@ -61,7 +61,6 @@ class EventCRUD(
         # log.info(f"Event.Config.order_by {Event.Config.order_by}")
         query = select(Event)
         if filter_study_id:
-            # query = query.where(Event.study_id == prep_uuid_for_qry(filter_study_id))
             query = query.where(Event.study_id == filter_study_id)
         if hide_completed:
             query = query.where(Event.completed == True)
@@ -89,7 +88,6 @@ class EventCRUD(
         )
 
         if filter_study_id:
-            # query = query.where(Event.study_id == prep_uuid_for_qry(filter_study_id))
             query = query.where(Event.study_id == filter_study_id)
         if hide_completed:
             query = query.where(Event.completed == True)

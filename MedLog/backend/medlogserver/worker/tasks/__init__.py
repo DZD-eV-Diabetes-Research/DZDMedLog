@@ -32,6 +32,5 @@ from typing import Type
 
 
 def import_task_class(class_path: str) -> Type[TaskBase]:
-    print("class_path", class_path)
     module = importlib.import_module(Path(class_path).stem)
     return getattr(module, Path(class_path).suffix.lstrip("."))

@@ -41,10 +41,6 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
 
 
-def start_worker():
-    pass
-
-
 def test_exporter():
     from medlogserver.worker.tasks.export_study_data import StudyDataExporter
     import uuid

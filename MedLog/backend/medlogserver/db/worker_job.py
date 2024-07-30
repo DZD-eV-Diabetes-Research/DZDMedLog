@@ -55,7 +55,6 @@ class WorkerJobCRUD(
         # log.info(f"Event.Config.order_by {Event.Config.order_by}")
         query = select(WorkerJob)
         if filter_user_id:
-            # query = query.where(Event.study_id == prep_uuid_for_qry(filter_study_id))
             query = query.where(WorkerJob.user_id == filter_user_id)
         if hide_user_jobs:
             query = query.where(is_(WorkerJob.user_id, None))
@@ -78,7 +77,7 @@ class WorkerJobCRUD(
                         is_(WorkerJob.interval_params, "null"),
                     )
                 )
-        print("list_job_query", query)
+        # print("list_job_query", query)
 
         # log.debug(f"List Event query: {query}")
         results = await self.session.exec(statement=query)
@@ -89,7 +88,7 @@ class WorkerJobCRUD(
             ]
         else:
             result_objs = results.all()
-        print("list_job_query_result_obj", result_objs)
+        # print("list_job_query_result_obj", result_objs)
         return result_objs
 
     async def count(

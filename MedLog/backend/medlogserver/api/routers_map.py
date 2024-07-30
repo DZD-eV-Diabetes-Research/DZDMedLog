@@ -37,7 +37,7 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
 
     fastapi_app.include_router(fast_api_study_router, tags=["Study"])
 
-    from api.routes.routes_study_permission import (
+    from medlogserver.api.routes.routes_study_permission import (
         fast_api_permissions_router,
     )
 
@@ -53,13 +53,13 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
 
     fastapi_app.include_router(fast_api_interview_router, tags=["Interview"])
 
-    from api.routes.routes_intake import (
+    from medlogserver.api.routes.routes_intake import (
         fast_api_intake_router,
     )
 
     fastapi_app.include_router(fast_api_intake_router, tags=["Intake"])
 
-    from api.routes.routes_drug import (
+    from medlogserver.api.routes.routes_drug import (
         fast_api_drug_router,
     )
 

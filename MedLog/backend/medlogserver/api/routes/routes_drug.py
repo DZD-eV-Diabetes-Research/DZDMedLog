@@ -261,7 +261,7 @@ async def list_applikationsforms(
     pagination: QueryParamsInterface = Depends(ApplikationsformQueryParams),
 ) -> PaginatedResponse[Applikationsform]:
     res = await crud.list(pagination=pagination)
-    print("API RES", res)
+    # print("API RES", res)
     return PaginatedResponse(
         total_count=await crud.count(),
         offset=pagination.offset,
