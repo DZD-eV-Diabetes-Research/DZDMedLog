@@ -98,8 +98,8 @@ class Config(BaseSettings):
     )
     BACKGROUND_WORKER_TIDY_UP_FINISHED_JOBS_AFTER_N_MIN: Optional[int] = Field(
         description="Jobs like the import of new Arzneimitteldata, are queued in the database. For debuging porposes you might want to keep the job info in the queue table for a while. If set to 'None', finished jobs will remain in the DB forever.",
-        # default=60 * 24 * 1,
-        default=1,
+        default=60 * 24 * 1,
+        # default=1,
     )
     APP_PROVISIONING_DATA_YAML_FILES: Optional[List[str]] = Field(
         default_factory=list,
