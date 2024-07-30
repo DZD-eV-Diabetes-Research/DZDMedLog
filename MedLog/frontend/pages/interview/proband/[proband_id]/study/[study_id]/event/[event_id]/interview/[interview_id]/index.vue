@@ -9,13 +9,10 @@
         style="margin-right: 10px"
         class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
       />
-      <!-- <UButton v-if="tableContent.length == 0" @click="openIntakeForm()" label="Medikamente übernehmen"
-                color="blue" variant="soft" style="margin-left: 10px;"
-                class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" /> -->
     </UIBaseCard>
     <div v-if="showIntakeForm">
       <UIBaseCard>
-          <IntakeQuestion/>
+        <IntakeQuestion />
         <p v-if="!drugChosen" style="text-align: center; color: red">
           Ein Medikament muss ausgewählt werden
         </p>
@@ -271,12 +268,23 @@
     <UModal v-model="editModalVisibility" @close="drugStore.$reset()">
       <div class="p-4">
         <div style="text-align: center">
-          <IntakeQuestion :drug="toEditDrug" :edit="true" :custom="customDrug" color="blue"/>
+          <IntakeQuestion
+            :drug="toEditDrug"
+            :edit="true"
+            :custom="customDrug"
+            color="blue"
+          />
           <div v-if="drugStore.item">
             <br />
             <p>Medikament: {{ drugStore.item.item.name }}</p>
             <p>PZN: {{ drugStore.item.pzn }}</p>
             <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
+            <p>
+              Darreichungsform: {{ drugStore.item.item.darrform_ref.bedeutung }}
+            </p>
+            <p>
+              Applikationsform: {{ drugStore.item.item.appform_ref.bedeutung }}
+            </p>
           </div>
           <UForm
             @submit="editEntry"
@@ -284,27 +292,62 @@
             :schema="editSchema"
             class="space-y-4"
           >
-            <UFormGroup label="Dosis" style="border-color: red">
-              <UInput
-                type="number"
-                v-model="editState.dose"
-                name="editState.dose"
+            <div style="padding-top: 2.5%">
+              <UFormGroup label="Quelle der Arzneimittelangabe">
+                <USelect
+                  v-model="editState.source"
+                  :options="sourceItems"
+                  color="blue"
+                />
+              </UFormGroup>
+            </div>
+            <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?">
+              <USelect
+                v-model="selectedFrequency"
+                :options="frequency"
                 color="blue"
               />
             </UFormGroup>
-            <UFormGroup label="Einnahme (Datum)">
-              <UInput
-                type="date"
-                v-model="editState.startTime"
-                name="startTime"
-                color="blue"
-              />
-            </UFormGroup>
+            <div class="flex-container">
+              <UFormGroup
+                label="Dosis pro Einnahme"
+                style="border-color: red"
+                name="dose"
+              >
+                <UInput
+                  type="number"
+                  v-model="editState.dose"
+                  :disabled="selectedFrequency !== 'regelmäßig'"
+                  :color="selectedFrequency !== 'regelmäßig' ? 'gray' : 'blue'"
+                />
+              </UFormGroup>
+              <UFormGroup label="Intervall der Tagesdosen">
+                <USelect
+                  v-model="editState.intervall"
+                  :options="intervallOfDose"
+                  :disabled="selectedFrequency !== 'regelmäßig'"
+                  :color="selectedFrequency !== 'regelmäßig' ? 'gray' : 'blue'"
+                />
+              </UFormGroup>
+            </div>
+            <div class="flex-container">
+              <UFormGroup label="Einnahme Beginn (Datum)" name="startTime">
+                <UInput
+                  type="date"
+                  v-model="editState.startTime"
+                  color="blue"
+                />
+              </UFormGroup>
+              <UFormGroup label="Einnahme Ende (Datum)" name="endTime">
+                <UInput type="date" v-model="editState.endTime" color="blue" />
+              </UFormGroup>
+            </div>
             <URadioGroup
               v-model="editState.selected"
               legend="Wurden heute Medikamente eingenommen?"
               name="selected"
-              :options="editOptions"
+              color="blue"
+              :options="options"
             />
             <UButton
               type="submit"
@@ -347,7 +390,7 @@ const state = reactive({
   selected: "Yes",
   startTime: dayjs(Date()).format("YYYY-MM-DD"),
   endTime: null,
-  dose: 1,
+  dose: 0,
 });
 
 const schema = object({
@@ -454,35 +497,41 @@ const editSchema = object({
 
 const editState = reactive({
   selected: "Yes",
-  startTime: null,
-  dose: null,
+  startTime: dayjs(Date()).format("YYYY-MM-DD"),
+  endTime: null,
+  dose: 0,
+  source: null,
+  intervall: null,
+  custom: null
 });
 
-const editOptions = [
-  {
-    value: "Yes",
-    label: "Ja",
-  },
-  {
-    value: "No",
-    label: "Nein",
-  },
-  {
-    value: "UNKNOWN",
-    label: "Unbekannt",
-  },
-];
-
 const toEditDrugId = ref();
-const customDrug = ref()
+const customDrug = ref();
+
+const tempIntervall = ref();
+const tempDose = ref();
+const tempFrequency = ref();
+const my_stuff = ref();
 
 async function editModalVisibilityFunction(row: object) {
+  tempIntervall.value = null;
+  tempDose.value = null;
+  tempFrequency.value = null;
+  my_stuff.value = null;
+
   try {
     drugStore.$reset();
+    editState.custom = row.custom;
     customDrug.value = row.custom;
     editModalVisibility.value = true;
+    editState.source = row.source;
+    editState.intervall = row.intervall;
+    tempIntervall.value = row.intervall;
+    selectedFrequency.value = row.intervall ? "regelmäßig" : "nach Bedarf";
     editState.startTime = row.startTime;
-    editState.dose = row.dose;
+    editState.endTime = row.endTime;
+    editState.dose = row.dose ? row.dose : 0;
+    tempDose.value = row.dose;
     toEditDrug.value = row.drug;
     toEditDrugId.value = row.id;
   } catch (error) {
@@ -491,36 +540,66 @@ async function editModalVisibilityFunction(row: object) {
 }
 
 async function editEntry() {
-  try {
-    const fetchBody = {
-      pharmazentralnummer: drugStore.item.pzn,
-      custom_drug_id: null,
-      intake_start_time_utc: editState.startTime,
-      intake_end_time_utc: null,
-      administered_by_doctor: "prescribed",
-      intake_regular_or_as_needed: "regular",
-      dose_per_day: editState.dose,
-      regular_intervall_of_daily_dose: "regular",
-      as_needed_dose_unit: null,
-      consumed_meds_today: editState.selected,
-    };
+  if (customDrug.value) {
+    console.log(customDrug.value);
 
-    await $fetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${toEditDrugId.value}`,
-      {
-        method: "PATCH",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
-        body: fetchBody,
-      }
-    );
+  } else {
+    try {
+      const fetchBody = {
+        pharmazentralnummer: drugStore.item.pzn ? drugStore.item.pzn : null,
+        source_of_drug_information: useDrugSourceTranslator(
+          null,
+          editState.source
+        ),
+        custom_drug_id: customDrug.value
+          ? drugStore.item.item.ai_dataversion_id
+          : null,
+        intake_start_time_utc: editState.startTime,
+        intake_end_time_utc: editState.endTime,
+        administered_by_doctor: "prescribed",
+        intake_regular_or_as_needed: my_stuff.value,
+        dose_per_day: editState.dose,
+        regular_intervall_of_daily_dose: useIntervallDoseTranslator(
+          null,
+          editState.intervall
+        ),
+        as_needed_dose_unit: null,
+        consumed_meds_today: editState.selected,
+      };
 
-    toEditDrugId.value = null;
-    editModalVisibility.value = false;
-    createIntakeList();
-  } catch (error) {
-    console.log(error);
+      await $fetch(
+        `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${toEditDrugId.value}`,
+        {
+          method: "PATCH",
+          headers: { Authorization: "Bearer " + tokenStore.access_token },
+          body: fetchBody,
+        }
+      );
+
+      toEditDrugId.value = null;
+      editModalVisibility.value = false;
+      createIntakeList();
+    } catch (error) {
+      console.log(error);
+    }
   }
 }
+
+watch(selectedFrequency, (newValue) => {
+  if (newValue === "nach Bedarf") {
+    my_stuff.value = "as needed";
+    editState.dose = 0;
+    editState.intervall = null;
+    state.dose = 0;
+    selectedInterval.value = null;
+  } else {
+    my_stuff.value = "regular";
+    editState.dose = tempDose.value ? tempDose.value : 1;
+    editState.intervall = tempIntervall.value
+      ? tempIntervall.value
+      : "unbekannt";
+  }
+});
 
 // Deleteform Modal
 
@@ -781,12 +860,15 @@ async function createIntakeList() {
         pzn: item.pharmazentralnummer,
         source: useDrugSourceTranslator(item.source_of_drug_information, null),
         drug: item.drug.name,
-        dose: item.dose_per_day,
+        dose: item.dose_per_day === 0 ? "" : item.dose_per_day,
         intervall: useIntervallDoseTranslator(
           item.regular_intervall_of_daily_dose,
           null
         ),
-        time: item.intake_start_time_utc + " - " + item.intake_end_time_utc,
+        time:
+          item.intake_end_time_utc === null
+            ? item.intake_start_time_utc + " bis unbekannt"
+            : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
         startTime: item.intake_start_time_utc,
         endTime: item.intake_end_time_utc,
         darr:
@@ -801,7 +883,7 @@ async function createIntakeList() {
           : null,
       }));
     }
-  } catch (error) {
+  } catch (error) {    
     console.log(error);
   }
 }

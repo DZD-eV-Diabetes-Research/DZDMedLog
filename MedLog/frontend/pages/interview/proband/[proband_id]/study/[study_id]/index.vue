@@ -93,34 +93,39 @@ const columns = [{
   label: 'Event',
   sortable: true
 },{
-  key: 'pzn',
-  label: 'PZN'
-}, {
-  key: 'drug',
-  label: 'Medikament',
-  sortable: true
-},
-{
-  key: 'dose',
-  label: 'Dosis',
-  sortable: true
-},
-{
-  key: 'startTime',
-  label: 'Einnahme Start',
-  sortable: true
-},
-{
-  key: 'darr',
-  label: 'Darreichung',
-  sortable: true
-}, {
-  key: 'manufac',
-  label: 'Hersteller',
-  sortable: true
-}, {
-  key: 'actions'
-}]
+    key: "pzn",
+    label: "PZN",
+  },
+  {
+    key: "drug",
+    label: "Medikament",
+    sortable: true,
+  },
+  {
+    key: "source",
+    label: "Quelle der Angabe",
+    sortable: true,
+  },
+  {
+    key: "dose",
+    label: "Dosis",
+    sortable: true,
+  },
+  {
+    key: "intervall",
+    label: "Intervall",
+    sortable: true,
+  },
+  {
+    key: "time",
+    label: "Einnahme Zeitraum",
+    sortable: true,
+  },
+  {
+    key: "darr",
+    label: "Darreichung",
+    sortable: true,
+  }]
 
 
 const q = ref('')
@@ -245,17 +250,17 @@ async function createIntakeList() {
         headers: { Authorization: "Bearer " + tokenStore.access_token },
       }
     );
+
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map((item) => ({
         event: item.event.name,
         pzn: item.pharmazentralnummer,
+        source: useDrugSourceTranslator(item.source_of_drug_information, null),
         drug: item.drug.name,
-        dose: item.dose_per_day,
-        startTime: item.intake_start_time_utc,
-        darr: item.drug.darrform_ref.darrform,
-        manufac: item.drug.hersteller_ref
-          ? item.drug.hersteller_ref.bedeutung
-          : null,
+        intervall: useIntervallDoseTranslator(item.regular_intervall_of_daily_dose,null),
+        dose: item.dose_per_day === 0 ? "" : item.dose_per_day,
+        time: item.intake_end_time_utc === null ? item.intake_start_time_utc + " bis unbekannt" : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
+        darr: item.drug.darrform_ref.bedeutung + " (" + item.drug.darrform_ref.darrform + ")",
         id: item.id ? item.id : item.custom_drug_id,
         custom: item.custom_drug_id ? true : false,
         class: item.custom_drug_id
