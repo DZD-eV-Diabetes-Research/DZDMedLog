@@ -1,24 +1,16 @@
 <template>
   <Layout>
-    <br>
-    <UInput v-model="value" label="eng"/>
-    <button @click="test(value, null)">eng</button>
-    <button @click="test(null, value)">de</button>
-    {{result}}
-</Layout>
+    <UIBaseCard>
+    <button @click="download">Download this</button>
+  </UIBaseCard>
+  </Layout>
 </template>
 
 <script setup lang="ts">
 
-  const value = ref('')
-  const result = ref()
+  const studyId = "b77b0e8b-85c0-429f-b2c0-7e617aebf682"
 
-  async function test(eng=null, de=null) {
-    if (eng !== null){
-    result.value = useDrugSourceTranslator(value.value, null)
-    } else 
-    {
-      result.value = useDrugSourceTranslator(null, value.value)
-    }
+  async function download () {
+    console.log(studyId)
   }
 </script>
