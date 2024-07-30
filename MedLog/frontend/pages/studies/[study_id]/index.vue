@@ -66,20 +66,17 @@
         </div>
       </UModal>
     </UIBaseCard>
+    {{events.items}}
   </Layout>
 </template>
 
 <script setup lang="ts">
-let id = 1;
-const enabled = ref(false);
-const dragging = ref(false);
-
-const draggingInfo = computed(() => {
-  return dragging.value ? "under drag" : "";
-});
 
 import { boolean, number, object, string, type InferType } from "yup";
 import { computed } from "vue";
+
+const enabled = ref(false);
+const dragging = ref(false);
 
 const studyStore = useStudyStore();
 const tokenStore = useTokenStore();
@@ -154,7 +151,7 @@ async function createEvent() {
       }
     );
     showEventModal.value = false;
-    refresh();
+    refresh()
   } catch (error) {
     errorMessage.value = error.response._data.detail;
     console.error("Failed to create event: ", error.response._data.detail);
