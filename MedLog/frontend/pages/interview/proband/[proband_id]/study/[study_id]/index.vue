@@ -168,7 +168,7 @@ async function createEvent() {
       id: event.id,
       event: event,
       label: event.name
-    })).sort().reverse()
+    }))
     selectedIncompleteEvent.value = incompletedItems.value[0];
     showEventModal.value = !showEventModal.value
   } catch (error) {
