@@ -11,7 +11,6 @@ interface DrugState {
     dose: number
     consumed_meds_today: string
     action: boolean
-    row: any
     
 }
 
@@ -28,7 +27,6 @@ export const useDrugStore = defineStore('DrugStore',{
         dose: 0,
         consumed_meds_today: "Yes",
         action: false,
-        row: null
 
     }),
     getters: {

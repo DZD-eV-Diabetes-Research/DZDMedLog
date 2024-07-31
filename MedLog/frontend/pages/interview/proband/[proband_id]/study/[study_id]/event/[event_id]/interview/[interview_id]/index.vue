@@ -264,7 +264,7 @@ const tempFrequency = ref();
 const my_stuff = ref();
 
 async function editModalVisibilityFunction(row: object) {  
-    
+  
   tempIntervall.value = null;
   tempDose.value = null;
   tempFrequency.value = null;
@@ -272,22 +272,21 @@ async function editModalVisibilityFunction(row: object) {
   
 
   try {   
-    drugStore.source = row.source
-    // drugStore.custom = row.custom;
-    // customDrug.value = row.custom;
-    editModalVisibility.value = true;
-    // drugStore.source = row.source;
-    // drugStore.intervall = row.intervall;
-    // tempIntervall.value = row.intervall;
-    // drugStore.frequency = row.intervall ? "regelmäßig" : "nach Bedarf";
-    // drugStore.intake_start_time_utc = row.startTime;
-    // drugStore.intake_end_time_utc = row.endTime;
-    // drugStore.dose = row.dose ? row.dose : 0;
-    // tempDose.value = row.dose;
-    toEditDrug.value = row.drug;
-    // toEditDrugId.value = row.id;
-    console.log(drugStore.source);
+    console.log(row);
     
+    drugStore.source = row.source
+    drugStore.custom = row.custom;
+    customDrug.value = row.custom;
+    editModalVisibility.value = true;
+    drugStore.intervall = row.intervall;
+    tempIntervall.value = row.intervall;
+    drugStore.frequency = row.intervall ? "regelmäßig" : "nach Bedarf";
+    drugStore.intake_start_time_utc = row.startTime;
+    drugStore.intake_end_time_utc = row.endTime;
+    drugStore.dose = row.dose ? row.dose : 0;
+    tempDose.value = row.dose;
+    toEditDrug.value = row.drug;
+    toEditDrugId.value = row.id;    
   } catch (error) {
     console.log(error);
   }
@@ -606,7 +605,7 @@ async function createIntakeList() {
         method: "GET",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
       }
-    );
+    );    
 
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map((item) => ({
@@ -618,6 +617,10 @@ async function createIntakeList() {
           item.regular_intervall_of_daily_dose,
           null
         ),
+        consumed_meds_today: item.consumed_meds_today,
+        option: item.intake_regular_or_as_needed,
+        startTime: item.intake_start_time_utc,
+        endTime: item.intake_end_time_utc,
         time:
           item.intake_end_time_utc === null
             ? item.intake_start_time_utc + " bis unbekannt"
