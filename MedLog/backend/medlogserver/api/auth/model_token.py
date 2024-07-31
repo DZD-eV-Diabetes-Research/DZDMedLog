@@ -261,9 +261,9 @@ class JWTAccessTokenContainer:
                 audience=config.get_server_url().host,
             )
             user = jwt_token_decoded["user"]
-            log.debug(f"user ({type(user)}): {user}")
+            # log.debug(f"user ({type(user)}): {user}")
             user_dict: Dict = json.loads(jwt_token_decoded["user"])
-            log.debug(f"jwt_token_decoded ({type(user_dict)}): {user_dict}")
+            # log.debug(f"jwt_token_decoded ({type(user_dict)}): {user_dict}")
             new_obj = cls(
                 user=User.model_validate(user_dict),
                 prevent_generate_new_token=True,

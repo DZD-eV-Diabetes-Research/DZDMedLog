@@ -3,6 +3,7 @@ import requests
 import time
 import urllib3
 import os
+import traceback
 
 if __name__ == "__main__":
     from pathlib import Path
@@ -11,13 +12,20 @@ if __name__ == "__main__":
     MODULE_DIR = Path(__file__).parent
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
     sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
+from utils import get_medlogserver_base_url, get_dot_env_file_variable, authorize
 
-DB_PATH = f"{Path(__file__).parent}/testdb.sqlite"
-DOT_ENV_FILE_PATH = f"{Path(__file__).parent}/.env"
-ADMIN_USER_NAME = "admin"
-ADMIN_USER_PW = "password123"
-ADMIN_USER_EMAIL = "user@test.de"
-RESET_DB = os.getenv("MEDLOG_TESTS_RESET_DB", "False").lower() in (
+from statics import (
+    DB_PATH,
+    DOT_ENV_FILE_PATH,
+    ADMIN_USER_EMAIL,
+    ADMIN_USER_PW,
+    ADMIN_USER_NAME,
+)
+
+RESET_DB = os.getenv(
+    "MEDLOG_TESTS_RESET_DB",
+    get_dot_env_file_variable(DOT_ENV_FILE_PATH, "MEDLOG_TESTS_RESET_DB"),
+).lower() in (
     "true",
     "1",
     "t",
@@ -26,6 +34,9 @@ RESET_DB = os.getenv("MEDLOG_TESTS_RESET_DB", "False").lower() in (
 )
 
 if RESET_DB:
+    print(
+        f"!!RESET DB AT {DB_PATH}. If you want to have a persisting test db, change the value for env var `MEDLOG_TESTS_RESET_DB` to false or remove it."
+    )
     Path(DB_PATH).unlink(missing_ok=True)
 
 
@@ -42,8 +53,6 @@ set_config_for_test_env()
 
 from medlogserver.main import start as medlogserver_start
 from medlogserver.worker.worker import run_background_worker
-
-from utils import get_medlogserver_base_url
 
 
 medlogserver_process = multiprocessing.Process(
@@ -107,11 +116,14 @@ def start_medlogserver_and_backgroundworker():
 start_medlogserver_and_backgroundworker()
 
 # RUN TESTS
-from MedLog.backend.tests.tests_users import run_tests
+from tests_users import run_all_tests_users
 
 try:
-    run_tests()
-except:
+    authorize(user=ADMIN_USER_NAME, pw=ADMIN_USER_PW)
+    run_all_tests_users()
+except Exception as e:
+    print("Error in user tests")
+    print(print(traceback.format_exc()))
     shutdown_medlogserver_and_backgroundworker()
     print("TESTS FAILED")
     exit(1)

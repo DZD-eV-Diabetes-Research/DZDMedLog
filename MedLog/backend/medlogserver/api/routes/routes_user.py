@@ -63,7 +63,9 @@ fast_api_user_manage_router: APIRouter = APIRouter()
     description=f"Creates a new user in the local user database. {NEEDS_USERMAN_API_INFO}",
 )
 async def create_user(
-    user_create: UserCreate,
+    user_create: Annotated[
+        UserCreate, Body(description="A json body with the user details")
+    ],
     user_password: Annotated[
         str,
         Query(
@@ -85,6 +87,7 @@ async def create_user(
             detail="Missing role",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    print("!!!user_create", user_create)
     user_create: User = await user_crud.create(
         user_create,
         raise_custom_exception_if_exists=HTTPException(

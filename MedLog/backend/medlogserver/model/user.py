@@ -81,20 +81,31 @@ class _UserWithName(UserBase, table=False):
         StringConstraints(
             strip_whitespace=True,
             to_lower=True,
-            pattern=r"^[a-zA-Z0-9-]+$",
+            pattern=r"^[a-zA-Z0-9.-]+$",
             max_length=128,
             min_length=3,
         ),
     ] = Field(
-        default=None,
         index=True,
         unique=True,
         schema_extra={"examples": ["clara.immerwahr", "titor.extern.times"]},
     )
 
+    @validator("email")
+    def validmail(cls, email):
+        validate_email(email)
+        return email
 
-class UserCreate(_UserWithName, _UserValidate, table=False):
-    id: Optional[uuid.UUID] = Field()
+    @model_validator(mode="after")
+    def val_display_name(self, values):
+        """if no display name is set for now, we copy the identifying `user_name`"""
+        if self.display_name is None:
+            self.display_name = self.user_name
+        return values
+
+
+class UserCreate(_UserWithName, table=False):
+    id: Optional[uuid.UUID] = Field(default=None)
 
 
 class User(_UserWithName, UserUpdateByAdmin, BaseTable, table=True):

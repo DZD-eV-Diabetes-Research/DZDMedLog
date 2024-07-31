@@ -172,6 +172,7 @@ class CRUDBase(
         try:
             await self.session.commit()
         except IntegrityError as err:
+            log.debug("IntegrityError", err)
             if "UNIQUE constraint failed" in str(err) and exists_ok:
                 log.debug(
                     f"Object of object of type '{type(obj)}' already exists. Skipping creation. <{obj}>"
