@@ -1,6 +1,3 @@
-import useDrugSourceTranslator from "./useDrugSourceTranslator"
-import useIntervallDoseTranslator from "./useIntervallDoseTranslator"
-
 export async function useCreateIntake(study_id: string, interview_id: string, pzn: string | null = null, source_of_drug_information: string, intake_start_time: string, intake_end_time: string | null = null, intake_regular_or_as_needed: string, regular_intervall_of_daily_dose: string| null | undefined, dose_unit: number, meds_today: boolean, custom_drug_id: string | null = null): Promise<void> {
     
     const tokenStore = useTokenStore()
@@ -17,10 +14,7 @@ export async function useCreateIntake(study_id: string, interview_id: string, pz
         "regular_intervall_of_daily_dose": regular_intervall_of_daily_dose,
         "as_needed_dose_unit": null,
         "consumed_meds_today": meds_today
-    }    
-
-    console.log(body);
-    
+    }        
 
     try {
         const runtimeConfig = useRuntimeConfig()

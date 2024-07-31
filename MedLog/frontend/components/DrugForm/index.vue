@@ -1,8 +1,8 @@
 <template>
-    <div style="text-align:center" v-if="!drugStore.item && !initialLoad">
-    <br>
-    <p style="color:red">Es muss ein Medikament ausgewählt werden</p>
-    </div>
+  <div style="text-align: center" v-if="!drugStore.item && !initialLoad">
+    <br />
+    <p style="color: red">Es muss ein Medikament ausgewählt werden</p>
+  </div>
   <UForm
     @submit="saveIntake()"
     :state="state"
@@ -19,7 +19,11 @@
       </UFormGroup>
     </div>
     <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?">
-      <USelect v-model="selectedFrequency" :options="frequency" :color="props.color" />
+      <USelect
+        v-model="selectedFrequency"
+        :options="frequency"
+        :color="props.color"
+      />
     </UFormGroup>
     <div class="flex-container">
       <UFormGroup
@@ -57,14 +61,14 @@
       name="selected"
       :options="options"
       :color="props.color"
-    /> 
+    />
     <UButton
       type="submit"
-      label="Medikament Speichern"
+      :label="props.label"
       :color="props.color"
       variant="soft"
       :class="buttonClass"
-    /> 
+    />
   </UForm>
 </template>
 
@@ -77,17 +81,18 @@ const route = useRoute();
 // const tokenStore = useTokenStore();
 
 const drugStore = useDrugStore();
-drugStore.$reset()
-const initialLoad = ref(true)
+const initialLoad = ref(true);
 
 // const studyStore = useStudyStore();
 // const userStore = useUserStore();
 // const runtimeConfig = useRuntimeConfig();
 
-const props = defineProps<{ 
-    color? : string 
-    edit? : boolean 
-    custom? : boolean   
+const props = defineProps<{
+  color?: string;
+  edit?: boolean;
+  custom?: boolean;
+  label?: string;
+  row?: any;
 }>();
 
 const buttonClass = computed(() => {
@@ -107,7 +112,7 @@ const state = reactive({
   startTime: dayjs(Date()).format("YYYY-MM-DD"),
   endTime: null,
   dose: 0,
-  intervall: null
+  intervall: null,
 });
 
 const schema = object({
@@ -159,52 +164,132 @@ const options = [
   },
 ];
 
-const tempDose = ref()
-const tempIntervall = ref()
+if (props.edit) {
+    selectedSourceItem.value = "Medikamentenpackung: PZN gescannt"
+    selectedFrequency.value = "regelmäßig"
+}
 
-async function saveIntake() {    
-    drugStore.action = false
-    initialLoad.value = false
-    tempDose.value = null
-    tempIntervall.value = null
+const tempDose = ref();
+const tempIntervall = ref();
 
-    drugStore.source = useDrugSourceTranslator(null, selectedSourceItem.value)    
-    if (selectedFrequency.value === "nach Bedarf"){
-        drugStore.frequency = "as needed"
+async function saveIntake() {
+  drugStore.action = false;
+  initialLoad.value = false;
+  tempDose.value = null;
+  tempIntervall.value = null;
+
+  if (props.edit) {
+    // const fetchBody = {
+    //   pharmazentralnummer: drugStore.item.pzn,
+    //   source_of_drug_information: drugStore.source,
+    //   //   custom_drug_id: customDrug.value
+    //   //     ? drugStore.item.item.ai_dataversion_id
+    //   //     : null,
+    //   intake_start_time_utc: drugStore.intake_start_time_utc,
+    //   intake_end_time_utc: drugStore.intake_end_time_utc,
+    //   administered_by_doctor: "prescribed",
+    //   intake_regular_or_as_needed: drugStore.frequency,
+    //   dose_per_day: drugStore.dose,
+    //   regular_intervall_of_daily_dose: drugStore.intervall,
+    //   as_needed_dose_unit: null,
+    //   consumed_meds_today: drugStore,
+    // };
+
+    // console.log(fetchBody);
+
+  } else {
+    drugStore.source = useDrugSourceTranslator(null, selectedSourceItem.value);
+    if (selectedFrequency.value === "nach Bedarf") {
+      drugStore.frequency = "as needed";
     } else {
-        drugStore.frequency = "regular"
+      drugStore.frequency = "regular";
     }
-    drugStore.dose = state.dose
-    tempDose.value = drugStore.dose
-    drugStore.intervall = useIntervallDoseTranslator(null, state.intervall)
-    tempIntervall.value = state.intervall
-    drugStore.option = state.selected
-    drugStore.intake_start_time_utc = state.startTime 
-    drugStore.intake_end_time_utc = state.endTime
-    drugStore.consumed_meds_today = state.selected
-    
-    await useCreateIntake(route.params.study_id, route.params.interview_id, drugStore.item.pzn, drugStore.source, drugStore.intake_start_time_utc, drugStore.intake_end_time_utc, drugStore.frequency, drugStore.intervall, drugStore.dose, drugStore.consumed_meds_today, null)
-    drugStore.action = true
+    drugStore.dose = state.dose;
+    tempDose.value = drugStore.dose;
+    drugStore.intervall = useIntervallDoseTranslator(null, state.intervall);
+    tempIntervall.value = state.intervall;
+    drugStore.option = state.selected;
+    drugStore.intake_start_time_utc = state.startTime;
+    drugStore.intake_end_time_utc = state.endTime;
+    drugStore.consumed_meds_today = state.selected;
 
+    await useCreateIntake(
+      route.params.study_id,
+      route.params.interview_id,
+      drugStore.item.pzn,
+      drugStore.source,
+      drugStore.intake_start_time_utc,
+      drugStore.intake_end_time_utc,
+      drugStore.frequency,
+      drugStore.intervall,
+      drugStore.dose,
+      drugStore.consumed_meds_today,
+      null
+    );
+    
+  }
+  drugStore.action = true;
+}
+
+async function editEntry() {
+  if (customDrug.value) {
+    console.log(customDrug.value);
+  } else {
+    try {
+      const fetchBody = {
+        pharmazentralnummer: drugStore.item.pzn ? drugStore.item.pzn : null,
+        source_of_drug_information: useDrugSourceTranslator(
+          null,
+          editState.source
+        ),
+        custom_drug_id: customDrug.value
+          ? drugStore.item.item.ai_dataversion_id
+          : null,
+        intake_start_time_utc: editState.startTime,
+        intake_end_time_utc: editState.endTime,
+        administered_by_doctor: "prescribed",
+        intake_regular_or_as_needed: my_stuff.value,
+        dose_per_day: editState.dose,
+        regular_intervall_of_daily_dose: useIntervallDoseTranslator(
+          null,
+          editState.intervall
+        ),
+        as_needed_dose_unit: null,
+        consumed_meds_today: editState.selected,
+      };
+
+      await $fetch(
+        `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${toEditDrugId.value}`,
+        {
+          method: "PATCH",
+          headers: { Authorization: "Bearer " + tokenStore.access_token },
+          body: fetchBody,
+        }
+      );
+
+      toEditDrugId.value = null;
+      editModalVisibility.value = false;
+      createIntakeList();
+    } catch (error) {
+      console.log(error);
+    }
+  }
 }
 
 watch(selectedFrequency, (newValue) => {
   if (newValue === "nach Bedarf") {
     drugStore.frequency = "as needed";
-    tempDose.value = state.dose
+    tempDose.value = state.dose;
     state.dose = 0;
-    tempIntervall.value = state.intervall
+    tempIntervall.value = state.intervall;
     state.intervall = null;
     selectedInterval.value = null;
   } else {
     drugStore.frequency = "regular";
     state.dose = tempDose.value ? tempDose.value : 1;
-    state.intervall = tempIntervall.value
-      ? tempIntervall.value
-      : "unbekannt";
+    state.intervall = tempIntervall.value ? tempIntervall.value : "unbekannt";
   }
 });
-
 </script>
 
 <style scoped>

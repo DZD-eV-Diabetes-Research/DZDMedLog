@@ -13,7 +13,7 @@
     <div v-if="showIntakeForm">
       <UIBaseCard>
         <IntakeQuestion color="green" />
-        <DrugForm color="green" :edit="false" :custom="false" />
+        <DrugForm color="green" :edit="false" :custom="false" label="Medikament Speichern"/>
         <!-- <UModal v-model="customDrugModalVisibility">
           <div class="p-4">
             <UForm
@@ -203,89 +203,7 @@
             :custom="customDrug"
             color="blue"
           />
-          <div v-if="drugStore.item">
-            <br />
-            <p>Medikament: {{ drugStore.item.item.name }}</p>
-            <p>PZN: {{ drugStore.item.pzn }}</p>
-            <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
-            <p>
-              Darreichungsform: {{ drugStore.item.item.darrform_ref.bedeutung }}
-            </p>
-            <p>
-              Applikationsform: {{ drugStore.item.item.appform_ref.bedeutung }}
-            </p>
-          </div>
-          <UForm
-            @submit="editEntry"
-            :state="editState"
-            :schema="editSchema"
-            class="space-y-4"
-          >
-            <div style="padding-top: 2.5%">
-              <UFormGroup label="Quelle der Arzneimittelangabe">
-                <USelect
-                  v-model="editState.source"
-                  :options="sourceItems"
-                  color="blue"
-                />
-              </UFormGroup>
-            </div>
-            <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?">
-              <USelect
-                v-model="selectedFrequency"
-                :options="frequency"
-                color="blue"
-              />
-            </UFormGroup>
-            <div class="flex-container">
-              <UFormGroup
-                label="Dosis pro Einnahme"
-                style="border-color: red"
-                name="dose"
-              >
-                <UInput
-                  type="number"
-                  v-model="editState.dose"
-                  :disabled="selectedFrequency !== 'regelmäßig'"
-                  :color="selectedFrequency !== 'regelmäßig' ? 'gray' : 'blue'"
-                />
-              </UFormGroup>
-              <UFormGroup label="Intervall der Tagesdosen">
-                <USelect
-                  v-model="editState.intervall"
-                  :options="intervallOfDose"
-                  :disabled="selectedFrequency !== 'regelmäßig'"
-                  :color="selectedFrequency !== 'regelmäßig' ? 'gray' : 'blue'"
-                />
-              </UFormGroup>
-            </div>
-            <div class="flex-container">
-              <UFormGroup label="Einnahme Beginn (Datum)" name="startTime">
-                <UInput
-                  type="date"
-                  v-model="editState.startTime"
-                  color="blue"
-                />
-              </UFormGroup>
-              <UFormGroup label="Einnahme Ende (Datum)" name="endTime">
-                <UInput type="date" v-model="editState.endTime" color="blue" />
-              </UFormGroup>
-            </div>
-            <URadioGroup
-              v-model="editState.selected"
-              legend="Wurden heute Medikamente eingenommen?"
-              name="selected"
-              color="blue"
-              :options="options"
-            />
-            <UButton
-              type="submit"
-              label="Bearbeiten"
-              color="blue"
-              variant="soft"
-              class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"
-            />
-          </UForm>
+          <DrugForm color="blue" :edit="true" :custom="false" label="Bearbeiten"/>
         </div>
       </div>
     </UModal>
@@ -321,21 +239,21 @@ async function openIntakeForm() {
 const toEditDrug = ref();
 const editModalVisibility = ref(false);
 
-const editSchema = object({
-  selected: string().required("Required"),
-  startTime: date().required("Required"),
-  dose: number().min(0, "Hallo"),
-});
+// const editSchema = object({
+//   selected: string().required("Required"),
+//   startTime: date().required("Required"),
+//   dose: number().min(0, "Hallo"),
+// });
 
-const editState = reactive({
-  selected: "Yes",
-  startTime: dayjs(Date()).format("YYYY-MM-DD"),
-  endTime: null,
-  dose: 0,
-  source: null,
-  intervall: null,
-  custom: null,
-});
+// const editState = reactive({
+//   selected: "Yes",
+//   startTime: dayjs(Date()).format("YYYY-MM-DD"),
+//   endTime: null,
+//   dose: 0,
+//   source: null,
+//   intervall: null,
+//   custom: null,
+// });
 
 const toEditDrugId = ref();
 const customDrug = ref();
@@ -345,27 +263,31 @@ const tempDose = ref();
 const tempFrequency = ref();
 const my_stuff = ref();
 
-async function editModalVisibilityFunction(row: object) {
+async function editModalVisibilityFunction(row: object) {  
+    
   tempIntervall.value = null;
   tempDose.value = null;
   tempFrequency.value = null;
   my_stuff.value = null;
+  
 
-  try {
-    drugStore.$reset();
-    editState.custom = row.custom;
-    customDrug.value = row.custom;
+  try {   
+    drugStore.source = row.source
+    // drugStore.custom = row.custom;
+    // customDrug.value = row.custom;
     editModalVisibility.value = true;
-    editState.source = row.source;
-    editState.intervall = row.intervall;
-    tempIntervall.value = row.intervall;
-    selectedFrequency.value = row.intervall ? "regelmäßig" : "nach Bedarf";
-    editState.startTime = row.startTime;
-    editState.endTime = row.endTime;
-    editState.dose = row.dose ? row.dose : 0;
-    tempDose.value = row.dose;
+    // drugStore.source = row.source;
+    // drugStore.intervall = row.intervall;
+    // tempIntervall.value = row.intervall;
+    // drugStore.frequency = row.intervall ? "regelmäßig" : "nach Bedarf";
+    // drugStore.intake_start_time_utc = row.startTime;
+    // drugStore.intake_end_time_utc = row.endTime;
+    // drugStore.dose = row.dose ? row.dose : 0;
+    // tempDose.value = row.dose;
     toEditDrug.value = row.drug;
-    toEditDrugId.value = row.id;
+    // toEditDrugId.value = row.id;
+    console.log(drugStore.source);
+    
   } catch (error) {
     console.log(error);
   }
