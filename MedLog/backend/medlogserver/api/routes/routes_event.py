@@ -188,6 +188,9 @@ async def delete_event(
 )
 async def reorder_events(
     events: List[EventRead | Event | uuid.UUID],
+    reverse: bool = Query(
+        False, description="Reorder events in the reversed order as given"
+    ),
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
 ) -> List[Event]:
@@ -204,7 +207,8 @@ async def reorder_events(
             event_ids.append(uuid.UUID(event_or_id))
         elif isinstance(event_or_id, uuid.UUID):
             event_ids.append(event_or_id)
-
+    if reverse:
+        event_ids = list(reversed(event_ids))
     return await event_crud.reorder_events(event_ids)
 
 
