@@ -207,7 +207,7 @@ function createEventList(events) {
       event: event,
       label: event.name,
       order: event.order_position
-    })).sort((a,b) => b.order - a.order)
+    })).sort((a,b) => a.order - b.order)
 
     incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
     incompletedItems.value = incompletedItems.value.map(event => ({

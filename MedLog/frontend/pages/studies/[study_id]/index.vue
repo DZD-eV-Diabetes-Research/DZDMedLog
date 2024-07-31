@@ -4,7 +4,7 @@
       <h3>{{ study.display_name }}</h3>
     </div>
     <Draggable
-      :list="events.items"
+      :list="myEvents"
       :disabled="!enabled"
       item-key="name"
       class="list-group"
@@ -20,7 +20,7 @@
         </div>
       </template>
     </Draggable>
-    <UIBaseCard v-if="events.items.length === 0">
+    <UIBaseCard v-if="!myEvents">
       <h5>Keine Events in der Studie aufgezeichnet</h5>
     </UIBaseCard>
     <UIBaseCard v-if="userStore.isAdmin" class="noHover" :naked="true">
@@ -66,7 +66,7 @@
         </div>
       </UModal>
     </UIBaseCard>
-    {{events.items}}
+    <p v-for="event in myEvents">{{event.name}} : {{event.order_position}}</p>
   </Layout>
 </template>
 
@@ -90,13 +90,20 @@ const sortButton = ref("Events Sortieren");
 const showEventModal = ref(false);
 const study = await studyStore.getStudy(route.params.study_id);
 
-const { data: events, refresh } = await useFetch(
-  `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event`,
+const myEvents = ref()
+
+async function getEvents(){
+  const events = await $fetch(
+  `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event?hide_completed=false&offset=0&limit=100&order_by=order_position&order_desc=true`,
   {
     method: "GET",
     headers: { Authorization: "Bearer " + tokenStore.access_token },
   }
 );
+  myEvents.value = events.items
+}
+
+getEvents()
 
 const eventState = reactive({ name: "" });
 
@@ -110,7 +117,7 @@ async function toggleSort() {
   if (sortButton.value === "Sortierung Speichern") {
     sortButton.value = "Events Sortieren";
 
-    events.value.items.map((element) => {
+    myEvents.value.map((element) => {
       test.value.push(element);
     });
     await $fetch(
@@ -151,7 +158,8 @@ async function createEvent() {
       }
     );
     showEventModal.value = false;
-    refresh()
+    // refresh()
+    getEvents()
   } catch (error) {
     errorMessage.value = error.response._data.detail;
     console.error("Failed to create event: ", error.response._data.detail);
