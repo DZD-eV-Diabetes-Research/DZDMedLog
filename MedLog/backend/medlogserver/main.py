@@ -8,10 +8,12 @@ import asyncio
 import json
 import argparse
 
+# Main can be started with arguments. Lets parse these first.
+
 arg_parser = argparse.ArgumentParser("DZDMedLog")
 arg_parser.add_argument(
     "--set_version_file",
-    help="Set this flag to just write the __version__.py file based on the git version. Needed for CI/CD.",
+    help="Set this flag to just write the __version__.py file based on the git version. Only needed for CI/CD pipeline.",
     action="store_true",
 )
 arg_parser.add_argument(
@@ -19,8 +21,15 @@ arg_parser.add_argument(
     help="Set this flag to just run the background worker without the unvicorn webserver.",
     action="store_true",
 )
+
+# Setup logging
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler(sys.stdout))
+
+
+# Add MedLogServer to global Python modules.
+# This way we address medlogserver as a module for imports without installing it first.
+# e.g. "from medlogserver import config"
 if __name__ == "__main__":
     from pathlib import Path
     import sys, os
@@ -29,35 +38,14 @@ if __name__ == "__main__":
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
     sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
 
+# Import and load config
+from medlogserver.config import Config
 
-log = logging.getLogger(__name__)
-log.addHandler(logging.StreamHandler(sys.stdout))
-if __name__ == "__main__":
-    from pathlib import Path
-    import sys, os
-
-    MODULE_DIR = Path(__file__).parent
-    MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
-    sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
+config = Config()
 
 
-def test_exporter():
-    from medlogserver.worker.tasks.export_study_data import StudyDataExporter
-    import uuid
-
-    ex = StudyDataExporter(
-        study_id=uuid.UUID("b6f2c61b-d388-4412-8c9a-461ece251116"),
-        format_="csv",
-        target_file="./export.csv",
-    )
-    event_loop = asyncio.get_event_loop()
-    res = event_loop.run_until_complete(ex.run())
-    print(res)
-
-
-def start():
+def start(with_background_worker: bool = True):
     import medlogserver
-    from medlogserver.config import Config
 
     from medlogserver.log import (
         get_logger,
@@ -66,7 +54,6 @@ def start():
         APP_LOGGER_DEFAULT_NAME,
     )
 
-    config = Config()
     log = get_logger()
 
     print(
@@ -107,10 +94,8 @@ def start():
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
 
     event_loop.run_until_complete(init_db())
-    if config.BACKGROUND_WORKER_START_IN_EXTRA_PROCESS:
-        # import multiprocessing_logging
-        # from medlogserver.log import logger
-        # multiprocessing_logging.install_mp_handler(logger)
+    if with_background_worker:
+        # Start background worker in second process
         run_background_worker(run_in_extra_process=True)
     event_loop.run_until_complete(uvicorn_server.serve())
 
@@ -131,4 +116,4 @@ if __name__ == "__main__":
 
         run_background_worker(run_in_extra_process=False)
     else:
-        start()
+        start(with_background_worker=config.BACKGROUND_WORKER_START_IN_EXTRA_PROCESS)

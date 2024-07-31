@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 from pydantic import (
     Field,
     AnyUrl,
@@ -14,7 +15,7 @@ import socket
 from textwrap import dedent
 from medlogserver.utils import get_random_string, val_means_true
 
-env_file_path = Path(__file__).parent / ".env"
+env_file_path = os.environ.get("MEDLOG_DOT_ENV_FILE", Path(__file__).parent / ".env")
 
 
 class Config(BaseSettings):
@@ -271,3 +272,4 @@ class Config(BaseSettings):
         env_nested_delimiter = "__"
         env_file = env_file_path
         env_file_encoding = "utf-8"
+        extra = "ignore"

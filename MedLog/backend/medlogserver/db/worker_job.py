@@ -45,9 +45,9 @@ class WorkerJobCRUD(
         hide_user_jobs: bool = False,
         pagination: QueryParamsInterface = None,
     ) -> Sequence[WorkerJob]:
-        log.debug(
-            f"filter_user_id: {filter_user_id}\nfilter_job_state: {filter_job_state}\nfilter_tags: {filter_tags}\nfilter_intervalled_job: {filter_intervalled_job}\nhide_user_jobs: {hide_user_jobs}\n"
-        )
+        # log.debug(
+        #    f"filter_user_id: {filter_user_id}\nfilter_job_state: {filter_job_state}\nfilter_tags: {filter_tags}\nfilter_intervalled_job: {filter_intervalled_job}\nhide_user_jobs: {hide_user_jobs}\n"
+        # )
         if filter_tags is None:
             filter_tags = []
         if isinstance(filter_user_id, str):

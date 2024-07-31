@@ -155,7 +155,7 @@ async def update_myself(
 
 @fast_api_user_manage_router.put(
     "/user/me/password",
-    response_model=User,
+    response_model=bool,
     description="Set my password if i am a 'local' user. If my account was provisioned via an external OpenID Connect provider this does nothing except the return value will be `false`.",
 )
 async def set_my_password(

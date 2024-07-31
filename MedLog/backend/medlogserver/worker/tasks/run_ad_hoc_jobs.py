@@ -39,7 +39,11 @@ class WorkerAdHocJobRunner:
             finished_jobs = await self._process_jobs(queued_jobs)
             await self._tidy_up_old_jobs()
             log.debug("...finished background adhoc job runner.")
-            return f"Jobs that did run {finished_jobs}"
+            if finished_jobs:
+
+                return f"Jobs that did run {finished_jobs}"
+            else:
+                return None
         except Exception as error:
             # Lost some error raises. lets log explicit. To be investigated what happend here...
             log.error(error, exc_info=True)

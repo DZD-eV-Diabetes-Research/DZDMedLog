@@ -35,18 +35,19 @@ class TaskBase:
             raise ValueError(
                 f"Task '{self.__class__.__name__}' can not run in context of a job, as no job was given on initilization."
             )
-        log.info(f"Run job: {self.job}")
+        log.info(f"Run job: {self.job.task_name}")
         self.job.run_started_at = datetime.datetime.now(tz=datetime.UTC)
         self.job = await self._update_job(self.job)
         error = None
         result = None
         try:
-            log.debug(f"self.task_params: {self.task_params}")
+            # log.debug(f"self.task_params: {self.task_params}")
             result = await self.work(**self.task_params)
         except Exception as er:
             log.error(f"Job '{self.job}' failed. Error: {str(er)}", exc_info=True)
             error = repr(traceback.format_exc())
-        log.debug(f"RESULT {self}: {result}")
+        if result:
+            log.debug(f"RESULT {self}: {result}")
         await self.job_finish(result, error)
 
     async def work(self):
