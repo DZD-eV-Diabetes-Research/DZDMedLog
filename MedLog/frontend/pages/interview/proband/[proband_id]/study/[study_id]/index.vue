@@ -60,6 +60,7 @@
         </div>
       </div>
     </div>
+    <p v-for ="intake in intakes.items">{{intake}} <br><br></p>
   </Layout>
 </template>
 
@@ -77,6 +78,14 @@ const userStore = useUserStore()
 const studyStore = useStudyStore()
 
 // table
+
+const {data:intakes} = await useFetch(
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`,
+      {
+        method: "GET",
+        headers: { Authorization: "Bearer " + tokenStore.access_token },
+      }
+    );
 
 const page = ref(1)
 const pageCount = 15
@@ -207,7 +216,7 @@ function createEventList(events) {
       event: event,
       label: event.name,
       order: event.order_position
-    })).sort((a,b) => a.order - b.order)
+    })).sort((a,b) => b.order - a.order)
 
     incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
     incompletedItems.value = incompletedItems.value.map(event => ({
@@ -215,7 +224,7 @@ function createEventList(events) {
       event: event,
       label: event.name,
       order: event.order_position
-    })).sort((a,b) => b.order - a.order)
+    })).sort((a,b) => a.order - b.order)
   }
 
   selectedCompleteEvent.value = completedItems.value[0]

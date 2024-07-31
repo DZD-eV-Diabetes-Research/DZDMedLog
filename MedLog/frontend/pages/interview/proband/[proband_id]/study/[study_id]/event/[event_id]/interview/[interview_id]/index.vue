@@ -12,89 +12,9 @@
     </UIBaseCard>
     <div v-if="showIntakeForm">
       <UIBaseCard>
-        <IntakeQuestion />
-        <p v-if="!drugChosen" style="text-align: center; color: red">
-          Ein Medikament muss ausgewählt werden
-        </p>
-        <div v-if="drugStore.item">
-          <br />
-          <p>Medikament: {{ drugStore.item.item.name }}</p>
-          <p>PZN: {{ drugStore.item.pzn }}</p>
-          <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
-          <p>
-            Darreichungsform: {{ drugStore.item.item.darrform_ref.bedeutung }}
-          </p>
-          <p>
-            Applikationsform: {{ drugStore.item.item.appform_ref.bedeutung }}
-          </p>
-        </div>
-        <UForm
-          @submit="saveIntake()"
-          :state="state"
-          :schema="schema"
-          class="space-y-4"
-        >
-          <div style="padding-top: 2.5%">
-            <UFormGroup label="Quelle der Arzneimittelangabe">
-              <USelect v-model="selectedSourceItem" :options="sourceItems" />
-            </UFormGroup>
-          </div>
-          <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?">
-            <USelect v-model="selectedFrequency" :options="frequency" />
-          </UFormGroup>
-          <div class="flex-container">
-            <UFormGroup
-              label="Dosis pro Einnahme"
-              style="border-color: red"
-              name="dose"
-            >
-              <UInput
-                type="number"
-                v-model="state.dose"
-                :disabled="selectedFrequency !== 'regelmäßig'"
-                :color="selectedFrequency !== 'regelmäßig' ? 'gray' : 'white'"
-              />
-            </UFormGroup>
-            <UFormGroup label="Intervall der Tagesdosen">
-              <USelect
-                v-model="selectedInterval"
-                :options="intervallOfDose"
-                :disabled="selectedFrequency !== 'regelmäßig'"
-                :color="selectedFrequency !== 'regelmäßig' ? 'gray' : 'white'"
-              />
-            </UFormGroup>
-          </div>
-          <div class="flex-container">
-            <UFormGroup label="Einnahme Beginn (Datum)" name="startTime">
-              <UInput type="date" v-model="state.startTime" />
-            </UFormGroup>
-            <UFormGroup label="Einnahme Ende (Datum)" name="endTime">
-              <UInput type="date" v-model="state.endTime" />
-            </UFormGroup>
-          </div>
-          <URadioGroup
-            v-model="state.selected"
-            legend="Wurden heute Medikamente eingenommen?"
-            name="selected"
-            :options="options"
-          />
-          <UButton
-            type="submit"
-            label="Medikament Speichern"
-            color="green"
-            variant="soft"
-            class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-          />
-        </UForm>
-        <br />
-        <UButton
-          @click="openCustomModal()"
-          label="Ungelistetes Medikament aufnehmen"
-          color="yellow"
-          variant="soft"
-          class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white"
-        />
-        <UModal v-model="customDrugModalVisibility">
+        <IntakeQuestion color="green" />
+        <DrugForm color="green" :edit="false" :custom="false" />
+        <!-- <UModal v-model="customDrugModalVisibility">
           <div class="p-4">
             <UForm
               :schema="newDrugSchema"
@@ -186,7 +106,7 @@
               </div>
             </UForm>
           </div>
-        </UModal>
+        </UModal> -->
       </UIBaseCard>
     </div>
     <div class="tableDiv">
@@ -387,110 +307,13 @@ const userStore = useUserStore();
 const runtimeConfig = useRuntimeConfig();
 
 drugStore.item = null;
-createIntakeList();
-getDosageForm();
 
 // Intakeform
 
-const drugChosen = ref(true);
 const showIntakeForm = ref(true);
-
-const state = reactive({
-  selected: "Yes",
-  startTime: dayjs(Date()).format("YYYY-MM-DD"),
-  endTime: null,
-  dose: 0,
-});
-
-const schema = object({
-  selected: string().required("Required"),
-  startTime: date().required("Required"),
-  dose: number().min(0, "Required"),
-});
-
-type Schema = InferType<typeof schema>;
-
-const sourceItems = [
-  "Probandenangabe",
-  "Medikamentenpackung: PZN gescannt",
-  "Medikamentenpackung: PZN getippt",
-  "Medikamentenpackung: Arzneimittelname",
-  "Beipackzettel",
-  "Medikamentenplan",
-  "Rezept",
-  "Nacherhebung: Tastatureingabe der PZN",
-  "Nacherhebung: Arzneimittelname",
-];
-const selectedSourceItem = ref(sourceItems[0]);
-
-const frequency = ["nach Bedarf", "regelmäßig"];
-const selectedFrequency = ref(frequency[0]);
-
-const intervallOfDose = [
-  "unbekannt",
-  "täglich",
-  "jeden 2. Tag",
-  "jeden 3. Tag",
-  "jeden 4. Tag = 2x pro Woche",
-  "Im Abstand von 1 Woche und mehr",
-];
-const selectedInterval = ref(intervallOfDose[0]);
 
 async function openIntakeForm() {
   showIntakeForm.value = !showIntakeForm.value;
-  state.selected = "Yes";
-  state.startTime = dayjs(Date()).format("YYYY-MM-DD");
-  state.dose = null;
-  drugStore.$reset();
-}
-
-const options = [
-  {
-    value: "Yes",
-    label: "Ja",
-  },
-  {
-    value: "No",
-    label: "Nein",
-  },
-  {
-    value: "UNKNOWN",
-    label: "Unbekannt",
-  },
-];
-
-async function saveIntake() {
-  drugChosen.value = true;
-  if (!drugStore.item) {
-    drugChosen.value = false;
-    return;
-  }
-
-  const source_of_drug_information = selectedSourceItem.value;
-
-  const start_time = state.startTime;
-  const end_time = state.endTime;
-  const pzn = drugStore.item.pzn;
-  const myDose = state.dose;
-
-  try {
-    showIntakeForm.value = false;
-    const responseData = await useCreateIntake(
-      route.params.study_id,
-      route.params.interview_id,
-      pzn,
-      source_of_drug_information,
-      start_time,
-      end_time,
-      selectedFrequency.value,
-      selectedInterval.value,
-      myDose,
-      state.selected
-    );
-    createIntakeList();
-  } catch (error) {
-    console.error("Failed to create Intake: ", error);
-  }
 }
 
 // Editform Modal
@@ -511,7 +334,7 @@ const editState = reactive({
   dose: 0,
   source: null,
   intervall: null,
-  custom: null
+  custom: null,
 });
 
 const toEditDrugId = ref();
@@ -551,7 +374,6 @@ async function editModalVisibilityFunction(row: object) {
 async function editEntry() {
   if (customDrug.value) {
     console.log(customDrug.value);
-
   } else {
     try {
       const fetchBody = {
@@ -593,22 +415,6 @@ async function editEntry() {
     }
   }
 }
-
-watch(selectedFrequency, (newValue) => {
-  if (newValue === "nach Bedarf") {
-    my_stuff.value = "as needed";
-    editState.dose = 0;
-    editState.intervall = null;
-    state.dose = 0;
-    selectedInterval.value = null;
-  } else {
-    my_stuff.value = "regular";
-    editState.dose = tempDose.value ? tempDose.value : 1;
-    editState.intervall = tempIntervall.value
-      ? tempIntervall.value
-      : "unbekannt";
-  }
-});
 
 // Deleteform Modal
 
@@ -734,11 +540,13 @@ const tableContent = ref([]);
 
 // CustomElement Modal
 
-const customDrugForm = [{
-  label: "Zusätzliche Information",
-  icon: 'i-heroicons-information-circle',
-  slot: 'custom-form'
-}]
+const customDrugForm = [
+  {
+    label: "Zusätzliche Information",
+    icon: "i-heroicons-information-circle",
+    slot: "custom-form",
+  },
+];
 
 const customDrugModalVisibility = ref(false);
 const showDarrFormError = ref(false);
@@ -860,6 +668,14 @@ async function backToOverview() {
   });
 }
 
+const { data: intakes } = useFetch(
+  `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`,
+  {
+    method: "GET",
+    headers: { Authorization: "Bearer " + tokenStore.access_token },
+  }
+);
+
 async function createIntakeList() {
   try {
     const intakes = await $fetch(
@@ -884,8 +700,6 @@ async function createIntakeList() {
           item.intake_end_time_utc === null
             ? item.intake_start_time_utc + " bis unbekannt"
             : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
-        startTime: item.intake_start_time_utc,
-        endTime: item.intake_end_time_utc,
         darr:
           item.drug.darrform_ref.bedeutung +
           " (" +
@@ -898,10 +712,23 @@ async function createIntakeList() {
           : null,
       }));
     }
-  } catch (error) {    
+  } catch (error) {
     console.log(error);
   }
 }
+
+const isAction = computed(() => drugStore.isAction)
+
+watch(isAction, (newValue) => {
+  if (newValue === true) {
+    createIntakeList();
+    openIntakeForm()
+  } else {
+  }
+});
+
+getDosageForm();
+createIntakeList();
 </script>
 
 <style scoped>
@@ -927,7 +754,7 @@ async function createIntakeList() {
 }
 
 .selectedDarrForm:hover {
-  color: #22c55e;
+  color: #efc85d;
   cursor: pointer;
 }
 
