@@ -20,7 +20,7 @@
         </div>
       </template>
     </Draggable>
-    <UIBaseCard v-if="!myEvents">
+    <UIBaseCard v-if="myEvents.length === 0">
       <h5>Keine Events in der Studie aufgezeichnet</h5>
     </UIBaseCard>
     <UIBaseCard v-if="userStore.isAdmin" class="noHover" :naked="true">
@@ -66,7 +66,6 @@
         </div>
       </UModal>
     </UIBaseCard>
-    <p v-for="event in myEvents">{{event.name}} : {{event.order_position}}</p>
   </Layout>
 </template>
 
@@ -90,7 +89,7 @@ const sortButton = ref("Events Sortieren");
 const showEventModal = ref(false);
 const study = await studyStore.getStudy(route.params.study_id);
 
-const myEvents = ref()
+const myEvents = ref([])
 
 async function getEvents(){
   const events = await $fetch(
@@ -121,7 +120,7 @@ async function toggleSort() {
       test.value.push(element);
     });
     await $fetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/order`,
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/order?reverse=true`,
       {
         method: "POST",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -146,7 +145,7 @@ const errorMessage = ref();
 async function createEvent() {
   const body = { name: eventState.name };
   try {
-    const data = await $fetch(
+    await $fetch(
       runtimeConfig.public.baseURL +
         "study/" +
         route.params.study_id +

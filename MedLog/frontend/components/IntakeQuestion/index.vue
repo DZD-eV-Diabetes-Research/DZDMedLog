@@ -68,6 +68,18 @@
         <h3>{{ customDrug }}</h3>
       </div>
     </div>
+    <div v-if="drugStore.item">
+          <br />
+          <p>Medikament: {{ drugStore.item.item.name }}</p>
+          <p>PZN: {{ drugStore.item.pzn }}</p>
+          <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
+          <p>
+            Darreichungsform: {{ drugStore.item.item.darrform_ref.bedeutung }}
+          </p>
+          <p>
+            Applikationsform: {{ drugStore.item.item.appform_ref.bedeutung }}
+          </p>
+        </div>
   </UIBaseCard>
 </template>
 
