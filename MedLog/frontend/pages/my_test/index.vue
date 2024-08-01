@@ -1,13 +1,13 @@
+import { DrugForm } from '../../.nuxt/components';
 <template>
   <Layout>
-    <IntakeQuestion color="blue"/>
-    <DrugForm color="blue" :edit="false" :custom="false"/>
-    {{drugStore}}
+    <UIBaseCard>
+    <DrugForm color="yellow" label="Ungelistetes Medikament Speichern" :custom=true />
+  </UIBaseCard>
   </Layout>
 </template>
 
 <script setup lang="ts">
-const drugStore = useDrugStore();
 
 </script>
 

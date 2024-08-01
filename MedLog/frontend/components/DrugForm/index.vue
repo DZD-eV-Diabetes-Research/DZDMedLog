@@ -1,5 +1,5 @@
 <template>
-  <div style="text-align: center" v-if="!drugStore.item && !initialLoad">
+  <div style="text-align: center" v-if="!drugStore.item && !initialLoad && !props.custom">
     <br />
     <p style="color: red">Es muss ein Medikament ausgewählt werden</p>
   </div>
@@ -10,6 +10,72 @@
     class="space-y-4"
   >
     <div style="padding-top: 2.5%">
+      <div v-if="props.custom">
+        <div style="text-align: center">
+          <h4>
+            Hiermit wird einmalig ein Medikament angelegt, das in der
+            Medikamentensuche nicht gefunden wurde
+          </h4>
+        </div>
+        <UFormGroup label="Name" name="name" required>
+          <UInput v-model="state.name" color="yellow" />
+        </UFormGroup>
+        <UFormGroup label="Darreichungsform" name="darrform" required>
+          <h5 v-if="showDarrFormError" style="color: red">
+            Darreichungsform wird benötigt
+          </h5>
+          <UCommandPalette
+            v-if="!selectedDosageForm"
+            v-model="selectedDosageForm"
+            :autoselect="false"
+            :groups="[{ key: 'dosageFormTable', commands: dosageFormTable }]"
+            :fuse="{ resultLimit: 5, fuseOptions: { threshold: 0.2 } }"
+          />
+          <p v-else @click="selectedDosageForm = null" class="selectedDarrForm">
+            {{ selectedDosageForm.label }}
+          </p>
+        </UFormGroup>
+        <UAccordion :items="customDrugForm" color="yellow">
+          <template #custom-form>
+            <UFormGroup label="PZN" name="pzn">
+              <UInput
+                v-model="state.pzn"
+                placeholder="Falls bekannt"
+                color="yellow"
+              />
+            </UFormGroup>
+            <UFormGroup label="Herstellercode" name="herstellerCode">
+              <UInput
+                v-model="state.herstellerCode"
+                placeholder="Falls bekannt"
+                color="yellow"
+              />
+            </UFormGroup>
+            <UFormGroup label="Applikationsform" name="appform">
+              <UInput
+                v-model="state.appform"
+                placeholder="Falls bekannt"
+                color="yellow"
+              />
+            </UFormGroup>
+            <UFormGroup label="ATC-Code" name="atc_code">
+              <UInput
+                v-model="state.atc_code"
+                placeholder="Falls bekannt"
+                color="yellow"
+              />
+            </UFormGroup>
+            <UFormGroup label="Packungsgroesse" name="packgroesse">
+              <UInput
+                v-model="state.packgroesse"
+                placeholder="Falls bekannt"
+                color="yellow"
+              />
+            </UFormGroup>
+          </template>
+        </UAccordion>
+        <br />
+      </div>
       <UFormGroup label="Quelle der Arzneimittelangabe">
         <USelect
           v-model="selectedSourceItem"
@@ -62,6 +128,7 @@
       :options="options"
       :color="props.color"
     />
+    <div style="text-align: center">
     <UButton
       type="submit"
       :label="props.label"
@@ -69,24 +136,21 @@
       variant="soft"
       :class="buttonClass"
     />
-    {{state.dose}}
+  </div>
   </UForm>
 </template>
+
+
 
 <script setup lang="ts">
 import dayjs from "dayjs";
 import { object, number, date, string, type InferType } from "yup";
 
 const route = useRoute();
-// const router = useRouter();
-// const tokenStore = useTokenStore();
-
+const tokenStore = useTokenStore();
 const drugStore = useDrugStore();
 const initialLoad = ref(true);
-
-// const studyStore = useStudyStore();
-// const userStore = useUserStore();
-// const runtimeConfig = useRuntimeConfig();
+const runtimeConfig = useRuntimeConfig();
 
 const props = defineProps<{
   color?: string;
@@ -101,25 +165,32 @@ const buttonClass = computed(() => {
   return `border border-${color}-500 hover:bg-${color}-300 hover:border-white hover:text-white`;
 });
 
-// drugStore.item = null;
-
-// // Intakeform
-
-// const drugChosen = ref(true);
-// const showIntakeForm = ref(true);
-
 const state = reactive({
   selected: "Yes",
   startTime: dayjs(Date()).format("YYYY-MM-DD"),
   endTime: null,
   dose: 0,
   intervall: null,
+  pzn: "",
+  name: "",
+  herstellerCode: "",
+  darrform: "",
+  appform: "",
+  atc_code: "",
+  packgroesse: 0,
 });
 
 const schema = object({
   selected: string().required("Required"),
   startTime: date().required("Required"),
   dose: number().min(0, "Required"),
+  pzn: string(),
+  name: string(),
+  herstellerCode: string(),
+  darrform: string(),
+  appform: string(),
+  atc_code: string(),
+  packgroesse: number(),
 });
 
 type Schema = InferType<typeof schema>;
@@ -169,47 +240,71 @@ const tempDose = ref();
 const tempIntervall = ref();
 
 async function saveIntake() {
+
+  console.log(props.edit);
+  console.log(props.custom);
+
   drugStore.action = false;
   initialLoad.value = false;
   tempDose.value = null;
   tempIntervall.value = null;
 
-  if (props.edit) {
-    // const fetchBody = {
-    //   pharmazentralnummer: drugStore.item.pzn,
-    //   source_of_drug_information: drugStore.source,
-    //   //   custom_drug_id: customDrug.value
-    //   //     ? drugStore.item.item.ai_dataversion_id
-    //   //     : null,
-    //   intake_start_time_utc: drugStore.intake_start_time_utc,
-    //   intake_end_time_utc: drugStore.intake_end_time_utc,
-    //   administered_by_doctor: "prescribed",
-    //   intake_regular_or_as_needed: drugStore.frequency,
-    //   dose_per_day: drugStore.dose,
-    //   regular_intervall_of_daily_dose: drugStore.intervall,
-    //   as_needed_dose_unit: null,
-    //   consumed_meds_today: drugStore,
-    // };
-
-    // console.log(fetchBody);
-
+  drugStore.source = useDrugSourceTranslator(null, selectedSourceItem.value);
+  if (selectedFrequency.value === "nach Bedarf") {
+    drugStore.frequency = "as needed";
   } else {
+    drugStore.frequency = "regular";
+  }
+  drugStore.dose = state.dose;
+  tempDose.value = drugStore.dose;
+  drugStore.intervall = useIntervallDoseTranslator(null, state.intervall);
+  tempIntervall.value = state.intervall;
+  drugStore.option = state.selected;
+  drugStore.intake_start_time_utc = state.startTime;
+  drugStore.intake_end_time_utc = state.endTime;
+  drugStore.consumed_meds_today = state.selected;
 
-    drugStore.source = useDrugSourceTranslator(null, selectedSourceItem.value);
-    if (selectedFrequency.value === "nach Bedarf") {
-      drugStore.frequency = "as needed";
-    } else {
-      drugStore.frequency = "regular";
+  if (props.edit && !props.custom) {
+    try {
+      drugStore.editVisibility = false;
+      const frequency = ref();
+
+      if (drugStore.frequency === "nach Bedarf") {
+        frequency.value = "as needed";
+      } else {
+        frequency.value = "regular";
+      }
+
+      const fetchBody = {
+        pharmazentralnummer: drugStore.custom ? null : drugStore.item.pzn,
+        source_of_drug_information: drugStore.source,
+        custom_drug_id: drugStore.custom
+          ? drugStore.item.item.ai_dataversion_id
+          : null,
+        intake_start_time_utc: drugStore.intake_start_time_utc,
+        intake_end_time_utc: drugStore.intake_end_time_utc,
+        administered_by_doctor: "prescribed",
+        intake_regular_or_as_needed: frequency.value,
+        dose_per_day: drugStore.dose,
+        regular_intervall_of_daily_dose: drugStore.intervall,
+        as_needed_dose_unit: null,
+        consumed_meds_today: drugStore.consumed_meds_today,
+      };
+
+      console.log(fetchBody);
+
+      await $fetch(
+        `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
+        {
+          method: "PATCH",
+          headers: { Authorization: "Bearer " + tokenStore.access_token },
+          body: fetchBody,
+        }
+      );
+    } catch (error) {
+      console.log(error);
     }
-    drugStore.dose = state.dose;
-    tempDose.value = drugStore.dose;
-    drugStore.intervall = useIntervallDoseTranslator(null, state.intervall);
-    tempIntervall.value = state.intervall;
-    drugStore.option = state.selected;
-    drugStore.intake_start_time_utc = state.startTime;
-    drugStore.intake_end_time_utc = state.endTime;
-    drugStore.consumed_meds_today = state.selected;
-
+  } else if (!props.edit  && !props.custom) {
     await useCreateIntake(
       route.params.study_id,
       route.params.interview_id,
@@ -223,55 +318,46 @@ async function saveIntake() {
       drugStore.consumed_meds_today,
       null
     );
+  } 
+  else if (props.custom) {
+
+    const response = await $fetch(
+      `${runtimeConfig.public.baseURL}drug/user-custom`,
+      {
+        method: "POST",
+        headers: { Authorization: "Bearer " + tokenStore.access_token },
+        body: {
+          created_at: date,
+          pzn: state.pzn ? state.pzn : null,
+          name: state.name ? state.name : null,
+          hersteller_code: state.herstellerCode ? state.herstellerCode : null,
+          darrform: selectedDosageForm.value.darrform,
+          appform: state.appform ? state.appform : null,
+          atc_code: state.atc_code ? state.atc_code : null,
+          packgroesse: state.packgroesse ? state.packgroesse : null,
+        },
+      }
+    );
+
+    const pzn = state.pzn ? state.pzn : null;
+
+    await useCreateIntake(
+      route.params.study_id,
+      route.params.interview_id,
+      pzn,
+      drugStore.source,
+      drugStore.intake_start_time_utc,
+      drugStore.intake_end_time_utc,
+      drugStore.frequency,
+      drugStore.intervall,
+      drugStore.dose,
+      drugStore.consumed_meds_today,
+      response.id
+    );
     
   }
-  drugStore.action = true;
+  drugStore.action = !drugStore.action;
 }
-
-// async function editEntry() {
-//   if (customDrug.value) {
-//     console.log(customDrug.value);
-//   } else {
-//     try {
-//       const fetchBody = {
-//         pharmazentralnummer: drugStore.item.pzn ? drugStore.item.pzn : null,
-//         source_of_drug_information: useDrugSourceTranslator(
-//           null,
-//           editState.source
-//         ),
-//         custom_drug_id: customDrug.value
-//           ? drugStore.item.item.ai_dataversion_id
-//           : null,
-//         intake_start_time_utc: editState.startTime,
-//         intake_end_time_utc: editState.endTime,
-//         administered_by_doctor: "prescribed",
-//         intake_regular_or_as_needed: my_stuff.value,
-//         dose_per_day: editState.dose,
-//         regular_intervall_of_daily_dose: useIntervallDoseTranslator(
-//           null,
-//           editState.intervall
-//         ),
-//         as_needed_dose_unit: null,
-//         consumed_meds_today: editState.selected,
-//       };
-
-//       await $fetch(
-//         `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${toEditDrugId.value}`,
-//         {
-//           method: "PATCH",
-//           headers: { Authorization: "Bearer " + tokenStore.access_token },
-//           body: fetchBody,
-//         }
-//       );
-
-//       toEditDrugId.value = null;
-//       editModalVisibility.value = false;
-//       createIntakeList();
-//     } catch (error) {
-//       console.log(error);
-//     }
-//   }
-// }
 
 watch(selectedFrequency, (newValue) => {
   if (newValue === "nach Bedarf") {
@@ -289,17 +375,52 @@ watch(selectedFrequency, (newValue) => {
     state.dose = drugStore.dose;
     state.intervall = drugStore.intervall;
   }
-
 });
 
+//test stuff
+
+const customDrugForm = [
+  {
+    label: "Zusätzliche Information",
+    icon: "i-heroicons-information-circle",
+    slot: "custom-form",
+  },
+];
+
+
+const showDarrFormError = ref(false);
+const selectedDosageForm = ref();
+const dosageFormTable = ref();
+
+async function getDosageForm() {
+  const dosageForm = await $fetch(
+    `${runtimeConfig.public.baseURL}drug/enum/darrform`,
+    {
+      method: "GET",
+      headers: { Authorization: "Bearer " + tokenStore.access_token },
+    }
+  );
+
+  dosageFormTable.value = dosageForm.items.map((item) => ({
+    id: item.bedeutung + " (" + item.darrform + ")",
+    label: item.bedeutung + " (" + item.darrform + ")",
+    bedeutung: item.bedeutung,
+    darrform: item.darrform,
+  }));
+}
+
+getDosageForm();
+
+// functioning
+
 if (props.edit) {
-    selectedSourceItem.value = drugStore.source
-    selectedFrequency.value = drugStore.frequency
-    state.dose = drugStore.dose
-    state.intervall = drugStore.intervall
-    state.startTime = drugStore.intake_start_time_utc
-    state.endTime = drugStore.intake_end_time_utc
-    state.selected = drugStore.consumed_meds_today
+  selectedSourceItem.value = drugStore.source;
+  selectedFrequency.value = drugStore.frequency;
+  state.dose = drugStore.dose;
+  state.intervall = drugStore.intervall;
+  state.startTime = drugStore.intake_start_time_utc;
+  state.endTime = drugStore.intake_end_time_utc;
+  state.selected = drugStore.consumed_meds_today;
 }
 </script>
 
