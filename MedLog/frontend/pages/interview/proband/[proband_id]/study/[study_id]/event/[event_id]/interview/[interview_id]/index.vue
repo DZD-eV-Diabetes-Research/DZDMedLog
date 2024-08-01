@@ -129,6 +129,14 @@
       </div>
     </UModal>
   </Layout>
+  
+  {{intakes.items[5]}}
+  <br>
+  <br>
+  {{intakes.items[4]}}
+  <br>
+  <br>
+  {{intakes.items[0]}}
 </template>
 
 <script setup lang="ts">
@@ -361,6 +369,14 @@ async function backToOverview() {
       route.params.study_id,
   });
 }
+
+const {data: intakes} = await useFetch(
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`,
+      {
+        method: "GET",
+        headers: { Authorization: "Bearer " + tokenStore.access_token },
+      }
+    );    
 
 async function createIntakeList() {
   try {
