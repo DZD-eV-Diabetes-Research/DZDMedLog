@@ -60,7 +60,6 @@
         </div>
       </div>
     </div>
-    <p v-for ="intake in intakes.items">{{intake}} <br><br></p>
   </Layout>
 </template>
 
@@ -78,14 +77,6 @@ const userStore = useUserStore()
 const studyStore = useStudyStore()
 
 // table
-
-const {data:intakes} = await useFetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`,
-      {
-        method: "GET",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
-      }
-    );
 
 const page = ref(1)
 const pageCount = 15

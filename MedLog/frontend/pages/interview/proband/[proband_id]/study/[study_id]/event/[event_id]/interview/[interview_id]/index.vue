@@ -10,12 +10,24 @@
         class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
       />
     </UIBaseCard>
-    <div v-if="showIntakeForm">
+    <div v-if="drugStore.intakeVisibility">
       <UIBaseCard>
         <IntakeQuestion color="green" />
         <DrugForm color="green" :edit="false" :custom="false" label="Medikament Speichern"/>
-        <!-- <UModal v-model="customDrugModalVisibility">
+        
+        <UButton
+        @click="openCustomModal()"
+        label="Ungelistetes Medikament aufnehmen"
+        color="yellow"
+        variant="soft"
+        style="margin-top: 2%"
+        class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white"
+      />
+        <UModal v-model="customDrugModalVisibility">
           <div class="p-4">
+          <DrugForm color="yellow" label="Ungelistetes Medikament Speichern" :custom=true />
+          </div>
+          <!-- <div class="p-4">
             <UForm
               :schema="newDrugSchema"
               :state="newDrugState"
@@ -105,8 +117,8 @@
                 </UButton>
               </div>
             </UForm>
-          </div>
-        </UModal> -->
+          </div> -->
+        </UModal>
       </UIBaseCard>
     </div>
     <div class="tableDiv">
@@ -194,16 +206,16 @@
         </div>
       </div>
     </UModal>
-    <UModal v-model="editModalVisibility" @close="drugStore.$reset()">
+    <UModal v-model="drugStore.editVisibility" @close="drugStore.$reset()">
       <div class="p-4">
         <div style="text-align: center">
           <IntakeQuestion
             :drug="toEditDrug"
             :edit="true"
             :custom="customDrug"
-            color="blue"
+            :color="customDrug ? 'yellow' : 'blue'"
           />
-          <DrugForm color="blue" :edit="true" :custom="false" label="Bearbeiten"/>
+          <DrugForm :color="customDrug ? 'yellow' : 'blue'" :edit="true" :custom=customDrug label="Bearbeiten"/>
         </div>
       </div>
     </UModal>
@@ -231,29 +243,14 @@ drugStore.item = null;
 const showIntakeForm = ref(true);
 
 async function openIntakeForm() {
-  showIntakeForm.value = !showIntakeForm.value;
+  drugStore.item = null
+  drugStore.intakeVisibility = !drugStore.intakeVisibility
 }
 
 // Editform Modal
 
 const toEditDrug = ref();
 const editModalVisibility = ref(false);
-
-// const editSchema = object({
-//   selected: string().required("Required"),
-//   startTime: date().required("Required"),
-//   dose: number().min(0, "Hallo"),
-// });
-
-// const editState = reactive({
-//   selected: "Yes",
-//   startTime: dayjs(Date()).format("YYYY-MM-DD"),
-//   endTime: null,
-//   dose: 0,
-//   source: null,
-//   intervall: null,
-//   custom: null,
-// });
 
 const toEditDrugId = ref();
 const customDrug = ref();
@@ -272,12 +269,11 @@ async function editModalVisibilityFunction(row: object) {
   
 
   try {   
-    console.log(row);
     
+    drugStore.editVisibility = true
     drugStore.source = row.source
     drugStore.custom = row.custom;
     customDrug.value = row.custom;
-    editModalVisibility.value = true;
     drugStore.intervall = row.intervall;
     tempIntervall.value = row.intervall;
     drugStore.frequency = row.intervall ? "regelmäßig" : "nach Bedarf";
@@ -285,55 +281,12 @@ async function editModalVisibilityFunction(row: object) {
     drugStore.intake_end_time_utc = row.endTime;
     drugStore.dose = row.dose ? row.dose : 0;
     tempDose.value = row.dose;
+    drugStore.editId = row.id
     toEditDrug.value = row.drug;
     toEditDrugId.value = row.id;    
+  
   } catch (error) {
     console.log(error);
-  }
-}
-
-async function editEntry() {
-  if (customDrug.value) {
-    console.log(customDrug.value);
-  } else {
-    try {
-      const fetchBody = {
-        pharmazentralnummer: drugStore.item.pzn ? drugStore.item.pzn : null,
-        source_of_drug_information: useDrugSourceTranslator(
-          null,
-          editState.source
-        ),
-        custom_drug_id: customDrug.value
-          ? drugStore.item.item.ai_dataversion_id
-          : null,
-        intake_start_time_utc: editState.startTime,
-        intake_end_time_utc: editState.endTime,
-        administered_by_doctor: "prescribed",
-        intake_regular_or_as_needed: my_stuff.value,
-        dose_per_day: editState.dose,
-        regular_intervall_of_daily_dose: useIntervallDoseTranslator(
-          null,
-          editState.intervall
-        ),
-        as_needed_dose_unit: null,
-        consumed_meds_today: editState.selected,
-      };
-
-      await $fetch(
-        `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${toEditDrugId.value}`,
-        {
-          method: "PATCH",
-          headers: { Authorization: "Bearer " + tokenStore.access_token },
-          body: fetchBody,
-        }
-      );
-
-      toEditDrugId.value = null;
-      editModalVisibility.value = false;
-      createIntakeList();
-    } catch (error) {
-      console.log(error);
-    }
   }
 }
 
@@ -589,14 +542,6 @@ async function backToOverview() {
   });
 }
 
-const { data: intakes } = useFetch(
-  `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`,
-  {
-    method: "GET",
-    headers: { Authorization: "Bearer " + tokenStore.access_token },
-  }
-);
-
 async function createIntakeList() {
   try {
     const intakes = await $fetch(
@@ -645,10 +590,12 @@ async function createIntakeList() {
 const isAction = computed(() => drugStore.isAction)
 
 watch(isAction, (newValue) => {
-  if (newValue === true) {
+  if (newValue) {
     createIntakeList();
-    openIntakeForm()
+    drugStore.intakeVisibility = false
   } else {
+    createIntakeList();
+    drugStore.intakeVisibility = false
   }
 });
 
