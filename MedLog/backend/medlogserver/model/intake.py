@@ -147,10 +147,6 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
             raise ValueError(
                 "Can not create intake record. Either `pharmazentralnummer` or `custom_drug_id` must be set. Both are empty atm."
             )
-        if self.pharmazentralnummer and self.custom_drug_id:
-            raise ValueError(
-                "Can not create intake record. Either `pharmazentralnummer` or `custom_drug_id` must be set. Both are set atm."
-            )
         return self
 
 
