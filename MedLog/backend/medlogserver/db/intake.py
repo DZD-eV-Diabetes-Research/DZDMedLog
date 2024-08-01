@@ -121,8 +121,8 @@ class IntakeCRUD(
         detailed_intakes: List[IntakeDetailListItem] = []
         for intake, interview, event in results:
             drug: StammRead | StammUserCustomRead = None
-            log.debug(f"intake: {intake}")
-            if intake.pharmazentralnummer is None and intake.custom_drug_id is not None:
+            # log.debug(f"intake: {intake}")
+            if intake.custom_drug_id is not None:
                 async with StammUserCustomCRUD.crud_context(
                     session=self.session
                 ) as drug_crud:
