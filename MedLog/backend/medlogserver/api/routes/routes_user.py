@@ -87,7 +87,6 @@ async def create_user(
             detail="Missing role",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    print("!!!user_create", user_create)
     user_create: User = await user_crud.create(
         user_create,
         raise_custom_exception_if_exists=HTTPException(

@@ -3,7 +3,7 @@ from utils import req
 
 def run_tests():
     res = req("user/me")
-    print(res)
+    # print(res)
 
 
 def test_health():

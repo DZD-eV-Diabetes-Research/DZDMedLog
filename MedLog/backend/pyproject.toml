@@ -41,7 +41,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
-test = ["pytest", "deepdiff"]
+test = ["pytest", "requests"]
 docs = ["mkdocs", "mkdocstrings[python]", "mkdocs-autorefs", "mkdocs-material"]
 [project.scripts]
 medlogserver = "medlogserver.main:start"
