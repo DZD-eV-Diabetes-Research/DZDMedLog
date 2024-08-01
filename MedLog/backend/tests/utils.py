@@ -71,15 +71,22 @@ def req(
 
     # auth
     access_token = get_access_token()
+    http_method_func_headers_print = None
     if access_token and not suppress_auth:
+        http_method_func_headers_print = http_method_func_headers.copy()
         http_method_func_headers["Authorization"] = f"Bearer {access_token}"
+        http_method_func_headers_print["Authorization"] = (
+            f"Bearer {access_token[:16]}...(truncated)"
+        )
+
+    # create log message that documents the whole request
+    log_msg_request = f"TEST-REQUEST:{method} - {endpoint} - PARAMS: {({k:v for k,v in http_method_func_params.items() if k != 'url'})} - HEADERS: {http_method_func_headers_print}"
 
     # attach headers to request params
     if http_method_func_headers:
         http_method_func_params["headers"] = http_method_func_headers
+        http_method_func_headers_print = http_method_func_headers.copy()
 
-    # create log message that documents the whole request
-    log_msg_request = f"REQUEST:{method} - {endpoint} - PARAMS: {({k:v for k,v in http_method_func_params.items() if k != 'url'})} - HEADERS: {http_method_func_headers}"
     print(log_msg_request)
 
     # fire request

@@ -3,11 +3,24 @@ import json
 
 
 import requests
-from utils import req, dict_must_contain, list_contains_dict_that_must_contain
-from statics import (
-    ADMIN_USER_EMAIL,
-    ADMIN_USER_NAME,
+from utils import (
+    req,
+    dict_must_contain,
+    list_contains_dict_that_must_contain,
+    find_first_dict_in_list,
 )
+from statics import ADMIN_USER_EMAIL, ADMIN_USER_NAME, TEST_USER_NAME, TEST_USER_PW
+
+
+class Helper:
+    @classmethod
+    def get_user_id_by_username(cls, name: str):
+        all_users = req("user", p={"incl_deactivated": True})["items"]
+        return find_first_dict_in_list(
+            all_users,
+            required_keys_and_val={"user_name": name},
+            raise_if_not_found=False,
+        )
 
 
 def test_user_me():
@@ -27,7 +40,7 @@ def test_user_create_with_no_password(tolerate_existing: bool = True):
     user_init_data = {
         "email": "test_user_wo_pw@test.com",
         "display_name": "aintgot nopw",
-        "user_name": "nopwuser",
+        "user_name": TEST_USER_NAME,
     }
     res = req("user", "post", b=user_init_data, tolerated_error_body=[tolerated_error])
     if res != tolerated_error:
@@ -35,7 +48,7 @@ def test_user_create_with_no_password(tolerate_existing: bool = True):
             res, user_init_data, required_keys=["created_at", "roles", "id"]
         )
     if res == tolerated_error:
-        print("TEST FAILED BUT WITH TOLLERATED ERROR: ", res)
+        print("TEST FAILED BUT WITH TOLERATED ERROR: ", res)
 
 
 def test_duplicate_username_catch():
@@ -56,7 +69,7 @@ def test_user_list_with_deactivted():
     )
     list_contains_dict_that_must_contain(
         res["items"],
-        {"email": "test_user_wo_pw@test.com", "user_name": "nopwuser"},
+        {"email": "test_user_wo_pw@test.com", "user_name": TEST_USER_NAME},
         exception_dict_identifier="test_user_list ",
     )
 
@@ -70,18 +83,21 @@ def test_user_list_with_active_only():
     )
 
 
-def test_set_other_user_password():
-    pass
+def test_set_other_user_password_as_admin():
+    res = req(
+        f"user/{Helper.get_user_id_by_username(TEST_USER_NAME)['id']}/password",
+        f={"new_password": TEST_USER_PW, "new_password_repeated": TEST_USER_PW},
+    )
+
+
+# def run_all_tests_users():
+#    test_user_create_with_no_password()
 
 
 def run_all_tests_users():
-    test_user_create_with_no_password()
-
-
-def run_all_tests_users2():
     test_user_me()
     test_user_create_with_no_password()
     test_duplicate_username_catch()
     test_user_list_with_active_only()
     test_user_list_with_deactivted()
-    test_set_other_user_password()
+    test_set_other_user_password_as_admin()

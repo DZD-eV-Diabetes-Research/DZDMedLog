@@ -93,7 +93,8 @@ class _UserWithName(UserBase, table=False):
 
     @validator("email")
     def validmail(cls, email):
-        validate_email(email)
+        if email is not None:
+            validate_email(email)
         return email
 
     @model_validator(mode="before")
