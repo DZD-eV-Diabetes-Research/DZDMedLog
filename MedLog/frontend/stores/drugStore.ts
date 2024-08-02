@@ -13,8 +13,10 @@ interface DrugState {
     action: boolean
     intakeVisibility: boolean
     editVisibility: boolean
-    editId : string
-    
+    customVisibility: boolean
+    editId: string
+    drugName: string | null
+    darrForm: string | null
 }
 
 export const useDrugStore = defineStore('DrugStore',{
@@ -32,7 +34,10 @@ export const useDrugStore = defineStore('DrugStore',{
         action: false,
         intakeVisibility : true,
         editVisibility: false,
+        customVisibility: false,
         editId : "",
+        drugName: null,
+        darrForm: null
 
     }),
     getters: {

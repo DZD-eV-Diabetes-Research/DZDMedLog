@@ -23,9 +23,9 @@
         style="margin-top: 2%"
         class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white"
       />
-        <UModal v-model="customDrugModalVisibility">
+        <UModal v-model="drugStore.customVisibility">
           <div class="p-4">
-          <DrugForm color="yellow" label="Ungelistetes Medikament Speichern" :custom=true />
+          <DrugForm color="yellow" label="Ungelistetes Medikament Speichern" :custom=true :edit=false />
           </div>
         </UModal>
       </UIBaseCard>
@@ -129,14 +129,6 @@
       </div>
     </UModal>
   </Layout>
-  
-  {{intakes.items[5]}}
-  <br>
-  <br>
-  {{intakes.items[4]}}
-  <br>
-  <br>
-  {{intakes.items[0]}}
 </template>
 
 <script setup lang="ts">
@@ -177,7 +169,7 @@ const tempFrequency = ref();
 const my_stuff = ref();
 
 async function editModalVisibilityFunction(row: object) {  
-  
+
   tempIntervall.value = null;
   tempDose.value = null;
   tempFrequency.value = null;
@@ -196,6 +188,8 @@ async function editModalVisibilityFunction(row: object) {
     drugStore.intake_start_time_utc = row.startTime;
     drugStore.intake_end_time_utc = row.endTime;
     drugStore.dose = row.dose ? row.dose : 0;
+    drugStore.darrForm = row.darr ? row.darr : null
+    drugStore.drugName = row.drug ? row.drug : null
     tempDose.value = row.dose;
     drugStore.editId = row.id
     toEditDrug.value = row.drug;
@@ -336,7 +330,7 @@ const selectedDosageForm = ref();
 const dosageFormTable = ref();
 
 async function openCustomModal() {
-  customDrugModalVisibility.value = !customDrugModalVisibility.value;
+  drugStore.customVisibility = !drugStore.customVisibility;
   showDarrFormError.value = false;
 }
 
@@ -437,6 +431,7 @@ watch(isAction, (newValue) => {
 
 getDosageForm();
 createIntakeList();
+drugStore.$reset()
 </script>
 
 <style scoped>

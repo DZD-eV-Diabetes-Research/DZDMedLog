@@ -11,7 +11,7 @@
   >
     <div style="padding-top: 2.5%">
       <div v-if="props.custom">
-        <div style="text-align: center">
+        <div style="text-align: center" v-if="!props.edit">
           <h4>
             Hiermit wird einmalig ein Medikament angelegt, das in der
             Medikamentensuche nicht gefunden wurde
@@ -31,7 +31,7 @@
             :groups="[{ key: 'dosageFormTable', commands: dosageFormTable }]"
             :fuse="{ resultLimit: 5, fuseOptions: { threshold: 0.2 } }"
           />
-          <p v-else @click="selectedDosageForm = null" class="selectedDarrForm">
+          <p v-else @click="selectedDosageForm = null" class="selectedDarrForm" style="margin-bottom:2%">
             {{ selectedDosageForm.label }}
           </p>
         </UFormGroup>
@@ -241,9 +241,6 @@ const tempIntervall = ref();
 
 async function saveIntake() {
 
-  console.log(props.edit);
-  console.log(props.custom);
-
   drugStore.action = false;
   initialLoad.value = false;
   tempDose.value = null;
@@ -291,8 +288,6 @@ async function saveIntake() {
         consumed_meds_today: drugStore.consumed_meds_today,
       };
 
-      console.log(fetchBody);
-
       await $fetch(
         `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
         {
@@ -305,6 +300,7 @@ async function saveIntake() {
       console.log(error);
     }
   } else if (!props.edit  && !props.custom) {
+
     await useCreateIntake(
       route.params.study_id,
       route.params.interview_id,
@@ -319,7 +315,8 @@ async function saveIntake() {
       null
     );
   } 
-  else if (props.custom) {
+
+  else if (props.custom && !props.edit) {
 
     const response = await $fetch(
       `${runtimeConfig.public.baseURL}drug/user-custom`,
@@ -355,7 +352,12 @@ async function saveIntake() {
       response.id
     );
     
+    drugStore.customVisibility = false
+
+  } else {
+    // HERE COMES STUFF
   }
+
   drugStore.action = !drugStore.action;
 }
 
@@ -421,6 +423,11 @@ if (props.edit) {
   state.startTime = drugStore.intake_start_time_utc;
   state.endTime = drugStore.intake_end_time_utc;
   state.selected = drugStore.consumed_meds_today;
+}
+
+if (props.custom && props.edit){
+  state.name = drugStore.drugName
+  selectedDosageForm.value = {"label":drugStore.darrForm}
 }
 </script>
 
