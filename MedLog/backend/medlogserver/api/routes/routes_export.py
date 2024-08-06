@@ -166,7 +166,7 @@ async def get_export(
         )
         raise exception_job_not_existing
 
-    export_job = ExportJob.from_worker_job(worker_job)
+    return ExportJob.from_worker_job(worker_job)
 
 
 @fast_api_export_router.get(

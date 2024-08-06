@@ -45,7 +45,7 @@ def req(
     suppress_auth: bool = False,
     tolerated_error_codes: List[int] = None,
     tolerated_error_body: List[Dict | str] = None,
-) -> Dict:
+) -> Dict | str:
     if tolerated_error_codes is None:
         tolerated_error_codes = []
     if tolerated_error_body is None:
@@ -108,7 +108,10 @@ def req(
                     if body:
                         print("Error body: ", body)
                     raise err
-    return r.json()
+    try:
+        return r.json()
+    except requests.exceptions.JSONDecodeError:
+        return r.content
 
 
 def get_dot_env_file_variable(filepath: str, key: str) -> str | None:
@@ -146,6 +149,10 @@ def dict_must_contain(
         required_keys_and_val = {}
     if required_keys is None:
         required_keys = []
+    if not isinstance(required_keys, list):
+        raise TypeError(
+            f"Expected List of string for `required_keys`. got {type(required_keys)}"
+        )
     for k, v in required_keys_and_val.items():
         try:
             if d[k] != v:
@@ -164,7 +171,7 @@ def dict_must_contain(
         if k not in d:
             if raise_if_not_fullfilled:
                 raise KeyError(
-                    f"""Expected value key '{k}' {"in dict "+exception_dict_identifier if exception_dict_identifier else ""}'"""
+                    f"""Missing expected value key '{k}' {"in dict "+exception_dict_identifier if exception_dict_identifier else ""}'"""
                 )
             return False
     return True
