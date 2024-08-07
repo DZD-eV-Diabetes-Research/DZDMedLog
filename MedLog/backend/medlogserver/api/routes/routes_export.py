@@ -176,13 +176,14 @@ async def get_export(
 )
 async def download_export(
     export_job_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
-    study_access: UserStudyAccess = Security(user_has_study_access),
+    # current_user: User = Depends(get_current_user),
+    # study_access: UserStudyAccess = Security(user_has_study_access),
     worker_job_crud: WorkerJobCRUD = Depends(WorkerJobCRUD.get_crud),
 ) -> FileResponse:
     worker_job: WorkerJob = await worker_job_crud.get(
         export_job_id, raise_exception_if_none=exception_job_not_existing
     )
+    """
     if worker_job.user_id != current_user.id:
         # user had a existing export job id but the job actually belongs to another user
         # there is something fishy going on...
@@ -191,6 +192,7 @@ async def download_export(
             f"User '{current_user.user_name}' requested job with id '{export_job_id}' which belongs to another user. Access was denied, but maybe something fishy is ging on here..."
         )
         raise exception_job_not_existing
+    """
     media_type = (
         "text/csv" if worker_job.task_params["format_"] == "csv" else "application/json"
     )
@@ -198,7 +200,7 @@ async def download_export(
         path=worker_job.last_result,
         # headers="",
         media_type=media_type,
-        filename=f"medlog_export_{study_access.study.id}_{worker_job.run_started_at}.{worker_job.task_params['format_']}",
+        filename=f"medlog_export_{worker_job.run_started_at}.{worker_job.task_params['format_']}",
         content_disposition_type="attachment",
     )
     return FileResponse(worker_job.last_result)
