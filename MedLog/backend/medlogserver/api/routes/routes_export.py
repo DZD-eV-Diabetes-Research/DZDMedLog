@@ -197,7 +197,7 @@ async def download_export(
     FileResponse(
         path=worker_job.last_result,
         # headers="",
-        media_type="media_type",
+        media_type=media_type,
         filename=f"medlog_export_{study_access.study.id}_{worker_job.run_started_at}.{worker_job.task_params['format_']}",
         content_disposition_type="attachment",
     )
