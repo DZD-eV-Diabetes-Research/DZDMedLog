@@ -61,9 +61,11 @@
       </div>
     </div>
     <div style="text-align:center; margin-top:2%">
-    <UButton @click="getThatFatAssDownload()" color="green" variant="soft" 
+    <UButton @click="getDownload" color="green" variant="soft" 
     class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">Download</UButton>
     </div>
+    <a href="http://localhost:8888/study/b2afcc3c-0877-4000-acc6-82eec4955327/export/fea3c12b-f498-4f0d-9f2d-f8b8f60f8390/download">download</a>
+
   </Layout>
 </template>
 
@@ -277,13 +279,28 @@ async function createIntakeList() {
   }
 }
 
-async function getThatFatAssDownload() {
-  const result = await $fetch("study/5d3a9568-283c-44ed-befb-a59ee3ff0ab6/export/ad753f4f-35fa-4825-aca5-f08b78694320/download", {
-      method: "GET",
-      headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-    })
-  console.log(result);
-  
+async function getDownload() {
+  const response = await $fetch('http://localhost:8888/study/b2afcc3c-0877-4000-acc6-82eec4955327/export/fea3c12b-f498-4f0d-9f2d-f8b8f60f8390/download', {
+    method: "GET",
+    headers: {
+      'Authorization': "Bearer " + tokenStore.access_token,
+      'Accept': '*/*',
+    },
+  });
+
+  // if (response.ok) {
+  //   const blob = await response.blob();
+  //   const url = window.URL.createObjectURL(blob);
+  //   const a = document.createElement('a');
+  //   a.href = url;
+  //   a.download = 'your_file.csv'; // Name of the file you want to download
+  //   document.body.appendChild(a);
+  //   a.click();
+  //   a.remove();
+  //   window.URL.revokeObjectURL(url);
+  // } else {
+  //   console.error('Failed to download file:', response.statusText);
+  // }
 }
 
 
