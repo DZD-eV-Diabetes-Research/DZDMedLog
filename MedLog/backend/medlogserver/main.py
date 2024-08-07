@@ -67,7 +67,9 @@ def start(with_background_worker: bool = True):
     # exit()
     print(f"LOG_LEVEL: {config.LOG_LEVEL}")
     print(f"UVICORN_LOG_LEVEL: {get_uvicorn_loglevel()}")
-    print(f"allow_origins=[{config.CLIENT_URL}, {str(config.get_server_url()).rstrip("/")}]")
+    print(
+        f"allow_origins=[{config.CLIENT_URL}, {str(config.get_server_url()).rstrip('/')}]"
+    )
 
     from medlogserver.db._init_db import init_db
     import uvicorn
