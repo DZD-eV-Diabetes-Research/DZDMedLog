@@ -4,6 +4,7 @@ import uuid
 import random
 import string
 import getversion
+import json
 
 
 def to_path(
@@ -74,3 +75,11 @@ def set_version_file(base_dir=Path("./")) -> Path:
     )
     version_file_path.write_text(content)
     return version_file_path
+
+
+class JSONEncoderMedLogCustom(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, uuid.UUID):
+            # if the obj is uuid, we simply return the value of uuid
+            return str(obj)
+        return json.JSONEncoder.default(self, obj)
