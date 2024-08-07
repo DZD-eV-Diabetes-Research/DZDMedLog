@@ -60,6 +60,10 @@
         </div>
       </div>
     </div>
+    <div style="text-align:center; margin-top:2%">
+    <UButton @click="getThatFatAssDownload()" color="green" variant="soft" 
+    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">Download</UButton>
+    </div>
   </Layout>
 </template>
 
@@ -272,6 +276,14 @@ async function createIntakeList() {
     console.log(error);
   }
 }
+
+async function getThatFatAssDownload() {
+  await $fetch("http://localhost:8888/study/5d3a9568-283c-44ed-befb-a59ee3ff0ab6/export/ad753f4f-35fa-4825-aca5-f08b78694320/download", {
+      method: "GET",
+      headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+    })
+}
+
 
 createIntakeList()
 
