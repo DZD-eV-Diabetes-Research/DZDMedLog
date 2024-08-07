@@ -278,10 +278,12 @@ async function createIntakeList() {
 }
 
 async function getThatFatAssDownload() {
-  await $fetch("http://localhost:8888/study/5d3a9568-283c-44ed-befb-a59ee3ff0ab6/export/ad753f4f-35fa-4825-aca5-f08b78694320/download", {
+  const result = await $fetch("study/5d3a9568-283c-44ed-befb-a59ee3ff0ab6/export/ad753f4f-35fa-4825-aca5-f08b78694320/download", {
       method: "GET",
       headers: { 'Authorization': "Bearer " + tokenStore.access_token },
     })
+  console.log(result);
+  
 }
 
 
