@@ -277,8 +277,26 @@ async function createIntakeList() {
   }
 }
 
+const startedDownload = ref(false)
+
 async function getDownload() {
-  const fileUrl = `${runtimeConfig.public.baseURL}study/b2afcc3c-0877-4000-acc6-82eec4955327/export/6d30f279-45bb-4762-8bca-779c0bfc2f3b/download`;
+
+  // try {
+  //   await fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/export?format=csv`, {
+  //     method: "POST",
+  //     headers: {
+  //       'Authorization': "Bearer " + tokenStore.access_token,
+  //     },})
+
+  //     startedDownload.value = true
+
+  // } catch (error) {
+  //   console.log(error);
+  // }
+
+
+
+  const fileUrl = `${runtimeConfig.public.baseURL}study/b2afcc3c-0877-4000-acc6-82eec4955327/export/40b12eac-bad6-4036-8908-83e29b47ad86/download`;
 
 
   try {
