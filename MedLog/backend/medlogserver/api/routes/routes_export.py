@@ -153,6 +153,9 @@ async def create_export(
     "/study/{study_id}/export/{export_job_id}",
     response_model=ExportJob,
     description=f"Get an existing export. This endpoint can be used to get the state or result download path",
+    responses={
+        **http_exception_to_resp_desc(exception_export_job_not_existing),
+    },
 )
 async def get_export(
     export_job_id: uuid.UUID,
