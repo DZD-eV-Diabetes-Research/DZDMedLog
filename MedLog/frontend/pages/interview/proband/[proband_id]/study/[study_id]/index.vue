@@ -279,29 +279,57 @@ async function createIntakeList() {
   }
 }
 
-async function getDownload() {
-  const response = await $fetch('http://localhost:8888/study/b2afcc3c-0877-4000-acc6-82eec4955327/export/fea3c12b-f498-4f0d-9f2d-f8b8f60f8390/download', {
-    method: "GET",
-    headers: {
-      'Authorization': "Bearer " + tokenStore.access_token,
-      'Accept': '*/*',
-    },
-  });
+// async function getDownload() {
+//   const response = await fetch('http://localhost:8888/study/b2afcc3c-0877-4000-acc6-82eec4955327/export/fea3c12b-f498-4f0d-9f2d-f8b8f60f8390/download', {
+//     method: "GET",
+//     headers: {
+//     'Authorization': "Bearer " + tokenStore.access_token, 
+//     'Accept': '*/*',
+//     },
+//   });
 
-  // if (response.ok) {
-  //   const blob = await response.blob();
-  //   const url = window.URL.createObjectURL(blob);
-  //   const a = document.createElement('a');
-  //   a.href = url;
-  //   a.download = 'your_file.csv'; // Name of the file you want to download
-  //   document.body.appendChild(a);
-  //   a.click();
-  //   a.remove();
-  //   window.URL.revokeObjectURL(url);
-  // } else {
-  //   console.error('Failed to download file:', response.statusText);
-  // }
+//   if (response.ok) {
+//     const blob = await response.blob();
+//     const url = window.URL.createObjectURL(blob);
+//     const a = document.createElement('a');
+//     a.href = url;
+//     a.download = 'your_file.csv';
+//     document.body.appendChild(a);
+//     a.click();
+//     a.remove();
+//     window.URL.revokeObjectURL(url);
+//   } else {
+//     console.error('Failed to download file:', response.statusText);
+//   }
+// }
+
+async function getDownload() {
+  const fileUrl = 'http://localhost:8888/study/b2afcc3c-0877-4000-acc6-82eec4955327/export/fea3c12b-f498-4f0d-9f2d-f8b8f60f8390/download';
+  
+  try {
+    const response = await fetch(fileUrl, {
+      method: "GET",
+      headers: {
+        'Authorization': "Bearer " + tokenStore.access_token,
+        'Accept': '*/*',
+      },
+    });
+
+    if (response.ok) {
+      const a = document.createElement('a');
+      a.href = fileUrl;
+      a.download = 'your_file.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else {
+      console.error('Failed to download file:', response.statusText);
+    }
+  } catch (error) {
+    console.error('Failed to download file:', error.message);
+  }
 }
+
 
 
 createIntakeList()
