@@ -34,7 +34,7 @@ from medlogserver.api.study_access import (
     user_has_study_access,
     UserStudyAccess,
 )
-from medlogserver.utils import sanitize_string
+from medlogserver.utils import sanitize_string, http_exception_to_resp_desc
 from medlogserver.db.study import StudyCRUD
 from medlogserver.api.paginator import (
     PaginatedResponse,
@@ -52,9 +52,14 @@ log = get_logger()
 fast_api_export_router: APIRouter = APIRouter()
 
 
-exception_job_not_existing = HTTPException(
+exception_export_job_not_existing = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
     detail="Export job does not exist.",
+)
+
+exception_export_job_not_finished = HTTPException(
+    status_code=status.HTTP_425_TOO_EARLY,
+    detail="Export job is not finished yet. Try again later.",
 )
 
 
@@ -157,7 +162,7 @@ async def get_export(
 ) -> ExportJob:
 
     worker_job: WorkerJob = await worker_job_crud.get(
-        export_job_id, raise_exception_if_none=exception_job_not_existing
+        export_job_id, raise_exception_if_none=exception_export_job_not_existing
     )
     if worker_job.user_id != current_user.id:
         # user had a existing export job id but the job actually belongs to another user
@@ -166,7 +171,7 @@ async def get_export(
         log.warning(
             f"User '{current_user.user_name}' requested job with id '{export_job_id}' which belongs to another user. Access was denied, but maybe something fishy is ging on here..."
         )
-        raise exception_job_not_existing
+        raise exception_export_job_not_existing
 
     return ExportJob.from_worker_job(worker_job)
 
@@ -175,6 +180,10 @@ async def get_export(
     "/study/{study_id}/export/{export_job_id}/download",
     response_class=FileResponse,
     description=f"Download the export. Job muste be in state `SUCCESS`",
+    responses={
+        **http_exception_to_resp_desc(exception_export_job_not_finished),
+        **http_exception_to_resp_desc(exception_export_job_not_existing),
+    },
 )
 async def download_export(
     export_job_id: uuid.UUID,
@@ -185,8 +194,14 @@ async def download_export(
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
 ) -> FileResponse:
     worker_job: WorkerJob = await worker_job_crud.get(
-        export_job_id, raise_exception_if_none=exception_job_not_existing
+        export_job_id, raise_exception_if_none=exception_export_job_not_existing
     )
+    export_job = ExportJob.from_worker_job(worker_job)
+    if export_job.download_file_path is None:
+        raise HTTPException(
+            status_code=status.HTTP_425_TOO_EARLY,
+            detail="Export job is not finished.",
+        )
     """
     if worker_job.user_id != current_user.id:
         # user had a existing export job id but the job actually belongs to another user

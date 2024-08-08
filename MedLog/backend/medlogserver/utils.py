@@ -1,10 +1,12 @@
-from typing import List, Literal
+from typing import List, Literal, Dict, Union, Tuple, Annotated, Optional
 from pathlib import Path, PurePath
 import uuid
 import random
 import string
 import getversion
 import json
+import fastapi
+import pydantic
 
 
 def to_path(
@@ -91,3 +93,15 @@ class JSONEncoderMedLogCustom(json.JSONEncoder):
             # if the obj is uuid, we simply return the value of uuid
             return str(obj)
         return json.JSONEncoder.default(self, obj)
+
+
+def http_exception_to_resp_desc(e: fastapi.HTTPException) -> Dict[int, str]:
+    """Translate a fastapi.HTTPException into fastapi OpenAPI response description to be used as a additional response
+    https://fastapi.tiangolo.com/advanced/additional-responses/
+    """
+    return {
+        e.status_code: {
+            "description": e.detail,
+            "model": pydantic.create_model("Error", detail=(Dict[str, str], e.detail)),
+        },
+    }
