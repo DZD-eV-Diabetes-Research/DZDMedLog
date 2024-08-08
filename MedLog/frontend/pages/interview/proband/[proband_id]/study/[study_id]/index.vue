@@ -64,8 +64,6 @@
     <UButton @click="getDownload" color="green" variant="soft" 
     class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">Download</UButton>
     </div>
-    <a href="http://localhost:8888/study/b2afcc3c-0877-4000-acc6-82eec4955327/export/fea3c12b-f498-4f0d-9f2d-f8b8f60f8390/download">download</a>
-
   </Layout>
 </template>
 
@@ -279,33 +277,10 @@ async function createIntakeList() {
   }
 }
 
-// async function getDownload() {
-//   const response = await fetch('http://localhost:8888/study/b2afcc3c-0877-4000-acc6-82eec4955327/export/fea3c12b-f498-4f0d-9f2d-f8b8f60f8390/download', {
-//     method: "GET",
-//     headers: {
-//     'Authorization': "Bearer " + tokenStore.access_token, 
-//     'Accept': '*/*',
-//     },
-//   });
-
-//   if (response.ok) {
-//     const blob = await response.blob();
-//     const url = window.URL.createObjectURL(blob);
-//     const a = document.createElement('a');
-//     a.href = url;
-//     a.download = 'your_file.csv';
-//     document.body.appendChild(a);
-//     a.click();
-//     a.remove();
-//     window.URL.revokeObjectURL(url);
-//   } else {
-//     console.error('Failed to download file:', response.statusText);
-//   }
-// }
-
 async function getDownload() {
-  const fileUrl = 'http://localhost:8888/study/b2afcc3c-0877-4000-acc6-82eec4955327/export/fea3c12b-f498-4f0d-9f2d-f8b8f60f8390/download';
-  
+  const fileUrl = `${runtimeConfig.public.baseURL}study/b2afcc3c-0877-4000-acc6-82eec4955327/export/6d30f279-45bb-4762-8bca-779c0bfc2f3b/download`;
+
+
   try {
     const response = await fetch(fileUrl, {
       method: "GET",
@@ -329,8 +304,6 @@ async function getDownload() {
     console.error('Failed to download file:', error.message);
   }
 }
-
-
 
 createIntakeList()
 
