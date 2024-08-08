@@ -201,13 +201,12 @@ async def download_export(
     media_type = (
         "text/csv" if worker_job.task_params["format_"] == "csv" else "application/json"
     )
-    filename = f"""medlog_export_{sanitize_string(study.display_name,replace_space_with="-")}_{worker_job.run_started_at}.{worker_job.task_params['format_']}"""
-    headers = {"Content-Disposition": f'''attachment; filename="{filename}"'''}
-    FileResponse(
+    filename = f"""medlog_export_{sanitize_string(study.display_name,replace_space_with="-")}_{worker_job.run_started_at.strftime('%S-%M-%H_%d-%m-%Y')}.{worker_job.task_params['format_']}"""
+    # headers = {"Content-Disposition": f'''attachment; filename="{filename}"'''}
+    # headers["Content-Type"] = media_type
+    return FileResponse(
         path=worker_job.last_result,
-        headers=headers,
-        media_type=media_type,
+        # headers=headers,
         filename=filename,
-        content_disposition_type="attachment",
+        media_type=media_type,
     )
-    return FileResponse(worker_job.last_result)
