@@ -34,6 +34,8 @@ from medlogserver.api.study_access import (
     user_has_study_access,
     UserStudyAccess,
 )
+from medlogserver.utils import sanitize_string
+from medlogserver.db.study import StudyCRUD
 from medlogserver.api.paginator import (
     PaginatedResponse,
     create_query_params_class,
@@ -176,9 +178,11 @@ async def get_export(
 )
 async def download_export(
     export_job_id: uuid.UUID,
+    study_id: uuid.UUID,
     # current_user: User = Depends(get_current_user),
     # study_access: UserStudyAccess = Security(user_has_study_access),
     worker_job_crud: WorkerJobCRUD = Depends(WorkerJobCRUD.get_crud),
+    study_crud: StudyCRUD = Depends(StudyCRUD),
 ) -> FileResponse:
     worker_job: WorkerJob = await worker_job_crud.get(
         export_job_id, raise_exception_if_none=exception_job_not_existing
@@ -193,12 +197,11 @@ async def download_export(
         )
         raise exception_job_not_existing
     """
+    study = await study_crud.get(study_id=study_id)
     media_type = (
         "text/csv" if worker_job.task_params["format_"] == "csv" else "application/json"
     )
-    filename = (
-        f"medlog_export_{worker_job.run_started_at}.{worker_job.task_params['format_']}"
-    )
+    filename = f"medlog_export_{sanitize_string(study.display_name,replace_space_with="-")}_{worker_job.run_started_at}.{worker_job.task_params['format_']}"
     headers = {"Content-Disposition": f'''attachment; filename="{filename}"'''}
     FileResponse(
         path=worker_job.last_result,

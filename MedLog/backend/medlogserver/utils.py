@@ -77,6 +77,14 @@ def set_version_file(base_dir=Path("./")) -> Path:
     return version_file_path
 
 
+def sanitize_string(s: str, replace_space_with: str = "_") -> str:
+    return "".join(
+        char.lower() if char.isalpha() else "_" if char == " " else char
+        for char in s
+        if char.isalnum() or char == " "
+    )
+
+
 class JSONEncoderMedLogCustom(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, uuid.UUID):
