@@ -61,8 +61,6 @@
       </div>
     </div>
     <div style="text-align:center; margin-top:2%">
-    <UButton @click="getDownload" color="green" variant="soft" 
-    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">Download</UButton>
     </div>
   </Layout>
 </template>
@@ -274,52 +272,6 @@ async function createIntakeList() {
     }
   } catch (error) {
     console.log(error);
-  }
-}
-
-const startedDownload = ref(false)
-
-async function getDownload() {
-
-  // try {
-  //   await fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/export?format=csv`, {
-  //     method: "POST",
-  //     headers: {
-  //       'Authorization': "Bearer " + tokenStore.access_token,
-  //     },})
-
-  //     startedDownload.value = true
-
-  // } catch (error) {
-  //   console.log(error);
-  // }
-
-
-
-  const fileUrl = `${runtimeConfig.public.baseURL}study/b2afcc3c-0877-4000-acc6-82eec4955327/export/40b12eac-bad6-4036-8908-83e29b47ad86/download`;
-
-
-  try {
-    const response = await fetch(fileUrl, {
-      method: "GET",
-      headers: {
-        'Authorization': "Bearer " + tokenStore.access_token,
-        'Accept': '*/*',
-      },
-    });
-
-    if (response.ok) {
-      const a = document.createElement('a');
-      a.href = fileUrl;
-      a.download = 'your_file.csv';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } else {
-      console.error('Failed to download file:', response.statusText);
-    }
-  } catch (error) {
-    console.error('Failed to download file:', error.message);
   }
 }
 

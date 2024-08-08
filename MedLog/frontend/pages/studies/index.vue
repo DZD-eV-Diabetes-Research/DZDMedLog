@@ -12,15 +12,7 @@
         Admin
       </h2>
     </UIBaseCard>
-    <UIBaseCard
-      @click="selectStudy(study)"
-      v-for="study in studyStore.studies.items"
-      :key="study.id"
-      style="text-align: center"
-    >
-      <h3>{{ study.display_name }}</h3>
-    </UIBaseCard>
-    <UIBaseCard v-if="userStore.isAdmin" class="noHover" :naked="true">
+    <UIBaseCard v-if="userStore.isAdmin" :naked="true">
       <UButton
         @click="openModal()"
         label="Studie anlegen"
@@ -51,6 +43,29 @@
           </UForm>
         </div>
       </UModal>
+    </UIBaseCard>
+    <UIBaseCard
+      v-for="study in studyStore.studies.items"
+      :key="study.id"
+      style="text-align: center"
+    >
+      <h3>{{ study.display_name }}</h3>
+
+      <div class="button-container">
+      <UButton type="button"
+              @click="selectStudy(study)"
+              label="Eventverwaltung"
+              color="green"
+              variant="soft"
+              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"/>
+      <UButton type="submit"
+              @click="getDownload(study.id)"
+              label="Datenexport"
+              color="blue"
+              variant="soft"
+              class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"/>
+      </div>
+
     </UIBaseCard>
   </Layout>
 </template>
@@ -104,18 +119,57 @@ async function createStudy() {
 function selectStudy(study) {
   router.push({ path: "/studies/" + study.id });
 }
+
+
+const startedDownload = ref(false)
+
+const {data,status,refresh} = await useFetch('')
+
+async function getDownload(study_id) {
+
+  try {
+    await fetch(`${runtimeConfig.public.baseURL}study/${study_id}/export?format=csv`, {
+      method: "POST",
+      headers: {
+        'Authorization': "Bearer " + tokenStore.access_token,
+      },})
+
+      startedDownload.value = true
+
+  } catch (error) {
+    console.log(error);
+  }
+
+
+
+  // const fileUrl = `${runtimeConfig.public.baseURL}study/b2afcc3c-0877-4000-acc6-82eec4955327/export/40b12eac-bad6-4036-8908-83e29b47ad86/download`;
+
+
+  // try {
+  //   const response = await fetch(fileUrl, {
+  //     method: "GET",
+  //     headers: {
+  //       'Authorization': "Bearer " + tokenStore.access_token,
+  //       'Accept': '*/*',
+  //     },
+  //   });
+
+  //   if (response.ok) {
+  //     const a = document.createElement('a');
+  //     a.href = fileUrl;
+  //     document.body.appendChild(a);
+  //     a.click();
+  //     document.body.removeChild(a);
+  //   } else {
+  //     console.error('Failed to download file:', response.statusText);
+  //   }
+  // } catch (error) {
+  //   console.error('Failed to download file:', error.message);
+  // }
+}
 </script>
 
 <style lang="scss" scoped>
-.base-card:hover {
-  background-color: #ededed;
-  cursor: pointer;
-}
-
-.noHover:hover {
-  background-color: white;
-  cursor: default;
-}
 
 .center {
   text-align: center;
@@ -123,4 +177,14 @@ function selectStudy(study) {
   width: 50%;
   padding: 10px;
 }
+
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  width: 52%;
+  margin: 0 21%; 
+}
+
 </style>
