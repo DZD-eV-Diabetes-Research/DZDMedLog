@@ -207,8 +207,7 @@ class TaskExportStudyIntakeData(TaskBase):
         # lets check if the last_result field.
         if (
             self.job.last_result is not None
-            or self.job.last_result != ""
-            and self.job.last_result
+            and self.job.last_result != ""
             and Path(config.EXPORT_CACHE_DIR) in Path(self.job.last_result)
             and Path(self.job.last_result).exists()
         ):
