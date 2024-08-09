@@ -69,6 +69,7 @@ class ExportJob(BaseModel):
     download_file_path: Optional[str] = None
     created_at: datetime
     error: Optional[str] = None
+    export_format: Literal["csv", "json"] = None
 
     @classmethod
     def from_worker_job(cls, job: WorkerJob):
@@ -76,6 +77,7 @@ class ExportJob(BaseModel):
             export_id=job.id,
             state=job.get_state(),
             created_at=job.created_at,
+            export_format=job.task_params["format_"],
         )
         if job.get_state() == WorkerJobState.SUCCESS:
             export_job.download_file_path = (
