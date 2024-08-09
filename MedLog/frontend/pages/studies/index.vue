@@ -59,7 +59,7 @@
               variant="soft"
               class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"/>
       <UButton type="submit"
-              @click="getDownload(study.id)"
+              @click="gotoExport(study.id)"
               label="Datenexport"
               color="blue"
               variant="soft"
@@ -120,52 +120,8 @@ function selectStudy(study) {
   router.push({ path: "/studies/" + study.id });
 }
 
-
-const startedDownload = ref(false)
-
-const {data,status,refresh} = await useFetch('')
-
-async function getDownload(study_id) {
-
-  try {
-    await fetch(`${runtimeConfig.public.baseURL}study/${study_id}/export?format=csv`, {
-      method: "POST",
-      headers: {
-        'Authorization': "Bearer " + tokenStore.access_token,
-      },})
-
-      startedDownload.value = true
-
-  } catch (error) {
-    console.log(error);
-  }
-
-
-
-  // const fileUrl = `${runtimeConfig.public.baseURL}study/b2afcc3c-0877-4000-acc6-82eec4955327/export/40b12eac-bad6-4036-8908-83e29b47ad86/download`;
-
-
-  // try {
-  //   const response = await fetch(fileUrl, {
-  //     method: "GET",
-  //     headers: {
-  //       'Authorization': "Bearer " + tokenStore.access_token,
-  //       'Accept': '*/*',
-  //     },
-  //   });
-
-  //   if (response.ok) {
-  //     const a = document.createElement('a');
-  //     a.href = fileUrl;
-  //     document.body.appendChild(a);
-  //     a.click();
-  //     document.body.removeChild(a);
-  //   } else {
-  //     console.error('Failed to download file:', response.statusText);
-  //   }
-  // } catch (error) {
-  //   console.error('Failed to download file:', error.message);
-  // }
+async function gotoExport(study_id) {
+  router.push({ path: "/studies/" + study_id + "/export" });
 }
 </script>
 
