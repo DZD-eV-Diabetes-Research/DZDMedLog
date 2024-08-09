@@ -29,7 +29,7 @@ class RefreshTokenCleaner:
                         < datetime.datetime.now(tz=datetime.UTC).timestamp()
                         or token.deactivated
                     ):
-                        crud.delete(id=token.id)
+                        await crud.delete(id=token.id)
 
 
 class TaskCleanTokens(TaskBase):
