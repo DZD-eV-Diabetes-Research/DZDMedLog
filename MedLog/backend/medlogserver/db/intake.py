@@ -55,7 +55,7 @@ class IntakeCRUD(
         filter_study_id: str = None,
         pagination: QueryParamsInterface = None,
     ) -> Sequence[Intake]:
-        query = select(Intake)
+        query = select(Intake).distinct()
         # prepare joins
         if filter_study_id:
             query = query.join(Interview).join(Event)

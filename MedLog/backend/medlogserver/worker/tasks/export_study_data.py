@@ -65,7 +65,7 @@ class ExportContainer(BaseModel):
                         row[f"{obj_class_name}_{prop_name}"] = prop_value
                     else:
                         row[prop_name] = prop_value
-                values.append(row)
+            values.append(row)
         return values
 
 
