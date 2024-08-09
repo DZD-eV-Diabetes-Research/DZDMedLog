@@ -5,7 +5,7 @@ import shutil
 import csv
 import uuid
 from pydantic import BaseModel
-from medlogserver.utils import JSONEncoderMedLogCustom
+from medlogserver.utils import JSONEncoderMedLogCustom, path_is_parent
 from medlogserver.worker.task import TaskBase
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db import (
@@ -208,7 +208,9 @@ class TaskExportStudyIntakeData(TaskBase):
         if (
             self.job.last_result is not None
             and self.job.last_result != ""
-            and Path(config.EXPORT_CACHE_DIR) in Path(self.job.last_result)
+            and path_is_parent(
+                Path(config.EXPORT_CACHE_DIR), Path(self.job.last_result)
+            )
             and Path(self.job.last_result).exists()
         ):
             shutil.rmtree(Path(self.job.last_result).parent)

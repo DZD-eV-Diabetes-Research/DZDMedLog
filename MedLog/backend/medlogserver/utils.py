@@ -7,6 +7,7 @@ import getversion
 import json
 import fastapi
 import pydantic
+import os
 
 
 def to_path(
@@ -105,3 +106,17 @@ def http_exception_to_resp_desc(e: fastapi.HTTPException) -> Dict[int, str]:
             "model": pydantic.create_model("Error", detail=(Dict[str, str], e.detail)),
         },
     }
+
+
+def path_is_parent(parent_path: Path | str, child_path: Path | str) -> bool:
+    # check if a path is a subpath of another.
+    # e.g. "/tmp/parent" is parent of "/tmp/paren/child/file.txt"
+    # kudos to: https://stackoverflow.com/a/37095733/12438690
+    # Smooth out relative path names, note: if you are concerned about symbolic links, you should use os.path.realpath too
+    parent_path = os.path.abspath(parent_path)
+    child_path = os.path.abspath(child_path)
+
+    # Compare the common path of the parent and child path with the common path of just the parent path. Using the commonpath method on just the parent path will regularise the path name in the same way as the comparison that deals with both paths, removing any trailing path separator
+    return os.path.commonpath([parent_path]) == os.path.commonpath(
+        [parent_path, child_path]
+    )
