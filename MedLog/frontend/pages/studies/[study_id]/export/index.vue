@@ -20,9 +20,10 @@
             v-if="row.status === 'success'"
             icon="i-heroicons-check"
             size="2xs"
-            color="emerald"
+            color="primary"
             variant="solid"
             :ui="{ rounded: 'rounded-full' }"
+            class="no-hover"
             square
           />
 
@@ -34,6 +35,7 @@
             variant="outline"
             :ui="{ rounded: 'rounded-full' }"
             :class="{ rotating: row.status === 'queued' }"
+            class="no-hover"
             square
           />
         </template>
@@ -79,6 +81,21 @@ const columns = [
 const downloads = ref([]);
 let downloadCheckInterval: NodeJS.Timeout | null = null;
 
+function parseTime(time:string) {
+    const date = new Date(time);
+    const options = {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    };
+    return date.toLocaleString('de-DE', options).replace(',', '');
+}
+
+
 async function getDownloads() {
   const data = await $fetch(
     `${runtimeConfig.public.baseURL}study/${route.params.study_id}/export`,
@@ -92,7 +109,7 @@ async function getDownloads() {
 
   downloads.value = data.items.map((item) => ({
     study: studyName.display_name,
-    time: item.created_at,
+    time: parseTime(item.created_at),
     status: item.state,
     downloadLink: `${runtimeConfig.public.baseURL}${item.download_file_path}`,
   }));
@@ -180,5 +197,15 @@ onBeforeUnmount(() => {
   padding: 1rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+}
+
+.no-hover {
+  pointer-events: none;
+}
+
+.no-hover:hover {
+  background-color: transparent; 
+  border-color: inherit; 
+  color: inherit;
 }
 </style>
