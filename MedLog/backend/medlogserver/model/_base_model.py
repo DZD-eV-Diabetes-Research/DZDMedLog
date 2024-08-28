@@ -47,7 +47,8 @@ class UUIDModel(SQLModel):
 
 class TimestampModel(SQLModel):
     created_at: datetime.datetime = Field(
-        default_factory=datetime.datetime.now(tz=datetime.timezone.utc), nullable=False
+        default_factory=lambda: datetime.datetime.now(tz=datetime.timezone.utc),
+        nullable=False,
     )
 
     ## this is broken because fastapi/pydantic does not like the "sqlalchemy.text()" part.
