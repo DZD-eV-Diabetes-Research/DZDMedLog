@@ -1,5 +1,5 @@
 from typing import Optional
-from datetime import datetime
+import datetime
 from pydantic import Field, field_validator, ValidationInfo
 from sqlalchemy import text
 import uuid
@@ -46,7 +46,9 @@ class UUIDModel(SQLModel):
 
 
 class TimestampModel(SQLModel):
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime.datetime = Field(
+        default_factory=datetime.datetime.now(tz=datetime.timezone.utc), nullable=False
+    )
 
     ## this is broken because fastapi/pydantic does not like the "sqlalchemy.text()" part.
     # todo: (with reasonable effort) find a solution to implement a way to implement an updated_at column/function.
@@ -65,4 +67,4 @@ class BaseTable(TimestampModel):
 
 
 class ExportBaseModel(MedLogBaseModel):
-    created_at: datetime = Field(exclude=True)
+    created_at: datetime.datetime = Field(exclude=True)
