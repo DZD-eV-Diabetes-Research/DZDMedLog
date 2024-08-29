@@ -13,7 +13,7 @@
     "@nuxt/ui": "npm:@nuxt/ui-edge@latest",
     "@pinia/nuxt": "^0.5.1",
     "dayjs-nuxt": "^2.1.9",
-    "nuxt": "^3.11.2",
+    "nuxt": "^3.13.0",
     "pinia": "^2.1.7",
     "sass": "^1.76.0",
     "vue": "^3.4.21",

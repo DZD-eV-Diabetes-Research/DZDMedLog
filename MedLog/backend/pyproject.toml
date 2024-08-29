@@ -40,6 +40,9 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[tool.setuptools.packages.find]
+include = ['medlogserver', 'provisioning_data']
+
 [project.optional-dependencies]
 test = ["pytest", "requests"]
 docs = ["mkdocs", "mkdocstrings[python]", "mkdocs-autorefs", "mkdocs-material"]
