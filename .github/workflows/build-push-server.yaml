@@ -22,7 +22,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: dzdde/dzdmedlog-server
+          images: dzdde/dzdmedlog
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -37,7 +37,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_DZD_USERNAME }}
           password: ${{ secrets.DOCKERHUB_DZD_PASSWORD }}
-          repository: dzdde/dzdmedlog-server
+          repository: dzdde/dzdmedlog
           short-description: "The server module for DZDMedLog, a system to document the medical history of study participant."
           enable-url-completion: true
           readme-filepath: "MedLog/backend/README.md"
