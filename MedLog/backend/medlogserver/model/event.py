@@ -96,7 +96,7 @@ class Event(EventRead, table=True):
         order_by = "name"
 
 
-class EventExport(Event, table=False):
+class EventExport(EventRead, table=False):
     created_at: datetime.datetime = Field(exclude=True)
     completed: bool = Field(exclude=True)
     study_id: UUID = Field(exclude=True)

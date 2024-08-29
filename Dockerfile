@@ -11,6 +11,7 @@ RUN bun install && bun run build && bunx nuxi generate
 FROM python:3.11 AS medlog-backend
 RUN python3 -m pip install --upgrade pip
 COPY --from=medlog-frontend-build /frontend_build/.output/public /app 
+ENV DOCKER_MODE=1
 ENV FRONTEND_FILES_DIR=/app
 #RUN apt-get update && apt-get install git -y
 #
@@ -40,8 +41,8 @@ RUN rm -r /opt/$APPNAME/.git
 
 #Copy default app data provisioning files
 RUN mkdir /prov
-COPY MedLog/backend/provisioning_data /provisioning_data
-ENV APP_PROVISIONING_DEFAULT_DATA_YAML_FILE=/provisioning_data/default_data/default_data.yaml
+COPY MedLog/backend/provisioning_data /provisioning
+
 
 # Install data
 RUN mkdir -p /data/db

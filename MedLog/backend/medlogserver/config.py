@@ -20,6 +20,7 @@ env_file_path = os.environ.get("MEDLOG_DOT_ENV_FILE", Path(__file__).parent / ".
 
 class Config(BaseSettings):
     APP_NAME: str = "DZD MedLog"
+    DOCKER_MODE: bool = False
     FRONTEND_FILES_DIR: str = Field(
         description="The generated nuxt dir that contains index.html,...",
         default="MedLog/frontend/.output/public",
@@ -42,9 +43,23 @@ class Config(BaseSettings):
             if not self_data.get("ADMIN_USER_PW", None):
                 self_data["ADMIN_USER_PW"] = "adminadmin"
             if not self_data.get("APP_PROVISIONING_DATA_YAML_FILES", None):
-                self_data["APP_PROVISIONING_DATA_YAML_FILES"] = [
-                    "../provisioning_data/demo_data/single_study_demo_data.yaml"
-                ]
+                if bool(self_data["DOCKER_MODE"]):
+                    self_data["APP_PROVISIONING_DATA_YAML_FILES"] = [
+                        str(
+                            Path(
+                                "/provisioning/demo_data/single_study_demo_data.yaml",
+                            )
+                        )
+                    ]
+                else:
+                    self_data["APP_PROVISIONING_DATA_YAML_FILES"] = [
+                        str(
+                            Path(
+                                Path(__file__).parent.parent,
+                                "provisioning_data/demo_data/single_study_demo_data.yaml",
+                            )
+                        )
+                    ]
         return self_data
 
     DEBUG_SQL: bool = Field(
@@ -57,7 +72,7 @@ class Config(BaseSettings):
         description="The log level of the uvicorn server. If not defined it will be the same as LOG_LEVEL.",
     )
 
-    SERVER_LISTENING_PORT: int = Field(default=8008)
+    SERVER_LISTENING_PORT: int = Field(default=8888)
     SERVER_LISTENING_HOST: str = Field(
         default="localhost",
         examples=["0.0.0.0", "localhost", "127.0.0.1", "176.16.8.123"],
@@ -110,8 +125,10 @@ class Config(BaseSettings):
         default_factory=list,
         description="A list if yaml files to serialize and load into MedLog models and into the DB ",
     )
-    APP_PROVISIONING_DEFAULT_DATA_YAML_FILE: str = (
-        "MedLog/backend/provisioning_data/default_data/default_data.yaml"
+
+    APP_PROVISIONING_DEFAULT_DATA_YAML_FILE: str = Field(
+        description="Default data like some background jobs and vocabulary that is always loaded in the database. Under normal circustances this is nothing you need to changed. if you need to provision data like a Study into the database use the APP_PROVISIONING_DATA_YAML_FILES param.",
+        default=str(Path(Path(__file__).parent, "default_data.yaml")),
     )
 
     APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS: Dict = Field(

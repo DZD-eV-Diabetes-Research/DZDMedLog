@@ -367,8 +367,43 @@ def get_class_attr_as_str():
     # does not work :(
 
 
-get_class_attr_as_str()
+def nested_pydnatic_val():
+    from pydantic import Field
+    from pydantic_settings import BaseSettings
+
+    class Config(BaseSettings):
+        APP_NAME: str = "DZD MedLog"
+        FRONTEND_FILES_DIR: str = Field(
+            description="The generated nuxt dir that contains index.html,...",
+            default="MedLog/frontend/.output/public",
+        )
+        FRONTED_FILE: str = Field(
+            description="The generated nuxt dir that contains index.html,...",
+            default=FRONTEND_FILES_DIR,
+        )
+
+    print(Config())
 
 
-def omop_test():
-    from OMOPModel import "OMOP_CDM_5.4_sqlmodels"
+def path_test():
+    from pathlib import Path
+
+    print(Path(Path(__file__).parent, "default.yaml"))
+
+
+def pydnatic_shadow_warning_test():
+    # /usr/local/lib/python3.11/site-packages/pydantic/_internal/_fields.py:201: UserWarning: Field name "created_at" in "EventExport" shadows an attribute in parent "Event"
+    from sqlmodel import SQLModel, Field
+
+    # from pydantic import BaseModel, Field
+    import datetime
+
+    class Event(SQLModel, table=True):
+        name: str = Field(primary_key=True)
+        created_at: datetime.datetime = Field()
+
+    class EventExport(Event, table=False):
+        created_at: datetime.datetime = Field(exclude=True)
+
+
+pydnatic_shadow_warning_test()

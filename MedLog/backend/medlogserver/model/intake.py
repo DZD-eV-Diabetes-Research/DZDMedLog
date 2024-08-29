@@ -194,9 +194,10 @@ class Intake(IntakeCreate, BaseTable, table=True):
     )
 
 
-class IntakeExport(Intake, table=False):
+class IntakeExport(IntakeCreate, BaseTable, table=False):
     created_at: datetime = Field(exclude=True)
     interview_id: UUID = Field(exclude=True)
+    id: uuid.UUID = Field()
 
 
 class IntakeDetailListItem(IntakeCreate, BaseTable, table=False):

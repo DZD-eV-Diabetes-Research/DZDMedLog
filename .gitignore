@@ -367,3 +367,4 @@ local.sqlite-journal
 export.csv
 export_cache/
 MedLog/backend/tests/testdb.sqlite
+**/*.env

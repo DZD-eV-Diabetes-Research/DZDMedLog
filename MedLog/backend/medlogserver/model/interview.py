@@ -64,6 +64,6 @@ class Interview(InterviewCreate, BaseTable, table=True):
     )
 
 
-class InterviewExport(Interview, table=False):
+class InterviewExport(InterviewCreate, table=False):
     created_at: datetime = Field(exclude=True)
     event_id: uuid.UUID = Field(foreign_key="event.id", exclude=True)

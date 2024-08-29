@@ -1,10 +1,6 @@
+# This is the default data that is inserted into the database. Thet path to the file is hardcoded and can not be changed.
+# If you need to dynamicly load/provision data on a per instance base (like default users) have a look at the config var APP_PROVISIONING_DATA_YAML_FILES
 items:
-  #- medlogserver.model.wido_gkv_arzneimittelindex.ai_data_version.AiDataVersion:
-  #    - id: 0ed47419-2c8d-42a8-aab3-dcabcaf5ab4c
-  #      source_file_path: "This is a default entry, under which all user custom drugs are listed."
-  #      dateiversion: user-custom-drugs
-  #      datenstand: NA
-  #      deactivated: false
   - medlogserver.model.worker_job.WorkerJobCreate:
       - id: 46365a4d-a6e1-4d07-abba-1d44552d360c
         task_name: CLEAN_TOKENS

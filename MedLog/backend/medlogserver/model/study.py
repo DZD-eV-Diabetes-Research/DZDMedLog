@@ -62,7 +62,7 @@ class Study(StudyCreate, BaseTable, table=True):
     )
 
 
-class StudyExport(Study, table=False):
+class StudyExport(StudyCreate, BaseTable, table=False):
     deactivated: bool = Field(exclude=True)
     no_permissions: bool = Field(exclude=True)
     created_at: datetime.datetime = Field(exclude=True)

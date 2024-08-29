@@ -326,6 +326,7 @@ $RECYCLE.BIN/
 
 */__pycache__/*
 */.env
+**/*.env
 ###############
 
 medlog_example_data
