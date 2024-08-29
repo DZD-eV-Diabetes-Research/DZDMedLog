@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 import logging
 import os
 import getversion
@@ -7,6 +7,7 @@ import sys
 import asyncio
 import json
 import argparse
+from fastapi.responses import FileResponse
 
 # Main can be started with arguments. Lets parse these first.
 
@@ -80,6 +81,16 @@ def start(with_background_worker: bool = True):
 
     mount_fast_api_routers(app)
     add_api_middleware(app)
+    frontend_dist_dir = "MedLog/frontend/.output/public"
+
+    @app.get("/{path_name:path}")
+    async def serve_frontend(path_name: Optional[str] = None):
+        if path_name:
+            file = os.path.join(frontend_dist_dir, path_name)
+        else:
+            file = os.path.join(frontend_dist_dir, "index.html")
+        return FileResponse(file)
+
     uvicorn_log_config: Dict = LOGGING_CONFIG
     uvicorn_log_config["loggers"][APP_LOGGER_DEFAULT_NAME] = {
         "handlers": ["default"],
