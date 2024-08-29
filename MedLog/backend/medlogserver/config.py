@@ -20,6 +20,10 @@ env_file_path = os.environ.get("MEDLOG_DOT_ENV_FILE", Path(__file__).parent / ".
 
 class Config(BaseSettings):
     APP_NAME: str = "DZD MedLog"
+    FRONTEND_FILES_DIR: str = Field(
+        description="The generated nuxt dir that contains index.html,...",
+        default="MedLog/frontend/.output/public",
+    )
     LOG_LEVEL: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"] = Field(
         default="INFO"
     )
@@ -105,6 +109,9 @@ class Config(BaseSettings):
     APP_PROVISIONING_DATA_YAML_FILES: Optional[List[str]] = Field(
         default_factory=list,
         description="A list if yaml files to serialize and load into MedLog models and into the DB ",
+    )
+    APP_PROVISIONING_DEFAULT_DATA_YAML_FILE: str = (
+        "MedLog/backend/provisioning_data/default_data/default_data.yaml"
     )
 
     APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS: Dict = Field(

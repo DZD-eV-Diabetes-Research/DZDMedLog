@@ -81,14 +81,13 @@ def start(with_background_worker: bool = True):
 
     mount_fast_api_routers(app)
     add_api_middleware(app)
-    frontend_dist_dir = "MedLog/frontend/.output/public"
 
     @app.get("/{path_name:path}")
     async def serve_frontend(path_name: Optional[str] = None):
         if path_name:
-            file = os.path.join(frontend_dist_dir, path_name)
+            file = os.path.join(config.FRONTEND_FILES_DIR, path_name)
         else:
-            file = os.path.join(frontend_dist_dir, "index.html")
+            file = os.path.join(config.FRONTEND_FILES_DIR, "index.html")
         return FileResponse(file)
 
     uvicorn_log_config: Dict = LOGGING_CONFIG
