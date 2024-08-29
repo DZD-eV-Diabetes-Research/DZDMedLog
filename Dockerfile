@@ -40,8 +40,8 @@ RUN rm -r /opt/$APPNAME/.git
 
 #Copy default app data provisioning files
 RUN mkdir /prov
-COPY MedLog/backend/provisioning_data /prov
-ENV APP_PROVISIONING_DEFAULT_DATA_YAML_FILE=/prov/default_data/default_data.yaml
+COPY MedLog/backend/provisioning_data /provisioning_data
+ENV APP_PROVISIONING_DEFAULT_DATA_YAML_FILE=/provisioning_data/default_data/default_data.yaml
 
 # Install data
 RUN mkdir -p /data/db
