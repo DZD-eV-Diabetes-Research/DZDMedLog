@@ -1,5 +1,7 @@
 # Run tests for medlogserver
 
+API Tests: in development. not any automation yet
+
 ## options
 
 env vars:
