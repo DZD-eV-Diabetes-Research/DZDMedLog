@@ -165,8 +165,8 @@ async def provision_base_data():
 
 
 async def init_db():
+    log.info(f"Init DB {config.SQL_DATABASE_URL}")
     async with db_engine.begin() as conn:
-        log.info(f"Init DB {config.SQL_DATABASE_URL}")
         # await conn.run_sync(SQLModel.metadata.drop_all)
         await conn.run_sync(SQLModel.metadata.create_all)
         await create_admin_if_not_exists()

@@ -105,7 +105,10 @@ class Config(BaseSettings):
             proto = "https"
         else:
             proto = "http"
-        return AnyHttpUrl(f"{proto}://{self.SERVER_HOSTNAME}")
+        port = ""
+        if self.SERVER_LISTENING_PORT not in [80,443]:
+            port = f":{self.SERVER_LISTENING_PORT}"
+        return AnyHttpUrl(f"{proto}://{self.SERVER_HOSTNAME}{port}")
 
     CLIENT_URL: Optional[str] = Field(
         default=None,

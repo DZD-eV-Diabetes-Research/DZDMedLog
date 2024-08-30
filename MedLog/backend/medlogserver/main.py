@@ -58,7 +58,7 @@ def start(with_background_worker: bool = True):
     log = get_logger()
 
     print(
-        f"Start medlogserver version: {getversion.get_module_version(medlogserver)[0]}"
+        f"Start medlogserver version: {getversion.get_module_version(medlogserver)[0]} as user with id {os.getuid()}"
     )
 
     log.debug("----CONFIG-----")

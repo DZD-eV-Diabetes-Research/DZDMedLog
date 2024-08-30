@@ -368,3 +368,6 @@ export.csv
 export_cache/
 MedLog/backend/tests/testdb.sqlite
 **/*.env
+database
+**/*.sqlite
+**/*.db

@@ -6,6 +6,16 @@ Uses https://www.wido.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/ 
 
 Current Status: Development/Alpha
 
+- [DZDMedLog](#dzdmedlog)
+- [Run](#run)
+  - [Prebuild container](#prebuild-container)
+  - [Local Container](#local-container)
+  - [Local Source](#local-source)
+- [Developement](#developement)
+  - [Client Dev](#client-dev)
+  - [Server Dev](#server-dev)
+
+
 # Run
 
 ## Prebuild container
@@ -57,3 +67,51 @@ Run the app:
 `python visit MedLog/backend/medlogserver/main.py`
 
 visit http://localhost:8888
+
+
+# Developement
+
+
+## Client Dev
+
+Reqs:
+    * [bun](https://bun.sh/docs/installation#installing)
+    * [docker](https://docs.docker.com/engine/install/)
+
+
+First we need to get up the backend server running for the client to communicat to.
+
+`make container`
+
+create the target folder for our server state
+
+`mkdir database`
+
+Start the server container
+
+```bash
+docker run \
+    --user $(id -u):$(id -g) \
+    -v ./database:/opt/medlog/data \
+    -p 8888:8888 \
+    -e CLIENT_URL=http://localhost:3000 \
+    -e LOG_LEVEL=DEBUG \
+    -e DEMO_MODE=true \
+    dzdmedlog
+```
+
+Now we can start the nuxt dev server
+
+`cd MedLog/frontend`
+
+`bun run dev`
+
+visit http://localhost:3000 for the client
+
+and
+
+visist http://localhost:8888/docs to see the API Documentation
+
+## Server Dev
+
+todo
