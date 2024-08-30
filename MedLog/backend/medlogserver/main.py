@@ -90,6 +90,15 @@ def start(with_background_worker: bool = True):
             file = os.path.join(config.FRONTEND_FILES_DIR, "index.html")
         return FileResponse(file)
 
+    if config.CLIENT_URL == config.get_server_url():
+        if (
+            not Path(config.FRONTEND_FILES_DIR).exists()
+            or not Path(config.FRONTEND_FILES_DIR, "index.html").exists()
+        ):
+            raise ValueError(
+                "Can not find frontend files. Maybe you need to build the frontend first. Try to run 'make frontend'"
+            )
+
     uvicorn_log_config: Dict = LOGGING_CONFIG
     uvicorn_log_config["loggers"][APP_LOGGER_DEFAULT_NAME] = {
         "handlers": ["default"],
@@ -107,10 +116,29 @@ def start(with_background_worker: bool = True):
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
 
     event_loop.run_until_complete(init_db())
+    if config.DEMO_MODE:
+        log.info(
+            f"Hey, we are in demo mode. Login as admin with the following account:"
+        )
+        log.info(
+            f"USERNAME: {config.ADMIN_USER_NAME}\nPASSWORD: {config.ADMIN_USER_PW}"
+        )
     if with_background_worker:
         # Start background worker in second process
-        run_background_worker(run_in_extra_process=True)
-    event_loop.run_until_complete(uvicorn_server.serve())
+        background_worker = run_background_worker(run_in_extra_process=True)
+    try:
+        event_loop.run_until_complete(uvicorn_server.serve())
+    except (KeyboardInterrupt, Exception) as e:
+        if isinstance(e, KeyboardInterrupt):
+            log.info("KeyboardInterrupt shutdown...")
+        if isinstance(e, Exception):
+            log.info("Panic shutdown...")
+        if background_worker is not None:
+            log.info("Stop background worker process...")
+            background_worker.kill()
+            background_worker.join()
+        if isinstance(e, Exception):
+            raise e
 
 
 if __name__ == "__main__":

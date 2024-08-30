@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import asyncio
 import multiprocessing
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -63,8 +63,9 @@ def _start_background_scheduler(event_loop=None):
 
 
 def run_background_worker(
-    run_in_extra_process: bool = True, event_loop: asyncio.AbstractEventLoop = None
-):
+    run_in_extra_process: bool = True,
+    event_loop: Optional[asyncio.AbstractEventLoop] = None,
+) -> Optional[multiprocessing.Process]:
     if run_in_extra_process:
         log.info("Start background worker in extra process...")
         background_worker_process = multiprocessing.Process(
@@ -72,6 +73,7 @@ def run_background_worker(
         )
         background_worker_process.start()
         log.info(f"Started background worker (Process: {background_worker_process})")
+        return background_worker_process
     else:
         if event_loop is None:
             event_loop = asyncio.get_event_loop()

@@ -1,10 +1,11 @@
 # Basics
 from typing import AsyncGenerator, List, Optional, Literal, Sequence
+from typing_extensions import Self
 
 # Libs
 import enum
 import uuid
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from sqlmodel import Field, Column, Enum, UniqueConstraint
 from passlib.context import CryptContext
 
@@ -45,7 +46,14 @@ class UserAuthUpdate(BaseTable, table=False):
 
 
 class UserAuthCreate(_UserAuthBase, UserAuthUpdate, table=False):
-    pass
+    @model_validator(mode="after")
+    def check_password_needed(self: Self):
+        if (
+            self.password is None
+            and self.auth_source_type == AllowedAuthSourceTypes.local
+        ):
+            raise ValueError("No empty password allowed for local users")
+        return self
 
 
 class UserAuth(_UserAuthBase, table=True):

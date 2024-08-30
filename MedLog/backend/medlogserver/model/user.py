@@ -68,11 +68,11 @@ class _UserValidate(UserBase, table=False):
         return email
 
     @model_validator(mode="after")
-    def val_display_name(self, values):
+    def val_display_name(self):
         """if no display name is set for now, we copy the identifying `user_name`"""
         if self.display_name is None:
             self.display_name = self.user_name
-        return values
+        return self
 
 
 class _UserWithName(UserBase, table=False):

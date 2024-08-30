@@ -40,4 +40,4 @@ jobs:
           repository: dzdde/dzdmedlog
           short-description: "The server module for DZDMedLog, a system to document the medical history of study participant."
           enable-url-completion: true
-          readme-filepath: "README.md"
+          readme-filepath: "DOCKERHUB_README.md"

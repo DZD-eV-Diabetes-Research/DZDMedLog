@@ -28,9 +28,16 @@ from medlogserver.model._base_model import MedLogBaseModel, BaseTable, ExportBas
 log = get_logger()
 config = Config()
 
-AdministeredByDoctorAnswers = enum.Enum(
-    "AdministeredByDoctorAnswers", config.APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS
-)
+# AdministeredByDoctorAnswers = enum.Enum(
+#    "AdministeredByDoctorAnswers", config.APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS
+# )
+
+
+class AdministeredByDoctorAnswers(str, enum.Enum):
+    PRESCRIBED = "prescribed"
+    RECOMMENDED = "recommended"
+    NO = "no"
+    UNKNOWN = "unknown"
 
 
 class IntakeRegularOrAsNeededAnswers(str, enum.Enum):

@@ -1,3 +1,5 @@
+from typing import List, Annotated, Optional, Literal, Dict
+from typing_extensions import Self
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 from pydantic import (
@@ -9,7 +11,7 @@ from pydantic import (
     StringConstraints,
     model_validator,
 )
-from typing import List, Annotated, Optional, Literal, Dict
+
 from pathlib import Path, PurePath
 import socket
 from textwrap import dedent
@@ -19,11 +21,13 @@ env_file_path = os.environ.get("MEDLOG_DOT_ENV_FILE", Path(__file__).parent / ".
 
 
 class Config(BaseSettings):
-    APP_NAME: str = "DZD MedLog"
+    APP_NAME: str = "DZDMedLog"
     DOCKER_MODE: bool = False
     FRONTEND_FILES_DIR: str = Field(
         description="The generated nuxt dir that contains index.html,...",
-        default="MedLog/frontend/.output/public",
+        default=str(
+            Path(Path(__file__).parent.parent.parent, "frontend/.output/public")
+        ),
     )
     LOG_LEVEL: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"] = Field(
         default="INFO"
@@ -47,7 +51,8 @@ class Config(BaseSettings):
                     self_data["APP_PROVISIONING_DATA_YAML_FILES"] = [
                         str(
                             Path(
-                                "/provisioning/demo_data/single_study_demo_data.yaml",
+                                os.getenv("MEDLOG_DOCKER_BASEDIR", "/opt/medlog"),
+                                "provisioning/database/demo_data/single_study_demo_data.yaml",
                             )
                         )
                     ]
@@ -103,8 +108,16 @@ class Config(BaseSettings):
         return AnyHttpUrl(f"{proto}://{self.SERVER_HOSTNAME}")
 
     CLIENT_URL: Optional[str] = Field(
-        default="http://localhost:5173", description="Origin url"
+        default=None,
+        description="The URL where the client is hosted. Usualy it comes with the server",
     )
+
+    @model_validator(mode="after")
+    def set_empty_client_url(self: Self):
+        if self.CLIENT_URL is None:
+            self.CLIENT_URL = self.get_server_url()
+        return self
+
     SQL_DATABASE_URL: AnyUrl = Field(default="sqlite+aiosqlite:///./local.sqlite")
 
     ADMIN_USER_NAME: str = Field(default="admin")
@@ -130,7 +143,7 @@ class Config(BaseSettings):
         description="Default data like some background jobs and vocabulary that is always loaded in the database. Under normal circustances this is nothing you need to changed. if you need to provision data like a Study into the database use the APP_PROVISIONING_DATA_YAML_FILES param.",
         default=str(Path(Path(__file__).parent, "default_data.yaml")),
     )
-
+    """Remove me on next refactor
     APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS: Dict = Field(
         default={
             "PRESCRIBED": "prescribed",
@@ -139,6 +152,7 @@ class Config(BaseSettings):
             "UNKNOWN": "unknown",
         }
     )
+    """
 
     APP_STUDY_PERMISSION_SYSTEM_DISABLED_BY_DEFAULT: bool = Field(
         default=False,

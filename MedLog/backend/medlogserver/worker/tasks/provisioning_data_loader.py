@@ -61,12 +61,12 @@ class DataProvisioner:
                 file_content = yaml.safe_load(file_obj)
             except:
                 log.error(
-                    "Failed parsing provisioning data file at '{path}'. Data provisining will be canceled."
+                    "Failed parsing provisioning data file at '{path}'. Data provisioning will be canceled."
                 )
                 raise
         if not "items" in file_content:
             raise ValueError(
-                "Unexpected format in provisioning data file at '{path}'. Data provisining will be canceled."
+                "Unexpected format in provisioning data file at '{path}'. Data provisioning will be canceled."
             )
         if "items" in file_content and file_content["items"] is None:
             return
