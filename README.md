@@ -11,6 +11,7 @@ Current Status: Development/Alpha
   - [Prebuild container](#prebuild-container)
   - [Local Container](#local-container)
   - [Local Source](#local-source)
+- [Config](#config)
 - [Developement](#developement)
   - [Client Dev](#client-dev)
   - [Server Dev](#server-dev)
@@ -68,6 +69,10 @@ Run the app:
 
 visit http://localhost:8888
 
+
+# Config
+
+for all possible configuration parameters see [confiy.py](MedLog/backend/medlogserver/config.py)
 
 # Developement
 
