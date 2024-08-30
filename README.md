@@ -72,7 +72,7 @@ visit http://localhost:8888
 
 # Config
 
-for all possible configuration parameters see [confiy.py](MedLog/backend/medlogserver/config.py)
+for all possible configuration parameters see [config.py](MedLog/backend/medlogserver/config.py)
 
 # Developement
 
