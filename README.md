@@ -22,7 +22,7 @@ Current Status: Development/Alpha
 ## Prebuild container
 
 Requirements:
-    * docker
+* docker
 
 Get or Update the container image
 
@@ -40,8 +40,8 @@ visit http://localhost:8888
 
 ## Local Container
 
-Requirements:
-    * docker runable as non root (If you use `sudo docker` have a look into `build_docker.sh` and adapt the command)
+Requirements:  
+* docker runable as non root (If you use `sudo docker` have a look into `build_docker.sh` and adapt the command)
 
 `make container`
 
@@ -51,9 +51,9 @@ visit http://localhost:8888
 
 ## Local Source
 
-Requirements:
-    * bun or npm
-    * python 3.11
+Requirements:  
+* bun or npm
+* python 3.11
 
 Install Server dependencies
 
@@ -79,9 +79,9 @@ for all possible configuration parameters see [config.py](MedLog/backend/medlogs
 
 ## Client Dev
 
-Reqs:
-    * [bun](https://bun.sh/docs/installation#installing)
-    * [docker](https://docs.docker.com/engine/install/)
+Reqs:  
+* [bun](https://bun.sh/docs/installation#installing)
+* [docker](https://docs.docker.com/engine/install/)
 
 
 First we need to get up the backend server running for the client to communicat to.
