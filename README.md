@@ -12,7 +12,7 @@ Current Status: Development/Alpha
   - [Local Container](#local-container)
   - [Local Source](#local-source)
 - [Config](#config)
-- [Developement](#developement)
+- [Development](#development)
   - [Client Dev](#client-dev)
   - [Server Dev](#server-dev)
 
@@ -74,7 +74,7 @@ visit http://localhost:8888
 
 for all possible configuration parameters see [config.py](MedLog/backend/medlogserver/config.py)
 
-# Developement
+# Development
 
 
 ## Client Dev
