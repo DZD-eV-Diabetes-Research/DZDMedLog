@@ -9,7 +9,7 @@ from medlogserver.model.drug_data._base import (
 
 if TYPE_CHECKING:
     from medlogserver.model.drug_data.drug_extra_field_definitions_lov import (
-        DrugExtraFieldDefinitionLOV,
+        DrugExtraFieldDefinitionLovItem,
     )
 from enum import Enum
 
@@ -27,8 +27,11 @@ class DrugExtraFieldDefinition(DrugModelTableBase, table=True):
         "comment": "Definition of dataset specific fields and lookup fields"
     }
     field_name: str = Field(primary_key=True)
+    field_desc: Optional[str] = Field(
+        default=None, description="Helptext about the content of the field"
+    )
     has_list_of_values: bool = Field(default=False)
     type: Optional[ValueCastingFunc] = Field(default=None)
-    list_of_values: List["DrugExtraFieldDefinitionLOV"] = Relationship(
+    list_of_values: List["DrugExtraFieldDefinitionLovItem"] = Relationship(
         back_populates="field"
     )

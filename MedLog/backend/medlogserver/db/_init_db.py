@@ -28,6 +28,7 @@ from medlogserver.db.user_auth_external_oidc_token import (
     UserAuthExternalOIDCToken,
 )
 
+
 from medlogserver.model.wido_gkv_arzneimittelindex import (
     AiDataVersion,
     Applikationsform,
@@ -43,6 +44,15 @@ from medlogserver.model.wido_gkv_arzneimittelindex import (
     SondercodeBedeutung,
     StammAenderungen,
     Stamm,
+)
+from medlogserver.model.drug_data import (
+    DrugCodeSystem,
+    DrugCode,
+    DrugDataSetVersion,
+    DrugExtraField,
+    DrugExtraFieldDefinitionLovItem,
+    DrugExtraFieldDefinition,
+    Drug,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex import AiDataVersionCRUD
 from medlogserver.db.worker_job import WorkerJob
@@ -139,7 +149,7 @@ async def init_drugsearch():
         await search_engine.build_index()
 
 
-async def provision_drug_data():
+async def provision_drug_data_old():
     from medlogserver.worker.tasks.wido_gkv_arzneimittelindex_importer import (
         TaskImportGKVArnzeimittelIndexData,
     )
@@ -156,6 +166,19 @@ async def provision_drug_data():
         )
 
 
+async def provision_drug_data():
+    from medlogserver.model.drug_data.importers.wido_gkv_arzneimittelindex import (
+        WidoAiImporter,
+    )
+
+    im = WidoAiImporter(
+        source_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR, version="23"
+    )
+    await im.run()
+
+    exit()
+
+
 async def provision_base_data():
     from medlogserver.worker.tasks.provisioning_data_loader import (
         TaskLoadProvisioningData,
@@ -168,6 +191,7 @@ async def init_db():
     log.info(f"Init DB {config.SQL_DATABASE_URL}")
     async with db_engine.begin() as conn:
         # await conn.run_sync(SQLModel.metadata.drop_all)
+        log.info(("Create Tables if needed", list(SQLModel.metadata.tables.keys())))
         await conn.run_sync(SQLModel.metadata.create_all)
         await create_admin_if_not_exists()
         await provision_drug_data()

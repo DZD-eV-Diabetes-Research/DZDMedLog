@@ -9,7 +9,7 @@ from medlogserver.model.drug_data._base import (
 
 
 class DrugCodeSystem(DrugModelTableEnumBase, table=True):
-    __tablename__ = "drug_national_code_system"
+    __tablename__ = "drug_code_system"
     __table_args__ = {
         "comment": "A list of national pharmaceutical product indexes. To be completed..."
     }

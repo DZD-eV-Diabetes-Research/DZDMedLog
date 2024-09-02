@@ -12,14 +12,12 @@ if TYPE_CHECKING:
 
 
 class DrugCode(DrugModelTableBase, table=True):
-    __tablename__ = "drug_dataset_version"
+    __tablename__ = "drug_code"
     __table_args__ = {
         "comment": "Tracks different version of same drug indexes that were imported"
     }
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     drug_id: uuid.UUID = Field(primary_key=True, foreign_key="drug.id")
-    code_system: str = Field(
-        primary_key=True, foreign_key="drug_national_code_system.id"
-    )
+    code_system: str = Field(primary_key=True, foreign_key="drug_code_system.id")
     code: str = Field()
     drug: "Drug" = Relationship(back_populates="codes")
