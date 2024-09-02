@@ -1,12 +1,15 @@
 from contextlib import asynccontextmanager
+import getversion
 from fastapi import Depends
 from fastapi import FastAPI
+import getversion.plugin_setuptools_scm
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 
 
 # from fastapi.security import
 
+import medlogserver
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -16,7 +19,7 @@ config = Config()
 
 app = FastAPI(
     title="MedLog REST API",
-    version="0.0.1",
+    version=getversion.get_module_version(medlogserver)[0],
     # openapi_url=f"{settings.api_v1_prefix}/openapi.json",
     # debug=settings.debug,
 )
