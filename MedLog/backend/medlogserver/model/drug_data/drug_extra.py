@@ -23,6 +23,9 @@ class DrugExtraField(DrugModelTableBase, table=True):
     field_name: str = Field(
         primary_key=True, foreign_key="drug_extra_field_definitions.field_name"
     )
-    value: Optional[str] = Field(default=None)
+    value: Optional[str] = Field(
+        default=None,
+        description="Generic storage of a value as string. Can be typed via the function in DrugExtraFieldDefinition.type",
+    )
     field_definition: DrugExtraFieldDefinition = Relationship()
     drug: "Drug" = Relationship(back_populates="extra_fields")

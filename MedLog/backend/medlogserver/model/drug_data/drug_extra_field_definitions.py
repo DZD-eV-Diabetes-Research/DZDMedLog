@@ -2,7 +2,7 @@ from typing import List, Self, Optional, TYPE_CHECKING
 import uuid
 from sqlmodel import Field, SQLModel, Relationship
 from sqlalchemy import String, Integer, Column, SmallInteger
-
+import datetime
 from medlogserver.model.drug_data._base import (
     DrugModelTableBase,
 )
@@ -17,6 +17,8 @@ from enum import Enum
 class ValueCastingFunc(str, Enum):
     INT = int
     FLOAT = float
+    DATETIME = datetime.datetime.fromisoformat
+    DATE = datetime.date.fromisoformat
 
 
 class DrugExtraFieldDefinition(DrugModelTableBase, table=True):
@@ -28,5 +30,5 @@ class DrugExtraFieldDefinition(DrugModelTableBase, table=True):
     has_list_of_values: bool = Field(default=False)
     type: Optional[ValueCastingFunc] = Field(default=None)
     list_of_values: List["DrugExtraFieldDefinitionLOV"] = Relationship(
-        back_populates="team"
+        back_populates="field"
     )
