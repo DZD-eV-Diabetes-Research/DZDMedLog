@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from medlogserver.db._session import get_async_session_context
 
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
-from medlogserver.model.drug_data.drug_attr_field import DrugAttrField
+from medlogserver.model.drug_data.drug_attr import DrugAttr
 from medlogserver.model.drug_data.drug_attr_field_definitions import (
     DrugAttrFieldDefinition,
     ValueTypeCasting,
@@ -16,6 +16,7 @@ from medlogserver.model.drug_data.drug_attr_field_definitions_lov import (
 )
 
 from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
+from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 
 
 @dataclass
@@ -34,7 +35,9 @@ class DrugAttrLovFieldDefinitionContainer:
 
 class WidoAiImporter(DrugDataSetImporterBase):
     def __init__(self, source_dir: Path, version: str):
+
         self.dataset_name = "Wido GKV Arzneimittelindex"
+        self.api_name = "WidoAiDrug"
         self.dataset_link = (
             "https://www.wido.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/"
         )
@@ -44,6 +47,12 @@ class WidoAiImporter(DrugDataSetImporterBase):
     async def get_attr_field_definitions(self) -> List[DrugAttrFieldDefinition]:
         field_def_containers = await self._get_attr_definitons_with_lov_dev()
         return [field_cont.field for name, field_cont in field_def_containers.items()]
+
+    async def get_code_definitions(self) -> List[DrugCodeSystem]:
+        return [
+            DrugCodeSystem(id="ATC", name="Pharmazentralnummer", country="Global"),
+            DrugCodeSystem(id="PZN", name="Pharmazentralnummer", country="Germany"),
+        ]
 
     async def run(self):
         field_objs = await self._get_attr_definitons()
@@ -60,7 +69,10 @@ class WidoAiImporter(DrugDataSetImporterBase):
 
     async def commit(self, objs):
         async with get_async_session_context() as session:
-            session.add_all(objs)
+            # todo: Write db crud classes to interact with database
+            for obj in objs:
+                # await session.merge(obj)
+                pass
             await session.commit()
 
     async def _get_attr_definitons(self) -> List[DrugAttrFieldDefinition]:
@@ -148,7 +160,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
         return fields
 
     async def _generate_lov_items(
-        self, paren_field: DrugAttrField, lov_definition: DrugAttrFieldLovDefinition
+        self, paren_field: DrugAttr, lov_definition: DrugAttrFieldLovDefinition
     ) -> List[DrugAttrFieldDefinitionLovItem]:
         # darrform_txt_headers = ["Dateiversion", "Datenstand", "darrform", "bedeutung"]
         lov_items: List[DrugAttrFieldDefinitionLovItem] = []

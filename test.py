@@ -406,4 +406,10 @@ def pydnatic_shadow_warning_test():
         created_at: datetime.datetime = Field(exclude=True)
 
 
-pydnatic_shadow_warning_test()
+def dynamic_pclass_test():
+    from pydantic import create_model, Field
+
+    create_model("fuck", arsch=(str, Field(default=None)))
+
+
+dynamic_pclass_test()

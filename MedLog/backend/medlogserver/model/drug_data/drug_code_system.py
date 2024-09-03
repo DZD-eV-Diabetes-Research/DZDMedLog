@@ -44,15 +44,15 @@ class DrugCodeSystem(DrugModelTableEnumBase, table=True):
         description="Shortname identifier for the national mmedication code system. Also the name for one code instance.",
         sa_type=String,
         primary_key=True,
-        schema_attr={"examples": ["PZN", "NDC"]},
+        schema_extra={"examples": ["PZN", "NDC"]},
     )
     name: str = Field(
         description="Longname identifier for the national drug code system.",
         sa_type=String,
-        schema_attr={"examples": ["Pharmazentralnummer", "National Drug Code"]},
+        schema_extra={"examples": ["Pharmazentralnummer", "National Drug Code"]},
     )
     country: str = Field(
         description="Country that uses this system",
         sa_type=String,
-        schema_attr={"examples": ["Germany", "USA"]},
+        schema_extra={"examples": ["Germany", "USA"]},
     )

@@ -1,12 +1,14 @@
-from typing import List, Self, Optional, TYPE_CHECKING, Type, Callable
+from typing import List, Self, Optional, TYPE_CHECKING, Type, Callable, Any
 import uuid
 from sqlmodel import Field, SQLModel, Relationship
+from pydantic_core import PydanticUndefined
 from sqlalchemy import String, Integer, Column, SmallInteger
 import datetime
 from dataclasses import dataclass
 from medlogserver.model.drug_data._base import (
     DrugModelTableBase,
 )
+
 
 if TYPE_CHECKING:
     from medlogserver.model.drug_data.drug_attr_field_definitions_lov import (
@@ -37,6 +39,8 @@ class DrugAttrFieldDefinition(DrugModelTableBase, table=True):
     field_desc: Optional[str] = Field(
         default=None, description="Helptext about the content of the field"
     )
+    optional: bool = False
+    default: Optional[str]
     has_list_of_values: bool = Field(default=False)
     type: Optional[ValueTypeCasting] = Field(
         default=None, description="'None' means 'is a string'"

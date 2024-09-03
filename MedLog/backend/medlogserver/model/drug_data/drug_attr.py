@@ -2,7 +2,7 @@ from typing import List, Self, Optional, TYPE_CHECKING
 import uuid
 from sqlmodel import Field, SQLModel, Relationship
 from sqlalchemy import String, Integer, Column, SmallInteger
-
+import datetime
 from medlogserver.model.drug_data._base import (
     DrugModelTableBase,
 )
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from medlogserver.model.drug_data.drug import Drug
 
 
-class DrugAttrField(DrugModelTableBase, table=True):
+class DrugAttr(DrugModelTableBase, table=True):
     __tablename__ = "drug_attr_field"
     __table_args__ = {
         "comment": "Definition of dataset specific fields and lookup fields"
@@ -28,4 +28,4 @@ class DrugAttrField(DrugModelTableBase, table=True):
         description="Generic storage of a value as string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
     field_definition: DrugAttrFieldDefinition = Relationship()
-    drug: "Drug" = Relationship(back_populates="attr_fields")
+    drug: "Drug" = Relationship(back_populates="attrs")

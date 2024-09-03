@@ -106,7 +106,7 @@ class Config(BaseSettings):
         else:
             proto = "http"
         port = ""
-        if self.SERVER_LISTENING_PORT not in [80,443]:
+        if self.SERVER_LISTENING_PORT not in [80, 443]:
             port = f":{self.SERVER_LISTENING_PORT}"
         return AnyHttpUrl(f"{proto}://{self.SERVER_HOSTNAME}{port}")
 
@@ -287,6 +287,12 @@ class Config(BaseSettings):
     AI_DATA_IMPORTER_FLUSH_AFTER_N_ROWS: int = Field(
         default=1000,
         description="When reading the Arzneimittelindex data files, write every n rows to the database. Lower this number in a low memory env.",
+    )
+
+    # Availabe modules live in MedLog/backend/medlogserver/model/drug_data/importers/__init__.py
+    DRUG_IMPORTER_PLUGIN: Literal["WidoGkvArzneimittelindex"] = Field(
+        default="WidoGkvArzneimittelindex",
+        description="Depending on the drug database that is used, we can define an importer. At the moment there is only an importer for the Wido GKV Arzneimittelindex",
     )
 
     DRUG_SEARCHENGINE_CLASS: Literal["GenericSQLDrugSearch"] = Field(

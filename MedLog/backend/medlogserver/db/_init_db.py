@@ -49,9 +49,9 @@ from medlogserver.model.drug_data import (
     DrugCodeSystem,
     DrugCode,
     DrugDataSetVersion,
-    DrugExtraField,
-    DrugExtraFieldDefinitionLovItem,
-    DrugExtraFieldDefinition,
+    DrugAttr,
+    DrugAttrFieldDefinitionLovItem,
+    DrugAttrFieldDefinition,
     Drug,
 )
 from medlogserver.db.wido_gkv_arzneimittelindex import AiDataVersionCRUD
@@ -175,8 +175,6 @@ async def provision_drug_data():
         source_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR, version="23"
     )
     await im.run()
-
-    exit()
 
 
 async def provision_base_data():
