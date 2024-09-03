@@ -12,7 +12,8 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@pinia-plugin-persistedstate/nuxt',
     "@nuxt/ui",
-    "dayjs-nuxt"
+    "dayjs-nuxt",
+    '@nuxtjs/supabase',
   ],
 
   pinia: {
@@ -40,7 +41,14 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      baseURL: 'http://localhost:8888/',
+      baseURL: '',
+    },
+  },
+  
+  supabase: {
+    redirectOptions: {
+      login: '/',
+      callback: '/confirm',
     },
   },
 

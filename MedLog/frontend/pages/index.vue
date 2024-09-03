@@ -6,7 +6,7 @@
           :schema="schema"
           :state="state"
           class="space-y-4"
-          @submit="tokenStore.login(state.username, state.password)"
+          @submit="console.log(state.username, state.password, runtimeConfig.public.baseURL)"
         >
         <div style="text-align: center">
           <h3 v-if="tokenStore.my_401" style="color:red">Wrong username or password</h3>
@@ -38,6 +38,7 @@
 </template>
 
 <script setup lang="ts">
+const runtimeConfig = useRuntimeConfig()
 const tokenStore = useTokenStore();
 tokenStore.my_401 = false
 
