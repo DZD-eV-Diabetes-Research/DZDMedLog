@@ -1,30 +1,38 @@
-from typing import List, Callable, Tuple
+from typing import List, Callable, Tuple, Dict, Optional
 from pathlib import Path
 import csv
+from dataclasses import dataclass
 
 from medlogserver.db._session import get_async_session_context
 
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
-from medlogserver.model.drug_data.drug_extra_field import DrugExtraField
-from medlogserver.model.drug_data.drug_extra_field_definitions import (
-    DrugExtraFieldDefinition,
-    ValueCastingFunc,
+from medlogserver.model.drug_data.drug_attr_field import DrugAttrField
+from medlogserver.model.drug_data.drug_attr_field_definitions import (
+    DrugAttrFieldDefinition,
+    ValueTypeCasting,
 )
-from medlogserver.model.drug_data.drug_extra_field_definitions_lov import (
-    DrugExtraFieldDefinitionLovItem,
+from medlogserver.model.drug_data.drug_attr_field_definitions_lov import (
+    DrugAttrFieldDefinitionLovItem,
 )
-from dataclasses import dataclass
+
+from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
 
 
 @dataclass
-class LovGenContainer:
+class DrugAttrFieldLovDefinition:
     lov_source_file: str
     lov_source_headers: List[str]
     values_col_name: str
     display_value_col_name: str
 
 
-class WidoAiImporter:
+@dataclass
+class DrugAttrLovFieldDefinitionContainer:
+    field: DrugAttrFieldDefinition
+    lov: Optional[DrugAttrFieldLovDefinition] = None
+
+
+class WidoAiImporter(DrugDataSetImporterBase):
     def __init__(self, source_dir: Path, version: str):
         self.dataset_name = "Wido GKV Arzneimittelindex"
         self.dataset_link = (
@@ -33,8 +41,21 @@ class WidoAiImporter:
         self.source_dir = source_dir
         self.version = version
 
+    async def get_attr_field_definitions(self) -> List[DrugAttrFieldDefinition]:
+        field_def_containers = await self._get_attr_definitons_with_lov_dev()
+        return [field_cont.field for name, field_cont in field_def_containers.items()]
+
     async def run(self):
-        field_objs = await self.get_extra_lov_fields()
+        field_objs = await self._get_attr_definitons()
+
+        lov_field_objects = await self._get_attr_definitons_with_lov_dev()
+        for field_name, lov_field_obj in lov_field_objects.items():
+            field_objs.append(lov_field_obj.field)
+            field_objs.extend(
+                await self._generate_lov_items(
+                    lov_field_obj.field, lov_definition=lov_field_obj.lov
+                )
+            )
         await self.commit(field_objs)
 
     async def commit(self, objs):
@@ -42,14 +63,39 @@ class WidoAiImporter:
             session.add_all(objs)
             await session.commit()
 
-    async def get_extra_lov_fields(self):
-        db_obj = []
-        # darrform
-        darrform_field, darrform_field_lov_items = await self.generate_field(
-            name="darreichungsform",
-            desc="Darreichungsform (eng: dosage form)",
-            type_cast=None,
-            lov_params=LovGenContainer(
+    async def _get_attr_definitons(self) -> List[DrugAttrFieldDefinition]:
+        """
+            packgroesse: Optional[int] = Field(
+            default=None,
+            description="Packungsgröße (in 1/10 Einheiten)",
+            sa_type=Integer,
+            sa_column_kwargs={"comment": "gkvai_source_csv_col_index:12"},
+            schema_extra={"examples": ["1000"]},
+        )
+        """
+        fields = []
+        fields.append(
+            DrugAttrFieldDefinition(
+                field_name="packgroesse",
+                field_desc="Packungsgröße (in 1/10 Einheiten)",
+                type=ValueTypeCasting.INT,
+                has_list_of_values=False,
+            )
+        )
+        return fields
+
+    async def _get_attr_definitons_with_lov_dev(
+        self,
+    ) -> Dict[str, DrugAttrLovFieldDefinitionContainer]:
+        fields = {}
+        fields["darreichungsform"] = DrugAttrLovFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="darreichungsform",
+                field_desc="Darreichungsform (eng: dosage form)",
+                type=None,
+                has_list_of_values=True,
+            ),
+            lov=DrugAttrFieldLovDefinition(
                 lov_source_file="darrform.txt",
                 lov_source_headers=[
                     "Dateiversion",
@@ -61,14 +107,14 @@ class WidoAiImporter:
                 display_value_col_name="bedeutung",
             ),
         )
-        db_obj.append(darrform_field)
-        db_obj.extend(darrform_field_lov_items)
-        ## Applikationsform
-        darrform_field, darrform_field_lov_items = await self.generate_field(
-            name="applikationsform",
-            desc="applikationsform (eng: administration route)",
-            type_cast=None,
-            lov_params=LovGenContainer(
+        fields["applikationsform"] = DrugAttrLovFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="applikationsform",
+                field_desc="applikationsform (eng: administration route)",
+                type=None,
+                has_list_of_values=True,
+            ),
+            lov=DrugAttrFieldLovDefinition(
                 lov_source_file="applikationsform.txt",
                 lov_source_headers=[
                     "Dateiversion",
@@ -80,15 +126,14 @@ class WidoAiImporter:
                 display_value_col_name="bedeutung",
             ),
         )
-        db_obj.append(darrform_field)
-        db_obj.extend(darrform_field_lov_items)
-
-        ## hersteller
-        darrform_field, darrform_field_lov_items = await self.generate_field(
-            name="hersteller",
-            desc="hersteller (eng: producer)",
-            type_cast=None,
-            lov_params=LovGenContainer(
+        fields["hersteller"] = DrugAttrLovFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="hersteller",
+                field_desc="hersteller (eng: producer)",
+                type=None,
+                has_list_of_values=True,
+            ),
+            lov=DrugAttrFieldLovDefinition(
                 lov_source_file="hersteller.txt",
                 lov_source_headers=[
                     "Dateiversion",
@@ -100,49 +145,27 @@ class WidoAiImporter:
                 display_value_col_name="bedeutung",
             ),
         )
-        db_obj.append(darrform_field)
-        db_obj.extend(darrform_field_lov_items)
-        return db_obj
+        return fields
 
-    async def get_drug_data_set(self) -> DrugDataSetVersion:
-        return DrugDataSetVersion(
-            dataset_version=self.dataset_name,
-            dataset_name=self.dataset_name,
-            dataset_link=self.dataset_link,
-        )
-
-    async def generate_field(
-        self,
-        name: str,
-        desc=None,
-        type_cast: ValueCastingFunc = None,
-        lov_params: LovGenContainer = None,
-    ) -> Tuple[DrugExtraFieldDefinition, List[DrugExtraFieldDefinitionLovItem]]:
-        field = DrugExtraFieldDefinition(
-            field_name=name,
-            field_desc=desc,
-            type=type_cast,
-            has_list_of_values=False if lov_params is None else True,
-        )
-        return field, await self.generate_lov_items(field, lov_params)
-
-    async def generate_lov_items(
-        self, paren_field: DrugExtraField, lov_params: LovGenContainer
-    ) -> List[DrugExtraFieldDefinitionLovItem]:
+    async def _generate_lov_items(
+        self, paren_field: DrugAttrField, lov_definition: DrugAttrFieldLovDefinition
+    ) -> List[DrugAttrFieldDefinitionLovItem]:
         # darrform_txt_headers = ["Dateiversion", "Datenstand", "darrform", "bedeutung"]
-        lov_items: List[DrugExtraFieldDefinitionLovItem] = []
-        with open(Path(self.source_dir, lov_params.lov_source_file)) as csvfile:
+        lov_items: List[DrugAttrFieldDefinitionLovItem] = []
+        with open(Path(self.source_dir, lov_definition.lov_source_file)) as csvfile:
             csvreader = csv.reader(csvfile, delimiter=";")
             for index, row in enumerate(csvreader):
                 value = row[
-                    lov_params.lov_source_headers.index(lov_params.values_col_name)
-                ]
-                display_value = row[
-                    lov_params.lov_source_headers.index(
-                        lov_params.display_value_col_name
+                    lov_definition.lov_source_headers.index(
+                        lov_definition.values_col_name
                     )
                 ]
-                li = DrugExtraFieldDefinitionLovItem(
+                display_value = row[
+                    lov_definition.lov_source_headers.index(
+                        lov_definition.display_value_col_name
+                    )
+                ]
+                li = DrugAttrFieldDefinitionLovItem(
                     field=paren_field,
                     value=value,
                     display_value=display_value,

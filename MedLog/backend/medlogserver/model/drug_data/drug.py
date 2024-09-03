@@ -1,4 +1,4 @@
-from typing import List, Self
+from typing import List, Dict, Type
 import uuid
 from sqlmodel import Field, SQLModel, Relationship
 from sqlalchemy import String, Integer, Column, SmallInteger
@@ -8,7 +8,7 @@ from medlogserver.model.drug_data._base import (
 )
 
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
-from medlogserver.model.drug_data.drug_extra_field import DrugExtraField
+from medlogserver.model.drug_data.drug_attr_field import DrugAttrField
 from medlogserver.model.drug_data.drug_code import DrugCode
 
 
@@ -22,13 +22,5 @@ class Drug(DrugModelTableBase, table=True):
     trade_name: str = Field(index=True)
     # dosage_form_id: str = Field(description="darreichungsform")
     # administration_route: str = Field(description="applikationsform")
-    extra_fields: List[DrugExtraField] = Relationship(back_populates="drug")
+    attr_fields: List[DrugAttrField] = Relationship(back_populates="drug")
     codes: List[DrugCode] = Relationship(back_populates="drug")
-
-
-"""
-# https://www.getorchestra.io/guides/pydantic-dynamic-model-creation-in-fastapi
-def 
-
-DrugApiRead = create_model("DrugRead",)
-"""
