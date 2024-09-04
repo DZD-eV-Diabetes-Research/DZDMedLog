@@ -67,10 +67,17 @@ async def _get_DrugReadApiClass(importer_class: Type[DrugDataSetImporterBase]) -
     return create_model(f"{importer.api_name}Attrs", **attrs)
 
 
+a = {
+    "ref_attrs": {
+        "packgroesse": {"val": "HRSTL", "display": "Hersteller", "ref": "hersteller"}
+    }
+}
+
+
 async def _get_ref_attrs_container_class(importer: DrugDataSetImporterBase) -> Type:
     ref_attr_fields = await importer.get_ref_attr_field_definitions()
     ref_attrs = {}
-
+    create_model(f"{importer.api_name}RefAttrVal", val=(str))
     for field in ref_attr_fields:
         type_def = str
         if isinstance(field.type, ValueTypeCasting):
