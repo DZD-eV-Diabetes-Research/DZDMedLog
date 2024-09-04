@@ -7,12 +7,12 @@ from medlogserver.db._session import get_async_session_context
 
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.drug_attr import DrugAttr
-from medlogserver.model.drug_data.drug_attr_field_definitions import (
+from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
     ValueTypeCasting,
 )
-from medlogserver.model.drug_data.drug_attr_field_definitions_lov import (
-    DrugAttrFieldDefinitionLovItem,
+from medlogserver.model.drug_data.drug_attr_field_lov_item import (
+    DrugAttrFieldLovItem,
 )
 
 from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
@@ -45,7 +45,12 @@ class WidoAiImporter(DrugDataSetImporterBase):
         self.version = version
 
     async def get_attr_field_definitions(self) -> List[DrugAttrFieldDefinition]:
-        field_def_containers = await self._get_attr_definitons_with_lov_dev()
+        field_def_containers = await self._get_attr_definitons()
+        return field_def_containers
+        return [field_cont.field for name, field_cont in field_def_containers.items()]
+
+    async def get_ref_attr_field_definitions(self) -> List[DrugAttrFieldDefinition]:
+        field_def_containers = await self._get_attr_definitons_with_lov()
         return [field_cont.field for name, field_cont in field_def_containers.items()]
 
     async def get_code_definitions(self) -> List[DrugCodeSystem]:
@@ -54,10 +59,10 @@ class WidoAiImporter(DrugDataSetImporterBase):
             DrugCodeSystem(id="PZN", name="Pharmazentralnummer", country="Germany"),
         ]
 
-    async def run(self):
+    async def run_import(self):
         field_objs = await self._get_attr_definitons()
 
-        lov_field_objects = await self._get_attr_definitons_with_lov_dev()
+        lov_field_objects = await self._get_attr_definitons_with_lov()
         for field_name, lov_field_obj in lov_field_objects.items():
             field_objs.append(lov_field_obj.field)
             field_objs.extend(
@@ -96,7 +101,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
         )
         return fields
 
-    async def _get_attr_definitons_with_lov_dev(
+    async def _get_attr_definitons_with_lov(
         self,
     ) -> Dict[str, DrugAttrLovFieldDefinitionContainer]:
         fields = {}
@@ -161,9 +166,9 @@ class WidoAiImporter(DrugDataSetImporterBase):
 
     async def _generate_lov_items(
         self, paren_field: DrugAttr, lov_definition: DrugAttrFieldLovDefinition
-    ) -> List[DrugAttrFieldDefinitionLovItem]:
+    ) -> List[DrugAttrFieldLovItem]:
         # darrform_txt_headers = ["Dateiversion", "Datenstand", "darrform", "bedeutung"]
-        lov_items: List[DrugAttrFieldDefinitionLovItem] = []
+        lov_items: List[DrugAttrFieldLovItem] = []
         with open(Path(self.source_dir, lov_definition.lov_source_file)) as csvfile:
             csvreader = csv.reader(csvfile, delimiter=";")
             for index, row in enumerate(csvreader):
@@ -177,7 +182,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
                         lov_definition.display_value_col_name
                     )
                 ]
-                li = DrugAttrFieldDefinitionLovItem(
+                li = DrugAttrFieldLovItem(
                     field=paren_field,
                     value=value,
                     display_value=display_value,

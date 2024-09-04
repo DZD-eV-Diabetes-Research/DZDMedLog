@@ -23,4 +23,5 @@ class Drug(DrugModelTableBase, table=True):
     # dosage_form_id: str = Field(description="darreichungsform")
     # administration_route: str = Field(description="applikationsform")
     attrs: List[DrugAttr] = Relationship(back_populates="drug")
+    ref_attrs: List[DrugAttr] = Relationship(back_populates="drug")
     codes: List[DrugCode] = Relationship(back_populates="drug")

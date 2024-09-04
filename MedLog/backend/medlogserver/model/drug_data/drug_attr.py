@@ -6,7 +6,7 @@ import datetime
 from medlogserver.model.drug_data._base import (
     DrugModelTableBase,
 )
-from medlogserver.model.drug_data.drug_attr_field_definitions import (
+from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
 )
 
@@ -21,7 +21,7 @@ class DrugAttr(DrugModelTableBase, table=True):
     }
     drug_id: uuid.UUID = Field(foreign_key="drug.id")
     field_name: str = Field(
-        primary_key=True, foreign_key="drug_attr_field_definitions.field_name"
+        primary_key=True, foreign_key="drug_attr_field_definition.field_name"
     )
     value: Optional[str] = Field(
         default=None,

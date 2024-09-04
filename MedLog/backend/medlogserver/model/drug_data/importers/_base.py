@@ -1,7 +1,7 @@
 from typing import Dict, List
 from pathlib import Path
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
-from medlogserver.model.drug_data.drug_attr_field_definitions import (
+from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
 )
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
@@ -22,8 +22,10 @@ class DrugDataSetImporterBase:
             dataset_link=self.dataset_link,
         )
 
+    async def get_ref_attr_field_definitions(self) -> List[DrugAttrFieldDefinition]:
+        raise NotImplementedError()
+
     async def get_attr_field_definitions(self) -> List[DrugAttrFieldDefinition]:
-        return [DrugAttrFieldDefinition()]
         raise NotImplementedError()
 
     async def get_code_definitions(self) -> List[DrugCodeSystem]:

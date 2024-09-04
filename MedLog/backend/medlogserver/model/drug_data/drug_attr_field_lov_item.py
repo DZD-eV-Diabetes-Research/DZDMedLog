@@ -6,16 +6,16 @@ from sqlalchemy import String, Integer, Column, SmallInteger
 from medlogserver.model.drug_data._base import (
     DrugModelTableBase,
 )
-from medlogserver.model.drug_data.drug_attr_field_definitions import (
+from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
 )
 
 
-class DrugAttrFieldDefinitionLovItem(DrugModelTableBase, table=True):
-    __tablename__ = "drug_attr_field_definitions_lovs"
+class DrugAttrFieldLovItem(DrugModelTableBase, table=True):
+    __tablename__ = "drug_attr_field_lov_item"
     __table_args__ = {"comment": "Attr fields lists of values"}
     field_name: str = Field(
-        foreign_key="drug_attr_field_definitions.field_name", primary_key=True
+        foreign_key="drug_attr_field_definition.field_name", primary_key=True
     )
     value: str = Field(primary_key=True)
     display_value: str = Field()

@@ -50,7 +50,7 @@ from medlogserver.model.drug_data import (
     DrugCode,
     DrugDataSetVersion,
     DrugAttr,
-    DrugAttrFieldDefinitionLovItem,
+    DrugAttrFieldLovItem,
     DrugAttrFieldDefinition,
     Drug,
 )
@@ -174,7 +174,7 @@ async def provision_drug_data():
     im = WidoAiImporter(
         source_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR, version="23"
     )
-    await im.run()
+    await im.run_import()
 
 
 async def provision_base_data():

@@ -11,8 +11,8 @@ from medlogserver.model.drug_data._base import (
 
 
 if TYPE_CHECKING:
-    from medlogserver.model.drug_data.drug_attr_field_definitions_lov import (
-        DrugAttrFieldDefinitionLovItem,
+    from medlogserver.model.drug_data.drug_attr_field_lov_item import (
+        DrugAttrFieldLovItem,
     )
 from enum import Enum
 
@@ -23,7 +23,7 @@ class TypCastingInfo:
     casting_func: Callable
 
 
-class ValueTypeCasting(str, Enum):
+class ValueTypeCasting(Enum):
     INT = TypCastingInfo(int, int)
     FLOAT = TypCastingInfo(float, float)
     DATETIME = TypCastingInfo(datetime.datetime, datetime.datetime.fromisoformat)
@@ -31,7 +31,7 @@ class ValueTypeCasting(str, Enum):
 
 
 class DrugAttrFieldDefinition(DrugModelTableBase, table=True):
-    __tablename__ = "drug_attr_field_definitions"
+    __tablename__ = "drug_attr_field_definition"
     __table_args__ = {
         "comment": "Definition of dataset specific fields and lookup fields"
     }
@@ -45,6 +45,4 @@ class DrugAttrFieldDefinition(DrugModelTableBase, table=True):
     type: Optional[ValueTypeCasting] = Field(
         default=None, description="'None' means 'is a string'"
     )
-    list_of_values: List["DrugAttrFieldDefinitionLovItem"] = Relationship(
-        back_populates="field"
-    )
+    list_of_values: List["DrugAttrFieldLovItem"] = Relationship(back_populates="field")

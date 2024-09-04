@@ -14,7 +14,7 @@ from medlogserver.model.drug_data.importers.wido_gkv_arzneimittelindex import (
     WidoAiImporter,
 )
 from medlogserver.model.drug_data.drug_code import DrugCodeApiRead
-from medlogserver.model.drug_data.drug_attr_field_definitions import ValueTypeCasting
+from medlogserver.model.drug_data.drug_attr_field_definition import ValueTypeCasting
 
 # from medlogserver.model.drug_data.drug_attr import DrugAttrApiReadBase
 from medlogserver.config import Config
@@ -61,8 +61,36 @@ async def _get_DrugReadApiClass(importer_class: Type[DrugDataSetImporterBase]) -
     attrs["attrs"] = (attrs_container_class, Field(default_factory=list))
     codes_container_class = await _get_codes_container_class(importer)
     attrs["codes"] = (codes_container_class, Field(default_factory=list))
+    ref_attrs_container_class = await _get_attrs_container_class(importer)
+    attrs["ref_attrs"] = (ref_attrs_container_class, Field(default_factory=list))
 
     return create_model(f"{importer.api_name}Attrs", **attrs)
+
+
+async def _get_ref_attrs_container_class(importer: DrugDataSetImporterBase) -> Type:
+    ref_attr_fields = await importer.get_ref_attr_field_definitions()
+    ref_attrs = {}
+
+    for field in ref_attr_fields:
+        type_def = str
+        if isinstance(field.type, ValueTypeCasting):
+            type_def = field.type.value.python_type
+        if field.optional:
+            type_def = Optional[type_def]
+        pydantic_field_attrs = {}
+        pydantic_field_attrs["description"] = field.field_desc
+        pydantic_field_attrs["default"] = field.default
+
+        ref_attrs[field.field_name] = (type_def, Field(**pydantic_field_attrs))
+
+    """from pydantic create model docs:
+    field_definitions: Attributes of the new model. They should be passed in the format:
+            `<name>=(<type>, <default value>)`, `<name>=(<type>, <FieldInfo>)`, or `typing.Annotated[<type>, <FieldInfo>]`.
+            Any additional metadata in `typing.Annotated[<type>, <FieldInfo>, ...]` will be ignored.
+    """
+
+    m = create_model(f"{importer.api_name}Attrs", **ref_attrs)
+    return m
 
 
 async def _get_attrs_container_class(importer: DrugDataSetImporterBase) -> Type:
@@ -70,9 +98,10 @@ async def _get_attrs_container_class(importer: DrugDataSetImporterBase) -> Type:
     attrs = {}
 
     for field in attr_fields:
-        type_def = str
-        if isinstance(field.type, ValueTypeCasting):
-            type_def = field.type.value.python_type
+        print(type(field.type), field.type)
+        print(type(field.type.value), field.type.value)
+        type_def = field.type.value.python_type
+
         if field.optional:
             type_def = Optional[type_def]
         pydantic_field_attrs = {}
