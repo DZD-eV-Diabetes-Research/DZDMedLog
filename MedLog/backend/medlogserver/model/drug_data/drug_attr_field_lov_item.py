@@ -18,6 +18,6 @@ class DrugAttrFieldLovItem(DrugModelTableBase, table=True):
         foreign_key="drug_attr_field_definition.field_name", primary_key=True
     )
     value: str = Field(primary_key=True)
-    display_value: str = Field()
+    display: str = Field()
     sort_order: Optional[int] = Field(default=0)
     field: DrugAttrFieldDefinition = Relationship(back_populates="list_of_values")

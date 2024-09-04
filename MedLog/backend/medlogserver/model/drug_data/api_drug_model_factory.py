@@ -19,6 +19,8 @@ from medlogserver.model.drug_data.drug_attr_field_definition import ValueTypeCas
 # from medlogserver.model.drug_data.drug_attr import DrugAttrApiReadBase
 from medlogserver.config import Config
 from medlogserver.model.drug_data.drug import Drug
+from medlogserver.model.drug_data.drug_attr import DrugAttr
+from medlogserver.model.drug_data.drug_code import DrugCode
 
 config = Config()
 
@@ -33,6 +35,8 @@ def drug_api_read_class_factory() -> Type[BaseModel]:
     Returns:
         Type[BaseModel]: _description_
     """
+
+    # TODO: this return should be cached somehow....
     importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
 
     return asyncio.get_event_loop().run_until_complete(
@@ -61,27 +65,24 @@ async def _get_DrugReadApiClass(importer_class: Type[DrugDataSetImporterBase]) -
     attrs["attrs"] = (attrs_container_class, Field(default_factory=list))
     codes_container_class = await _get_codes_container_class(importer)
     attrs["codes"] = (codes_container_class, Field(default_factory=list))
-    ref_attrs_container_class = await _get_attrs_container_class(importer)
+    ref_attrs_container_class = await _get_ref_attrs_container_class(importer)
     attrs["ref_attrs"] = (ref_attrs_container_class, Field(default_factory=list))
 
-    return create_model(f"{importer.api_name}Attrs", **attrs)
-
-
-a = {
-    "ref_attrs": {
-        "packgroesse": {"val": "HRSTL", "display": "Hersteller", "ref": "hersteller"}
-    }
-}
+    return create_model(f"{importer.api_name}Drug", **attrs)
 
 
 async def _get_ref_attrs_container_class(importer: DrugDataSetImporterBase) -> Type:
     ref_attr_fields = await importer.get_ref_attr_field_definitions()
     ref_attrs = {}
-    create_model(f"{importer.api_name}RefAttrVal", val=(str))
+    ref_value_model = create_model(
+        f"{importer.api_name}RefAttrVal",
+        id=(str | int, Field()),
+        display=(str, Field()),
+        ref_list=(str, Field(description="The name of the list this value references")),
+    )
+
     for field in ref_attr_fields:
-        type_def = str
-        if isinstance(field.type, ValueTypeCasting):
-            type_def = field.type.value.python_type
+        type_def = ref_value_model
         if field.optional:
             type_def = Optional[type_def]
         pydantic_field_attrs = {}
@@ -96,7 +97,7 @@ async def _get_ref_attrs_container_class(importer: DrugDataSetImporterBase) -> T
             Any additional metadata in `typing.Annotated[<type>, <FieldInfo>, ...]` will be ignored.
     """
 
-    m = create_model(f"{importer.api_name}Attrs", **ref_attrs)
+    m = create_model(f"{importer.api_name}RefAttrs", **ref_attrs)
     return m
 
 
@@ -114,6 +115,9 @@ async def _get_attrs_container_class(importer: DrugDataSetImporterBase) -> Type:
         pydantic_field_attrs = {}
         pydantic_field_attrs["description"] = field.field_desc
         pydantic_field_attrs["default"] = field.default
+        pydantic_field_attrs["examples"] = [
+            field.type.value.casting_func(ex) for ex in field.examples
+        ]
 
         attrs[field.field_name] = (type_def, Field(**pydantic_field_attrs))
 
@@ -140,3 +144,51 @@ async def _get_codes_container_class(importer: DrugDataSetImporterBase) -> Type:
             Any additional metadata in `typing.Annotated[<type>, <FieldInfo>, ...]` will be ignored.
     """
     return create_model(f"{importer.api_name}Codes", **attrs)
+
+
+DrugAPIRead = drug_api_read_class_factory()
+
+
+async def drug_to_drugAPI_obj(drug: Drug) -> Type[DrugAPIRead]:
+    vals = {}
+    for field_name, field_val in iter(drug):
+        if field_name in ["attrs", "ref_attrs", "codes"]:
+            continue
+        if field_name in DrugAPIRead.model_fields.keys():
+            vals[field_name] == field_val
+    drug_attrs = {}
+    for attr in drug.attrs:
+        drug_attrs[attr.field_name] = attr.value
+    drug_codes = {}
+    for code in drug.codes:
+        drug_codes[code.code_system_id] = code.code
+    drug_ref_attrs = {}
+    for attr in drug.ref_attrs:
+        drug_ref_attrs[field_name] = {
+            "id": attr.value,
+            "display": attr.lov_entry.display,
+            "ref_list": f"todo: api path to {attr.field_name} values",
+        }
+    vals["attrs"] = drug_attrs
+    vals["codes"] = drug_codes
+    vals["ref_attrs"] = drug_ref_attrs
+    return DrugAPIRead.model_validate(vals)
+
+
+async def drugAPI_to_drug(drug_api_obj: DrugAPIRead) -> Drug:
+    if drug_api_obj.id is not None:
+        raise NotImplementedError("TODO Tim: just query the existing drug")
+    drug_id = uuid.uuid4()
+    root_attr = {}
+    for field_name, field_val in iter(drug_api_obj):
+        if field_name in ["attrs", "ref_attrs", "codes"]:
+            continue
+        root_attr[field_name] = field_val
+    drug = Drug.model_validate(root_attr)
+    for attr_name, attr in iter(drug_api_obj.attrs):
+        drug.attrs.append(DrugAttr(field_name=attr_name, value=attr.id))
+    for attr_name, attr_val in iter(drug_api_obj.codes):
+        drug.codes.append(DrugCode(code_system_id=attr_name, code=attr_val))
+    for ref_attr_name, ref_attr_obj in iter(drug_api_obj.ref_attr):
+        drug.ref_attrs.append(DrugAttr(field_name=attr_name, value=attr.id))
+    return drug

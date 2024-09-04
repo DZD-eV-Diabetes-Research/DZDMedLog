@@ -1,6 +1,6 @@
 from typing import List, Self, Optional, TYPE_CHECKING, Type, Callable, Any
 import uuid
-from sqlmodel import Field, SQLModel, Relationship
+from sqlmodel import Field, SQLModel, Relationship, JSON
 from pydantic_core import PydanticUndefined
 from sqlalchemy import String, Integer, Column, SmallInteger
 import datetime
@@ -24,10 +24,14 @@ class TypCastingInfo:
 
 
 class ValueTypeCasting(Enum):
+    STR = TypCastingInfo(str, str)
     INT = TypCastingInfo(int, int)
     FLOAT = TypCastingInfo(float, float)
     DATETIME = TypCastingInfo(datetime.datetime, datetime.datetime.fromisoformat)
     DATE = TypCastingInfo(datetime.date, datetime.date.fromisoformat)
+
+
+from typing import NamedTuple
 
 
 class DrugAttrFieldDefinition(DrugModelTableBase, table=True):
@@ -42,7 +46,9 @@ class DrugAttrFieldDefinition(DrugModelTableBase, table=True):
     optional: bool = False
     default: Optional[str]
     has_list_of_values: bool = Field(default=False)
-    type: Optional[ValueTypeCasting] = Field(
-        default=None, description="'None' means 'is a string'"
+    type: ValueTypeCasting = Field(
+        default=ValueTypeCasting.STR,
+        description="The type of this value gets casted into, as before its passing the RestAPI",
     )
+    examples: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     list_of_values: List["DrugAttrFieldLovItem"] = Relationship(back_populates="field")

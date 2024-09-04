@@ -20,8 +20,6 @@ class Drug(DrugModelTableBase, table=True):
     id: uuid.UUID = Field(primary_key=True, default_factory=uuid.uuid4)
     source_dataset_id: uuid.UUID = Field(foreign_key="drug_dataset_version.id")
     trade_name: str = Field(index=True)
-    # dosage_form_id: str = Field(description="darreichungsform")
-    # administration_route: str = Field(description="applikationsform")
     attrs: List[DrugAttr] = Relationship(back_populates="drug")
     ref_attrs: List[DrugAttr] = Relationship(back_populates="drug")
     codes: List[DrugCode] = Relationship(back_populates="drug")

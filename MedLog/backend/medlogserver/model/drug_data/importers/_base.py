@@ -15,6 +15,7 @@ class DrugDataSetImporterBase:
         self.source_dir = source_dir
         self.version = version
 
+    @classmethod
     async def get_drug_data_set(self) -> DrugDataSetVersion:
         return DrugDataSetVersion(
             dataset_version=self.version,

@@ -55,7 +55,18 @@ class WidoAiImporter(DrugDataSetImporterBase):
 
     async def get_code_definitions(self) -> List[DrugCodeSystem]:
         return [
-            DrugCodeSystem(id="ATC", name="Pharmazentralnummer", country="Global"),
+            DrugCodeSystem(
+                id="ATC-WiDo",
+                name="Pharmazentralnummer",
+                country="Germany",
+                desc="ATC-Klassifikation des GKV-Arzneimittelindex mit ATC-Code,ATC-Bedeutung",
+            ),
+            DrugCodeSystem(
+                id="ATC-Amtlich",
+                name="Pharmazentralnummer",
+                country="Germany",
+                desc="Amtliche ATC-Klassifikation mit ATC-Code, ATC-Bedeutung",
+            ),
             DrugCodeSystem(id="PZN", name="Pharmazentralnummer", country="Germany"),
         ]
 
@@ -97,6 +108,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 field_desc="Packungsgröße (in 1/10 Einheiten)",
                 type=ValueTypeCasting.INT,
                 has_list_of_values=False,
+                examples=[1000],
             )
         )
         return fields
@@ -109,7 +121,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
             field=DrugAttrFieldDefinition(
                 field_name="darreichungsform",
                 field_desc="Darreichungsform (eng: dosage form)",
-                type=None,
+                type=ValueTypeCasting.STR,
                 has_list_of_values=True,
             ),
             lov=DrugAttrFieldLovDefinition(
@@ -128,7 +140,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
             field=DrugAttrFieldDefinition(
                 field_name="applikationsform",
                 field_desc="applikationsform (eng: administration route)",
-                type=None,
+                type=ValueTypeCasting.STR,
                 has_list_of_values=True,
             ),
             lov=DrugAttrFieldLovDefinition(
@@ -147,7 +159,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
             field=DrugAttrFieldDefinition(
                 field_name="hersteller",
                 field_desc="hersteller (eng: producer)",
-                type=None,
+                type=ValueTypeCasting.STR,
                 has_list_of_values=True,
             ),
             lov=DrugAttrFieldLovDefinition(
@@ -185,7 +197,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 li = DrugAttrFieldLovItem(
                     field=paren_field,
                     value=value,
-                    display_value=display_value,
+                    display=display_value,
                     sort_order=index,
                 )
                 lov_items.append(li)

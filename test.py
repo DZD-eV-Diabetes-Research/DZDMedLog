@@ -412,4 +412,69 @@ def dynamic_pclass_test():
     create_model("fuck", arsch=(str, Field(default=None)))
 
 
-dynamic_pclass_test()
+def named_tuple_test():
+    from typing import NamedTuple
+
+    class my(NamedTuple):
+        val: str
+        key: str
+
+    a = my("A", "a")._asdict()
+    print(a)
+
+
+def named_tuple_as_db_col():
+    from typing import NamedTuple
+    import uuid
+
+    from pydantic import PositiveInt
+    from sqlmodel import Field, SQLModel, create_engine, Session, select, Column, JSON
+
+    engine = create_engine(url="sqlite:///./testdb.sqlite")
+
+    class Coordinates(NamedTuple):
+        latitude: float
+        longitude: float
+        altitude: float
+
+    class Address(SQLModel, table=True):
+        id: uuid.UUID | None = Field(default_factory=uuid.uuid4, primary_key=True)
+        zipcode: PositiveInt
+        coordinates: Coordinates = Field(sa_column=Column(JSON))
+
+    SQLModel.metadata.create_all(engine)
+    coordinates = Coordinates(1.2, 1.3, 1.4)
+    coordinates_from_db = None
+
+    # Lets write an address with our NamedTuple coordinates into the DB
+    with Session(engine) as s:
+        s.add(Address(zipcode="55252", coordinates=Coordinates(1.2, 1.3, 1.4)))
+        s.commit()
+
+    # And now lets it read it from the DB
+    with Session(engine) as s:
+        adr = s.exec(select(Address)).first()
+        coordinates_from_db = adr.coordinates
+
+    # Now we compare our NamedTuple coordinates with the stuff that came from the DB
+    print("FROM MEM", type(coordinates), coordinates)
+    # > FROM MEM <class '__main__.named_tuple_as_db_col.<locals>.Coordinates'> Coordinates(latitude=1.2, longitude=1.3, altitude=1.4)
+    print("FROM DB", type(coordinates_from_db), coordinates_from_db)
+    # > FROM DB <class 'list'> [1.2, 1.3, 1.4]
+    print("Is it the same?", coordinates == coordinates_from_db)
+    # > False
+    print(
+        "is it the same if cast the result back into coordinates?",
+        Coordinates(*coordinates_from_db) == coordinates,
+    )
+    # > True
+    # Yay!
+
+    # Although the type of `coordinates_from_db` is a `list` we use it to write coordinates into the databse
+    with Session(engine) as s:
+        # This works!
+        s.add(Address(zipcode="55253", coordinates=coordinates_from_db))
+        s.commit()
+
+
+named_tuple_as_db_col()

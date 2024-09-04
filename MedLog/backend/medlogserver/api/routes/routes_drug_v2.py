@@ -54,7 +54,7 @@ from medlogserver.api.paginator import (
     create_query_params_class,
     QueryParamsInterface,
 )
-from medlogserver.model.drug_data.api_model_factory import (
+from medlogserver.model.drug_data.api_drug_model_factory import (
     drug_api_read_class_factory,
 )
 

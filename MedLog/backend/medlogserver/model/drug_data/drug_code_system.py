@@ -1,4 +1,4 @@
-from typing import List, Self
+from typing import List, Self, Optional
 import uuid
 from sqlmodel import Field, SQLModel
 from sqlalchemy import String, Integer, Column, SmallInteger
@@ -55,4 +55,7 @@ class DrugCodeSystem(DrugModelTableEnumBase, table=True):
         description="Country that uses this system",
         sa_type=String,
         schema_extra={"examples": ["Germany", "USA"]},
+    )
+    desc: Optional[str] = Field(
+        default=None, description="Information about the code system"
     )
