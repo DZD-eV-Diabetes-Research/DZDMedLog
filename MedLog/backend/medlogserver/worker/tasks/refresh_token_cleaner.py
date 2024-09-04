@@ -34,6 +34,6 @@ class RefreshTokenCleaner:
 
 class TaskCleanTokens(TaskBase):
     async def work(self):
-        log.info("Run Background Task: Clean tokens...")
+        log.debug("Run Background Task: Clean tokens...")
         await RefreshTokenCleaner().remove_expired_tokens()
-        log.info("Done Background Task: Clean tokens")
+        log.debug("Done Background Task: Clean tokens")
