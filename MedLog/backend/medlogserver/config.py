@@ -106,7 +106,7 @@ class Config(BaseSettings):
         else:
             proto = "http"
         port = ""
-        if self.SERVER_LISTENING_PORT not in [80,443]:
+        if self.SERVER_LISTENING_PORT not in [80, 443]:
             port = f":{self.SERVER_LISTENING_PORT}"
         return AnyHttpUrl(f"{proto}://{self.SERVER_HOSTNAME}{port}")
 

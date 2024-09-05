@@ -70,13 +70,14 @@ class UserCRUD(
 
     async def get_by_user_name(
         self,
-        user_name: str | UUID,
+        user_name: UUID,
         show_deactivated: bool = False,
         raise_exception_if_none: Exception = None,
     ) -> Optional[User]:
         if show_deactivated:
             query = select(User).where(User.user_name == user_name)
         else:
+            print("user_name", user_name)
             query = select(User).where(
                 User.user_name == user_name and User.deactivated == False
             )

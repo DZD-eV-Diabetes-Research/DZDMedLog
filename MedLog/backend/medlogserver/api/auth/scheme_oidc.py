@@ -83,13 +83,21 @@ class StarletteOAuthProviderAppContainer:
 
     # ROUTE: /login
     async def login(self, request: Request):
+        # log.info("YOOOO", self.name)
         redirect_uri = request.url_for(self.name)
+        log.info(("HERWEGOJO", str(redirect_uri)))
+        redirect_uri = str(config.get_server_url()).strip("/")
+        if str(config.get_server_url()).strip("/") != str(config.CLIENT_URL).strip("/"):
+            log.warning("Check if this is working: 7326472")
+            redirect_uri += str(config.CLIENT_URL)
+        redirect_uri += "/login/oidc"
         return await self.app.authorize_redirect(request, str(redirect_uri))
 
     # ROUTE: /auth
     async def auth(
         self,
         request: Request,
+        code: str = None,
         user_crud: UserCRUD = Depends(UserCRUD.get_crud),
         user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
         user_auth_access_token_crud: UserAuthRefreshTokenCRUD = Depends(
@@ -99,6 +107,11 @@ class StarletteOAuthProviderAppContainer:
             UserAuthExternalOIDCTokenCRUD.get_crud
         ),
     ):
+        if code:
+            # we are here after a successfull redirect from authentik/our-openidconnect-provider
+            # log.info("######code", code)
+            pass
+
         try:
             # We use the OAuth2 Authorization Code Flow. That means the OIDC provider send the auth code to here.
             # we create the refresh and access token from the auth code and send the access token back to the user
@@ -131,8 +144,14 @@ class StarletteOAuthProviderAppContainer:
 
         user_name_attribute = self.oidc_provider_config.USER_ID_ATTRIBUTE
         try:
+            log.debug(("user_name_attribute", user_name_attribute))
+            log.debug(("userinfo", userinfo))
             user_name = userinfo.get(user_name_attribute)
-        except:
+            if user_name is None:
+                raise ValueError("")
+        except Exception as ex:
+            log.error(ex)
+
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Could not extract OIDC user_name in endpoint or token from '{self.oidc_provider_config.PROVIDER_DISPLAY_NAME}'.",
