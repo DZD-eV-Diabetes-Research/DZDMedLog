@@ -1,6 +1,11 @@
+import { UIBaseCard } from '../../../.nuxt/components';
 <template>
     <Layout>
-        {{ route.query }}
+        <UIBaseCard>
+            code : {{ route.query.code }}
+            <br>
+            state : {{ route.query.state }}
+        </UIBaseCard>
     </Layout>
 </template>
 
