@@ -64,7 +64,8 @@ const state = reactive({
 async function loginWithAuth() {
   try {
     await $fetch(`${runtimeConfig.public.baseURL}/auth/oidc/login/openid-connect`, {
-      method: "GET",})
+      method: "GET",
+      redirect: "follow"})
     console.log(`${runtimeConfig.public.baseURL}/auth/oidc/login/openid-connect`);
     
   } catch (error) {
