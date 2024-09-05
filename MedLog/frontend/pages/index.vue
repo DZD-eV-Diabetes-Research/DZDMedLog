@@ -6,7 +6,7 @@
           :schema="schema"
           :state="state"
           class="space-y-4"
-          @submit="console.log(state.username, state.password, runtimeConfig.public.baseURL)"
+          @submit="tokenStore.login(state.username, state.password)"
         >
         <div style="text-align: center">
           <h3 v-if="tokenStore.my_401" style="color:red">Wrong username or password</h3>
