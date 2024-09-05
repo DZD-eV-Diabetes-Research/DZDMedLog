@@ -1,8 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import {resolve} from "path"
+import { resolve } from "path"
 
 export default defineNuxtConfig({
-  alias:{
+  alias: {
     "@": resolve(__dirname, "/")
   },
 
@@ -13,7 +13,6 @@ export default defineNuxtConfig({
     '@pinia-plugin-persistedstate/nuxt',
     "@nuxt/ui",
     "dayjs-nuxt",
-    '@nuxtjs/supabase',
   ],
 
   pinia: {
@@ -44,14 +43,7 @@ export default defineNuxtConfig({
       baseURL: '',
     },
   },
-  
-  supabase: {
-    redirectOptions: {
-      login: '/',
-      callback: '/confirm',
-    },
-  },
 
-  ssr: false,
-  compatibilityDate: '2024-08-29',
-})
+    ssr: false,
+    compatibilityDate: '2024-08-29',
+  })

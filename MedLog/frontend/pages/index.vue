@@ -28,6 +28,10 @@
             </UButton>
           </div>
         </UForm>
+        <UButton @click="loginWithAuth()"
+        color="blue"
+              variant="soft"
+              class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white">Login with DZD Authentic</UButton>
         <p>
           No account?
           <a href="https://auth.dzd-ev.org/" target="_blank">Sign Up</a>
@@ -56,5 +60,16 @@ const state = reactive({
   username: undefined,
   password: undefined,
 });
+
+async function loginWithAuth() {
+  try {
+    // const response = await $fetch(`${runtimeConfig.baseURL}/funkyEndpoint`)
+    console.log(`${runtimeConfig.public.baseURL}/auth/oicd/login/openid-connect`);
+    
+  } catch (error) {
+    console.log(error);
+    
+  }
+}
 
 </script>
