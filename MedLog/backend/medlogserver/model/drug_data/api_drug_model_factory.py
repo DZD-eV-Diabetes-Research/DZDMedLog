@@ -19,7 +19,7 @@ from medlogserver.model.drug_data.drug_attr_field_definition import ValueTypeCas
 # from medlogserver.model.drug_data.drug_attr import DrugAttrApiReadBase
 from medlogserver.config import Config
 from medlogserver.model.drug_data.drug import Drug
-from medlogserver.model.drug_data.drug_attr import DrugAttr
+from medlogserver.model.drug_data.drug_attr import DrugAttr, DrugRefAttr
 from medlogserver.model.drug_data.drug_code import DrugCode
 
 config = Config()
@@ -190,5 +190,5 @@ async def drugAPI_to_drug(drug_api_obj: DrugAPIRead) -> Drug:
     for attr_name, attr_val in iter(drug_api_obj.codes):
         drug.codes.append(DrugCode(code_system_id=attr_name, code=attr_val))
     for ref_attr_name, ref_attr_obj in iter(drug_api_obj.ref_attr):
-        drug.ref_attrs.append(DrugAttr(field_name=ref_attr_name, value=ref_attr_obj))
+        drug.ref_attrs.append(DrugRefAttr(field_name=ref_attr_name, value=ref_attr_obj))
     return drug

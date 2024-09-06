@@ -1,25 +1,31 @@
-from typing import List, Callable, Tuple, Dict, Optional
+from typing import List, Callable, Tuple, Dict, Optional, AsyncIterator, TypeVar
 from pathlib import Path
 import csv
 from dataclasses import dataclass
-
+from sqlmodel import SQLModel
 from medlogserver.db._session import get_async_session_context
 
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
-from medlogserver.model.drug_data.drug_attr import DrugAttr
+from medlogserver.model.drug_data.drug_attr import DrugAttr, DrugRefAttr
 from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
     ValueTypeCasting,
-    CustomParserFunc,
+    CustomPreParserFunc,
 )
 from medlogserver.model.drug_data.drug_attr_field_lov_item import (
     DrugAttrFieldLovItem,
+    DrugAttrFieldLovItemCREATE,
 )
 
 from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug import Drug
 from medlogserver.model.drug_data.drug_code import DrugCode
+from medlogserver.log import get_logger
+from medlogserver.config import Config
+
+config = Config()
+log = get_logger()
 
 
 @dataclass
@@ -43,8 +49,9 @@ class StammCol:
 
 
 stamm_col_definitions = [
-    StammCol("dateiversion", map2=None, desc="Dateiversion"),
-    StammCol("datenstand", map2=None, desc="Monat Datenstand (JJJJMM)"),
+    StammCol("dateiversion", map2=None),
+    StammCol("datenstand", map2=None),
+    StammCol("laufnr", map2=None),
     StammCol("stakenn", map2=None),
     StammCol("staname", map2=None),
     StammCol("atc_code", map2="code.ATC-WiDo"),
@@ -62,17 +69,23 @@ stamm_col_definitions = [
     StammCol("preis_alt", map2=None),
     StammCol("preis_neu", map2=None),
     StammCol("festbetrag", map2=None),
-    StammCol("marktzugang", map2=None),
+    StammCol("marktzugang", map2="attr.marktzugang"),
+    StammCol("ahdatum", map2=None),
+    StammCol("RÜCKRUF", map2=None),
+    StammCol("GENERIKAKENN", map2=None),
+    StammCol("APPFORM", map2=None),
+    StammCol("BIOSIMILAR", map2=None),
+    StammCol("ORPHAN", map2=None),
     # todo: continue here with the stamm columns
 ]
 
 
 apopflicht_values = [
-    DrugAttrFieldLovItem(value="0", display="Nichtarzneimittel", sort_order=0),
-    DrugAttrFieldLovItem(
+    DrugAttrFieldLovItemCREATE(value="0", display="Nichtarzneimittel", sort_order=0),
+    DrugAttrFieldLovItemCREATE(
         value="1", display="nicht apothekenpflichtiges Arzneimittel", sort_order=1
     ),
-    DrugAttrFieldLovItem(
+    DrugAttrFieldLovItemCREATE(
         value="2",
         display="apothekenpflichtiges, rezeptfreies Arzneimittel",
         sort_order=2,
@@ -90,6 +103,9 @@ class WidoAiImporter(DrugDataSetImporterBase):
         )
         self.source_dir = source_dir
         self.version = version
+        self._attr_definitons = None
+        self._ref_attr_definitions = None
+        self._code_definitions = None
 
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None
@@ -107,7 +123,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
     async def get_ref_attr_field_definitions(
         self, by_name: Optional[str] = None
     ) -> List[DrugAttrFieldDefinition]:
-        field_def_containers = await self._get_attr_definitons_with_lov()
+        field_def_containers = await self._get_ref_attr_definitons()
         if by_name:
             return [
                 field_cont.field
@@ -119,6 +135,14 @@ class WidoAiImporter(DrugDataSetImporterBase):
     async def get_code_definitions(
         self, by_id: Optional[str] = None
     ) -> List[DrugCodeSystem]:
+        code_def = await self._get_code_definitions()
+        if by_id:
+            return [codes_def for codes_def in code_def if codes_def.id == by_id]
+        return code_def
+
+    async def _get_code_definitions(self):
+        if self._code_definitions is not None:
+            return self._code_definitions
         codes_defs = [
             DrugCodeSystem(
                 id="ATC-WiDo",
@@ -134,55 +158,115 @@ class WidoAiImporter(DrugDataSetImporterBase):
             ),
             DrugCodeSystem(id="PZN", name="Pharmazentralnummer", country="Germany"),
         ]
-        if by_id:
-            return [codes_def for codes_def in codes_defs if codes_def.id == by_id]
+        self._code_definitions = codes_defs
         return codes_defs
 
-    async def run_import(self):
-        field_objs = await self._get_attr_definitons()
+    def debug_count_field_def(self, objs) -> int:
+        count = 0
+        for obj in objs:
+            if isinstance(obj, DrugAttrFieldDefinition):
+                count += 1
+        return count
 
-        lov_field_objects = await self._get_attr_definitons_with_lov()
+    async def run_import(self):
+        log.info("[DRUG DATA IMPORT] Parse metadata...")
+        drug_dataset = await self.get_drug_data_set()
+        all_objs = [drug_dataset]
+        attr_defs = await self._get_attr_definitons()
+        all_objs.extend(attr_defs)
+        lov_field_objects = await self._get_ref_attr_definitons()
         for field_name, lov_field_obj in lov_field_objects.items():
-            field_objs.append(lov_field_obj.field)
-            field_objs.extend(
+            all_objs.append(lov_field_obj.field)
+            all_objs.extend(
                 await self._generate_lov_items(
                     lov_field_obj.field, lov_definition=lov_field_obj.lov
                 )
             )
-        await self.commit(field_objs)
 
-    async def _import_stamm(self):
+        all_objs.extend(await self.get_code_definitions())
+
+        # await self.commit(all_objs)
+        # all_objs = []
+        async for obj in self._import_stamm(drug_dataset):
+            all_objs.append(obj)
+
+        await self.commit(all_objs)
+
+    async def _import_stamm(
+        self, drug_dataset_version: DrugDataSetVersion
+    ) -> AsyncIterator[Drug | DrugAttr | DrugRefAttr | DrugCode]:
+        log.info("[DRUG DATA IMPORT] Parse drug data...")
         with open(Path(self.source_dir, "stamm.txt")) as csvfile:
             csvreader = csv.reader(csvfile, delimiter=";")
             for row_index, row in enumerate(csvreader):
-                drug = Drug()
+                if (
+                    config.DRUG_DATA_IMPORT_MAX_ROWS
+                    and row_index > config.DRUG_DATA_IMPORT_MAX_ROWS
+                ):
+                    return
+                drug = Drug(source_dataset_id=drug_dataset_version.id)
+                yield drug
                 for col_index, col_def in enumerate(stamm_col_definitions):
                     if col_def.map2:
-                        drug_attr: DrugAttr | DrugCode = self._parse_stamm_row_value(
+                        drug_attr = await self._parse_stamm_row_value(
                             drug, row_val=row[col_index], col_def=col_def
                         )
+                        if drug_attr is not None:
+                            yield drug_attr
 
     async def _parse_stamm_row_value(
         self, parent_drug: Drug, row_val: str, col_def: StammCol
-    ) -> DrugAttr | DrugCode:
+    ) -> DrugAttr | DrugRefAttr | DrugCode | None:
+        if "." in col_def.map2:
+            field_type, field_name = col_def.map2.split(".", 1)
+        else:
+            field_type = None
+            field_name = col_def.map2
+        if row_val == "" or row_val is None:
+            return
+            # empty string are handled as null/None
 
-        field_type, field_name = col_def.map2.split(".", 1)
         if field_type == "attr":
-            field_def: DrugAttrFieldDefinition = await self.get_attr_field_definitions(
-                by_name=field_name
-            )[0]
+            field_defs = await self.get_attr_field_definitions(by_name=field_name)
+
+            field_def: DrugAttrFieldDefinition = field_defs[0]
+            if field_def.pre_parser and row_val:
+                row_val = field_def.pre_parser.value(row_val)
+            return DrugAttr(
+                drug_id=parent_drug.id, field_name=field_name, value=row_val
+            )
+        elif field_type == "ref_attr":
+            field_defs = await self.get_ref_attr_field_definitions(by_name=field_name)
+            field_def: DrugAttrFieldDefinition = field_defs[0]
             if field_def.pre_parser:
                 row_val = field_def.pre_parser.value(row_val)
-            DrugAttr(parent_drug, field_name=field_name, value=row_val)
-
-        pass
+            return DrugRefAttr(
+                drug_id=parent_drug.id, field_name=field_name, value=row_val
+            )
+        elif field_type == "code":
+            code_systems = await self.get_code_definitions(by_id=field_name)
+            code_system: DrugCodeSystem = code_systems[0]
+            return DrugCode(
+                drug_id=parent_drug.id, code_system_id=code_system.id, code=row_val
+            )
+        else:
+            if field_type is not None:
+                raise AssertionError(f"field_type is {field_type}")
+            # its a drug root attr.
+            setattr(parent_drug, field_name, row_val)
+            return
 
     async def commit(self, objs):
         async with get_async_session_context() as session:
             # todo: Write db crud classes to interact with database
+            # objs = self.remove_duplicates(objs)
             for obj in objs:
-                # await session.merge(obj)
-                pass
+                # print("##obj", type(obj), obj)
+                # obj = await session.merge(obj)
+                session.add(obj)
+            log.info(
+                "[DRUG DATA IMPORT] Commit Drug data to database. This may take a while..."
+            )
             await session.commit()
 
     async def _get_attr_definitons(self) -> List[DrugAttrFieldDefinition]:
@@ -195,8 +279,9 @@ class WidoAiImporter(DrugDataSetImporterBase):
             schema_extra={"examples": ["1000"]},
         )
         """
-        fields = []
-        fields.append(
+        if self._attr_definitons is not None:
+            return self._attr_definitons
+        self._attr_definitons = [
             DrugAttrFieldDefinition(
                 field_name="packgroesse",
                 field_display="Packungsgröße",
@@ -218,16 +303,20 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 field_display="Marktzugang",
                 field_desc="Datum des Marktzugang",
                 type=ValueTypeCasting.DATE,
-                pre_parser=CustomParserFunc.WIDO_GKV_DATE,
+                pre_parser=CustomPreParserFunc.WIDO_GKV_DATE,
                 has_list_of_values=False,
                 examples=[],
             ),
-        )
-        return fields
+        ]
 
-    async def _get_attr_definitons_with_lov(
+        return self._attr_definitons
+
+    async def _get_ref_attr_definitons(
         self,
     ) -> Dict[str, DrugAttrLovFieldDefinitionContainer]:
+        if self._ref_attr_definitions is not None:
+            return self._ref_attr_definitions
+
         fields = {}
         fields["darreichungsform"] = DrugAttrLovFieldDefinitionContainer(
             field=DrugAttrFieldDefinition(
@@ -319,12 +408,15 @@ class WidoAiImporter(DrugDataSetImporterBase):
             ),
             lov=apopflicht_values,
         )
+        self._ref_attr_definitions = fields
         return fields
 
     async def _generate_lov_items(
         self,
-        paren_field: DrugAttr,
-        lov_definition: DrugAttrFieldLovImportDefinition | List[DrugAttrFieldLovItem],
+        paren_field: DrugRefAttr,
+        lov_definition: (
+            DrugAttrFieldLovImportDefinition | List[DrugAttrFieldLovItemCREATE]
+        ),
     ) -> List[DrugAttrFieldLovItem]:
         lov_items: List[DrugAttrFieldLovItem] = []
         if isinstance(lov_definition, DrugAttrFieldLovImportDefinition):
@@ -343,7 +435,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
                         )
                     ]
                     li = DrugAttrFieldLovItem(
-                        field=paren_field,
+                        field_name=paren_field.field_name,
                         value=value,
                         display=display_value,
                         sort_order=index,
@@ -351,7 +443,10 @@ class WidoAiImporter(DrugDataSetImporterBase):
                     lov_items.append(li)
         elif isinstance(lov_definition, list):
             for li in lov_definition:
-                li.field = paren_field
-            lov_items.append(li)
+                lov_items.append(
+                    DrugAttrFieldLovItem(
+                        field_name=paren_field.field_name, **li.model_dump()
+                    )
+                )
 
         return lov_items

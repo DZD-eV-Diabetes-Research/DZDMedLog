@@ -304,6 +304,11 @@ class Config(BaseSettings):
         default="GKV_AI_StammPlus/202301",
     )
 
+    DRUG_DATA_IMPORT_MAX_ROWS: Optional[int] = Field(
+        description="For debuging or demo purposes you can limit the amount of drug entries that are parsed and import while the drug importer runs. This speeds up the import process massivly but you will not have all drug entries.",
+        default=None,
+    )
+
     EXPORT_CACHE_DIR: str = Field(
         default="./export_cache",
         description="The directory to store the result of export jobs (CSV files, JSON files,...).",

@@ -63,7 +63,7 @@ class TimestampModel(SQLModel):
     """
 
 
-class BaseTable(TimestampModel):
+class BaseTable(SQLModel):
     pass
 
 

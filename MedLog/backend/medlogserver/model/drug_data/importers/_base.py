@@ -1,10 +1,12 @@
-from typing import Dict, List
+from typing import Dict, List, AsyncIterator
 from pathlib import Path
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
 )
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
+from medlogserver.model.drug_data.drug_attr import DrugAttr, DrugRefAttr
+from medlogserver.model.drug_data.drug import Drug
 
 
 class DrugDataSetImporterBase:
@@ -15,7 +17,6 @@ class DrugDataSetImporterBase:
         self.source_dir = source_dir
         self.version = version
 
-    @classmethod
     async def get_drug_data_set(self) -> DrugDataSetVersion:
         return DrugDataSetVersion(
             dataset_version=self.version,
@@ -30,4 +31,7 @@ class DrugDataSetImporterBase:
         raise NotImplementedError()
 
     async def get_code_definitions(self) -> List[DrugCodeSystem]:
+        raise NotImplementedError()
+
+    async def get_drug_items(self) -> AsyncIterator[Drug]:
         raise NotImplementedError()

@@ -13,7 +13,9 @@ config = Config()
 
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    async_session = sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+    async_session = sessionmaker(
+        db_engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
+    )
     async with async_session() as session:
         yield session
 

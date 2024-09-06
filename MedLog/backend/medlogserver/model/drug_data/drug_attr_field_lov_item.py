@@ -11,7 +11,13 @@ from medlogserver.model.drug_data.drug_attr_field_definition import (
 )
 
 
-class DrugAttrFieldLovItem(DrugModelTableBase, table=True):
+class DrugAttrFieldLovItemCREATE(SQLModel):
+    value: str = Field()
+    display: str = Field()
+    sort_order: Optional[int] = Field(default=0)
+
+
+class DrugAttrFieldLovItem(DrugModelTableBase, DrugAttrFieldLovItemCREATE, table=True):
     __tablename__ = "drug_attr_field_lov_item"
     __table_args__ = {"comment": "Attr fields lists of values"}
     field_name: str = Field(

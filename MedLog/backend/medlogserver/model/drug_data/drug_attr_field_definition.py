@@ -1,6 +1,9 @@
 from typing import List, Self, Optional, TYPE_CHECKING, Type, Callable, Any
 import uuid
-from sqlmodel import Field, SQLModel, Relationship, JSON
+from functools import partial
+
+
+from sqlmodel import Field, SQLModel, Relationship, JSON, Enum, Column
 from pydantic_core import PydanticUndefined
 from sqlalchemy import String, Integer, Column, SmallInteger
 import datetime
@@ -14,7 +17,7 @@ if TYPE_CHECKING:
     from medlogserver.model.drug_data.drug_attr_field_lov_item import (
         DrugAttrFieldLovItem,
     )
-from enum import Enum
+import enum
 
 
 @dataclass
@@ -23,7 +26,7 @@ class TypCastingInfo:
     casting_func: Callable
 
 
-class ValueTypeCasting(Enum):
+class ValueTypeCasting(enum.Enum):
     STR = TypCastingInfo(str, str)
     INT = TypCastingInfo(int, int)
     FLOAT = TypCastingInfo(float, float)
@@ -31,9 +34,11 @@ class ValueTypeCasting(Enum):
     DATE = TypCastingInfo(datetime.date, datetime.date.fromisoformat)
 
 
-class CustomParserFunc(Enum):
-    WIDO_GKV_DATE = (
-        lambda date_str: datetime.strptime(date_str, "%Y%m%d").date().isoformat()
+class CustomPreParserFunc(enum.Enum):
+    # partial wrapper because plain function wont work as enum values
+    # see https://stackoverflow.com/a/40339397/12438690
+    WIDO_GKV_DATE = partial(
+        lambda x: datetime.datetime.strptime(x, "%Y%m%d").date().isoformat()
     )
 
 
@@ -56,6 +61,9 @@ class DrugAttrFieldDefinition(DrugModelTableBase, table=True):
         default=ValueTypeCasting.STR,
         description="The type of this value gets casted into, as before its passing the RestAPI",
     )
-    pre_parser: Optional[CustomParserFunc] = None
+    pre_parser: Optional[CustomPreParserFunc] = Field(
+        default=None,
+        description="Function that can transform the input value into a fitting string",
+    )
     examples: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     list_of_values: List["DrugAttrFieldLovItem"] = Relationship(back_populates="field")
