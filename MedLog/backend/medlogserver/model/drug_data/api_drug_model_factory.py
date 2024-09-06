@@ -190,5 +190,5 @@ async def drugAPI_to_drug(drug_api_obj: DrugAPIRead) -> Drug:
     for attr_name, attr_val in iter(drug_api_obj.codes):
         drug.codes.append(DrugCode(code_system_id=attr_name, code=attr_val))
     for ref_attr_name, ref_attr_obj in iter(drug_api_obj.ref_attr):
-        drug.ref_attrs.append(DrugAttr(field_name=attr_name, value=attr.id))
+        drug.ref_attrs.append(DrugAttr(field_name=ref_attr_name, value=ref_attr_obj))
     return drug

@@ -31,7 +31,10 @@ class ValueTypeCasting(Enum):
     DATE = TypCastingInfo(datetime.date, datetime.date.fromisoformat)
 
 
-from typing import NamedTuple
+class CustomParserFunc(Enum):
+    WIDO_GKV_DATE = (
+        lambda date_str: datetime.strptime(date_str, "%Y%m%d").date().isoformat()
+    )
 
 
 class DrugAttrFieldDefinition(DrugModelTableBase, table=True):
@@ -40,6 +43,9 @@ class DrugAttrFieldDefinition(DrugModelTableBase, table=True):
         "comment": "Definition of dataset specific fields and lookup fields"
     }
     field_name: str = Field(primary_key=True)
+    field_display: str = Field(
+        description="The title of the field for displaying humans"
+    )
     field_desc: Optional[str] = Field(
         default=None, description="Helptext about the content of the field"
     )
@@ -50,5 +56,6 @@ class DrugAttrFieldDefinition(DrugModelTableBase, table=True):
         default=ValueTypeCasting.STR,
         description="The type of this value gets casted into, as before its passing the RestAPI",
     )
+    pre_parser: Optional[CustomParserFunc] = None
     examples: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     list_of_values: List["DrugAttrFieldLovItem"] = Relationship(back_populates="field")
