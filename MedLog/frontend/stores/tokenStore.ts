@@ -44,7 +44,8 @@ export const useTokenStore = defineStore('TokenStore',{
               
             }
               catch (err) {
-                this.my_401 = true
+                console.log(err);
+                
               }
     }
 },
