@@ -53,6 +53,9 @@ const hoveredItem = ref(null);
 const tokenStore = useTokenStore()
 const runTimeConfig = useRuntimeConfig();
 
+console.log("hello");
+
+
 const state = reactive({
     drug: '',
     currentPage: 1,

@@ -168,7 +168,7 @@ const tempDose = ref();
 const tempFrequency = ref();
 const my_stuff = ref();
 
-async function editModalVisibilityFunction(row: object) {  
+async function editModalVisibilityFunction(row) {  
 
   tempIntervall.value = null;
   tempDose.value = null;
@@ -336,7 +336,7 @@ async function openCustomModal() {
 
 async function getDosageForm() {
   const dosageForm = await $fetch(
-    `${runtimeConfig.public.baseURL}drug/enum/darrform`,
+    `${runtimeConfig.public.baseURL}/drug/enum/darrform`,
     {
       method: "GET",
       headers: { Authorization: "Bearer " + tokenStore.access_token },
