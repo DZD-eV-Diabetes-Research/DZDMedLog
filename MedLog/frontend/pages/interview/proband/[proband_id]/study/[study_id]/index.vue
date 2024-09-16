@@ -161,7 +161,7 @@ async function createEvent() {
   try {
     await useCreateEvent(eventState.name.trim(), route.params.study_id);
 
-    const events = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
+    const events = await $fetch(`${runtimeConfig.public.baseURL}/study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
       method: "GET",
       headers: { 'Authorization': "Bearer " + tokenStore.access_token },
     })
@@ -196,7 +196,7 @@ const incompletedItems = ref([]);
 
 // REST 
 
-const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
+const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}/study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
   method: "GET",
   headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
@@ -232,7 +232,7 @@ watch(events, (newEvents) => {
 
 async function editEvent(eventId: string) {
   try {
-    const result = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${eventId}/interview`, {
+    const result = await $fetch(`${runtimeConfig.public.baseURL}/study/${route.params.study_id}/event/${eventId}/interview`, {
       method: "GET",
       headers: { 'Authorization': "Bearer " + tokenStore.access_token },
     })
@@ -246,7 +246,7 @@ async function editEvent(eventId: string) {
 async function createIntakeList() {
   try {
     const intakes = await $fetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`,
+      `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`,
       {
         method: "GET",
         headers: { Authorization: "Bearer " + tokenStore.access_token },

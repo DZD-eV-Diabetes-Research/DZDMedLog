@@ -93,7 +93,7 @@ const myEvents = ref([])
 
 async function getEvents(){
   const events = await $fetch(
-  `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event?hide_completed=false&offset=0&limit=100`,
+  `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/event?hide_completed=false&offset=0&limit=100`,
   {
     method: "GET",
     headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -120,7 +120,7 @@ async function toggleSort() {
       test.value.push(element);
     });
     await $fetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/order`,
+      `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/event/order`,
       {
         method: "POST",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -147,7 +147,7 @@ async function createEvent() {
   try {
     await $fetch(
       runtimeConfig.public.baseURL +
-        "study/" +
+        "/study/" +
         route.params.study_id +
         "/event",
       {

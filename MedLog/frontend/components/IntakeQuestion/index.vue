@@ -116,7 +116,7 @@ const fetchDrugs = async (edit: boolean, custom: boolean) => {
     if (state.drug.length >= 3) {
       try {
         const response = await fetch(
-          `${runtimeConfig.public.baseURL}drug/search?search_term=${state.drug}&only_current_medications=true&offset=0&limit=100`,
+          `${runtimeConfig.public.baseURL}/drug/search?search_term=${state.drug}&only_current_medications=true&offset=0&limit=100`,
           {
             method: "GET",
             headers: { Authorization: "Bearer " + tokenStore.access_token },

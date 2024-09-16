@@ -228,7 +228,7 @@ async function openDeleteModal(row: object) {
 async function deleteIntake() {
   try {
     await $fetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.id}`,
+      `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.id}`,
       {
         method: "DELETE",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -365,7 +365,7 @@ async function backToOverview() {
 }
 
 const {data: intakes} = await useFetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`,
+      `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`,
       {
         method: "GET",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -375,7 +375,7 @@ const {data: intakes} = await useFetch(
 async function createIntakeList() {
   try {
     const intakes = await $fetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`,
+      `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`,
       {
         method: "GET",
         headers: { Authorization: "Bearer " + tokenStore.access_token },

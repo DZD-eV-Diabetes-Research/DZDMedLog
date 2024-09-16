@@ -289,7 +289,7 @@ async function saveIntake() {
       };
 
       await $fetch(
-        `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
+        `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
         {
           method: "PATCH",
           headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -319,7 +319,7 @@ async function saveIntake() {
   else if (props.custom && !props.edit) {
 
     const response = await $fetch(
-      `${runtimeConfig.public.baseURL}drug/user-custom`,
+      `${runtimeConfig.public.baseURL}/drug/user-custom`,
       {
         method: "POST",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -396,7 +396,7 @@ const dosageFormTable = ref();
 
 async function getDosageForm() {
   const dosageForm = await $fetch(
-    `${runtimeConfig.public.baseURL}drug/enum/darrform`,
+    `${runtimeConfig.public.baseURL}/drug/enum/darrform`,
     {
       method: "GET",
       headers: { Authorization: "Bearer " + tokenStore.access_token },
