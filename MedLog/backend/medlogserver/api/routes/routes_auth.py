@@ -33,6 +33,7 @@ from medlogserver.api.auth.model_token import (
 from medlogserver.db.user import UserCRUD, User
 from medlogserver.db.user_auth import UserAuthCRUD
 from medlogserver.db.user_auth_refresh_token import UserAuthRefreshTokenCRUD
+from medlogserver.model.auth_scheme import AuthScheme
 
 log = get_logger()
 config = Config()
@@ -46,6 +47,32 @@ NEEDS_ADMIN_API_INFO = "Needs admin role."
 NEEDS_USERMAN_API_INFO = "Needs admin or user-manager role."
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=TOKEN_ENDPOINT_PATH)
+
+
+@fast_api_auth_base_router.get("/auth/schemes", response_model=List[AuthScheme])
+def list_auth_schemes():
+    schemes: List[AuthScheme] = []
+    if config.AUTH_LOCAL_LOGIN_IS_ENABLED:
+        schemes.append(
+            AuthScheme(
+                name="Login",
+                slug="login",
+                type="credentials",
+                login_endpoint="/auth/token",
+                token_endpoint="/auth/refresh",
+            )
+        )
+    for oidc_provider in config.AUTH_OIDC_PROVIDERS:
+        schemes.append(
+            AuthScheme(
+                name=oidc_provider.PROVIDER_DISPLAY_NAME,
+                slug=oidc_provider.PROVIDER_SLUG_NAME,
+                type="oidc",
+                login_endpoint=f"/auth/oidc/login/{oidc_provider.PROVIDER_SLUG_NAME}",
+                token_endpoint=f"/auth/oidc/token/{oidc_provider.PROVIDER_SLUG_NAME}",
+            )
+        )
+    return schemes
 
 
 @fast_api_auth_base_router.post(
@@ -69,7 +96,7 @@ async def get_fresh_access_token(
 ) -> User:
     token_invalid_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Refresh token not valid2",
+        detail="Refresh token not valid",
         headers={"WWW-Authenticate": "Bearer"},
     )
     refresh_token: str = None
