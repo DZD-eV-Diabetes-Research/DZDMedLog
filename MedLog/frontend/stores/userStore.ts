@@ -8,7 +8,8 @@ interface UserStore {
     isAdmin: boolean,
     viewProfile: boolean,
     buttonText: string,
-    userID: string
+    userID: string,
+    firstEvent: boolean
 
 }
 
@@ -22,7 +23,8 @@ export const useUserStore = defineStore('UserStore', {
         isAdmin: false,
         viewProfile: false,
         buttonText: "Toggle to User",
-        userID: ""
+        userID: "",
+        firstEvent: false,
     }),
     actions: {
         async userMe() {
