@@ -7,14 +7,11 @@
             DZD Medlog
           </NuxtLink>
         </div>
-        <!-- <div class="nav__subtitle">
-          Your trustworthy medication logging page
-        </div> -->
       </div>
       <div class="activeStudy-container">
         <div class="activeStudy">
-          <p :class="{ invisible: !userStore.userName }" class="flex-item">User: {{ userStore.userName }}</p>
-          <p :class="{ invisible: !route.params.study_id }" class="flex-item">Study: {{ studyName }}</p>
+          <p :class="{ invisible: !userStore.userName }" class="flex-item">Benutzer: {{ userStore.userName }}</p>
+          <p :class="{ invisible: !route.params.study_id }" class="flex-item">Studie: {{ studyName }}</p>
           <p :class="{ invisible: !probandStore.probandID }" class="flex-item">ProbandenID: {{ probandStore.probandID }}</p>
           <p :class="{ invisible: studyStore.event === '' }" class="flex-item">Event: {{ studyStore.event }}</p>
         </div>
@@ -25,8 +22,12 @@
     </div>
   </header>
   <div class="button-container">
-    <button class="logout_button" v-if="tokenStore.loggedIn" @click="logout()">Logout</button>
-    <button :class="profileButtonClass" v-if="tokenStore.loggedIn" @click="toggelProfile()">{{ userStore.buttonText }}</button>
+    <div class="logout_button">
+    <UIBaseButton v-if="tokenStore.loggedIn" @click="logout()">Logout</UIBaseButton>
+  </div>
+  <div class="profile_button">
+    <UIBaseButton v-if="tokenStore.loggedIn" @click="toggelProfile()">{{ userStore.buttonText }}</UIBaseButton>
+  </div>
   </div>
 </template>
 
@@ -103,6 +104,7 @@ const profileButtonClass = computed(() => {
   hyphens: auto;
   letter-spacing: var(--letter-spacing-heading, inherit);
   line-height: 1.2;
+  padding: 2rem;
 }
 
 .nav {
@@ -151,6 +153,7 @@ const profileButtonClass = computed(() => {
 .nav__logo {
   width: 200px;
   order: -1;
+  padding-right: 2rem;
 
   @include breakpoint(md) {
     order: inherit;
@@ -175,15 +178,6 @@ const profileButtonClass = computed(() => {
 
 .profile_button {
   margin-left: auto;
-  color: #34c868;
-}
-
-.toggle_to_user {
-  color: #34c868;
-}
-
-.toggle_to_admin {
-  color: #8ac4fa;
 }
 
 .about {
@@ -203,6 +197,7 @@ const profileButtonClass = computed(() => {
   display: flex;
   justify-content: center;
   flex: 1; 
+  padding: 1rem;
 }
 
 .activeStudy {

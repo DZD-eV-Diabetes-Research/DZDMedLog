@@ -213,7 +213,7 @@ function createEventList(events) {
 
     incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
     incompletedItems.value = incompletedItems.value.map(event => ({
-      id: event.id,
+      id: event.id, 
       event: event,
       label: event.name,
       order: event.order_position
@@ -302,5 +302,7 @@ createIntakeList()
   border-radius: 10px;
   border-width: 2px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+  margin-left: 5%;
+  margin-right: 5%;
 }
 </style>
