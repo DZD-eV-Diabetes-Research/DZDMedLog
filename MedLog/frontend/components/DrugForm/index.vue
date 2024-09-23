@@ -121,13 +121,16 @@
         <UInput type="date" v-model="state.endTime" :color="props.color" />
       </UFormGroup>
     </div>
+    <div>
     <URadioGroup
       v-model="state.selected"
       legend="Wurden heute Medikamente eingenommen?"
       name="selected"
       :options="options"
       :color="props.color"
+      :ui="{ border: '1px solid gray', borderRadius: '50%', padding: '5px' }"
     />
+    </div>
     <div style="text-align: center">
     <UButton
       type="submit"
@@ -143,6 +146,7 @@
 
 
 <script setup lang="ts">
+
 import dayjs from "dayjs";
 import { object, number, date, string, type InferType } from "yup";
 

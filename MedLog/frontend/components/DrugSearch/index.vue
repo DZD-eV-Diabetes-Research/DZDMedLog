@@ -53,9 +53,6 @@ const hoveredItem = ref(null);
 const tokenStore = useTokenStore()
 const runTimeConfig = useRuntimeConfig();
 
-console.log("hello");
-
-
 const state = reactive({
     drug: '',
     currentPage: 1,
@@ -72,7 +69,7 @@ let myDrugs = ref([]);
 const fetchDrugs = async () => {
     if (state.drug.length >= 3) {
         try {
-            const response = await fetch(`${runTimeConfig}/drug/search?search_term=${state.drug}&only_current_medications=true&offset=0&limit=100`, {
+            const response = await fetch(`${runTimeConfig.public.baseURL}/drug/search?search_term=${state.drug}&only_current_medications=true&offset=0&limit=100`, {
                 method: "GET",
                 headers: { 'Authorization': "Bearer " + tokenStore.access_token },
             });
