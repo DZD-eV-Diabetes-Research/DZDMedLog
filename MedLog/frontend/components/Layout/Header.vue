@@ -153,7 +153,7 @@ const profileButtonClass = computed(() => {
 .nav__logo {
   width: 200px;
   order: -1;
-  padding-right: 2rem;
+  margin-right: 2rem;
 
   @include breakpoint(md) {
     order: inherit;
