@@ -2,7 +2,7 @@ import { UIBaseButton } from '../../.nuxt/components';
 <template>
     <Layout>
         <UIBaseCard style="text-align:center">
-            <h3 style="margin: 5%;">Hello {{ userStore.userName }}</h3>
+            <h3 style="margin: 5%;">Hallo {{ userStore.userName }}</h3>
             <div class="button-container">
                 <UIBaseButton @click="conductInterview()">Interview durchführen</UIBaseButton>
                 <UIBaseButton @click="showStudies()">Studien Verwaltung</UIBaseButton>

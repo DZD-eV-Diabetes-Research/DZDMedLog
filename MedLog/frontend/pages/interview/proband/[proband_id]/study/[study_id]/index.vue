@@ -30,8 +30,9 @@
       <div class="p-4" style="text-align: center">
         <UForm :schema="eventSchema" :state="eventState" class="space-y-4" @submit="createEvent">
           <UFormGroup label="Event Name" name="name">
-            <UInput v-model="eventState.name" required placeholder="Interview Campaign Year Quarter" />
+            <UInput v-model="eventState.name" required placeholder="Interview Campaign Year Quarter"/>
           </UFormGroup>
+          <h3 v-if="eventError" style="color: red;">{{ eventError }}</h3>
           <UButton type="submit" label="Event anlegen" color="green" variant="soft"
             class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
         </UForm>
@@ -156,6 +157,7 @@ const eventState = reactive({ name: "" });
 const eventSchema = object({
   name: string().required("Required"),
 });
+const eventError = ref("")
 
 async function createEvent() {
   try {
@@ -174,7 +176,8 @@ async function createEvent() {
     selectedIncompleteEvent.value = incompletedItems.value[0];
     showEventModal.value = !showEventModal.value
   } catch (error) {
-    console.error("Failed to create event: ", error);
+    eventError.value = error.response._data.detail
+    console.error("Failed to create event: ", error.response._data.detail);
   }
 }
 

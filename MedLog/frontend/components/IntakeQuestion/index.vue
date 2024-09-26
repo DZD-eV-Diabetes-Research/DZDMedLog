@@ -41,14 +41,14 @@
           </li>
         </ul>
         <div class="pagination" v-if="drugList.count >= 6">
-          <button @click="state.currentPage > 1 ? state.currentPage-- : 0">
+          <UIBaseButton @click="state.currentPage > 1 ? state.currentPage-- : 0">
             Previous
-          </button>
-          <button
+          </UIBaseButton>
+          <UIBaseButton
             @click="state.currentPage < totalPages ? state.currentPage++ : 0"
           >
             Next
-          </button>
+          </UIBaseButton>
           <p>Page {{ state.currentPage }} of {{ totalPages }}</p>
         </div>
       </div>

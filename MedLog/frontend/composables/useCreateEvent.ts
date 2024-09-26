@@ -13,6 +13,6 @@ export async function useCreateEvent(name: string, study_id:string): Promise<voi
         })      
     }
     catch (err: any) {
-        tokenStore.error = err.response.data.detailS
+        throw err
     }
 }
