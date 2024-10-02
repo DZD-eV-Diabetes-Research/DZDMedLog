@@ -1,7 +1,7 @@
 from typing import List, Self, Optional, TYPE_CHECKING, Type, Callable, Any
 import uuid
 from functools import partial
-
+from pydantic import BaseModel
 
 from sqlmodel import Field, SQLModel, Relationship, JSON, Enum, Column
 from pydantic_core import PydanticUndefined
@@ -20,18 +20,21 @@ if TYPE_CHECKING:
 import enum
 
 
-@dataclass
-class TypCastingInfo:
+class TypCastingInfo(BaseModel):
     python_type: Type
     casting_func: Callable
 
 
 class ValueTypeCasting(enum.Enum):
-    STR = TypCastingInfo(str, str)
-    INT = TypCastingInfo(int, int)
-    FLOAT = TypCastingInfo(float, float)
-    DATETIME = TypCastingInfo(datetime.datetime, datetime.datetime.fromisoformat)
-    DATE = TypCastingInfo(datetime.date, datetime.date.fromisoformat)
+    STR = TypCastingInfo(python_type=str, casting_func=str)
+    INT = TypCastingInfo(python_type=int, casting_func=int)
+    FLOAT = TypCastingInfo(python_type=float, casting_func=float)
+    DATETIME = TypCastingInfo(
+        python_type=datetime.datetime, casting_func=datetime.datetime.fromisoformat
+    )
+    DATE = TypCastingInfo(
+        python_type=datetime.date, casting_func=datetime.date.fromisoformat
+    )
 
 
 class CustomPreParserFunc(enum.Enum):
@@ -42,11 +45,7 @@ class CustomPreParserFunc(enum.Enum):
     )
 
 
-class DrugAttrFieldDefinition(DrugModelTableBase, table=True):
-    __tablename__ = "drug_attr_field_definition"
-    __table_args__ = {
-        "comment": "Definition of dataset specific fields and lookup fields"
-    }
+class DrugAttrFieldDefinitionAPIRead(DrugModelTableBase, table=False):
     field_name: str = Field(primary_key=True)
     field_display: str = Field(
         description="The title of the field for displaying humans"
@@ -61,6 +60,13 @@ class DrugAttrFieldDefinition(DrugModelTableBase, table=True):
         default=ValueTypeCasting.STR,
         description="The type of this value gets casted into, as before its passing the RestAPI",
     )
+
+
+class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
+    __tablename__ = "drug_attr_field_definition"
+    __table_args__ = {
+        "comment": "Definition of dataset specific fields and lookup fields"
+    }
     pre_parser: Optional[CustomPreParserFunc] = Field(
         default=None,
         description="Function that can transform the input value into a fitting string",

@@ -477,4 +477,14 @@ def named_tuple_as_db_col():
         s.commit()
 
 
-named_tuple_as_db_col()
+def str_enum_test():
+    import enum
+    from functools import partial
+    import datetime
+
+    class MyEnum(str, enum.Enum):
+        state1 = partial(
+            lambda x: datetime.datetime.strptime(x, "%Y%m%d").date().isoformat()
+        )
+
+    MyEnum.state1

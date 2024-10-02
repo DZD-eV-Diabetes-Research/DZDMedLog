@@ -2,7 +2,7 @@ from typing import List, Callable, Tuple, Dict, Optional, AsyncIterator, TypeVar
 from pathlib import Path
 import csv
 from dataclasses import dataclass
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, select
 from medlogserver.db._session import get_async_session_context
 
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
@@ -94,7 +94,7 @@ apopflicht_values = [
 
 
 class WidoAiImporter(DrugDataSetImporterBase):
-    def __init__(self, source_dir: Path, version: str):
+    def __init__(self, source_dir: Path = None, version: str = None):
 
         self.dataset_name = "Wido GKV Arzneimittelindex"
         self.api_name = "WidoAiDrug"
@@ -168,9 +168,25 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 count += 1
         return count
 
+    async def get_already_imported_datasets(self) -> List[DrugDataSetVersion]:
+        async with get_async_session_context() as session:
+            query = select(DrugDataSetVersion).where(
+                DrugDataSetVersion.dataset_name == self.dataset_name
+            )
+            result = await session.exec(query)
+            return result.all()
+
     async def run_import(self):
         log.info("[DRUG DATA IMPORT] Parse metadata...")
         drug_dataset = await self.get_drug_data_set()
+        already_imported_datasets = await self.get_already_imported_datasets()
+        if drug_dataset.dataset_version in [
+            imported_ds.dataset_version for imported_ds in already_imported_datasets
+        ]:
+            log.info(
+                f"[DRUG DATA IMPORT] Dataset '{drug_dataset.dataset_name}' with version '{drug_dataset.dataset_version}' already imported. Skip drug data import."
+            )
+            return
         all_objs = [drug_dataset]
         attr_defs = await self._get_attr_definitons()
         all_objs.extend(attr_defs)

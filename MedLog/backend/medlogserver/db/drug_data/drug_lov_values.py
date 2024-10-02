@@ -13,7 +13,13 @@ from uuid import UUID
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model.drug_data.drug import Drug
+from medlogserver.model.drug_data.drug_attr_field_lov_item import (
+    DrugAttrFieldLovItem,
+    DrugAttrFieldLovItemCREATE,
+)
+from medlogserver.model.drug_data.drug_attr_field_definition import (
+    DrugAttrFieldDefinition,
+)
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.db.interview import Interview
 from medlogserver.api.paginator import QueryParamsInterface
@@ -24,44 +30,34 @@ log = get_logger()
 config = Config()
 
 
-class DrugCRUD(
+class DrugAttrFieldLovItemCRUD(
     create_crud_base(
-        table_model=Drug,
-        read_model=Drug,
-        create_model=Drug,
-        update_model=Drug,
+        table_model=DrugAttrFieldLovItem,
+        read_model=DrugAttrFieldLovItem,
+        create_model=DrugAttrFieldLovItemCREATE,
+        update_model=DrugAttrFieldLovItem,
     )
 ):
-    async def append_latest_dataset_version_where_cause(
-        self, query: sqlEpression.Select
-    ):
-        drug_importer = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
-        dataset_class = await drug_importer.get_drug_data_set()
-        select(DrugDataSetVersion.id).where(
-            func.max(DrugDataSetVersion.dataset_version)
-            and DrugDataSetVersion.dataset_name == dataset_class.dataset_name
-        ).limit(1)
-        query.where(Drug.source_dataset_id == select)
-
     async def count(
         self,
+        field_name: str,
     ) -> int:
-        query = select(func.count()).select_from(Drug)
-        query = await self.append_latest_dataset_version_where_cause(query)
+        query = (
+            select(func.count())
+            .select_from(DrugAttrFieldLovItem)
+            .where(DrugAttrFieldLovItem.field_name == field_name)
+        )
         results = await self.session.exec(statement=query)
         return results.first()
 
     async def list(
         self,
-        filter_study_id: UUID = None,
-        hide_completed: bool = False,
+        field_name: str,
         pagination: QueryParamsInterface = None,
-    ) -> Sequence[Drug]:
-        if isinstance(filter_study_id, str):
-            filter_study_id: UUID = UUID(filter_study_id)
-        # log.info(f"Event.Config.order_by {Event.Config.order_by}")
-        query = select(Drug)
-        query = await self.append_latest_dataset_version_where_cause(query)
+    ) -> Sequence[DrugAttrFieldLovItem]:
+        query = select(DrugAttrFieldLovItem).where(
+            DrugAttrFieldLovItem.field_name == field_name
+        )
         if pagination:
             query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)

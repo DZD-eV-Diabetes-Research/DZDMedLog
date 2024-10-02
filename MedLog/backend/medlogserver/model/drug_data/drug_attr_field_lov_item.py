@@ -17,7 +17,11 @@ class DrugAttrFieldLovItemCREATE(SQLModel):
     sort_order: Optional[int] = Field(default=0)
 
 
-class DrugAttrFieldLovItem(DrugModelTableBase, DrugAttrFieldLovItemCREATE, table=True):
+class DrugAttrFieldLovItemAPIRead(DrugAttrFieldLovItemCREATE):
+    pass
+
+
+class DrugAttrFieldLovItem(DrugModelTableBase, DrugAttrFieldLovItemAPIRead, table=True):
     __tablename__ = "drug_attr_field_lov_item"
     __table_args__ = {"comment": "Attr fields lists of values"}
     field_name: str = Field(
