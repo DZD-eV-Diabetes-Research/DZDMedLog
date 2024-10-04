@@ -48,8 +48,9 @@ class DrugCRUD(
             .replace("“", '"')
             .replace("‘", '"')
         )
-        # split search term into tokens
+        # split search term into tokens (single words or multiple words enclosed by quotes)
         search_term_tokens = shlex.split(search_term)
+        # remove tokens that are too short. we will ignore these
         search_term_tokens = [token for token in search_term_tokens if len(token) > 2]
 
         select(Drug).where()
