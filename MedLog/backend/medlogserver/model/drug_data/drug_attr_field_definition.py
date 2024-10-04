@@ -1,4 +1,4 @@
-from typing import List, Self, Optional, TYPE_CHECKING, Type, Callable, Any
+from typing import List, Self, Optional, TYPE_CHECKING, Type, Callable, Any, Literal
 import uuid
 from functools import partial
 from pydantic import BaseModel
@@ -21,7 +21,7 @@ import enum
 
 
 class TypCastingInfo(BaseModel):
-    python_type: Type
+    python_type: Callable
     casting_func: Callable
 
 
@@ -53,12 +53,16 @@ class DrugAttrFieldDefinitionAPIRead(DrugModelTableBase, table=False):
     field_desc: Optional[str] = Field(
         default=None, description="Helptext about the content of the field"
     )
+    searchable: bool = Field(
+        default=False,
+        description="If this field is will be take into account while using /drug/search endpoint.",
+    )
     optional: bool = False
-    default: Optional[str]
+    default: Optional[str] = None
     has_list_of_values: bool = Field(default=False)
-    type: ValueTypeCasting = Field(
-        default=ValueTypeCasting.STR,
-        description="The type of this value gets casted into, as before its passing the RestAPI",
+    type: Literal[tuple([e.name for e in ValueTypeCasting])] = Field(
+        default=ValueTypeCasting.STR.name,
+        description="The type of this value gets casted into, by the backend, as before its passing the RestAPI",
     )
 
 
@@ -67,6 +71,11 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
     __table_args__ = {
         "comment": "Definition of dataset specific fields and lookup fields"
     }
+    type: ValueTypeCasting = Field(
+        default=ValueTypeCasting.STR,
+        description="The type of this value gets casted into, as before its passing the RestAPI",
+    )
+    default: Optional[str]
     pre_parser: Optional[CustomPreParserFunc] = Field(
         default=None,
         description="Function that can transform the input value into a fitting string",

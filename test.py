@@ -478,13 +478,37 @@ def named_tuple_as_db_col():
 
 
 def str_enum_test():
+    from typing import Callable
     import enum
     from functools import partial
     import datetime
 
-    class MyEnum(str, enum.Enum):
-        state1 = partial(
-            lambda x: datetime.datetime.strptime(x, "%Y%m%d").date().isoformat()
-        )
+    from dataclasses import dataclass
 
-    MyEnum.state1
+    @dataclass
+    class TypCastingInfo:
+        python_type: Callable
+        casting_func: Callable
+
+    # We need an string Enum here. This is a fixed constraint
+    class MyEnum(enum.Enum):
+        state1 = TypCastingInfo(int, int)
+
+    val = MyEnum.state1.value
+    print(val)
+    print(type(val))
+    exit()
+    print(
+        MyEnum.state1.value
+    )  # returns `str_enum_test.<locals>.TypCastingInfo(python_type=<class 'int'>, casting_func=<class 'int'>)`
+
+    print(
+        type(MyEnum.state1._value_)
+    )  # returns `<class 'str'>` instead of `<class 'TypCastingInfo'>`. Why?
+
+    print(
+        MyEnum.state1._value_.python_type
+    )  # This is not possible and throws and error `AttributeError: 'str' object has no attribute 'python_type'`
+
+
+str_enum_test()
