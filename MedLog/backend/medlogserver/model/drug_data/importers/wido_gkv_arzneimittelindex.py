@@ -176,7 +176,9 @@ class WidoAiImporter(DrugDataSetImporterBase):
             result = await session.exec(query)
             return result.all()
 
-    async def run_import(self):
+    async def run_import(self, source_dir: Path, version: str):
+        self.source_dir = source_dir
+        self.version = version
         log.info("[DRUG DATA IMPORT] Parse metadata...")
         drug_dataset = await self.get_drug_data_set()
         already_imported_datasets = await self.get_already_imported_datasets()
@@ -300,28 +302,31 @@ class WidoAiImporter(DrugDataSetImporterBase):
         self._attr_definitons = [
             DrugAttrFieldDefinition(
                 field_name="packgroesse",
-                field_display="Packungsgröße",
+                field_name_display="Packungsgröße",
                 field_desc="Packungsgröße (in 1/10 Einheiten)",
                 type=ValueTypeCasting.INT,
                 has_list_of_values=False,
                 examples=[1000],
+                importer_name=self.__class__.__name__,
             ),
             DrugAttrFieldDefinition(
                 field_name="indikationsgruppe",
-                field_display="Indikationsgruppe",
+                field_name_display="Indikationsgruppe",
                 field_desc="Indikationsgruppe (nach Roter Liste 2014)",
                 type=ValueTypeCasting.INT,
                 has_list_of_values=False,
                 examples=[20],
+                importer_name=self.__class__.__name__,
             ),
             DrugAttrFieldDefinition(
                 field_name="marktzugang",
-                field_display="Marktzugang",
+                field_name_display="Marktzugang",
                 field_desc="Datum des Marktzugang",
                 type=ValueTypeCasting.DATE,
                 pre_parser=CustomPreParserFunc.WIDO_GKV_DATE,
                 has_list_of_values=False,
                 examples=[],
+                importer_name=self.__class__.__name__,
             ),
         ]
 
@@ -337,10 +342,11 @@ class WidoAiImporter(DrugDataSetImporterBase):
         fields["darreichungsform"] = DrugAttrLovFieldDefinitionContainer(
             field=DrugAttrFieldDefinition(
                 field_name="darreichungsform",
-                field_display="Darreichungsform",
+                field_name_display="Darreichungsform",
                 field_desc="Wirkstoffhaltige Zubereitung, die dem Patienten verabreicht wird und die präsentierte Arzneiform (eng: dosage form)",
                 type=ValueTypeCasting.STR,
                 has_list_of_values=True,
+                importer_name=self.__class__.__name__,
             ),
             lov=DrugAttrFieldLovImportDefinition(
                 lov_source_file="darrform.txt",
@@ -357,7 +363,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
         fields["applikationsform"] = DrugAttrLovFieldDefinitionContainer(
             field=DrugAttrFieldDefinition(
                 field_name="applikationsform",
-                field_display="Applikationsform",
+                field_name_display="Applikationsform",
                 field_desc="Die Art und Weise bezeichnet, wie ein Arzneimittel verabreicht wird (eng: administration route)",
                 type=ValueTypeCasting.STR,
                 has_list_of_values=True,
@@ -377,10 +383,11 @@ class WidoAiImporter(DrugDataSetImporterBase):
         fields["hersteller"] = DrugAttrLovFieldDefinitionContainer(
             field=DrugAttrFieldDefinition(
                 field_name="hersteller",
-                field_display="Hersteller",
+                field_name_display="Hersteller",
                 field_desc="hersteller (eng: producer)",
                 type=ValueTypeCasting.STR,
                 has_list_of_values=True,
+                importer_name=self.__class__.__name__,
             ),
             lov=DrugAttrFieldLovImportDefinition(
                 lov_source_file="hersteller.txt",
@@ -397,10 +404,11 @@ class WidoAiImporter(DrugDataSetImporterBase):
         fields["normpackungsgroesse"] = DrugAttrLovFieldDefinitionContainer(
             field=DrugAttrFieldDefinition(
                 field_name="normpackungsgroesse",
-                field_display="Normpackungsgröße",
+                field_name_display="Normpackungsgröße",
                 field_desc="Normpackungsgröße https://www.bfarm.de/DE/Arzneimittel/Arzneimittelinformationen/Packungsgroessen/_node.html",
                 type=ValueTypeCasting.STR,
                 has_list_of_values=True,
+                importer_name=self.__class__.__name__,
             ),
             lov=DrugAttrFieldLovImportDefinition(
                 lov_source_file="normpackungsgroessen.txt",
@@ -417,10 +425,11 @@ class WidoAiImporter(DrugDataSetImporterBase):
         fields["apopflicht"] = DrugAttrLovFieldDefinitionContainer(
             field=DrugAttrFieldDefinition(
                 field_name="apopflicht",
-                field_display="Apotheken-/Rezeptpflicht",
+                field_name_display="Apotheken-/Rezeptpflicht",
                 field_desc="",
                 type=ValueTypeCasting.INT,
                 has_list_of_values=True,
+                importer_name=self.__class__.__name__,
             ),
             lov=apopflicht_values,
         )

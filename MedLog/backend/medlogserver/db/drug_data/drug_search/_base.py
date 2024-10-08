@@ -1,14 +1,16 @@
 from typing import List, Dict
+from typing_extensions import Unpack
 from pydantic import BaseModel, Field
 from medlogserver.db._session import AsyncSession, get_async_session
 from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
 from medlogserver.model.wido_gkv_arzneimittelindex.stamm import StammRead
+from medlogserver.model.drug_data.drug import Drug
 
 
 class MedLogSearchEngineResult(BaseModel):
-    pzn: str = Field(examples=["324563"])
+    drug_id: str = Field(examples=["ff16fc08-6484-4097-bd51-f8c17c640a06"])
     relevance_score: float = Field(examples=["1.4"])
-    item: StammRead
+    item: Drug
 
 
 class MedLogDrugSearchEngineBase:
@@ -19,13 +21,7 @@ class MedLogDrugSearchEngineBase:
         "A hint for the user like 'You can quote string to find drugs with this exact quote: `'vitamin C' aspirin'`"
     )
 
-    def __init__(self, sql_session: AsyncSession, engine_config: Dict = None):
-        """_summary_
-
-        Args:
-            sql_session (AsyncSession): _description_
-            engine_config (Dict, optional): Further configuration variables for a search engine. e.g. external database (like elasticsearch) connection params. Defaults to None.
-        """
+    def __init__(self, sql_session: AsyncSession, config: Dict = None):
         self.sql_session = sql_session
 
     async def disable(self):
@@ -54,17 +50,8 @@ class MedLogDrugSearchEngineBase:
     async def search(
         self,
         search_term: str = None,
-        pzn_contains: str = None,
-        filter_packgroesse: str = None,
-        filter_darrform: str = None,
-        filter_appform: str = None,
-        filter_normpackungsgroeße_zuzahlstufe: str = None,
-        filter_atc_level2: str = None,
-        filter_generikakenn: str = None,
-        filter_apopflicht: int = None,
-        filter_preisart_neu: str = None,
-        only_current_medications: bool = False,
         pagination: QueryParamsInterface = None,
+        **filter_ref_vals: Unpack[int | str],
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
         pass
 

@@ -51,7 +51,9 @@ class DatabaseInteractionBase(
     async def get_crud(
         cls,
         session: AsyncSession = Depends(get_async_session),
-    ) -> AsyncGenerator[Self, None]:
+    ) -> AsyncGenerator[
+        Self, None
+    ]:  # todo: low prio. return type hinting is broken. returns "any" at the moment. investigate!
         yield cls(session=session)
 
 

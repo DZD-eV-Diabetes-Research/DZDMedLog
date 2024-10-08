@@ -28,7 +28,7 @@ config = Config()
 def drug_api_read_class_factory() -> Type[BaseModel]:
     """
     Dynamic creation of Pydantic classes für Drugs.
-    Depening on the used drug data source (e.g Wido GKV Arnzeimittelindex) we have different attributes for Drug datasets.
+    Depending on the used drug data source (e.g Wido GKV Arnzeimittelindex) we have different attributes for Drug datasets.
     Therefor we need to create these classes dynamic depending on which drug database we imported our drug data from.
     The metadata for these classes are coming from the drug index importers in `medlogserver.model.drug_data.importers`
 
@@ -45,8 +45,7 @@ def drug_api_read_class_factory() -> Type[BaseModel]:
 
 
 async def _get_DrugReadApiClass(importer_class: Type[DrugDataSetImporterBase]) -> Type:
-
-    importer = importer_class(Path(), "")
+    importer = importer_class()
     attrs = {}
     for field_name, db_drug_field in Drug.model_fields.items():
         if field_name == "source_dataset_id":

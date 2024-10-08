@@ -511,4 +511,40 @@ def str_enum_test():
     )  # This is not possible and throws and error `AttributeError: 'str' object has no attribute 'python_type'`
 
 
-str_enum_test()
+def classnametest():
+    class MyClass:
+        def __init__(self):
+            pass
+
+        def printname(self):
+            print(self.__class__.__name__)
+
+    my = MyClass()
+    my.printname()
+
+
+def python_typing_unpack():
+    from typing_extensions import Unpack
+
+    # that seems to be a wrong usage(arrocding to chatgpt. investiuagte further)
+    def myfunc(**kwargs: Unpack[int | str]):
+        print(bool(kwargs))
+
+    myfunc(d="")
+
+
+def python_typing_unpack2():
+    from typing_extensions import TypedDict, Unpack
+
+    class Person(TypedDict):
+        name: str
+        age: int
+
+    def greet_person(**kwargs: Unpack[Person]) -> None:
+        print(f"Hello, {kwargs['name']}! You are {kwargs['age']} years old.")
+
+    # Using unpacked keyword arguments from the TypedDict
+    greet_person(name="Alice", age=30)  # This works
+
+
+python_typing_unpack()

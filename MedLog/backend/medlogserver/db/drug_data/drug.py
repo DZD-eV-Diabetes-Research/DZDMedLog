@@ -5,7 +5,7 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func, col
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func, col, desc
 from sqlmodel.sql import expression as sqlEpression
 import uuid
 from uuid import UUID
@@ -32,22 +32,27 @@ class DrugCRUD(
         update_model=Drug,
     )
 ):
-    async def append_latest_dataset_version_where_cause(
+    async def append_current_dataset_version_where_clause(
         self, query: sqlEpression.Select
     ):
-        drug_importer = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
-        dataset_class = await drug_importer.get_drug_data_set()
-        select(DrugDataSetVersion.id).where(
-            func.max(DrugDataSetVersion.dataset_version)
-            and DrugDataSetVersion.dataset_name == dataset_class.dataset_name
-        ).limit(1)
-        query.where(Drug.source_dataset_id == select)
+        drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
+        drug_importer = drug_importer_class()
+
+        sub_query = (
+            select(DrugDataSetVersion)
+            .where(DrugDataSetVersion.dataset_name == drug_importer.dataset_name)
+            .order_by(desc(DrugDataSetVersion.current_active))
+            .order_by(desc(DrugDataSetVersion.dataset_version))
+            .limit(1)
+        )
+        query.where(Drug.source_dataset_id == sub_query)
+        return query
 
     async def count(
         self,
     ) -> int:
         query = select(func.count()).select_from(Drug)
-        query = await self.append_latest_dataset_version_where_cause(query)
+        query = await self.append_current_dataset_version_where_clause(query)
         results = await self.session.exec(statement=query)
         return results.first()
 
@@ -61,8 +66,34 @@ class DrugCRUD(
             filter_study_id: UUID = UUID(filter_study_id)
         # log.info(f"Event.Config.order_by {Event.Config.order_by}")
         query = select(Drug)
-        query = await self.append_latest_dataset_version_where_cause(query)
+        query = await self.append_current_dataset_version_where_clause(query)
         if pagination:
             query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)
+        return results.all()
+
+    async def get_multiple(
+        self,
+        ids: List[str],
+        pagination: QueryParamsInterface = None,
+        keep_result_in_ids_order: bool = True,
+    ) -> Sequence[Drug]:
+        query = select(Drug).where(col(Drug.id).in_(ids))
+        query = await self.append_current_dataset_version_where_clause(query)
+
+        if pagination:
+            query = pagination.append_to_query(query)
+
+        results = await self.session.exec(statement=query)
+        if keep_result_in_ids_order:
+            # todo: maybe we can solve the drug order in sql?
+            db_order: List[Drug] = results.all()
+            new_order: List[Drug] = []
+            for drug_id in ids:
+                db_order_item_index = next(
+                    (i for i, obj in enumerate(db_order) if obj.id == drug_id)
+                )
+                item = db_order.pop(db_order_item_index)
+                new_order.append(item)
+            return new_order
         return results.all()

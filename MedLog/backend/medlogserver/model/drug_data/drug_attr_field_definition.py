@@ -29,6 +29,7 @@ class ValueTypeCasting(enum.Enum):
     STR = TypCastingInfo(python_type=str, casting_func=str)
     INT = TypCastingInfo(python_type=int, casting_func=int)
     FLOAT = TypCastingInfo(python_type=float, casting_func=float)
+    BOOL = TypCastingInfo(python_type=bool, casting_func=bool)
     DATETIME = TypCastingInfo(
         python_type=datetime.datetime, casting_func=datetime.datetime.fromisoformat
     )
@@ -47,15 +48,11 @@ class CustomPreParserFunc(enum.Enum):
 
 class DrugAttrFieldDefinitionAPIRead(DrugModelTableBase, table=False):
     field_name: str = Field(primary_key=True)
-    field_display: str = Field(
+    field_name_display: str = Field(
         description="The title of the field for displaying humans"
     )
     field_desc: Optional[str] = Field(
         default=None, description="Helptext about the content of the field"
-    )
-    searchable: bool = Field(
-        default=False,
-        description="If this field is will be take into account while using /drug/search endpoint.",
     )
     optional: bool = False
     default: Optional[str] = None
@@ -71,11 +68,19 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
     __table_args__ = {
         "comment": "Definition of dataset specific fields and lookup fields"
     }
+    importer_name: str = Field(
+        primary_key=True,
+        description="A field definiton always comes from one drug data importer. We may have multiple importers in the lifecycle of the application, therefore we need to distinguish the fields per drug data importer.",
+    )
     type: ValueTypeCasting = Field(
         default=ValueTypeCasting.STR,
         description="The type of this value gets casted into, as before its passing the RestAPI",
     )
     default: Optional[str]
+    searchable: bool = Field(
+        default=False,
+        description="If this field is will be take into account while using /drug/search endpoint.",
+    )
     pre_parser: Optional[CustomPreParserFunc] = Field(
         default=None,
         description="Function that can transform the input value into a fitting string",

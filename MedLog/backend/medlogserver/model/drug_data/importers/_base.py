@@ -10,12 +10,12 @@ from medlogserver.model.drug_data.drug import Drug
 
 
 class DrugDataSetImporterBase:
-    def __init__(self, source_dir: Path, version: str):
+    def __init__(self):
         self.dataset_name = "Base Example"
         self.dataset_link = "Base Example"
         self.api_name = "baseexample"
-        self.source_dir = source_dir
-        self.version = version
+        self.source_dir: Path = None
+        self.version: str = None
 
     async def get_drug_data_set(self) -> DrugDataSetVersion:
         return DrugDataSetVersion(
@@ -34,4 +34,7 @@ class DrugDataSetImporterBase:
         raise NotImplementedError()
 
     async def get_drug_items(self) -> AsyncIterator[Drug]:
+        raise NotImplementedError()
+
+    async def run_import(self, source_dir: Path, version: str):
         raise NotImplementedError()
