@@ -148,13 +148,14 @@ async def _get_codes_container_class(importer: DrugDataSetImporterBase) -> Type:
 DrugAPIRead = drug_api_read_class_factory()
 
 
-async def drug_to_drugAPI_obj(drug: Drug) -> Type[DrugAPIRead]:
+# async def drug_to_drugAPI_obj(drug: Drug) -> DrugAPIRead:
+async def drug_to_drugAPI_obj(drug: Drug) -> Dict:
     vals = {}
     for field_name, field_val in iter(drug):
         if field_name in ["attrs", "ref_attrs", "codes"]:
             continue
         if field_name in DrugAPIRead.model_fields.keys():
-            vals[field_name] == field_val
+            vals[field_name] = field_val
     drug_attrs = {}
     for attr in drug.attrs:
         drug_attrs[attr.field_name] = attr.value
@@ -171,9 +172,12 @@ async def drug_to_drugAPI_obj(drug: Drug) -> Type[DrugAPIRead]:
     vals["attrs"] = drug_attrs
     vals["codes"] = drug_codes
     vals["ref_attrs"] = drug_ref_attrs
-    return DrugAPIRead.model_validate(vals)
+    # return DrugAPIRead.model_validate(vals)
+    return vals
 
 
+#### UNSED CODE?
+"""
 async def drugAPI_to_drug(drug_api_obj: DrugAPIRead) -> Drug:
     if drug_api_obj.id is not None:
         raise NotImplementedError("TODO Tim: just query the existing drug")
@@ -191,3 +195,4 @@ async def drugAPI_to_drug(drug_api_obj: DrugAPIRead) -> Drug:
     for ref_attr_name, ref_attr_obj in iter(drug_api_obj.ref_attr):
         drug.ref_attrs.append(DrugRefAttr(field_name=ref_attr_name, value=ref_attr_obj))
     return drug
+"""

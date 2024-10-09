@@ -34,7 +34,7 @@ class DrugDataSetVersionCRUD(
     )
 ):
 
-    def _get_active_dataset_name(self) -> str:
+    def _get_current_dataset_name(self) -> str:
         drug_importer_class: DrugDataSetImporterBase = DRUG_IMPORTERS[
             config.DRUG_IMPORTER_PLUGIN
         ]()
@@ -43,7 +43,7 @@ class DrugDataSetVersionCRUD(
     async def list(self) -> List[DrugDataSetVersion]:
         query = (
             select(DrugDataSetVersion)
-            .where(DrugDataSetVersion.dataset_name == self._get_active_dataset_name())
+            .where(DrugDataSetVersion.dataset_name == self._get_current_dataset_name())
             .order_by(DrugDataSetVersion.dataset_version)
         )
 
@@ -54,7 +54,7 @@ class DrugDataSetVersionCRUD(
         self,
     ) -> int:
         query = select(DrugDataSetVersion).where(
-            DrugDataSetVersion.dataset_name == self._get_active_dataset_name()
+            DrugDataSetVersion.dataset_name == self._get_current_dataset_name()
         )
         results = await self.session.exec(statement=query)
         return results.first()
@@ -62,7 +62,7 @@ class DrugDataSetVersionCRUD(
     async def get_current(self) -> DrugDataSetVersion | None:
         query = (
             select(DrugDataSetVersion)
-            .where(DrugDataSetVersion.dataset_name == self._get_active_dataset_name())
+            .where(DrugDataSetVersion.dataset_name == self._get_current_dataset_name())
             .order_by(desc(DrugDataSetVersion.current_active))
             .order_by(desc(DrugDataSetVersion.dataset_version))
             .limit(1)

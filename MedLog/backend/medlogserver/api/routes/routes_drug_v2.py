@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Sequence, List, NoReturn, Type
+from typing import Annotated, Sequence, List, NoReturn, Type, Optional
 import uuid
 from fastapi import (
     Depends,
@@ -35,8 +35,6 @@ from medlogserver.api.study_access import (
 
 from medlogserver.config import Config
 
-from medlogserver.db.wido_gkv_arzneimittelindex import StammCRUD, StammUserCustomCRUD
-
 
 from medlogserver.db.drug_data.drug import DrugCRUD
 
@@ -48,6 +46,7 @@ from medlogserver.api.paginator import (
 )
 from medlogserver.model.drug_data.api_drug_model_factory import (
     drug_api_read_class_factory,
+    drug_to_drugAPI_obj,
 )
 
 from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
@@ -105,7 +104,7 @@ async def list_drugs(
 ) -> PaginatedResponse[DrugRead]:
     result_items = await drug_crud.list(pagination=pagination)
     # return result_items
-    return pagination(
+    return PaginatedResponse(
         total_count=await drug_crud.count(),
         offset=pagination.offset,
         count=len(result_items),
@@ -131,7 +130,6 @@ field_ref_defs: List[
 )
 async def list_field_definitions(
     user: User = Security(get_current_user),
-    drug_stamm_crud: StammCRUD = Depends(StammCRUD.get_crud),
 ) -> DrugAttrFieldDefinitionContainer:
 
     # we need to cast from DrugAttrFieldDefinition to DrugAttrFieldDefinitionAPIRead manually
@@ -165,7 +163,6 @@ async def list_field_definitions(
 async def get_field_definition(
     field_name: str,
     user: User = Security(get_current_user),
-    drug_stamm_crud: StammCRUD = Depends(StammCRUD.get_crud),
 ) -> DrugAttrFieldDefinitionAPIRead:
     try:
         field_def: DrugAttrFieldDefinition = next(
@@ -233,15 +230,21 @@ async def get_reference_field_values(
 drug_search_filter_ref_fields = {}
 for f in field_ref_defs:
     drug_search_filter_ref_fields["filter_" + f.field_name] = (
-        int if f.type.name == "INT" else str,
+        Optional[int if f.type.name == "INT" else str],
         None,
     )
 drug_search_query_model = create_model("Query", **drug_search_filter_ref_fields)
 
+from medlogserver.db.drug_data.drug_search._base import MedLogSearchEngineResult
+from medlogserver.db.drug_data.drug_search.search_interface import (
+    get_drug_search,
+    DrugSearch,
+)
+
 
 @fast_api_drug_router_v2.get(
     "/drug/search",
-    response_model=PaginatedResponse[DrugRead],
+    response_model=PaginatedResponse[MedLogSearchEngineResult],
     description=f"List all medicine/drugs from the system. {NEEDS_ADMIN_API_INFO}",
 )
 async def search_drugs(
@@ -254,14 +257,12 @@ async def search_drugs(
     ],
     filter_params: drug_search_query_model = Depends(),
     user: User = Security(get_current_user),
+    drug_search: DrugSearch = Depends(get_drug_search),
     pagination: QueryParamsInterface = Depends(DrugQueryParams),
-    drug_crud: DrugCRUD = Depends(DrugCRUD.get_crud),
-) -> PaginatedResponse[DrugRead]:
-    result_items = await drug_crud.list(pagination=pagination)
-    # return result_items
-    return pagination(
-        total_count=await drug_crud.count(),
-        offset=pagination.offset,
-        count=len(result_items),
-        items=result_items,
+) -> PaginatedResponse[MedLogSearchEngineResult]:
+    search_results = await drug_search.search(
+        search_term=search_term, pagination=pagination, **filter_params.model_dump()
     )
+
+    print("search_results", search_results)
+    return search_results

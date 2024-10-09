@@ -130,13 +130,18 @@ async def create_admin_if_not_exists():
                 await user_auth_crud.create(admin_user_auth)
 
 
-async def get_current_ai_data_version() -> Optional[AiDataVersion]:
-    async with get_async_session_context() as session:
-        async with AiDataVersionCRUD.crud_context(session) as ai_data_version_crud:
-            return await ai_data_version_crud.get_current(none_is_ok=True)
-
-
 async def init_drugsearch():
+    from medlogserver.db.drug_data.drug_search._base import MedLogDrugSearchEngineBase
+    from medlogserver.db.drug_data.drug_search.search_module_generic_sql import (
+        GenericSQLDrugSearchEngine,
+    )
+
+    log.info("Build drug search index if needed...")
+    search_engine: MedLogDrugSearchEngineBase = None
+    if config.DRUG_SEARCHENGINE_CLASS == "GenericSQLDrugSearch":
+        search_engine = GenericSQLDrugSearchEngine()
+    await search_engine.build_index()
+    """
     current_ai_data_version = await get_current_ai_data_version()
     if current_ai_data_version is not None:
         from medlogserver.db.wido_gkv_arzneimittelindex.drug_search.search_module_generic_sql import (
@@ -147,23 +152,7 @@ async def init_drugsearch():
             target_ai_data_version=current_ai_data_version
         )
         await search_engine.build_index()
-
-
-async def provision_drug_data_old():
-    from medlogserver.worker.tasks.wido_gkv_arzneimittelindex_importer import (
-        TaskImportGKVArnzeimittelIndexData,
-    )
-
-    prov_data_dir = Path(config.DRUG_TABLE_PROVISIONING_SOURCE_DIR)
-    prov_stamm_path = Path(PurePath(prov_data_dir, "stamm.txt"))
-    if prov_stamm_path.exists() and prov_stamm_path.is_file():
-        await TaskImportGKVArnzeimittelIndexData().work(
-            source_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR, exist_ok=True
-        )
-    elif prov_data_dir is not None:
-        log.warning(
-            f"'DRUG_TABLE_PROVISIONING_SOURCE_DIR' is defined in config (`{prov_data_dir}`) but no source data dir found. Will skip drug data provsioning"
-        )
+    """
 
 
 async def provision_drug_data():
@@ -171,10 +160,13 @@ async def provision_drug_data():
         WidoAiImporter,
     )
 
-    im = WidoAiImporter(
+    im = WidoAiImporter()
+    log.warning(
+        "TODO: Hardcoded version 23 for drug import at 'DZDMedLog/MedLog/backend/medlogserver/db/_init_db.py' must be gatherd from the file."
+    )
+    await im.run_import(
         source_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR, version="23"
     )
-    await im.run_import()
 
 
 async def provision_base_data():

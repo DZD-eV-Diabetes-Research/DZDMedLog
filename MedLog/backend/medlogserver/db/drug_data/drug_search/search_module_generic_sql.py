@@ -25,11 +25,12 @@ from medlogserver.db._session import AsyncSession
 
 
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
+from medlogserver.db.drug_data.drug_dataset_version import DrugDataSetVersionCRUD
 from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
 from medlogserver.model.drug_data.drug import Drug
 from medlogserver.db.drug_data.drug import DrugCRUD
 from medlogserver.model.drug_data.drug_attr import DrugAttr, DrugRefAttr
-
+from medlogserver.model.drug_data.api_drug_model_factory import drug_to_drugAPI_obj
 from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.config import Config
 from medlogserver.log import get_logger
@@ -78,13 +79,10 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
 
     def __init__(
         self,
-        target_drug_dataset_version: DrugDataSetVersion,
         engine_config: Dict = None,
     ):
-        self.target_drug_dataset_version: DrugDataSetVersion = (
-            target_drug_dataset_version
-        )
         self.drug_data_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
+        self.current_dataset_version: Optional[DrugDataSetVersion] = None
 
     async def disable(self):
         """If we switch the search engine, we may need to tidy up some thing (e.g. Remove large indexed that are not needed anymore).
@@ -93,8 +91,21 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         # todo: we may want to delete/remove the modules tables (GenericSQLDrugSearchCache, GenericSQLDrugSearchState) here. Will be cleaner but not neccessary.
         pass
 
+    async def _get_current_dataset_version(self):
+        if self.current_dataset_version is None:
+            async with get_async_session_context() as session:
+                async with DrugDataSetVersionCRUD.crud_context(
+                    session=session
+                ) as drug_dataset_crud:
+                    drug_dataset_crud: DrugDataSetVersionCRUD = (
+                        drug_dataset_crud  # typing hint help
+                    )
+                    self.current_dataset_version = await drug_dataset_crud.get_current()
+        return self.current_dataset_version
+
     async def build_index(self, force_rebuild: bool = False):
         # tables will be created with build in MedLog/backend/medlogserver/db/_init_db.py -> init_db() we do not need to take care here.
+        target_drug_dataset_version = await self._get_current_dataset_version()
         state = await self._get_state()
         if state.index_build_up_in_process:
             log.warning(
@@ -103,7 +114,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             return
         if (
             state.last_index_build_based_on_drug_datasetversion_id
-            == self.target_drug_dataset_version.id
+            == target_drug_dataset_version.id
             and not force_rebuild
         ):
             log.warning(
@@ -134,7 +145,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         state.index_build_up_in_process = False
         state.last_index_build_at = datetime.datetime.now(tz=datetime.timezone.utc)
         state.last_index_build_based_on_drug_datasetversion_id = (
-            self.target_drug_dataset_version.id
+            target_drug_dataset_version.id
         )
         state.index_item_count = index_item_count
         state.last_error = None
@@ -154,6 +165,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
     async def _build_index(self, session: AsyncSession, skip_commit: bool = True):
         drug_search_attr = []
         # collect all drug attributes definition that are definied "searchable"
+        target_drug_dataset_version = await self._get_current_dataset_version()
         drug_attr_field_defs_all = (
             await self.drug_data_importer_class().get_attr_field_definitions()
         )
@@ -171,7 +183,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
 
         # fetch all drugs of the current dataset
         query = select(Drug).where(
-            Drug.source_dataset_id == self.target_drug_dataset_version.id
+            Drug.source_dataset_id == target_drug_dataset_version.id
         )
         res = await session.exec(query)
         cache_entries: List[GenericSQLDrugSearchCache] = []
@@ -327,24 +339,28 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 drug_crud: DrugCRUD = drug_crud  # typing hint help
 
                 drugs = await drug_crud.get_multiple(
-                    ids=[item[0] for item in drug_ids_with_score], keep_pzn_order=True
+                    ids=[item[0] for item in drug_ids_with_score],
+                    keep_result_in_ids_order=True,
                 )
+                # i do not understand why i need to translate/cast Drug to DrugApiRead object by hand (with drug_to_drugAPI_obj) here because in the "list" endpoint pydantic does it for me... Todo: investigate
+                search_result_objs = [
+                    MedLogSearchEngineResult(
+                        drug_id=drug.id,
+                        drug=await drug_to_drugAPI_obj(drug),
+                        relevance_score=next(
+                            item[1]
+                            for item in drug_ids_with_score
+                            if item[0] == drug.id
+                        ),
+                    )
+                    for drug in drugs
+                ]
+                print("search_result_objs", search_result_objs)
                 return PaginatedResponse(
                     total_count=result_count,
                     count=len(drug_ids_with_score),
                     offset=pagination.offset,
-                    items=[
-                        MedLogSearchEngineResult(
-                            drug_id=drug.id,
-                            item=drug,
-                            relevance_score=next(
-                                item[1]
-                                for item in drug_ids_with_score
-                                if item[0] == drug.id
-                            ),
-                        )
-                        for drug in drugs
-                    ],
+                    items=search_result_objs,
                 )
 
     async def _get_state(self) -> GenericSQLDrugSearchState:

@@ -44,6 +44,7 @@ class DrugCRUD(
             .order_by(desc(DrugDataSetVersion.current_active))
             .order_by(desc(DrugDataSetVersion.dataset_version))
             .limit(1)
+            .scalar_subquery()
         )
         query.where(Drug.source_dataset_id == sub_query)
         return query

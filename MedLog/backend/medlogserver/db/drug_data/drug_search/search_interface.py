@@ -51,7 +51,7 @@ class DrugSearch:
         self._current_dataset_version: DrugDataSetVersion = None
         self.search_engine: MedLogDrugSearchEngineBase = None
 
-    async def _get_current_dataset_version(
+    async def get_current_dataset_version(
         self,
     ) -> DrugDataSetVersion:
         if self._current_dataset_version is None:
@@ -68,9 +68,10 @@ class DrugSearch:
             # if alternative search engines are implemented later, this is the place where to enable them. At the moment there is only "GenericSQLDrugSearch"
             if config.DRUG_SEARCHENGINE_CLASS == "GenericSQLDrugSearch":
                 search_engine = GenericSQLDrugSearchEngine(
-                    await self._get_current_dataset_version()
+                    await self.get_current_dataset_version()
                 )
-                if search_engine.index_ready():
+                index_ready = await search_engine.index_ready()
+                if index_ready:
                     self.search_engine = search_engine
                     return
                 else:
@@ -94,7 +95,7 @@ class DrugSearch:
             log.debug(f"Drug search healthcheck was negative with error: {e}")
             return False
 
-    async def _get_current_dataset_version(
+    async def get_current_dataset_version(
         self,
     ) -> DrugDataSetVersion:
         if self._current_dataset_version is None:
@@ -122,6 +123,7 @@ class DrugSearch:
 async def get_drug_search(
     session: AsyncSession = Depends(get_async_session),
 ) -> AsyncGenerator[DrugSearch, None]:
+
     yield DrugSearch(session=session)
 
 

@@ -1,5 +1,6 @@
 from typing import List, Callable, Tuple, Dict, Optional, AsyncIterator, TypeVar
 from pathlib import Path
+import datetime
 import csv
 from dataclasses import dataclass
 from sqlmodel import SQLModel, select
@@ -94,15 +95,15 @@ apopflicht_values = [
 
 
 class WidoAiImporter(DrugDataSetImporterBase):
-    def __init__(self, source_dir: Path = None, version: str = None):
+    def __init__(self):
 
         self.dataset_name = "Wido GKV Arzneimittelindex"
         self.api_name = "WidoAiDrug"
         self.dataset_link = (
             "https://www.wido.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/"
         )
-        self.source_dir = source_dir
-        self.version = version
+        self.source_dir = None
+        self.version = None
         self._attr_definitons = None
         self._ref_attr_definitions = None
         self._code_definitions = None
@@ -180,7 +181,10 @@ class WidoAiImporter(DrugDataSetImporterBase):
         self.source_dir = source_dir
         self.version = version
         log.info("[DRUG DATA IMPORT] Parse metadata...")
-        drug_dataset = await self.get_drug_data_set()
+        drug_dataset = await self.generate_drug_data_set_definition()
+        drug_dataset.import_datetime_utc = datetime.datetime.now(
+            tz=datetime.timezone.utc
+        )
         already_imported_datasets = await self.get_already_imported_datasets()
         if drug_dataset.dataset_version in [
             imported_ds.dataset_version for imported_ds in already_imported_datasets
@@ -367,6 +371,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 field_desc="Die Art und Weise bezeichnet, wie ein Arzneimittel verabreicht wird (eng: administration route)",
                 type=ValueTypeCasting.STR,
                 has_list_of_values=True,
+                importer_name=self.__class__.__name__,
             ),
             lov=DrugAttrFieldLovImportDefinition(
                 lov_source_file="applikationsform.txt",

@@ -17,7 +17,7 @@ class DrugDataSetImporterBase:
         self.source_dir: Path = None
         self.version: str = None
 
-    async def get_drug_data_set(self) -> DrugDataSetVersion:
+    async def generate_drug_data_set_definition(self) -> DrugDataSetVersion:
         return DrugDataSetVersion(
             dataset_version=self.version,
             dataset_name=self.dataset_name,

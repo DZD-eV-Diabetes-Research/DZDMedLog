@@ -23,7 +23,13 @@ class Drug(DrugModelTableBase, table=True):
     trade_name: str = Field(index=True)
     market_launch_at: Optional[datetime.date] = Field(default=None)
     market_withdrawal_at: Optional[datetime.date] = Field(default=None)
-    attrs: List[DrugAttr] = Relationship(back_populates="drug")
-    ref_attrs: List[DrugRefAttr] = Relationship(back_populates="drug")
-    codes: List[DrugCode] = Relationship(back_populates="drug")
+    attrs: List[DrugAttr] = Relationship(
+        back_populates="drug", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+    ref_attrs: List[DrugRefAttr] = Relationship(
+        back_populates="drug", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+    codes: List[DrugCode] = Relationship(
+        back_populates="drug", sa_relationship_kwargs={"lazy": "selectin"}
+    )
     source_dataset: DrugDataSetVersion = Relationship()

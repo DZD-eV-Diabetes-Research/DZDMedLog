@@ -23,12 +23,16 @@ class DrugDataSetVersion(DrugModelTableBase, table=True):
     dataset_link: Optional[str] = Field(
         description="If the dataset has some kind of Website or source info page, paste it here"
     )
-    current_active: bool = Field(
-        "States if this dataset used in the backend or just archived. Only one dataset is allowed to be active."
+    current_active: Optional[bool] = Field(
+        description="States if this dataset used in the backend or just archived. Only one dataset is allowed to be active."
     )
     import_status: Literal["queued", "running", "failed" "done"] = Field(
-        default="queued" "Is the data for this drug data set allready imported."
+        default="queued",
+        description="Is the data for this drug data set allready imported.",
+        sa_column=Column(
+            String
+        ),  # , sa_column=Column(String) -> https://github.com/fastapi/sqlmodel/issues/57 + https://github.com/fastapi/sqlmodel/issues/67
     )
-    import_datetime: datetime.datetime = Field(
-        "Datetime when the imported for this drug dataset was started"
+    import_datetime_utc: datetime.datetime = Field(
+        description="Datetime when the imported for this drug dataset was started"
     )

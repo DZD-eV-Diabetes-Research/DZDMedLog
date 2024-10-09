@@ -53,5 +53,7 @@ class DrugRefAttr(DrugModelTableBase, table=True):
         description="Generic storage of a value as string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
     field_definition: DrugAttrFieldDefinition = Relationship()
-    lov_entry: DrugAttrFieldLovItem = Relationship()
+    lov_entry: DrugAttrFieldLovItem = Relationship(
+        sa_relationship_kwargs={"lazy": "selectin"}
+    )
     drug: "Drug" = Relationship(back_populates="ref_attrs")

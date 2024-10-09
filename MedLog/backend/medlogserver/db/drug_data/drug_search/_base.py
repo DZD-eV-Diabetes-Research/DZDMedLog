@@ -1,16 +1,22 @@
 from typing import List, Dict
 from typing_extensions import Unpack
+import uuid
 from pydantic import BaseModel, Field
 from medlogserver.db._session import AsyncSession, get_async_session
 from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
 from medlogserver.model.wido_gkv_arzneimittelindex.stamm import StammRead
 from medlogserver.model.drug_data.drug import Drug
+from medlogserver.model.drug_data.api_drug_model_factory import (
+    drug_api_read_class_factory,
+)
+
+DrugRead = drug_api_read_class_factory()
 
 
 class MedLogSearchEngineResult(BaseModel):
-    drug_id: str = Field(examples=["ff16fc08-6484-4097-bd51-f8c17c640a06"])
+    drug_id: uuid.UUID = Field(examples=["ff16fc08-6484-4097-bd51-f8c17c640a06"])
     relevance_score: float = Field(examples=["1.4"])
-    item: Drug
+    drug: DrugRead
 
 
 class MedLogDrugSearchEngineBase:
@@ -21,8 +27,8 @@ class MedLogDrugSearchEngineBase:
         "A hint for the user like 'You can quote string to find drugs with this exact quote: `'vitamin C' aspirin'`"
     )
 
-    def __init__(self, sql_session: AsyncSession, config: Dict = None):
-        self.sql_session = sql_session
+    def __init__(self, engine_config: Dict = None):
+        self.engine_config = engine_config
 
     async def disable(self):
         """If we switch the search engine, we may need to tidy up some thing (e.g. Remove large indexed that are not needed anymore).
