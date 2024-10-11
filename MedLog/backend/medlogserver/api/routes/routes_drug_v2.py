@@ -233,7 +233,9 @@ for f in field_ref_defs:
         Optional[int if f.type.name == "INT" else str],
         None,
     )
-drug_search_query_model = create_model("Query", **drug_search_filter_ref_fields)
+drug_search_query_model: type[BaseModel] = create_model(
+    "Query", **drug_search_filter_ref_fields
+)
 
 from medlogserver.db.drug_data.drug_search._base import MedLogSearchEngineResult
 from medlogserver.db.drug_data.drug_search.search_interface import (
@@ -263,6 +265,4 @@ async def search_drugs(
     search_results = await drug_search.search(
         search_term=search_term, pagination=pagination, **filter_params.model_dump()
     )
-
-    print("search_results", search_results)
     return search_results

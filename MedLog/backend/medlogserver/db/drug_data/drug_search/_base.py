@@ -34,7 +34,7 @@ class MedLogDrugSearchEngineBase:
         """If we switch the search engine, we may need to tidy up some thing (e.g. Remove large indexed that are not needed anymore).
         # This func will be called on every MedLog boot for non-enabled search engines.
         """
-        pass
+        raise NotImplementedError()
 
     async def build_index(self, force_rebuild: bool = False):
         """This function need to take care of
@@ -43,15 +43,26 @@ class MedLogDrugSearchEngineBase:
         * it must be idempotent. meaning if the index is allready in build-up or allready existent it should do nothing
         * force rebuild should only refresh the index if the index is ready (not in the process of a rebuild/refresh)
         """
-        pass
+        raise NotImplementedError()
 
     async def refresh_index(self, force_rebuild: bool = False):
         """This function is for engines where index build up and refresh follow different processes"""
         await self.build_index(force_rebuild=True)
 
+    async def insert_drug_to_index(self, drug: Drug):
+        """Adhoc insert a single drug into the index. this is needed for user defined custom drugs.
+
+        Args:
+            drug (Drug): _description_
+
+        Raises:
+            NotImplementedError: _description_
+        """
+        raise NotImplementedError()
+
     async def index_ready(self) -> bool:
         """This should be a low cost function. It should return False if the index is not existent or in the process of build up."""
-        pass
+        raise NotImplementedError()
 
     async def search(
         self,
@@ -59,8 +70,8 @@ class MedLogDrugSearchEngineBase:
         pagination: QueryParamsInterface = None,
         **filter_ref_vals: Unpack[int | str],
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
-        pass
+        raise NotImplementedError()
 
     async def total_item_count(self) -> int:
         # count of all items that are in the index.
-        pass
+        raise NotImplementedError()

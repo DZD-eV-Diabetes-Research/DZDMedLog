@@ -13,7 +13,7 @@ from fastapi import Depends, HTTPException, status
 import contextlib
 
 from sqlmodel.ext.asyncio.session import AsyncSession
-
+from medlogserver.db.drug_data.drug_search import SEARCH_ENGINES
 
 from medlogserver.db._session import get_async_session
 from medlogserver.config import Config
@@ -65,22 +65,24 @@ class DrugSearch:
 
     async def _preflight(self):
         if self.search_engine is None:
-            # if alternative search engines are implemented later, this is the place where to enable them. At the moment there is only "GenericSQLDrugSearch"
-            if config.DRUG_SEARCHENGINE_CLASS == "GenericSQLDrugSearch":
-                search_engine = GenericSQLDrugSearchEngine(
-                    await self.get_current_dataset_version()
+            try:
+                search_engine_class = SEARCH_ENGINES[config.DRUG_SEARCHENGINE_CLASS]
+            except KeyError:
+                raise SearchEngineNotConfiguredException(
+                    "Could not find a valid drug search engine configuration. Search will not work."
                 )
-                index_ready = await search_engine.index_ready()
-                if index_ready:
-                    self.search_engine = search_engine
-                    return
-                else:
-                    raise SearchEngineNotReadyException(
-                        "The search index is still building or warming up. Please try again in a little bit."
-                    )
-        raise SearchEngineNotConfiguredException(
-            "Could not find a valid drug search engine configuration. Search will not work."
-        )
+
+            search_engine = search_engine_class(
+                await self.get_current_dataset_version()
+            )
+            index_ready = await search_engine.index_ready()
+            if index_ready:
+                self.search_engine = search_engine
+                return
+            else:
+                raise SearchEngineNotReadyException(
+                    "The search index is still building or warming up. Please try again in a little bit."
+                )
 
     async def total_drug_count(self) -> int:
         await self._preflight()

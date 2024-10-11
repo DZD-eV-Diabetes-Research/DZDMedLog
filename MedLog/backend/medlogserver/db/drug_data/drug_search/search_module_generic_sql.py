@@ -23,7 +23,9 @@ from medlogserver.db.drug_data.drug_search._base import (
 )
 from medlogserver.db._session import AsyncSession
 
-
+from medlogserver.model.drug_data.drug_attr_field_definition import (
+    DrugAttrFieldDefinition,
+)
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.db.drug_data.drug_dataset_version import DrugDataSetVersionCRUD
 from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
@@ -83,6 +85,10 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
     ):
         self.drug_data_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
         self.current_dataset_version: Optional[DrugDataSetVersion] = None
+        self._drug_attr_field_definitions: List[DrugAttrFieldDefinition] | None = None
+        self._drug_ref_attr_field_definitions: List[DrugAttrFieldDefinition] | None = (
+            None
+        )
 
     async def disable(self):
         """If we switch the search engine, we may need to tidy up some thing (e.g. Remove large indexed that are not needed anymore).
@@ -162,24 +168,24 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         results = await session.exec(statement=query)
         return results.first()
 
+    async def _get_drug_attr_definitions_fields(self):
+        if self._drug_attr_field_definitions is None:
+            self._drug_attr_field_definitions = (
+                await self.drug_data_importer_class().get_attr_field_definitions()
+            )
+        return self._drug_attr_field_definitions
+
+    async def _get_drug_ref_attr_definitions_fields(self):
+        if self._drug_ref_attr_field_definitions is None:
+            self._drug_ref_attr_field_definitions = (
+                await self.drug_data_importer_class().get_ref_attr_field_definitions()
+            )
+        return self._drug_ref_attr_field_definitions
+
     async def _build_index(self, session: AsyncSession, skip_commit: bool = True):
         drug_search_attr = []
         # collect all drug attributes definition that are definied "searchable"
         target_drug_dataset_version = await self._get_current_dataset_version()
-        drug_attr_field_defs_all = (
-            await self.drug_data_importer_class().get_attr_field_definitions()
-        )
-        drug_attr_field_names_searchable: List[str] = [
-            dd for dd in drug_attr_field_defs_all if dd.searchable == True
-        ]
-
-        # collect all drug reference attributes (select/list-of-values) definition that are definied "searchable"
-        drug_attr_ref_field_defs_all = (
-            await self.drug_data_importer_class().get_ref_attr_field_definitions()
-        )
-        drug_attr_ref_field_names_searchable: List[str] = [
-            drd for drd in drug_attr_ref_field_defs_all if drd.searchable == True
-        ]
 
         # fetch all drugs of the current dataset
         query = select(Drug).where(
@@ -188,27 +194,8 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         res = await session.exec(query)
         cache_entries: List[GenericSQLDrugSearchCache] = []
         for drug in res.all():
-            field_values_aggregated = drug.trade_name
-            for attr in drug.attrs:
-                if attr.field_name in drug_attr_field_names_searchable:
-                    field_values_aggregated += f" {attr.value}"
-            for ref_attr in drug.ref_attrs:
-                if attr.field_name in drug_attr_ref_field_names_searchable:
-                    field_values_aggregated += (
-                        f" {ref_attr.value} {ref_attr.lov_entry.display}"
-                    )
-            for code in drug.codes:
-                field_values_aggregated += f" {code.code}"
-            cache_entries.append(
-                GenericSQLDrugSearchCache(
-                    id=drug.id,
-                    search_index_content=field_values_aggregated,
-                    search_cache_codes="|".join(
-                        [f"{c.code_system_id}:{c.code}" for c in drug.codes]
-                    ),
-                    market_withdrawal_at=drug.market_withdrawal_at,
-                )
-            )
+            cache_entry = await self._drug_to_cache_obj(drug)
+            cache_entries.append(cache_entry)
         session.add_all(cache_entries)
         if not skip_commit:
             await session.commit()
@@ -216,12 +203,57 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
     # async def refresh_index(self, force_rebuild: bool = False):
     #    await self.build_index(force_rebuild=True)
 
+    async def _drug_to_cache_obj(self, drug: Drug) -> GenericSQLDrugSearchCache:
+        drug_attr_field_defs_all = await self._get_drug_attr_definitions_fields()
+        drug_attr_field_names_searchable: List[str] = [
+            dd for dd in drug_attr_field_defs_all if dd.searchable == True
+        ]
+
+        # collect all drug reference attributes (select/list-of-values) definition that are definied "searchable"
+        drug_attr_ref_field_defs_all = (
+            await self._get_drug_ref_attr_definitions_fields()
+        )
+        drug_attr_ref_field_names_searchable: List[str] = [
+            drd for drd in drug_attr_ref_field_defs_all if drd.searchable == True
+        ]
+
+        field_values_aggregated = drug.trade_name
+        for attr in drug.attrs:
+            if attr.field_name in drug_attr_field_names_searchable:
+                field_values_aggregated += f" {attr.value}"
+        for ref_attr in drug.ref_attrs:
+            if attr.field_name in drug_attr_ref_field_names_searchable:
+                field_values_aggregated += (
+                    f" {ref_attr.value} {ref_attr.lov_entry.display}"
+                )
+        for code in drug.codes:
+            field_values_aggregated += f" {code.code}"
+        return GenericSQLDrugSearchCache(
+            id=drug.id,
+            search_index_content=field_values_aggregated,
+            search_cache_codes="|".join(
+                [f"{c.code_system_id}:{c.code}" for c in drug.codes]
+            ),
+            market_withdrawal_at=drug.market_withdrawal_at,
+        )
+
     async def index_ready(self) -> bool:
         state = await self._get_state()
         return (
             not state.index_build_up_in_process
             and state.last_index_build_at is not None
         )
+
+    async def insert_drug_to_index(self, drug: Drug):
+        """Adhoc insert a single drug into the index. this is needed for user defined custom drugs.
+
+        Args:
+            drug (Drug): _description_
+        """
+        cache_entry = await self._drug_to_cache_obj(drug)
+        async with get_async_session_context() as session:
+            session.add(cache_entry)
+            await session.commit()
 
     async def total_item_count(self) -> int:
         # count of all items that are in the index.
@@ -327,7 +359,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
 
         query = query.order_by(desc("score"))
 
-        log.debug(f"SEARCH QUERY: {query}")
+        log.debug(f"DRUG SEARCH QUERY: {query}")
         async with get_async_session_context() as session:
             search_res = await session.exec(query)
             drug_ids_with_score = search_res.all()
@@ -342,7 +374,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                     ids=[item[0] for item in drug_ids_with_score],
                     keep_result_in_ids_order=True,
                 )
-                # i do not understand why i need to translate/cast Drug to DrugApiRead object by hand (with drug_to_drugAPI_obj) here because in the "list" endpoint pydantic does it for me... Todo: investigate
+                # i do not understand why i need to translate/cast Drug to DrugApiRead object by hand (via drug_to_drugAPI_obj) here because in the "list" endpoint pydantic does it for me... Todo: investigate
                 search_result_objs = [
                     MedLogSearchEngineResult(
                         drug_id=drug.id,

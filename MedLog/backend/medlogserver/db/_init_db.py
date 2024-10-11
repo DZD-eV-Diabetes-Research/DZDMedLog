@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, List, Optional
+from typing import AsyncGenerator, List, Optional, Type
 
 from fastapi import Depends
 from pathlib import Path, PurePath
@@ -54,6 +54,7 @@ from medlogserver.model.drug_data import (
     DrugAttrFieldDefinition,
     Drug,
 )
+from medlogserver.db.drug_data.drug_search import SEARCH_ENGINES
 from medlogserver.db.wido_gkv_arzneimittelindex import AiDataVersionCRUD
 from medlogserver.db.worker_job import WorkerJob
 from medlogserver.log import get_logger
@@ -137,9 +138,10 @@ async def init_drugsearch():
     )
 
     log.info("Build drug search index if needed...")
-    search_engine: MedLogDrugSearchEngineBase = None
-    if config.DRUG_SEARCHENGINE_CLASS == "GenericSQLDrugSearch":
-        search_engine = GenericSQLDrugSearchEngine()
+    search_engine_class: Type[MedLogDrugSearchEngineBase] = SEARCH_ENGINES[
+        config.DRUG_SEARCHENGINE_CLASS
+    ]
+    search_engine = search_engine_class()
     await search_engine.build_index()
     """
     current_ai_data_version = await get_current_ai_data_version()

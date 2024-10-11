@@ -23,6 +23,13 @@ class Drug(DrugModelTableBase, table=True):
     trade_name: str = Field(index=True)
     market_launch_at: Optional[datetime.date] = Field(default=None)
     market_withdrawal_at: Optional[datetime.date] = Field(default=None)
+    is_custom_drug: bool = Field(
+        default=False,
+        description="User can create placeholder drugs, if the drug they try to document is not listed yet.",
+    )
+    custom_drug_notes: Optional[str] = Field(
+        description="If custom drug is defined the user can enter some notes here."
+    )
     attrs: List[DrugAttr] = Relationship(
         back_populates="drug", sa_relationship_kwargs={"lazy": "selectin"}
     )
