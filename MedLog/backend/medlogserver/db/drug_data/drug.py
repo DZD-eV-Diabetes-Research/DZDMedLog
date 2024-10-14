@@ -9,7 +9,7 @@ from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func, col, d
 from sqlmodel.sql import expression as sqlEpression
 import uuid
 from uuid import UUID
-
+from sqlalchemy.orm import selectinload
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
@@ -19,6 +19,7 @@ from medlogserver.db.interview import Interview
 from medlogserver.api.paginator import QueryParamsInterface
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
+from medlogserver.model.drug_data.drug_attr import DrugRefAttr
 
 log = get_logger()
 config = Config()
@@ -62,11 +63,18 @@ class DrugCRUD(
         filter_study_id: UUID = None,
         hide_completed: bool = False,
         pagination: QueryParamsInterface = None,
+        include_relations: bool = False,
     ) -> Sequence[Drug]:
         if isinstance(filter_study_id, str):
             filter_study_id: UUID = UUID(filter_study_id)
         # log.info(f"Event.Config.order_by {Event.Config.order_by}")
         query = select(Drug)
+        if include_relations:
+            query = query.options(
+                selectinload(Drug.attrs),
+                selectinload(Drug.ref_attrs).selectinload(DrugRefAttr.lov_entry),
+                selectinload(Drug.codes),
+            )
         query = await self.append_current_dataset_version_where_clause(query)
         if pagination:
             query = pagination.append_to_query(query)

@@ -14,6 +14,8 @@ from sqlalchemy.sql.operators import (
     contains_op,
     istartswith_op,
     op,
+    or_,
+    and_,
 )
 from sqlalchemy import case, func
 from medlogserver.db._session import get_async_session_context
@@ -71,7 +73,7 @@ class GenericSQLDrugSearchCache(SQLModel, table=True):
         index=True,
         description="All drug codes aggregated into one indexed string",
     )
-    market_withdrawal_at: Optional[datetime.date] = Field(default=None)
+    market_exit_date: Optional[datetime.date] = Field(default=None)
 
 
 class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
@@ -234,7 +236,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             search_cache_codes="|".join(
                 [f"{c.code_system_id}:{c.code}" for c in drug.codes]
             ),
-            market_withdrawal_at=drug.market_withdrawal_at,
+            market_exit_date=drug.market_exit_date,
         )
 
     async def index_ready(self) -> bool:
@@ -263,7 +265,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
     async def search(
         self,
         search_term: str = None,
-        only_current_medications: bool = False,
+        market_accessable: Optional[bool] = None,
         pagination: QueryParamsInterface = None,
         **filter_ref_vals: int | str | bool,
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
@@ -345,11 +347,19 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                     DrugRefAttr.field_name == filter_ref_field_name
                     and DrugRefAttr.value == filter_rev_value
                 )
-        if only_current_medications:
+        if market_accessable == True:
             query = query.where(
-                is_(GenericSQLDrugSearchCache.market_withdrawal_at, None)
-                or GenericSQLDrugSearchCache.market_withdrawal_at
-                < datetime.date.today()
+                or_(
+                    is_(GenericSQLDrugSearchCache.market_exit_date, None),
+                    GenericSQLDrugSearchCache.market_exit_date > datetime.date.today(),
+                )
+            )
+        if market_accessable == False:
+            query = query.where(
+                and_(
+                    is_not(GenericSQLDrugSearchCache.market_exit_date, None),
+                    GenericSQLDrugSearchCache.market_exit_date < datetime.date.today(),
+                )
             )
         query = query.where(Column("score") > 0)
         if pagination:

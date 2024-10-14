@@ -46,7 +46,8 @@ class DrugAttrLovFieldDefinitionContainer:
 @dataclass
 class StammCol:
     name: str
-    map2: Optional[str]
+    map2: Optional[str] = None
+    cast_func: Optional[Callable] = None
 
 
 stamm_col_definitions = [
@@ -70,8 +71,16 @@ stamm_col_definitions = [
     StammCol("preis_alt", map2=None),
     StammCol("preis_neu", map2=None),
     StammCol("festbetrag", map2=None),
-    StammCol("marktzugang", map2="attr.marktzugang"),
-    StammCol("ahdatum", map2=None),
+    StammCol(
+        "marktzugang",
+        map2="market_access_date",
+        cast_func=lambda x: datetime.datetime.strptime(x, "%Y%m%d").date(),
+    ),
+    StammCol(
+        "ahdatum",
+        map2="market_exit_date",
+        cast_func=lambda x: datetime.datetime.strptime(x, "%Y%m%d").date(),
+    ),
     StammCol("RÜCKRUF", map2=None),
     StammCol("GENERIKAKENN", map2=None),
     StammCol("APPFORM", map2=None),
@@ -90,6 +99,11 @@ apopflicht_values = [
         value="2",
         display="apothekenpflichtiges, rezeptfreies Arzneimittel",
         sort_order=2,
+    ),
+    DrugAttrFieldLovItemCREATE(
+        value="3",
+        display="rezeptpflichtiges Arzneimittel",
+        sort_order=3,
     ),
 ]
 
@@ -147,17 +161,21 @@ class WidoAiImporter(DrugDataSetImporterBase):
         codes_defs = [
             DrugCodeSystem(
                 id="ATC-WiDo",
-                name="Pharmazentralnummer",
+                name="ATC-Code (Klassifikation nach WIdO)",
                 country="Germany",
                 desc="ATC-Klassifikation des GKV-Arzneimittelindex mit ATC-Code,ATC-Bedeutung",
+                optional=True,
             ),
             DrugCodeSystem(
                 id="ATC-Amtlich",
-                name="Pharmazentralnummer",
+                name="ATC-Code",
                 country="Germany",
                 desc="Amtliche ATC-Klassifikation mit ATC-Code, ATC-Bedeutung",
+                optional=True,
             ),
-            DrugCodeSystem(id="PZN", name="Pharmazentralnummer", country="Germany"),
+            DrugCodeSystem(
+                id="PZN", name="Pharmazentralnummer", country="Germany", optional=False
+            ),
         ]
         self._code_definitions = codes_defs
         return codes_defs
@@ -247,7 +265,8 @@ class WidoAiImporter(DrugDataSetImporterBase):
         if row_val == "" or row_val is None:
             return
             # empty string are handled as null/None
-
+        if col_def.cast_func is not None:
+            row_val = col_def.cast_func(row_val)
         if field_type == "attr":
             field_defs = await self.get_attr_field_definitions(by_name=field_name)
 

@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 from typing_extensions import Unpack
 import uuid
 from pydantic import BaseModel, Field
@@ -67,6 +67,7 @@ class MedLogDrugSearchEngineBase:
     async def search(
         self,
         search_term: str = None,
+        only_market_accessable: Optional[bool] = None,
         pagination: QueryParamsInterface = None,
         **filter_ref_vals: Unpack[int | str],
     ) -> PaginatedResponse[MedLogSearchEngineResult]:

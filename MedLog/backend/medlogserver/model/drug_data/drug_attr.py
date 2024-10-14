@@ -57,3 +57,12 @@ class DrugRefAttr(DrugModelTableBase, table=True):
         sa_relationship_kwargs={"lazy": "selectin"}
     )
     drug: "Drug" = Relationship(back_populates="ref_attrs")
+
+
+from pydantic import BaseModel
+
+
+class DrugRefAttrApiRead(BaseModel):
+    value: str | int | float | bool
+    display: str
+    ref_list_path: str

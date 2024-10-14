@@ -21,8 +21,8 @@ class Drug(DrugModelTableBase, table=True):
     id: uuid.UUID = Field(primary_key=True, default_factory=uuid.uuid4)
     source_dataset_id: uuid.UUID = Field(foreign_key="drug_dataset_version.id")
     trade_name: str = Field(index=True)
-    market_launch_at: Optional[datetime.date] = Field(default=None)
-    market_withdrawal_at: Optional[datetime.date] = Field(default=None)
+    market_access_date: Optional[datetime.date] = Field(default=None)
+    market_exit_date: Optional[datetime.date] = Field(default=None)
     is_custom_drug: bool = Field(
         default=False,
         description="User can create placeholder drugs, if the drug they try to document is not listed yet.",

@@ -111,12 +111,14 @@ class DrugSearch:
     async def search(
         self,
         search_term: str = None,
+        market_accessable: Optional[bool] = None,
         pagination: QueryParamsInterface = None,
         **filter_ref_vals: int | str | bool,
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
         await self._preflight()
         return await self.search_engine.search(
             search_term=search_term,
+            market_accessable=market_accessable,
             filter_ref_vals=filter_ref_vals,
             pagination=pagination,
         )

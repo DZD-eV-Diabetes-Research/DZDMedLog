@@ -55,11 +55,13 @@ from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
     DrugAttrFieldDefinitionAPIRead,
 )
+from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.db.drug_data.drug_lov_values import DrugAttrFieldLovItemCRUD
 from medlogserver.model.drug_data.drug_attr_field_lov_item import (
     DrugAttrFieldLovItem,
     DrugAttrFieldLovItemAPIRead,
 )
+from medlogserver.db.drug_data.drug_code_system import DrugCodeSystemCRUD
 
 DrugRead = drug_api_read_class_factory()
 config = Config()
@@ -102,13 +104,14 @@ async def list_drugs(
     pagination: QueryParamsInterface = Depends(DrugQueryParams),
     drug_crud: DrugCRUD = Depends(DrugCRUD.get_crud),
 ) -> PaginatedResponse[DrugRead]:
-    result_items = await drug_crud.list(pagination=pagination)
+    result_items = await drug_crud.list(include_relations=True, pagination=pagination)
     # return result_items
+    result_items_as_api_read_objs = [await drug_to_drugAPI_obj(i) for i in result_items]
     return PaginatedResponse(
         total_count=await drug_crud.count(),
         offset=pagination.offset,
         count=len(result_items),
-        items=result_items,
+        items=result_items_as_api_read_objs,
     )
 
 
@@ -227,6 +230,31 @@ async def get_reference_field_values(
     )
 
 
+@fast_api_drug_router_v2.get(
+    "/drug/code_def",
+    response_model=List[DrugCodeSystem],
+    description=f"List all drug coding system used in the current drug dataset.",
+)
+async def get_reference_field_values(
+    user: User = Security(get_current_user),
+    drug_code_sys_crud: DrugCodeSystemCRUD = Depends(DrugCodeSystemCRUD.get_crud),
+) -> List[DrugCodeSystem]:
+    return await drug_code_sys_crud.list()
+
+
+@fast_api_drug_router_v2.get(
+    "/drug/code_def/{code_id}",
+    response_model=DrugCodeSystem,
+    description=f"List detail if a specific drug code system",
+)
+async def get_reference_field_values(
+    code_id: str,
+    user: User = Security(get_current_user),
+    drug_code_sys_crud: DrugCodeSystemCRUD = Depends(DrugCodeSystemCRUD.get_crud),
+) -> DrugAttrFieldLovItemAPIRead:
+    return await drug_code_sys_crud.get(code_id)
+
+
 drug_search_filter_ref_fields = {}
 for f in field_ref_defs:
     drug_search_filter_ref_fields["filter_" + f.field_name] = (
@@ -257,12 +285,21 @@ async def search_drugs(
             min_length=3,
         ),
     ],
+    market_accessable: Annotated[
+        Optional[bool],
+        Query(
+            description="'null': List all drugs, 'true': List only drug that are currently available on the market. 'false': List only drugs that are not market accessable anymore.",
+        ),
+    ] = None,
     filter_params: drug_search_query_model = Depends(),
     user: User = Security(get_current_user),
     drug_search: DrugSearch = Depends(get_drug_search),
     pagination: QueryParamsInterface = Depends(DrugQueryParams),
 ) -> PaginatedResponse[MedLogSearchEngineResult]:
     search_results = await drug_search.search(
-        search_term=search_term, pagination=pagination, **filter_params.model_dump()
+        search_term=search_term,
+        market_accessable=market_accessable,
+        pagination=pagination,
+        **filter_params.model_dump(),
     )
     return search_results
