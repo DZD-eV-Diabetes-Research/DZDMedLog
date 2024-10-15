@@ -99,12 +99,12 @@ class Config(BaseSettings):
     )
 
     def get_server_url(self) -> AnyHttpUrl:
+        proto: Literal["https", "http"] = "http"
         if self.SERVER_PROTOCOL is not None:
             proto = self.SERVER_PROTOCOL
-        elif self.SERVER_LISTENING_HOST == 443:
+        elif self.SERVER_LISTENING_PORT == 443:
             proto = "https"
-        else:
-            proto = "http"
+
         port = ""
         if self.SERVER_LISTENING_PORT not in [80, 443]:
             port = f":{self.SERVER_LISTENING_PORT}"
