@@ -18,10 +18,16 @@ class DrugDataSetVersion(DrugModelTableBase, table=True):
     dataset_version: str = Field(
         description="Must be sortable to determine which dataset is the latest",
     )
-    dataset_name: str = Field()
+    dataset_source_name: str = Field(
+        description="If a drugdataset has multiple versions the 'dataset_name' is the key to group them."
+    )
 
     dataset_link: Optional[str] = Field(
         description="If the dataset has some kind of Website or source info page, paste it here"
+    )
+    is_custom_drugs_collection: bool = Field(
+        default=False,
+        description="Every drug dataset source has a 'special' version that will group custom drugs",
     )
     current_active: Optional[bool] = Field(
         description="States if this dataset used in the backend or just archived. Only one dataset is allowed to be active."

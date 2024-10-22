@@ -87,6 +87,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
     ):
         self.drug_data_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
         self.current_dataset_version: Optional[DrugDataSetVersion] = None
+        self.custom_drugs_dataset_version: Optional[DrugDataSetVersion] = None
         self._drug_attr_field_definitions: List[DrugAttrFieldDefinition] | None = None
         self._drug_ref_attr_field_definitions: List[DrugAttrFieldDefinition] | None = (
             None
@@ -110,6 +111,20 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                     )
                     self.current_dataset_version = await drug_dataset_crud.get_current()
         return self.current_dataset_version
+
+    async def _get_custom_drugs_dataset_version(self):
+        if self.custom_drugs_dataset_version is None:
+            async with get_async_session_context() as session:
+                async with DrugDataSetVersionCRUD.crud_context(
+                    session=session
+                ) as drug_dataset_crud:
+                    drug_dataset_crud: DrugDataSetVersionCRUD = (
+                        drug_dataset_crud  # typing hint help
+                    )
+                    self.custom_drugs_dataset_version = (
+                        await drug_dataset_crud.find_or_create_custom_drug_dataset()
+                    )
+        return self.custom_drugs_dataset_version
 
     async def build_index(self, force_rebuild: bool = False):
         # tables will be created with build in MedLog/backend/medlogserver/db/_init_db.py -> init_db() we do not need to take care here.
@@ -188,10 +203,11 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         drug_search_attr = []
         # collect all drug attributes definition that are definied "searchable"
         target_drug_dataset_version = await self._get_current_dataset_version()
-
+        custom_drugs_dataset = await self._get_custom_drugs_dataset_version()
         # fetch all drugs of the current dataset
         query = select(Drug).where(
             Drug.source_dataset_id == target_drug_dataset_version.id
+            or Drug.source_dataset_id == custom_drugs_dataset.id
         )
         res = await session.exec(query)
         cache_entries: List[GenericSQLDrugSearchCache] = []

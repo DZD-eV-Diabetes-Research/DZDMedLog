@@ -190,7 +190,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
     async def get_already_imported_datasets(self) -> List[DrugDataSetVersion]:
         async with get_async_session_context() as session:
             query = select(DrugDataSetVersion).where(
-                DrugDataSetVersion.dataset_name == self.dataset_name
+                DrugDataSetVersion.dataset_source_name == self.dataset_name
             )
             result = await session.exec(query)
             return result.all()
@@ -200,6 +200,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
         self.version = version
         log.info("[DRUG DATA IMPORT] Parse metadata...")
         drug_dataset = await self.generate_drug_data_set_definition()
+
         drug_dataset.import_datetime_utc = datetime.datetime.now(
             tz=datetime.timezone.utc
         )
@@ -208,7 +209,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
             imported_ds.dataset_version for imported_ds in already_imported_datasets
         ]:
             log.info(
-                f"[DRUG DATA IMPORT] Dataset '{drug_dataset.dataset_name}' with version '{drug_dataset.dataset_version}' already imported. Skip drug data import."
+                f"[DRUG DATA IMPORT] Dataset '{drug_dataset.dataset_source_name}' with version '{drug_dataset.dataset_version}' already imported. Skip drug data import."
             )
             return
         all_objs = [drug_dataset]

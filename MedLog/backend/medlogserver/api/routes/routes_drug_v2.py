@@ -48,7 +48,7 @@ from medlogserver.model.drug_data.api_drug_model_factory import (
     drug_api_read_class_factory,
     drug_to_drugAPI_obj,
 )
-
+from medlogserver.model.drug_data.drug import DrugCustomCreate
 from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
 from medlogserver.model.drug_data.drug_attr_field_definition import (
@@ -75,9 +75,41 @@ drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
 
 fast_api_drug_router_v2: APIRouter = APIRouter(prefix="/v2")
 
+drug_importer = drug_importer_class()
 
-# class StammQueryParams(QueryParamsGeneric[StammRead]):
-#    defaults = {"limit": 100}
+# all fields a drug based current drug importer module can have
+drug_field_defs: List[
+    DrugAttrFieldDefinition
+] = asyncio.get_event_loop().run_until_complete(
+    drug_importer.get_attr_field_definitions()
+)
+
+# all reference fields (select values) a drug based current drug importer module can have
+drug_field_ref_defs: List[
+    DrugAttrFieldDefinition
+] = asyncio.get_event_loop().run_until_complete(
+    drug_importer.get_ref_attr_field_definitions()
+)
+
+# all searchable fields a drug based in the current drug import can have
+drug_search_filter_ref_fields = {}
+for f in drug_field_ref_defs:
+    drug_search_filter_ref_fields["filter_" + f.field_name] = (
+        Optional[int if f.type.name == "INT" else str],
+        None,
+    )
+
+
+drug_search_query_model: type[BaseModel] = create_model(
+    "Query", **drug_search_filter_ref_fields
+)
+
+
+from medlogserver.db.drug_data.drug_search._base import MedLogSearchEngineResult
+from medlogserver.db.drug_data.drug_search.search_interface import (
+    get_drug_search,
+    DrugSearch,
+)
 
 
 DrugQueryParams: Type[QueryParamsInterface] = create_query_params_class(DrugRead)
@@ -92,7 +124,59 @@ class DrugAttrFieldDefinitionContainer(BaseModel):
     )
 
 
+@fast_api_drug_router_v2.get(
+    "/drug/search",
+    response_model=PaginatedResponse[MedLogSearchEngineResult],
+    description=f"List all medicine/drugs from the system. {NEEDS_ADMIN_API_INFO}",
+)
+async def search_drugs(
+    search_term: Annotated[
+        str,
+        Query(
+            description="A search term. Can be multiple words or a single one. One word must be at least 3 chars or contained in a longer quoted string (e.g. `'Salofalk 1 g'` instead of `Salofalk 1 g`)",
+            min_length=3,
+        ),
+    ],
+    market_accessable: Annotated[
+        Optional[bool],
+        Query(
+            description="'null': List all drugs, 'true': List only drug that are currently available on the market. 'false': List only drugs that are not market accessable anymore.",
+        ),
+    ] = None,
+    filter_params: drug_search_query_model = Depends(),
+    user: User = Security(get_current_user),
+    drug_search: DrugSearch = Depends(get_drug_search),
+    pagination: QueryParamsInterface = Depends(DrugQueryParams),
+) -> PaginatedResponse[MedLogSearchEngineResult]:
+    search_results = await drug_search.search(
+        search_term=search_term,
+        market_accessable=market_accessable,
+        pagination=pagination,
+        **filter_params.model_dump(),
+    )
+    return search_results
+
+
+@fast_api_drug_router_v2.get(
+    "/drug/{drug_id}",
+    response_model=DrugRead,
+    description=f"Get a certain drug by its id",
+)
+async def get_drug(
+    drug_id: uuid.UUID,
+    user: User = Security(get_current_user),
+    pagination: QueryParamsInterface = Depends(DrugQueryParams),
+    drug_crud: DrugCRUD = Depends(DrugCRUD.get_crud),
+) -> DrugRead:
+    drug_result = await drug_crud.get(id_=drug_id)
+    return await drug_to_drugAPI_obj(drug_result)
+
+
 #############
+""" 
+#this endpoint throws out all drug in the system. only for debuging. 
+#will propably crash with a fully loaded drug dataset and also makes it possible to export the drug dataset which is nothing we want
+
 @fast_api_drug_router_v2.get(
     "/drug",
     response_model=PaginatedResponse[DrugRead],
@@ -113,17 +197,7 @@ async def list_drugs(
         count=len(result_items),
         items=result_items_as_api_read_objs,
     )
-
-
-drug_importer = drug_importer_class()
-field_defs: List[DrugAttrFieldDefinition] = asyncio.get_event_loop().run_until_complete(
-    drug_importer.get_attr_field_definitions()
-)
-field_ref_defs: List[
-    DrugAttrFieldDefinition
-] = asyncio.get_event_loop().run_until_complete(
-    drug_importer.get_ref_attr_field_definitions()
-)
+"""
 
 
 @fast_api_drug_router_v2.get(
@@ -140,7 +214,7 @@ async def list_field_definitions(
     # this is an ugly hack.
     # Todo: improve the code/datastructure of DrugAttrFieldDefinition and DrugAttrFieldDefinitionAPIRead to make this less cluttered
     result_container = DrugAttrFieldDefinitionContainer(attrs=[], ref_attrs=[])
-    for field_def in field_ref_defs + field_defs:
+    for field_def in drug_field_ref_defs + drug_field_defs:
         field_def_read_vals = {}
         for k, v in field_def.model_dump(exclude_unset=True).items():
             if k in DrugAttrFieldDefinitionAPIRead.model_fields.keys():
@@ -169,7 +243,9 @@ async def get_field_definition(
 ) -> DrugAttrFieldDefinitionAPIRead:
     try:
         field_def: DrugAttrFieldDefinition = next(
-            f for f in field_ref_defs + field_defs if f.field_name == field_name
+            f
+            for f in drug_field_ref_defs + drug_field_defs
+            if f.field_name == field_name
         )
     except StopIteration:
         raise HTTPException(
@@ -211,7 +287,7 @@ async def get_reference_field_values(
         DrugAttrFieldLovItemCRUD.get_crud
     ),
 ) -> PaginatedResponse[DrugAttrFieldLovItemAPIRead]:
-    if field_name not in [f.field_name for f in field_ref_defs]:
+    if field_name not in [f.field_name for f in drug_field_ref_defs]:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Drug enum field with name '{field_name}' could not be found.",
@@ -255,51 +331,15 @@ async def get_reference_field_values(
     return await drug_code_sys_crud.get(code_id)
 
 
-drug_search_filter_ref_fields = {}
-for f in field_ref_defs:
-    drug_search_filter_ref_fields["filter_" + f.field_name] = (
-        Optional[int if f.type.name == "INT" else str],
-        None,
-    )
-drug_search_query_model: type[BaseModel] = create_model(
-    "Query", **drug_search_filter_ref_fields
+@fast_api_drug_router_v2.post(
+    "/drug/custom",
+    response_model=DrugRead,
+    description=f"Add a custom drug to the drug database. Should be used as a last resort if the user can not find a specific drug in the search.",
 )
-
-from medlogserver.db.drug_data.drug_search._base import MedLogSearchEngineResult
-from medlogserver.db.drug_data.drug_search.search_interface import (
-    get_drug_search,
-    DrugSearch,
-)
-
-
-@fast_api_drug_router_v2.get(
-    "/drug/search",
-    response_model=PaginatedResponse[MedLogSearchEngineResult],
-    description=f"List all medicine/drugs from the system. {NEEDS_ADMIN_API_INFO}",
-)
-async def search_drugs(
-    search_term: Annotated[
-        str,
-        Query(
-            description="A search term. Can be multiple words or a single one. One word must be at least 3 chars or contained in a longer quoted string (e.g. `'Salofalk 1 g'` instead of `Salofalk 1 g`)",
-            min_length=3,
-        ),
-    ],
-    market_accessable: Annotated[
-        Optional[bool],
-        Query(
-            description="'null': List all drugs, 'true': List only drug that are currently available on the market. 'false': List only drugs that are not market accessable anymore.",
-        ),
-    ] = None,
-    filter_params: drug_search_query_model = Depends(),
+async def create_custom_drug(
+    custom_drug: DrugCustomCreate,
     user: User = Security(get_current_user),
     drug_search: DrugSearch = Depends(get_drug_search),
     pagination: QueryParamsInterface = Depends(DrugQueryParams),
-) -> PaginatedResponse[MedLogSearchEngineResult]:
-    search_results = await drug_search.search(
-        search_term=search_term,
-        market_accessable=market_accessable,
-        pagination=pagination,
-        **filter_params.model_dump(),
-    )
-    return search_results
+) -> DrugRead:
+    pass

@@ -11,6 +11,19 @@ from medlogserver.model.drug_data._base import (
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.drug_attr import DrugAttr, DrugRefAttr
 from medlogserver.model.drug_data.drug_code import DrugCode
+from medlogserver.model.user import User
+
+
+class DrugCustomCreate(DrugModelTableBase, table=False):
+    trade_name: str = Field(index=True)
+    market_access_date: Optional[datetime.date] = Field(default=None)
+    market_exit_date: Optional[datetime.date] = Field(default=None)
+    custom_drug_notes: Optional[str] = Field(
+        description="Additional notes for the custom drug."
+    )
+    attrs: List[DrugAttr]
+    ref_attrs: List[DrugRefAttr]
+    codes: List[DrugCode]
 
 
 class Drug(DrugModelTableBase, table=True):
@@ -30,13 +43,24 @@ class Drug(DrugModelTableBase, table=True):
     custom_drug_notes: Optional[str] = Field(
         description="If custom drug is defined the user can enter some notes here."
     )
+    custom_created_by: Optional[uuid.UUID] = Field(
+        default=None,
+        description="If Drug is created by user as a custom drug the user id will be saved here.",
+        foreign_key="user.id",
+    )
     attrs: List[DrugAttr] = Relationship(
-        back_populates="drug", sa_relationship_kwargs={"lazy": "selectin"}
+        back_populates="drug",
+        sa_relationship_kwargs={"lazy": "selectin"},
+        cascade_delete=True,
     )
     ref_attrs: List[DrugRefAttr] = Relationship(
-        back_populates="drug", sa_relationship_kwargs={"lazy": "selectin"}
+        back_populates="drug",
+        sa_relationship_kwargs={"lazy": "selectin"},
+        cascade_delete=True,
     )
     codes: List[DrugCode] = Relationship(
-        back_populates="drug", sa_relationship_kwargs={"lazy": "selectin"}
+        back_populates="drug",
+        sa_relationship_kwargs={"lazy": "selectin"},
+        cascade_delete=True,
     )
     source_dataset: DrugDataSetVersion = Relationship()

@@ -20,8 +20,15 @@ class DrugDataSetImporterBase:
     async def generate_drug_data_set_definition(self) -> DrugDataSetVersion:
         return DrugDataSetVersion(
             dataset_version=self.version,
-            dataset_name=self.dataset_name,
+            dataset_source_name=self.dataset_name,
             dataset_link=self.dataset_link,
+        )
+
+    async def generate_custom_drug_set_definition(self) -> DrugDataSetVersion:
+        return DrugDataSetVersion(
+            dataset_version="Custom",
+            is_custom_drugs_collection=True,
+            dataset_source_name=self.dataset_name,
         )
 
     async def get_ref_attr_field_definitions(self) -> List[DrugAttrFieldDefinition]:

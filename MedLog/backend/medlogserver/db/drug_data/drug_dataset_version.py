@@ -9,7 +9,7 @@ from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func, col, d
 from sqlmodel.sql import expression as sqlEpression
 import uuid
 from uuid import UUID
-
+import datetime
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
@@ -43,7 +43,10 @@ class DrugDataSetVersionCRUD(
     async def list(self) -> List[DrugDataSetVersion]:
         query = (
             select(DrugDataSetVersion)
-            .where(DrugDataSetVersion.dataset_name == self._get_current_dataset_name())
+            .where(
+                DrugDataSetVersion.dataset_source_name
+                == self._get_current_dataset_name()
+            )
             .order_by(DrugDataSetVersion.dataset_version)
         )
 
@@ -54,7 +57,7 @@ class DrugDataSetVersionCRUD(
         self,
     ) -> int:
         query = select(DrugDataSetVersion).where(
-            DrugDataSetVersion.dataset_name == self._get_current_dataset_name()
+            DrugDataSetVersion.dataset_source_name == self._get_current_dataset_name()
         )
         results = await self.session.exec(statement=query)
         return results.first()
@@ -62,10 +65,40 @@ class DrugDataSetVersionCRUD(
     async def get_current(self) -> DrugDataSetVersion | None:
         query = (
             select(DrugDataSetVersion)
-            .where(DrugDataSetVersion.dataset_name == self._get_current_dataset_name())
+            .where(
+                DrugDataSetVersion.dataset_source_name
+                == self._get_current_dataset_name()
+            )
             .order_by(desc(DrugDataSetVersion.current_active))
             .order_by(desc(DrugDataSetVersion.dataset_version))
             .limit(1)
         )
         results = await self.session.exec(statement=query)
         return results.one_or_none()
+
+    async def find_or_create_custom_drug_dataset(
+        self,
+    ) -> DrugDataSetVersion | None:
+        current_drug_dataset = await self.get_current()
+        if current_drug_dataset is None:
+            return None
+        custom_drug_dataset_query = select(DrugDataSetVersion).where(
+            DrugDataSetVersion.is_custom_drugs_collection == True
+            and DrugDataSetVersion.dataset_source_name
+            == current_drug_dataset.dataset_source_name
+        )
+        result = await self.session.exec(custom_drug_dataset_query)
+        custom_drug_dataset = result.one_or_none()
+        if custom_drug_dataset:
+            return custom_drug_dataset
+        custom_drug_dataset = DrugDataSetVersion(
+            is_custom_drugs_collection=True,
+            dataset_version="CUSTOM",
+            dataset_source_name=current_drug_dataset.dataset_source_name,
+            import_status="Done",
+            import_datetime_utc=datetime.datetime.now(tz=datetime.UTC),
+        )
+        self.session.add(custom_drug_dataset)
+        await self.session.commit()
+        await self.session.refresh(custom_drug_dataset)
+        return custom_drug_dataset

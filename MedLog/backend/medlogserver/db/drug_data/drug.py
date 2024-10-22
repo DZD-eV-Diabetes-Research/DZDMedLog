@@ -5,7 +5,7 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func, col, desc
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func, col, desc, or_
 from sqlmodel.sql import expression as sqlEpression
 import uuid
 from uuid import UUID
@@ -20,6 +20,7 @@ from medlogserver.api.paginator import QueryParamsInterface
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.model.drug_data.drug_attr import DrugRefAttr
+from medlogserver.model.drug_data.drug import DrugCustomCreate
 
 log = get_logger()
 config = Config()
@@ -33,28 +34,48 @@ class DrugCRUD(
         update_model=Drug,
     )
 ):
-    async def append_current_dataset_version_where_clause(
+    async def append_current_and_custom_drugs_dataset_version_where_clause(
         self, query: sqlEpression.Select
     ):
         drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
         drug_importer = drug_importer_class()
+        # todo: this probably can be optimized...
 
         sub_query = (
-            select(DrugDataSetVersion)
-            .where(DrugDataSetVersion.dataset_name == drug_importer.dataset_name)
+            select(DrugDataSetVersion.id)
+            .where(
+                DrugDataSetVersion.dataset_source_name == drug_importer.dataset_name
+                and DrugDataSetVersion.is_custom_drugs_collection == False
+            )
             .order_by(desc(DrugDataSetVersion.current_active))
             .order_by(desc(DrugDataSetVersion.dataset_version))
             .limit(1)
             .scalar_subquery()
         )
-        query.where(Drug.source_dataset_id == sub_query)
+        sub_query_custom_drugs = (
+            select(DrugDataSetVersion.id)
+            .where(
+                DrugDataSetVersion.dataset_source_name == drug_importer.dataset_name
+                and DrugDataSetVersion.is_custom_drugs_collection == True
+            )
+            .limit(1)
+            .scalar_subquery()
+        )
+        query.where(
+            or_(
+                Drug.source_dataset_id == sub_query,
+                Drug.source_dataset_id == sub_query_custom_drugs,
+            )
+        )
         return query
 
     async def count(
         self,
     ) -> int:
         query = select(func.count()).select_from(Drug)
-        query = await self.append_current_dataset_version_where_clause(query)
+        query = await self.append_current_and_custom_drugs_dataset_version_where_clause(
+            query
+        )
         results = await self.session.exec(statement=query)
         return results.first()
 
@@ -75,7 +96,9 @@ class DrugCRUD(
                 selectinload(Drug.ref_attrs).selectinload(DrugRefAttr.lov_entry),
                 selectinload(Drug.codes),
             )
-        query = await self.append_current_dataset_version_where_clause(query)
+        query = await self.append_current_and_custom_drugs_dataset_version_where_clause(
+            query
+        )
         if pagination:
             query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)
@@ -88,7 +111,9 @@ class DrugCRUD(
         keep_result_in_ids_order: bool = True,
     ) -> Sequence[Drug]:
         query = select(Drug).where(col(Drug.id).in_(ids))
-        query = await self.append_current_dataset_version_where_clause(query)
+        query = await self.append_current_and_custom_drugs_dataset_version_where_clause(
+            query
+        )
 
         if pagination:
             query = pagination.append_to_query(query)
@@ -106,3 +131,21 @@ class DrugCRUD(
                 new_order.append(item)
             return new_order
         return results.all()
+
+    async def create_custom(
+        self, drug: DrugCustomCreate, custom_drug_dataset: DrugDataSetVersion
+    ):
+        new_objects = []
+        new_drug_id = uuid.uuid4()
+
+        drug = Drug(
+            id=new_drug_id,
+            source_dataset_id=custom_drug_dataset.id,
+            **drug.model_dump(exclude=["attrs", "ref_attrs", "codes"])
+        )
+        new_objects.append(drug)
+        for attr in drug.attrs:
+            ## YOU ARE HERE: get attr defintions, validate input, save to new_obnjects
+        
+
+        # save all objects to db, return drug
