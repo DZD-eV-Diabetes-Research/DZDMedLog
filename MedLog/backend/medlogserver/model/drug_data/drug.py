@@ -9,8 +9,12 @@ from medlogserver.model.drug_data._base import (
 )
 
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
-from medlogserver.model.drug_data.drug_attr import DrugAttr, DrugRefAttr
-from medlogserver.model.drug_data.drug_code import DrugCode
+from medlogserver.model.drug_data.drug_attr import (
+    DrugAttr,
+    DrugRefAttr,
+    DrugAttrApiCreate,
+)
+from medlogserver.model.drug_data.drug_code import DrugCode, DrugCodeApi
 from medlogserver.model.user import User
 
 
@@ -21,9 +25,9 @@ class DrugCustomCreate(DrugModelTableBase, table=False):
     custom_drug_notes: Optional[str] = Field(
         description="Additional notes for the custom drug."
     )
-    attrs: List[DrugAttr]
-    ref_attrs: List[DrugRefAttr]
-    codes: List[DrugCode]
+    attrs: List[DrugAttrApiCreate]
+    ref_attrs: List[DrugAttrApiCreate]
+    codes: List[DrugCodeApi]
 
 
 class Drug(DrugModelTableBase, table=True):

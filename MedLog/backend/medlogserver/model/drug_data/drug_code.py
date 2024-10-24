@@ -12,12 +12,12 @@ if TYPE_CHECKING:
     from medlogserver.model.drug_data.drug import Drug
 
 
-class DrugCodeApiRead(SQLModel):
+class DrugCodeApi(SQLModel):
     code_system: str = Field()
     code: str = Field()
 
 
-class DrugCode(DrugModelTableBase, DrugCodeApiRead, table=True):
+class DrugCode(DrugModelTableBase, DrugCodeApi, table=True):
     __tablename__ = "drug_code"
     __table_args__ = {
         "comment": "Tracks different version of same drug indexes that were imported"

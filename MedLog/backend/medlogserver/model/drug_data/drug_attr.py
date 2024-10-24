@@ -15,6 +15,17 @@ if TYPE_CHECKING:
     from medlogserver.model.drug_data.drug import Drug
 
 
+class DrugAttrApiCreate(DrugModelTableBase, table=False):
+    field_name: str = Field(
+        primary_key=True,
+        foreign_key="Name of the attribute. Available field_names can be retrieved from REST API Endpoint '/v2/drug/field_def' ",
+    )
+    value: Optional[str] = Field(
+        default=None,
+        description="Value of the drug attribute",
+    )
+
+
 class DrugAttr(DrugModelTableBase, table=True):
     __tablename__ = "drug_attr_field"
 

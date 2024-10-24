@@ -133,8 +133,11 @@ class DrugCRUD(
         return results.all()
 
     async def create_custom(
-        self, drug: DrugCustomCreate, custom_drug_dataset: DrugDataSetVersion
+        self, drug_create: DrugCustomCreate, custom_drug_dataset: DrugDataSetVersion
     ):
+        drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
+        drug_importer = drug_importer_class()
+
         new_objects = []
         new_drug_id = uuid.uuid4()
 
@@ -144,8 +147,15 @@ class DrugCRUD(
             **drug.model_dump(exclude=["attrs", "ref_attrs", "codes"])
         )
         new_objects.append(drug)
+
+        attr_defs = await drug_importer.get_attr_field_definitions()
         for attr in drug.attrs:
+            attr_def = next(
+                [ad for ad in attr_defs if ad.field_name == attr.field_name], None
+            )
+            print("attr", attr)
+        for ref_attr in drug.ref_attrs:
+            print("attr", attr)
             ## YOU ARE HERE: get attr defintions, validate input, save to new_obnjects
-        
 
         # save all objects to db, return drug
