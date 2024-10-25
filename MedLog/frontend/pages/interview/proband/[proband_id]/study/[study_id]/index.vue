@@ -30,8 +30,9 @@
       <div class="p-4" style="text-align: center">
         <UForm :schema="eventSchema" :state="eventState" class="space-y-4" @submit="createEvent">
           <UFormGroup label="Event Name" name="name">
-            <UInput v-model="eventState.name" required placeholder="Interview Campaign Year Quarter" />
+            <UInput v-model="eventState.name" required placeholder="Interview Campaign Year Quarter"/>
           </UFormGroup>
+          <h3 v-if="eventError" style="color: red;">{{ eventError }}</h3>
           <UButton type="submit" label="Event anlegen" color="green" variant="soft"
             class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
         </UForm>
@@ -156,12 +157,13 @@ const eventState = reactive({ name: "" });
 const eventSchema = object({
   name: string().required("Required"),
 });
+const eventError = ref("")
 
 async function createEvent() {
   try {
     await useCreateEvent(eventState.name.trim(), route.params.study_id);
 
-    const events = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
+    const events = await $fetch(`${runtimeConfig.public.baseURL}/study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
       method: "GET",
       headers: { 'Authorization': "Bearer " + tokenStore.access_token },
     })
@@ -174,7 +176,8 @@ async function createEvent() {
     selectedIncompleteEvent.value = incompletedItems.value[0];
     showEventModal.value = !showEventModal.value
   } catch (error) {
-    console.error("Failed to create event: ", error);
+    eventError.value = error.response._data.detail
+    console.error("Failed to create event: ", error.response._data.detail);
   }
 }
 
@@ -182,6 +185,7 @@ async function createInterview() {
   try {
     const interview = await useCreateInterview(route.params.study_id, selectedIncompleteEvent.value.id, route.params.proband_id, true, userStore.userID)
     studyStore.event = selectedIncompleteEvent.value.event.name
+    userStore.firstEvent = true
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + selectedIncompleteEvent.value.id + "/interview/" + interview.id)
   }
   catch (error) {
@@ -196,7 +200,7 @@ const incompletedItems = ref([]);
 
 // REST 
 
-const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
+const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}/study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
   method: "GET",
   headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
@@ -213,7 +217,7 @@ function createEventList(events) {
 
     incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
     incompletedItems.value = incompletedItems.value.map(event => ({
-      id: event.id,
+      id: event.id, 
       event: event,
       label: event.name,
       order: event.order_position
@@ -232,7 +236,7 @@ watch(events, (newEvents) => {
 
 async function editEvent(eventId: string) {
   try {
-    const result = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${eventId}/interview`, {
+    const result = await $fetch(`${runtimeConfig.public.baseURL}/study/${route.params.study_id}/event/${eventId}/interview`, {
       method: "GET",
       headers: { 'Authorization': "Bearer " + tokenStore.access_token },
     })
@@ -246,7 +250,7 @@ async function editEvent(eventId: string) {
 async function createIntakeList() {
   try {
     const intakes = await $fetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`,
+      `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`,
       {
         method: "GET",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -302,5 +306,7 @@ createIntakeList()
   border-radius: 10px;
   border-width: 2px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+  margin-left: 5%;
+  margin-right: 5%;
 }
 </style>

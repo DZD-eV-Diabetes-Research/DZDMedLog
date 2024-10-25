@@ -24,12 +24,15 @@
       <h5>Keine Events in der Studie aufgezeichnet</h5>
     </UIBaseCard>
     <UIBaseCard v-if="userStore.isAdmin" class="noHover" :naked="true">
+      <div class="button-wrapper">
+      <div class="button-container">
       <UButton
         @click="openEventModal()"
         label="Event anlegen"
         color="green"
         variant="soft"
         class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+        style="margin-left: 4%;"
       />
       <UButton
         @click="toggleSort()"
@@ -38,6 +41,8 @@
         variant="soft"
         class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"
       />
+    </div>
+  </div>
       <UModal v-model="showEventModal">
         <div class="p-4" style="text-align: center">
           <UForm
@@ -65,6 +70,7 @@
           </UForm>
         </div>
       </UModal>
+      
     </UIBaseCard>
   </Layout>
 </template>
@@ -93,7 +99,7 @@ const myEvents = ref([])
 
 async function getEvents(){
   const events = await $fetch(
-  `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event?hide_completed=false&offset=0&limit=100`,
+  `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/event?hide_completed=false&offset=0&limit=100`,
   {
     method: "GET",
     headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -120,7 +126,7 @@ async function toggleSort() {
       test.value.push(element);
     });
     await $fetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/order`,
+      `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/event/order`,
       {
         method: "POST",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -147,7 +153,7 @@ async function createEvent() {
   try {
     await $fetch(
       runtimeConfig.public.baseURL +
-        "study/" +
+        "/study/" +
         route.params.study_id +
         "/event",
       {
@@ -187,4 +193,21 @@ async function createEvent() {
   cursor: move;
   background-color: #cee4fc;
 }
+
+.button-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 1%;
+}
+
+.button-container {
+  display: flex;
+  gap: 20px;
+}
+
+.button-container UButton {
+  flex: 0 1 auto; 
+}
+
 </style>

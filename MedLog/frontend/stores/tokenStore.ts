@@ -20,8 +20,7 @@ export const useTokenStore = defineStore('TokenStore',{
     }),
     actions: {
         async login(username, password, event: FormSubmitEvent<Schema>) {
-          console.log(username, password);
-          
+                    
             const userStore = useUserStore();
             const body = new FormData()
             body.append("username", username) 
