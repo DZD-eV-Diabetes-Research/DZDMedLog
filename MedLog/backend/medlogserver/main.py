@@ -9,6 +9,8 @@ import json
 import argparse
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
+import sys, os
 
 # Main can be started with arguments. Lets parse these first.
 
@@ -33,8 +35,6 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 # This way we address medlogserver as a module for imports without installing it first.
 # e.g. "from medlogserver import config"
 if __name__ == "__main__":
-    from pathlib import Path
-    import sys, os
 
     MODULE_DIR = Path(__file__).parent
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
