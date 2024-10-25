@@ -19,11 +19,29 @@ from medlogserver.db.interview import Interview
 from medlogserver.api.paginator import QueryParamsInterface
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
-from medlogserver.model.drug_data.drug_attr import DrugRefAttr
+from medlogserver.model.drug_data.drug_attr import (
+    DrugRefAttr,
+    DrugAttr,
+    DrugAttrApiCreate,
+)
+from medlogserver.model.drug_data.drug_attr_field_definition import (
+    DrugAttrFieldDefinition,
+)
+from medlogserver.model.drug_data.drug_attr_field_lov_item import DrugAttrFieldLovItem
 from medlogserver.model.drug_data.drug import DrugCustomCreate
+from medlogserver.model.drug_data.drug_code import DrugCodeApi, DrugCode
+from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 
 log = get_logger()
 config = Config()
+
+
+class CustomDrugAttrNotValid(Exception):
+    pass
+
+
+class DrugWithCodeAllreadyExists(Exception):
+    pass
 
 
 class DrugCRUD(
@@ -134,7 +152,7 @@ class DrugCRUD(
 
     async def create_custom(
         self, drug_create: DrugCustomCreate, custom_drug_dataset: DrugDataSetVersion
-    ):
+    ) -> Drug:
         drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
         drug_importer = drug_importer_class()
 
@@ -144,18 +162,92 @@ class DrugCRUD(
         drug = Drug(
             id=new_drug_id,
             source_dataset_id=custom_drug_dataset.id,
-            **drug.model_dump(exclude=["attrs", "ref_attrs", "codes"])
+            **drug_create.model_dump(exclude=["attrs", "ref_attrs", "codes"]),
         )
         new_objects.append(drug)
 
         attr_defs = await drug_importer.get_attr_field_definitions()
-        for attr in drug.attrs:
-            attr_def = next(
-                [ad for ad in attr_defs if ad.field_name == attr.field_name], None
+        for attr_create in drug_create.attrs:
+            attr_def: DrugAttrFieldDefinition = next(
+                (ad for ad in attr_defs if ad.field_name == attr_create.field_name),
+                None,
             )
-            print("attr", attr)
-        for ref_attr in drug.ref_attrs:
-            print("attr", attr)
-            ## YOU ARE HERE: get attr defintions, validate input, save to new_obnjects
+            if attr_def is None:
+                raise CustomDrugAttrNotValid(
+                    f"Attribute with name '{attr_create.field_name}' is not supported in current drug dataset. Can not create custom drug."
+                )
+            new_attr = DrugAttr(
+                drug_id=drug.id, field_name=attr_def.field_name, value=attr_create.value
+            )
+            new_objects.append(new_attr)
+            drug.attrs.append(new_attr)
+
+        ref_attr_defs = await drug_importer.get_ref_attr_field_definitions()
+        for ref_attr_create in drug.ref_attrs:
+            ref_attr_def: DrugAttrFieldDefinition = next(
+                (
+                    ad
+                    for ad in ref_attr_defs
+                    if ad.field_name == ref_attr_create.field_name
+                ),
+                None,
+            )
+            if ref_attr_def is None:
+                raise CustomDrugAttrNotValid(
+                    f"Attribute with name '{ref_attr_create.field_name}' is not supported in current drug dataset. Can not create custom drug."
+                )
+            lov_item_query = select(DrugAttrFieldLovItem).where(
+                DrugAttrFieldLovItem.field_name == ref_attr_def.field_name
+                and DrugAttrFieldLovItem.value == ref_attr_create.value
+            )
+            lov_item_res = await self.session.exec(lov_item_query)
+            lov_item = lov_item_res.one_or_none()
+            if lov_item is None:
+                raise CustomDrugAttrNotValid(
+                    f"Attributes value for ref attr with name '{ref_attr_create.field_name}' is not a valid selection. Can not create custom drug."
+                )
+            new_attr = DrugRefAttr(
+                drug_id=drug.id,
+                field_name=ref_attr_def.field_name,
+                value=ref_attr_create.value,
+            )
+            new_objects.append(new_attr)
+            drug.ref_attrs.append(new_attr)
+        code_defs = await drug_importer.get_code_definitions()
+        for code_create in drug_create.codes:
+            code_create: DrugCodeApi = code_create
+            code_system: DrugCodeSystem = next(
+                (ad for ad in code_defs if ad.id == code_create.code_system_id),
+                None,
+            )
+            if code_system is None:
+                raise CustomDrugAttrNotValid(
+                    f"Custom drug code system name '{code_create.code_system_id}' is not a availabe code system in the current drug dataset. Can not create custom drug."
+                )
+            if code_system.unique:
+                print("code_create.code", code_create.code)
+                existing_code_query = (
+                    select(DrugCode)
+                    .where(DrugCode.code_system_id == code_system.id)
+                    .where(DrugCode.code == code_create.code)
+                    .limit(1)
+                )
+                existing_code_res = await self.session.exec(existing_code_query)
+                existing_code = existing_code_res.one_or_none()
+                print("existing_code", existing_code)
+                if existing_code is not None:
+                    raise DrugWithCodeAllreadyExists(
+                        f"A drug with the code '{code_system.id}':'{code_create.code}' allready exists (Drug.id: '{existing_code.drug_id}')"
+                    )
+            new_drug_code = DrugCode(
+                code_system_id=code_system.id, code=code_create.code
+            )
+            new_objects.append(new_drug_code)
+            drug.codes.append(new_drug_code)
+        self.session.add_all(new_objects)
+        await self.session.commit()
+        await self.session.refresh(drug)
+        return drug
+        ## YOU ARE HERE: get attr defintions, validate input, save to new_obnjects
 
         # save all objects to db, return drug

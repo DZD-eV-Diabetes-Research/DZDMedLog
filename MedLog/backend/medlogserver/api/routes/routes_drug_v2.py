@@ -49,6 +49,10 @@ from medlogserver.model.drug_data.api_drug_model_factory import (
     drug_to_drugAPI_obj,
 )
 from medlogserver.model.drug_data.drug import DrugCustomCreate
+from medlogserver.db.drug_data.drug import (
+    DrugWithCodeAllreadyExists,
+    CustomDrugAttrNotValid,
+)
 from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
 from medlogserver.model.drug_data.drug_attr_field_definition import (
@@ -62,6 +66,8 @@ from medlogserver.model.drug_data.drug_attr_field_lov_item import (
     DrugAttrFieldLovItemAPIRead,
 )
 from medlogserver.db.drug_data.drug_code_system import DrugCodeSystemCRUD
+from medlogserver.db.drug_data.drug_dataset_version import DrugDataSetVersionCRUD
+from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 
 DrugRead = drug_api_read_class_factory()
 config = Config()
@@ -339,7 +345,20 @@ async def get_reference_field_values(
 async def create_custom_drug(
     custom_drug: DrugCustomCreate,
     user: User = Security(get_current_user),
-    drug_search: DrugSearch = Depends(get_drug_search),
-    pagination: QueryParamsInterface = Depends(DrugQueryParams),
+    drug_dataset_crud: DrugDataSetVersionCRUD = Depends(
+        DrugDataSetVersionCRUD.get_crud
+    ),
+    drug_crud: DrugCRUD = Depends(DrugCRUD.get_crud),
 ) -> DrugRead:
-    pass
+    custom_drug_dataset = await drug_dataset_crud.get_custom()
+    try:
+        new_custom_drug = await drug_crud.create_custom(
+            drug_create=custom_drug, custom_drug_dataset=custom_drug_dataset
+        )
+    except DrugWithCodeAllreadyExists as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except CustomDrugAttrNotValid as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
+    return new_custom_drug

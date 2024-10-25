@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class DrugCodeApi(SQLModel):
-    code_system: str = Field()
+    code_system_id: str = Field()
     code: str = Field()
 
 

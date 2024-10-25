@@ -118,10 +118,12 @@ start_medlogserver_and_backgroundworker()
 # RUN TESTS
 from tests_users import run_all_tests_users
 from tests_export import test_do_export
+from tests_drugv2 import test_do_drugv2
 
 try:
     authorize(user=ADMIN_USER_NAME, pw=ADMIN_USER_PW)
     # run_all_tests_users()
+    test_do_drugv2()
     test_do_export()
 except Exception as e:
     print("Error in user tests")

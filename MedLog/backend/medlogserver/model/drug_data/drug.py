@@ -14,20 +14,21 @@ from medlogserver.model.drug_data.drug_attr import (
     DrugRefAttr,
     DrugAttrApiCreate,
 )
-from medlogserver.model.drug_data.drug_code import DrugCode, DrugCodeApi
+from medlogserver.model.drug_data.drug_code import DrugCodeApi
+from medlogserver.model.drug_data.drug_code import DrugCode
 from medlogserver.model.user import User
 
 
 class DrugCustomCreate(DrugModelTableBase, table=False):
-    trade_name: str = Field(index=True)
+    trade_name: str = Field()
     market_access_date: Optional[datetime.date] = Field(default=None)
     market_exit_date: Optional[datetime.date] = Field(default=None)
     custom_drug_notes: Optional[str] = Field(
-        description="Additional notes for the custom drug."
+        default=None, description="Additional notes for the custom drug."
     )
-    attrs: List[DrugAttrApiCreate]
-    ref_attrs: List[DrugAttrApiCreate]
-    codes: List[DrugCodeApi]
+    attrs: Optional[List[DrugAttrApiCreate]] = Field(default_factory=list)
+    ref_attrs: Optional[List[DrugAttrApiCreate]] = Field(default_factory=list)
+    codes: Optional[List[DrugCodeApi]] = Field(default_factory=list)
 
 
 class Drug(DrugModelTableBase, table=True):

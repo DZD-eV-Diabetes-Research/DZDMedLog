@@ -68,6 +68,7 @@ class DrugDataSetVersionCRUD(
             .where(
                 DrugDataSetVersion.dataset_source_name
                 == self._get_current_dataset_name()
+                and DrugDataSetVersion.is_custom_drugs_collection == False
             )
             .order_by(desc(DrugDataSetVersion.current_active))
             .order_by(desc(DrugDataSetVersion.dataset_version))
@@ -76,9 +77,22 @@ class DrugDataSetVersionCRUD(
         results = await self.session.exec(statement=query)
         return results.one_or_none()
 
-    async def find_or_create_custom_drug_dataset(
+    async def get_custom(
         self,
     ) -> DrugDataSetVersion | None:
+        query = (
+            select(DrugDataSetVersion)
+            .where(
+                DrugDataSetVersion.dataset_source_name
+                == self._get_current_dataset_name()
+                and DrugDataSetVersion.is_custom_drugs_collection == True
+            )
+            .limit(1)
+        )
+        results = await self.session.exec(statement=query)
+        return results.one_or_none()
+
+        # old code can be removed
         current_drug_dataset = await self.get_current()
         if current_drug_dataset is None:
             return None

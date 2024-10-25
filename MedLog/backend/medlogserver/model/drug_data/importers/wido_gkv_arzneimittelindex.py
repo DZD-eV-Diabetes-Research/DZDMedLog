@@ -165,6 +165,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 country="Germany",
                 desc="ATC-Klassifikation des GKV-Arzneimittelindex mit ATC-Code,ATC-Bedeutung",
                 optional=True,
+                unique=False,
             ),
             DrugCodeSystem(
                 id="ATC-Amtlich",
@@ -172,9 +173,14 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 country="Germany",
                 desc="Amtliche ATC-Klassifikation mit ATC-Code, ATC-Bedeutung",
                 optional=True,
+                unique=False,
             ),
             DrugCodeSystem(
-                id="PZN", name="Pharmazentralnummer", country="Germany", optional=False
+                id="PZN",
+                name="Pharmazentralnummer",
+                country="Germany",
+                optional=False,
+                unique=True,
             ),
         ]
         self._code_definitions = codes_defs
@@ -187,53 +193,28 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 count += 1
         return count
 
-    async def get_already_imported_datasets(self) -> List[DrugDataSetVersion]:
-        async with get_async_session_context() as session:
-            query = select(DrugDataSetVersion).where(
-                DrugDataSetVersion.dataset_source_name == self.dataset_name
-            )
-            result = await session.exec(query)
-            return result.all()
-
     async def run_import(self, source_dir: Path, version: str):
-        self.source_dir = source_dir
-        self.version = version
-        log.info("[DRUG DATA IMPORT] Parse metadata...")
-        drug_dataset = await self.generate_drug_data_set_definition()
-
-        drug_dataset.import_datetime_utc = datetime.datetime.now(
-            tz=datetime.timezone.utc
+        # generate schema definitions; fields,lov-defintions,...
+        all_objs = await self.get_drug_dataset_schema(
+            source_dir=source_dir, version=version
         )
-        already_imported_datasets = await self.get_already_imported_datasets()
-        if drug_dataset.dataset_version in [
-            imported_ds.dataset_version for imported_ds in already_imported_datasets
-        ]:
-            log.info(
-                f"[DRUG DATA IMPORT] Dataset '{drug_dataset.dataset_source_name}' with version '{drug_dataset.dataset_version}' already imported. Skip drug data import."
-            )
-            return
-        all_objs = [drug_dataset]
-        attr_defs = await self._get_attr_definitons()
-        all_objs.extend(attr_defs)
+        drug_dataset = all_objs[0]
+        # generate list of values
         lov_field_objects = await self._get_ref_attr_definitons()
         for field_name, lov_field_obj in lov_field_objects.items():
-            all_objs.append(lov_field_obj.field)
             all_objs.extend(
                 await self._generate_lov_items(
                     lov_field_obj.field, lov_definition=lov_field_obj.lov
                 )
             )
-
-        all_objs.extend(await self.get_code_definitions())
-
-        # await self.commit(all_objs)
-        # all_objs = []
-        async for obj in self._import_stamm(drug_dataset):
+        # read all drugs with attributes
+        async for obj in self._parse_wido_stamm_data(drug_dataset):
             all_objs.append(obj)
 
+        # write everything to database
         await self.commit(all_objs)
 
-    async def _import_stamm(
+    async def _parse_wido_stamm_data(
         self, drug_dataset_version: DrugDataSetVersion
     ) -> AsyncIterator[Drug | DrugAttr | DrugRefAttr | DrugCode]:
         log.info("[DRUG DATA IMPORT] Parse drug data...")
@@ -249,13 +230,13 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 yield drug
                 for col_index, col_def in enumerate(stamm_col_definitions):
                     if col_def.map2:
-                        drug_attr = await self._parse_stamm_row_value(
+                        drug_attr = await self._parse_wido_stamm_row_value(
                             drug, row_val=row[col_index], col_def=col_def
                         )
                         if drug_attr is not None:
                             yield drug_attr
 
-    async def _parse_stamm_row_value(
+    async def _parse_wido_stamm_row_value(
         self, parent_drug: Drug, row_val: str, col_def: StammCol
     ) -> DrugAttr | DrugRefAttr | DrugCode | None:
         if "." in col_def.map2:

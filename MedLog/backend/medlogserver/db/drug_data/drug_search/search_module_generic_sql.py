@@ -122,13 +122,15 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                         drug_dataset_crud  # typing hint help
                     )
                     self.custom_drugs_dataset_version = (
-                        await drug_dataset_crud.find_or_create_custom_drug_dataset()
+                        await drug_dataset_crud.get_custom()
                     )
+
         return self.custom_drugs_dataset_version
 
     async def build_index(self, force_rebuild: bool = False):
         # tables will be created with build in MedLog/backend/medlogserver/db/_init_db.py -> init_db() we do not need to take care here.
         target_drug_dataset_version = await self._get_current_dataset_version()
+        custom_drug_dataset_version = await self._get_custom_drugs_dataset_version()
         state = await self._get_state()
         if state.index_build_up_in_process:
             log.warning(

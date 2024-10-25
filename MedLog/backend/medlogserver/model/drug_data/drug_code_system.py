@@ -35,3 +35,7 @@ class DrugCodeSystem(DrugModelTableBase, table=True):
         default=False,
         description="Will every drug have such code or is it optional? This can be important when referencing drugs as we can only guarante a reference via code if it is non optional.",
     )
+    unique: bool = Field(
+        default=True,
+        description="Will every drug have a unique code or can multiple drug products can have the same code.",
+    )
