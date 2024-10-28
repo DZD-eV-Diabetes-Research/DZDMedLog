@@ -117,7 +117,6 @@ class TaskLoadProvisioningData(TaskBase):
         default_data_yaml_path = Path(
             PurePath(root_path, Path(config.APP_PROVISIONING_DEFAULT_DATA_YAML_FILE))
         )
-        print("default_data_yaml_path", default_data_yaml_path)
         data_provisioner = DataProvisioner(default_data_yaml_path)
         await data_provisioner.run()
         log.info("Try loading base data if configured...")

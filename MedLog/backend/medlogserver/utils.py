@@ -70,7 +70,6 @@ def set_version_file(base_dir=Path("./")) -> Path:
 
     version_file_path = Path(PurePath(base_dir, "__version__.py"))
     if version_file_path.exists():
-        print(f"Delete {version_file_path.absolute()}")
         version_file_path.unlink()
     # medlogserver = reload(medlogserver)
     content = (

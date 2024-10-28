@@ -218,7 +218,6 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         session.add_all(cache_entries)
         if not skip_commit:
             await session.commit()
-        # print(type(first), dict(zip(res.keys(), first)))
 
     # async def refresh_index(self, force_rebuild: bool = False):
     #    await self.build_index(force_rebuild=True)

@@ -77,9 +77,6 @@ class WorkerJobCRUD(
                         is_(WorkerJob.interval_params, "null"),
                     )
                 )
-        # print("list_job_query", query)
-
-        # log.debug(f"List Event query: {query}")
         results = await self.session.exec(statement=query)
 
         if filter_job_state is not None:
@@ -88,7 +85,6 @@ class WorkerJobCRUD(
             ]
         else:
             result_objs = results.all()
-        # print("list_job_query_result_obj", result_objs)
         return result_objs
 
     async def count(

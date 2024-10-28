@@ -273,11 +273,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
 
     async def commit(self, objs):
         async with get_async_session_context() as session:
-            # todo: Write db crud classes to interact with database
-            # objs = self.remove_duplicates(objs)
             for obj in objs:
-                # print("##obj", type(obj), obj)
-                # obj = await session.merge(obj)
                 session.add(obj)
             log.info(
                 "[DRUG DATA IMPORT] Commit Drug data to database. This may take a while..."

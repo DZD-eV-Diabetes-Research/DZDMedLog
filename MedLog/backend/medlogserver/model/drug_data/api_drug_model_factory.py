@@ -72,7 +72,6 @@ async def _get_DrugReadApiClass(importer_class: Type[DrugDataSetImporterBase]) -
     codes_container_class = await _get_codes_container_class(importer)
     attrs["codes"] = (codes_container_class, Field(default_factory=list))
     ref_attrs_container_class = await _get_ref_attrs_container_class(importer)
-    print("ref_attrs_container_class", ref_attrs_container_class)
     attrs["ref_attrs"] = (ref_attrs_container_class, Field(default_factory=list))
 
     return create_model(f"{importer.api_name}Drug", **attrs)

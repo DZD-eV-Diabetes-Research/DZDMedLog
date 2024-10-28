@@ -217,7 +217,6 @@ class DrugCRUD(
             )
             lov_item_res = await self.session.exec(lov_item_query)
             lov_item = lov_item_res.one_or_none()
-            print("lov_item", lov_item)
             if lov_item is None:
                 raise CustomDrugAttrNotValid(
                     f"Value '{ref_attr_create.value}' for ref/select attr with name '{ref_attr_create.field_name}' is not a valid selection. Can not create custom drug."
@@ -243,7 +242,6 @@ class DrugCRUD(
                     f"Custom drug code system name '{code_create.code_system_id}' is not a availabe code system in the current drug dataset. Can not create custom drug."
                 )
             if code_system.unique:
-                print("code_create.code", code_create.code)
                 existing_code_query = (
                     select(DrugCode)
                     .where(DrugCode.code_system_id == code_system.id)
@@ -252,7 +250,6 @@ class DrugCRUD(
                 )
                 existing_code_res = await self.session.exec(existing_code_query)
                 existing_code = existing_code_res.one_or_none()
-                print("existing_code", existing_code)
                 if existing_code is not None:
                     raise DrugWithCodeAllreadyExists(
                         f"A drug with the code '{code_system.id}':'{code_create.code}' allready exists (Drug.id: '{existing_code.drug_id}')"

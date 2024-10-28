@@ -451,7 +451,6 @@ class WiDoArzneimittelSourceFileHandler:
         Args:
             source_path (Path): _description_
         """
-        # print("source_path", type(source_path), source_path)
         path_objects: List[Path] = list(source_path.iterdir())
         if len(path_objects) == 1:
             return path_objects[0]

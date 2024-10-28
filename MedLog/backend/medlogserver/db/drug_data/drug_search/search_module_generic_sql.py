@@ -419,7 +419,6 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                     )
                     for drug in drugs
                 ]
-                print("search_result_objs", search_result_objs)
                 return PaginatedResponse(
                     total_count=result_count,
                     count=len(drug_ids_with_score),
