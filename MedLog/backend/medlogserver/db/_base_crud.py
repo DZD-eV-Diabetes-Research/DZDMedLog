@@ -19,7 +19,7 @@ from uuid import UUID
 
 from medlogserver.db._session import get_async_session
 
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable
+from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger

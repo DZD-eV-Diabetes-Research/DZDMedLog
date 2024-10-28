@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlmodel import Field, SQLModel, UniqueConstraint, Relationship
 from sqlalchemy import String, Integer, Column
 
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable
+from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 
 
 class AiDataVersion(MedLogBaseModel, BaseTable, table=True):

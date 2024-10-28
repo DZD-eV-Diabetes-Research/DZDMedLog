@@ -14,7 +14,7 @@ import uuid
 import enum
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable
+from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 
 
 log = get_logger()
@@ -64,7 +64,9 @@ class WorkerJobUpdate(MedLogBaseModel, table=False):
     last_result: Optional[str] = None
 
 
-class WorkerJob(WorkerJobCreate, WorkerJobUpdate, BaseTable, table=True):
+class WorkerJob(
+    WorkerJobCreate, WorkerJobUpdate, BaseTable, TimestampModel, table=True
+):
     __tablename__ = "worker_job"
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,

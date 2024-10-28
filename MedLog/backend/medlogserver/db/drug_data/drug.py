@@ -5,7 +5,19 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func, col, desc, or_
+from sqlmodel import (
+    Field,
+    select,
+    delete,
+    Column,
+    JSON,
+    SQLModel,
+    func,
+    col,
+    desc,
+    or_,
+    and_,
+)
 from sqlmodel.sql import expression as sqlEpression
 import uuid
 from uuid import UUID
@@ -111,7 +123,7 @@ class DrugCRUD(
         if include_relations:
             query = query.options(
                 selectinload(Drug.attrs),
-                selectinload(Drug.ref_attrs).selectinload(DrugRefAttr.lov_entry),
+                selectinload(Drug.ref_attrs).selectinload(DrugRefAttr.lov_item),
                 selectinload(Drug.codes),
             )
         query = await self.append_current_and_custom_drugs_dataset_version_where_clause(
@@ -162,6 +174,7 @@ class DrugCRUD(
         drug = Drug(
             id=new_drug_id,
             source_dataset_id=custom_drug_dataset.id,
+            is_custom_drug=True,
             **drug_create.model_dump(exclude=["attrs", "ref_attrs", "codes"]),
         )
         new_objects.append(drug)
@@ -183,7 +196,7 @@ class DrugCRUD(
             drug.attrs.append(new_attr)
 
         ref_attr_defs = await drug_importer.get_ref_attr_field_definitions()
-        for ref_attr_create in drug.ref_attrs:
+        for ref_attr_create in drug_create.ref_attrs:
             ref_attr_def: DrugAttrFieldDefinition = next(
                 (
                     ad
@@ -197,19 +210,24 @@ class DrugCRUD(
                     f"Attribute with name '{ref_attr_create.field_name}' is not supported in current drug dataset. Can not create custom drug."
                 )
             lov_item_query = select(DrugAttrFieldLovItem).where(
-                DrugAttrFieldLovItem.field_name == ref_attr_def.field_name
-                and DrugAttrFieldLovItem.value == ref_attr_create.value
+                and_(
+                    DrugAttrFieldLovItem.field_name == ref_attr_def.field_name,
+                    DrugAttrFieldLovItem.value == ref_attr_create.value,
+                )
             )
             lov_item_res = await self.session.exec(lov_item_query)
             lov_item = lov_item_res.one_or_none()
+            print("lov_item", lov_item)
             if lov_item is None:
                 raise CustomDrugAttrNotValid(
-                    f"Attributes value for ref attr with name '{ref_attr_create.field_name}' is not a valid selection. Can not create custom drug."
+                    f"Value '{ref_attr_create.value}' for ref/select attr with name '{ref_attr_create.field_name}' is not a valid selection. Can not create custom drug."
                 )
+            log.debug(("lov_item", type(lov_item), lov_item))
             new_attr = DrugRefAttr(
                 drug_id=drug.id,
                 field_name=ref_attr_def.field_name,
                 value=ref_attr_create.value,
+                lov_item=lov_item,
             )
             new_objects.append(new_attr)
             drug.ref_attrs.append(new_attr)
@@ -246,7 +264,7 @@ class DrugCRUD(
             drug.codes.append(new_drug_code)
         self.session.add_all(new_objects)
         await self.session.commit()
-        await self.session.refresh(drug)
+        # await self.session.refresh(drug)
         return drug
         ## YOU ARE HERE: get attr defintions, validate input, save to new_obnjects
 

@@ -58,6 +58,7 @@ from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
 from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
     DrugAttrFieldDefinitionAPIRead,
+    DrugRefAttrFieldDefinitionAPIRead,
 )
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.db.drug_data.drug_lov_values import DrugAttrFieldLovItemCRUD
@@ -125,7 +126,7 @@ class DrugAttrFieldDefinitionContainer(BaseModel):
     attrs: List[DrugAttrFieldDefinitionAPIRead] = Field(
         description="Metadata for all 'Free-form field'-attributes a drug can have."
     )
-    ref_attrs: List[DrugAttrFieldDefinitionAPIRead] = Field(
+    ref_attrs: List[DrugRefAttrFieldDefinitionAPIRead] = Field(
         description="Metadata for all 'selection-field' attributes (aka 'list of values'-fields, 'enum'-field or 'reference'-field) a drug can have."
     )
 
@@ -164,14 +165,13 @@ async def search_drugs(
 
 
 @fast_api_drug_router_v2.get(
-    "/drug/{drug_id}",
+    "/drug/id/{drug_id}",
     response_model=DrugRead,
     description=f"Get a certain drug by its id",
 )
 async def get_drug(
     drug_id: uuid.UUID,
     user: User = Security(get_current_user),
-    pagination: QueryParamsInterface = Depends(DrugQueryParams),
     drug_crud: DrugCRUD = Depends(DrugCRUD.get_crud),
 ) -> DrugRead:
     drug_result = await drug_crud.get(id_=drug_id)
@@ -214,7 +214,6 @@ async def list_drugs(
 async def list_field_definitions(
     user: User = Security(get_current_user),
 ) -> DrugAttrFieldDefinitionContainer:
-
     # we need to cast from DrugAttrFieldDefinition to DrugAttrFieldDefinitionAPIRead manually
     # this is because the DrugAttrFieldDefinition.type field can not be transated into a string value by fastapi/pydantic.
     # this is an ugly hack.
@@ -225,11 +224,12 @@ async def list_field_definitions(
         for k, v in field_def.model_dump(exclude_unset=True).items():
             if k in DrugAttrFieldDefinitionAPIRead.model_fields.keys():
                 if k == "type":
+                    # from the "type"-enum attribute we only want the name (INT,STR,FLOAT,...), not the value (casting function)
                     v = v.name
                 field_def_read_vals[k] = v
         if field_def.has_list_of_values:
             result_container.ref_attrs.append(
-                DrugAttrFieldDefinitionAPIRead(**field_def_read_vals)
+                DrugRefAttrFieldDefinitionAPIRead(**field_def_read_vals)
             )
         else:
             result_container.attrs.append(
@@ -361,4 +361,4 @@ async def create_custom_drug(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
         )
-    return new_custom_drug
+    return await drug_to_drugAPI_obj(new_custom_drug)

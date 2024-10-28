@@ -30,7 +30,7 @@ log = get_logger()
 
 
 @dataclass
-class DrugAttrFieldLovImportDefinition:
+class WiDoDrugAttrFieldLovImportDefinition:
     lov_source_file: Optional[str]
     lov_source_col_headers: List[str]
     values_col_name: str
@@ -40,7 +40,7 @@ class DrugAttrFieldLovImportDefinition:
 @dataclass
 class DrugAttrLovFieldDefinitionContainer:
     field: DrugAttrFieldDefinition
-    lov: Optional[DrugAttrFieldLovImportDefinition] = None
+    lov: Optional[WiDoDrugAttrFieldLovImportDefinition] = None
 
 
 @dataclass
@@ -56,7 +56,7 @@ stamm_col_definitions = [
     StammCol("laufnr", map2=None),
     StammCol("stakenn", map2=None),
     StammCol("staname", map2=None),
-    StammCol("atc_code", map2="code.ATC-WiDo"),
+    StammCol("atc_code", map2="code.ATC"),
     StammCol("indgr", map2="attr.indikationsgruppe"),
     StammCol("pzn", map2="code.PZN"),
     StammCol("name", map2="trade_name"),
@@ -64,7 +64,7 @@ stamm_col_definitions = [
     StammCol("darrform", map2="ref_attr.darreichungsform"),
     StammCol("zuzahlstufe", map2="ref_attr.normpackungsgroesse"),
     StammCol("packgroesse", map2="attr.packgroesse"),
-    StammCol("dddpk", map2=None),
+    StammCol("dddpk", map2="attr.ddd"),
     StammCol("apopflicht", map2="ref_attr.apopflicht"),
     StammCol("preisart_alt", map2=None),
     StammCol("preisart_neu", map2=None),
@@ -160,18 +160,10 @@ class WidoAiImporter(DrugDataSetImporterBase):
             return self._code_definitions
         codes_defs = [
             DrugCodeSystem(
-                id="ATC-WiDo",
+                id="ATC",
                 name="ATC-Code (Klassifikation nach WIdO)",
                 country="Germany",
                 desc="ATC-Klassifikation des GKV-Arzneimittelindex mit ATC-Code,ATC-Bedeutung",
-                optional=True,
-                unique=False,
-            ),
-            DrugCodeSystem(
-                id="ATC-Amtlich",
-                name="ATC-Code",
-                country="Germany",
-                desc="Amtliche ATC-Klassifikation mit ATC-Code, ATC-Bedeutung",
                 optional=True,
                 unique=False,
             ),
@@ -313,6 +305,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 has_list_of_values=False,
                 examples=[1000],
                 importer_name=self.__class__.__name__,
+                searchable=True,
             ),
             DrugAttrFieldDefinition(
                 field_name="indikationsgruppe",
@@ -333,8 +326,17 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 examples=[],
                 importer_name=self.__class__.__name__,
             ),
+            DrugAttrFieldDefinition(
+                field_name="ddd",
+                field_name_display="Defined Daily Dose (DDD)",
+                field_desc="DDD je Packung (nach WIdO, in 1/1000 Einheiten)",
+                type=ValueTypeCasting.INT,
+                has_list_of_values=False,
+                examples=[100],
+                importer_name=self.__class__.__name__,
+            ),
         ]
-
+        #
         return self._attr_definitons
 
     async def _get_ref_attr_definitons(
@@ -352,8 +354,9 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 type=ValueTypeCasting.STR,
                 has_list_of_values=True,
                 importer_name=self.__class__.__name__,
+                searchable=True,
             ),
-            lov=DrugAttrFieldLovImportDefinition(
+            lov=WiDoDrugAttrFieldLovImportDefinition(
                 lov_source_file="darrform.txt",
                 lov_source_col_headers=[
                     "Dateiversion",
@@ -373,8 +376,9 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 type=ValueTypeCasting.STR,
                 has_list_of_values=True,
                 importer_name=self.__class__.__name__,
+                searchable=True,
             ),
-            lov=DrugAttrFieldLovImportDefinition(
+            lov=WiDoDrugAttrFieldLovImportDefinition(
                 lov_source_file="applikationsform.txt",
                 lov_source_col_headers=[
                     "Dateiversion",
@@ -394,8 +398,9 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 type=ValueTypeCasting.STR,
                 has_list_of_values=True,
                 importer_name=self.__class__.__name__,
+                searchable=True,
             ),
-            lov=DrugAttrFieldLovImportDefinition(
+            lov=WiDoDrugAttrFieldLovImportDefinition(
                 lov_source_file="hersteller.txt",
                 lov_source_col_headers=[
                     "Dateiversion",
@@ -416,7 +421,7 @@ class WidoAiImporter(DrugDataSetImporterBase):
                 has_list_of_values=True,
                 importer_name=self.__class__.__name__,
             ),
-            lov=DrugAttrFieldLovImportDefinition(
+            lov=WiDoDrugAttrFieldLovImportDefinition(
                 lov_source_file="normpackungsgroessen.txt",
                 lov_source_col_headers=[
                     "Dateiversion",
@@ -446,11 +451,11 @@ class WidoAiImporter(DrugDataSetImporterBase):
         self,
         paren_field: DrugRefAttr,
         lov_definition: (
-            DrugAttrFieldLovImportDefinition | List[DrugAttrFieldLovItemCREATE]
+            WiDoDrugAttrFieldLovImportDefinition | List[DrugAttrFieldLovItemCREATE]
         ),
     ) -> List[DrugAttrFieldLovItem]:
         lov_items: List[DrugAttrFieldLovItem] = []
-        if isinstance(lov_definition, DrugAttrFieldLovImportDefinition):
+        if isinstance(lov_definition, WiDoDrugAttrFieldLovImportDefinition):
 
             with open(Path(self.source_dir, lov_definition.lov_source_file)) as csvfile:
                 csvreader = csv.reader(csvfile, delimiter=";")

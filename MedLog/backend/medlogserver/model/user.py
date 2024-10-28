@@ -12,7 +12,7 @@ from uuid import UUID
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable
+from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 
 # TODO: this generated a circular import we need to seperate model and crud classes
 # from medlogserver.db.user_auth import UserAuthRefreshTokenCRUD

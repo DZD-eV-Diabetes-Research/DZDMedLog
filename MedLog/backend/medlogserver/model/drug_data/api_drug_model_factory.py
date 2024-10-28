@@ -167,18 +167,17 @@ async def drug_to_drugAPI_obj(drug: Drug) -> Dict:
             vals[field_name] = field_val
     drug_attrs = {}
     for attr in drug.attrs:
-        print("attr.value", attr, attr.value)
         drug_attrs[attr.field_name] = attr.value
     drug_codes = {}
     for code in drug.codes:
         drug_codes[code.code_system_id] = code.code
     drug_ref_attrs = {}
-    for attr in drug.ref_attrs:
-        print("ref_attr", type(attr), attr)
-        drug_ref_attrs[attr.field_name] = {
-            "value": attr.value,
-            "display": attr.lov_entry.display if attr.lov_entry is not None else None,
-            "ref_list": f"/v2/drug/field_def/{attr.field_name}/refs",
+    for ref_attr in drug.ref_attrs:
+        lov_item = ref_attr.lov_item
+        drug_ref_attrs[ref_attr.field_name] = {
+            "value": ref_attr.value,
+            "display": lov_item.display if lov_item is not None else None,
+            "ref_list": f"/v2/drug/field_def/{ref_attr.field_name}/refs",
         }
     vals["attrs"] = drug_attrs
     vals["codes"] = drug_codes

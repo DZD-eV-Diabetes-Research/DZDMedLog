@@ -22,7 +22,12 @@ from medlogserver.model.wido_gkv_arzneimittelindex.stamm import (
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable, ExportBaseModel
+from medlogserver.model._base_model import (
+    MedLogBaseModel,
+    BaseTable,
+    ExportBaseModel,
+    TimestampModel,
+)
 
 
 log = get_logger()
@@ -177,7 +182,7 @@ class IntakeCreate(IntakeCreateAPI, table=False):
         return MedLogBaseModel.id_to_uuid(v, info)
 
 
-class Intake(IntakeCreate, BaseTable, table=True):
+class Intake(IntakeCreate, BaseTable, TimestampModel, table=True):
     __tablename__ = "intake"
     pharmazentralnummer: Annotated[
         Optional[str],

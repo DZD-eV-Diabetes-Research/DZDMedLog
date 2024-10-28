@@ -16,7 +16,7 @@ from uuid import UUID
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable
+from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 
 log = get_logger()
 config = Config()
@@ -66,7 +66,7 @@ class EventCreate(EventUpdate, table=False):
         return MedLogBaseModel.id_to_uuid(v, info)
 
 
-class EventRead(EventCreate, BaseTable, table=False):
+class EventRead(EventCreate, BaseTable, TimestampModel, table=False):
     id: uuid.UUID = Field()
 
 

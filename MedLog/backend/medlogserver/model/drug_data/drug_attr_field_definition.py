@@ -1,7 +1,7 @@
 from typing import List, Self, Optional, TYPE_CHECKING, Type, Callable, Any, Literal
 import uuid
 from functools import partial
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, model_validator
 
 from sqlmodel import Field, SQLModel, Relationship, JSON, Enum, Column
 from pydantic_core import PydanticUndefined
@@ -61,6 +61,17 @@ class DrugAttrFieldDefinitionAPIRead(DrugModelTableBase, table=False):
         default=ValueTypeCasting.STR.name,
         description="The type of this value gets casted into, by the backend, as before its passing the RestAPI",
     )
+
+
+class DrugRefAttrFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=False):
+    ref_list: str = Field(
+        default=None, description="API Path to the reference list values"
+    )
+
+    @model_validator(mode="after")
+    def _gen_ref_list_path(self: Self) -> Self:
+        self.ref_list = f"/v2/drug/field_def/{self.field_name}/refs"
+        return self
 
 
 class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):

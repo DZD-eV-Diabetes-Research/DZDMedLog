@@ -19,12 +19,14 @@ def test_do_drugv2():
         DrugCustomCreate,
         DrugAttrApiCreate,
         DrugCodeApi,
+        DrugRefAttr,
     )
     from medlogserver.model.drug_data.drug import Drug
 
     custom_drug_payload = DrugCustomCreate(
         trade_name="myCustomDrug",
         attrs=[DrugAttrApiCreate(field_name="packgroesse", value="100")],
+        ref_attrs=[DrugAttrApiCreate(field_name="hersteller", value="AABPH 01")],
         codes=[DrugCodeApi(code_system_id="PZN", code="12345678910")],
     ).model_dump(exclude_unset=True)
     print("custom_drug_payload", custom_drug_payload)
@@ -36,6 +38,18 @@ def test_do_drugv2():
     print("res", res)
     dict_must_contain(
         res,
-        required_keys=["state"],
-        exception_dict_identifier="create export object",
+        required_keys_and_val={"trade_name": "myCustomDrug", "is_custom_drug": True},
+        required_keys=["codes", "attrs", "ref_attrs"],
+        exception_dict_identifier="create custom drug object",
+    )
+    dict_must_contain(
+        res["ref_attrs"],
+        required_keys_and_val={
+            "hersteller": {
+                "value": "AABPH 01",
+                "display": "AAB Pharma",
+                "ref_list": "/v2/drug/field_def/hersteller/refs",
+            }
+        },
+        exception_dict_identifier="create custom drug object ref_attrs",
     )

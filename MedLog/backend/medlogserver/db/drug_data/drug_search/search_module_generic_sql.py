@@ -74,6 +74,7 @@ class GenericSQLDrugSearchCache(SQLModel, table=True):
         description="All drug codes aggregated into one indexed string",
     )
     market_exit_date: Optional[datetime.date] = Field(default=None)
+    is_custom_drug: bool = Field(default=False)
 
 
 class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
@@ -226,7 +227,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
     async def _drug_to_cache_obj(self, drug: Drug) -> GenericSQLDrugSearchCache:
         drug_attr_field_defs_all = await self._get_drug_attr_definitions_fields()
         drug_attr_field_names_searchable: List[str] = [
-            dd for dd in drug_attr_field_defs_all if dd.searchable == True
+            dd.field_name for dd in drug_attr_field_defs_all if dd.searchable == True
         ]
 
         # collect all drug reference attributes (select/list-of-values) definition that are definied "searchable"
@@ -234,7 +235,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             await self._get_drug_ref_attr_definitions_fields()
         )
         drug_attr_ref_field_names_searchable: List[str] = [
-            drd for drd in drug_attr_ref_field_defs_all if drd.searchable == True
+            drd.field_name
+            for drd in drug_attr_ref_field_defs_all
+            if drd.searchable == True
         ]
 
         field_values_aggregated = drug.trade_name
@@ -242,9 +245,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             if attr.field_name in drug_attr_field_names_searchable:
                 field_values_aggregated += f" {attr.value}"
         for ref_attr in drug.ref_attrs:
-            if attr.field_name in drug_attr_ref_field_names_searchable:
+            if ref_attr.field_name in drug_attr_ref_field_names_searchable:
                 field_values_aggregated += (
-                    f" {ref_attr.value} {ref_attr.lov_entry.display}"
+                    f" {ref_attr.value} {ref_attr.lov_item.display}"
                 )
         for code in drug.codes:
             field_values_aggregated += f" {code.code}"
@@ -255,6 +258,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 [f"{c.code_system_id}:{c.code}" for c in drug.codes]
             ),
             market_exit_date=drug.market_exit_date,
+            is_custom_drug=drug.is_custom_drug,
         )
 
     async def index_ready(self) -> bool:
@@ -384,7 +388,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             query = pagination.append_to_query(
                 query, ignore_limit=True, ignore_order_by=True
             )
-
+        query = query.order_by(GenericSQLDrugSearchCache.is_custom_drug)
         query = query.order_by(desc("score"))
 
         log.debug(f"DRUG SEARCH QUERY: {query}")
