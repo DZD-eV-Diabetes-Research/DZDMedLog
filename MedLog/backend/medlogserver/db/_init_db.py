@@ -29,22 +29,6 @@ from medlogserver.db.user_auth_external_oidc_token import (
 )
 
 
-from medlogserver.model.wido_gkv_arzneimittelindex import (
-    AiDataVersion,
-    Applikationsform,
-    ATCai,
-    ATCAmtlich,
-    Darreichungsform,
-    ATCErgaenzungAmtlich,
-    Hersteller,
-    Normpackungsgroessen,
-    Priscus2PZN,
-    RecycledPZN,
-    Sondercodes,
-    SondercodeBedeutung,
-    StammAenderungen,
-    Stamm,
-)
 from medlogserver.model.drug_data import (
     DrugCodeSystem,
     DrugCode,
@@ -55,7 +39,6 @@ from medlogserver.model.drug_data import (
     Drug,
 )
 from medlogserver.db.drug_data.drug_search import SEARCH_ENGINES
-from medlogserver.db.wido_gkv_arzneimittelindex import AiDataVersionCRUD
 from medlogserver.db.worker_job import WorkerJob
 from medlogserver.log import get_logger
 from medlogserver.config import Config
@@ -64,12 +47,6 @@ from sqlalchemy.dialects.sqlite.aiosqlite import AsyncAdapt_aiosqlite_connection
 log = get_logger()
 config = Config()
 
-
-if config.DRUG_SEARCHENGINE_CLASS == "GenericSQLDrugSearch":
-    from medlogserver.db.wido_gkv_arzneimittelindex.drug_search.search_module_generic_sql import (
-        GenericSQLDrugSearchState,
-        GenericSQLDrugSearchCache,
-    )
 
 # db_engine = create_async_engine(str(config.SQL_DATABASE_URL), echo=False, future=True)
 

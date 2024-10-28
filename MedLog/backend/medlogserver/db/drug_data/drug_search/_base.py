@@ -4,7 +4,6 @@ import uuid
 from pydantic import BaseModel, Field
 from medlogserver.db._session import AsyncSession, get_async_session
 from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
-from medlogserver.model.wido_gkv_arzneimittelindex.stamm import StammRead
 from medlogserver.model.drug_data.drug import Drug
 from medlogserver.model.drug_data.api_drug_model_factory import (
     drug_api_read_class_factory,

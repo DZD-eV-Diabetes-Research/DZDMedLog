@@ -73,9 +73,3 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
     from medlogserver.api.routes.routes_export import fast_api_export_router
 
     fastapi_app.include_router(fast_api_export_router, tags=["Export"])
-    ### Drug V1
-    from medlogserver.api.routes.routes_drug import (
-        fast_api_drug_router,
-    )
-
-    fastapi_app.include_router(fast_api_drug_router, tags=["DrugV1(Deprecated)"])

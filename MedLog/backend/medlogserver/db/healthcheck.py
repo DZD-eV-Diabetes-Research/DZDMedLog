@@ -15,11 +15,15 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model.healthcheck import HealthCheck, HealthCheckReport
 from medlogserver.api.paginator import QueryParamsInterface
-from medlogserver.db.wido_gkv_arzneimittelindex.drug_search.search_interface import (
+from medlogserver.db.drug_data.drug_search.search_interface import (
     get_drug_search_context,
 )
+from medlogserver.db.drug_data.drug_dataset_version import (
+    DrugDataSetVersionCRUD,
+    DrugDataSetVersion,
+)
 from medlogserver.db._session import get_async_session_context
-from medlogserver.db.wido_gkv_arzneimittelindex.ai_data_version import AiDataVersionCRUD
+
 from medlogserver.db._base_crud import DatabaseInteractionBase
 
 log = get_logger()
@@ -58,10 +62,12 @@ class HealthcheckRead(DatabaseInteractionBase):
         if results.first() == 1:
             healthcheck.db_working = True
         # drugs imported?
-        async with AiDataVersionCRUD.crud_context(self.session) as Ai_dataversion_crud:
-            Ai_dataversion_crud: AiDataVersionCRUD = Ai_dataversion_crud
-            ai_version = await Ai_dataversion_crud.get_current(none_is_ok=True)
-            if ai_version and ai_version.import_completed_at:
+        async with DrugDataSetVersionCRUD.crud_context(
+            self.session
+        ) as dataset_version_crud:
+            dataset_version_crud: DrugDataSetVersionCRUD = dataset_version_crud
+            dataset_version = await dataset_version_crud.get_current()
+            if dataset_version and dataset_version.import_status == "done":
                 healthcheck.drugs_imported = True
         # drug search check
         async with get_drug_search_context(self.session) as drug_search:

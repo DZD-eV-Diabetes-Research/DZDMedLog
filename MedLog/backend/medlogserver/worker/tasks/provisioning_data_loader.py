@@ -9,7 +9,6 @@ import yaml
 from medlogserver.worker.task import TaskBase
 
 
-from medlogserver.db.wido_gkv_arzneimittelindex import AiDataVersionCRUD
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.utils import to_path
@@ -37,7 +36,6 @@ CRUD_classes: List[CRUDBase] = [
     EventCRUD,
     InterviewCRUD,
     IntakeCRUD,
-    AiDataVersionCRUD,
     WorkerJobCRUD,
 ]
 
