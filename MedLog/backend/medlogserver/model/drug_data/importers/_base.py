@@ -110,6 +110,7 @@ class DrugDataSetImporterBase:
             source_dir = self.source_dir
         if version is None:
             version = self.version
+            # yah
         with 
         select(DrugDataSetVersion).where(
             and_(
