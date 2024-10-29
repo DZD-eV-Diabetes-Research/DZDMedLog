@@ -7,7 +7,7 @@ import uuid
 import contextlib
 from pydantic import SecretStr, Json
 from fastapi import Depends, HTTPException, status
-from sqlmodel import Field, select, delete, Enum, Column
+from sqlmodel import Field, select, delete, Enum, Column, and_
 from passlib.context import CryptContext
 
 # Internal
@@ -103,9 +103,14 @@ class UserAuthCRUD(
         return user_auth
 
     async def get_local_auth_source_by_user_id(
-        self, user_id: str | uuid.UUID, raise_exception_if_none: Exception = None
+        self, user_id: uuid.UUID, raise_exception_if_none: Exception = None
     ) -> UserAuth | None:
-        query = select(UserAuth).where(UserAuth.user_id == user_id)
+        query = select(UserAuth).where(
+            and_(
+                UserAuth.user_id == user_id,
+                UserAuth.auth_source_type == AllowedAuthSourceTypes.local,
+            )
+        )
         results = await self.session.exec(statement=query)
         user_auth: Sequence[UserAuth] | None = results.one_or_none()
 
@@ -139,7 +144,7 @@ class UserAuthCRUD(
         )
         if existing_user_auth and not exists_ok and raise_custom_exception_if_exists:
             raise raise_custom_exception_if_exists
-        elif exists_ok and not raise_custom_exception_if_exists:
+        elif existing_user_auth and exists_ok and not raise_custom_exception_if_exists:
             return existing_user_auth
         # else if existing_user_auth: we let catch the database layer the expection (UNIQUE CONTRAINT error)
 
@@ -159,10 +164,8 @@ class UserAuthCRUD(
             else:
                 user_vals[k] = v
 
-        log.debug(f"user_vals {user_vals}")
         user_auth = UserAuth.model_validate(user_vals)
-        log.debug(user_auth)
-
+        log.debug(f"Create user auth {user_auth}")
         self.session.add(user_auth)
         await self.session.commit()
         await self.session.refresh(user_auth)
@@ -180,16 +183,7 @@ class UserAuthCRUD(
             await self.session.commit()
             return True
 
-    async def update(
-        self,
-        user_auth_update: UserAuthUpdate,
-        id: str | uuid.UUID = None,
-    ) -> UserAuth:
-        id = id if id is not None else user_auth_update.id
-        if id is None:
-            raise ValueError(
-                "User update failed, uuid must be set in user_update or passed as argument `id`"
-            )
+    async def update(self, user_auth_update: UserAuthUpdate, id: uuid.UUID) -> UserAuth:
         user_auth = select(UserAuth).where(UserAuth.id == id)
         password_hashed = pwd_context.hash(user_auth_update.password.get_secret_value())
         for k, v in user_auth_update.model_dump(exclude_unset=True).items():

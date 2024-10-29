@@ -119,10 +119,11 @@ start_medlogserver_and_backgroundworker()
 from tests_users import run_all_tests_users
 from tests_export import test_do_export
 from tests_drugv2 import test_do_drugv2
-from tests_health import do_health_tests
+from tests_health import test_do_health
 
 try:
     authorize(user=ADMIN_USER_NAME, pw=ADMIN_USER_PW)
+    test_do_health()
     run_all_tests_users()
     test_do_drugv2()
     test_do_export()

@@ -113,7 +113,7 @@ class UserCreate(_UserWithName, table=False):
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4)
 
 
-class User(_UserWithName, UserUpdateByAdmin, BaseTable, table=True):
+class User(_UserWithName, UserUpdateByAdmin, BaseTable, TimestampModel, table=True):
     __tablename__ = "user"
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,

@@ -4,10 +4,12 @@ import datetime
 from sqlmodel import Field, SQLModel
 from sqlalchemy import String, Integer, Column, SmallInteger
 
-from medlogserver.model.drug_data._base import DrugModelTableBase, TimestampModel
+from medlogserver.model.drug_data._base import (
+    DrugModelTableBase,
+)
 
 
-class DrugDataSetVersion(DrugModelTableBase, TimestampModel, table=True):
+class DrugDataSetVersion(DrugModelTableBase, table=True):
     __tablename__ = "drug_dataset_version"
     __table_args__ = {
         "comment": "Tracks different version of same drug indexes that were imported"
@@ -30,6 +32,9 @@ class DrugDataSetVersion(DrugModelTableBase, TimestampModel, table=True):
     current_active: Optional[bool] = Field(
         description="States if this dataset used in the backend or just archived. Only one dataset is allowed to be active."
     )
+    import_file_path: Optional[str] = Field(
+        default=None, description="The source file for the drug data import."
+    )
     import_status: Literal["queued", "running", "failed" "done"] = Field(
         default="queued",
         description="Is the data for this drug data set allready imported.",
@@ -37,11 +42,14 @@ class DrugDataSetVersion(DrugModelTableBase, TimestampModel, table=True):
             String
         ),  # , sa_column=Column(String) -> https://github.com/fastapi/sqlmodel/issues/57 + https://github.com/fastapi/sqlmodel/issues/67
     )
-    import_file_path: str = Field(default=None)
-    import_start_datetime_utc: Optional[datetime.datetime] = Field(
+    import_error: Optional[str] = Field(
         default=None,
-        description="Datetime when the imported for this drug dataset was started",
+        description="If the drug data import failes, the error stacktrace will be logged here.",
     )
+    import_start_datetime_utc: datetime.datetime = Field(
+        description="Datetime when the imported for this drug dataset was started"
+    )
+
     import_end_datetime_utc: Optional[datetime.datetime] = Field(
         default=None,
         description="Datetime when the imported for this drug dataset was started",

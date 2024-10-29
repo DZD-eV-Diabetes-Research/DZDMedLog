@@ -36,6 +36,7 @@ def test_user_create_with_no_password(tolerate_existing: bool = True):
     # we need to tolerate existing users, because we do not delete users for now.
     # to be able to rerun tests without reseting the db we just tolerate existing users
     tolerated_error = {"detail": "User allready exists"} if tolerate_existing else None
+    from medlogserver.api.routes.routes_user import create_user
 
     user_init_data = {
         "email": "test_user_wo_pw@test.com",
@@ -84,8 +85,11 @@ def test_user_list_with_active_only():
 
 
 def test_set_other_user_password_as_admin():
+    from medlogserver.api.routes.routes_user import set_user_password
+
     res = req(
         f"user/{Helper.get_user_id_by_username(TEST_USER_NAME)['id']}/password",
+        method="put",
         f={"new_password": TEST_USER_PW, "new_password_repeated": TEST_USER_PW},
     )
 

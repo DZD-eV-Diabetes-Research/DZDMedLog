@@ -187,10 +187,9 @@ class WidoAiImporter(DrugDataSetImporterBase):
 
     async def run_import(self, source_dir: Path, version: str):
         # generate schema definitions; fields,lov-defintions,...
-        all_objs = await self.get_drug_dataset_schema(
-            source_dir=source_dir, version=version
-        )
-        drug_dataset = all_objs[0]
+        log.info("[DRUG DATA IMPORT] Parse metadata...")
+        all_objs = []
+        drug_dataset = await self._ensure_drug_dataset_version()
         # generate list of values
         lov_field_objects = await self._get_ref_attr_definitons()
         for field_name, lov_field_obj in lov_field_objects.items():

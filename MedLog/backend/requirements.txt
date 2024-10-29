@@ -41,7 +41,7 @@ ecdsa==0.19.0
     # via python-jose
 email-validator==2.2.0
     # via pydantic
-fastapi==0.115.3
+fastapi==0.115.4
     # via medlogserver (MedLog/backend/pyproject.toml)
 getversion==1.0.2
     # via medlogserver (MedLog/backend/pyproject.toml)
@@ -96,7 +96,7 @@ python-dotenv==1.0.1
     # via pydantic-settings
 python-jose[cryptography]==3.3.0
     # via medlogserver (MedLog/backend/pyproject.toml)
-python-multipart==0.0.12
+python-multipart==0.0.16
     # via medlogserver (MedLog/backend/pyproject.toml)
 pytz==2024.2
     # via apscheduler
@@ -120,7 +120,7 @@ sqlalchemy[asyncio]==2.0.36
     #   sqlmodel
 sqlmodel==0.0.22
     # via medlogserver (MedLog/backend/pyproject.toml)
-starlette==0.41.0
+starlette==0.41.2
     # via
     #   fastapi
     #   medlogserver (MedLog/backend/pyproject.toml)

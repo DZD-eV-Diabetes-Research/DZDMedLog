@@ -67,6 +67,7 @@ class HealthcheckRead(DatabaseInteractionBase):
         ) as dataset_version_crud:
             dataset_version_crud: DrugDataSetVersionCRUD = dataset_version_crud
             dataset_version = await dataset_version_crud.get_current()
+            print("dataset_version", dataset_version)
             if dataset_version and dataset_version.import_status == "done":
                 healthcheck.drugs_imported = True
         # drug search check

@@ -110,7 +110,7 @@ class DrugDataSetVersionCRUD(
             dataset_version="CUSTOM",
             dataset_source_name=current_drug_dataset.dataset_source_name,
             import_status="Done",
-            import_datetime_utc=datetime.datetime.now(tz=datetime.UTC),
+            import_start_datetime_utc=datetime.datetime.now(tz=datetime.UTC),
         )
         self.session.add(custom_drug_dataset)
         await self.session.commit()
