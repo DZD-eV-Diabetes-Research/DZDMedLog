@@ -1,7 +1,7 @@
 from typing import Dict, List, AsyncIterator
 from pathlib import Path
 import datetime
-from sqlmodel import select
+from sqlmodel import select, and_
 from medlogserver.db._session import get_async_session_context
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data._base import DrugModelTableBase
@@ -53,6 +53,8 @@ class DrugDataSetImporterBase:
     async def _run_import(self, source_dir: Path, version: str):
         self.version = version
         self.source_dir = source_dir
+        self._ensure_drug_dataset_version()
+
         drug_dataset = await self.generate_drug_data_set_definition()
         already_imported_datasets = await self.get_already_imported_datasets()
 
@@ -100,3 +102,27 @@ class DrugDataSetImporterBase:
 
         all_objs.extend(await self.get_code_definitions())
         return all_objs
+
+    async def _ensure_drug_dataset_version(
+        self, source_dir: Path = None, version: str = None
+    ):
+        if source_dir is None:
+            source_dir = self.source_dir
+        if version is None:
+            version = self.version
+        with 
+        select(DrugDataSetVersion).where(
+            and_(
+                DrugDataSetVersion.dataset_source_name == self.dataset_name,
+                DrugDataSetVersion.dataset_version == version,
+            )
+        )
+
+    async def _ensure_custom_drug_dataset_version(self):
+        pass
+
+    async def _finish_import(self, source_dir: Path, version: str):
+        pass
+
+    async def _set_drug_dataset_status(self, status: str, error: str):
+        pass

@@ -15,7 +15,7 @@ from statics import ADMIN_USER_EMAIL, ADMIN_USER_NAME, TEST_USER_NAME, TEST_USER
 class Helper:
     @classmethod
     def get_user_id_by_username(cls, name: str):
-        all_users = req("user", p={"incl_deactivated": True})["items"]
+        all_users = req("user", q={"incl_deactivated": True})["items"]
         return find_first_dict_in_list(
             all_users,
             required_keys_and_val={"user_name": name},
