@@ -11,7 +11,7 @@ from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
 
 from medlogserver.model.drug_data.importers.wido_gkv_arzneimittelindex import (
-    WidoAiImporter,
+    WidoAiImporter52,
 )
 from medlogserver.model.drug_data.drug_code import DrugCodeApi
 from medlogserver.model.drug_data.drug_attr_field_definition import ValueTypeCasting

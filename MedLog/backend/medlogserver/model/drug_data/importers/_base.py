@@ -51,6 +51,9 @@ class DrugDataSetImporterBase:
     async def get_drug_items(self) -> AsyncIterator[Drug]:
         raise NotImplementedError()
 
+    async def run_import(self, source_dir: Path, version: str):
+        raise NotImplementedError()
+
     async def _run_import(self, source_dir: Path, version: str):
         self.version = version
         self.source_dir = source_dir
@@ -85,9 +88,6 @@ class DrugDataSetImporterBase:
 
     async def _finish_import(self, source_dir: Path, version: str):
         await self._set_dataset_version_status("done")
-
-    async def run_import(self, source_dir: Path, version: str):
-        raise NotImplementedError()
 
     async def get_already_imported_datasets(self) -> List[DrugDataSetVersion]:
         async with get_async_session_context() as session:

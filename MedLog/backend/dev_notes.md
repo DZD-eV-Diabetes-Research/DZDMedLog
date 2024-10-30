@@ -84,3 +84,11 @@ https://github.com/yezz123/AuthX
     Token ID (Token Identifier):
         Purpose: Token ID refers to the unique identifier associated with a token (e.g., access token, ID token, refresh token).
         Usage: It helps in uniquely identifying and managing tokens. It can be used to track token usage, revoke tokens, or manage token lifecycle.
+
+
+
+# MMI Pharmindex
+
+interesting tables
+MMIRohdatenR3->Product.csv
+Package.csv -> pzn

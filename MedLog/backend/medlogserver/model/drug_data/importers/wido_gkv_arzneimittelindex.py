@@ -108,7 +108,7 @@ apopflicht_values = [
 ]
 
 
-class WidoAiImporter(DrugDataSetImporterBase):
+class WidoAiImporter52(DrugDataSetImporterBase):
     def __init__(self):
 
         self.dataset_name = "Wido GKV Arzneimittelindex"

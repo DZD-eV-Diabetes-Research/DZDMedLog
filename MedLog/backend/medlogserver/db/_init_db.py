@@ -136,10 +136,10 @@ async def init_drugsearch():
 
 async def provision_drug_data():
     from medlogserver.model.drug_data.importers.wido_gkv_arzneimittelindex import (
-        WidoAiImporter,
+        WidoAiImporter52,
     )
 
-    im = WidoAiImporter()
+    im = WidoAiImporter52()
     log.warning(
         "TODO: Hardcoded version 23 for drug import at 'DZDMedLog/MedLog/backend/medlogserver/db/_init_db.py' must be gatherd from the file."
     )

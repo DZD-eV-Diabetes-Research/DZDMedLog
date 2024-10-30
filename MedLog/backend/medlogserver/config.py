@@ -146,16 +146,6 @@ class Config(BaseSettings):
         description="Default data like some background jobs and vocabulary that is always loaded in the database. Under normal circustances this is nothing you need to changed. if you need to provision data like a Study into the database use the APP_PROVISIONING_DATA_YAML_FILES param.",
         default=str(Path(Path(__file__).parent, "default_data.yaml")),
     )
-    """Remove me on next refactor
-    APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS: Dict = Field(
-        default={
-            "PRESCRIBED": "prescribed",
-            "RECOMMENDED": "recommended",
-            "NO": "no",
-            "UNKNOWN": "unknown",
-        }
-    )
-    """
 
     APP_STUDY_PERMISSION_SYSTEM_DISABLED_BY_DEFAULT: bool = Field(
         default=False,
@@ -290,8 +280,8 @@ class Config(BaseSettings):
     )
 
     # Availabe modules live in MedLog/backend/medlogserver/model/drug_data/importers/__init__.py
-    DRUG_IMPORTER_PLUGIN: Literal["WidoGkvArzneimittelindex"] = Field(
-        default="WidoGkvArzneimittelindex",
+    DRUG_IMPORTER_PLUGIN: Literal["WidoGkvArzneimittelindex52"] = Field(
+        default="WidoGkvArzneimittelindex52",
         description="Depending on the drug database that is used, we can define an importer. At the moment there is only an importer for the Wido GKV Arzneimittelindex",
     )
 
