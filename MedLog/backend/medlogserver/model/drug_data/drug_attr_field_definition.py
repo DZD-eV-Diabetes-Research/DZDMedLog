@@ -56,7 +56,14 @@ class DrugAttrFieldDefinitionAPIRead(DrugModelTableBase, table=False):
     )
     optional: bool = False
     default: Optional[str] = None
-    has_list_of_values: bool = Field(default=False)
+    value_has_reference_list: bool = Field(
+        default=False,
+        description="If true each value has a reference list with a display value. Values that are not in the reference list are not allowed. e.g. A drug can only be 'freely-available','pharmacy-only' or 'prescription-only'",
+    )
+    is_multi_val_field: bool = Field(
+        default=False,
+        description="If true this field can hold a list of values instead of a single one. E.g. A drug can have a list of keywords.",
+    )
     type: Literal[tuple([e.name for e in ValueTypeCasting])] = Field(
         default=ValueTypeCasting.STR.name,
         description="The type of this value gets casted into, by the backend, as before its passing the RestAPI",

@@ -227,7 +227,7 @@ async def list_field_definitions(
                     # from the "type"-enum attribute we only want the name (INT,STR,FLOAT,...), not the value (casting function)
                     v = v.name
                 field_def_read_vals[k] = v
-        if field_def.has_list_of_values:
+        if field_def.value_has_reference_list:
             result_container.ref_attrs.append(
                 DrugRefAttrFieldDefinitionAPIRead(**field_def_read_vals)
             )

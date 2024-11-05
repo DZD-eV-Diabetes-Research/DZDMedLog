@@ -44,48 +44,59 @@ class DrugAttrLovFieldDefinitionContainer:
 
 
 @dataclass
-class StammCol:
-    name: str
+class FileProductMapping:
+    filename: str
+    colname: str
     map2: Optional[str] = None
     cast_func: Optional[Callable] = None
 
 
+mmi_rohdaten_r3_mapping = [
+    FileProductMapping("PRODUCT.CSV", "NAME_PLAIN", map2="trade_name"),
+    FileProductMapping("PRODUCT.CSV", "ONMARKETDATE", map2="market_access_date"),
+    FileProductMapping(map2="market_exit_date"),
+    FileProductMapping(map2="attrs"),
+    FileProductMapping(map2="ref_attrs"),
+    FileProductMapping("PRODUCT.CSV", "PZN", map2="codes.PZN"),
+    FileProductMapping("PRODUCT.CSV", "ID", map2="codes.mmi_productid"),
+]
+
 stamm_col_definitions = [
-    StammCol("dateiversion", map2=None),
-    StammCol("datenstand", map2=None),
-    StammCol("laufnr", map2=None),
-    StammCol("stakenn", map2=None),
-    StammCol("staname", map2=None),
-    StammCol("atc_code", map2="code.ATC"),
-    StammCol("indgr", map2="attr.indikationsgruppe"),
-    StammCol("pzn", map2="code.PZN"),
-    StammCol("name", map2="trade_name"),
-    StammCol("hersteller_code", map2="ref_attr.hersteller"),
-    StammCol("darrform", map2="ref_attr.darreichungsform"),
-    StammCol("zuzahlstufe", map2="ref_attr.normpackungsgroesse"),
-    StammCol("packgroesse", map2="attr.packgroesse"),
-    StammCol("dddpk", map2="attr.ddd"),
-    StammCol("apopflicht", map2="ref_attr.apopflicht"),
-    StammCol("preisart_alt", map2=None),
-    StammCol("preisart_neu", map2=None),
-    StammCol("preis_alt", map2=None),
-    StammCol("preis_neu", map2=None),
-    StammCol("festbetrag", map2=None),
-    StammCol(
+    FileProductMapping("PRODUCT.CSV", "dateiversion", map2=""),
+    FileProductMapping("datenstand", map2=None),
+    FileProductMapping("laufnr", map2=None),
+    FileProductMapping("stakenn", map2=None),
+    FileProductMapping("staname", map2=None),
+    FileProductMapping("atc_code", map2="code.ATC"),
+    FileProductMapping("indgr", map2="attr.indikationsgruppe"),
+    FileProductMapping("pzn", map2="code.PZN"),
+    FileProductMapping("name", map2="trade_name"),
+    FileProductMapping("hersteller_code", map2="ref_attr.hersteller"),
+    FileProductMapping("darrform", map2="ref_attr.darreichungsform"),
+    FileProductMapping("zuzahlstufe", map2="ref_attr.normpackungsgroesse"),
+    FileProductMapping("packgroesse", map2="attr.packgroesse"),
+    FileProductMapping("dddpk", map2="attr.ddd"),
+    FileProductMapping("apopflicht", map2="ref_attr.apopflicht"),
+    FileProductMapping("preisart_alt", map2=None),
+    FileProductMapping("preisart_neu", map2=None),
+    FileProductMapping("preis_alt", map2=None),
+    FileProductMapping("preis_neu", map2=None),
+    FileProductMapping("festbetrag", map2=None),
+    FileProductMapping(
         "marktzugang",
         map2="market_access_date",
         cast_func=lambda x: datetime.datetime.strptime(x, "%Y%m%d").date(),
     ),
-    StammCol(
+    FileProductMapping(
         "ahdatum",
         map2="market_exit_date",
         cast_func=lambda x: datetime.datetime.strptime(x, "%Y%m%d").date(),
     ),
-    StammCol("RÜCKRUF", map2=None),
-    StammCol("GENERIKAKENN", map2=None),
-    StammCol("APPFORM", map2=None),
-    StammCol("BIOSIMILAR", map2=None),
-    StammCol("ORPHAN", map2=None),
+    FileProductMapping("RÜCKRUF", map2=None),
+    FileProductMapping("GENERIKAKENN", map2=None),
+    FileProductMapping("APPFORM", map2=None),
+    FileProductMapping("BIOSIMILAR", map2=None),
+    FileProductMapping("ORPHAN", map2=None),
     # todo: continue here with the stamm columns
 ]
 
@@ -226,7 +237,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                             yield drug_attr
 
     async def _parse_wido_stamm_row_value(
-        self, parent_drug: Drug, row_val: str, col_def: StammCol
+        self, parent_drug: Drug, row_val: str, col_def: FileProductMapping
     ) -> DrugAttr | DrugRefAttr | DrugCode | None:
         if "." in col_def.map2:
             field_type, field_name = col_def.map2.split(".", 1)
@@ -295,7 +306,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Packungsgröße",
                 field_desc="Packungsgröße (in 1/10 Einheiten)",
                 type=ValueTypeCasting.INT,
-                has_list_of_values=False,
+                value_has_reference_list=False,
                 examples=[1000],
                 importer_name=self.__class__.__name__,
                 searchable=True,
@@ -305,7 +316,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Indikationsgruppe",
                 field_desc="Indikationsgruppe (nach Roter Liste 2014)",
                 type=ValueTypeCasting.INT,
-                has_list_of_values=False,
+                value_has_reference_list=False,
                 examples=[20],
                 importer_name=self.__class__.__name__,
             ),
@@ -315,7 +326,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_desc="Datum des Marktzugang",
                 type=ValueTypeCasting.DATE,
                 pre_parser=CustomPreParserFunc.WIDO_GKV_DATE,
-                has_list_of_values=False,
+                value_has_reference_list=False,
                 examples=[],
                 importer_name=self.__class__.__name__,
             ),
@@ -324,7 +335,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Defined Daily Dose (DDD)",
                 field_desc="DDD je Packung (nach MmiPi, in 1/1000 Einheiten)",
                 type=ValueTypeCasting.INT,
-                has_list_of_values=False,
+                value_has_reference_list=False,
                 examples=[100],
                 importer_name=self.__class__.__name__,
             ),
@@ -345,7 +356,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Darreichungsform",
                 field_desc="Wirkstoffhaltige Zubereitung, die dem Patienten verabreicht wird und die präsentierte Arzneiform (eng: dosage form)",
                 type=ValueTypeCasting.STR,
-                has_list_of_values=True,
+                value_has_reference_list=True,
                 importer_name=self.__class__.__name__,
                 searchable=True,
             ),
@@ -367,7 +378,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Applikationsform",
                 field_desc="Die Art und Weise bezeichnet, wie ein Arzneimittel verabreicht wird (eng: administration route)",
                 type=ValueTypeCasting.STR,
-                has_list_of_values=True,
+                value_has_reference_list=True,
                 importer_name=self.__class__.__name__,
                 searchable=True,
             ),
@@ -389,7 +400,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Hersteller",
                 field_desc="hersteller (eng: producer)",
                 type=ValueTypeCasting.STR,
-                has_list_of_values=True,
+                value_has_reference_list=True,
                 importer_name=self.__class__.__name__,
                 searchable=True,
             ),
@@ -411,7 +422,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Normpackungsgröße",
                 field_desc="Normpackungsgröße https://www.bfarm.de/DE/Arzneimittel/Arzneimittelinformationen/Packungsgroessen/_node.html",
                 type=ValueTypeCasting.STR,
-                has_list_of_values=True,
+                value_has_reference_list=True,
                 importer_name=self.__class__.__name__,
             ),
             lov=MmiPiDrugAttrFieldLovImportDefinition(
@@ -432,7 +443,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Apotheken-/Rezeptpflicht",
                 field_desc="",
                 type=ValueTypeCasting.INT,
-                has_list_of_values=True,
+                value_has_reference_list=True,
                 importer_name=self.__class__.__name__,
             ),
             lov=apopflicht_values,
