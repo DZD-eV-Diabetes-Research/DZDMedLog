@@ -95,7 +95,7 @@ drug_field_defs: List[
 drug_field_ref_defs: List[
     DrugAttrFieldDefinition
 ] = asyncio.get_event_loop().run_until_complete(
-    drug_importer.get_ref_attr_field_definitions()
+    drug_importer.get_attr_ref_field_definitions()
 )
 
 # all searchable fields a drug based in the current drug import can have
@@ -227,7 +227,7 @@ async def list_field_definitions(
                     # from the "type"-enum attribute we only want the name (INT,STR,FLOAT,...), not the value (casting function)
                     v = v.name
                 field_def_read_vals[k] = v
-        if field_def.value_has_reference_list:
+        if field_def.is_reference_list_field:
             result_container.ref_attrs.append(
                 DrugRefAttrFieldDefinitionAPIRead(**field_def_read_vals)
             )

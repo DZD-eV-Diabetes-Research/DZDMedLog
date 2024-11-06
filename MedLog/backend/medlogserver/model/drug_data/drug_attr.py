@@ -12,10 +12,10 @@ from medlogserver.model.drug_data.drug_attr_field_definition import (
 )
 
 if TYPE_CHECKING:
-    from medlogserver.model.drug_data.drug import Drug
+    from medlogserver.model.drug_data.drug import DrugData
 
 
-class DrugAttrApiCreate(DrugModelTableBase, table=False):
+class DrugValApiCreate(DrugModelTableBase, table=False):
     field_name: str = Field(
         primary_key=True,
         foreign_key="Name of the attribute. Available field_names can be retrieved from REST API Endpoint '/v2/drug/field_def' ",
@@ -26,8 +26,8 @@ class DrugAttrApiCreate(DrugModelTableBase, table=False):
     )
 
 
-class DrugAttr(DrugModelTableBase, table=True):
-    __tablename__ = "drug_attr_field"
+class DrugVal(DrugModelTableBase, table=True):
+    __tablename__ = "drug_attr_val"
 
     drug_id: uuid.UUID = Field(foreign_key="drug.id", primary_key=True)
     field_name: str = Field(
@@ -38,11 +38,11 @@ class DrugAttr(DrugModelTableBase, table=True):
         description="Generic storage of a value as string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
     field_definition: DrugAttrFieldDefinition = Relationship()
-    drug: "Drug" = Relationship(back_populates="attrs")
+    drug: "DrugData" = Relationship(back_populates="attrs")
 
 
-class DrugRefAttr(DrugModelTableBase, table=True):
-    __tablename__ = "drug_ref_attr_field"
+class DrugValRef(DrugModelTableBase, table=True):
+    __tablename__ = "drug_attr_ref_val"
     __table_args__ = (
         ForeignKeyConstraint(
             name="composite_foreign_key_drug_ref_value_obj",
@@ -67,27 +67,27 @@ class DrugRefAttr(DrugModelTableBase, table=True):
     lov_item: DrugAttrFieldLovItem = Relationship(
         sa_relationship_kwargs={"lazy": "selectin"}
     )
-    drug: "Drug" = Relationship(back_populates="ref_attrs")
+    drug: "DrugData" = Relationship(back_populates="ref_attrs")
 
 
-class DrugMultiValAttr(DrugModelTableBase, table=True):
-    __tablename__ = "drug_attr_multi_val_field"
+class DrugValMulti(DrugModelTableBase, table=True):
+    __tablename__ = "drug_attr_multi_val"
 
     drug_id: uuid.UUID = Field(foreign_key="drug.id", primary_key=True)
     field_name: str = Field(
         primary_key=True, foreign_key="drug_attr_field_definition.field_name"
     )
-    values: List[str] = Field(
-        default_factory=list,
-        description="Generic storage of multiple value as string. Can be typed via the function in DrugAttrFieldDefinition.type",
-        sa_column=JSON,
+    value_index: int = Field(primary_key=True)
+    value: Optional[str] = Field(
+        default=None,
+        description="Generic storage of multiple value as list of string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
     field_definition: DrugAttrFieldDefinition = Relationship()
-    drug: "Drug" = Relationship(back_populates="multi_attrs")
+    drug: "DrugData" = Relationship(back_populates="multi_attrs")
 
 
-class DrugRefAttrMultiVal(DrugModelTableBase, table=True):
-    __tablename__ = "drug_ref_attr_multi_val_field"
+class DrugValMultiRef(DrugModelTableBase, table=True):
+    __tablename__ = "drug_attr_ref_multi_val"
     __table_args__ = (
         ForeignKeyConstraint(
             name="composite_foreign_key_drug_ref_value_obj",
@@ -104,15 +104,17 @@ class DrugRefAttrMultiVal(DrugModelTableBase, table=True):
     field_name: str = Field(
         primary_key=True, foreign_key="drug_attr_field_definition.field_name"
     )
+    value_index: int = Field(primary_key=True)
     value: Optional[str] = Field(
         default=None,
-        description="Generic storage of a value as string. Can be typed via the function in DrugAttrFieldDefinition.type",
+        description="Generic storage of multiple reference value as list of string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
+
     field_definition: DrugAttrFieldDefinition = Relationship()
     lov_item: DrugAttrFieldLovItem = Relationship(
         sa_relationship_kwargs={"lazy": "selectin"}
     )
-    drug: "Drug" = Relationship(back_populates="ref_attrs")
+    drug: "DrugData" = Relationship(back_populates="ref_multi_attrs")
 
 
 from pydantic import BaseModel

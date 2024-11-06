@@ -7,7 +7,7 @@ from sqlmodel import SQLModel, select
 from medlogserver.db._session import get_async_session_context
 
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
-from medlogserver.model.drug_data.drug_attr import DrugAttr, DrugRefAttr
+from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef
 from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
     ValueTypeCasting,
@@ -20,7 +20,7 @@ from medlogserver.model.drug_data.drug_attr_field_lov_item import (
 
 from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
-from medlogserver.model.drug_data.drug import Drug
+from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.drug_code import DrugCode
 from medlogserver.log import get_logger
 from medlogserver.config import Config
@@ -144,7 +144,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
         return field_def_containers
         return [field_cont.field for name, field_cont in field_def_containers.items()]
 
-    async def get_ref_attr_field_definitions(
+    async def get_attr_ref_field_definitions(
         self, by_name: Optional[str] = None
     ) -> List[DrugAttrFieldDefinition]:
         field_def_containers = await self._get_ref_attr_definitons()
@@ -216,7 +216,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
 
     async def _parse_wido_stamm_data(
         self, drug_dataset_version: DrugDataSetVersion
-    ) -> AsyncIterator[Drug | DrugAttr | DrugRefAttr | DrugCode]:
+    ) -> AsyncIterator[DrugData | DrugVal | DrugValRef | DrugCode]:
         log.info("[DRUG DATA IMPORT] Parse drug data...")
         with open(Path(self.source_dir, "stamm.txt")) as csvfile:
             csvreader = csv.reader(csvfile, delimiter=";")
@@ -226,7 +226,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                     and row_index > config.DRUG_DATA_IMPORT_MAX_ROWS
                 ):
                     return
-                drug = Drug(source_dataset_id=drug_dataset_version.id)
+                drug = DrugData(source_dataset_id=drug_dataset_version.id)
                 yield drug
                 for col_index, col_def in enumerate(stamm_col_definitions):
                     if col_def.map2:
@@ -237,8 +237,8 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                             yield drug_attr
 
     async def _parse_wido_stamm_row_value(
-        self, parent_drug: Drug, row_val: str, col_def: FileProductMapping
-    ) -> DrugAttr | DrugRefAttr | DrugCode | None:
+        self, parent_drug: DrugData, row_val: str, col_def: FileProductMapping
+    ) -> DrugVal | DrugValRef | DrugCode | None:
         if "." in col_def.map2:
             field_type, field_name = col_def.map2.split(".", 1)
         else:
@@ -255,15 +255,13 @@ class WidoAiImporter52(DrugDataSetImporterBase):
             field_def: DrugAttrFieldDefinition = field_defs[0]
             if field_def.pre_parser and row_val:
                 row_val = field_def.pre_parser.value(row_val)
-            return DrugAttr(
-                drug_id=parent_drug.id, field_name=field_name, value=row_val
-            )
+            return DrugVal(drug_id=parent_drug.id, field_name=field_name, value=row_val)
         elif field_type == "ref_attr":
-            field_defs = await self.get_ref_attr_field_definitions(by_name=field_name)
+            field_defs = await self.get_attr_ref_field_definitions(by_name=field_name)
             field_def: DrugAttrFieldDefinition = field_defs[0]
             if field_def.pre_parser:
                 row_val = field_def.pre_parser.value(row_val)
-            return DrugRefAttr(
+            return DrugValRef(
                 drug_id=parent_drug.id, field_name=field_name, value=row_val
             )
         elif field_type == "code":
@@ -306,7 +304,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Packungsgröße",
                 field_desc="Packungsgröße (in 1/10 Einheiten)",
                 type=ValueTypeCasting.INT,
-                value_has_reference_list=False,
+                is_reference_list_field=False,
                 examples=[1000],
                 importer_name=self.__class__.__name__,
                 searchable=True,
@@ -316,7 +314,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Indikationsgruppe",
                 field_desc="Indikationsgruppe (nach Roter Liste 2014)",
                 type=ValueTypeCasting.INT,
-                value_has_reference_list=False,
+                is_reference_list_field=False,
                 examples=[20],
                 importer_name=self.__class__.__name__,
             ),
@@ -326,7 +324,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_desc="Datum des Marktzugang",
                 type=ValueTypeCasting.DATE,
                 pre_parser=CustomPreParserFunc.WIDO_GKV_DATE,
-                value_has_reference_list=False,
+                is_reference_list_field=False,
                 examples=[],
                 importer_name=self.__class__.__name__,
             ),
@@ -335,7 +333,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Defined Daily Dose (DDD)",
                 field_desc="DDD je Packung (nach MmiPi, in 1/1000 Einheiten)",
                 type=ValueTypeCasting.INT,
-                value_has_reference_list=False,
+                is_reference_list_field=False,
                 examples=[100],
                 importer_name=self.__class__.__name__,
             ),
@@ -356,7 +354,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Darreichungsform",
                 field_desc="Wirkstoffhaltige Zubereitung, die dem Patienten verabreicht wird und die präsentierte Arzneiform (eng: dosage form)",
                 type=ValueTypeCasting.STR,
-                value_has_reference_list=True,
+                is_reference_list_field=True,
                 importer_name=self.__class__.__name__,
                 searchable=True,
             ),
@@ -378,7 +376,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Applikationsform",
                 field_desc="Die Art und Weise bezeichnet, wie ein Arzneimittel verabreicht wird (eng: administration route)",
                 type=ValueTypeCasting.STR,
-                value_has_reference_list=True,
+                is_reference_list_field=True,
                 importer_name=self.__class__.__name__,
                 searchable=True,
             ),
@@ -400,7 +398,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Hersteller",
                 field_desc="hersteller (eng: producer)",
                 type=ValueTypeCasting.STR,
-                value_has_reference_list=True,
+                is_reference_list_field=True,
                 importer_name=self.__class__.__name__,
                 searchable=True,
             ),
@@ -422,7 +420,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Normpackungsgröße",
                 field_desc="Normpackungsgröße https://www.bfarm.de/DE/Arzneimittel/Arzneimittelinformationen/Packungsgroessen/_node.html",
                 type=ValueTypeCasting.STR,
-                value_has_reference_list=True,
+                is_reference_list_field=True,
                 importer_name=self.__class__.__name__,
             ),
             lov=MmiPiDrugAttrFieldLovImportDefinition(
@@ -443,7 +441,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Apotheken-/Rezeptpflicht",
                 field_desc="",
                 type=ValueTypeCasting.INT,
-                value_has_reference_list=True,
+                is_reference_list_field=True,
                 importer_name=self.__class__.__name__,
             ),
             lov=apopflicht_values,
@@ -453,7 +451,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
 
     async def _generate_lov_items(
         self,
-        paren_field: DrugRefAttr,
+        paren_field: DrugValRef,
         lov_definition: (
             MmiPiDrugAttrFieldLovImportDefinition | List[DrugAttrFieldLovItemCREATE]
         ),

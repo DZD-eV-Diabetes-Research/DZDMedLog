@@ -9,7 +9,7 @@ from medlogserver.model.drug_data._base import (
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 
 if TYPE_CHECKING:
-    from medlogserver.model.drug_data.drug import Drug
+    from medlogserver.model.drug_data.drug import DrugData
 
 
 class DrugCodeApi(SQLModel):
@@ -26,5 +26,5 @@ class DrugCode(DrugModelTableBase, DrugCodeApi, table=True):
     drug_id: uuid.UUID = Field(primary_key=True, foreign_key="drug.id")
     code_system_id: str = Field(primary_key=True, foreign_key="drug_code_system.id")
     code: str = Field()
-    drug: "Drug" = Relationship(back_populates="codes")
+    drug: "DrugData" = Relationship(back_populates="codes")
     code_system: DrugCodeSystem = Relationship()

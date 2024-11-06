@@ -10,9 +10,11 @@ from medlogserver.model.drug_data._base import (
 
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.drug_attr import (
-    DrugAttr,
-    DrugRefAttr,
-    DrugAttrApiCreate,
+    DrugVal,
+    DrugValRef,
+    DrugValMulti,
+    DrugValMultiRef,
+    DrugValApiCreate,
 )
 from medlogserver.model.drug_data.drug_code import DrugCodeApi
 from medlogserver.model.drug_data.drug_code import DrugCode
@@ -26,12 +28,12 @@ class DrugCustomCreate(DrugModelTableBase, table=False):
     custom_drug_notes: Optional[str] = Field(
         default=None, description="Additional notes for the custom drug."
     )
-    attrs: Optional[List[DrugAttrApiCreate]] = Field(default_factory=list)
-    ref_attrs: Optional[List[DrugAttrApiCreate]] = Field(default_factory=list)
+    attrs: Optional[List[DrugValApiCreate]] = Field(default_factory=list)
+    ref_attrs: Optional[List[DrugValApiCreate]] = Field(default_factory=list)
     codes: Optional[List[DrugCodeApi]] = Field(default_factory=list)
 
 
-class Drug(DrugModelTableBase, table=True):
+class DrugData(DrugModelTableBase, table=True):
     __tablename__ = "drug"
     __table_args__ = {
         "comment": "Tracks different version of same drug indexes that were imported"
@@ -53,12 +55,22 @@ class Drug(DrugModelTableBase, table=True):
         description="If Drug is created by user as a custom drug the user id will be saved here.",
         foreign_key="user.id",
     )
-    attrs: List[DrugAttr] = Relationship(
+    attrs: List[DrugVal] = Relationship(
         back_populates="drug",
         sa_relationship_kwargs={"lazy": "selectin"},
         cascade_delete=True,
     )
-    ref_attrs: List[DrugRefAttr] = Relationship(
+    ref_attrs: List[DrugValRef] = Relationship(
+        back_populates="drug",
+        sa_relationship_kwargs={"lazy": "selectin"},
+        cascade_delete=True,
+    )
+    multi_attrs: List[DrugValMulti] = Relationship(
+        back_populates="drug",
+        sa_relationship_kwargs={"lazy": "selectin"},
+        cascade_delete=True,
+    )
+    multi_ref_attrs: List[DrugValMultiRef] = Relationship(
         back_populates="drug",
         sa_relationship_kwargs={"lazy": "selectin"},
         cascade_delete=True,

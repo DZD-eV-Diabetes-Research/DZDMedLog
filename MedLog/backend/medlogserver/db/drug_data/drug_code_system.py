@@ -13,13 +13,13 @@ from sqlalchemy.orm import selectinload
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model.drug_data.drug import Drug
+from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.db.interview import Interview
 from medlogserver.api.paginator import QueryParamsInterface
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
-from medlogserver.model.drug_data.drug_attr import DrugRefAttr
+from medlogserver.model.drug_data.drug_attr import DrugValRef
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 
 log = get_logger()

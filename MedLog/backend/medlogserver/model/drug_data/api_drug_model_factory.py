@@ -18,10 +18,10 @@ from medlogserver.model.drug_data.drug_attr_field_definition import ValueTypeCas
 
 # from medlogserver.model.drug_data.drug_attr import DrugAttrApiReadBase
 from medlogserver.config import Config
-from medlogserver.model.drug_data.drug import Drug
+from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.drug_attr import (
-    DrugAttr,
-    DrugRefAttr,
+    DrugVal,
+    DrugValRef,
     DrugRefAttrApiRead,
 )
 from medlogserver.model.drug_data.drug_code import DrugCode
@@ -54,7 +54,7 @@ def drug_api_read_class_factory() -> Type[BaseModel]:
 async def _get_DrugReadApiClass(importer_class: Type[DrugDataSetImporterBase]) -> Type:
     importer = importer_class()
     attrs = {}
-    for field_name, db_drug_field in Drug.model_fields.items():
+    for field_name, db_drug_field in DrugData.model_fields.items():
         if field_name == "source_dataset_id":
             continue
         db_drug_field: FieldInfo = db_drug_field
@@ -74,11 +74,14 @@ async def _get_DrugReadApiClass(importer_class: Type[DrugDataSetImporterBase]) -
     ref_attrs_container_class = await _get_ref_attrs_container_class(importer)
     attrs["ref_attrs"] = (ref_attrs_container_class, Field(default_factory=list))
 
+    multi_attrs_container_class = await _get_multi_attrs_container_class(importer)
+    attrs["multi_attrs"] = (ref_attrs_container_class, Field(default_factory=list))
+
     return create_model(f"{importer.api_name}Drug", **attrs)
 
 
 async def _get_ref_attrs_container_class(importer: DrugDataSetImporterBase) -> Type:
-    ref_attr_fields = await importer.get_ref_attr_field_definitions()
+    ref_attr_fields = await importer.get_attr_ref_field_definitions()
     ref_attrs = {}
     ref_value_model = create_model(
         f"{importer.api_name}RefAttrVal",
@@ -138,6 +141,42 @@ async def _get_attrs_container_class(importer: DrugDataSetImporterBase) -> Type:
     return m
 
 
+async def _get_multi_attrs_container_class(importer: DrugDataSetImporterBase) -> Type:
+    ref_attr_fields = await importer.get_attr_multi_field_definitions()
+    ref_attrs = {}
+
+    for field in ref_attr_fields:
+        ref_value_model = create_model(
+            f"{field.field_name}MultiAttrVal",
+            value=(
+                Dict[str, field.type.value.python_type],
+                Field(description=field.desc),
+            ),
+            display=(Optional[str], Field(default=None)),
+            ref_list=(
+                str,
+                Field(description="The API path to the list this value references"),
+            ),
+        )
+        type_def = ref_value_model
+        if field.optional:
+            type_def = Optional[type_def]
+        pydantic_field_attrs = {}
+        pydantic_field_attrs["description"] = field.field_desc
+        pydantic_field_attrs["default"] = field.default
+
+        ref_attrs[field.field_name] = (type_def, Field(**pydantic_field_attrs))
+
+    """from pydantic create model docs:
+    field_definitions: Attributes of the new model. They should be passed in the format:
+            `<name>=(<type>, <default value>)`, `<name>=(<type>, <FieldInfo>)`, or `typing.Annotated[<type>, <FieldInfo>]`.
+            Any additional metadata in `typing.Annotated[<type>, <FieldInfo>, ...]` will be ignored.
+    """
+
+    m = create_model(f"{importer.api_name}RefAttrs", **ref_attrs)
+    return m
+
+
 async def _get_codes_container_class(importer: DrugDataSetImporterBase) -> Type:
     code_fields = await importer.get_code_definitions()
     attrs = {}
@@ -157,7 +196,7 @@ DrugAPIRead = drug_api_read_class_factory()
 
 
 # async def drug_to_drugAPI_obj(drug: Drug) -> DrugAPIRead:
-async def drug_to_drugAPI_obj(drug: Drug) -> Dict:
+async def drug_to_drugAPI_obj(drug: DrugData) -> Dict:
     vals = {}
     for field_name, field_val in iter(drug):
         if field_name in ["attrs", "ref_attrs", "codes"]:

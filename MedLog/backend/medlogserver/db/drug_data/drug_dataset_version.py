@@ -13,7 +13,7 @@ import datetime
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model.drug_data.drug import Drug
+from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.db.interview import Interview
 from medlogserver.api.paginator import QueryParamsInterface

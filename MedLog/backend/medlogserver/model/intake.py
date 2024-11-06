@@ -15,7 +15,7 @@ import uuid
 from uuid import UUID
 from medlogserver.model.event import Event
 from medlogserver.model.interview import Interview
-from medlogserver.model.drug_data.drug import Drug
+from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.api_drug_model_factory import (
     drug_api_read_class_factory,
 )

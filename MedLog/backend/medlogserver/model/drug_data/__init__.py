@@ -1,5 +1,5 @@
-from medlogserver.model.drug_data.drug import Drug
-from medlogserver.model.drug_data.drug_attr import DrugAttr
+from medlogserver.model.drug_data.drug import DrugData
+from medlogserver.model.drug_data.drug_attr import DrugVal
 from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
 )

@@ -33,10 +33,10 @@ from medlogserver.model.drug_data import (
     DrugCodeSystem,
     DrugCode,
     DrugDataSetVersion,
-    DrugAttr,
+    DrugVal,
     DrugAttrFieldLovItem,
     DrugAttrFieldDefinition,
-    Drug,
+    DrugData,
 )
 from medlogserver.db.drug_data.drug_search import SEARCH_ENGINES
 from medlogserver.db.worker_job import WorkerJob

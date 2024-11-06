@@ -10,8 +10,8 @@ from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
 )
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
-from medlogserver.model.drug_data.drug_attr import DrugAttr, DrugRefAttr
-from medlogserver.model.drug_data.drug import Drug
+from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef
+from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.log import get_logger
 
 log = get_logger()
@@ -39,16 +39,24 @@ class DrugDataSetImporterBase:
             dataset_source_name=self.dataset_name,
         )
 
-    async def get_ref_attr_field_definitions(self) -> List[DrugAttrFieldDefinition]:
+    async def get_attr_field_definitions(self) -> List[DrugAttrFieldDefinition]:
         raise NotImplementedError()
 
-    async def get_attr_field_definitions(self) -> List[DrugAttrFieldDefinition]:
+    async def get_attr_ref_field_definitions(self) -> List[DrugAttrFieldDefinition]:
+        raise NotImplementedError()
+
+    async def get_attr_multi_field_definitions(self) -> List[DrugAttrFieldDefinition]:
+        raise NotImplementedError()
+
+    async def get_attr_multi_ref_field_definitions(
+        self,
+    ) -> List[DrugAttrFieldDefinition]:
         raise NotImplementedError()
 
     async def get_code_definitions(self) -> List[DrugCodeSystem]:
         raise NotImplementedError()
 
-    async def get_drug_items(self) -> AsyncIterator[Drug]:
+    async def get_drug_items(self) -> AsyncIterator[DrugData]:
         raise NotImplementedError()
 
     async def run_import(self, source_dir: Path, version: str):
@@ -190,7 +198,7 @@ class DrugDataSetImporterBase:
         all_objs = []
         attr_defs = await self.get_attr_field_definitions()
         all_objs.extend(attr_defs)
-        lov_field_objects = await self.get_ref_attr_field_definitions()
+        lov_field_objects = await self.get_attr_ref_field_definitions()
         for lov_field_obj in lov_field_objects:
             all_objs.append(lov_field_obj)
 

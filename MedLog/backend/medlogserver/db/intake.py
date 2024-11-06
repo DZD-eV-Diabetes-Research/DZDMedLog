@@ -24,7 +24,7 @@ from medlogserver.model.intake import (
     IntakeUpdate,
     IntakeDetailListItem,
 )
-from medlogserver.model.drug_data.drug import Drug
+from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.api_drug_model_factory import (
     drug_api_read_class_factory,
     drug_to_drugAPI_obj,
@@ -121,7 +121,7 @@ class IntakeCRUD(
         for intake, interview, event in results:
             drug_read: DrugRead = None
             drug_result = await self.session.exec(
-                select(Drug).where(Drug.id == intake.drug_id)
+                select(DrugData).where(DrugData.id == intake.drug_id)
             )
             drug = drug_result.one()
             drug_read = drug_to_drugAPI_obj(drug)

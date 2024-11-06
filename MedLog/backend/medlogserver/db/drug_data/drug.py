@@ -25,16 +25,16 @@ from sqlalchemy.orm import selectinload
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model.drug_data.drug import Drug
+from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.db.interview import Interview
 from medlogserver.api.paginator import QueryParamsInterface
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.model.drug_data.drug_attr import (
-    DrugRefAttr,
-    DrugAttr,
-    DrugAttrApiCreate,
+    DrugValRef,
+    DrugVal,
+    DrugValApiCreate,
 )
 from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
@@ -58,10 +58,10 @@ class DrugWithCodeAllreadyExists(Exception):
 
 class DrugCRUD(
     create_crud_base(
-        table_model=Drug,
-        read_model=Drug,
-        create_model=Drug,
-        update_model=Drug,
+        table_model=DrugData,
+        read_model=DrugData,
+        create_model=DrugData,
+        update_model=DrugData,
     )
 ):
     async def append_current_and_custom_drugs_dataset_version_where_clause(
@@ -93,8 +93,8 @@ class DrugCRUD(
         )
         query.where(
             or_(
-                Drug.source_dataset_id == sub_query,
-                Drug.source_dataset_id == sub_query_custom_drugs,
+                DrugData.source_dataset_id == sub_query,
+                DrugData.source_dataset_id == sub_query_custom_drugs,
             )
         )
         return query
@@ -102,7 +102,7 @@ class DrugCRUD(
     async def count(
         self,
     ) -> int:
-        query = select(func.count()).select_from(Drug)
+        query = select(func.count()).select_from(DrugData)
         query = await self.append_current_and_custom_drugs_dataset_version_where_clause(
             query
         )
@@ -115,16 +115,16 @@ class DrugCRUD(
         hide_completed: bool = False,
         pagination: QueryParamsInterface = None,
         include_relations: bool = False,
-    ) -> Sequence[Drug]:
+    ) -> Sequence[DrugData]:
         if isinstance(filter_study_id, str):
             filter_study_id: UUID = UUID(filter_study_id)
         # log.info(f"Event.Config.order_by {Event.Config.order_by}")
-        query = select(Drug)
+        query = select(DrugData)
         if include_relations:
             query = query.options(
-                selectinload(Drug.attrs),
-                selectinload(Drug.ref_attrs).selectinload(DrugRefAttr.lov_item),
-                selectinload(Drug.codes),
+                selectinload(DrugData.attrs),
+                selectinload(DrugData.ref_attrs).selectinload(DrugValRef.lov_item),
+                selectinload(DrugData.codes),
             )
         query = await self.append_current_and_custom_drugs_dataset_version_where_clause(
             query
@@ -139,8 +139,8 @@ class DrugCRUD(
         ids: List[str],
         pagination: QueryParamsInterface = None,
         keep_result_in_ids_order: bool = True,
-    ) -> Sequence[Drug]:
-        query = select(Drug).where(col(Drug.id).in_(ids))
+    ) -> Sequence[DrugData]:
+        query = select(DrugData).where(col(DrugData.id).in_(ids))
         query = await self.append_current_and_custom_drugs_dataset_version_where_clause(
             query
         )
@@ -151,8 +151,8 @@ class DrugCRUD(
         results = await self.session.exec(statement=query)
         if keep_result_in_ids_order:
             # todo: maybe we can solve the drug order in sql?
-            db_order: List[Drug] = results.all()
-            new_order: List[Drug] = []
+            db_order: List[DrugData] = results.all()
+            new_order: List[DrugData] = []
             for drug_id in ids:
                 db_order_item_index = next(
                     (i for i, obj in enumerate(db_order) if obj.id == drug_id)
@@ -164,14 +164,14 @@ class DrugCRUD(
 
     async def create_custom(
         self, drug_create: DrugCustomCreate, custom_drug_dataset: DrugDataSetVersion
-    ) -> Drug:
+    ) -> DrugData:
         drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
         drug_importer = drug_importer_class()
 
         new_objects = []
         new_drug_id = uuid.uuid4()
 
-        drug = Drug(
+        drug = DrugData(
             id=new_drug_id,
             source_dataset_id=custom_drug_dataset.id,
             is_custom_drug=True,
@@ -189,13 +189,13 @@ class DrugCRUD(
                 raise CustomDrugAttrNotValid(
                     f"Attribute with name '{attr_create.field_name}' is not supported in current drug dataset. Can not create custom drug."
                 )
-            new_attr = DrugAttr(
+            new_attr = DrugVal(
                 drug_id=drug.id, field_name=attr_def.field_name, value=attr_create.value
             )
             new_objects.append(new_attr)
             drug.attrs.append(new_attr)
 
-        ref_attr_defs = await drug_importer.get_ref_attr_field_definitions()
+        ref_attr_defs = await drug_importer.get_attr_ref_field_definitions()
         for ref_attr_create in drug_create.ref_attrs:
             ref_attr_def: DrugAttrFieldDefinition = next(
                 (
@@ -222,7 +222,7 @@ class DrugCRUD(
                     f"Value '{ref_attr_create.value}' for ref/select attr with name '{ref_attr_create.field_name}' is not a valid selection. Can not create custom drug."
                 )
             log.debug(("lov_item", type(lov_item), lov_item))
-            new_attr = DrugRefAttr(
+            new_attr = DrugValRef(
                 drug_id=drug.id,
                 field_name=ref_attr_def.field_name,
                 value=ref_attr_create.value,

@@ -56,7 +56,7 @@ class DrugAttrFieldDefinitionAPIRead(DrugModelTableBase, table=False):
     )
     optional: bool = False
     default: Optional[str] = None
-    value_has_reference_list: bool = Field(
+    is_reference_list_field: bool = Field(
         default=False,
         description="If true each value has a reference list with a display value. Values that are not in the reference list are not allowed. e.g. A drug can only be 'freely-available','pharmacy-only' or 'prescription-only'",
     )
@@ -86,6 +86,9 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
     __table_args__ = {
         "comment": "Definition of dataset specific fields and lookup fields"
     }
+    desc: Optional[str] = Field(
+        default=None, description="Describe what is in the field."
+    )
     importer_name: str = Field(
         primary_key=True,
         description="A field definiton always comes from one drug data importer. We may have multiple importers in the lifecycle of the application, therefore we need to distinguish the fields per drug data importer.",

@@ -4,7 +4,7 @@ import uuid
 from pydantic import BaseModel, Field
 from medlogserver.db._session import AsyncSession, get_async_session
 from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
-from medlogserver.model.drug_data.drug import Drug
+from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.api_drug_model_factory import (
     drug_api_read_class_factory,
 )
@@ -48,7 +48,7 @@ class MedLogDrugSearchEngineBase:
         """This function is for engines where index build up and refresh follow different processes"""
         await self.build_index(force_rebuild=True)
 
-    async def insert_drug_to_index(self, drug: Drug):
+    async def insert_drug_to_index(self, drug: DrugData):
         """Adhoc insert a single drug into the index. this is needed for user defined custom drugs.
 
         Args:

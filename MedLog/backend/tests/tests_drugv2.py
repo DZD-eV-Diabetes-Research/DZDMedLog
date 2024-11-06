@@ -17,16 +17,16 @@ def test_do_drugv2():
     from medlogserver.api.routes.routes_drug_v2 import create_custom_drug
     from medlogserver.model.drug_data.drug import (
         DrugCustomCreate,
-        DrugAttrApiCreate,
+        DrugValApiCreate,
         DrugCodeApi,
-        DrugRefAttr,
+        DrugValRef,
     )
-    from medlogserver.model.drug_data.drug import Drug
+    from medlogserver.model.drug_data.drug import DrugData
 
     custom_drug_payload = DrugCustomCreate(
         trade_name="myCustomDrug",
-        attrs=[DrugAttrApiCreate(field_name="packgroesse", value="100")],
-        ref_attrs=[DrugAttrApiCreate(field_name="hersteller", value="AABPH 01")],
+        attrs=[DrugValApiCreate(field_name="packgroesse", value="100")],
+        ref_attrs=[DrugValApiCreate(field_name="hersteller", value="AABPH 01")],
         codes=[DrugCodeApi(code_system_id="PZN", code="12345678910")],
     ).model_dump(exclude_unset=True)
     print("custom_drug_payload", custom_drug_payload)

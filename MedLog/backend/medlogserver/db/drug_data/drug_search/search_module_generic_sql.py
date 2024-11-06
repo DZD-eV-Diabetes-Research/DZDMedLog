@@ -31,9 +31,9 @@ from medlogserver.model.drug_data.drug_attr_field_definition import (
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.db.drug_data.drug_dataset_version import DrugDataSetVersionCRUD
 from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
-from medlogserver.model.drug_data.drug import Drug
+from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.db.drug_data.drug import DrugCRUD
-from medlogserver.model.drug_data.drug_attr import DrugAttr, DrugRefAttr
+from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef
 from medlogserver.model.drug_data.api_drug_model_factory import drug_to_drugAPI_obj
 from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.config import Config
@@ -198,7 +198,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
     async def _get_drug_ref_attr_definitions_fields(self):
         if self._drug_ref_attr_field_definitions is None:
             self._drug_ref_attr_field_definitions = (
-                await self.drug_data_importer_class().get_ref_attr_field_definitions()
+                await self.drug_data_importer_class().get_attr_ref_field_definitions()
             )
         return self._drug_ref_attr_field_definitions
 
@@ -208,9 +208,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         target_drug_dataset_version = await self._get_current_dataset_version()
         custom_drugs_dataset = await self._get_custom_drugs_dataset_version()
         # fetch all drugs of the current dataset
-        query = select(Drug).where(
-            Drug.source_dataset_id == target_drug_dataset_version.id
-            or Drug.source_dataset_id == custom_drugs_dataset.id
+        query = select(DrugData).where(
+            DrugData.source_dataset_id == target_drug_dataset_version.id
+            or DrugData.source_dataset_id == custom_drugs_dataset.id
         )
         res = await session.exec(query)
         cache_entries: List[GenericSQLDrugSearchCache] = []
@@ -224,7 +224,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
     # async def refresh_index(self, force_rebuild: bool = False):
     #    await self.build_index(force_rebuild=True)
 
-    async def _drug_to_cache_obj(self, drug: Drug) -> GenericSQLDrugSearchCache:
+    async def _drug_to_cache_obj(self, drug: DrugData) -> GenericSQLDrugSearchCache:
         drug_attr_field_defs_all = await self._get_drug_attr_definitions_fields()
         drug_attr_field_names_searchable: List[str] = [
             dd.field_name for dd in drug_attr_field_defs_all if dd.searchable == True
@@ -268,7 +268,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             and state.last_index_build_at is not None
         )
 
-    async def insert_drug_to_index(self, drug: Drug):
+    async def insert_drug_to_index(self, drug: DrugData):
         """Adhoc insert a single drug into the index. this is needed for user defined custom drugs.
 
         Args:
@@ -361,13 +361,13 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         )
         if filter_ref_vals:
             # Todo: not sure if this will improve speed in any way :D maybe we need extra an chaching table/index for ref values
-            query.join(Drug, onclause=GenericSQLDrugSearchCache.id == Drug.id).join(
-                DrugRefAttr
-            )
+            query.join(
+                DrugData, onclause=GenericSQLDrugSearchCache.id == DrugData.id
+            ).join(DrugValRef)
             for filter_ref_field_name, filter_rev_value in filter_ref_vals.items():
                 query.where(
-                    DrugRefAttr.field_name == filter_ref_field_name
-                    and DrugRefAttr.value == filter_rev_value
+                    DrugValRef.field_name == filter_ref_field_name
+                    and DrugValRef.value == filter_rev_value
                 )
         if market_accessable == True:
             query = query.where(
