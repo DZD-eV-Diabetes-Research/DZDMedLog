@@ -74,11 +74,42 @@ class DrugRefAttrFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=Fa
     ref_list: str = Field(
         default=None, description="API Path to the reference list values"
     )
+    is_reference_list_field: bool = Field(
+        default=True,
+        description="If true each value has a reference list with a display value. Values that are not in the reference list are not allowed. e.g. A drug can only be 'freely-available','pharmacy-only' or 'prescription-only'",
+    )
 
     @model_validator(mode="after")
     def _gen_ref_list_path(self: Self) -> Self:
         self.ref_list = f"/v2/drug/field_def/{self.field_name}/refs"
         return self
+
+
+class DrugMultiAttrFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=False):
+    is_multi_val_field: bool = Field(
+        default=True,
+        description="If true this field can hold a list of values instead of a single one. E.g. A drug can have a list of keywords.",
+    )
+    type: Literal[tuple([f"List[{e.name}]" for e in ValueTypeCasting])] = Field(
+        default=f"List[{ValueTypeCasting.STR.name}]",
+        description="The type of this value gets casted into, by the backend, as before its passing the RestAPI",
+    )
+
+
+class DrugMultiRefAttrFieldDefinitionAPIRead(
+    DrugRefAttrFieldDefinitionAPIRead, table=False
+):
+    ref_list: str = Field(
+        default=None, description="API Path to the reference list values"
+    )
+    is_reference_list_field: bool = Field(
+        default=True,
+        description="If true each value has a reference list with a display value. Values that are not in the reference list are not allowed. e.g. A drug can only be 'freely-available','pharmacy-only' or 'prescription-only'",
+    )
+    is_multi_val_field: bool = Field(
+        default=True,
+        description="If true this field can hold a list of values instead of a single one. E.g. A drug can have a list of keywords.",
+    )
 
 
 class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):

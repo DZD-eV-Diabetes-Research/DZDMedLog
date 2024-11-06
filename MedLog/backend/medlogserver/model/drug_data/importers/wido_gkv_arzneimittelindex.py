@@ -178,6 +178,14 @@ class WidoAiImporter52(DrugDataSetImporterBase):
         self._code_definitions = codes_defs
         return codes_defs
 
+    async def get_attr_multi_field_definitions(self) -> List[DrugAttrFieldDefinition]:
+        return []
+
+    async def get_attr_multi_ref_field_definitions(
+        self,
+    ) -> List[DrugAttrFieldDefinition]:
+        return []
+
     def debug_count_field_def(self, objs) -> int:
         count = 0
         for obj in objs:

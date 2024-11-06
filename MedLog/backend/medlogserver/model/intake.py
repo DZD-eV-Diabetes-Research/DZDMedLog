@@ -17,7 +17,7 @@ from medlogserver.model.event import Event
 from medlogserver.model.interview import Interview
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.api_drug_model_factory import (
-    drug_api_read_class_factory,
+    DrugAPIRead,
 )
 
 from medlogserver.config import Config
@@ -33,8 +33,6 @@ from medlogserver.model._base_model import (
 log = get_logger()
 config = Config()
 
-
-DrugRead = drug_api_read_class_factory()
 
 # AdministeredByDoctorAnswers = enum.Enum(
 #    "AdministeredByDoctorAnswers", config.APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS
@@ -168,4 +166,4 @@ class IntakeExport(IntakeCreate, BaseTable, table=False):
 class IntakeDetailListItem(IntakeCreate, BaseTable, table=False):
     interview: Interview
     event: Event
-    drug: DrugRead
+    drug: DrugAPIRead

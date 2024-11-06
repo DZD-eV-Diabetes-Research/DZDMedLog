@@ -26,7 +26,7 @@ from medlogserver.model.intake import (
 )
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.api_drug_model_factory import (
-    drug_api_read_class_factory,
+    DrugAPIRead,
     drug_to_drugAPI_obj,
 )
 from medlogserver.db._base_crud import create_crud_base
@@ -34,8 +34,6 @@ from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
 config = Config()
-
-DrugRead = drug_api_read_class_factory()
 
 
 class IntakeCRUD(
@@ -119,7 +117,7 @@ class IntakeCRUD(
         results = await self.session.exec(statement=query)
         detailed_intakes: List[IntakeDetailListItem] = []
         for intake, interview, event in results:
-            drug_read: DrugRead = None
+            drug_read: DrugAPIRead = None
             drug_result = await self.session.exec(
                 select(DrugData).where(DrugData.id == intake.drug_id)
             )

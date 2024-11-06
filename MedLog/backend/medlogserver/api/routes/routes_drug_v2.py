@@ -45,7 +45,7 @@ from medlogserver.api.paginator import (
     QueryParamsInterface,
 )
 from medlogserver.model.drug_data.api_drug_model_factory import (
-    drug_api_read_class_factory,
+    DrugAPIRead,
     drug_to_drugAPI_obj,
 )
 from medlogserver.model.drug_data.drug import DrugCustomCreate
@@ -59,6 +59,8 @@ from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
     DrugAttrFieldDefinitionAPIRead,
     DrugRefAttrFieldDefinitionAPIRead,
+    DrugMultiRefAttrFieldDefinitionAPIRead,
+    DrugMultiAttrFieldDefinitionAPIRead,
 )
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.db.drug_data.drug_lov_values import DrugAttrFieldLovItemCRUD
@@ -70,7 +72,7 @@ from medlogserver.db.drug_data.drug_code_system import DrugCodeSystemCRUD
 from medlogserver.db.drug_data.drug_dataset_version import DrugDataSetVersionCRUD
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 
-DrugRead = drug_api_read_class_factory()
+
 config = Config()
 
 from medlogserver.log import get_logger
@@ -91,6 +93,12 @@ drug_field_defs: List[
     drug_importer.get_attr_field_definitions()
 )
 
+drug_field_multi_defs: List[
+    DrugAttrFieldDefinition
+] = asyncio.get_event_loop().run_until_complete(
+    drug_importer.get_attr_multi_field_definitions()
+)
+
 # all reference fields (select values) a drug based current drug importer module can have
 drug_field_ref_defs: List[
     DrugAttrFieldDefinition
@@ -98,6 +106,9 @@ drug_field_ref_defs: List[
     drug_importer.get_attr_ref_field_definitions()
 )
 
+drug_field_multi_ref_defs = asyncio.get_event_loop().run_until_complete(
+    drug_importer.get_attr_multi_ref_field_definitions()
+)
 # all searchable fields a drug based in the current drug import can have
 drug_search_filter_ref_fields = {}
 for f in drug_field_ref_defs:
@@ -119,14 +130,20 @@ from medlogserver.db.drug_data.drug_search.search_interface import (
 )
 
 
-DrugQueryParams: Type[QueryParamsInterface] = create_query_params_class(DrugRead)
+DrugQueryParams: Type[QueryParamsInterface] = create_query_params_class(DrugAPIRead)
 
 
 class DrugAttrFieldDefinitionContainer(BaseModel):
     attrs: List[DrugAttrFieldDefinitionAPIRead] = Field(
         description="Metadata for all 'Free-form field'-attributes a drug can have."
     )
+    multi_attrs: List[DrugMultiAttrFieldDefinitionAPIRead] = Field(
+        description="Metadata for all 'Free-form field'-attributes a drug can have."
+    )
     ref_attrs: List[DrugRefAttrFieldDefinitionAPIRead] = Field(
+        description="Metadata for all 'selection-field' attributes (aka 'list of values'-fields, 'enum'-field or 'reference'-field) a drug can have."
+    )
+    ref_multi_attrs: List[DrugMultiRefAttrFieldDefinitionAPIRead] = Field(
         description="Metadata for all 'selection-field' attributes (aka 'list of values'-fields, 'enum'-field or 'reference'-field) a drug can have."
     )
 
@@ -166,14 +183,14 @@ async def search_drugs(
 
 @fast_api_drug_router_v2.get(
     "/drug/id/{drug_id}",
-    response_model=DrugRead,
+    response_model=DrugAPIRead,
     description=f"Get a certain drug by its id",
 )
 async def get_drug(
     drug_id: uuid.UUID,
     user: User = Security(get_current_user),
     drug_crud: DrugCRUD = Depends(DrugCRUD.get_crud),
-) -> DrugRead:
+) -> DrugAPIRead:
     drug_result = await drug_crud.get(id_=drug_id)
     return await drug_to_drugAPI_obj(drug_result)
 
@@ -219,7 +236,12 @@ async def list_field_definitions(
     # this is an ugly hack.
     # Todo: improve the code/datastructure of DrugAttrFieldDefinition and DrugAttrFieldDefinitionAPIRead to make this less cluttered
     result_container = DrugAttrFieldDefinitionContainer(attrs=[], ref_attrs=[])
-    for field_def in drug_field_ref_defs + drug_field_defs:
+    for field_def in (
+        drug_field_ref_defs
+        + drug_field_defs
+        + drug_field_multi_defs
+        + drug_field_multi_ref_defs
+    ):
         field_def_read_vals = {}
         for k, v in field_def.model_dump(exclude_unset=True).items():
             if k in DrugAttrFieldDefinitionAPIRead.model_fields.keys():
@@ -250,7 +272,10 @@ async def get_field_definition(
     try:
         field_def: DrugAttrFieldDefinition = next(
             f
-            for f in drug_field_ref_defs + drug_field_defs
+            for f in drug_field_ref_defs
+            + drug_field_defs
+            + drug_field_multi_defs
+            + drug_field_multi_ref_defs
             if f.field_name == field_name
         )
     except StopIteration:
@@ -279,7 +304,7 @@ LovItemQueryParams: Type[QueryParamsInterface] = create_query_params_class(
 @fast_api_drug_router_v2.get(
     "/drug/field_def/{field_name}/refs",
     response_model=PaginatedResponse[DrugAttrFieldLovItemAPIRead],
-    description=f"List possible values (List of values) for an enum field",
+    description=f"List possible values, display values, sort_oder of a LOV (List of values) for a reference field.",
 )
 async def get_reference_field_values(
     field_name: str,
@@ -313,6 +338,36 @@ async def get_reference_field_values(
 
 
 @fast_api_drug_router_v2.get(
+    "/drug/field_def/{field_name}/refs/{ref_val}",
+    response_model=DrugAttrFieldLovItemAPIRead,
+    description=f"get a certain values, display values, sort_oder of a LOV (List of values) for a reference field.",
+)
+async def get_reference_field_values(
+    field_name: str,
+    ref_val: str,
+    user: User = Security(get_current_user),
+    drug_lov_item_crud: DrugAttrFieldLovItemCRUD = Depends(
+        DrugAttrFieldLovItemCRUD.get_crud
+    ),
+) -> DrugAttrFieldLovItemAPIRead:
+    if field_name not in [
+        f.field_name for f in drug_field_ref_defs + drug_field_multi_ref_defs
+    ]:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Drug enum field with name '{field_name}' could not be found.",
+        )
+    return await drug_lov_item_crud.get(
+        field_name=field_name,
+        value=ref_val,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Drug enum field with name '{field_name}' and value {ref_val} could not be found.",
+        ),
+    )
+
+
+@fast_api_drug_router_v2.get(
     "/drug/code_def",
     response_model=List[DrugCodeSystem],
     description=f"List all drug coding system used in the current drug dataset.",
@@ -339,7 +394,7 @@ async def get_reference_field_values(
 
 @fast_api_drug_router_v2.post(
     "/drug/custom",
-    response_model=DrugRead,
+    response_model=DrugAPIRead,
     description=f"Add a custom drug to the drug database. Should be used as a last resort if the user can not find a specific drug in the search.",
 )
 async def create_custom_drug(
@@ -349,7 +404,7 @@ async def create_custom_drug(
         DrugDataSetVersionCRUD.get_crud
     ),
     drug_crud: DrugCRUD = Depends(DrugCRUD.get_crud),
-) -> DrugRead:
+) -> DrugAPIRead:
     custom_drug_dataset = await drug_dataset_crud.get_custom()
     try:
         new_custom_drug = await drug_crud.create_custom(

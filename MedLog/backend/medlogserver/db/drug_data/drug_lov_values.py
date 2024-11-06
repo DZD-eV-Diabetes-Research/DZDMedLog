@@ -5,7 +5,7 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func, col, or_
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func, col, or_, and_
 from sqlmodel.sql import expression as sqlEpression
 import uuid
 from uuid import UUID
@@ -79,3 +79,21 @@ class DrugAttrFieldLovItemCRUD(
             query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)
         return results.all()
+
+    async def get(
+        self,
+        field_name: str,
+        value: str,
+        raise_exception_if_none: Exception = None,
+    ) -> DrugAttrFieldLovItem | None:
+        query = select(DrugAttrFieldLovItem).where(
+            and_(
+                DrugAttrFieldLovItem.field_name == field_name,
+                DrugAttrFieldLovItem.value == value,
+            )
+        )
+        result = await self.session.exec(statement=query)
+        obj = result.one_or_none()
+        if obj is None and raise_exception_if_none:
+            raise raise_exception_if_none
+        return obj

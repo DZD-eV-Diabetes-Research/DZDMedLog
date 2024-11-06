@@ -70,7 +70,7 @@ class DrugData(DrugModelTableBase, table=True):
         sa_relationship_kwargs={"lazy": "selectin"},
         cascade_delete=True,
     )
-    multi_ref_attrs: List[DrugValMultiRef] = Relationship(
+    ref_multi_attrs: List[DrugValMultiRef] = Relationship(
         back_populates="drug",
         sa_relationship_kwargs={"lazy": "selectin"},
         cascade_delete=True,
