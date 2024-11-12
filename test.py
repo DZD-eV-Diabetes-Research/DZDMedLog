@@ -547,4 +547,19 @@ def python_typing_unpack2():
     greet_person(name="Alice", age=30)  # This works
 
 
-python_typing_unpack()
+def enum_as_dict_keys():
+    import enum
+    from pydantic import BaseModel
+
+    class Things(enum.Enum):
+        books = "books"
+        shoes = "shoes"
+
+    d = dict()
+    d[Things.books.name] = "Was ist was Band 1"
+    d[Things.shoes] = "Sneakers"
+
+    print(d)
+
+
+enum_as_dict_keys()

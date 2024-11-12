@@ -15,6 +15,7 @@ from medlogserver.model.drug_data.drug_attr import (
     DrugValMulti,
     DrugValMultiRef,
     DrugValApiCreate,
+    DrugMultiValApiCreate,
 )
 from medlogserver.model.drug_data.drug_code import DrugCodeApi
 from medlogserver.model.drug_data.drug_code import DrugCode
@@ -29,7 +30,9 @@ class DrugCustomCreate(DrugModelTableBase, table=False):
         default=None, description="Additional notes for the custom drug."
     )
     attrs: Optional[List[DrugValApiCreate]] = Field(default_factory=list)
+    multi_attrs: Optional[List[DrugMultiValApiCreate]] = Field(default_factory=list)
     ref_attrs: Optional[List[DrugValApiCreate]] = Field(default_factory=list)
+    ref_multi_attrs: Optional[List[DrugMultiValApiCreate]] = Field(default_factory=list)
     codes: Optional[List[DrugCodeApi]] = Field(default_factory=list)
 
 

@@ -52,7 +52,8 @@ class DrugAttrFieldDefinitionAPIRead(DrugModelTableBase, table=False):
         description="The title of the field for displaying humans"
     )
     field_desc: Optional[str] = Field(
-        default=None, description="Helptext about the content of the field"
+        default=None,
+        description="Helptext for users about the content of the field. For internal documenation purposes see 'desc'",
     )
     optional: bool = False
     default: Optional[str] = None
@@ -118,7 +119,8 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
         "comment": "Definition of dataset specific fields and lookup fields"
     }
     desc: Optional[str] = Field(
-        default=None, description="Describe what is in the field."
+        default=None,
+        description="Describe what is in the field. For internal documenation purposes. For user helptext see 'field_desc'",
     )
     importer_name: str = Field(
         primary_key=True,

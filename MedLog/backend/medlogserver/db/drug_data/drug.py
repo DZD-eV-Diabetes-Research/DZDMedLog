@@ -35,6 +35,8 @@ from medlogserver.model.drug_data.drug_attr import (
     DrugValRef,
     DrugVal,
     DrugValApiCreate,
+    DrugValMulti,
+    DrugValMultiRef,
 )
 from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
@@ -175,10 +177,18 @@ class DrugCRUD(
             id=new_drug_id,
             source_dataset_id=custom_drug_dataset.id,
             is_custom_drug=True,
-            **drug_create.model_dump(exclude=["attrs", "ref_attrs", "codes"]),
+            **drug_create.model_dump(
+                exclude=[
+                    "attrs",
+                    "multi_attrs",
+                    "ref_attrs",
+                    "ref_multi_attrs",
+                    "codes",
+                ]
+            ),
         )
         new_objects.append(drug)
-
+        # attrs - single value attributes
         attr_defs = await drug_importer.get_attr_field_definitions()
         for attr_create in drug_create.attrs:
             attr_def: DrugAttrFieldDefinition = next(
@@ -196,8 +206,36 @@ class DrugCRUD(
             drug.attrs.append(new_attr)
 
         ref_attr_defs = await drug_importer.get_attr_ref_field_definitions()
+
+        # multi_attrs - multi value (list) attributes
+        multi_attr_defs = await drug_importer.get_attr_multi_field_definitions()
+        for attr_create in drug_create.multi_attrs:
+            attr_def: DrugAttrFieldDefinition = next(
+                (
+                    ad
+                    for ad in multi_attr_defs
+                    if ad.field_name == attr_create.field_name
+                ),
+                None,
+            )
+            if attr_def is None:
+                raise CustomDrugAttrNotValid(
+                    f"Attribute with name '{attr_create.field_name}' is not supported in current drug dataset. Can not create custom drug."
+                )
+            for index, val in enumerate(attr_create.value):
+                new_attr = DrugValMulti(
+                    drug_id=drug.id,
+                    field_name=attr_def.field_name,
+                    value_index=index,
+                    value=attr_create.value,
+                )
+                new_objects.append(new_attr)
+                drug.attrs.append(new_attr)
+
+        # ref_attrs - reference value (select - value/display values) attributes
+        ref_attr_defs = await drug_importer.get_attr_ref_field_definitions()
         for ref_attr_create in drug_create.ref_attrs:
-            ref_attr_def: DrugAttrFieldDefinition = next(
+            attr_def: DrugAttrFieldDefinition = next(
                 (
                     ad
                     for ad in ref_attr_defs
@@ -205,13 +243,13 @@ class DrugCRUD(
                 ),
                 None,
             )
-            if ref_attr_def is None:
+            if attr_def is None:
                 raise CustomDrugAttrNotValid(
                     f"Attribute with name '{ref_attr_create.field_name}' is not supported in current drug dataset. Can not create custom drug."
                 )
             lov_item_query = select(DrugAttrFieldLovItem).where(
                 and_(
-                    DrugAttrFieldLovItem.field_name == ref_attr_def.field_name,
+                    DrugAttrFieldLovItem.field_name == attr_def.field_name,
                     DrugAttrFieldLovItem.value == ref_attr_create.value,
                 )
             )
@@ -221,15 +259,55 @@ class DrugCRUD(
                 raise CustomDrugAttrNotValid(
                     f"Value '{ref_attr_create.value}' for ref/select attr with name '{ref_attr_create.field_name}' is not a valid selection. Can not create custom drug."
                 )
-            log.debug(("lov_item", type(lov_item), lov_item))
             new_attr = DrugValRef(
                 drug_id=drug.id,
-                field_name=ref_attr_def.field_name,
+                field_name=attr_def.field_name,
                 value=ref_attr_create.value,
                 lov_item=lov_item,
             )
             new_objects.append(new_attr)
             drug.ref_attrs.append(new_attr)
+
+        # ref_multi_attrs - reference multi value (list of select - value/display values) attributes
+        ref_multi_attr_defs = await drug_importer.get_attr_multi_ref_field_definitions()
+        for ref_multi_attr_create in drug_create.ref_multi_attrs:
+            attr_def: DrugAttrFieldDefinition = next(
+                (
+                    ad
+                    for ad in ref_multi_attr_defs
+                    if ad.field_name == ref_multi_attr_create.field_name
+                ),
+                None,
+            )
+            if attr_def is None:
+                raise CustomDrugAttrNotValid(
+                    f"Attribute with name '{ref_multi_attr_create.field_name}' is not supported in current drug dataset. Can not create custom drug."
+                )
+            for index, multiVal in enumerate(ref_multi_attr_create.value):
+                lov_item_query = select(DrugAttrFieldLovItem).where(
+                    and_(
+                        DrugAttrFieldLovItem.field_name == attr_def.field_name,
+                        DrugAttrFieldLovItem.value == multiVal,
+                    )
+                )
+                lov_item_res = await self.session.exec(lov_item_query)
+                lov_item = lov_item_res.one_or_none()
+                if lov_item is None:
+                    raise CustomDrugAttrNotValid(
+                        f"Value '{multiVal}' for ref/select attr with name '{ref_multi_attr_create.field_name}' is not a valid selection. Can not create custom drug."
+                    )
+                log.debug(("lov_item", type(lov_item), lov_item))
+                new_attr = DrugValMultiRef(
+                    drug_id=drug.id,
+                    field_name=attr_def.field_name,
+                    value_index=index,
+                    value=multiVal,
+                    lov_item=lov_item,
+                )
+                new_objects.append(new_attr)
+                drug.ref_attrs.append(new_attr)
+
+        # codes - drug code attr (e.g. atc code,pzn,...)
         code_defs = await drug_importer.get_code_definitions()
         for code_create in drug_create.codes:
             code_create: DrugCodeApi = code_create
@@ -263,6 +341,3 @@ class DrugCRUD(
         await self.session.commit()
         # await self.session.refresh(drug)
         return drug
-        ## YOU ARE HERE: get attr defintions, validate input, save to new_obnjects
-
-        # save all objects to db, return drug

@@ -1,4 +1,4 @@
-from typing import Dict, List, AsyncIterator, Literal
+from typing import Dict, List, AsyncIterator, Literal, Optional
 import traceback
 from pathlib import Path
 import datetime
@@ -39,17 +39,23 @@ class DrugDataSetImporterBase:
             dataset_source_name=self.dataset_name,
         )
 
-    async def get_attr_field_definitions(self) -> List[DrugAttrFieldDefinition]:
+    async def get_attr_field_definitions(
+        self, by_name: Optional[str] = None
+    ) -> List[DrugAttrFieldDefinition]:
         raise NotImplementedError()
 
-    async def get_attr_ref_field_definitions(self) -> List[DrugAttrFieldDefinition]:
+    async def get_attr_ref_field_definitions(
+        self, by_name: Optional[str] = None
+    ) -> List[DrugAttrFieldDefinition]:
         raise NotImplementedError()
 
-    async def get_attr_multi_field_definitions(self) -> List[DrugAttrFieldDefinition]:
+    async def get_attr_multi_field_definitions(
+        self, by_name: Optional[str] = None
+    ) -> List[DrugAttrFieldDefinition]:
         raise NotImplementedError()
 
     async def get_attr_multi_ref_field_definitions(
-        self,
+        self, by_name: Optional[str] = None
     ) -> List[DrugAttrFieldDefinition]:
         raise NotImplementedError()
 
