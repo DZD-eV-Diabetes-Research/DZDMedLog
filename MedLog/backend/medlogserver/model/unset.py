@@ -1,0 +1,2 @@
+class Unset:
+    pass

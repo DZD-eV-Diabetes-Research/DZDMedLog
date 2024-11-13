@@ -2,6 +2,7 @@ from typing import List, Literal, Dict, Union, Tuple, Annotated, Optional
 from pathlib import Path, PurePath
 import uuid
 import random
+import re
 import string
 import getversion
 import json
@@ -119,3 +120,68 @@ def path_is_parent(parent_path: Path | str, child_path: Path | str) -> bool:
     return os.path.commonpath([parent_path]) == os.path.commonpath(
         [parent_path, child_path]
     )
+
+
+class Unset:
+    pass
+
+
+def extract_bracket_values(input_string: str, count: int, default=Unset) -> Tuple[str]:
+    """
+    Extracts a specified number of values enclosed in square brackets from a given string.
+
+    This function searches for values within square brackets (`[...]`) in the input string and
+    returns a tuple containing the specified number of extracted values. If there are fewer values
+    found than the requested count, the function will either fill the remaining positions with a
+    provided default value or raise a `ValueError` if no default is given.
+
+    Parameters:
+    ----------
+    input_string : str
+        The string from which to extract values enclosed in square brackets.
+    count : int
+        The number of bracketed values to extract. If fewer values are found than this count and
+        no default value is provided, a `ValueError` is raised.
+    default_value : any, optional
+        The value to use for missing entries if the string contains fewer than the required count.
+        If `None` (default), an exception is raised if the count cannot be met.
+
+    Returns:
+    -------
+    tuple
+        A tuple containing exactly `count` values, with missing values filled by `default_value`
+        if specified.
+
+    Raises:
+    ------
+    ValueError
+        If `count` values cannot be found and `default_value` is not provided.
+
+    Examples:
+    --------
+    >>> extract_bracket_values("PACKAGE.CSV[ID]>[PRODUCTID]", 2)
+    ('ID', 'PRODUCTID')
+
+    >>> extract_bracket_values("PACKAGE.CSV[ID]", 2, default_value=None)
+    ('ID', None)
+
+    >>> extract_bracket_values("PACKAGE.CSV[ID]", 3, default_value="UNKNOWN")
+    ('ID', 'UNKNOWN', 'UNKNOWN')
+
+    >>> extract_bracket_values("PACKAGE.CSV[ID]", 3)
+    ValueError: Expected 3 values, but only found 1.
+    """
+    # Find all occurrences of values inside square brackets
+    matches = re.findall(r"\[([^\]]+)\]", input_string)
+
+    # Check if we have enough matches
+    if len(matches) < count:
+        if default != Unset:
+            # If not enough matches, extend with default value
+            matches.extend([default] * (count - len(matches)))
+        else:
+            # Raise an error if there are not enough matches and no default value
+            raise ValueError(f"Expected {count} values, but only found {len(matches)}.")
+
+    # Return the first `count` values as a tuple
+    return tuple(matches[:count])

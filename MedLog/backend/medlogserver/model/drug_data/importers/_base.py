@@ -81,10 +81,16 @@ class DrugDataSetImporterBase:
         if drug_dataset.dataset_version in [
             imported_ds.dataset_version for imported_ds in already_imported_datasets
         ]:
-            log.info(
-                f"[DRUG DATA IMPORT] Dataset '{drug_dataset.dataset_source_name}' with version '{drug_dataset.dataset_version}' already imported. Skip drug data import."
+            loaded_dataset = next(
+                imported_ds
+                for imported_ds in already_imported_datasets
+                if imported_ds.dataset_version == drug_dataset.dataset_version
             )
-            return
+            if loaded_dataset.import_status == "failed":
+                log.info(
+                    f"[DRUG DATA IMPORT] Dataset '{drug_dataset.dataset_source_name}' with version '{drug_dataset.dataset_version}' already imported. Skip drug data import."
+                )
+                return
         log.info(f"[DRUG DATA IMPORT] Start import of '{source_dir}'...")
         await self._set_dataset_version_status("running")
         try:
@@ -96,6 +102,8 @@ class DrugDataSetImporterBase:
             )
             log.error(tb)
             self._set_dataset_version_status(status="failed", error=tb)
+            log.info("")
+            raise e
             return
 
         await self._finish_import(source_dir=source_dir, version=version)

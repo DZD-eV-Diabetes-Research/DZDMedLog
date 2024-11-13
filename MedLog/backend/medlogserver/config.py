@@ -280,9 +280,11 @@ class Config(BaseSettings):
     )
 
     # Availabe modules live in MedLog/backend/medlogserver/model/drug_data/importers/__init__.py
-    DRUG_IMPORTER_PLUGIN: Literal["WidoGkvArzneimittelindex52"] = Field(
-        default="WidoGkvArzneimittelindex52",
-        description="Depending on the drug database that is used, we can define an importer. At the moment there is only an importer for the Wido GKV Arzneimittelindex",
+    DRUG_IMPORTER_PLUGIN: Literal[
+        "WidoGkvArzneimittelindex52", "MmmiPharmaindex1_32"
+    ] = Field(
+        default="MmmiPharmaindex1_32",
+        description="Depending on the drug database that is used, we can define an importer.",
     )
 
     DRUG_SEARCHENGINE_CLASS: Literal["GenericSQLDrugSearch"] = Field(

@@ -562,4 +562,106 @@ def enum_as_dict_keys():
     print(d)
 
 
-enum_as_dict_keys()
+def extract_sb_value():
+    import re
+
+    def extract_bracket_values(input_string, count, default=None) -> list[str]:
+
+        # Find all occurrences of values inside square brackets
+        matches = re.findall(r"\[([^\]]+)\]", input_string)
+
+        # Check if we have enough matches
+        if len(matches) < count:
+            if default is not None:
+                # If not enough matches, extend with default value
+                matches.extend([default] * (count - len(matches)))
+            else:
+                # Raise an error if there are not enough matches and no default value
+                raise ValueError(
+                    f"Expected {count} values, but only found {len(matches)}."
+                )
+
+        # Return the first `count` values as a tuple
+        return tuple(matches[:count])
+
+    # e.g. ARV_PACKAGEGROUP.CSV[PACKAGEID]/PACKAGE.CSV[ID]>[PRODUCTID]
+    # we need the first key for now. e.g. "PACKAGEID"
+    # Use regular expression to find the first occurrence of a value inside the square brackets
+    print(
+        extract_bracket_values(
+            "ARV_PACKAGEGROUP.CSV[PACKAGEID]/PACKAGE.CSV[ID]>[PRODUCTID]", 1
+        )
+    )
+    print(
+        extract_bracket_values(
+            "ARV_PACKAGEGROUP.CSV[PACKAGEID]/PACKAGE.CSV[ID]>[PRODUCTID]",
+            4,
+            default="bla",
+        )
+    )
+    print(
+        extract_bracket_values(
+            "ARV_PACKAGEGROUP.CSV[PACKAGEID]/PACKAGE.CSV[ID]>[PRODUCTID]",
+            4,
+        )
+    )
+
+
+def sqlmodel_emtpy_val():
+    import uuid
+    from sqlmodel import SQLModel, Field
+
+    class DrugVal(SQLModel, table=True):
+        __tablename__ = "drug_attr_val"
+
+        drug_id: uuid.UUID = Field(foreign_key="drug.id", primary_key=True)
+        field_name: str = Field(
+            primary_key=True, foreign_key="drug_attr_field_definition.field_name"
+        )
+        value: Optional[str] = Field(
+            default=None,
+            description="Generic storage of a value as string. Can be typed via the function in DrugAttrFieldDefinition.type",
+        )
+
+    d = DrugVal(field_name="Bla", value="1")
+    d2 = DrugVal()
+    d2.value = "Bla"
+    print(d)
+    print(d2)
+
+
+def nested_sqlmodel_obj_commit():
+    from pathlib import Path
+    from sqlmodel import Field, Session, SQLModel, create_engine, select, Relationship
+
+    class Parent(SQLModel, table=True):
+        name: str = Field(primary_key=True)
+        children: List["Child"] = Relationship(back_populates="parent")
+
+    class Child(SQLModel, table=True):
+        name: str = Field(primary_key=True)
+        parent_id: str = Field(foreign_key="parent.name")
+        parent: Parent = Relationship(back_populates="children")
+
+    dbpath = Path("/tmp/database.db")
+    dbpath.unlink(missing_ok=True)
+    sqlite_url = f"sqlite:///{dbpath}"
+
+    engine = create_engine(sqlite_url, echo=False)
+
+    def create_db_and_tables():
+        SQLModel.metadata.create_all(engine)
+
+    p = Parent(name="Freddy")
+    c = Child(name="Frederike")
+    p.children.append(c)
+    create_db_and_tables()
+    with Session(engine) as session:
+        session.add(p)
+        session.commit()
+    with Session(engine) as session:
+        res = session.exec(select(Parent))
+        print(res.one().children)
+
+
+nested_sqlmodel_obj_commit()
