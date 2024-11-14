@@ -21,6 +21,7 @@ from medlogserver.db._session import get_async_session_context
 
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.drug_attr import (
+    DrugModelTableBase,
     DrugVal,
     DrugValRef,
     DrugValMulti,
@@ -115,6 +116,9 @@ class SourceAttrMapping:
         return map[t]
 
 
+raise ValueError(
+    "YOU ARE HERE. Atm we are productID centric. but we actrually need to have a drug per package.csv. a product can have multiple packages. we need some rework here"
+)
 mmi_rohdaten_r3_mapping = [
     SourceAttrMapping("PACKAGE.CSV", "NAME", map2="trade_name"),
     SourceAttrMapping(
@@ -122,7 +126,7 @@ mmi_rohdaten_r3_mapping = [
         "ONMARKETDATE",
         map2="market_access_date",
         cast_func=lambda x: datetime.datetime.strptime(x, "%d.%m.%Y").date(),
-        productid_ref_path="PACKAGE.CSV[ID]",
+        productid_ref_path="PRODUCT.CSV[ID]",
     ),
     ## FileProductMapping(map2="market_exit_date"), # exited drugs are in an extra file :/ we will fix that later
     # codes
@@ -276,8 +280,8 @@ attr_definitions = [
         field_name_display="Verhütungsmittel",
         field_desc="Ist das Produkt ein Verhütungsmittel",
         type=ValueTypeCasting.BOOL,
-        optional=False,
-        default=False,
+        optional=True,
+        default=None,
         is_reference_list_field=False,
         is_multi_val_field=False,
         examples=[True, False],
@@ -288,8 +292,8 @@ attr_definitions = [
         field_name_display="Kosmetikum",
         field_desc="Ist das Produkt ein Kosmetikum",
         type=ValueTypeCasting.BOOL,
-        optional=False,
-        default=False,
+        optional=True,
+        default=None,
         is_reference_list_field=False,
         is_multi_val_field=False,
         examples=[True, False],
@@ -300,8 +304,8 @@ attr_definitions = [
         field_name_display="Nahrungsergänzungsmittel",
         field_desc="Ist das Produkt ein Nahrungsergänzungsmittel",
         type=ValueTypeCasting.BOOL,
-        optional=False,
-        default=False,
+        optional=True,
+        default=None,
         is_reference_list_field=False,
         is_multi_val_field=False,
         examples=[True, False],
@@ -312,8 +316,8 @@ attr_definitions = [
         field_name_display="Pflanzlich",
         field_desc="Ist das Produkt Pflanzlich",
         type=ValueTypeCasting.BOOL,
-        optional=False,
-        default=False,
+        optional=True,
+        default=None,
         is_reference_list_field=False,
         is_multi_val_field=False,
         examples=[True, False],
@@ -324,8 +328,8 @@ attr_definitions = [
         field_name_display="Generikum",
         field_desc="Ist das Produkt ein Generikum",
         type=ValueTypeCasting.BOOL,
-        optional=False,
-        default=False,
+        optional=True,
+        default=None,
         is_reference_list_field=False,
         is_multi_val_field=False,
         examples=[1, 0],
@@ -336,8 +340,8 @@ attr_definitions = [
         field_name_display="Homöopathisch",
         field_desc="Ist das Produkt Homöopathisch",
         type=ValueTypeCasting.BOOL,
-        optional=False,
-        default=False,
+        optional=True,
+        default=None,
         is_reference_list_field=False,
         is_multi_val_field=False,
         examples=[1, 0],
@@ -622,7 +626,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
     ]:
 
         log.info("[DRUG DATA IMPORT] Parse drug data...")
-        drug_data: Dict[str, DrugData] = {}
+        drug_data_objs: Dict[str, DrugData] = {}
         multi_val_indexes: Dict[str, int] = {}
         #
         # Parse mapped attrs
@@ -634,9 +638,20 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             async for productid, drug_val in self._parse_drug_attr_data(
                 mapping, drug_dataset_version
             ):
-                if productid not in drug_data:
-                    drug_data[productid] = DrugData()
-                if isinstance(drug_val, (DrugValMulti | DrugValMultiRef)):
+                if (
+                    isinstance(drug_val, DrugModelTableBase) and drug_val.value in [""]
+                ) or drug_val in [""]:
+                    # clean empty string to 'None's
+                    drug_val.value = None
+
+                if productid not in drug_data_objs:
+                    drug_data_objs[productid] = DrugData(
+                        source_dataset=drug_dataset_version
+                    )
+                if (
+                    isinstance(drug_val, (DrugValMulti | DrugValMultiRef))
+                    and drug_val is not None
+                ):
                     # we need to give multi vals a sequence
                     if mapping.drug_attr_name not in multi_val_indexes:
                         multi_val_indexes[mapping.drug_attr_name] = 0
@@ -644,22 +659,25 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     multi_val_indexes[mapping.drug_attr_name] += 1
                 # Attch the attr/val-objects to a drug object
                 if isinstance(drug_val, DrugVal):
-                    drug_data[productid].attrs.append(drug_val)
+                    drug_data_objs[productid].attrs.append(drug_val)
                 elif isinstance(drug_val, DrugValRef):
-                    drug_data[productid].ref_attrs.append(drug_val)
-                elif isinstance(drug_val, DrugValMulti):
-                    drug_data[productid].multi_attrs.append(drug_val)
-                elif isinstance(drug_val, DrugValMultiRef):
-                    drug_data[productid].ref_multi_attrs.append(drug_val)
-                elif isinstance(drug_val, str):
+                    drug_data_objs[productid].ref_attrs.append(drug_val)
+                elif isinstance(drug_val, DrugValMulti) and drug_val is not None:
+                    drug_data_objs[productid].multi_attrs.append(drug_val)
+                elif isinstance(drug_val, DrugValMultiRef) and drug_val is not None:
+                    drug_data_objs[productid].ref_multi_attrs.append(drug_val)
+                else:
                     # root attrs
-                    setattr(drug_data[productid], mapping.drug_attr_name, drug_val)
-
+                    setattr(drug_data_objs[productid], mapping.drug_attr_name, drug_val)
         #
         # Parse Drug Codes
         #
         log.warning("Todo: Parse Drug Codes")
-        return list(drug_data.values())
+        for productid, drug_data_o in drug_data_objs.items():
+            if drug_data_o.trade_name is None:
+                print("MIST", productid, drug_data_o)
+                exit()
+        return list(drug_data_objs.values())
 
     async def _parse_drug_attr_data(
         self,
@@ -668,14 +686,14 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
     ) -> AsyncIterator[
         Tuple[str, str | DrugVal | DrugValRef | DrugValMulti | DrugValMultiRef]
     ]:
-        raise NotImplementedError(
-            "You are here. You need to parse SourceAttrMapping.cast_func into account. We dont use it yet, which lead to impoer errors"
-        )
+        # raise NotImplementedError(
+        #    "You are here. You need to parse SourceAttrMapping.cast_func into account. We dont use it yet, which lead to impoer errors"
+        # )
         source_file = Path(self.source_dir, attr_mapping.filename)
         with open(source_file, "rt") as src_file:
             csvreader = csv.reader(src_file, delimiter=";")
             headers: List[str] = next(csvreader)
-            log.info(("attr_mapping", attr_mapping))
+            # log.info(("attr_mapping", attr_mapping))
             value_col_index = headers.index(attr_mapping.colname)
             key_col = "PRODUCTID"
             if attr_mapping.productid_ref_path is not None:
@@ -683,7 +701,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 # we need the first key for now. e.g. "PACKAGEID"
                 # Use regular expression to find the first occurrence of a value inside the square brackets
                 key_col = extract_bracket_values(attr_mapping.productid_ref_path, 1)[0]
-
+            log.info(("key_col", key_col, source_file, headers))
             key_col_index = headers.index(key_col)
             for row in csvreader:
                 raw_val = row[value_col_index]
@@ -694,9 +712,12 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     productid = await self._product_id_path_lookup(
                         key_val, attr_mapping.productid_ref_path
                     )
-
+                if attr_mapping.cast_func is not None:
+                    drug_attr_value = attr_mapping.cast_func(raw_val)
+                else:
+                    drug_attr_value = raw_val
                 if attr_mapping.drug_attr_type_name == "root":
-                    yield (key_val, raw_val)
+                    yield (key_val, drug_attr_value)
                     continue
                 DrugValModel: (
                     Type[DrugVal]
@@ -704,8 +725,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     | Type[DrugValMulti]
                     | Type[DrugValMultiRef]
                 ) = attr_mapping.drug_attr_type
+
                 valInstance = DrugValModel(
-                    field_name=attr_mapping.drug_attr_name, value=raw_val
+                    field_name=attr_mapping.drug_attr_name, value=drug_attr_value
                 )
 
                 yield (productid, valInstance)
@@ -792,7 +814,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
     async def commit(self, objs):
         async with get_async_session_context() as session:
             for obj in objs:
-                log.info(("obj", obj))
+                # log.info(("obj", obj))
                 session.add(obj)
             log.info(
                 "[DRUG DATA IMPORT] Commit Drug data to database. This may take a while..."
