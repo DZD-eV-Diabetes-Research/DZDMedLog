@@ -69,11 +69,11 @@ class DrugRefAttrLovFieldDefinitionContainer:
 class SourceAttrMapping:
     filename: str
     colname: str
-    map2: str = None
-    cast_func: Optional[Callable] = None
-    productid_ref_path: Optional[str] = (
+    packageid_path: Optional[str] = (
         None  # if a mmi source table has no direkt product id we need path to map the product id. must start with  a column from the "filename" csv file and end with PRODUCT ID. e.g. "ITEM_ATC.CSV[ITEMID]/ITEM.CSV[ID]>[PRODUCTID]"
     )
+    map2: str = None
+    cast_func: Optional[Callable] = None
 
     @property
     def drug_attr_name(self) -> str:
@@ -116,115 +116,150 @@ class SourceAttrMapping:
         return map[t]
 
 
-raise ValueError(
-    "YOU ARE HERE. Atm we are productID centric. but we actrually need to have a drug per package.csv. a product can have multiple packages. we need some rework here"
-)
-mmi_rohdaten_r3_mapping = [
-    SourceAttrMapping("PACKAGE.CSV", "NAME", map2="trade_name"),
+mmi_rohdaten_r3_mappings = [
     SourceAttrMapping(
-        "PRODUCT.CSV",
+        "PACKAGE.CSV",
+        "NAME",
+        packageid_path="PACKAGE.CSV[ID]",
+        map2="trade_name",
+    ),
+    SourceAttrMapping(
+        "PACKAGE.CSV",
         "ONMARKETDATE",
+        packageid_path="PACKAGE.CSV[ID]",
         map2="market_access_date",
         cast_func=lambda x: datetime.datetime.strptime(x, "%d.%m.%Y").date(),
-        productid_ref_path="PRODUCT.CSV[ID]",
     ),
     ## FileProductMapping(map2="market_exit_date"), # exited drugs are in an extra file :/ we will fix that later
     # codes
-    SourceAttrMapping("PACKAGE.CSV", "PZN", map2="codes.PZN"),
-    SourceAttrMapping("PRODUCT.CSV", "ID", map2="codes.mmi_productid"),
-    SourceAttrMapping("PRODUCT_ICD.CSV", "ICD-10", map2="codes.icd10"),
+    SourceAttrMapping(
+        "PACKAGE.CSV",
+        "PZN",
+        packageid_path="PACKAGE.CSV[ID]",
+        map2="codes.PZN",
+    ),
+    SourceAttrMapping(
+        "PACKAGE.CSV",
+        "PRODUCTID",
+        packageid_path="PACKAGE.CSV[ID]",
+        map2="codes.MMIP",
+    ),
     SourceAttrMapping(
         "ITEM_ATC.CSV",
         "ATCCODE",
+        packageid_path="ITEM_ATC.CSV[ITEMID]/ITEM.CSV[ID]>[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",
         map2="codes.ATC",
-        productid_ref_path="ITEM_ATC.CSV[ITEMID]/ITEM.CSV[ID]>[PRODUCTID]",
     ),
     # attrs
     SourceAttrMapping(
         "ARV_PACKAGEGROUP.CSV",
         "DDDAMOUNT",
+        packageid_path="ARV_PACKAGEGROUP.CSV[PACKAGEID]",
         map2="attrs.ddd",
-        productid_ref_path="ARV_PACKAGEGROUP.CSV[PACKAGEID]/PACKAGE.CSV[ID]>[PRODUCTID]",
+    ),
+    SourceAttrMapping(
+        "PACKAGE.CSV",
+        "AMOUNTTEXT",
+        packageid_path="PACKAGE.CSV[ID]",
+        map2="attrs.amount",
     ),
     SourceAttrMapping(
         "PRODUCT_FLAG.CSV",
         "CONTRACEPTIVE_FLAG",
+        packageid_path="PRODUCT_FLAG.CSV[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",
         map2="attrs.ist_verhuetungsmittel",
     ),
     SourceAttrMapping(
         "PRODUCT_FLAG.CSV",
         "COSMETICS_FLAG",
+        packageid_path="PRODUCT_FLAG.CSV[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",
         map2="attrs.ist_kosmetikum",
     ),
     SourceAttrMapping(
         "PRODUCT_FLAG.CSV",
         "DIETARYSUPPLEMENT_FLAG",
+        packageid_path="PRODUCT_FLAG.CSV[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",
         map2="attrs.ist_nahrungsergaenzungsmittel",
     ),
     SourceAttrMapping(
         "PRODUCT_FLAG.CSV",
         "HERBAL_FLAG",
+        packageid_path="PRODUCT_FLAG.CSV[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",
         map2="attrs.ist_pflanzlich",
     ),
     SourceAttrMapping(
         "PRODUCT_FLAG.CSV",
         "GENERIC_FLAG",
+        packageid_path="PRODUCT_FLAG.CSV[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",
         map2="attrs.ist_generikum",
     ),
     SourceAttrMapping(
         "PRODUCT_FLAG.CSV",
         "HOMOEOPATHIC_FLAG",
+        packageid_path="PRODUCT_FLAG.CSV[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",
         map2="attrs.ist_homoeopathisch",
     ),
     # ref attrs
     SourceAttrMapping(
         "PACKAGE.CSV",
         "IFAPHARMFORMCODE",
+        packageid_path="PACKAGE.CSV[ID]",
         map2="ref_attrs.darreichungsform",  # Im Vertrieb, Rückruf,... catalog ref id 109
     ),
     SourceAttrMapping(
         "ITEM.CSV",
         "ITEMROACODE",
+        packageid_path="ITEM.CSV[ID]>[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",
         map2="ref_attrs.applikationsart",  # Im Vertrieb, Rückruf,... catalog ref id 123
     ),
     SourceAttrMapping(
         "PACKAGE.CSV",
         "SALESSTATUSCODE",
+        packageid_path="PACKAGE.CSV[ID]",
         map2="ref_attrs.vertriebsstatus",  # Im Vertrieb, Rückruf,... catalog ref id 116
     ),
     SourceAttrMapping(
         "PACKAGE.CSV",
         "PACKAGENORMSIZECODE",
+        packageid_path="PACKAGE.CSV[ID]",
         map2="ref_attrs.normgroesse",  # N0, N1,... catalog ref id 117
     ),
     SourceAttrMapping(
         "PRODUCT.CSV",
         "DISPENSINGTYPECODE",
+        packageid_path="PRODUCT.CSV[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",
         map2="ref_attrs.abgabestatus",  # rezeptpflichtig, apothenkenpflichtig,... catalog ref id 119
-        productid_ref_path="PACKAGE.CSV[ID]",
     ),
     SourceAttrMapping(
         "PRODUCT.CSV",
         "PRODUCTFOODTYPECODE",
+        packageid_path="PRODUCT.CSV[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",
         map2="ref_attrs.lebensmittel",  # ja, nein, sonstiges ,... catalog ref id 205
-        productid_ref_path="PACKAGE.CSV[ID]",
     ),
     SourceAttrMapping(
         "PRODUCT.CSV",
         "PRODUCTDIETETICSTYPECODE",
+        packageid_path="PRODUCT.CSV[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",
         map2="ref_attrs.diaetetikum",  # ja, nein, sonstiges ,... catalog ref id 206
-        productid_ref_path="PACKAGE.CSV[ID]",
     ),
     SourceAttrMapping(
         "PRODUCT_COMPANY.CSV",
         "COMPANYID",
+        packageid_path="PRODUCT_COMPANY.CSV[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",
         map2="ref_attrs.hersteller",
     ),
     # multi ref attrs
     SourceAttrMapping(
         "PRODUCT_KEYWORD.CSV",
         "CODE",
+        packageid_path="PRODUCT_KEYWORD.CSV[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",
         map2="ref_multi_attrs.keywords",  # no catalog id. seperate csv named KEYWORD.CSV
+    ),
+    SourceAttrMapping(
+        "PRODUCT_ICD.CSV",
+        "ICDCODE",
+        map2="ref_multi_attrs.icd10",
+        packageid_path="PRODUCT_ICD.CSV[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]",  # icd10 code,... catalog ref id 18
     ),
 ]
 
@@ -245,20 +280,12 @@ code_attr_definitions = [
         unique=True,
     ),
     DrugCodeSystem(
-        id="ICD10",
-        name="ICD-10",
-        country="International",
-        desc="Einordnung der Präparate nach ICD-10-Schlüsseln",
-        optional=False,
-        unique=True,
-    ),
-    DrugCodeSystem(
-        id="MMI",
+        id="MMIP",
         name="MMI Product ID",
         country="Internal",
         desc="Interne 'PRODUCTID' des Vidal MMI Pharmindex",
         optional=False,
-        unique=True,
+        unique=False,
     ),
 ]
 importername = "MmmiPharmaindex1_32"
@@ -272,6 +299,18 @@ attr_definitions = [
         is_reference_list_field=False,
         is_multi_val_field=False,
         examples=[3],
+        importer_name=importername,
+        searchable=False,
+    ),
+    DrugAttrFieldDefinition(
+        field_name="amount",
+        field_name_display="Menge",
+        field_desc="Menge in der Produktpackung",
+        type=ValueTypeCasting.STR,
+        optional=True,
+        is_reference_list_field=False,
+        is_multi_val_field=False,
+        examples=["3.5 g", "2x100 ml", "60 st"],
         importer_name=importername,
         searchable=False,
     ),
@@ -527,6 +566,24 @@ multi_ref_attr_definitions: List[DrugRefAttrLovFieldDefinitionContainer] = [
             filter_val=None,
         ),
     ),
+    DrugRefAttrLovFieldDefinitionContainer(
+        field=DrugAttrFieldDefinition(
+            field_name="icd10",
+            field_name_display="ICD-10 Codes",
+            field_desc="Einordnung der Präparate nach ICD-10-Schlüssel",
+            type=ValueTypeCasting.STR,
+            optional=False,
+            # default=False,
+            is_reference_list_field=True,
+            is_multi_val_field=True,
+            examples=[["A01.0 M01.39", "B44.8 K23.8"], ["F41.1"]],
+            importer_name=importername,
+            searchable=True,
+        ),
+        lov=MmiPiDrugRefAttrFieldLovImportDefinition(
+            filter_val="18",
+        ),
+    ),
 ]
 
 
@@ -632,10 +689,10 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         # Parse mapped attrs
         #
         attr_mappings = [
-            m for m in mmi_rohdaten_r3_mapping if m.drug_attr_type_name != "codes"
+            m for m in mmi_rohdaten_r3_mappings if m.drug_attr_type_name != "codes"
         ]
         for mapping in attr_mappings:
-            async for productid, drug_val in self._parse_drug_attr_data(
+            async for packageid, drug_val in self._parse_drug_attr_data(
                 mapping, drug_dataset_version
             ):
                 if (
@@ -644,8 +701,8 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     # clean empty string to 'None's
                     drug_val.value = None
 
-                if productid not in drug_data_objs:
-                    drug_data_objs[productid] = DrugData(
+                if packageid not in drug_data_objs:
+                    drug_data_objs[packageid] = DrugData(
                         source_dataset=drug_dataset_version
                     )
                 if (
@@ -659,23 +716,23 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     multi_val_indexes[mapping.drug_attr_name] += 1
                 # Attch the attr/val-objects to a drug object
                 if isinstance(drug_val, DrugVal):
-                    drug_data_objs[productid].attrs.append(drug_val)
+                    drug_data_objs[packageid].attrs.append(drug_val)
                 elif isinstance(drug_val, DrugValRef):
-                    drug_data_objs[productid].ref_attrs.append(drug_val)
+                    drug_data_objs[packageid].ref_attrs.append(drug_val)
                 elif isinstance(drug_val, DrugValMulti) and drug_val is not None:
-                    drug_data_objs[productid].multi_attrs.append(drug_val)
+                    drug_data_objs[packageid].multi_attrs.append(drug_val)
                 elif isinstance(drug_val, DrugValMultiRef) and drug_val is not None:
-                    drug_data_objs[productid].ref_multi_attrs.append(drug_val)
+                    drug_data_objs[packageid].ref_multi_attrs.append(drug_val)
                 else:
                     # root attrs
-                    setattr(drug_data_objs[productid], mapping.drug_attr_name, drug_val)
+                    setattr(drug_data_objs[packageid], mapping.drug_attr_name, drug_val)
         #
         # Parse Drug Codes
         #
         log.warning("Todo: Parse Drug Codes")
-        for productid, drug_data_o in drug_data_objs.items():
+        for packageid, drug_data_o in drug_data_objs.items():
             if drug_data_o.trade_name is None:
-                print("MIST", productid, drug_data_o)
+                print("MIST", packageid, drug_data_o)
                 exit()
         return list(drug_data_objs.values())
 
@@ -695,22 +752,23 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             headers: List[str] = next(csvreader)
             # log.info(("attr_mapping", attr_mapping))
             value_col_index = headers.index(attr_mapping.colname)
-            key_col = "PRODUCTID"
-            if attr_mapping.productid_ref_path is not None:
+            key_col = "PACKAGEID"
+            if attr_mapping.packageid_path is not None:
                 # e.g. ARV_PACKAGEGROUP.CSV[PACKAGEID]/PACKAGE.CSV[ID]>[PRODUCTID]
                 # we need the first key for now. e.g. "PACKAGEID"
                 # Use regular expression to find the first occurrence of a value inside the square brackets
-                key_col = extract_bracket_values(attr_mapping.productid_ref_path, 1)[0]
+                # and therefore the root id column
+                key_col = extract_bracket_values(attr_mapping.packageid_path, 1)[0]
             log.info(("key_col", key_col, source_file, headers))
             key_col_index = headers.index(key_col)
             for row in csvreader:
                 raw_val = row[value_col_index]
                 key_val = row[key_col_index]
-                productid = key_val
-                if attr_mapping.productid_ref_path:
+                packageid = key_val
+                if attr_mapping.packageid_path:
                     # we need to hop some multiple CSVs to lookup the referenced productid
-                    productid = await self._product_id_path_lookup(
-                        key_val, attr_mapping.productid_ref_path
+                    packageid = await self._packageid_lookup_by_path(
+                        key_val, attr_mapping.packageid_path
                     )
                 if attr_mapping.cast_func is not None:
                     drug_attr_value = attr_mapping.cast_func(raw_val)
@@ -730,23 +788,25 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     field_name=attr_mapping.drug_attr_name, value=drug_attr_value
                 )
 
-                yield (productid, valInstance)
+                yield (packageid, valInstance)
 
-    async def _product_id_path_lookup(self, start_key_val: str, key_path: str) -> str:
+    async def _packageid_lookup_by_path(
+        self, row: List[str], row_headers: List[str], key_path: str
+    ) -> str:
         """
-        Recursively traverses CSV files to find and return the `PRODUCTID` associated
+        Recursively traverses CSV files to find and return the `PACKAGEID` associated
         with a given starting key value. This function follows a path defined in `key_path`
-        (`key_path` itself comes from SourceAttrMapping.productid_ref_path)
+        (`key_path` itself comes from SourceAttrMapping.packageid_path)
         through multiple CSV files, where each segment of the path specifies a CSV file,
         the lookup key, and target key within that file.
 
         Args:
-            start_key_val (str): The initial key value to start the lookup from, found
-                                in the first file segment in `key_path`.
+            row (List[str]): The CSV row to start the lookup from
+            row_headers (List[str]): The header for the row to identify columns
             key_path (str): A string defining the path of files and keys to follow for
-                            retrieving the `PRODUCTID`. The path segments are in the format
+                            retrieving the `PACKAGEID`. The path segments are in the format
                             `<filename>[<entry_column>]/<next_filename>[<target_column>]...`
-                            and should end with `[PRODUCTID]` in the final segment,
+                            and should end with the package id (usally `[PACKAGEID]` or `[ID]` in the final segment,
                             indicating the desired field.
 
         Raises:
@@ -756,55 +816,61 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         within a path segment.
 
         Returns:
-            str: The `PRODUCTID` linked to the initial `start_key_val`, based on the
+            str: The `PACKAGEID` linked to the initial `start_key_val`, based on the
                 specified `key_path`.
 
         Example:
-            # Suppose key_path = "ARV_PACKAGEGROUP.CSV[PACKAGEID]/PACKAGE.CSV[ID]>[PRODUCTID]"
+            # Suppose key_path = "PRODUCT_FLAG.CSV[PRODUCTID]/PACKAGE.CSV[PRODUCTID]>[ID]"
             # This will:
-            # 1. Look up `ID` in `PACKAGE.CSV` for `start_key_val`.
-            # 2. Finally, return the `PRODUCTID` associated with that `ID`.
+            # 1. Look up `PRODUCTID` in `PRODUCT_FLAG.CSV` for the row.
+            # 2. Finally, return the PackageID column `ID` from `PACKAGE.CSV`
         """
         # e.g. key_path="ARV_PACKAGEGROUP.CSV[PACKAGEID]/PACKAGE.CSV[ID]>[PRODUCTID]"
         # ToDo: This function does way too much at once at low efficiency (which also is the story of this complete class :D ). But before optimizing here, rethink the whole importer architecture
-        try:
-            if ">" not in key_path.split("/")[0]:
-                # we are at root level of the path
-                # as the start_key_val is already given we dont need the root fragment anymore
-                if len(key_path.split()) == 1:
-                    #  the product key ist just in another named column e.g. "PRODUCT.CSV[ID]" we just need to terurn the value
-                    return start_key_val
-                key_path = key_path.split("/")[1:]
-        except:
-            raise ValueError(
-                f"Could not resolve 'SourceAttrMapping.productid_ref_path'. Expected path with at least 2 nodes seperated by a '/'. Got '{key_path}'"
-            )
+
         next_path_fragment = key_path.split("/")[0]
         file_name = next_path_fragment.split("[")[0]
         file_path = Path(self.source_dir, file_name)
+        is_last_fragment = key_path.split("/") == 1
         try:
             entry_col, target_col = extract_bracket_values(next_path_fragment, count=2)
         except ValueError as e:
-            raise ValueError(
-                f"Could not resolve 'SourceAttrMapping.productid_ref_path' fragment '{next_path_fragment}'. Expected path with at least 2 column names in brackets (e.g. 'PACKAGE.CSV[ID]>[PRODUCTID]'). Got '{next_path_fragment}'"
-            )
+            if is_last_fragment:
+                # Everything is fine. we just have a single node key path, whcih means the target column is in the entry file
+                entry_col = None
+                target_col = extract_bracket_values(next_path_fragment, count=1)
+            else:
+                raise ValueError(
+                    f"Could not resolve 'SourceAttrMapping.productid_ref_path' fragment '{next_path_fragment}'. Expected path with at least 2 column names in brackets (e.g. 'PACKAGE.CSV[ID]>[PRODUCTID]'). Got '{next_path_fragment}'"
+                )
+        entry_col_index = None
+        if entry_col:
+            entry_col_index = row_headers.index(entry_col)
+        target_col_index = row_headers.index(target_col)
+
+        if entry_col is None:
+            # we are in the target file/row because we have only a tragte col but no entry col
+            # we can just return the tagrget col value and we are done here
+            return row[target_col_index]
+
         target_key_val = None
+        entry_key_val = row[entry_col_index]
         with open(file_path, "rt") as file:
             csvreader = csv.reader(file, delimiter=";")
             headers = next(csvreader)
             entry_col_index = headers.index(entry_col)
             target_col_index = headers.index(target_col)
             for row in csvreader:
-                if row[entry_col_index] == start_key_val:
+                if row[entry_col_index] == entry_key_val:
                     target_key_val = row[target_col_index]
                     break
         if target_key_val is None:
             raise ValueError(
-                f"Could not find value '{start_key_val}' in column '{entry_col}' in csv-file '{file_path.resolve()}'"
+                f"Could not find value '{entry_key_val}' in column '{entry_col}' in csv-file '{file_path.resolve()}'"
             )
-        if target_col != "PRODUCTID":
-            # we need to go deeper as we dont have the productid yet
-            return await self._product_id_path_lookup(
+        if not is_last_fragment:
+            # we need to go deeper as we dont have the final packageid yet
+            return await self._packageid_lookup_by_path(
                 row[target_col_index], key_path=key_path.split("/")[1:]
             )
         else:
