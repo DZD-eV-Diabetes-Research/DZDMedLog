@@ -666,9 +666,6 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
     async def run_import(self, source_dir: Path, version: str):
         # generate schema definitions; fields,lov-defintions,...
-        raise NotImplementedError(
-            "You are here monday-tim. proto done but some values are missing in db and some value not bubling up the api. its still a mess, sorry man, cheers friday-tim :)"
-        )
         log.info("[DRUG DATA IMPORT] Parse metadata...")
         all_objs = []
         drug_dataset = await self._ensure_drug_dataset_version()
