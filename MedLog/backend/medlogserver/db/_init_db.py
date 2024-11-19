@@ -141,7 +141,7 @@ async def provision_drug_data():
 
     im = DRUG_IMPORTER()
     log.warning(
-        "TODO: Hardcoded version 23 for drug import at 'DZDMedLog/MedLog/backend/medlogserver/db/_init_db.py' must be gatherd from the file."
+        "TODO: Hardcoded version 1 for drug import at 'DZDMedLog/MedLog/backend/medlogserver/db/_init_db.py' must be gatherd from the file."
     )
     await im._run_import(
         source_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR, version="1"

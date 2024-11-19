@@ -31,7 +31,7 @@ class DrugMultiValApiCreate(DrugModelTableBase, table=False):
         primary_key=True,
         foreign_key="Name of the attribute. Available field_names can be retrieved from REST API Endpoint '/v2/drug/field_def' ",
     )
-    value: Optional[List[str]] = Field(
+    values: Optional[List[str]] = Field(
         default=None,
         description="Value of the drug attribute",
     )
@@ -78,7 +78,7 @@ class DrugValRef(DrugModelTableBase, table=True):
     lov_item: DrugAttrFieldLovItem = Relationship(
         sa_relationship_kwargs={"lazy": "selectin"}
     )
-    drug: "DrugData" = Relationship(back_populates="ref_attrs")
+    drug: "DrugData" = Relationship(back_populates="attrs_ref")
 
 
 class DrugValMulti(DrugModelTableBase, table=True):
@@ -94,11 +94,11 @@ class DrugValMulti(DrugModelTableBase, table=True):
         description="Generic storage of multiple value as list of string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
     field_definition: DrugAttrFieldDefinition = Relationship()
-    drug: "DrugData" = Relationship(back_populates="multi_attrs")
+    drug: "DrugData" = Relationship(back_populates="attrs_multi")
 
 
 class DrugValMultiRef(DrugModelTableBase, table=True):
-    __tablename__ = "drug_attr_ref_multi_val"
+    __tablename__ = "drug_attr_multi_ref_val"
     __table_args__ = (
         ForeignKeyConstraint(
             name="composite_foreign_key_drug_ref_value_obj",
@@ -125,13 +125,13 @@ class DrugValMultiRef(DrugModelTableBase, table=True):
     lov_item: DrugAttrFieldLovItem = Relationship(
         sa_relationship_kwargs={"lazy": "selectin"}
     )
-    drug: "DrugData" = Relationship(back_populates="ref_multi_attrs")
+    drug: "DrugData" = Relationship(back_populates="attrs_multi_ref")
 
 
 from pydantic import BaseModel
 
 
-class DrugRefAttrApiRead(BaseModel):
+class DrugAttrRefApiRead(BaseModel):
     value: str | int | float | bool
     display: str
     ref_list_path: str

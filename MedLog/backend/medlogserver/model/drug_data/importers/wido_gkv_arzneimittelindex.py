@@ -60,12 +60,12 @@ stamm_col_definitions = [
     StammCol("indgr", map2="attr.indikationsgruppe"),
     StammCol("pzn", map2="code.PZN"),
     StammCol("name", map2="trade_name"),
-    StammCol("hersteller_code", map2="ref_attr.hersteller"),
-    StammCol("darrform", map2="ref_attr.darreichungsform"),
-    StammCol("zuzahlstufe", map2="ref_attr.normpackungsgroesse"),
+    StammCol("hersteller_code", map2="attr_ref.hersteller"),
+    StammCol("darrform", map2="attr_ref.darreichungsform"),
+    StammCol("zuzahlstufe", map2="attr_ref.normpackungsgroesse"),
     StammCol("packgroesse", map2="attr.packgroesse"),
     StammCol("dddpk", map2="attr.ddd"),
-    StammCol("apopflicht", map2="ref_attr.apopflicht"),
+    StammCol("apopflicht", map2="attr_ref.apopflicht"),
     StammCol("preisart_alt", map2=None),
     StammCol("preisart_neu", map2=None),
     StammCol("preis_alt", map2=None),
@@ -119,7 +119,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
         self.source_dir = None
         self.version = None
         self._attr_definitons = None
-        self._ref_attr_definitions = None
+        self._attr_ref_definitions = None
         self._code_definitions = None
 
     async def get_attr_field_definitions(
@@ -138,7 +138,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
     async def get_attr_ref_field_definitions(
         self, by_name: Optional[str] = None
     ) -> List[DrugAttrFieldDefinition]:
-        field_def_containers = await self._get_ref_attr_definitons()
+        field_def_containers = await self._get_attr_ref_definitons()
         if by_name:
             return [
                 field_cont.field
@@ -199,7 +199,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
         all_objs = []
         drug_dataset = await self._ensure_drug_dataset_version()
         # generate list of values
-        lov_field_objects = await self._get_ref_attr_definitons()
+        lov_field_objects = await self._get_attr_ref_definitons()
         for field_name, lov_field_obj in lov_field_objects.items():
             all_objs.extend(
                 await self._generate_lov_items(
@@ -255,7 +255,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
             if field_def.pre_parser and row_val:
                 row_val = field_def.pre_parser.value(row_val)
             return DrugVal(drug_id=parent_drug.id, field_name=field_name, value=row_val)
-        elif field_type == "ref_attr":
+        elif field_type == "attr_ref":
             field_defs = await self.get_attr_ref_field_definitions(by_name=field_name)
             field_def: DrugAttrFieldDefinition = field_defs[0]
             if field_def.pre_parser:
@@ -340,11 +340,11 @@ class WidoAiImporter52(DrugDataSetImporterBase):
         #
         return self._attr_definitons
 
-    async def _get_ref_attr_definitons(
+    async def _get_attr_ref_definitons(
         self,
     ) -> Dict[str, DrugAttrLovFieldDefinitionContainer]:
-        if self._ref_attr_definitions is not None:
-            return self._ref_attr_definitions
+        if self._attr_ref_definitions is not None:
+            return self._attr_ref_definitions
 
         fields = {}
         fields["darreichungsform"] = DrugAttrLovFieldDefinitionContainer(
@@ -445,7 +445,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
             ),
             lov=apopflicht_values,
         )
-        self._ref_attr_definitions = fields
+        self._attr_ref_definitions = fields
         return fields
 
     async def _generate_lov_items(

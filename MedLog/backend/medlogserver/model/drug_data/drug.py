@@ -30,9 +30,9 @@ class DrugCustomCreate(DrugModelTableBase, table=False):
         default=None, description="Additional notes for the custom drug."
     )
     attrs: Optional[List[DrugValApiCreate]] = Field(default_factory=list)
-    multi_attrs: Optional[List[DrugMultiValApiCreate]] = Field(default_factory=list)
-    ref_attrs: Optional[List[DrugValApiCreate]] = Field(default_factory=list)
-    ref_multi_attrs: Optional[List[DrugMultiValApiCreate]] = Field(default_factory=list)
+    attrs_multi: Optional[List[DrugMultiValApiCreate]] = Field(default_factory=list)
+    attrs_ref: Optional[List[DrugValApiCreate]] = Field(default_factory=list)
+    attrs_multi_ref: Optional[List[DrugMultiValApiCreate]] = Field(default_factory=list)
     codes: Optional[List[DrugCodeApi]] = Field(default_factory=list)
 
 
@@ -63,17 +63,17 @@ class DrugData(DrugModelTableBase, table=True):
         sa_relationship_kwargs={"lazy": "selectin"},
         cascade_delete=True,
     )
-    ref_attrs: List[DrugValRef] = Relationship(
+    attrs_ref: List[DrugValRef] = Relationship(
         back_populates="drug",
         sa_relationship_kwargs={"lazy": "selectin"},
         cascade_delete=True,
     )
-    multi_attrs: List[DrugValMulti] = Relationship(
+    attrs_multi: List[DrugValMulti] = Relationship(
         back_populates="drug",
         sa_relationship_kwargs={"lazy": "selectin"},
         cascade_delete=True,
     )
-    ref_multi_attrs: List[DrugValMultiRef] = Relationship(
+    attrs_multi_ref: List[DrugValMultiRef] = Relationship(
         back_populates="drug",
         sa_relationship_kwargs={"lazy": "selectin"},
         cascade_delete=True,

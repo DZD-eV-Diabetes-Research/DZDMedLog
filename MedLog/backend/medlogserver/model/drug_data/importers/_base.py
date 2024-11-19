@@ -39,6 +39,19 @@ class DrugDataSetImporterBase:
             dataset_source_name=self.dataset_name,
         )
 
+    async def get_all_attr_field_definitions(
+        self,
+    ) -> Dict[
+        Literal["attrs", "attrs_ref", "attrs_multi", "attrs_multi_ref"],
+        List[DrugAttrFieldDefinition],
+    ]:
+        return {
+            "attrs": await self.get_attr_field_definitions(),
+            "attrs_ref": await self.get_attr_ref_field_definitions(),
+            "attrs_multi": await self.get_attr_multi_field_definitions(),
+            "attrs_multi_ref": await self.get_attr_multi_ref_field_definitions(),
+        }
+
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None
     ) -> List[DrugAttrFieldDefinition]:
@@ -86,7 +99,7 @@ class DrugDataSetImporterBase:
                 for imported_ds in already_imported_datasets
                 if imported_ds.dataset_version == drug_dataset.dataset_version
             )
-            if loaded_dataset.import_status == "failed":
+            if loaded_dataset.import_status != "failed":
                 log.info(
                     f"[DRUG DATA IMPORT] Dataset '{drug_dataset.dataset_source_name}' with version '{drug_dataset.dataset_version}' already imported. Skip drug data import."
                 )

@@ -35,7 +35,7 @@ class TaskBase:
             raise ValueError(
                 f"Task '{self.__class__.__name__}' can not run in context of a job, as no job was given on initilization."
             )
-        log.debug(f"Run job: {self.job.task_name}")
+        # log.debug(f"Run job: {self.job.task_name}")
         self.job.run_started_at = datetime.datetime.now(tz=datetime.UTC)
         self.job = await self._update_job(self.job)
         error = None

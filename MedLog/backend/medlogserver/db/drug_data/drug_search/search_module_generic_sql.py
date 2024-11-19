@@ -90,7 +90,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         self.current_dataset_version: Optional[DrugDataSetVersion] = None
         self.custom_drugs_dataset_version: Optional[DrugDataSetVersion] = None
         self._drug_attr_field_definitions: List[DrugAttrFieldDefinition] | None = None
-        self._drug_ref_attr_field_definitions: List[DrugAttrFieldDefinition] | None = (
+        self._drug_attr_ref_field_definitions: List[DrugAttrFieldDefinition] | None = (
             None
         )
 
@@ -195,12 +195,12 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             )
         return self._drug_attr_field_definitions
 
-    async def _get_drug_ref_attr_definitions_fields(self):
-        if self._drug_ref_attr_field_definitions is None:
-            self._drug_ref_attr_field_definitions = (
+    async def _get_drug_attr_ref_definitions_fields(self):
+        if self._drug_attr_ref_field_definitions is None:
+            self._drug_attr_ref_field_definitions = (
                 await self.drug_data_importer_class().get_attr_ref_field_definitions()
             )
-        return self._drug_ref_attr_field_definitions
+        return self._drug_attr_ref_field_definitions
 
     async def _build_index(self, session: AsyncSession, skip_commit: bool = True):
         drug_search_attr = []
@@ -232,7 +232,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
 
         # collect all drug reference attributes (select/list-of-values) definition that are definied "searchable"
         drug_attr_ref_field_defs_all = (
-            await self._get_drug_ref_attr_definitions_fields()
+            await self._get_drug_attr_ref_definitions_fields()
         )
         drug_attr_ref_field_names_searchable: List[str] = [
             drd.field_name
@@ -244,10 +244,10 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         for attr in drug.attrs:
             if attr.field_name in drug_attr_field_names_searchable:
                 field_values_aggregated += f" {attr.value}"
-        for ref_attr in drug.ref_attrs:
-            if ref_attr.field_name in drug_attr_ref_field_names_searchable:
+        for attr_ref in drug.attrs_ref:
+            if attr_ref.field_name in drug_attr_ref_field_names_searchable:
                 field_values_aggregated += (
-                    f" {ref_attr.value} {ref_attr.lov_item.display}"
+                    f" {attr_ref.value} {attr_ref.lov_item.display}"
                 )
         for code in drug.codes:
             field_values_aggregated += f" {code.code}"

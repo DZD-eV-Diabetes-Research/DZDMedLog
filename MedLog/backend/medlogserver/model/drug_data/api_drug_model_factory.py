@@ -22,7 +22,8 @@ from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.drug_attr import (
     DrugVal,
     DrugValRef,
-    DrugRefAttrApiRead,
+    DrugAttrRefApiRead,
+    DrugValMultiRef,
 )
 from medlogserver.model.drug_data.drug_code import DrugCode
 
@@ -103,28 +104,28 @@ class DrugApiReadClassFactory:
             ),
         )
 
-        multi_attrs_container_class = await self._get_multi_attrs_submodel(importer)
-        attrs["multi_attrs"] = (
-            multi_attrs_container_class,
+        attrs_multi_container_class = await self._get_attrs_multi_submodel(importer)
+        attrs["attrs_multi"] = (
+            attrs_multi_container_class,
             Field(
                 default_factory=dict,
                 description="All Drug attributes that can have multiple values. e.g. something like 'Keywords'. Will always be a list.",
             ),
         )
-        ref_attrs_container_class = await self._get_ref_attrs_submodel(importer)
-        attrs["ref_attrs"] = (
-            ref_attrs_container_class,
+        attrs_ref_container_class = await self._get_attrs_ref_submodel(importer)
+        attrs["attrs_ref"] = (
+            attrs_ref_container_class,
             Field(
                 default_factory=dict,
                 description="All Drug attributes reference an existing list (value + display Value. Aka SelectList).",
             ),
         )
 
-        ref_multi_attrs_container_class = await self._get_ref_multi_attrs_submodel(
+        attrs_multi_ref_container_class = await self._get_attrs_multi_ref_submodel(
             importer
         )
-        attrs["ref_multi_attrs"] = (
-            ref_multi_attrs_container_class,
+        attrs["attrs_multi_ref"] = (
+            attrs_multi_ref_container_class,
             Field(
                 default_factory=dict,
                 description="All Drug attributes that can have a list of values. These values must reference an existing list.",
@@ -163,34 +164,34 @@ class DrugApiReadClassFactory:
         m = create_model(f"Attrs", **attrs)
         return m
 
-    async def _get_ref_attrs_submodel(
+    async def _get_attrs_ref_submodel(
         self, importer: DrugDataSetImporterBase, as_multi_ref: bool = False
     ) -> Type[BaseModel]:
-        """Example output of `_get_ref_attrs_container_class`
-        class RefAttr(BaseModel):
-            class RefAttrDarreichungsform:
+        """Example output of `_get_attrs_ref_container_class`
+        class AttrRef(BaseModel):
+            class AttrRefDarreichungsform:
                 value: int = Field(...)
                 display: str= Field(...)
                 ref_list: str= Field(...)
 
-            class RefAttrSizes:
+            class AttrRefSizes:
                 value: int= Field(...)
                 display: str= Field(...)
                 ref_list: str= Field(...)
 
-            darreichungsform: RefAttrDarreichungsform
-            sizes: RefAttrSizes
+            darreichungsform: AttrRefDarreichungsform
+            sizes: AttrRefSizes
         """
-        ref_attr_fields = None
+        attr_ref_fields = None
         if as_multi_ref:
-            ref_attr_fields = await importer.get_attr_multi_ref_field_definitions()
+            attr_ref_fields = await importer.get_attr_multi_ref_field_definitions()
         else:
-            ref_attr_fields = await importer.get_attr_ref_field_definitions()
+            attr_ref_fields = await importer.get_attr_ref_field_definitions()
 
-        ref_attrs = {}
+        attrs_ref = {}
 
-        for field in ref_attr_fields:
-            model_name = f"{'Multi' if as_multi_ref else ''}RefAttrVal{field.field_name.capitalize()}"
+        for field in attr_ref_fields:
+            model_name = f"{'Multi' if as_multi_ref else ''}AttrRefVal{field.field_name.capitalize()}"
             value_type = field.type.value.python_type
             ref_list_api_path = f"/v2/drug/field_def/{field.field_name}/refs"
             if field.optional:
@@ -216,25 +217,29 @@ class DrugApiReadClassFactory:
                 type_def = Optional[type_def]
             pydantic_field_attrs = {}
             pydantic_field_attrs["description"] = field.field_desc
-            pydantic_field_attrs["default"] = field.default
+            if as_multi_ref:
+                pydantic_field_attrs["default"] = (
+                    [] if field.default is None else field.default
+                )
+            else:
+                pydantic_field_attrs["default"] = field.default
 
-            ref_attrs[field.field_name] = (type_def, Field(**pydantic_field_attrs))
+            attrs_ref[field.field_name] = (type_def, Field(**pydantic_field_attrs))
 
         """from pydantic create model docs:
         field_definitions: Attributes of the new model. They should be passed in the format:
                 `<name>=(<type>, <default value>)`, `<name>=(<type>, <FieldInfo>)`, or `typing.Annotated[<type>, <FieldInfo>]`.
                 Any additional metadata in `typing.Annotated[<type>, <FieldInfo>, ...]` will be ignored.
         """
-
-        m = create_model(f"{'Multi' if as_multi_ref else ''}RefAttrs", **ref_attrs)
+        m = create_model(f"{'Multi' if as_multi_ref else ''}AttrRefs", **attrs_ref)
         return m
 
-    async def _get_multi_attrs_submodel(
+    async def _get_attrs_multi_submodel(
         self,
         importer: DrugDataSetImporterBase,
     ) -> Type[BaseModel]:
-        """example output of _get_multi_attrs_container_class
-        class MultiAttr(BaseModel):
+        """example output of _get_attrs_multi_container_class
+        class AttrMulti(BaseModel):
             keywords: List[str] = Field(default=list,description="keywords of drug", examples[["Upper","Downer","Weird Stuff"]])
             sizes: List[float]= Field(default=list,description="Possible sizes of delivery palletes in meters", examples[[1.1,1.2,1.3]])
         """
@@ -257,28 +262,28 @@ class DrugApiReadClassFactory:
                 Any additional metadata in `typing.Annotated[<type>, <FieldInfo>, ...]` will be ignored.
         """
 
-        m = create_model(f"MultiAttrs", **attrs)
+        m = create_model(f"AttrsMulti", **attrs)
         return m
 
-    async def _get_ref_multi_attrs_submodel(
+    async def _get_attrs_multi_ref_submodel(
         self,
         importer: DrugDataSetImporterBase,
     ) -> Type[BaseModel]:
         """
-        class MultiRefAttr(BaseModel):
-            class MultiRefAttrValKeywords:
+        class AttrMultiRef(BaseModel):
+            class AttrMultiRefValKeywords:
                 value: int = Field(...)
                 display: str = Field(...)
                 ref_list: str = Field(...)
 
-            keywords: List[RefAttrDarreichungsform]
+            keywords: List[AttrRefDarreichungsform]
         """
-        return await self._get_ref_attrs_submodel(importer, as_multi_ref=True)
-        ref_attr_fields = await importer.get_attr_ref_field_definitions()
-        ref_attrs = {}
+        return await self._get_attrs_ref_submodel(importer, as_multi_ref=True)
+        attr_ref_fields = await importer.get_attr_ref_field_definitions()
+        attrs_ref = {}
 
-        for field in ref_attr_fields:
-            model_name = f"RefMultiAttrVal{field.field_name.capitalize()}"
+        for field in attr_ref_fields:
+            model_name = f"RefAttrMultiVal{field.field_name.capitalize()}"
             value_type = field.type.value.python_type
             ref_list_api_path = f"/v2/drug/field_def/{field.field_name}/refs"
             if field.optional:
@@ -306,7 +311,7 @@ class DrugApiReadClassFactory:
             pydantic_field_attrs["description"] = field.field_desc
             pydantic_field_attrs["default"] = field.default
 
-            ref_attrs[field.field_name] = (type_def, Field(**pydantic_field_attrs))
+            attrs_ref[field.field_name] = (type_def, Field(**pydantic_field_attrs))
 
         """from pydantic create model docs:
         field_definitions: Attributes of the new model. They should be passed in the format:
@@ -314,7 +319,7 @@ class DrugApiReadClassFactory:
                 Any additional metadata in `typing.Annotated[<type>, <FieldInfo>, ...]` will be ignored.
         """
 
-        m = create_model(f"{importer.api_name}RefAttrs", **ref_attrs)
+        m = create_model(f"{importer.api_name}AttrRefs", **attrs_ref)
         return m
 
     async def _get_codes_container_class(
@@ -344,9 +349,9 @@ async def drug_to_drugAPI_obj(drug: DrugData) -> Dict:
     for field_name, field_val in iter(drug):
         if field_name in [
             "attrs",
-            "multi_attrs",
-            "ref_attrs",
-            "ref_multi_attrs",
+            "attrs_ref",
+            "attrs_multi",
+            "attrs_multi_ref",
             "codes",
         ]:
             continue
@@ -361,41 +366,43 @@ async def drug_to_drugAPI_obj(drug: DrugData) -> Dict:
     for attr in drug.attrs:
         drug_attrs[attr.field_name] = attr.value
 
-    drug_multi_attrs = {}
-    for attr in drug.multi_attrs:
-        if attr.field_name not in drug_multi_attrs:
-            drug_multi_attrs[attr.field_name] = []
-        drug_multi_attrs[attr.field_name].append(attr.value)
+    drug_attrs_multi = {}
+    for attr in drug.attrs_multi:
+        if attr.field_name not in drug_attrs_multi:
+            drug_attrs_multi[attr.field_name] = []
+        drug_attrs_multi[attr.field_name].append(attr.value)
 
-    drug_ref_attrs = {}
-    for ref_attr in drug.ref_attrs:
-        lov_item = ref_attr.lov_item
-        drug_ref_attrs[ref_attr.field_name] = {
-            "value": ref_attr.value,
+    drug_attrs_ref = {}
+    for attr_ref in drug.attrs_ref:
+        lov_item = attr_ref.lov_item
+        drug_attrs_ref[attr_ref.field_name] = {
+            "value": attr_ref.value,
             "display": lov_item.display if lov_item is not None else None,
-            "ref_list": f"/v2/drug/field_def/{ref_attr.field_name}/refs",
+            # "ref_list": f"/v2/drug/field_def/{attr_ref.field_name}/refs", #<- Is auto filled by class defintion now
         }
 
-    drug_ref_multi_attrs = {}
-    for ref_attr in drug.ref_multi_attrs:
-        if attr.field_name not in drug_ref_multi_attrs:
-            drug_ref_multi_attrs[attr.field_name] = []
-        lov_item = ref_attr.lov_item
-        drug_ref_attrs[ref_attr.field_name].append(
+    drug_attrs_multi_ref: Dict[str, List[DrugValMultiRef]] = {}
+    for attr_multi_ref in drug.attrs_multi_ref:
+        if attr_multi_ref.field_name not in drug_attrs_multi_ref:
+            drug_attrs_multi_ref[attr_multi_ref.field_name] = []
+        lov_item = attr_multi_ref.lov_item
+        drug_attrs_multi_ref[attr_multi_ref.field_name].append(
             {
-                "value": ref_attr.value,
+                "value": attr_multi_ref.value,
                 "display": lov_item.display if lov_item is not None else None,
             }
         )
+
     vals["codes"] = drug_codes
     vals["attrs"] = drug_attrs
-    vals["multi_attrs"] = drug_multi_attrs
-    vals["ref_multi_attrs"] = drug_ref_multi_attrs
+    vals["attrs_ref"] = drug_attrs_ref
+    vals["attrs_multi"] = drug_attrs_multi
+    vals["attrs_multi_ref"] = drug_attrs_multi_ref
     return DrugAPIRead.model_validate(vals)
 
 
 #### UNSED CODE?
-# out of date anyway. if reintroduced need to be udpated to include `multi_attrs` and `ref_multi_attrs`
+# out of date anyway. if reintroduced need to be udpated to include `attrs_multi` and `attrs_multi_ref`
 """
 async def drugAPI_to_drug(drug_api_obj: DrugAPIRead) -> Drug:
     if drug_api_obj.id is not None:
@@ -403,7 +410,7 @@ async def drugAPI_to_drug(drug_api_obj: DrugAPIRead) -> Drug:
     drug_id = uuid.uuid4()
     root_attr = {}
     for field_name, field_val in iter(drug_api_obj):
-        if field_name in ["attrs", "ref_attrs", "codes"]:
+        if field_name in ["attrs", "attrs_ref", "codes"]:
             continue
         root_attr[field_name] = field_val
     drug = Drug.model_validate(root_attr)
@@ -411,7 +418,7 @@ async def drugAPI_to_drug(drug_api_obj: DrugAPIRead) -> Drug:
         drug.attrs.append(DrugAttr(field_name=attr_name, value=attr.id))
     for attr_name, attr_val in iter(drug_api_obj.codes):
         drug.codes.append(DrugCode(code_system_id=attr_name, code=attr_val))
-    for ref_attr_name, ref_attr_obj in iter(drug_api_obj.ref_attr):
-        drug.ref_attrs.append(DrugRefAttr(field_name=ref_attr_name, value=ref_attr_obj))
+    for attr_ref_name, attr_ref_obj in iter(drug_api_obj.attr_ref):
+        drug.attrs_ref.append(DrugAttrRef(field_name=attr_ref_name, value=attr_ref_obj))
     return drug
 """

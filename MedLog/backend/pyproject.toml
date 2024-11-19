@@ -15,6 +15,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
 ]
+dynamic = ["version"]
 dependencies = [
     "uvicorn",
     "oauthlib",
@@ -38,13 +39,14 @@ dependencies = [
     "python-multipart",
     "apscheduler",
 ]
-dynamic = ["version"]
+
+[project.optional-dependencies]
+tests = ["pytest", "requests"]
+docs = ["mkdocs", "mkdocstrings[python]", "mkdocs-autorefs", "mkdocs-material"]
+
 
 [tool.setuptools.packages.find]
 include = ['medlogserver', 'provisioning_data']
 
-[project.optional-dependencies]
-test = ["pytest", "requests"]
-docs = ["mkdocs", "mkdocstrings[python]", "mkdocs-autorefs", "mkdocs-material"]
 [project.scripts]
 medlogserver = "medlogserver.main:start"

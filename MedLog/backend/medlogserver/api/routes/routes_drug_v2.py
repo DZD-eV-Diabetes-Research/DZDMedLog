@@ -13,7 +13,7 @@ from fastapi import (
     Path,
     Response,
 )
-
+from itertools import chain
 import asyncio
 from pydantic import BaseModel, Field, create_model
 from typing import Annotated
@@ -57,10 +57,11 @@ from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
 from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
+    DrugAttrFieldDefinitionAPIReadBase,
     DrugAttrFieldDefinitionAPIRead,
-    DrugRefAttrFieldDefinitionAPIRead,
-    DrugMultiRefAttrFieldDefinitionAPIRead,
-    DrugMultiAttrFieldDefinitionAPIRead,
+    DrugAttrRefFieldDefinitionAPIRead,
+    DrugAttrMultiRefFieldDefinitionAPIRead,
+    DrugAttrMultiFieldDefinitionAPIRead,
 )
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.db.drug_data.drug_lov_values import DrugAttrFieldLovItemCRUD
@@ -85,33 +86,44 @@ drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
 fast_api_drug_router_v2: APIRouter = APIRouter(prefix="/v2")
 
 drug_importer = drug_importer_class()
-
+"""
 # all fields a drug based current drug importer module can have
-drug_field_defs: List[
+drug_field_attr_defs: List[
     DrugAttrFieldDefinition
 ] = asyncio.get_event_loop().run_until_complete(
     drug_importer.get_attr_field_definitions()
 )
 
-drug_field_multi_defs: List[
+drug_field_attr_multi_defs: List[
     DrugAttrFieldDefinition
 ] = asyncio.get_event_loop().run_until_complete(
     drug_importer.get_attr_multi_field_definitions()
 )
 
 # all reference fields (select values) a drug based current drug importer module can have
-drug_field_ref_defs: List[
+drug_field_attr_ref_defs: List[
     DrugAttrFieldDefinition
 ] = asyncio.get_event_loop().run_until_complete(
     drug_importer.get_attr_ref_field_definitions()
 )
 
-drug_field_multi_ref_defs = asyncio.get_event_loop().run_until_complete(
+drug_field_attr_multi_ref_defs = asyncio.get_event_loop().run_until_complete(
     drug_importer.get_attr_multi_ref_field_definitions()
 )
+"""
+drug_field_definitions = asyncio.get_event_loop().run_until_complete(
+    drug_importer.get_all_attr_field_definitions()
+)
+drug_field_api_read_types = {
+    "attrs": DrugAttrFieldDefinitionAPIRead,
+    "attrs_ref": DrugAttrRefFieldDefinitionAPIRead,
+    "attrs_multi": DrugAttrMultiFieldDefinitionAPIRead,
+    "attrs_multi_ref": DrugAttrMultiRefFieldDefinitionAPIRead,
+}
+
 # all searchable fields a drug based in the current drug import can have
 drug_search_filter_ref_fields = {}
-for f in drug_field_ref_defs:
+for f in drug_field_definitions["attrs_ref"]:
     drug_search_filter_ref_fields["filter_" + f.field_name] = (
         Optional[int if f.type.name == "INT" else str],
         None,
@@ -137,13 +149,13 @@ class DrugAttrFieldDefinitionContainer(BaseModel):
     attrs: List[DrugAttrFieldDefinitionAPIRead] = Field(
         description="Metadata for all 'Free-form field'-attributes a drug can have."
     )
-    multi_attrs: List[DrugMultiAttrFieldDefinitionAPIRead] = Field(
+    attrs_multi: List[DrugAttrMultiFieldDefinitionAPIRead] = Field(
         description="Metadata for all 'Free-form field'-attributes a drug can have."
     )
-    ref_attrs: List[DrugRefAttrFieldDefinitionAPIRead] = Field(
+    attrs_ref: List[DrugAttrRefFieldDefinitionAPIRead] = Field(
         description="Metadata for all 'selection-field' attributes (aka 'list of values'-fields, 'enum'-field or 'reference'-field) a drug can have."
     )
-    ref_multi_attrs: List[DrugMultiRefAttrFieldDefinitionAPIRead] = Field(
+    attrs_multi_ref: List[DrugAttrMultiRefFieldDefinitionAPIRead] = Field(
         description="Metadata for all 'selection-field' attributes (aka 'list of values'-fields, 'enum'-field or 'reference'-field) a drug can have."
     )
 
@@ -191,7 +203,13 @@ async def get_drug(
     user: User = Security(get_current_user),
     drug_crud: DrugCRUD = Depends(DrugCRUD.get_crud),
 ) -> DrugAPIRead:
-    drug_result = await drug_crud.get(id_=drug_id)
+    drug_result = await drug_crud.get(
+        id_=drug_id,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No drug with ID '{drug_id}' can be found",
+        ),
+    )
     return await drug_to_drugAPI_obj(drug_result)
 
 
@@ -235,28 +253,38 @@ async def list_field_definitions(
     # this is because the DrugAttrFieldDefinition.type field can not be transated into a string value by fastapi/pydantic.
     # this is an ugly hack.
     # Todo: improve the code/datastructure of DrugAttrFieldDefinition and DrugAttrFieldDefinitionAPIRead to make this less cluttered
-    result_container = DrugAttrFieldDefinitionContainer(attrs=[], ref_attrs=[])
-    for field_def in (
-        drug_field_ref_defs
-        + drug_field_defs
-        + drug_field_multi_defs
-        + drug_field_multi_ref_defs
-    ):
-        field_def_read_vals = {}
-        for k, v in field_def.model_dump(exclude_unset=True).items():
-            if k in DrugAttrFieldDefinitionAPIRead.model_fields.keys():
-                if k == "type":
-                    # from the "type"-enum attribute we only want the name (INT,STR,FLOAT,...), not the value (casting function)
-                    v = v.name
-                field_def_read_vals[k] = v
-        if field_def.is_reference_list_field:
-            result_container.ref_attrs.append(
-                DrugRefAttrFieldDefinitionAPIRead(**field_def_read_vals)
-            )
-        else:
-            result_container.attrs.append(
-                DrugAttrFieldDefinitionAPIRead(**field_def_read_vals)
-            )
+    result_container = DrugAttrFieldDefinitionContainer(
+        attrs=[], attrs_ref=[], attrs_multi_ref=[], attrs_multi=[]
+    )
+
+    for drug_attr_type_name, drug_attr_defs in drug_field_definitions.items():
+
+        for field_def in drug_attr_defs:
+            field_def_read_vals = {}
+            for k, v in field_def.model_dump(exclude_unset=True).items():
+                if k in DrugAttrFieldDefinitionAPIRead.model_fields.keys():
+                    if k == "type":
+                        # from the "type"-enum attribute we only want the name (INT,STR,FLOAT,...), not the value (casting function)
+                        v = v.name
+                    field_def_read_vals[k] = v
+
+            if drug_attr_type_name == "attrs":
+                result_container.attrs = DrugAttrFieldDefinitionAPIRead(
+                    **field_def_read_vals
+                )
+            elif drug_attr_type_name == "attrs_ref":
+                result_container.attrs_ref = DrugAttrRefFieldDefinitionAPIRead(
+                    **field_def_read_vals
+                )
+            elif drug_attr_type_name == "attrs_multi":
+                result_container.attrs_multi = DrugAttrMultiFieldDefinitionAPIRead(
+                    **field_def_read_vals
+                )
+            elif drug_attr_type_name == "attrs_multi_ref":
+                result_container.attrs_multi_ref = (
+                    DrugAttrMultiRefFieldDefinitionAPIRead(**field_def_read_vals)
+                )
+
     return result_container
 
 
@@ -272,10 +300,7 @@ async def get_field_definition(
     try:
         field_def: DrugAttrFieldDefinition = next(
             f
-            for f in drug_field_ref_defs
-            + drug_field_defs
-            + drug_field_multi_defs
-            + drug_field_multi_ref_defs
+            for f in list(chain.from_iterable(drug_field_definitions.values()))
             if f.field_name == field_name
         )
     except StopIteration:
@@ -318,10 +343,14 @@ async def get_reference_field_values(
         DrugAttrFieldLovItemCRUD.get_crud
     ),
 ) -> PaginatedResponse[DrugAttrFieldLovItemAPIRead]:
-    if field_name not in [f.field_name for f in drug_field_ref_defs]:
+    if field_name not in [
+        f.field_name
+        for f in drug_field_definitions["attrs_ref"]
+        + drug_field_definitions["attrs_multi_ref"]
+    ]:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Drug enum field with name '{field_name}' could not be found.",
+            detail=f"Drug enum field with name '{field_name}' could not be found.",
         )
     result_items = await drug_lov_item_crud.list(
         field_name=field_name, pagination=pagination, search_term=search_term
@@ -351,7 +380,9 @@ async def get_reference_field_values(
     ),
 ) -> DrugAttrFieldLovItemAPIRead:
     if field_name not in [
-        f.field_name for f in drug_field_ref_defs + drug_field_multi_ref_defs
+        f.field_name
+        for f in drug_field_definitions["attrs_ref"]
+        + drug_field_definitions["attrs_multi_ref"]
     ]:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

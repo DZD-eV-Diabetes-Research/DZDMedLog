@@ -10,8 +10,17 @@ The server module for DZDMedLog, a system to document the medical history of stu
 `python -m pip install pip-tools -U`
 
 `python -m piptools compile -o MedLog/backend/requirements.txt MedLog/backend/pyproject.toml`
+or
+`python -m piptools compile --extra=tests -o MedLog/backend/requirements_tests.txt MedLog/backend/pyproject.toml`
+or
+`python -m piptools compile --extra=docs -o MedLog/backend/requirements_docs.txt MedLog/backend/pyproject.toml`
+
 
 `pip install -r MedLog/backend/requirements.txt -U`
+or
+`pip install -r MedLog/backend/requirements_tests.txt -U`
+or
+`pip install -r MedLog/backend/requirements_docs.txt -U`
 
 
 ### FAQ

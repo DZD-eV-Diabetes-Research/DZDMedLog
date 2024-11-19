@@ -46,7 +46,11 @@ class CustomPreParserFunc(enum.Enum):
     )
 
 
-class DrugAttrFieldDefinitionAPIRead(DrugModelTableBase, table=False):
+class DrugAttrFieldDefinitionAPIReadBase(DrugModelTableBase):
+    pass
+
+
+class DrugAttrFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIReadBase, table=False):
     field_name: str = Field(primary_key=True)
     field_name_display: str = Field(
         description="The title of the field for displaying humans"
@@ -71,7 +75,7 @@ class DrugAttrFieldDefinitionAPIRead(DrugModelTableBase, table=False):
     )
 
 
-class DrugRefAttrFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=False):
+class DrugAttrRefFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=False):
     ref_list: str = Field(
         default=None, description="API Path to the reference list values"
     )
@@ -86,7 +90,7 @@ class DrugRefAttrFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=Fa
         return self
 
 
-class DrugMultiAttrFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=False):
+class DrugAttrMultiFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=False):
     is_multi_val_field: bool = Field(
         default=True,
         description="If true this field can hold a list of values instead of a single one. E.g. A drug can have a list of keywords.",
@@ -97,8 +101,8 @@ class DrugMultiAttrFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=
     )
 
 
-class DrugMultiRefAttrFieldDefinitionAPIRead(
-    DrugRefAttrFieldDefinitionAPIRead, table=False
+class DrugAttrMultiRefFieldDefinitionAPIRead(
+    DrugAttrRefFieldDefinitionAPIRead, table=False
 ):
     ref_list: str = Field(
         default=None, description="API Path to the reference list values"
