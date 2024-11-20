@@ -74,16 +74,21 @@ def test_do_drugv2():
         required_keys_and_val={
             "keywords": [
                 {
-                    "value": "1",
+                    "value": 1,
                     "display": "Mund, Zähne",
                     "ref_list": "/v2/drug/field_def/keywords/refs",
                 },
                 {
-                    "value": "4",
+                    "value": 4,
                     "display": "Munddesinfizientien",
                     "ref_list": "/v2/drug/field_def/keywords/refs",
                 },
             ]
         },
+        exception_dict_identifier="create custom drug object attrs_ref",
+    )
+    dict_must_contain(
+        res["codes"],
+        required_keys_and_val={"ATC": None, "PZN": "12345678910", "MMIP": None},
         exception_dict_identifier="create custom drug object attrs_ref",
     )

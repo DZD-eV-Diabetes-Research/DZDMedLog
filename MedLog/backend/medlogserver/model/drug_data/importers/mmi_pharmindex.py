@@ -705,14 +705,24 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         attr_mappings = [
             m for m in mmi_rohdaten_r3_mappings if m.drug_attr_type_name != "codes"
         ]
-        for mapping in attr_mappings:
+        for mapping in mmi_rohdaten_r3_mappings:
             async for packageid, drug_val in self._parse_drug_attr_data(
                 mapping, drug_dataset_version
             ):
 
                 if (
-                    isinstance(drug_val, DrugModelTableBase) and drug_val.value in [""]
-                ) or drug_val in [""]:
+                    (
+                        isinstance(drug_val, DrugModelTableBase)
+                        and hasattr(drug_val, "value")
+                        and drug_val.value in [""]
+                    )
+                    or (
+                        isinstance(drug_val, DrugModelTableBase)
+                        and hasattr(drug_val, "code")
+                        and drug_val.code in [""]
+                    )
+                    or drug_val in [""]
+                ):
                     # clean empty string to 'None's
                     drug_val.value = None
 
@@ -736,15 +746,15 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
                 # Attch the attr/val-objects to a drug object
                 if isinstance(drug_val, DrugVal):
-
                     drug_data_objs[packageid].attrs.append(drug_val)
                 elif isinstance(drug_val, DrugValRef):
                     drug_data_objs[packageid].attrs_ref.append(drug_val)
                 elif isinstance(drug_val, DrugValMulti) and drug_val is not None:
                     drug_data_objs[packageid].attrs_multi.append(drug_val)
                 elif isinstance(drug_val, DrugValMultiRef) and drug_val is not None:
-
                     drug_data_objs[packageid].attrs_multi_ref.append(drug_val)
+                elif isinstance(drug_val, DrugCode) and drug_val is not None:
+                    drug_data_objs[packageid].codes.append(drug_val)
                 else:
                     # root attrs
                     setattr(drug_data_objs[packageid], mapping.drug_attr_name, drug_val)
@@ -778,7 +788,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         attr_mapping: SourceAttrMapping,
         drug_dataset_version: DrugDataSetVersion,
     ) -> AsyncIterator[
-        Tuple[str, str | DrugVal | DrugValRef | DrugValMulti | DrugValMultiRef]
+        Tuple[
+            str, str | DrugVal | DrugValRef | DrugValMulti | DrugValMultiRef | DrugCode
+        ]
     ]:
         # raise NotImplementedError(
         #    "You are here. You need to parse SourceAttrMapping.cast_func into account. We dont use it yet, which lead to impoer errors"
@@ -834,24 +846,32 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     | Type[DrugValRef]
                     | Type[DrugValMulti]
                     | Type[DrugValMultiRef]
+                    | Type[DrugCode]
                 ) = attr_mapping.drug_attr_type
-
-                valInstance = DrugValModel(
-                    field_name=attr_mapping.drug_attr_name, value=drug_attr_value
-                )
+                if DrugValModel == DrugCode:
+                    valInstance = DrugValModel(
+                        code_system_id=attr_mapping.drug_attr_name, code=drug_attr_value
+                    )
+                else:
+                    valInstance = DrugValModel(
+                        field_name=attr_mapping.drug_attr_name, value=drug_attr_value
+                    )
 
                 yield (packageid, valInstance)
 
     async def _get_row_with_header_from_csv_file(
         self, id_col_name: str, id_col_val, file_path: Path
     ) -> Tuple[List[str], List[str]]:
+        result = None
         with open(file_path, "rt") as file:
             csvreader = csv.reader(file, delimiter=";")
             headers = next(csvreader)
             id_col_index = headers.index(id_col_name)
             for row in csvreader:
                 if row[id_col_index] == id_col_val:
-                    return headers, row
+                    result = headers, row
+                    break
+        return result
 
     async def _packageid_lookup_by_path(
         self, row: List[str], row_headers: List[str], key_path: str, _fragment_pos=0
