@@ -245,6 +245,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             if attr.field_name in drug_attr_field_names_searchable:
                 field_values_aggregated += f" {attr.value}"
         for attr_ref in drug.attrs_ref:
+            log.info(("attr_ref", attr_ref))
             if attr_ref.field_name in drug_attr_ref_field_names_searchable:
                 field_values_aggregated += (
                     f" {attr_ref.value} {attr_ref.lov_item.display}"

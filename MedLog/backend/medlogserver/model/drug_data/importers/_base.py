@@ -46,6 +46,7 @@ class DrugDataSetImporterBase:
         List[DrugAttrFieldDefinition],
     ]:
         return {
+            "codes": await self.get_code_definitions(),
             "attrs": await self.get_attr_field_definitions(),
             "attrs_ref": await self.get_attr_ref_field_definitions(),
             "attrs_multi": await self.get_attr_multi_field_definitions(),
@@ -114,7 +115,7 @@ class DrugDataSetImporterBase:
                 f"[DRUG DATA IMPORT] Import '{drug_dataset.dataset_source_name}' with version '{drug_dataset.dataset_version}' failed. Error:"
             )
             log.error(tb)
-            self._set_dataset_version_status(status="failed", error=tb)
+            await self._set_dataset_version_status(status="failed", error=tb)
             log.info("")
             raise e
             return

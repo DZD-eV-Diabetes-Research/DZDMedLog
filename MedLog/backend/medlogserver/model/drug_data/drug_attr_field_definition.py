@@ -120,7 +120,7 @@ class DrugAttrMultiRefFieldDefinitionAPIRead(
 class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
     __tablename__ = "drug_attr_field_definition"
     __table_args__ = {
-        "comment": "Definition of dataset specific fields and lookup fields"
+        "comment": "Definition of dataset specific fields and lookup fields. this is a read only table. The attribute field definitons are defined in code. Any changes on the SQL table rows/values will be overwriten."
     }
     desc: Optional[str] = Field(
         default=None,
