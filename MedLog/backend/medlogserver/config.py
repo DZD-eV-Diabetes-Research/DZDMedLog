@@ -7,7 +7,7 @@ from pydantic import (
     AnyUrl,
     SecretStr,
     AnyHttpUrl,
-    validator,
+    field_validator,
     StringConstraints,
     model_validator,
 )
@@ -118,10 +118,10 @@ class Config(BaseSettings):
     @model_validator(mode="after")
     def set_empty_client_url(self: Self):
         if self.CLIENT_URL is None:
-            self.CLIENT_URL = self.get_server_url()
+            self.CLIENT_URL = str(self.get_server_url())
         return self
 
-    SQL_DATABASE_URL: AnyUrl = Field(default="sqlite+aiosqlite:///./local.sqlite")
+    SQL_DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./local.sqlite")
 
     ADMIN_USER_NAME: str = Field(default="admin")
     ADMIN_USER_PW: SecretStr = Field()
@@ -265,7 +265,7 @@ class Config(BaseSettings):
         default_factory=list,
     )
 
-    @validator("AUTH_OIDC_PROVIDERS")
+    @field_validator("AUTH_OIDC_PROVIDERS")
     def unique_provider_names(cls, AUTH_OIDC_PROVIDERS: List[OpenIDConnectProvider]):
         names = [prov.PROVIDER_SLUG_NAME for prov in AUTH_OIDC_PROVIDERS]
         if len(set(names)) < len(AUTH_OIDC_PROVIDERS):

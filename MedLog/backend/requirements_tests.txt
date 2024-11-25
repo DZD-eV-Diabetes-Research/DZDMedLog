@@ -12,11 +12,11 @@ anyio==4.6.2.post1
     # via
     #   httpx
     #   starlette
-apscheduler==3.10.4
+apscheduler==3.11.0
     # via medlogserver (MedLog/backend/pyproject.toml)
 authlib==1.3.2
     # via medlogserver (MedLog/backend/pyproject.toml)
-bcrypt==4.2.0
+bcrypt==4.2.1
     # via passlib
 build==1.2.2.post1
     # via pip-tools
@@ -87,13 +87,13 @@ pyasn1==0.6.1
     #   rsa
 pycparser==2.22
     # via cffi
-pydantic[email]==2.9.2
+pydantic[email]==2.10.1
     # via
     #   fastapi
     #   medlogserver (MedLog/backend/pyproject.toml)
     #   pydantic-settings
     #   sqlmodel
-pydantic-core==2.23.4
+pydantic-core==2.27.1
     # via pydantic
 pydantic-settings==2.6.1
     # via medlogserver (MedLog/backend/pyproject.toml)
@@ -109,8 +109,6 @@ python-jose[cryptography]==3.3.0
     # via medlogserver (MedLog/backend/pyproject.toml)
 python-multipart==0.0.17
     # via medlogserver (MedLog/backend/pyproject.toml)
-pytz==2024.2
-    # via apscheduler
 pyyaml==6.0.2
     # via medlogserver (MedLog/backend/pyproject.toml)
 requests==2.32.3
@@ -120,9 +118,7 @@ rsa==4.9
 setuptools-scm==8.1.0
     # via getversion
 six==1.16.0
-    # via
-    #   apscheduler
-    #   ecdsa
+    # via ecdsa
 sniffio==1.3.1
     # via
     #   anyio
@@ -150,9 +146,9 @@ tzlocal==5.2
     # via apscheduler
 urllib3==2.2.3
     # via requests
-uvicorn==0.32.0
+uvicorn==0.32.1
     # via medlogserver (MedLog/backend/pyproject.toml)
-wheel==0.45.0
+wheel==0.45.1
     # via pip-tools
 
 # The following packages are considered to be unsafe in a requirements file:

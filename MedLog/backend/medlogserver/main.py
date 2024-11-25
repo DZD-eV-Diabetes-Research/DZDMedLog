@@ -78,14 +78,6 @@ def start(with_background_worker: bool = True):
     mount_fast_api_routers(app)
     add_api_middleware(app)
 
-    @app.get("/{path_name:path}")
-    async def serve_frontend(path_name: Optional[str] = None):
-        if path_name:
-            file = os.path.join(config.FRONTEND_FILES_DIR, path_name)
-        else:
-            file = os.path.join(config.FRONTEND_FILES_DIR, "index.html")
-        return FileResponse(file)
-
     if config.CLIENT_URL == config.get_server_url():
         if (
             not Path(config.FRONTEND_FILES_DIR).exists()

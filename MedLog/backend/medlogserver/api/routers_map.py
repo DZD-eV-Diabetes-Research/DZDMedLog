@@ -73,3 +73,8 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
     from medlogserver.api.routes.routes_export import fast_api_export_router
 
     fastapi_app.include_router(fast_api_export_router, tags=["Export"])
+
+    # webclient
+    from medlogserver.api.routes.routes_webclient import fast_api_webclient_router
+
+    fastapi_app.include_router(fast_api_webclient_router, tags=["WebClient"])
