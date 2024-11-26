@@ -37,7 +37,7 @@ from medlogserver.model.drug_data.drug_attr_field_lov_item import (
     DrugAttrFieldLovItemCREATE,
 )
 
-from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
+from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.drug_code import DrugCode
@@ -767,8 +767,6 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             package_csv_headers = next(package_csv)
             package_id_column_index = package_csv_headers.index("ID")
             for index, package_row in enumerate(package_csv):
-                if index == 2:
-                    break
                 drug_data_objs[package_row[package_id_column_index]] = (
                     await self._parse_drug_data_package_row(
                         drug_dataset_version, package_row, package_csv_headers

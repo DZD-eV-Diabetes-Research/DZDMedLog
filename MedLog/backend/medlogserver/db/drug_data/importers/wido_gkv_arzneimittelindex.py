@@ -18,7 +18,7 @@ from medlogserver.model.drug_data.drug_attr_field_lov_item import (
     DrugAttrFieldLovItemCREATE,
 )
 
-from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
+from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.drug_code import DrugCode

@@ -6,11 +6,12 @@ from pydantic.fields import FieldInfo
 from pathlib import Path
 import datetime
 import asyncio
-from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
 
-from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
+from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 
-from medlogserver.model.drug_data.importers.wido_gkv_arzneimittelindex import (
+from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
+
+from medlogserver.db.drug_data.importers.wido_gkv_arzneimittelindex import (
     WidoAiImporter52,
 )
 from medlogserver.model.drug_data.drug_code import DrugCodeApi
@@ -42,7 +43,7 @@ class DrugApiReadClassFactory:
         Dynamic creation of Pydantic classes für Drugs.
         Depending on the used drug data source (e.g Wido GKV Arnzeimittelindex) we have different attributes for Drug datasets.
         Therefor we need to create these classes dynamic depending on which drug database we imported our drug data from.
-        The metadata for these classes are coming from the drug index importers in `medlogserver.model.drug_data.importers`
+        The metadata for these classes are coming from the drug index importers in `medlogserver.db.drug_data.importers`
 
         Returns:
             Type[BaseModel]: _description_
@@ -58,7 +59,7 @@ class DrugApiReadClassFactory:
         Dynamic creation of Pydantic classes für Drugs.
         Depending on the used drug data source (e.g Wido GKV Arnzeimittelindex) we have different attributes for Drug datasets.
         Therefor we need to create these classes dynamic depending on which drug database we imported our drug data from.
-        The metadata for these classes are coming from the drug index importers in `medlogserver.model.drug_data.importers`
+        The metadata for these classes are coming from the drug index importers in `medlogserver.db.drug_data.importers`
 
         Returns:
             Type[BaseModel]: _description_
@@ -246,9 +247,9 @@ class DrugApiReadClassFactory:
         attr_fields = await importer.get_attr_multi_field_definitions()
         attrs = {}
         for field in attr_fields:
-            type_def = field.type.value.python_type
-            if field.optional:
-                type_def = List[type_def]
+            type_def = List[field.type.value.python_type]
+            # if field.optional:
+            #    type_def = List[type_def]
             pydantic_field_attrs = {}
             pydantic_field_attrs["description"] = field.field_desc
             pydantic_field_attrs["default"] = field.default

@@ -135,7 +135,7 @@ async def init_drugsearch():
 
 
 async def provision_drug_data():
-    from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
+    from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 
     DRUG_IMPORTER = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
 

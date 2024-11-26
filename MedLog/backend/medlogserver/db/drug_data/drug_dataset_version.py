@@ -18,8 +18,8 @@ from medlogserver.db._base_crud import create_crud_base
 from medlogserver.db.interview import Interview
 from medlogserver.api.paginator import QueryParamsInterface
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
-from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
-from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
+from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
+from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
 
 log = get_logger()
 config = Config()

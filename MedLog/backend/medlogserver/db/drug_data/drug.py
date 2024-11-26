@@ -39,7 +39,7 @@ from medlogserver.db._base_crud import create_crud_base
 from medlogserver.db.interview import Interview
 from medlogserver.api.paginator import QueryParamsInterface
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
-from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
+from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.model.drug_data.drug_attr import (
     DrugValRef,
     DrugVal,
@@ -137,6 +137,9 @@ class DrugCRUD(
             query = query.options(
                 selectinload(DrugData.attrs),
                 selectinload(DrugData.attrs_ref).selectinload(DrugValRef.lov_item),
+                selectinload(DrugData.attrs_multi_ref).selectinload(
+                    DrugValMultiRef.lov_item
+                ),
                 selectinload(DrugData.codes),
             )
         query = await self.append_current_and_custom_drugs_dataset_version_where_clause(

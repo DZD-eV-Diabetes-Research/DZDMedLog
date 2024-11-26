@@ -281,9 +281,9 @@ class Config(BaseSettings):
 
     # Availabe modules live in MedLog/backend/medlogserver/model/drug_data/importers/__init__.py
     DRUG_IMPORTER_PLUGIN: Literal[
-        "WidoGkvArzneimittelindex52", "MmmiPharmaindex1_32"
+        "WidoGkvArzneimittelindex52", "MmmiPharmaindex1_32", "DummyDrugImporterV1"
     ] = Field(
-        default="MmmiPharmaindex1_32",
+        default="DummyDrugImporterV1",
         description="Depending on the drug database that is used, we can define an importer.",
     )
 
@@ -293,7 +293,11 @@ class Config(BaseSettings):
     )
     DRUG_TABLE_PROVISIONING_SOURCE_DIR: str = Field(
         description="If MedLog is booted with an empty drug database, it will check if a source data set of the GKV Arzneimittel Index is located in this dir",
-        default="GKV_AI_StammPlus/202301",
+        default=str(
+            Path(
+                Path(__file__).parent.parent, "provisioning_data/dummy_drugset/20241126"
+            ).absolute()
+        ),
     )
 
     DRUG_DATA_IMPORT_MAX_ROWS: Optional[int] = Field(

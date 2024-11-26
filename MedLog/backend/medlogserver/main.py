@@ -102,7 +102,7 @@ def start(with_background_worker: bool = True):
         loop=event_loop,
     )
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
-    from medlogserver.model.drug_data.importers.wido_gkv_arzneimittelindex import (
+    from medlogserver.db.drug_data.importers.wido_gkv_arzneimittelindex import (
         WidoAiImporter52,
     )
 

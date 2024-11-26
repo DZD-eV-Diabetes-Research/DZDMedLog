@@ -18,7 +18,7 @@ from medlogserver.db._base_crud import create_crud_base
 from medlogserver.db.interview import Interview
 from medlogserver.api.paginator import QueryParamsInterface
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
-from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
+from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.model.drug_data.drug_attr import DrugValRef
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 

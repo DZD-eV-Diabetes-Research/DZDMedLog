@@ -5,6 +5,7 @@ import traceback
 import datetime
 import uuid
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, delete, desc
+
 from sqlalchemy.sql.operators import (
     is_not,
     is_,
@@ -17,6 +18,7 @@ from sqlalchemy.sql.operators import (
     or_,
     and_,
 )
+from sqlalchemy.orm import selectinload
 from sqlalchemy import case, func
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db.drug_data.drug_search._base import (
@@ -33,9 +35,9 @@ from medlogserver.db.drug_data.drug_dataset_version import DrugDataSetVersionCRU
 from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.db.drug_data.drug import DrugCRUD
-from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef
+from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef, DrugValMultiRef
 from medlogserver.model.drug_data.api_drug_model_factory import drug_to_drugAPI_obj
-from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
+from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -212,9 +214,18 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             DrugData.source_dataset_id == target_drug_dataset_version.id
             or DrugData.source_dataset_id == custom_drugs_dataset.id
         )
+        query = query.options(
+            selectinload(DrugData.attrs),
+            selectinload(DrugData.attrs_ref).selectinload(DrugValRef.lov_item),
+            selectinload(DrugData.attrs_multi_ref).selectinload(
+                DrugValMultiRef.lov_item
+            ),
+            selectinload(DrugData.codes),
+        )
         res = await session.exec(query)
         cache_entries: List[GenericSQLDrugSearchCache] = []
         for drug in res.all():
+            print("drug", drug)
             cache_entry = await self._drug_to_cache_obj(drug)
             cache_entries.append(cache_entry)
         session.add_all(cache_entries)

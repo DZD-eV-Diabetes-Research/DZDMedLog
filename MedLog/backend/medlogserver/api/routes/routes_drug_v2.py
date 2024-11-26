@@ -53,8 +53,8 @@ from medlogserver.db.drug_data.drug import (
     DrugWithCodeAllreadyExists,
     CustomDrugAttrNotValid,
 )
-from medlogserver.model.drug_data.importers import DRUG_IMPORTERS
-from medlogserver.model.drug_data.importers._base import DrugDataSetImporterBase
+from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
+from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
 from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
     DrugAttrFieldDefinitionAPIReadBase,
