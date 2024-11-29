@@ -1,4 +1,8 @@
-from typing import List, Literal, Dict, Union, Tuple, Annotated, Optional
+from typing import List, Literal, Dict, Union, Tuple, Annotated, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from hashlib import _Hash as Hash  # https://github.com/python/typeshed/issues/2928
+import hashlib
 from pathlib import Path, PurePath
 import uuid
 import random
@@ -185,3 +189,32 @@ def extract_bracket_values(input_string: str, count: int, default=Unset) -> Tupl
 
     # Return the first `count` values as a tuple
     return tuple(matches[:count])
+
+
+class PathContentHasher:
+    @classmethod
+    def _md5_update_from_file(cls, filename: Union[str, Path], hash: "Hash") -> "Hash":
+        assert Path(filename).is_file()
+        with open(str(filename), "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash.update(chunk)
+        return hash
+
+    @classmethod
+    def md5_file(cls, filename: Union[str, Path]) -> str:
+        return str(cls._md5_update_from_file(filename, hashlib.md5()).hexdigest())
+
+    @classmethod
+    def _md5_update_from_dir(cls, directory: Union[str, Path], hash: "Hash") -> "Hash":
+        assert Path(directory).is_dir()
+        for path in sorted(Path(directory).iterdir(), key=lambda p: str(p).lower()):
+            hash.update(path.name.encode())
+            if path.is_file():
+                hash = cls._md5_update_from_file(path, hash)
+            elif path.is_dir():
+                hash = cls._md5_update_from_dir(path, hash)
+        return hash
+
+    @classmethod
+    def md5_dir(cls, directory: Union[str, Path]) -> str:
+        return str(cls._md5_update_from_dir(directory, hashlib.md5()).hexdigest())

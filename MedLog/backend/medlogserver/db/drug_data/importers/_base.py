@@ -12,7 +12,9 @@ from medlogserver.model.drug_data.drug_attr_field_definition import (
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef
 from medlogserver.model.drug_data.drug import DrugData
+from medlogserver.utils import PathContentHasher
 from medlogserver.log import get_logger
+import time
 
 log = get_logger()
 
@@ -38,6 +40,30 @@ class DrugDataSetImporterBase:
             is_custom_drugs_collection=True,
             dataset_source_name=self.dataset_name,
         )
+
+    async def get_drug_dataset_version(self) -> str:
+        # generic way of creating a version string.
+        # if there is more effiecient way for a certain dataset like a date in the directory, overwrite this function.
+        # if this method is overwritten, the method "is_dataset_imported()" must be adapted as well.
+        source_dir_hash = PathContentHasher.md5_dir(self.source_dir)
+        epoch_time = int(time.time())
+        version_string = f"{epoch_time}_{source_dir_hash}"
+        return version_string
+
+    async def was_dataset_version_imported(self) -> DrugDataSetVersion | None:
+        # this function is apt to work with method get_drug_dataset_version()
+        # if get_drug_dataset_version() is overwriten this method needs to be adpated/overwriten as well.
+        epoch_time, source_dir_hash = self.version.split("_")
+        imported_datasets = await self.get_already_imported_datasets()
+        for imported_dataset in imported_datasets:
+            imported_epoch_time, imported_source_dir_hash = (
+                imported_dataset.dataset_version.split("_")
+            )
+            if source_dir_hash == imported_source_dir_hash:
+                print("source_dir_hash", source_dir_hash)
+                print("imported_source_dir_hash", imported_source_dir_hash)
+                return imported_dataset
+        return None
 
     async def get_all_attr_field_definitions(
         self,
@@ -79,36 +105,32 @@ class DrugDataSetImporterBase:
     async def get_drug_items(self) -> AsyncIterator[DrugData]:
         raise NotImplementedError()
 
-    async def run_import(self, source_dir: Path, version: str):
+    async def run_import(self, source_dir: Path):
         raise NotImplementedError()
 
-    async def _run_import(self, source_dir: Path, version: str):
-        self.version = version
-        self.source_dir = source_dir
-        already_imported_datasets = await self.get_already_imported_datasets()
+    async def _run_import(self, source_dir: Path):
 
-        drug_dataset = await self._ensure_drug_dataset_version(
-            self.source_dir, self.version
-        )
+        self.source_dir = source_dir
+        self.version = await self.get_drug_dataset_version()
+        dataset_with_same_version_imported = await self.was_dataset_version_imported()
+        if dataset_with_same_version_imported is not None:
+            if dataset_with_same_version_imported.import_status == "failed":
+                log.warning(
+                    f"[DRUG DATA IMPORT] Dataset '{self.dataset_name}' with version '{self.version}' failed last time. Error:\n {dataset_with_same_version_imported.import_error}"
+                )
+                time.sleep(2)
+            else:
+                log.info(
+                    f"[DRUG DATA IMPORT] Dataset '{self.dataset_name}' with version '{self.version}' already imported. Skip drug data import."
+                )
+            return
+        drug_dataset = await self._ensure_drug_dataset_version()
         drug_custom_dataset = await self._ensure_custom_drug_dataset_version()
 
-        if drug_dataset.dataset_version in [
-            imported_ds.dataset_version for imported_ds in already_imported_datasets
-        ]:
-            loaded_dataset = next(
-                imported_ds
-                for imported_ds in already_imported_datasets
-                if imported_ds.dataset_version == drug_dataset.dataset_version
-            )
-            if loaded_dataset.import_status != "failed":
-                log.info(
-                    f"[DRUG DATA IMPORT] Dataset '{drug_dataset.dataset_source_name}' with version '{drug_dataset.dataset_version}' already imported. Skip drug data import."
-                )
-                return
-        log.info(f"[DRUG DATA IMPORT] Start import of '{source_dir}'...")
+        log.info(f"[DRUG DATA IMPORT] Start import of '{self.source_dir}'...")
         await self._set_dataset_version_status("running")
         try:
-            await self.run_import(source_dir, version)
+            await self.run_import()
         except Exception as e:
             tb = traceback.format_exc()
             log.error(
@@ -120,9 +142,9 @@ class DrugDataSetImporterBase:
             raise e
             return
 
-        await self._finish_import(source_dir=source_dir, version=version)
+        await self._finish_import()
 
-    async def _finish_import(self, source_dir: Path, version: str):
+    async def _finish_import(self):
         await self._set_dataset_version_status("done")
 
     async def get_already_imported_datasets(self) -> List[DrugDataSetVersion]:
@@ -140,9 +162,7 @@ class DrugDataSetImporterBase:
             result = await session.exec(query)
             return result.all()
 
-    async def _ensure_drug_dataset_version(
-        self, source_dir: Path = None, version: str = None
-    ) -> DrugDataSetVersion:
+    async def _ensure_drug_dataset_version(self) -> DrugDataSetVersion:
         """Return a DrugDataSetVersion for this drug dataset. Will be created if not allready existent
 
         Args:
@@ -152,10 +172,17 @@ class DrugDataSetImporterBase:
         Returns:
             DrugDataSetVersion: _description_
         """
+
+        source_dir = self.source_dir
         if source_dir is None:
-            source_dir = self.source_dir
+            raise ValueError(
+                f"DrugDataSet {self.dataset_name} has no source_dir yet. Was drug data impoerter method `_ensure_drug_dataset_version` called without providing a source_dir."
+            )
+        version = self.version
         if version is None:
-            version = self.version
+            raise ValueError(
+                f"DrugDataSet {self.dataset_name} has not version yet. Was drug data impoerter method `_ensure_drug_dataset_version` called before producing a version string."
+            )
 
         async with get_async_session_context() as session:
             drug_dataset_query = select(DrugDataSetVersion).where(

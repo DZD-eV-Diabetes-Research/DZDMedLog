@@ -721,7 +721,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             ]
         return [field_def.field for field_def in code_attr_definitions]
 
-    async def run_import(self, source_dir: Path, version: str):
+    async def run_import(self):
         # generate schema definitions; fields,lov-defintions,...
         log.info("[DRUG DATA IMPORT] Parse metadata...")
         all_objs = []
@@ -805,9 +805,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             )
             if drug_code_value is None:
                 continue
-            self._validate_csv_value(
-                value=drug_code_value, mapping=drug_code_data.source_mapping
-            )
+            # await self._validate_csv_value(
+            #    value=drug_code_value, mapping=drug_code_data.source_mapping
+            # )
             result_drug_data.codes.append(
                 DrugCode(code_system_id=drug_code_data.field.id, code=drug_code_value)
             )
@@ -821,7 +821,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             drug_attr_value = self._cast_raw_csv_value_if_needed(
                 drug_attr_value, attr_data.source_mapping
             )
-            self._validate_csv_value(
+            await self._validate_csv_value(
                 value=drug_attr_value, mapping=attr_data.source_mapping
             )
             result_drug_data.attrs.append(
@@ -837,7 +837,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             drug_attr_value = self._cast_raw_csv_value_if_needed(
                 drug_attr_value, attr_ref_data.source_mapping
             )
-            self._validate_csv_value(
+            await self._validate_csv_value(
                 value=drug_attr_value, mapping=attr_ref_data.source_mapping
             )
 
@@ -858,7 +858,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 drug_attr_val = self._cast_raw_csv_value_if_needed(
                     drug_attr_val, attr_multi_data.source_mapping
                 )
-                self._validate_csv_value(
+                await self._validate_csv_value(
                     value=drug_attr_value, mapping=attr_multi_data.source_mapping
                 )
                 result_drug_data.attrs_multi.append(
@@ -880,7 +880,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 drug_attr_val = self._cast_raw_csv_value_if_needed(
                     drug_attr_val, attr_multi_ref_data.source_mapping
                 )
-                self._validate_csv_value(
+                await self._validate_csv_value(
                     value=drug_attr_value, mapping=attr_multi_ref_data.source_mapping
                 )
                 result_drug_data.attrs_multi_ref.append(

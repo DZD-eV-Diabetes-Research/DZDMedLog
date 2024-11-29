@@ -417,7 +417,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             ]
         return [field_def.field for field_def in code_attr_definitions]
 
-    async def run_import(self, source_dir: Path, version: str):
+    async def run_import(self):
         # generate schema definitions; fields,lov-defintions,...
         log.info("[DRUG DATA IMPORT] Parse metadata...")
         all_objs = []
@@ -493,9 +493,9 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             )
             if drug_code_value is None:
                 continue
-            self._validate_csv_value(
-                value=drug_code_value, mapping=drug_code_data.source_mapping
-            )
+            # await self._validate_csv_value(
+            #    value=drug_code_value, mapping=drug_code_data.source_mapping
+            # )
             result_drug_data.codes.append(
                 DrugCode(code_system_id=drug_code_data.field.id, code=drug_code_value)
             )
@@ -507,7 +507,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             drug_attr_value = self._cast_raw_csv_value_if_needed(
                 drug_attr_value, attr_data.source_mapping
             )
-            self._validate_csv_value(
+            await self._validate_csv_value(
                 value=drug_attr_value, mapping=attr_data.source_mapping
             )
             result_drug_data.attrs.append(
@@ -521,7 +521,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             drug_attr_value = self._cast_raw_csv_value_if_needed(
                 drug_attr_value, attr_ref_data.source_mapping
             )
-            self._validate_csv_value(
+            await self._validate_csv_value(
                 value=drug_attr_value, mapping=attr_ref_data.source_mapping
             )
 
@@ -539,7 +539,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                 drug_attr_val = self._cast_raw_csv_value_if_needed(
                     drug_attr_val, attr_multi_data.source_mapping
                 )
-                self._validate_csv_value(
+                await self._validate_csv_value(
                     value=drug_attr_value, mapping=attr_multi_data.source_mapping
                 )
                 result_drug_data.attrs_multi.append(
@@ -558,8 +558,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                 drug_attr_val = self._cast_raw_csv_value_if_needed(
                     drug_attr_val, attr_multi_ref_data.source_mapping
                 )
-                self._validate_csv_value(
-                    value=drug_attr_value, mapping=attr_multi_ref_data.source_mapping
+                await self._validate_csv_value(
+                    value=drug_attr_val, mapping=attr_multi_ref_data.source_mapping
                 )
                 result_drug_data.attrs_multi_ref.append(
                     DrugValMultiRef(
@@ -606,13 +606,13 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                     break
             if not ref_value_exists:
                 raise ValueError(
-                    f"Reference object for {mapping_attr} does not exists for value {value}"
+                    f"Reference object for {mapping_attr} does not exists for value {value}. '{self._lov_values[attr_name]}'\n{self._lov_values}"
                 )
         try:
             target_attr_def.type.value.casting_func(value)
         except:
             raise ValueError(
-                f"Could not cast raw value '{value}' to type {target_attr_def.type.value.python_type} as defined in {target_attr_def}"
+                f"Could not cast raw value '{value}' to type {target_attr_def.type.value.python_type} as defined in {target_attr_def}. "
             )
 
     async def commit(self, objs):
