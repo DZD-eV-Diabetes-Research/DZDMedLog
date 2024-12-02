@@ -95,7 +95,7 @@ class DrugAttrMultiFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=
         default=True,
         description="If true this field can hold a list of values instead of a single one. E.g. A drug can have a list of keywords.",
     )
-    type: Literal[tuple([f"List[{e.name}]" for e in ValueTypeCasting])] = Field(
+    type: Literal[tuple([e.name for e in ValueTypeCasting])] = Field(
         default=f"List[{ValueTypeCasting.STR.name}]",
         description="The type of this value gets casted into, by the backend, as before its passing the RestAPI",
     )
