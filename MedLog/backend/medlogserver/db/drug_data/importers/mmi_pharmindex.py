@@ -125,7 +125,7 @@ mmi_rohdaten_r3_mappings = {
         "PACKAGE.CSV",
         "NAME",
         # source_path="PACKAGE.CSV[ID]",
-        map2="trade_name",
+        map2="trade_name", 
     ),
     "market_access_date": SourceAttrMapping(
         "PACKAGE.CSV",
