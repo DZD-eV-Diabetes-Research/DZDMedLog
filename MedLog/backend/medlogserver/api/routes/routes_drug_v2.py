@@ -269,19 +269,19 @@ async def list_field_definitions(
                     field_def_read_vals[k] = v
 
             if drug_attr_type_name == "attrs":
-                result_container.attrs = DrugAttrFieldDefinitionAPIRead(
-                    **field_def_read_vals
+                result_container.attrs.append(
+                    DrugAttrFieldDefinitionAPIRead(**field_def_read_vals)
                 )
             elif drug_attr_type_name == "attrs_ref":
-                result_container.attrs_ref = DrugAttrRefFieldDefinitionAPIRead(
-                    **field_def_read_vals
+                result_container.attrs_ref.append(
+                    DrugAttrRefFieldDefinitionAPIRead(**field_def_read_vals)
                 )
             elif drug_attr_type_name == "attrs_multi":
-                result_container.attrs_multi = DrugAttrMultiFieldDefinitionAPIRead(
-                    **field_def_read_vals
+                result_container.attrs_multi.append(
+                    DrugAttrMultiFieldDefinitionAPIRead(**field_def_read_vals)
                 )
             elif drug_attr_type_name == "attrs_multi_ref":
-                result_container.attrs_multi_ref = (
+                result_container.attrs_multi_ref.append(
                     DrugAttrMultiRefFieldDefinitionAPIRead(**field_def_read_vals)
                 )
 
