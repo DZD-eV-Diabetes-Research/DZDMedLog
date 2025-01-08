@@ -13,14 +13,16 @@
  *    $bg-color: #fff
  *  );
  **/
-@mixin layout() {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  align-items: center;
+ @mixin layout() {
+  & {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    align-items: center;
 
-  @include layout-container();
-  @include layout-background();
+    @include layout-container();
+    @include layout-background();
+  }
 
   .layout__content {
     @include layout-content();
@@ -28,43 +30,42 @@
 }
 
 @mixin layout-container() {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  align-items: center;
-
-  // Implement vertical spacing via top & bottom padding
-  padding-top: var(--layout-padding-top, var(--layout-padding-y));
-  padding-bottom: var(--layout-padding-bottom, var(--layout-padding-y));
+  & {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    align-items: center;
+    padding-top: var(--layout-padding-top, var(--layout-padding-y));
+    padding-bottom: var(--layout-padding-bottom, var(--layout-padding-y));
+  }
 }
 
 @mixin layout-content() {
-  // Default Container-Behavior
   @include container();
-  max-width: 100%;
-  width: var(--layout-width, 100%);
-  position: relative;
-  top: 0;
-  height: 100%;
+  & {
+    max-width: 100%;
+    width: var(--layout-width, 100%);
+    position: relative;
+    top: 0;
+    height: 100%;
+    z-index: 1;
+    padding-left: var(--layout-padding-x, var(--space-4));
+    padding-right: var(--layout-padding-x, var(--space-4));
+  }
 
-  // Set width according to $width variable in %
-  // for all breakpoints above "sm"
   @include breakpoint(xs) {
+    // Add your xs breakpoint styles here if needed
   }
 
-  // Set max-width relative to --layout-content-max-width so 50% of
-  // content width gets 50% of --layout-content-max-width above
-  // "lg" breakpoint instead of 50% of the whole window.
   @include breakpoint(lg) {
+    // Add your lg breakpoint styles here if needed
   }
-
-  z-index: 1;
-  padding-left: var(--layout-padding-x, var(--space-4));
-  padding-right: var(--layout-padding-x, var(--space-4));
 }
 
 @mixin layout-background() {
-  position: relative;
+  & {
+    position: relative;
+  }
 
   .layout__bg {
     height: 100%;
@@ -75,12 +76,11 @@
     z-index: 0;
     background-color: var(--layout-bg-color);
 
-    // Only if bg-image is enabled
-      img {
-        object-fit: cover;
-        width: 100%;
-        height: 100%;
-        opacity: var(--layout-bg-image-opacity);
-      }
+    img {
+      object-fit: cover;
+      width: 100%;
+      height: 100%;
+      opacity: var(--layout-bg-image-opacity);
+    }
   }
 }

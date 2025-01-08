@@ -35,13 +35,9 @@
 
 .layout {
   position: relative;
-  @include layout();
-
   margin-left: var(--layout-margin-x, 0px);
   margin-right: var(--layout-margin-x, 0px);
-
   --layout-width: var(--layout-width--xl);
-
   background-color: var(--layout-bg-color, var(--white));
 
   &__content {
@@ -90,6 +86,7 @@
     left: var(--overlay-x);
     z-index: 2;
   }
+  @include layout();
 }
 
 .layout--image-right {
