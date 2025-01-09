@@ -47,7 +47,7 @@
         <UTable :rows="rows" :columns="columns">
         </UTable>
         <div v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount" class="flex justify-center px-3 py-3.5 border-t 
-        dark:border-green-700 dark:border-red-500">
+        dark:border-green-700">
           <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
             wrapper: 'flex items-center gap-1',
             rounded: 'rounded-sm',
@@ -180,11 +180,15 @@ async function createEvent() {
 
 async function createInterview() {
   try {
+    console.log("here");
+    
     const interview = await useCreateInterview(route.params.study_id, selectedIncompleteEvent.value.id, route.params.proband_id, true, userStore.userID)
-    studyStore.event = selectedIncompleteEvent.value.event.name
+    studyStore.event = selectedIncompleteEvent.value.event.name    
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + selectedIncompleteEvent.value.id + "/interview/" + interview.id)
   }
   catch (error) {
+    console.log("this");
+    
     console.log(error);
   }
 }

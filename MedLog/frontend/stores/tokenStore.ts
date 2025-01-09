@@ -19,17 +19,13 @@ export const useTokenStore = defineStore('TokenStore',{
 
     }),
     actions: {
-        async login(username, password, event: FormSubmitEvent<Schema>) {
-            console.log(username, password);
-            
+        async login(username, password, event: FormSubmitEvent<Schema>) {            
             const userStore = useUserStore();
             const body = new FormData()
             body.append("username", username) 
             body.append("password", password)
           
-            const runtimeConfig = useRuntimeConfig()
-            console.log(runtimeConfig.public.baseURL);
-            
+            const runtimeConfig = useRuntimeConfig()            
             try{
               const data = await $fetch(runtimeConfig.public.baseURL + "auth/token", {
                 method: "POST",

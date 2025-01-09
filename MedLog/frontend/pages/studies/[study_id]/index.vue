@@ -3,20 +3,13 @@
     <div class="center">
       <h3>{{ study.display_name }}</h3>
     </div>
-    <Draggable
-      :list="myEvents"
-      :disabled="!enabled"
-      item-key="name"
-      class="list-group"
-      ghost-class="ghost"
-      @start="dragging = true"
-      @end="dragging = false"
-    >
+    <Draggable :list="myEvents" :disabled="!enabled" item-key="name" class="list-group" ghost-class="ghost"
+      @start="dragging = true" @end="dragging = false">
       <template #item="{ element }">
         <div class="list-group-item" :class="{ 'not-draggable': !enabled }">
           <UIBaseCard class="events" :class="{ sorted: isSorted }">{{
             element.name
-          }}</UIBaseCard>
+            }}</UIBaseCard>
         </div>
       </template>
     </Draggable>
@@ -24,44 +17,22 @@
       <h5>Keine Events in der Studie aufgezeichnet</h5>
     </UIBaseCard>
     <UIBaseCard v-if="userStore.isAdmin" class="noHover" :naked="true">
-      <UButton
-        @click="openEventModal()"
-        label="Event anlegen"
-        color="green"
-        variant="soft"
-        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-      />
-      <UButton
-        @click="toggleSort()"
-        :label="sortButton"
-        color="blue"
-        variant="soft"
-        class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"
-      />
+      <div class="flex justify-center space-x-5 mx-auto">
+        <UButton @click="openEventModal()" label="Event anlegen" color="green" variant="soft"
+          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+        <UButton @click="toggleSort()" :label="sortButton" color="blue" variant="soft"
+          class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" />
+      </div>
       <UModal v-model="showEventModal">
         <div class="p-4" style="text-align: center">
-          <UForm
-            :schema="eventSchema"
-            :state="eventState"
-            class="space-y-4"
-            @submit="createEvent"
-          >
+          <UForm :schema="eventSchema" :state="eventState" class="space-y-4" @submit="createEvent">
             <h3>Event anlegen</h3>
             <h3 v-if="errorMessage" style="color: red">{{ errorMessage }}</h3>
             <UFormGroup label="Event Name" name="name">
-              <UInput
-                v-model="eventState.name"
-                required
-                placeholder="Interview Nr. 1"
-              />
+              <UInput v-model="eventState.name" required placeholder="Interview Nr. 1" />
             </UFormGroup>
-            <UButton
-              type="submit"
-              label="Event anlegen"
-              color="green"
-              variant="soft"
-              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-            />
+            <UButton type="submit" label="Event anlegen" color="green" variant="soft"
+              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
           </UForm>
         </div>
       </UModal>
@@ -91,14 +62,14 @@ const study = await studyStore.getStudy(route.params.study_id);
 
 const myEvents = ref([])
 
-async function getEvents(){
+async function getEvents() {
   const events = await $fetch(
-  `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event?hide_completed=false&offset=0&limit=100`,
-  {
-    method: "GET",
-    headers: { Authorization: "Bearer " + tokenStore.access_token },
-  }
-);
+    `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event?hide_completed=false&offset=0&limit=100`,
+    {
+      method: "GET",
+      headers: { Authorization: "Bearer " + tokenStore.access_token },
+    }
+  );
   myEvents.value = events.items
 }
 
@@ -147,9 +118,9 @@ async function createEvent() {
   try {
     await $fetch(
       runtimeConfig.public.baseURL +
-        "study/" +
-        route.params.study_id +
-        "/event",
+      "study/" +
+      route.params.study_id +
+      "/event",
       {
         method: "POST",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
