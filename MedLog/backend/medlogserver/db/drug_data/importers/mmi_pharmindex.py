@@ -759,14 +759,21 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
     ]:
 
         log.info("[DRUG DATA IMPORT] Parse drug data...")
-        drug_data_objs: Dict[str, DrugData] = {}
-
         package_csv_path = Path(self.source_dir, "PACKAGE.CSV")
+
+        row_count = 0
+        # count rows
+        with open(package_csv_path) as f:
+            row_count = len(f.readlines()) - 1
+        # parse csv
+        drug_data_objs: Dict[str, DrugData] = {}
         with open(package_csv_path, "rt") as package_csc_file:
             package_csv = csv.reader(package_csc_file, delimiter=";")
             package_csv_headers = next(package_csv)
             package_id_column_index = package_csv_headers.index("ID")
             for index, package_row in enumerate(package_csv):
+                if index % 100 == 0:
+                    log.info(f"[DRUG DATA IMPORT] Processed {index} rows from {row_count}")
                 drug_data_objs[package_row[package_id_column_index]] = (
                     await self._parse_drug_data_package_row(
                         drug_dataset_version, package_row, package_csv_headers
@@ -876,12 +883,17 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 mapping=attr_multi_ref_data.source_mapping,
                 singular_val=False,
             )
+            #log.debug(("drug_attr_values",drug_attr_values))
+            #log.debug(("package_row",package_row))
             for index, drug_attr_val in enumerate(drug_attr_values):
+                #log.debug(("BEFORE: drug_attr_val",drug_attr_val))
                 drug_attr_val = self._cast_raw_csv_value_if_needed(
                     drug_attr_val, attr_multi_ref_data.source_mapping
                 )
+                #log.debug(("AFTER: drug_attr_val",drug_attr_val))
+                
                 await self._validate_csv_value(
-                    value=drug_attr_value, mapping=attr_multi_ref_data.source_mapping
+                    value=drug_attr_val, mapping=attr_multi_ref_data.source_mapping
                 )
                 result_drug_data.attrs_multi_ref.append(
                     DrugValMultiRef(
@@ -920,6 +932,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         if target_attr_def.is_multi_val_field and isinstance(value,list):
             raise ValueError(f"Expected '{mapping_attr}' to be a single value. Got {value}")
         """
+        if value is None and target_attr_def.optional == True:
+            # all fine
+            return 
         if target_attr_def.is_reference_list_field:
             ref_value_exists = False
             for lov_item in self._lov_values[attr_name]:
@@ -928,7 +943,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     break
             if not ref_value_exists:
                 raise ValueError(
-                    f"Reference object for {mapping_attr} does not exists for value {value}"
+                    f"Reference object for {mapping_attr} does not exists for value '{value}'. Possible values: \n{self._lov_values[attr_name]}"
                 )
         try:
             target_attr_def.type.value.casting_func(value)
