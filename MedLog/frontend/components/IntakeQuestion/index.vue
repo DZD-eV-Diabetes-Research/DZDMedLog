@@ -20,23 +20,23 @@
             @click="printMedication(item)"
             class="drug"
             v-for="item in paginatedItems"
-            :key="item.pzn"
+            :key="item.drug.id"
             @mouseover="hoveredItem = item"
             @mouseleave="hoveredItem = null"
             style="position: relative"
           >
-            Name: {{ item.item.name }} <br />
-            PZN: {{ item.pzn }} <br />
-            Größe: {{ item.item.packgroesse }}
+            Name: {{ item.drug.trade_name }} <br />
+            PZN: {{ item.drug.codes.PZN }} <br />
+            Größe: {{ }}
             <div
               class="info"
               v-if="hoveredItem === item"
               :style="{ left: '-21%', top: '-10%' }"
             >
-              <p><strong>Darreichungsform</strong></p>
+              <!-- <p><strong>Darreichungsform</strong></p>
               <p>{{ item.item.darrform_ref.bedeutung }}</p>
               <p><strong>Applikationsform</strong></p>
-              <p>{{ item.item.appform_ref.bedeutung }}</p>
+              <p>{{ item.item.appform_ref.bedeutung }}</p> -->
             </div>
           </li>
         </ul>
@@ -114,7 +114,7 @@ const fetchDrugs = async (edit: boolean, custom: boolean) => {
     return;
   } else {
     if (state.drug.length >= 3) {
-      try {        
+      try {                
         const response = await fetch(
           `${runtimeConfig.public.baseURL}v2/drug/search?search_term=${state.drug}&only_current_medications=true&offset=0&limit=100`,
           {
@@ -122,7 +122,9 @@ const fetchDrugs = async (edit: boolean, custom: boolean) => {
             headers: { Authorization: "Bearer " + tokenStore.access_token },
           }
         );
-        if (!response.ok) throw new Error("Failed to fetch");
+        
+        if (!response.ok) {throw new Error("Failed to fetch");}
+        
         const data = await response.json();
 
         if (props.edit && initialLoad.value) {

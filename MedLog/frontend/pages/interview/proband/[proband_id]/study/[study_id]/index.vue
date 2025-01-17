@@ -180,8 +180,6 @@ async function createEvent() {
 
 async function createInterview() {
   try {
-    console.log("here");
-    
     const interview = await useCreateInterview(route.params.study_id, selectedIncompleteEvent.value.id, route.params.proband_id, true, userStore.userID)
     studyStore.event = selectedIncompleteEvent.value.event.name    
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + selectedIncompleteEvent.value.id + "/interview/" + interview.id)

@@ -5,7 +5,6 @@
         <div class="button-container">
             <button @click="conductInterview()">Interview durchführen</button>
             <button @click="showStudies()">Studien Verwaltung</button>
-            <button @click="searchMedicaments()">Medikament suchen</button>
         </div>
     </UIBaseCard>
     </Layout>
