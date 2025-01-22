@@ -4,7 +4,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 from pydantic import (
     Field,
-    AnyUrl,
     SecretStr,
     AnyHttpUrl,
     validator,
@@ -98,7 +97,7 @@ class Config(BaseSettings):
         min_length=64,
     )
 
-    def get_server_url(self) -> AnyHttpUrl:
+    def get_server_url(self) -> str:
         if self.SERVER_PROTOCOL is not None:
             proto = self.SERVER_PROTOCOL
         elif self.SERVER_LISTENING_HOST == 443:
@@ -108,7 +107,7 @@ class Config(BaseSettings):
         port = ""
         if self.SERVER_LISTENING_PORT not in [80,443]:
             port = f":{self.SERVER_LISTENING_PORT}"
-        return AnyHttpUrl(f"{proto}://{self.SERVER_HOSTNAME}{port}")
+        return f"{proto}://{self.SERVER_HOSTNAME}{port}"
 
     CLIENT_URL: Optional[str] = Field(
         default=None,
@@ -121,7 +120,7 @@ class Config(BaseSettings):
             self.CLIENT_URL = self.get_server_url()
         return self
 
-    SQL_DATABASE_URL: AnyUrl = Field(default="sqlite+aiosqlite:///./local.sqlite")
+    SQL_DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./local.sqlite")
 
     ADMIN_USER_NAME: str = Field(default="admin")
     ADMIN_USER_PW: SecretStr = Field()
@@ -237,7 +236,7 @@ class Config(BaseSettings):
         CLIENT_SECRET: SecretStr = Field(
             description="The client secret of the OpenID Connect provider."
         )
-        DISCOVERY_ENDPOINT: AnyUrl = Field(
+        DISCOVERY_ENDPOINT: str = Field(
             description="The discovery endpoint of the OpenID Connect provider."
         )
         SCOPES: List[str] = Field(
