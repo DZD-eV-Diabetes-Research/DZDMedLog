@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AnyHttpUrl
 from uuid import UUID, uuid4
 
 from datetime import datetime, timedelta, timezone
@@ -224,7 +224,7 @@ class JWTAccessTokenContainer:
             self.jwt_token_encoded,
             config.AUTH_JWT_SECRET.get_secret_value(),
             config.AUTH_JWT_ALGORITHM,
-            audience=config.get_server_url().host,
+            audience=AnyHttpUrl(config.get_server_url()).host,
         )
 
     @property
@@ -240,7 +240,7 @@ class JWTAccessTokenContainer:
                 "sub": str(self.sub),
                 "exp": self.exp,
                 "iat": int(self.created_at.timestamp()),
-                "aud": config.get_server_url().host,
+                "aud": AnyHttpUrl(config.get_server_url()).host,
                 # "aud": "http://localhost:8888",
                 "iss": config.SERVER_HOSTNAME,
                 "user": self.user.model_dump_json(),
@@ -258,7 +258,7 @@ class JWTAccessTokenContainer:
                 jwt_token_encoded,
                 config.AUTH_JWT_SECRET.get_secret_value(),
                 config.AUTH_JWT_ALGORITHM,
-                audience=config.get_server_url().host,
+                audience=AnyHttpUrl(config.get_server_url()).host,
             )
             user = jwt_token_decoded["user"]
             # log.debug(f"user ({type(user)}): {user}")
