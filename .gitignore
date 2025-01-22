@@ -371,3 +371,5 @@ MedLog/backend/tests/testdb.sqlite
 database
 **/*.sqlite
 **/*.db
+
+_MMI_Pharmindex
