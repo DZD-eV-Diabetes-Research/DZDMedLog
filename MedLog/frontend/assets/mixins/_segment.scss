@@ -13,7 +13,7 @@
  *    $bg-color: #fff
  *  );
  **/
-@mixin layout() {
+ @mixin layout() {
   display: flex;
   flex-direction: column;
   position: relative;
@@ -47,6 +47,11 @@
   top: 0;
   height: 100%;
 
+  // Move declarations before any nested rules
+  z-index: 1;
+  padding-left: var(--layout-padding-x, var(--space-4));
+  padding-right: var(--layout-padding-x, var(--space-4));
+
   // Set width according to $width variable in %
   // for all breakpoints above "sm"
   @include breakpoint(xs) {
@@ -57,10 +62,6 @@
   // "lg" breakpoint instead of 50% of the whole window.
   @include breakpoint(lg) {
   }
-
-  z-index: 1;
-  padding-left: var(--layout-padding-x, var(--space-4));
-  padding-right: var(--layout-padding-x, var(--space-4));
 }
 
 @mixin layout-background() {
@@ -76,11 +77,11 @@
     background-color: var(--layout-bg-color);
 
     // Only if bg-image is enabled
-      img {
-        object-fit: cover;
-        width: 100%;
-        height: 100%;
-        opacity: var(--layout-bg-image-opacity);
-      }
+    img {
+      object-fit: cover;
+      width: 100%;
+      height: 100%;
+      opacity: var(--layout-bg-image-opacity);
+    }
   }
 }

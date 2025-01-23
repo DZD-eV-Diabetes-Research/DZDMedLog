@@ -47,7 +47,7 @@ const state = reactive({
 
 async function pushFurther(study) {
     try {
-        const response = await $fetch(`${runtimeConfig.public.baseURL}study/${study.id}/proband/${state.probandID}/interview`, {
+        const response = await $fetch(`${runtimeConfig.public.baseURL}/study/${study.id}/proband/${state.probandID}/interview`, {
             method: "GET",
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
         });

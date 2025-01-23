@@ -5,7 +5,7 @@
           <img src="/img/logos/helmholtz.png" alt="Helmholtz Munich" />
         </div>
         <div class="footer__links">
-          <a href="https://www.dzd-ev.de/footermenue/impressum/index.html" target="_new">Imprint</a>
+          <a href="https://www.dzd-ev.de/impressum/index.html" target="_new">Imprint</a>
         </div>
       </div>
     </footer>
@@ -25,6 +25,7 @@
     --link-color: var(--primary8);
     position: relative;
     bottom: 0;
+    padding: 1rem 2rem;
   }
   
   .footer__content {

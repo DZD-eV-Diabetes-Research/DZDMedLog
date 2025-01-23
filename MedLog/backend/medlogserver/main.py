@@ -8,6 +8,9 @@ import asyncio
 import json
 import argparse
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
+import sys, os
 
 # Main can be started with arguments. Lets parse these first.
 
@@ -32,8 +35,6 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 # This way we address medlogserver as a module for imports without installing it first.
 # e.g. "from medlogserver import config"
 if __name__ == "__main__":
-    from pathlib import Path
-    import sys, os
 
     MODULE_DIR = Path(__file__).parent
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
@@ -68,9 +69,6 @@ def start(with_background_worker: bool = True):
     # exit()
     print(f"LOG_LEVEL: {config.LOG_LEVEL}")
     print(f"UVICORN_LOG_LEVEL: {get_uvicorn_loglevel()}")
-    print(
-        f"allow_origins=[{config.CLIENT_URL}, {str(config.get_server_url()).rstrip('/')}]"
-    )
 
     from medlogserver.db._init_db import init_db
     import uvicorn
@@ -84,10 +82,14 @@ def start(with_background_worker: bool = True):
 
     @app.get("/{path_name:path}")
     async def serve_frontend(path_name: Optional[str] = None):
-        if path_name:
+        full_path = Path(config.FRONTEND_FILES_DIR, path_name)
+        log.debug(f"request frontend path {path_name} {full_path.is_file()}")
+        if not path_name:
+            file = os.path.join(config.FRONTEND_FILES_DIR, "index.html")
+        if full_path.is_file():
             file = os.path.join(config.FRONTEND_FILES_DIR, path_name)
         else:
-            file = os.path.join(config.FRONTEND_FILES_DIR, "index.html")
+            file = os.path.join(config.FRONTEND_FILES_DIR, path_name, "index.html")
         return FileResponse(file)
 
     if config.CLIENT_URL == config.get_server_url():

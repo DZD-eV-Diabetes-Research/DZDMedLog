@@ -149,7 +149,7 @@ async function createNewDrug() {
 
   try {
     const response = await $fetch(
-      `${runtimeConfig.public.baseURL}drug/user-custom`,
+      `${runtimeConfig.public.baseURL}/drug/user-custom`,
       {
         method: "POST",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -202,7 +202,7 @@ async function createNewDrug() {
 
 async function getDosageForm() {
   const dosageForm = await $fetch(
-    `${runtimeConfig.public.baseURL}drug/enum/darrform`,
+    `${runtimeConfig.public.baseURL}/drug/enum/darrform`,
     {
       method: "GET",
       headers: { Authorization: "Bearer " + tokenStore.access_token },

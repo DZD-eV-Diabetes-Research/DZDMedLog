@@ -18,7 +18,7 @@ export async function useCreateIntake(study_id: string, interview_id: string, pz
 
     try {
         const runtimeConfig = useRuntimeConfig()
-        const response = await $fetch(runtimeConfig.public.baseURL + "study/" + study_id + "/interview/" + interview_id + "/intake", {
+        const response = await $fetch(runtimeConfig.public.baseURL + "/study/" + study_id + "/interview/" + interview_id + "/intake", {
             method: "POST",
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
             body,

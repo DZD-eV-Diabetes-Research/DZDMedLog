@@ -1,48 +1,13 @@
-:root {
-  --layout-width--sm: #{map-get($breakpoints, sm)};
-  --layout-width--md: #{map-get($breakpoints, md)};
-  --layout-width--lg: #{map-get($breakpoints, lg)};
-  --layout-width--xl: #{map-get($breakpoints, xl)};
-
-  --layout-padding-y: 60px;
-
-  // default
-  --layout-width: 100%;
-
-  --layout-content-max-width: #{map-get($breakpoints, xl)};
-
-  --layout-max-width: 100%;
-  --layout-vspace: 0;
-  --layout-bg-opacity: 1;
-  --layout-bg-blur: 0px;
-  --layout-padding-x: var(--space-6);
-  --layout-text-color: var(--color-text--body);
-}
-
-@include breakpoint(sm) {
-  :root {
-    --layout-padding-x: var(--space-15);
-    --layout-padding-y: 80px;
-  }
-}
-
-@include breakpoint(md) {
-  :root {
-    --layout-padding-x: var(--space-15);
-    --layout-padding-y: 120px;
-  }
-}
-
 .layout {
   position: relative;
-  @include layout();
 
+  // Move all declarations above nested rules
   margin-left: var(--layout-margin-x, 0px);
   margin-right: var(--layout-margin-x, 0px);
-
   --layout-width: var(--layout-width--xl);
-
   background-color: var(--layout-bg-color, var(--white));
+
+  @include layout(); // Include the mixin after declarations
 
   &__content {
     color: var(--layout-text-color);
