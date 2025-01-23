@@ -125,7 +125,7 @@ class CRUDBase(
 
     async def _get(
         self,
-        id_: str | UUID,
+        id_: UUID,
         raise_exception_if_none: Exception = None,
     ) -> Optional[GenericCRUDReadType]:
         # get() could be overwritten in  a child class that why we create an internal _get() function that can be used by other funcs like update()
@@ -138,7 +138,7 @@ class CRUDBase(
 
     async def get(
         self,
-        id_: str | UUID,
+        id_: UUID,
         raise_exception_if_none: Exception = None,
     ) -> Optional[GenericCRUDReadType]:
 
@@ -222,7 +222,7 @@ class CRUDBase(
     async def update(
         self,
         update_obj: GenericCRUDUpdateType | GenericCRUDTableType,
-        id_: str | UUID = None,
+        id_: UUID = None,
         raise_exception_if_not_exists=None,
     ) -> GenericCRUDReadType:
         id_ = id_ if id_ is not None else getattr(update_obj, "id", None)
@@ -242,7 +242,7 @@ class CRUDBase(
 
     async def delete(
         self,
-        id_: str | UUID,
+        id_: UUID,
         raise_exception_if_not_exists=None,
         force_pragma_foreign_keys: bool = False,
     ):
