@@ -233,23 +233,7 @@ async def list_all_intakes_detailed(
 @fast_api_intake_router.get(
     "/study/{study_id}/proband/{proband_id}/interview/last/intake",
     response_model=List[Intake],
-    description=f"List all medicine intakes of one probands last completed interview.",
-)
-async def get_intakes_of_last_interview_by_propband(
-    proband_id: str,
-    study_access: UserStudyAccess = Security(user_has_study_access),
-    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
-) -> List[Intake]:
-    return await intake_crud.list_last_completed_interview_intakes_by_proband(
-        study_id=study_access.study.id, proband_external_id=proband_id
-    )
-
-
-#############
-@fast_api_intake_router.get(
-    "/study/{study_id}/proband/{proband_id}/interview/last/intake",
-    response_model=List[Intake],
-    description=f"List all medicine intakes of one probands last completed interview.",
+    description=f"List all drug intakes of one probands last completed interview.",
 )
 async def list_all_intakes_of_last_completed_interview(
     proband_id: str,

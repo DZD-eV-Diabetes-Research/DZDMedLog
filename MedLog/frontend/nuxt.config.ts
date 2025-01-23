@@ -1,8 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import {resolve} from "path"
+import { resolve } from "path"
 
 export default defineNuxtConfig({
-  alias:{
+  alias: {
     "@": resolve(__dirname, "/")
   },
 
@@ -12,7 +12,7 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@pinia-plugin-persistedstate/nuxt',
     "@nuxt/ui",
-    "dayjs-nuxt"
+    "dayjs-nuxt",
   ],
 
   pinia: {
@@ -40,10 +40,10 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      baseURL: 'http://localhost:8888/',
+      baseURL: '',
     },
   },
 
-  ssr: false,
-  compatibilityDate: '2024-08-29',
-})
+    ssr: false,
+    compatibilityDate: '2024-08-29',
+  })
