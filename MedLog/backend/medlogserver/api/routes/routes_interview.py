@@ -173,7 +173,7 @@ async def get_last_non_completed_interview(
 )
 async def create_interview(
     interview: Annotated[InterviewCreateAPI, Body()],
-    event_id: Annotated[str, Path()],
+    event_id: Annotated[uuid.UUID, Path()],
     user: Annotated[User, Security(get_current_user)],
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
