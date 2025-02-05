@@ -372,4 +372,4 @@ database
 **/*.sqlite
 **/*.db
 
-/_MMI_Pharmindex/*
+_MMI_Pharmindex/*
