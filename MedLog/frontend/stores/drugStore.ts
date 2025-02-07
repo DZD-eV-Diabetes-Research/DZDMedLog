@@ -17,6 +17,7 @@ interface DrugState {
     editId: string
     drugName: string | null
     darrForm: string | null
+    lastFetchTime: number | null
 }
 
 export const useDrugStore = defineStore('DrugStore',{
@@ -37,11 +38,11 @@ export const useDrugStore = defineStore('DrugStore',{
         customVisibility: false,
         editId : "",
         drugName: null,
-        darrForm: null
-
+        darrForm: null,
+        lastFetchTime: null
     }),
     getters: {
-        isAction: (state) => state.action
+        isAction: (state) => state.action,
     },
     persist: true
 }) 
