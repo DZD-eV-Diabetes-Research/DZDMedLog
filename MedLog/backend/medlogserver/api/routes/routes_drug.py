@@ -107,7 +107,7 @@ async def list_drugs(
 ) -> PaginatedResponse[StammRead]:
     result_items = await drug_stamm_crud.list(pagination=pagination)
     # return result_items
-    return pagination(
+    return PaginatedResponse(
         total_count=await drug_stamm_crud.count(),
         offset=pagination.offset,
         count=len(result_items),
