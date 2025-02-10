@@ -41,14 +41,14 @@
           </li>
         </ul>
         <div class="pagination" v-if="drugList.count >= 6">
-          <button @click="state.currentPage > 1 ? state.currentPage-- : 0">
+          <UIBaseButton @click="state.currentPage > 1 ? state.currentPage-- : 0">
             Previous
-          </button>
-          <button
+          </UIBaseButton>
+          <UIBaseButton
             @click="state.currentPage < totalPages ? state.currentPage++ : 0"
           >
             Next
-          </button>
+          </UIBaseButton>
           <p>Page {{ state.currentPage }} of {{ totalPages }}</p>
         </div>
       </div>
@@ -116,7 +116,7 @@ const fetchDrugs = async (edit: boolean, custom: boolean) => {
     if (state.drug.length >= 3) {
       try {
         const response = await fetch(
-          `${runtimeConfig.public.baseURL}drug/search?search_term=${state.drug}&only_current_medications=true&offset=0&limit=100`,
+          `${runtimeConfig.public.baseURL}/drug/search?search_term=${state.drug}&only_current_medications=true&offset=0&limit=100`,
           {
             method: "GET",
             headers: { Authorization: "Bearer " + tokenStore.access_token },

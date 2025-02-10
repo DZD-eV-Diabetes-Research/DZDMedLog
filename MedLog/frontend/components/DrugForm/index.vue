@@ -121,13 +121,16 @@
         <UInput type="date" v-model="state.endTime" :color="props.color" />
       </UFormGroup>
     </div>
+    <div>
     <URadioGroup
       v-model="state.selected"
       legend="Wurden heute Medikamente eingenommen?"
       name="selected"
       :options="options"
       :color="props.color"
+      :ui="{ border: '1px solid gray', borderRadius: '50%', padding: '5px' }"
     />
+    </div>
     <div style="text-align: center">
     <UButton
       type="submit"
@@ -143,6 +146,7 @@
 
 
 <script setup lang="ts">
+
 import dayjs from "dayjs";
 import { object, number, date, string, type InferType } from "yup";
 
@@ -289,7 +293,7 @@ async function saveIntake() {
       };
 
       await $fetch(
-        `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
+        `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
         {
           method: "PATCH",
           headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -319,7 +323,7 @@ async function saveIntake() {
   else if (props.custom && !props.edit) {
 
     const response = await $fetch(
-      `${runtimeConfig.public.baseURL}drug/user-custom`,
+      `${runtimeConfig.public.baseURL}/drug/user-custom`,
       {
         method: "POST",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -396,7 +400,7 @@ const dosageFormTable = ref();
 
 async function getDosageForm() {
   const dosageForm = await $fetch(
-    `${runtimeConfig.public.baseURL}drug/enum/darrform`,
+    `${runtimeConfig.public.baseURL}/drug/enum/darrform`,
     {
       method: "GET",
       headers: { Authorization: "Bearer " + tokenStore.access_token },

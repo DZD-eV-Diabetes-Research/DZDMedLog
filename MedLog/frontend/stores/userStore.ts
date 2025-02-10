@@ -8,7 +8,8 @@ interface UserStore {
     isAdmin: boolean,
     viewProfile: boolean,
     buttonText: string,
-    userID: string
+    userID: string,
+    firstEvent: boolean
 
 }
 
@@ -22,14 +23,15 @@ export const useUserStore = defineStore('UserStore', {
         isAdmin: false,
         viewProfile: false,
         buttonText: "Toggle to User",
-        userID: ""
+        userID: "",
+        firstEvent: false,
     }),
     actions: {
         async userMe() {
             const tokenStore = useTokenStore()
             try {
                 const runtimeConfig = useRuntimeConfig()
-                const data = await $fetch(runtimeConfig.public.baseURL + "user/me", {
+                const data = await $fetch(runtimeConfig.public.baseURL + "/user/me", {
                     method: "GET",
                     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
                 })

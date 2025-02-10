@@ -189,7 +189,7 @@ class IntakeCRUD(
             query = pagination.append_to_query(query)
 
         results = await self.session.exec(statement=query)
-        intakes: Sequence[Intake] = results.all
+        intakes: Sequence[Intake] = results.all()
         return intakes
 
     async def get(
