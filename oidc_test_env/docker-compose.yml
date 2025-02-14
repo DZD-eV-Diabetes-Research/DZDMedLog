@@ -4,10 +4,11 @@ services:
     image: medlogbackend
     network_mode: host
     build:
-      dockerfile: Dockerfile.backend
+      dockerfile: Dockerfile
       context: ../
     environment:
       - LOG_LEVEL=DEBUG
+      - DEMO_MODE=true
       - OIDC__CLIENT_ID=FfgBVFx2H11q8Dz6HDmh8ASIuqolKZd7q7IUsZn2
       - OIDC__CLIENT_SECRET=m5WZWMZjZBUCgHTI9puGhIJjebY3iDkMNf4qfd7yrV77NgtbVzKpJWlU32DITbBMgmTxbdOShZAPrH9sjvO71RPZMOOlxCr5C3IAiYMdyKsqV4dapX3bkO23gqNqT1sY
       - OIDC__DISCOVERY_ENDPOINT=http://localhost:9000/application/o/medlog/.well-known/openid-configuration
@@ -15,9 +16,9 @@ services:
       - LISTENING_PORT=8888
     ports:
       - 8888:8888
-    profiles:
+    #profiles:
       # we wont build/start this ocntainer while developing the backend.
-      - do-not-start
+      #- do-not-start
 
   #frontend:
   #  image: medlog/frontend
