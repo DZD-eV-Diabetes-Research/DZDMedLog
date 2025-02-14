@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div class="p-4">
     <UForm
       :schema="newDrugSchema"
@@ -85,139 +85,10 @@
     </UForm>
   </div>
   <DrugForm color="yellow" :edit=false :custom=true label="U"/>
-</template>
+</template> -->
 
 <script setup lang="ts">
-import dayjs from "dayjs";
-import { object, number, date, string, type InferType } from "yup";
-
-// general constants
-
-const route = useRoute();
-const router = useRouter();
-const tokenStore = useTokenStore();
-const drugStore = useDrugStore();
-const studyStore = useStudyStore();
-const userStore = useUserStore();
-const runtimeConfig = useRuntimeConfig();
-
-const newDrugState = reactive({
-  pzn: "",
-  name: "",
-  dose: 0,
-  herstellerCode: "",
-  darrform: "",
-  appform: "",
-  atc_code: "",
-  packgroesse: 0,
-});
-
-const newDrugSchema = object({
-  pzn: string(),
-  name: string().required("Benötigt"),
-  dose: number(),
-  herstellerCode: string(),
-  darrform: string(),
-  appform: string(),
-  atc_code: string(),
-  packgroesse: number(),
-});
-
-const customDrugForm = [
-  {
-    label: "Zusätzliche Information",
-    icon: "i-heroicons-information-circle",
-    slot: "custom-form",
-  },
-];
-
-// const customDrugModalVisibility = ref(false);
-
-const showDarrFormError = ref(false);
-const selectedDosageForm = ref();
-const dosageFormTable = ref();
-
-// async function openCustomModal() {
-//   customDrugModalVisibility.value = !customDrugModalVisibility.value;
-//   showDarrFormError.value = false;
-// }
-
-async function createNewDrug() {
-  showDarrFormError.value = false;
-  const date = dayjs(Date()).format("YYYY-MM-DD");
-  const myDose = newDrugState.dose;
-
-  try {
-    const response = await $fetch(
-      `${runtimeConfig.public.baseURL}drug/user-custom`,
-      {
-        method: "POST",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
-        body: {
-          created_at: date,
-          pzn: newDrugState.pzn ? newDrugState.pzn : null,
-          name: newDrugState.name ? newDrugState.name : null,
-          hersteller_code: newDrugState.herstellerCode
-            ? newDrugState.herstellerCode
-            : null,
-          darrform: selectedDosageForm.value.darrform,
-          appform: newDrugState.appform ? newDrugState.appform : null,
-          atc_code: newDrugState.atc_code ? newDrugState.atc_code : null,
-          packgroesse: newDrugState.packgroesse
-            ? newDrugState.packgroesse
-            : null,
-        },
-      }
-    );
-
-    const pzn = newDrugState.pzn ? newDrugState.pzn : null;
-    await useCreateIntake(
-      route.params.study_id,
-      route.params.interview_id,
-      pzn,
-      null,
-      date,
-      null,
-      null,
-      null,
-      myDose,
-      "Yes",
-      response.id
-    );
-
-    router.go();
-  } catch (error) {
-    console.log("Failed to create Intake: ", error);
-    if (selectedDosageForm.value === undefined) {
-      showDarrFormError.value = true;
-    }
-    if (
-      error.message ===
-      "Cannot read properties of undefined (reading 'darrform')"
-    ) {
-      showDarrFormError.value = true;
-    }
-  }
-}
-
-async function getDosageForm() {
-  const dosageForm = await $fetch(
-    `${runtimeConfig.public.baseURL}drug/enum/darrform`,
-    {
-      method: "GET",
-      headers: { Authorization: "Bearer " + tokenStore.access_token },
-    }
-  );
-
-  dosageFormTable.value = dosageForm.items.map((item) => ({
-    id: item.bedeutung + " (" + item.darrform + ")",
-    label: item.bedeutung + " (" + item.darrform + ")",
-    bedeutung: item.bedeutung,
-    darrform: item.darrform,
-  }));
-}
-
-getDosageForm();
+const test = "1"
 </script>
 
 <style scoped></style>

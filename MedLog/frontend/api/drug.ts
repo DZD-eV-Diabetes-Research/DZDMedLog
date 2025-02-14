@@ -1,5 +1,5 @@
-export async function getFieldDefinitions() {
-    const runTimeConfig = useRuntimeConfig()
+export async function apiGetFieldDefinitions() {
+    const runTimeConfig = useRuntimeConfig();
     const tokenStore = useTokenStore();
 
     try {
@@ -25,4 +25,19 @@ export async function getFieldDefinitions() {
         throw error;
     }
 
+}
+
+export async function apiDrugSearch(drugName: string) {
+    const runTimeConfig = useRuntimeConfig();
+    const tokenStore = useTokenStore();
+
+    const result = await fetch(
+        `${runTimeConfig.public.baseURL}v2/drug/search?search_term=${drugName}&only_current_medications=true&offset=0&limit=100`,
+        {
+            method: "GET",
+            headers: { Authorization: "Bearer " + tokenStore.access_token },
+        }
+    );
+
+    return result
 }

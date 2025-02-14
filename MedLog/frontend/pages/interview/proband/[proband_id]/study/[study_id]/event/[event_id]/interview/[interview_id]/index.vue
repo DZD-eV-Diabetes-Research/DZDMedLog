@@ -1,6 +1,5 @@
 <template>
   <Layout>
-    {{ test }}
     <UIBaseCard :naked="true">
       <UButton @click="openIntakeForm()" label="Eingabe Präparat" color="green" variant="soft"
         style="margin-right: 10px"
@@ -10,7 +9,6 @@
       <UIBaseCard>
         <IntakeQuestion color="green" />
         <DrugForm color="green" :edit="false" :custom="false" label="Medikament Speichern" />
-
         <UButton @click="openCustomModal()" label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
           style="margin-top: 2%"
           class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white" />

@@ -6,13 +6,11 @@
             <button @click="conductInterview()">Interview durchführen</button>
             <button @click="showStudies()">Studien Verwaltung</button>
         </div>
-        {{ test  }}
     </UIBaseCard>
     </Layout>
 </template>
 
 <script setup lang="ts">
-import { getFieldDefinitions } from '~/api/drug_queries';
 
 const userStore = useUserStore()
 const studyStore = useStudyStore();
@@ -31,8 +29,6 @@ async function showStudies(url:string) {
 async function searchMedicaments(url:string) {
     router.push({path: "/search"})
 }
-
-let test = await getFieldDefinitions()
 
 </script>
 

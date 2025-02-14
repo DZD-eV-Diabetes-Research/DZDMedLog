@@ -81,10 +81,15 @@
           </p>
         </div>
   </UIBaseCard>
+  {{ drugFieldDefinitions }}
 </template>
 
 <script setup lang="ts">
 import { ref, watch, reactive } from "vue";
+import { apiGetFieldDefinitions, apiDrugSearch } from '~/api/drug';
+
+
+let drugFieldDefinitions = await apiGetFieldDefinitions()
 
 const hoveredItem = ref(null);
 const tokenStore = useTokenStore();
@@ -115,13 +120,7 @@ const fetchDrugs = async (edit: boolean, custom: boolean) => {
   } else {
     if (state.drug.length >= 3) {
       try {                
-        const response = await fetch(
-          `${runtimeConfig.public.baseURL}v2/drug/search?search_term=${state.drug}&only_current_medications=true&offset=0&limit=100`,
-          {
-            method: "GET",
-            headers: { Authorization: "Bearer " + tokenStore.access_token },
-          }
-        );
+        const response = await apiDrugSearch(state.drug)
         
         if (!response.ok) {throw new Error("Failed to fetch");}
         
