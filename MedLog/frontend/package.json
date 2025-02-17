@@ -10,11 +10,12 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@nuxt/kit": "^3.15.4",
     "@nuxt/ui": "npm:@nuxt/ui-edge@latest",
     "@nuxtjs/supabase": "^1.4.0",
     "@pinia/nuxt": "^0.5.4",
     "@sidebase/nuxt-auth": "^0.9.1",
-    "caniuse-lite": "^1.0.30001697",
+    "caniuse-lite": "^1.0.30001699",
     "dayjs-nuxt": "^2.1.11",
     "next-auth": "4.21.1",
     "nuxt": "^3.13.0",
