@@ -371,7 +371,7 @@ async def get_reference_field_values(
     response_model=DrugAttrFieldLovItemAPIRead,
     description=f"get a certain values, display values, sort_oder of a LOV (List of values) for a reference field.",
 )
-async def get_reference_field_values(
+async def get_reference_field_value(
     field_name: str,
     ref_val: str,
     user: User = Security(get_current_user),
@@ -403,7 +403,7 @@ async def get_reference_field_values(
     response_model=List[DrugCodeSystem],
     description=f"List all drug coding system used in the current drug dataset.",
 )
-async def get_reference_field_values(
+async def list_drug_code_systems(
     user: User = Security(get_current_user),
     drug_code_sys_crud: DrugCodeSystemCRUD = Depends(DrugCodeSystemCRUD.get_crud),
 ) -> List[DrugCodeSystem]:
@@ -415,7 +415,7 @@ async def get_reference_field_values(
     response_model=DrugCodeSystem,
     description=f"List detail if a specific drug code system",
 )
-async def get_reference_field_values(
+async def get_drug_code_details(
     code_id: str,
     user: User = Security(get_current_user),
     drug_code_sys_crud: DrugCodeSystemCRUD = Depends(DrugCodeSystemCRUD.get_crud),
