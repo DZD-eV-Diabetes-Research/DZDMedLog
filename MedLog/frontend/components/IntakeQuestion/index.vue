@@ -25,18 +25,24 @@
             @mouseleave="hoveredItem = null"
             style="position: relative"
           >
-            Name: {{ item.drug.trade_name }} <br />
+          <div>
+            <strong>Name: {{ item.drug.trade_name }} </strong><br />
             PZN: {{ item.drug.codes.PZN }} <br />
-            Größe: {{ }}
+            <div v-for="attr in drugFieldDefinitionsObject.attrs" :key="attr[1]">
+              {{ attr[0] }}: {{ item.drug?.attrs?.[attr[1]] }}
+            </div>
+            <div v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :key="attr_ref[1]">
+              {{ attr_ref[0] }}: {{ item.drug?.attrs_ref?.[attr_ref[1]]?.display }}
+            </div>
+          </div>
             <div
               class="info"
               v-if="hoveredItem === item"
-              :style="{ left: '-21%', top: '-10%' }"
+              :style="{ right: '110%', top: '-10%' }"
             >
-              <!-- <p><strong>Darreichungsform</strong></p>
-              <p>{{ item.item.darrform_ref.bedeutung }}</p>
-              <p><strong>Applikationsform</strong></p>
-              <p>{{ item.item.appform_ref.bedeutung }}</p> -->
+            <div v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref" :key="attr_multi_ref[1]">
+              {{ attr_multi_ref[0] }}: {{ item.drug?.attrs_multi_ref?.[attr_multi_ref[1]][0].display }}
+            </div>
             </div>
           </li>
         </ul>
@@ -73,15 +79,14 @@
           <p>Medikament: {{ drugStore.item.item.name }}</p>
           <p>PZN: {{ drugStore.item.pzn }}</p>
           <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
-          <p>
+          <!-- <p>
             Darreichungsform: {{ drugStore.item.item.darrform_ref.bedeutung }}
-          </p>
+          </p> -->
           <p>
             Applikationsform: {{ drugStore.item.item.appform_ref.bedeutung }}
           </p>
         </div>
   </UIBaseCard>
-  {{ drugFieldDefinitions }}
 </template>
 
 <script setup lang="ts">
@@ -89,7 +94,7 @@ import { ref, watch, reactive } from "vue";
 import { apiGetFieldDefinitions, apiDrugSearch } from '~/api/drug';
 
 
-let drugFieldDefinitions = await apiGetFieldDefinitions()
+let drugFieldDefinitionsObject = await apiGetFieldDefinitions()
 
 const hoveredItem = ref(null);
 const tokenStore = useTokenStore();

@@ -15,10 +15,22 @@ export async function apiGetFieldDefinitions() {
         const result = drugFieldKeys.flatMap(key =>
             response[key]
                 .filter(item => item.optional === false)
-                .map(item => item.field_name_display)
+                .map(item => [key, item.field_name_display, item.field_name])
         );
 
-        return result;
+        const attrs = result.filter(item => item[0] === "attrs").map(item =>  [item[1], item[2]])
+        const attrs_ref = result.filter(item => item[0] === "attrs_ref").map(item =>  [item[1], item[2]])
+        const attrs_multi = result.filter(item => item[0] === "attrs_multi").map(item =>  [item[1], item[2]])
+        const attrs_multi_ref = result.filter(item => item[0] === "attrs_multi_ref").map(item =>  [item[1], item[2]])
+
+        const completeList = {
+            attrs:  attrs,
+            attrs_ref: attrs_ref,
+            attrs_multi: attrs_multi,
+            attrs_multi_ref: attrs_multi_ref
+        }
+
+        return completeList;
 
     } catch (error) {
         console.error("Error fetching field definitions:", error);
