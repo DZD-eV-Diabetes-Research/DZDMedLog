@@ -15,6 +15,12 @@ export default defineNuxtConfig({
     "dayjs-nuxt"
   ],
 
+  piniaPersistedstate: {
+    cookieOptions: {
+      sameSite: 'strict',
+    },
+  },
+
   pinia: {
     storesDirs: ['./stores/**', './custom-folder/stores/**'],
   },

@@ -286,7 +286,7 @@ async function openCustomModal() {
 
 async function getDosageForm() {
   const dosageForm = await $fetch(
-    `${runtimeConfig.public.baseURL}drug/enum/darrform`,
+    `${runtimeConfig.public.baseURL}v2/drug/field_def/darreichungsform/refs`,
     {
       method: "GET",
       headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -294,10 +294,10 @@ async function getDosageForm() {
   );
 
   dosageFormTable.value = dosageForm.items.map((item) => ({
-    id: item.bedeutung + " (" + item.darrform + ")",
-    label: item.bedeutung + " (" + item.darrform + ")",
-    bedeutung: item.bedeutung,
-    darrform: item.darrform,
+    id: item.display + " (" + item.value + ")",
+    label: item.display + " (" + item.value + ")",
+    bedeutung: item.display,
+    darrform: item.value,
   }));
 }
 

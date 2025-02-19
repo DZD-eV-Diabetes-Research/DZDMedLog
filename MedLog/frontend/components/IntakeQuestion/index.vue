@@ -79,9 +79,9 @@
           <p>Medikament: {{ drugStore.item.item.name }}</p>
           <p>PZN: {{ drugStore.item.pzn }}</p>
           <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
-          <!-- <p>
+          <p>
             Darreichungsform: {{ drugStore.item.item.darrform_ref.bedeutung }}
-          </p> -->
+          </p>
           <p>
             Applikationsform: {{ drugStore.item.item.appform_ref.bedeutung }}
           </p>
@@ -172,8 +172,9 @@ const totalPages = computed(() => {
 });
 
 function printMedication(item) {
-  drugStore.item = item;
-  state.drug = "";
+  console.log(item);
+  // drugStore.item = item;
+  // state.drug = "";
 }
 
 const props = defineProps<{

@@ -394,22 +394,23 @@ const showDarrFormError = ref(false);
 const selectedDosageForm = ref();
 const dosageFormTable = ref();
 
-// async function getDosageForm() {
-//   const dosageForm = await $fetch(
-//     `${runtimeConfig.public.baseURL}drug/enum/darrform`,
-//     {
-//       method: "GET",
-//       headers: { Authorization: "Bearer " + tokenStore.access_token },
-//     }
-//   );
 
-//   dosageFormTable.value = dosageForm.items.map((item) => ({
-//     id: item.bedeutung + " (" + item.darrform + ")",
-//     label: item.bedeutung + " (" + item.darrform + ")",
-//     bedeutung: item.bedeutung,
-//     darrform: item.darrform,
-//   }));
-// }
+async function getDosageForm() {
+  const dosageForm = await $fetch(
+    `${runtimeConfig.public.baseURL}v2/drug/field_def/darreichungsform/refs`,
+    {
+      method: "GET",
+      headers: { Authorization: "Bearer " + tokenStore.access_token },
+    }
+  );
+
+  dosageFormTable.value = dosageForm.items.map((item) => ({
+    id: item.display + " (" + item.value + ")",
+    label: item.display + " (" + item.value + ")",
+    bedeutung: item.display,
+    darrform: item.value,
+  }));
+}
 
 getDosageForm();
 
