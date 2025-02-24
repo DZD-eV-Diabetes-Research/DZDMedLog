@@ -122,7 +122,7 @@ class IntakeCRUD(
                 select(DrugData).where(DrugData.id == intake.drug_id)
             )
             drug = drug_result.one()
-            drug_read = drug_to_drugAPI_obj(drug)
+            drug_read = await drug_to_drugAPI_obj(drug)
             detailed_intakes.append(
                 IntakeDetailListItem(
                     **intake.model_dump(),
