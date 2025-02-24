@@ -16,13 +16,13 @@ Current Status: Development/Alpha
   - [Client Dev](#client-dev)
   - [Server Dev](#server-dev)
 
-
 # Run
 
 ## Prebuild container
 
 Requirements:
-* docker
+
+- docker
 
 Get or Update the container image
 
@@ -34,14 +34,15 @@ Run the container
 
 If you have a WiDo GKV Arzneimittelindex to hand:
 
-`docker run -v ./database:/opt/medlog/data ./my_arzneimittelindex:/opt/medlog/arzneimittelindex -p 8888:8888 -e DEMO_MODE=true dzdde/dzdmedlog`
+`docker run -v ./database:/opt/medlog/data -v ./GKV_AI_StammPlus/202301:/opt/medlog/arzneimittelindex -p 8888:8888 -e DEMO_MODE=true dzdde/dzdmedlog`
 
 visit http://localhost:8888
 
 ## Local Container
 
-Requirements:  
-* docker runable as non root (If you use `sudo docker` have a look into `build_docker.sh` and adapt the command)
+Requirements:
+
+- docker runable as non root (If you use `sudo docker` have a look into `build_docker.sh` and adapt the command)
 
 `make container`
 
@@ -51,9 +52,10 @@ visit http://localhost:8888
 
 ## Local Source
 
-Requirements:  
-* bun or npm
-* python 3.11
+Requirements:
+
+- bun or npm
+- python 3.11
 
 Install Server dependencies
 
@@ -69,20 +71,18 @@ Run the app:
 
 visit http://localhost:8888
 
-
 # Config
 
 for all possible configuration parameters see [config.py](MedLog/backend/medlogserver/config.py)
 
 # Development
 
-
 ## Client Dev
 
-Reqs:  
-* [bun](https://bun.sh/docs/installation#installing)
-* [docker](https://docs.docker.com/engine/install/)
+Reqs:
 
+- [bun](https://bun.sh/docs/installation#installing)
+- [docker](https://docs.docker.com/engine/install/)
 
 First we need to get up the backend server running for the client to communicat to.
 

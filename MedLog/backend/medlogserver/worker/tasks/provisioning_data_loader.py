@@ -120,8 +120,9 @@ class TaskLoadProvisioningData(TaskBase):
         print("default_data_yaml_path", default_data_yaml_path)
         data_provisioner = DataProvisioner(default_data_yaml_path)
         await data_provisioner.run()
-        log.info("Try loading base data if configured...")
+        log.info("Try loading provisioning data if configured...")
         for data_source_file in config.APP_PROVISIONING_DATA_YAML_FILES:
+            log.info(f"Load provisioning data from {data_source_file}")
             data_provisioner = DataProvisioner(data_source_file)
             await data_provisioner.run()
         return None
