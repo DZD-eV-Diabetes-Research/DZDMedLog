@@ -17,7 +17,7 @@
       <div v-if="drugList.items.length > 0">
         <ul>
           <li
-            @click="printMedication(item)"
+            @click="console.log(item)"
             class="drug"
             v-for="item in paginatedItems"
             :key="item.pzn"

@@ -1,4 +1,3 @@
-import { UIBaseButton } from '../../.nuxt/components';
 <template>
     <Layout>
         <UIBaseCard style="text-align:center">
