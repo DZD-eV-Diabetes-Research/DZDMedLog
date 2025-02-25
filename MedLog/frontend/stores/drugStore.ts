@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import piniaPluginPersistedState from 'pinia-plugin-persistedstate'
 
 interface DrugState {
     custom: boolean
@@ -44,5 +45,7 @@ export const useDrugStore = defineStore('DrugStore',{
     getters: {
         isAction: (state) => state.action,
     },
-    persist: true
+    persist: {
+        storage: localStorage,
+    }
 }) 

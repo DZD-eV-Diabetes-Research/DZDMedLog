@@ -50,5 +50,7 @@ export const useTokenStore = defineStore('TokenStore',{
               }
     }
 },
-    persist: true
+persist: {
+  storage: localStorage,
+}
   }) 

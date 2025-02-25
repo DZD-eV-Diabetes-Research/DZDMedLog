@@ -84,7 +84,6 @@
 </template>
 
 <script setup lang="ts">
-import dayjs from "dayjs";
 import { object, number, date, string, type InferType } from "yup";
 // general constants
 
@@ -118,6 +117,9 @@ const tempDose = ref();
 const tempFrequency = ref();
 const my_stuff = ref();
 
+const tableContent = ref([]);
+
+
 async function editModalVisibilityFunction(row: object) {
 
   tempIntervall.value = null;
@@ -141,9 +143,9 @@ async function editModalVisibilityFunction(row: object) {
     drugStore.darrForm = row.darr ? row.darr : null
     drugStore.drugName = row.drug ? row.drug : null
     tempDose.value = row.dose;
-    drugStore.editId = row.id
+    drugStore.editId = row.intakeId
     toEditDrug.value = row.drug;
-    toEditDrugId.value = row.id;
+    toEditDrugId.value = row.intakeId;
 
   } catch (error) {
     console.log(error);
@@ -173,12 +175,16 @@ async function openDeleteModal(row: object) {
   deleteState.drug = "";
   deleteModalVisibility.value = true;
   drugToDelete.value = row;
+  console.log(row);
+  
 }
 
-async function deleteIntake() {
+async function deleteIntake() {  
+
   try {
+    
     await $fetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.id}`,
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.intakeId}`,
       {
         method: "DELETE",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -270,8 +276,6 @@ const filteredRows = computed(() => {
   });
 });
 
-const tableContent = ref([]);
-
 // CustomElement Modal
 
 const customDrugModalVisibility = ref(false);
@@ -347,7 +351,7 @@ async function createIntakeList() {
           " (" +
           item.drug.attrs_ref.darreichungsform.value +
           ")",
-        id: item.drug_id,
+        intakeId: item.id,
         custom: item.drug?.custom_drug_id,
         class: item.drug?.custom_drug_id
           ? "bg-yellow-500/50 dark:bg-yellow-400/50"

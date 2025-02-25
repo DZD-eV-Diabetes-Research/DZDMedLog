@@ -272,12 +272,9 @@ async function saveIntake() {
         frequency.value = "regular";
       }
 
-      const fetchBody = {
-        pharmazentralnummer: drugStore.custom ? null : drugStore.item.pzn,
+      const patchBody = {
+        drug_id: drugStore.item.drug_id,
         source_of_drug_information: drugStore.source,
-        custom_drug_id: drugStore.custom
-          ? drugStore.item.item.ai_dataversion_id
-          : null,
         intake_start_time_utc: drugStore.intake_start_time_utc,
         intake_end_time_utc: drugStore.intake_end_time_utc,
         administered_by_doctor: "prescribed",
@@ -287,13 +284,13 @@ async function saveIntake() {
         as_needed_dose_unit: null,
         consumed_meds_today: drugStore.consumed_meds_today,
       };
-
+      
       await $fetch(
         `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
         {
           method: "PATCH",
           headers: { Authorization: "Bearer " + tokenStore.access_token },
-          body: fetchBody,
+          body: patchBody,
         }
       );
     } catch (error) {
