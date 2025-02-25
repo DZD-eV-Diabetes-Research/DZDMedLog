@@ -76,14 +76,11 @@
     </div>
     <div v-if="drugStore.item">
           <br />
-          <p>Medikament: {{ drugStore.item.item.name }}</p>
-          <p>PZN: {{ drugStore.item.pzn }}</p>
-          <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
+          <p>Medikament: {{ drugStore.item.drug.trade_name }}</p>
+          <p>PZN: {{ drugStore.item.drug.codes?.PZN }}</p>
+          <p>Packungsgroesse: {{ drugStore.item.drug.attrs?.amount || 'N/A' }}</p>
           <p>
-            Darreichungsform: {{ drugStore.item.item.darrform_ref.bedeutung }}
-          </p>
-          <p>
-            Applikationsform: {{ drugStore.item.item.appform_ref.bedeutung }}
+            Darreichungsform: {{ drugStore.item.drug.attrs_ref.darreichungsform?.display || 'N/A' }}
           </p>
         </div>
   </UIBaseCard>
@@ -172,9 +169,8 @@ const totalPages = computed(() => {
 });
 
 function printMedication(item) {
-  console.log(item);
-  // drugStore.item = item;
-  // state.drug = "";
+  drugStore.item = item;
+  state.drug = "";
 }
 
 const props = defineProps<{

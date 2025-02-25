@@ -240,7 +240,7 @@ const tempDose = ref();
 const tempIntervall = ref();
 
 async function saveIntake() {
-
+  
   drugStore.action = false;
   initialLoad.value = false;
   tempDose.value = null;
@@ -300,11 +300,11 @@ async function saveIntake() {
       console.log(error);
     }
   } else if (!props.edit  && !props.custom) {
-
+    
     await useCreateIntake(
       route.params.study_id,
       route.params.interview_id,
-      drugStore.item.pzn,
+      drugStore.administered_by_doctor,
       drugStore.source,
       drugStore.intake_start_time_utc,
       drugStore.intake_end_time_utc,
@@ -312,7 +312,7 @@ async function saveIntake() {
       drugStore.intervall,
       drugStore.dose,
       drugStore.consumed_meds_today,
-      null
+      drugStore.item?.drug_id
     );
   } 
 
@@ -452,6 +452,11 @@ if (props.custom && props.edit){
   border-radius: 10px;
   border-width: 2px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+}
+
+:deep(td) {
+  white-space: normal !important;
+  word-break: break-word !important;
 }
 
 .selectedDarrForm:hover {

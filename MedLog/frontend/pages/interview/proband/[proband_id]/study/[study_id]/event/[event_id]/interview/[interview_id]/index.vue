@@ -204,7 +204,7 @@ const rows = computed(() => {
 const columns = [
   {
     key: "pzn",
-    label: "PZN",
+    label: "Medikament PZN",
   },
   {
     key: "drug",
@@ -314,14 +314,6 @@ async function backToOverview() {
   });
 }
 
-const { data: intakes } = await useFetch(
-  `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`,
-  {
-    method: "GET",
-    headers: { Authorization: "Bearer " + tokenStore.access_token },
-  }
-);
-
 async function createIntakeList() {
   try {
     const intakes = await $fetch(
@@ -334,9 +326,9 @@ async function createIntakeList() {
 
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map((item) => ({
-        pzn: item.pharmazentralnummer,
+        pzn: item.drug.codes?.PZN,
         source: useDrugSourceTranslator(item.source_of_drug_information, null),
-        drug: item.drug.name,
+        drug: item.drug.trade_name,
         dose: item.dose_per_day === 0 ? "" : item.dose_per_day,
         intervall: useIntervallDoseTranslator(
           item.regular_intervall_of_daily_dose,
@@ -351,13 +343,13 @@ async function createIntakeList() {
             ? item.intake_start_time_utc + " bis unbekannt"
             : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
         darr:
-          item.drug.darrform_ref.bedeutung +
+          item.drug.attrs_ref.darreichungsform.display +
           " (" +
-          item.drug.darrform_ref.darrform +
+          item.drug.attrs_ref.darreichungsform.value +
           ")",
-        id: item.id ? item.id : item.custom_drug_id,
-        custom: item.custom_drug_id ? true : false,
-        class: item.custom_drug_id
+        id: item.drug_id,
+        custom: item.drug?.custom_drug_id,
+        class: item.drug?.custom_drug_id
           ? "bg-yellow-500/50 dark:bg-yellow-400/50"
           : null,
       }));
@@ -404,6 +396,11 @@ drugStore.$reset()
   border-radius: 10px;
   border-width: 2px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+}
+
+:deep(td) {
+  white-space: normal !important;
+  word-break: break-word !important;
 }
 
 .selectedDarrForm:hover {
