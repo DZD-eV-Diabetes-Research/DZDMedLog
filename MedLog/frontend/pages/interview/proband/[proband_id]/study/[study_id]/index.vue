@@ -70,7 +70,6 @@
 import { object, number, date, string, type InferType } from "yup";
 
 // general constants
-
 const route = useRoute()
 const router = useRouter()
 const runtimeConfig = useRuntimeConfig()
@@ -258,13 +257,13 @@ async function createIntakeList() {
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map((item) => ({
         event: item.event.name,
-        pzn: item.pharmazentralnummer,
+        pzn: item.drug.codes.PZN,
         source: useDrugSourceTranslator(item.source_of_drug_information, null),
-        drug: item.drug.name,
-        intervall: useIntervallDoseTranslator(item.regular_intervall_of_daily_dose,null),
-        dose: item.dose_per_day === 0 ? "" : item.dose_per_day,
+        drug: item.drug.trade_name,
+        intervall: useIntervallDoseTranslator(item.regular_intervall_of_daily_dose, null),
+        dose: item.dose_per_day === 0 ? "/" : item.dose_per_day,
         time: item.intake_end_time_utc === null ? item.intake_start_time_utc + " bis unbekannt" : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
-        darr: item.drug.darrform_ref.bedeutung + " (" + item.drug.darrform_ref.darrform + ")",
+        darr: item.drug.attrs_ref.darreichungsform.display + " (" + item.drug.attrs_ref.darreichungsform.value + ")",
         id: item.id ? item.id : item.custom_drug_id,
         custom: item.custom_drug_id ? true : false,
         class: item.custom_drug_id

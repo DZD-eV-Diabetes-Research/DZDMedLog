@@ -24,7 +24,7 @@ export const useDrugStore = defineStore('DrugStore',{
     id: "drug-store",
     state: (): DrugState => ({
         custom: false,
-        item: null,
+        item: "",
         source: "",
         frequency: "",
         intervall: "",
