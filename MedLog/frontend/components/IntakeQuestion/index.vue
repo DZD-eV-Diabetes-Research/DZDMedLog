@@ -91,7 +91,7 @@ import { ref, watch, reactive } from "vue";
 import { apiGetFieldDefinitions, apiDrugSearch } from '~/api/drug';
 
 
-let drugFieldDefinitionsObject = await apiGetFieldDefinitions()
+let drugFieldDefinitionsObject = await apiGetFieldDefinitions("search_result")
 
 const hoveredItem = ref(null);
 const tokenStore = useTokenStore();

@@ -85,6 +85,7 @@
 
 <script setup lang="ts">
 import { object, number, date, string, type InferType } from "yup";
+
 // general constants
 
 const route = useRoute();
@@ -94,6 +95,7 @@ const drugStore = useDrugStore();
 const studyStore = useStudyStore();
 const userStore = useUserStore();
 const runtimeConfig = useRuntimeConfig();
+
 
 drugStore.item = null;
 // Intakeform
@@ -377,7 +379,6 @@ watch(isAction, (newValue) => {
 
 getDosageForm();
 createIntakeList();
-drugStore.$reset()
 </script>
 
 <style scoped>

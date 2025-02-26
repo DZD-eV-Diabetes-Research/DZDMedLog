@@ -37,37 +37,34 @@
         </UFormGroup>
         <UAccordion :items="customDrugForm" color="yellow">
           <template #custom-form>
-            <UFormGroup label="PZN" name="pzn">
+            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs" :label="item[0]" :name="item[1]" :key="item[1]">
               <UInput
-                v-model="state.pzn"
+                :type="getSchemaForType(item[2])"
+                v-model="state[item[1]]"
                 placeholder="Falls bekannt"
                 color="yellow"
               />
             </UFormGroup>
-            <UFormGroup label="Herstellercode" name="herstellerCode">
+            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs_ref" :label="item[0]" :name="item[1]" :key="item[1]">
               <UInput
-                v-model="state.herstellerCode"
+                :type="getSchemaForType(item[2])"
+                v-model="state[item[1]]"
                 placeholder="Falls bekannt"
                 color="yellow"
               />
             </UFormGroup>
-            <UFormGroup label="Applikationsform" name="appform">
+            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs_multi" :label="item[0]" :name="item[1]" :key="item[1]">
               <UInput
-                v-model="state.appform"
+                :type="getSchemaForType(item[2])"
+                v-model="state[item[1]]"
                 placeholder="Falls bekannt"
                 color="yellow"
               />
             </UFormGroup>
-            <UFormGroup label="ATC-Code" name="atc_code">
+            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs_multi_ref" :label="item[0]" :name="item[1]" :key="item[1]">
               <UInput
-                v-model="state.atc_code"
-                placeholder="Falls bekannt"
-                color="yellow"
-              />
-            </UFormGroup>
-            <UFormGroup label="Packungsgroesse" name="packgroesse">
-              <UInput
-                v-model="state.packgroesse"
+                :type="getSchemaForType(item[2])"
+                v-model="state[item[1]]"
                 placeholder="Falls bekannt"
                 color="yellow"
               />
@@ -144,13 +141,17 @@
 
 <script setup lang="ts">
 import dayjs from "dayjs";
-import { object, number, date, string, type InferType } from "yup";
+import { object, number, date, string, type InferType, boolean } from "yup";
+import { apiGetFieldDefinitions } from '~/api/drug';
 
 const route = useRoute();
 const tokenStore = useTokenStore();
 const drugStore = useDrugStore();
 const initialLoad = ref(true);
 const runtimeConfig = useRuntimeConfig();
+
+const drugFieldDefinitionsObject = await apiGetFieldDefinitions("dynamic_form")
+
 
 const props = defineProps<{
   color?: string;
@@ -171,27 +172,63 @@ const state = reactive({
   endTime: null,
   dose: 0,
   intervall: null,
-  pzn: "",
   name: "",
-  herstellerCode: "",
   darrform: "",
-  appform: "",
-  atc_code: "",
-  packgroesse: 0,
+  ...generateDynamicState(drugFieldDefinitionsObject)
 });
+
+function generateDynamicState(fieldsObject) {
+  const dynamicState = {};
+
+  Object.values(fieldsObject).forEach((fieldGroup) => {
+    fieldGroup.forEach(([label, key]) => {
+      dynamicState[key] = null;
+    });
+  });
+
+  return dynamicState;
+}
 
 const schema = object({
   selected: string().required("Required"),
   startTime: date().required("Required"),
   dose: number().min(0, "Required"),
-  pzn: string(),
   name: string(),
-  herstellerCode: string(),
   darrform: string(),
-  appform: string(),
-  atc_code: string(),
-  packgroesse: number(),
+  ...generateDynamicSchema(drugFieldDefinitionsObject)
 });
+
+function generateDynamicSchema(fieldsObject) {
+  const dynamicSchema = {};
+
+  Object.values(fieldsObject).forEach((fieldGroup) => {
+    fieldGroup.forEach(([label, key, type]) => {
+      dynamicSchema[key] = getSchemaForType(type);
+      console.log(`Adding field to schema: ${key} with type: ${getSchemaForType(type)}`);
+    });
+  });
+
+  return dynamicSchema;
+}
+
+function getSchemaForType(type) {
+  switch (type) {
+    case "STR":
+      return "string";
+    case "INT":
+      return "number";
+    case "FLOAT":
+      return "number";
+    case "BOOL":
+      return "boolean";
+    case "DATETIME":
+      return "date";
+    case "DATE":
+      return "date";
+    default:
+      return "string";
+  }
+}
 
 type Schema = InferType<typeof schema>;
 
