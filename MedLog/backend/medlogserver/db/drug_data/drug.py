@@ -316,4 +316,5 @@ class DrugCRUD(
         self.session.add_all(new_objects)
         await self.session.commit()
         # await self.session.refresh(drug)
+        drug: DrugData = await self.get(drug.id)
         return drug
