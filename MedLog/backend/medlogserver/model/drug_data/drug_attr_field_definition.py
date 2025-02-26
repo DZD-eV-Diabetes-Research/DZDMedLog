@@ -73,6 +73,14 @@ class DrugAttrFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIReadBase, table=F
         default=ValueTypeCasting.STR.name,
         description="The type of this value gets casted into, by the backend, as before its passing the RestAPI",
     )
+    show_in_search_results: bool = Field(
+        default=True,
+        description="Should this Field be shown in search results. This is just an instruction field for the UI and has effect on the backend.",
+    )
+    used_for_custom_drug: bool = Field(
+        default=True,
+        description="When creating a custom drug, should this field be used for the form in the UI. Atm this field is only an instruction field for the UI and is not validated.",
+    )
 
 
 class DrugAttrRefFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=False):
