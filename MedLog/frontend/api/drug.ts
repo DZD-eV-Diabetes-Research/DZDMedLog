@@ -1,4 +1,4 @@
-export async function apiGetFieldDefinitions() {
+export async function apiGetFieldDefinitions(type: string) {
     const runTimeConfig = useRuntimeConfig();
     const tokenStore = useTokenStore();
 
@@ -10,33 +10,27 @@ export async function apiGetFieldDefinitions() {
             },
         });
 
-        const drugFieldKeys = Object.keys(response)
+        const filterFn = (item: any) => type === 'search_result' ? item.optional === false : true
 
-        const result = drugFieldKeys.flatMap(key =>
-            response[key]
-                .filter(item => item.optional === false)
-                .map(item => [key, item.field_name_display, item.field_name])
-        );
+        // Once Everything is set and fixed
+        //const filterFn = (item: any) => 
+        // type === 'search_result' ? item.show_in_search_result === true :
+        // type === 'dynamic_form' ? item.used_for_custom_drug === true :
+        // true;
 
-        const attrs = result.filter(item => item[0] === "attrs").map(item =>  [item[1], item[2]])
-        const attrs_ref = result.filter(item => item[0] === "attrs_ref").map(item =>  [item[1], item[2]])
-        const attrs_multi = result.filter(item => item[0] === "attrs_multi").map(item =>  [item[1], item[2]])
-        const attrs_multi_ref = result.filter(item => item[0] === "attrs_multi_ref").map(item =>  [item[1], item[2]])
+        const categorizedList = {
+            attrs: response.attrs?.filter(filterFn).map(item => [item.field_name_display, item.field_name, item.type]) || [],
+            attrs_ref: response.attrs_ref?.filter(filterFn).map(item => [item.field_name_display, item.field_name, item.type]) || [],
+            attrs_multi: response.attrs_multi?.filter(filterFn).map(item => [item.field_name_display, item.field_name, item.type]) || [],
+            attrs_multi_ref: response.attrs_multi_ref?.filter(filterFn).map(item => [item.field_name_display, item.field_name, item.type]) || [],
+        };
 
-        const completeList = {
-            attrs:  attrs,
-            attrs_ref: attrs_ref,
-            attrs_multi: attrs_multi,
-            attrs_multi_ref: attrs_multi_ref
-        }
-
-        return completeList;
+        return categorizedList;
 
     } catch (error) {
         console.error("Error fetching field definitions:", error);
         throw error;
     }
-
 }
 
 export async function apiDrugSearch(drugName: string) {
