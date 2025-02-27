@@ -3,12 +3,7 @@
     <br />
     <p style="color: red">Es muss ein Medikament ausgewählt werden</p>
   </div>
-  <UForm
-    @submit="saveIntake()"
-    :state="state"
-    :schema="schema"
-    class="space-y-4"
-  >
+  <UForm @submit="saveIntake()" :state="state" :schema="schema" class="space-y-4">
     <div style="padding-top: 2.5%">
       <div v-if="props.custom">
         <div style="text-align: center" v-if="!props.edit">
@@ -24,90 +19,54 @@
           <h5 v-if="showDarrFormError" style="color: red">
             Darreichungsform wird benötigt
           </h5>
-          <UCommandPalette
-            v-if="!selectedDosageForm"
-            v-model="selectedDosageForm"
-            :autoselect="false"
+          <UCommandPalette v-if="!selectedDosageForm" v-model="selectedDosageForm" :autoselect="false"
             :groups="[{ key: 'dosageFormTable', commands: dosageFormTable }]"
-            :fuse="{ resultLimit: 5, fuseOptions: { threshold: 0.2 } }"
-          />
+            :fuse="{ resultLimit: 5, fuseOptions: { threshold: 0.2 } }" />
           <p v-else @click="selectedDosageForm = null" class="selectedDarrForm" style="margin-bottom:2%">
             {{ selectedDosageForm.label }}
           </p>
         </UFormGroup>
         <UAccordion :items="customDrugForm" color="yellow">
           <template #custom-form>
-            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs" :label="item[0]" :name="item[1]" :key="item[1]">
-              <UInput
-                :type="getSchemaForType(item[2])"
-                v-model="state[item[1]]"
-                placeholder="Falls bekannt"
-                color="yellow"
-              />
+            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs" :label="item[0]" :name="item[1]"
+              :key="item[1]">
+              <UInput :type="getSchemaForType(item[2])" v-model="state[item[1]]" placeholder="Falls bekannt"
+                color="yellow" />
             </UFormGroup>
-            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs_ref" :label="item[0]" :name="item[1]" :key="item[1]">
-              <UInput
-                :type="getSchemaForType(item[2])"
-                v-model="state[item[1]]"
-                placeholder="Falls bekannt"
-                color="yellow"
-              />
+            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs_ref" :label="item[0]" :name="item[1]"
+              :key="item[1]">
+              <UInput :type="getSchemaForType(item[2])" v-model="state[item[1]]" placeholder="Falls bekannt"
+                color="yellow" />
             </UFormGroup>
-            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs_multi" :label="item[0]" :name="item[1]" :key="item[1]">
-              <UInput
-                :type="getSchemaForType(item[2])"
-                v-model="state[item[1]]"
-                placeholder="Falls bekannt"
-                color="yellow"
-              />
+            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs_multi" :label="item[0]" :name="item[1]"
+              :key="item[1]">
+              <UInput :type="getSchemaForType(item[2])" v-model="state[item[1]]" placeholder="Falls bekannt"
+                color="yellow" />
             </UFormGroup>
-            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs_multi_ref" :label="item[0]" :name="item[1]" :key="item[1]">
-              <UInput
-                :type="getSchemaForType(item[2])"
-                v-model="state[item[1]]"
-                placeholder="Falls bekannt"
-                color="yellow"
-              />
+            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs_multi_ref" :label="item[0]" :name="item[1]"
+              :key="item[1]">
+              <UInput :type="getSchemaForType(item[2])" v-model="state[item[1]]" placeholder="Falls bekannt"
+                color="yellow" />
             </UFormGroup>
           </template>
         </UAccordion>
         <br />
       </div>
       <UFormGroup label="Quelle der Arzneimittelangabe">
-        <USelect
-          v-model="selectedSourceItem"
-          :options="sourceItems"
-          :color="props.color"
-        />
+        <USelect v-model="selectedSourceItem" :options="sourceItems" :color="props.color" />
       </UFormGroup>
     </div>
     <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?">
-      <USelect
-        v-model="selectedFrequency"
-        :options="frequency"
-        :color="props.color"
-      />
+      <USelect v-model="selectedFrequency" :options="frequency" :color="props.color" />
     </UFormGroup>
     <div class="flex-container">
-      <UFormGroup
-        label="Dosis pro Einnahme"
-        style="border-color: red"
-        name="dose"
-      >
-        <UInput
-          type="number"
-          v-model="state.dose"
-          :disabled="selectedFrequency !== 'regelmäßig'"
-          :color="selectedFrequency !== 'regelmäßig' ? 'gray' : props.color"
-        />
+      <UFormGroup label="Dosis pro Einnahme" style="border-color: red" name="dose">
+        <UInput type="number" v-model="state.dose" :disabled="selectedFrequency !== 'regelmäßig'"
+          :color="selectedFrequency !== 'regelmäßig' ? 'gray' : props.color" />
       </UFormGroup>
       <UFormGroup label="Intervall der Tagesdosen">
-        <USelect
-          v-model="state.intervall"
-          :options="intervallOfDose"
-          :disabled="selectedFrequency !== 'regelmäßig'"
-          :color="selectedFrequency !== 'regelmäßig' ? 'gray' : props.color"
-        />
+        <USelect v-model="state.intervall" :options="intervallOfDose" :disabled="selectedFrequency !== 'regelmäßig'"
+          :color="selectedFrequency !== 'regelmäßig' ? 'gray' : props.color" />
       </UFormGroup>
     </div>
     <div class="flex-container">
@@ -118,22 +77,11 @@
         <UInput type="date" v-model="state.endTime" :color="props.color" />
       </UFormGroup>
     </div>
-    <URadioGroup
-      v-model="state.selected"
-      legend="Wurden heute Medikamente eingenommen?"
-      name="selected"
-      :options="options"
-      :color="props.color"
-    />
+    <URadioGroup v-model="state.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
+      :options="options" :color="props.color" />
     <div style="text-align: center">
-    <UButton
-      type="submit"
-      :label="props.label"
-      :color="props.color"
-      variant="soft"
-      :class="buttonClass"
-    />
-  </div>
+      <UButton type="submit" :label="props.label" :color="props.color" variant="soft" :class="buttonClass" />
+    </div>
   </UForm>
 </template>
 
@@ -195,7 +143,7 @@ const schema = object({
   dose: number().min(0, "Required"),
   name: string(),
   darrform: string(),
-  ...generateDynamicSchema(drugFieldDefinitionsObject)
+  // ...generateDynamicSchema(drugFieldDefinitionsObject)
 });
 
 function generateDynamicSchema(fieldsObject) {
@@ -204,7 +152,6 @@ function generateDynamicSchema(fieldsObject) {
   Object.values(fieldsObject).forEach((fieldGroup) => {
     fieldGroup.forEach(([label, key, type]) => {
       dynamicSchema[key] = getSchemaForType(type);
-      console.log(`Adding field to schema: ${key} with type: ${getSchemaForType(type)}`);
     });
   });
 
@@ -277,7 +224,7 @@ const tempDose = ref();
 const tempIntervall = ref();
 
 async function saveIntake() {
-  
+
   drugStore.action = false;
   initialLoad.value = false;
   tempDose.value = null;
@@ -321,7 +268,7 @@ async function saveIntake() {
         as_needed_dose_unit: null,
         consumed_meds_today: drugStore.consumed_meds_today,
       };
-      
+
       await $fetch(
         `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
         {
@@ -333,8 +280,8 @@ async function saveIntake() {
     } catch (error) {
       console.log(error);
     }
-  } else if (!props.edit  && !props.custom) {
-    
+  } else if (!props.edit && !props.custom) {
+
     await useCreateIntake(
       route.params.study_id,
       route.params.interview_id,
@@ -348,24 +295,20 @@ async function saveIntake() {
       drugStore.consumed_meds_today,
       drugStore.item?.drug_id
     );
-  } 
+  }
 
-  else if (props.custom && !props.edit) {
+  else if (!props.edit && props.custom) {
 
     const response = await $fetch(
-      `${runtimeConfig.public.baseURL}drug/user-custom`,
+      `${runtimeConfig.public.baseURL}v2/drug/custom`,
       {
         method: "POST",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
         body: {
-          created_at: date,
-          pzn: state.pzn ? state.pzn : null,
-          name: state.name ? state.name : null,
-          hersteller_code: state.herstellerCode ? state.herstellerCode : null,
-          darrform: selectedDosageForm.value.darrform,
-          appform: state.appform ? state.appform : null,
-          atc_code: state.atc_code ? state.atc_code : null,
-          packgroesse: state.packgroesse ? state.packgroesse : null,
+          trade_name: state.name,
+          // market_access_date: "2025-02-26",
+          // market_exit_date: "2025-02-26",
+          // custom_drug_notes: "string",
         },
       }
     );
@@ -385,7 +328,7 @@ async function saveIntake() {
       drugStore.consumed_meds_today,
       response.id
     );
-    
+
     drugStore.customVisibility = false
 
   } else {
@@ -460,9 +403,9 @@ if (props.edit) {
   state.selected = drugStore.consumed_meds_today;
 }
 
-if (props.custom && props.edit){
+if (props.custom && props.edit) {
   state.name = drugStore.drugName
-  selectedDosageForm.value = {"label":drugStore.darrForm}
+  selectedDosageForm.value = { "label": drugStore.darrForm }
 }
 </script>
 
@@ -503,7 +446,7 @@ if (props.custom && props.edit){
   gap: 16px;
 }
 
-.flex-container > * {
+.flex-container>* {
   flex: 1;
 }
 

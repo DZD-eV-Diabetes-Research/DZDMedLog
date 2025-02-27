@@ -121,7 +121,6 @@ async function getDownloads() {
 }
 
 async function downloadFile(row) {
-  console.log(row.downloadLink);
   const fileUrl = row.downloadLink;
   try {
     const response = await fetch(fileUrl, {

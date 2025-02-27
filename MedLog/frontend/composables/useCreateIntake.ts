@@ -25,9 +25,7 @@ export async function useCreateIntake(study_id: string, interview_id: string, ad
         })    
         return response     
     }
-    catch (err: any) {
-        console.log("HERE");
-        
+    catch (err: any) {        
         console.log(err);
         tokenStore.error = err.response.data.detail
     }

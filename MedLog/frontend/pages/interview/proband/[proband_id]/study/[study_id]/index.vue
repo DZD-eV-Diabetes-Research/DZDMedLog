@@ -183,9 +183,7 @@ async function createInterview() {
     studyStore.event = selectedIncompleteEvent.value.event.name    
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + selectedIncompleteEvent.value.id + "/interview/" + interview.id)
   }
-  catch (error) {
-    console.log("this");
-    
+  catch (error) {    
     console.log(error);
   }
 }

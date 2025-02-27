@@ -176,9 +176,7 @@ const deleteState = reactive({
 async function openDeleteModal(row: object) {
   deleteState.drug = "";
   deleteModalVisibility.value = true;
-  drugToDelete.value = row;
-  console.log(row);
-  
+  drugToDelete.value = row;  
 }
 
 async function deleteIntake() {  
@@ -370,10 +368,10 @@ const isAction = computed(() => drugStore.isAction)
 watch(isAction, (newValue) => {
   if (newValue) {
     createIntakeList();
-    drugStore.intakeVisibility = false
+    //drugStore.intakeVisibility = false
   } else {
     createIntakeList();
-    drugStore.intakeVisibility = false
+    //drugStore.intakeVisibility = false
   }
 });
 
