@@ -301,12 +301,12 @@ async def get_field_definition(
         field_def: DrugAttrFieldDefinition = next(
             f
             for f in list(chain.from_iterable(drug_field_definitions.values()))
-            if not isinstance(DrugCodeSystem) and f.field_name == field_name
+            if not isinstance(f, DrugCodeSystem) and f.field_name == field_name
         )
     except StopIteration:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Drug enum field with name '{field_name}' could not be found.",
+            detail=f"Drug enum field with name '{field_name}' could not be found.",
         )
     # we need to cast from DrugAttrFieldDefinition to DrugAttrFieldDefinitionAPIRead manually
     # this is because the DrugAttrFieldDefinition.type field can not be transated into a string value by fastapi/pydantic.
