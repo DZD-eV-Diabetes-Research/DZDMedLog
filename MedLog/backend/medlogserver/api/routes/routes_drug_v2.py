@@ -301,7 +301,7 @@ async def get_field_definition(
         field_def: DrugAttrFieldDefinition = next(
             f
             for f in list(chain.from_iterable(drug_field_definitions.values()))
-            if f.field_name == field_name
+            if not isinstance(DrugCodeSystem) and f.field_name == field_name
         )
     except StopIteration:
         raise HTTPException(
