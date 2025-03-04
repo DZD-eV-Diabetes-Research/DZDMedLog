@@ -1,35 +1,44 @@
 <template>
   <Layout>
-    {{ state }}
-    <br>
-    <br>
-    <!-- {{ schema }} -->
-    <br>
-    <br>
-    <!-- {{ drugFieldDefinitionsObject.attrs }} -->
-    <br>
-    <br>
     <div v-if="isDataLoaded">
       <UForm :state="state" class="space-y-4" @submit="onSubmit">
-        <!-- <UFormGroup v-for="attr in drugFieldDefinitionsObject.attrs" :label="attr[0]" :name="attr[1]" :key="attr[1]">
+        <UFormGroup v-for="attr in drugFieldDefinitionsObject.attrs" :label="attr[0]" :name="attr[1]" :key="attr[1]">
           <UInput v-if="getFormInputType(attr[2]) !== 'checkbox'" v-model="state[attr[1]]"
             :type="getFormInputType(attr[2])" />
           <UCheckbox v-else v-model="state[attr[1]]" :label="String(state[attr[1]])" :name="state[attr[0]]"
             :ui="{ background: 'blue' }" />
-        </UFormGroup> -->
+        </UFormGroup>
         <UFormGroup v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :label="attr_ref[0]" :name="attr_ref[1]"
           :key="attr_ref[1]">
-          <USelectMenu v-model="attr_refState[attr_ref[1]]" :options="selectMenus.find(item => item.field_name === attr_ref[1])?.options" value-attribute="value"
+          <USelectMenu v-model="attr_refState[attr_ref[1]]"
+            :options="refSelectMenus.find(item => item.field_name === attr_ref[1])?.options" value-attribute="value"
             option-attribute="display" />
         </UFormGroup>
-        <!-- <UFormGroup v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi" :label="attr_multi[0]"
+        <UFormGroup v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi" :label="attr_multi[0]"
           :name="attr_multi[1]" :key="attr_multi[1]">
-          <UInput placeholder="test" v-model="state[attr_multi[1]]" :type="getFormInputType(attr_multi[2])" />
+          <UInput placeholder="Enter a value and press Enter" v-model="inputValues[attr_multi[1]]"
+            @keydown.enter.prevent="updateMultiState(attr_multi[1])" @blur="updateMultiState(attr_multi[1])" />
+          <UBadge v-for="(word, index) in attr_multiState[attr_multi[1]]" :key="index" class="mr-2 cursor-pointer"
+            @click="removeItem(attr_multi[1], index)">
+            {{ word }}
+          </UBadge>
         </UFormGroup>
         <UFormGroup v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref" :label="attr_multi_ref[0]"
           :name="attr_multi_ref[1]" :key="attr_multi_ref[1]">
-          <UInput placeholder="test" v-model="state[attr_multi_ref[1]]" :type="getFormInputType(attr_multi_ref[2])" />
-        </UFormGroup> -->
+          <USelectMenu v-model="attr_multi_refState[attr_multi_ref[1]]"
+            :options="multiRefSelectMenus.find(item => item.field_name === attr_multi_ref[1])?.options"
+            value-attribute="value" option-attribute="display" multiple searchable>
+            <template #label>
+              <span
+                v-if="Array.isArray(attr_multi_refState[attr_multi_ref[1]]) && attr_multi_refState[attr_multi_ref[1]].length">
+                {{attr_multi_refState[attr_multi_ref[1]].map(val => multiRefSelectMenus.find(item => item.field_name ===
+                  attr_multi_ref[1])?.options.find(option => option.value === val)?.display || val)
+                  .join('; ')}}
+              </span>
+              <span v-else>Choose your fighter</span>
+            </template>
+          </USelectMenu>
+        </UFormGroup>
         <UButton type="submit">
           Submit
         </UButton>
@@ -38,9 +47,7 @@
     <div v-else>
       loading
     </div>
-    {{ attr_refState }}
-    <!-- {{ drugFieldDefinitionsObject.attrs_ref }} -->
-    </Layout>
+  </Layout>
 </template>
 
 <script setup lang="ts">
@@ -58,9 +65,13 @@ const state = ref(null);
 const schema = ref(null);
 
 const attr_refState = reactive<Record<string, string | number | boolean>>({});
-const selectMenus = ref<{ field_name: string, options: { value: string, display: string }[] }[]>([]);
+const attr_multiState = reactive({});
+const attr_multi_refState = reactive<Record<string, string | number | boolean>>({});
+const refSelectMenus = ref<{ field_name: string, options: { value: string, display: string }[] }[]>([]);
+const multiRefSelectMenus = ref<{ field_name: string, options: { value: string, display: string }[] }[]>([]);
+const inputValues = reactive({});
 
-async function createSelectMenus(refs: any[]) {
+async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, multiple = false) {
   try {
     for (const ref of refs) {
       let item = { field_name: ref[1], options: [] };
@@ -78,14 +89,33 @@ async function createSelectMenus(refs: any[]) {
       }));
 
       selectMenus.value.push(item);
-      attr_refState[ref[1]] = item.options[0].value
+      state[ref[1]] = multiple ? [] : item.options[0]?.value;
     }
   } catch (error) {
-    console.error("Create SelectMenus Error:", error);
+    console.error("Create refSelectMenus Error:", error);
   }
 }
 
+async function createMultiState() {
+  drugFieldDefinitionsObject.attrs_multi.forEach(element => {
+    attr_multiState[element[1]] = [];
+    inputValues[element[1]] = ""; 
+  });
+}
 
+function updateMultiState(field) {
+  const newValues = inputValues[field]
+    .split(',')
+    .map(w => w.trim())
+    .filter(w => w !== ""); 
+
+  attr_multiState[field].push(...newValues);
+  inputValues[field] = "";
+}
+
+function removeItem(field, index) {
+  attr_multiState[field].splice(index, 1);
+}
 
 const fetchFieldDefinitions = async () => {
   try {
@@ -93,8 +123,9 @@ const fetchFieldDefinitions = async () => {
     state.value = reactive(generateDynamicState(drugFieldDefinitionsObject));
     schema.value = object(generateDynamicSchema(drugFieldDefinitionsObject));
     isDataLoaded.value = true;
-    createSelectMenus(drugFieldDefinitionsObject.attrs_ref)
-
+    createRefSelectMenus(drugFieldDefinitionsObject.attrs_ref, attr_refState, refSelectMenus)
+    createRefSelectMenus(drugFieldDefinitionsObject.attrs_multi_ref, attr_multi_refState, multiRefSelectMenus, true)
+    createMultiState()
 
   } catch (error) {
     console.error("Error fetching field definitions:", error);
@@ -161,7 +192,7 @@ function getFormInputType(type: any) {
 
 function onSubmit() {
   console.log(state);
-
+  console.log(attr_refState);
 }
 
 onMounted(fetchFieldDefinitions);
