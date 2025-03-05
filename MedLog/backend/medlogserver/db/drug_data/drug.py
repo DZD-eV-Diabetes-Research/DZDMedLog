@@ -257,6 +257,8 @@ class DrugCRUD(
         # attrs_multi
         for attr_multi_create in drug_create.attrs_multi:
             attr_multi_def = find_attr_def("attrs_multi", attr_multi_create.field_name)
+            if attr_multi_create.values is None:
+                continue
             for index, multi_val in enumerate(attr_multi_create.values):
                 drug.attrs_multi.append(
                     DrugValMulti(
@@ -270,6 +272,8 @@ class DrugCRUD(
             attr_multi_ref_def = find_attr_def(
                 "attrs_multi_ref", attr_multi_ref_create.field_name
             )
+            if attr_multi_ref_create.values is None:
+                continue
             for index, multi_val in enumerate(attr_multi_ref_create.values):
                 lov_item = await find_lov_item(
                     "attrs_multi_ref", attr_multi_ref_def.field_name, multi_val
