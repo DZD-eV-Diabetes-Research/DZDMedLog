@@ -289,34 +289,36 @@ class DrugCRUD(
 
         # codes - drug code attr (e.g. atc code,pzn,...)
         code_defs = await drug_importer.get_code_definitions()
-        for code_create in drug_create.codes:
-            code_create: DrugCodeApi = code_create
-            code_system: DrugCodeSystem = next(
-                (ad for ad in code_defs if ad.id == code_create.code_system_id),
-                None,
-            )
-            if code_system is None:
-                raise CustomDrugAttrNotValid(
-                    f"Custom drug code system name '{code_create.code_system_id}' is not a availabe code system in the current drug dataset. Can not create custom drug."
+        if drug_create.codes is not None:
+
+            for code_create in drug_create.codes:
+                code_create: DrugCodeApi = code_create
+                code_system: DrugCodeSystem = next(
+                    (ad for ad in code_defs if ad.id == code_create.code_system_id),
+                    None,
                 )
-            if code_system.unique:
-                existing_code_query = (
-                    select(DrugCode)
-                    .where(DrugCode.code_system_id == code_system.id)
-                    .where(DrugCode.code == code_create.code)
-                    .limit(1)
-                )
-                existing_code_res = await self.session.exec(existing_code_query)
-                existing_code = existing_code_res.one_or_none()
-                if existing_code is not None:
-                    raise DrugWithCodeAllreadyExists(
-                        f"A drug with the code '{code_system.id}':'{code_create.code}' allready exists (Drug.id: '{existing_code.drug_id}')"
+                if code_system is None:
+                    raise CustomDrugAttrNotValid(
+                        f"Custom drug code system name '{code_create.code_system_id}' is not a availabe code system in the current drug dataset. Can not create custom drug."
                     )
-            new_drug_code = DrugCode(
-                code_system_id=code_system.id, code=code_create.code
-            )
-            new_objects.append(new_drug_code)
-            drug.codes.append(new_drug_code)
+                if code_system.unique:
+                    existing_code_query = (
+                        select(DrugCode)
+                        .where(DrugCode.code_system_id == code_system.id)
+                        .where(DrugCode.code == code_create.code)
+                        .limit(1)
+                    )
+                    existing_code_res = await self.session.exec(existing_code_query)
+                    existing_code = existing_code_res.one_or_none()
+                    if existing_code is not None:
+                        raise DrugWithCodeAllreadyExists(
+                            f"A drug with the code '{code_system.id}':'{code_create.code}' allready exists (Drug.id: '{existing_code.drug_id}')"
+                        )
+                new_drug_code = DrugCode(
+                    code_system_id=code_system.id, code=code_create.code
+                )
+                new_objects.append(new_drug_code)
+                drug.codes.append(new_drug_code)
         self.session.add_all(new_objects)
         await self.session.commit()
         # await self.session.refresh(drug)
