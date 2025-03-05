@@ -322,5 +322,8 @@ class DrugCRUD(
         self.session.add_all(new_objects)
         await self.session.commit()
         # await self.session.refresh(drug)
-        drug: DrugData = await self.get(drug.id)
+        drug: DrugData = await self.get(
+            drug.id,
+            raise_exception_if_none=ValueError("COULD NOT FIND DRUG IN DATABASE"),
+        )
         return drug
