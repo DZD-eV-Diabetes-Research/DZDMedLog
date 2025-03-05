@@ -319,6 +319,7 @@ class DrugCRUD(
                 )
                 new_objects.append(new_drug_code)
                 drug.codes.append(new_drug_code)
+        new_objects.append(drug)
         self.session.add_all(new_objects)
         await self.session.commit()
         # await self.session.refresh(drug)
