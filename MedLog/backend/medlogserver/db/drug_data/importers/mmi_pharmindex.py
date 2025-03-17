@@ -10,7 +10,9 @@ from typing import (
     Literal,
     Type,
     Union,
+    Iterator,
 )
+
 from pathlib import Path
 import datetime
 import csv
@@ -125,7 +127,7 @@ mmi_rohdaten_r3_mappings = {
         "PACKAGE.CSV",
         "NAME",
         # source_path="PACKAGE.CSV[ID]",
-        map2="trade_name", 
+        map2="trade_name",
     ),
     "market_access_date": SourceAttrMapping(
         "PACKAGE.CSV",
@@ -653,6 +655,12 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
 ]
 
 
+@dataclass
+class CsvFileContent:
+    headers: List[str]
+    rows: List[List[Any]]
+
+
 class MmmiPharmaindex1_32(DrugDataSetImporterBase):
     def __init__(self):
 
@@ -665,6 +673,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self._attr_ref_definitions = None
         self._code_definitions = None
         self._lov_values: Dict[str, List[DrugAttrFieldLovItem]] = {}
+        self._csv_readers_cache: Dict[CsvFileContent]
 
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None
@@ -767,13 +776,15 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             row_count = len(f.readlines()) - 1
         # parse csv
         drug_data_objs: Dict[str, DrugData] = {}
-        with open(package_csv_path, "rt") as package_csc_file:
-            package_csv = csv.reader(package_csc_file, delimiter=";")
+        with open(package_csv_path, "rt") as package_csv_file:
+            package_csv = csv.reader(package_csv_file, delimiter=";")
             package_csv_headers = next(package_csv)
             package_id_column_index = package_csv_headers.index("ID")
             for index, package_row in enumerate(package_csv):
                 if index % 100 == 0:
-                    log.info(f"[DRUG DATA IMPORT] Processed {index} rows from {row_count}")
+                    log.info(
+                        f"[DRUG DATA IMPORT] Processed {index} rows from {row_count}"
+                    )
                 drug_data_objs[package_row[package_id_column_index]] = (
                     await self._parse_drug_data_package_row(
                         drug_dataset_version, package_row, package_csv_headers
@@ -883,15 +894,15 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 mapping=attr_multi_ref_data.source_mapping,
                 singular_val=False,
             )
-            #log.debug(("drug_attr_values",drug_attr_values))
-            #log.debug(("package_row",package_row))
+            # log.debug(("drug_attr_values",drug_attr_values))
+            # log.debug(("package_row",package_row))
             for index, drug_attr_val in enumerate(drug_attr_values):
-                #log.debug(("BEFORE: drug_attr_val",drug_attr_val))
+                # log.debug(("BEFORE: drug_attr_val",drug_attr_val))
                 drug_attr_val = self._cast_raw_csv_value_if_needed(
                     drug_attr_val, attr_multi_ref_data.source_mapping
                 )
-                #log.debug(("AFTER: drug_attr_val",drug_attr_val))
-                
+                # log.debug(("AFTER: drug_attr_val",drug_attr_val))
+
                 await self._validate_csv_value(
                     value=drug_attr_val, mapping=attr_multi_ref_data.source_mapping
                 )
@@ -934,7 +945,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         """
         if value is None and target_attr_def.optional == True:
             # all fine
-            return 
+            return
         if target_attr_def.is_reference_list_field:
             ref_value_exists = False
             for lov_item in self._lov_values[attr_name]:
@@ -1055,6 +1066,16 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         if singular_val:
             return None if not result_values else result_values[0]
         return result_values
+
+    async def _get_csv_file_rows_with_header(self, file_path: Path) -> CsvFileContent:
+        if file_path not in self._csv_readers_cache:
+            with open(file_path, "rt") as file:
+                csvreader = csv.reader(file, delimiter=";")
+                headers = next(csvreader)
+                self._csv_readers_cache[file_path] = CsvFileContent(
+                    headers=headers, rows=list(csvreader)
+                )
+        return self._csv_readers_cache[file_path]
 
     async def _get_rows_with_header_from_csv_file(
         self,
