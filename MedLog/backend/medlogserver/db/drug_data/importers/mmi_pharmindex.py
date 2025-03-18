@@ -12,6 +12,7 @@ from typing import (
     Union,
     Iterator,
 )
+import polars
 import time
 import itertools
 from async_lru import alru_cache
@@ -659,8 +660,7 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
 
 @dataclass
 class CsvFileContentCache:
-    headers: List[str]
-    rows: List[List[Any]]
+    data: polars.DataFrame
     row_limit: Optional[int] = None
 
 
@@ -809,7 +809,11 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 if index == 1000:
                     debug_perf_end = time.time()
                     # debug line for perf measument. remove later
-                    log.debug(f"Time needed: {debug_perf_end - debug_perf_start}")
+                    total_time_sec = debug_perf_end - debug_perf_start
+                    log.debug(f"Time needed: {total_time_sec}")
+                    log.debug(
+                        f"Estimated time for full import: {((total_time_sec/1000)*row_count)/60} minutes"
+                    )
                     exit()
         # print("drug_data_objs", drug_data_objs)
         return drug_data_objs
@@ -1092,15 +1096,13 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
     async def _get_csv_file_rows_with_header(
         self, file_path: Path, disable_cache: bool = False
     ) -> CsvFileContentCache:
+
         if file_path not in self._csv_readers_cache or disable_cache:
             log.debug(f"Read in {file_path}")
-            with open(file_path, "rt") as file:
 
-                csvreader = csv.reader(file, delimiter=";")
-                headers = next(csvreader)
-                self._csv_readers_cache[file_path] = CsvFileContentCache(
-                    headers=headers, rows=list(csvreader)
-                )
+            self._csv_readers_cache[file_path] = CsvFileContentCache(
+                data=polars.read_csv(source=file_path, has_header=True, separator=";")
+            )
         return self._csv_readers_cache[file_path]
 
     async def _get_filtered_rows_with_header_from_csv_file(
@@ -1110,12 +1112,16 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         file_path: Path,
         max_number_rows: int | None = None,
     ) -> Tuple[List[str], List[List[str]]]:
+        # you are here:
+        # use https://docs.pola.rs/api/python/stable/reference/dataframe/api/polars.DataFrame.rows_by_key.html#polars-dataframe-rows-by-key
+
+        ## old code...
         # log.debug(("self._csv_lookups_cache", self._csv_lookups_cache))
         csv_content: CsvFileContentCache = await self._get_csv_file_rows_with_header(
             file_path=file_path
         )
         # sanity checks
-        if len(csv_content.rows) == 0:
+        if len(csv_content.data) == 0:
             raise ValueError(f"{file_path} has zero rows.")
         try:
             filter_col_index = csv_content.headers.index(filter_col_name)
@@ -1151,7 +1157,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     itertools.islice(
                         (
                             row
-                            for row in csv_content.rows
+                            for row in csv_content.data
                             if row[filter_col_index] == filter_value
                         ),
                         max_number_rows,
