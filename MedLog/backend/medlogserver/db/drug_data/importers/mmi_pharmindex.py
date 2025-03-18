@@ -12,6 +12,8 @@ from typing import (
     Union,
     Iterator,
 )
+import time
+import itertools
 from async_lru import alru_cache
 from pathlib import Path
 import datetime
@@ -675,6 +677,8 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self._code_definitions = None
         self._lov_values: Dict[str, List[DrugAttrFieldLovItem]] = {}
         self._csv_readers_cache: Dict[Path, CsvFileContentCache] = {}
+        self._csv_lookups_cache: Dict[Tuple, Dict[str, List[List]]] = {}
+        self._debug_stats_csv_lookup: Tuple[int, int] = (0, 0)
 
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None
@@ -777,6 +781,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             row_count = len(f.readlines()) - 1
         # parse csv
         drug_data_objs: Dict[str, DrugData] = {}
+        debug_perf_start = time.time()
         with open(package_csv_path, "rt") as package_csv_file:
             package_csv = csv.reader(package_csv_file, delimiter=";")
             package_csv_headers = next(package_csv)
@@ -786,11 +791,26 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     log.info(
                         f"[DRUG DATA IMPORT] Processed {index} rows from {row_count}"
                     )
+                    log.debug(
+                        f"[DRUG DATA IMPORT] Cached/Uncached lookups: {self._debug_stats_csv_lookup[0]}/{self._debug_stats_csv_lookup[1]}"
+                    )
+                    log.debug(
+                        [
+                            (k, len(self._csv_lookups_cache[k]))
+                            for k in list(self._csv_lookups_cache.keys())
+                        ]
+                    )
+
                 drug_data_objs[package_row[package_id_column_index]] = (
                     await self._parse_drug_data_package_row(
                         drug_dataset_version, package_row, package_csv_headers
                     )
                 )
+                if index == 1000:
+                    debug_perf_end = time.time()
+                    # debug line for perf measument. remove later
+                    log.debug(f"Time needed: {debug_perf_end - debug_perf_start}")
+                    exit()
         # print("drug_data_objs", drug_data_objs)
         return drug_data_objs
 
@@ -924,6 +944,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         return value
 
     async def _validate_csv_value(self, value: str, mapping: SourceAttrMapping):
+        return
         all_defs = await self.get_all_attr_field_definitions()
         mapping_attr = mapping.map2.split(".")
         if len(mapping_attr) == 1:
@@ -1082,7 +1103,6 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 )
         return self._csv_readers_cache[file_path]
 
-    @alru_cache(maxsize=None)
     async def _get_filtered_rows_with_header_from_csv_file(
         self,
         filter_col_name: str,
@@ -1090,6 +1110,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         file_path: Path,
         max_number_rows: int | None = None,
     ) -> Tuple[List[str], List[List[str]]]:
+        # log.debug(("self._csv_lookups_cache", self._csv_lookups_cache))
         csv_content: CsvFileContentCache = await self._get_csv_file_rows_with_header(
             file_path=file_path
         )
@@ -1102,13 +1123,56 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             raise ValueError(
                 f"Can not find '{filter_col_name}' in headers of file {file_path.absolute()}. headers: {csv_content.headers}"
             )
-        result_rows = []
-        for row in csv_content.rows:
-            if row[filter_col_index] == filter_value:
-                result_rows.append(row)
-                if max_number_rows and len(result_rows) == max_number_rows:
-                    break
-        return csv_content.headers, result_rows
+        csv_lookup_filter_call_signature_ = (
+            file_path,
+            filter_col_name,
+            max_number_rows,
+        )
+        if csv_lookup_filter_call_signature_ not in self._csv_lookups_cache:
+            self._csv_lookups_cache[csv_lookup_filter_call_signature_] = {}
+
+        if (
+            filter_value
+            not in self._csv_lookups_cache[csv_lookup_filter_call_signature_]
+        ):
+            """
+            result_rows = []
+            for row in csv_content.rows:
+                if row[filter_col_index] == filter_value:
+                    result_rows.append(row)
+                    if len(result_rows) == max_number_rows:
+                        break
+            self._csv_lookups_cache[csv_lookup_filter_call_signature_][
+                filter_value
+            ] = result_rows
+            """
+            self._csv_lookups_cache[csv_lookup_filter_call_signature_][filter_value] = (
+                list(
+                    itertools.islice(
+                        (
+                            row
+                            for row in csv_content.rows
+                            if row[filter_col_index] == filter_value
+                        ),
+                        max_number_rows,
+                    )
+                )
+            )
+
+            self._debug_stats_csv_lookup = (
+                self._debug_stats_csv_lookup[0],
+                self._debug_stats_csv_lookup[1] + 1,
+            )
+        else:
+            self._debug_stats_csv_lookup = (
+                self._debug_stats_csv_lookup[0] + 1,
+                self._debug_stats_csv_lookup[1],
+            )
+
+        return (
+            csv_content.headers,
+            self._csv_lookups_cache[csv_lookup_filter_call_signature_][filter_value],
+        )
 
     async def commit(self, objs):
         """
