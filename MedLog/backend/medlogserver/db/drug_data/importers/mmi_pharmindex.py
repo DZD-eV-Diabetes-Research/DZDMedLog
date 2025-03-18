@@ -125,7 +125,7 @@ mmi_rohdaten_r3_mappings = {
         "PACKAGE.CSV",
         "NAME",
         # source_path="PACKAGE.CSV[ID]",
-        map2="trade_name", 
+        map2="trade_name",
     ),
     "market_access_date": SourceAttrMapping(
         "PACKAGE.CSV",
@@ -773,7 +773,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             package_id_column_index = package_csv_headers.index("ID")
             for index, package_row in enumerate(package_csv):
                 if index % 100 == 0:
-                    log.info(f"[DRUG DATA IMPORT] Processed {index} rows from {row_count}")
+                    log.info(
+                        f"[DRUG DATA IMPORT] Processed {index} rows from {row_count}"
+                    )
                 drug_data_objs[package_row[package_id_column_index]] = (
                     await self._parse_drug_data_package_row(
                         drug_dataset_version, package_row, package_csv_headers
@@ -883,15 +885,15 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 mapping=attr_multi_ref_data.source_mapping,
                 singular_val=False,
             )
-            #log.debug(("drug_attr_values",drug_attr_values))
-            #log.debug(("package_row",package_row))
+            # log.debug(("drug_attr_values",drug_attr_values))
+            # log.debug(("package_row",package_row))
             for index, drug_attr_val in enumerate(drug_attr_values):
-                #log.debug(("BEFORE: drug_attr_val",drug_attr_val))
+                # log.debug(("BEFORE: drug_attr_val",drug_attr_val))
                 drug_attr_val = self._cast_raw_csv_value_if_needed(
                     drug_attr_val, attr_multi_ref_data.source_mapping
                 )
-                #log.debug(("AFTER: drug_attr_val",drug_attr_val))
-                
+                # log.debug(("AFTER: drug_attr_val",drug_attr_val))
+
                 await self._validate_csv_value(
                     value=drug_attr_val, mapping=attr_multi_ref_data.source_mapping
                 )
@@ -934,7 +936,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         """
         if value is None and target_attr_def.optional == True:
             # all fine
-            return 
+            return
         if target_attr_def.is_reference_list_field:
             ref_value_exists = False
             for lov_item in self._lov_values[attr_name]:
