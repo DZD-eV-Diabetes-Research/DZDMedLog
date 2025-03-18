@@ -656,9 +656,10 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
 
 
 @dataclass
-class CsvFileContent:
+class CsvFileContentCache:
     headers: List[str]
     rows: List[List[Any]]
+    row_limit: Optional[int] = None
 
 
 class MmmiPharmaindex1_32(DrugDataSetImporterBase):
@@ -673,7 +674,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self._attr_ref_definitions = None
         self._code_definitions = None
         self._lov_values: Dict[str, List[DrugAttrFieldLovItem]] = {}
-        self._csv_readers_cache: Dict[CsvFileContent]
+        self._csv_readers_cache: Dict[Path, CsvFileContentCache]
 
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None
@@ -1021,10 +1022,10 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     bridge_col_index = row_headers.index(bridge_col_name)
                     bridge_col_val = row[bridge_col_index]
                     next_row_headers, next_rows = (
-                        await self._get_rows_with_header_from_csv_file(
+                        await self._get_filtered_rows_with_header_from_csv_file(
                             file_path=next_file_path,
-                            id_col_name=next_file_col_name,
-                            id_col_val=bridge_col_val,
+                            id_col_filter_name=next_file_col_name,
+                            id_col_filter_val=bridge_col_val,
                             max_number_rows=1 if singular_val else None,
                         )
                     )
@@ -1036,10 +1037,10 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     bridge_col_index = row_headers.index(bridge_col_name)
                     bridge_col_val = row[bridge_col_index]
                     next_row_headers, next_rows = (
-                        await self._get_rows_with_header_from_csv_file(
+                        await self._get_filtered_rows_with_header_from_csv_file(
                             file_path=next_file_path,
-                            id_col_name=next_file_col_name,
-                            id_col_val=bridge_col_val,
+                            id_col_filter_name=next_file_col_name,
+                            id_col_filter_val=bridge_col_val,
                             max_number_rows=1 if singular_val else None,
                         )
                     )
@@ -1067,40 +1068,62 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             return None if not result_values else result_values[0]
         return result_values
 
-    async def _get_csv_file_rows_with_header(self, file_path: Path) -> CsvFileContent:
-        if file_path not in self._csv_readers_cache:
+    async def _get_csv_file_rows_with_header(
+        self, file_path: Path, row_limit: int = None, disable_cache: bool = False
+    ) -> CsvFileContentCache:
+        if file_path not in self._csv_readers_cache or disable_cache:
             with open(file_path, "rt") as file:
                 csvreader = csv.reader(file, delimiter=";")
                 headers = next(csvreader)
-                self._csv_readers_cache[file_path] = CsvFileContent(
-                    headers=headers, rows=list(csvreader)
+                rows = []
+                for index, row in enumerate(csvreader):
+                    if row_limit and index > row_limit:
+                        break
+                    rows.append(row)
+                self._csv_readers_cache[file_path] = CsvFileContentCache(
+                    headers=headers, rows=rows
                 )
-        return self._csv_readers_cache[file_path]
+        csv_content = self._csv_readers_cache[file_path]
+        if (csv_content.row_limit is not None and row_limit is None) or (
+            row_limit is not None
+            and csv_content.row_limit is not None
+            and row_limit > csv_content.row_limit
+        ):
+            # csv was read with a row limit before. lets re-read it without row limit
+            self._csv_readers_cache[file_path] = self._get_csv_file_rows_with_header(
+                file_path=file_path, row_limit=row_limit, disable_cache=True
+            )
+            csv_content = self._csv_readers_cache[file_path]
+        elif row_limit is not None and row_limit < csv_content.row_limit:
+            # this should never be reached as of now, but if it does lets log it for later investigation on sideffects
+            log.warning(
+                "CSV was re ordered in with smaller row limit as before. We now return all existing rows, which could have sideeffects."
+            )
+        return csv_content
 
-    async def _get_rows_with_header_from_csv_file(
+    async def _get_filtered_rows_with_header_from_csv_file(
         self,
-        id_col_name: str,
-        id_col_val: str,
+        id_col_filter_name: str,
+        id_col_filter_val: str,
         file_path: Path,
         max_number_rows: int | None = None,
     ) -> Tuple[List[str], List[List[str]]]:
-        # todo: Some caching of file here could make sense
+        csv_content: CsvFileContentCache = await self._get_csv_file_rows_with_header(
+            file_path=file_path, row_limit=max_number_rows
+        )
+        try:
+            id_col_index = csv_content.headers.index(id_col_filter_name)
+        except ValueError:
+            raise ValueError(
+                f"Can not find '{id_col_filter_name}' in headers of file {file_path.absolute()}. headers: {headers}"
+            )
         result_rows = []
-        with open(file_path, "rt") as file:
-            csvreader = csv.reader(file, delimiter=";")
-            headers = next(csvreader)
-            try:
-                id_col_index = headers.index(id_col_name)
-            except ValueError:
-                raise ValueError(
-                    f"Can not find '{id_col_name}' in headers of file {file_path.absolute()}. headers: {headers}"
-                )
-            for row in csvreader:
-                if row[id_col_index] == id_col_val:
-                    result_rows.append(row)
-                    if max_number_rows and len(result_rows) == max_number_rows:
-                        break
-        return headers, result_rows
+        for row in csv_content.rows:
+            if row[id_col_index] == id_col_filter_val:
+                result_rows.append(row)
+                if max_number_rows and len(result_rows) == max_number_rows:
+                    break
+        return csv_content.headers, result_rows
 
     async def commit(self, objs):
         """
