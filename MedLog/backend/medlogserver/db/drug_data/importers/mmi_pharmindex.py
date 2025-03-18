@@ -674,7 +674,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self._attr_ref_definitions = None
         self._code_definitions = None
         self._lov_values: Dict[str, List[DrugAttrFieldLovItem]] = {}
-        self._csv_readers_cache: Dict[Path, CsvFileContentCache]
+        self._csv_readers_cache: Dict[Path, CsvFileContentCache] = {}
 
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None
@@ -1090,11 +1090,17 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             and row_limit > csv_content.row_limit
         ):
             # csv was read with a row limit before. lets re-read it without row limit
-            self._csv_readers_cache[file_path] = self._get_csv_file_rows_with_header(
-                file_path=file_path, row_limit=row_limit, disable_cache=True
+            self._csv_readers_cache[file_path] = (
+                await self._get_csv_file_rows_with_header(
+                    file_path=file_path, row_limit=row_limit, disable_cache=True
+                )
             )
             csv_content = self._csv_readers_cache[file_path]
-        elif row_limit is not None and row_limit < csv_content.row_limit:
+        elif (
+            row_limit is not None
+            and csv_content.row_limit is not None
+            and row_limit < csv_content.row_limit
+        ):
             # this should never be reached as of now, but if it does lets log it for later investigation on sideffects
             log.warning(
                 "CSV was re ordered in with smaller row limit as before. We now return all existing rows, which could have sideeffects."
