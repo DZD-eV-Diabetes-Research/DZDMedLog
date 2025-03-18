@@ -10,7 +10,7 @@
         <IntakeQuestion color="green" />
         <DrugForm color="green" :edit="false" :custom="false" label="Medikament Speichern" />
         <UButton @click="openCustomModal()" label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
-          style="margin-top: 2%"
+          style="margin-top: 2px"
           class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white" />
         <UModal v-model="drugStore.customVisibility">
           <div class="p-4">
@@ -20,7 +20,7 @@
       </UIBaseCard>
     </div>
     <div class="tableDiv">
-      <h4 style="text-align: center; padding-top: 25px">Medikationshistorie</h4>
+      <h4 style="text-align: center; padding-top: 25px">Medikationen</h4>
       <div>
         <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
           <UInput v-model="q" placeholder="Tabelle Filtern" />
@@ -58,11 +58,11 @@
           <br />
           <h4>{{ drugToDelete.drug }}</h4>
           <br />
-          <UForm :schema="deleteSchema" :state="deleteState" class="space-y-4" @submit="deleteIntake">
-            <UFormGroup label="Zum löschen den Namen eintragen" name="drug">
+          <UForm :state="deleteState" class="space-y-4" @submit="deleteIntake">
+            <!-- <UFormGroup label="Zum löschen den Namen eintragen" name="drug">
               <UInput v-model="deleteState.drug" color="red" :placeholder="drugToDelete.drug" />
             </UFormGroup>
-            <br />
+            <br /> -->
             <UButton type="submit" color="red" variant="soft"
               class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white">
               Eintrag löschen
@@ -159,13 +159,13 @@ async function editModalVisibilityFunction(row: object) {
 const deleteModalVisibility = ref(false);
 const drugToDelete = ref();
 
-const deleteSchema = object({
-  drug: string()
-    .required("Required")
-    .test("is-dynamic-value", "Name muss übereinstimmen", function (value) {
-      return value === drugToDelete.value.drug;
-    }),
-});
+// const deleteSchema = object({
+//   drug: string()
+//     .required("Required")
+//     .test("is-dynamic-value", "Name muss übereinstimmen", function (value) {
+//       return value === drugToDelete.value.drug;
+//     }),
+// });
 
 type DeleteSchema = InferType<typeof deleteSchema>;
 

@@ -12,42 +12,73 @@
             Medikamentensuche nicht gefunden wurde
           </h4>
         </div>
-        <UFormGroup label="Name" name="name" required>
-          <UInput v-model="state.name" color="yellow" />
+        <h5 v-if="customNameError" style="color: red">
+          Name wird benötigt
+        </h5>
+        <UFormGroup label="Name" name="customName" required>
+          <UInput v-model="state.customName" color="yellow" />
         </UFormGroup>
+        <h5 v-if="showDarrFormError" style="color: red">
+          Darreichungsform wird benötigt
+        </h5>
         <UFormGroup label="Darreichungsform" name="darrform" required>
-          <h5 v-if="showDarrFormError" style="color: red">
-            Darreichungsform wird benötigt
-          </h5>
-          <UCommandPalette v-if="!selectedDosageForm" v-model="selectedDosageForm" :autoselect="false"
+          <UCommandPalette v-if="!state.customDarrform" v-model="state.customDarrform" :autoselect="false"
             :groups="[{ key: 'dosageFormTable', commands: dosageFormTable }]"
             :fuse="{ resultLimit: 5, fuseOptions: { threshold: 0.2 } }" />
-          <p v-else @click="selectedDosageForm = null" class="selectedDarrForm" style="margin-bottom:2%">
-            {{ selectedDosageForm.label }}
-          </p>
+          <div v-else class="my-5">
+            <p @click="state.customDarrform = null" class="selectedDarrForm" style="margin-bottom:2%">
+              {{ state.customDarrform?.label }}
+            </p>
+          </div>
         </UFormGroup>
         <UAccordion :items="customDrugForm" color="yellow">
           <template #custom-form>
-            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs" :label="item[0]" :name="item[1]"
-              :key="item[1]">
-              <UInput :type="getSchemaForType(item[2])" v-model="state[item[1]]" placeholder="Falls bekannt"
-                color="yellow" />
-            </UFormGroup>
-            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs_ref" :label="item[0]" :name="item[1]"
-              :key="item[1]">
-              <UInput :type="getSchemaForType(item[2])" v-model="state[item[1]]" placeholder="Falls bekannt"
-                color="yellow" />
-            </UFormGroup>
-            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs_multi" :label="item[0]" :name="item[1]"
-              :key="item[1]">
-              <UInput :type="getSchemaForType(item[2])" v-model="state[item[1]]" placeholder="Falls bekannt"
-                color="yellow" />
-            </UFormGroup>
-            <UFormGroup v-for="item in drugFieldDefinitionsObject.attrs_multi_ref" :label="item[0]" :name="item[1]"
-              :key="item[1]">
-              <UInput :type="getSchemaForType(item[2])" v-model="state[item[1]]" placeholder="Falls bekannt"
-                color="yellow" />
-            </UFormGroup>
+            <div v-if="isDataLoaded">
+              <UForm :state="attrState" class="space-y-4">
+                <UFormGroup v-for="attr in drugFieldDefinitionsObject.attrs" :label="attr[0]" :name="attr[1]"
+                  :key="attr[1]">
+                  <UInput v-if="getFormInputType(attr[2]) !== 'checkbox'" v-model="attrState[attr[1]]"
+                    :type="getFormInputType(attr[2])" />
+                  <UCheckbox v-else v-model="attrState[attr[1]]" :label="String(attrState[attr[1]])"
+                    :name="attrState[attr[0]]" :ui="{ background: 'blue' }" />
+                </UFormGroup>
+                <UFormGroup v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :label="attr_ref[0]"
+                  :name="attr_ref[1]" :key="attr_ref[1]">
+                  <USelectMenu v-model="attr_refState[attr_ref[1]]"
+                    :options="refSelectMenus.find(item => item.field_name === attr_ref[1])?.options"
+                    value-attribute="value" option-attribute="display" />
+                </UFormGroup>
+                <UFormGroup v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi" :label="attr_multi[0]"
+                  :name="attr_multi[1]" :key="attr_multi[1]">
+                  <UInput placeholder="Enter a value and press Enter" v-model="inputValues[attr_multi[1]]"
+                    @keydown.enter.prevent="updateMultiState(attr_multi[1])" @blur="updateMultiState(attr_multi[1])" />
+                  <UBadge v-for="(word, index) in attr_multiState[attr_multi[1]]" :key="index"
+                    class="mr-2 cursor-pointer" @click="removeItem(attr_multi[1], index)">
+                    {{ word }}
+                  </UBadge>
+                </UFormGroup>
+                <UFormGroup v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref"
+                  :label="attr_multi_ref[0]" :name="attr_multi_ref[1]" :key="attr_multi_ref[1]">
+                  <USelectMenu v-model="attr_multi_refState[attr_multi_ref[1]]"
+                    :options="multiRefSelectMenus.find(item => item.field_name === attr_multi_ref[1])?.options"
+                    value-attribute="value" option-attribute="display" multiple searchable>
+                    <template #label>
+                      <span
+                        v-if="Array.isArray(attr_multi_refState[attr_multi_ref[1]]) && attr_multi_refState[attr_multi_ref[1]].length">
+                        {{attr_multi_refState[attr_multi_ref[1]].map(val => multiRefSelectMenus.find(item =>
+                          item.field_name ===
+                          attr_multi_ref[1])?.options.find(option => option.value === val)?.display || val)
+                          .join('; ')}}
+                      </span>
+                      <span v-else>Choose your fighter</span>
+                    </template>
+                  </USelectMenu>
+                </UFormGroup>
+              </UForm>
+            </div>
+            <div v-else>
+              loading
+            </div>
           </template>
         </UAccordion>
         <br />
@@ -82,6 +113,15 @@
     <div style="text-align: center">
       <UButton type="submit" :label="props.label" :color="props.color" variant="soft" :class="buttonClass" />
     </div>
+    <div class="flex flex-col justify-center items-center">
+      <h5 v-if="showDarrFormError" style="color: red">
+        Darreichungsform wird benötigt
+      </h5>
+      <br>
+      <h5 v-if="customNameError" style="color: red">
+        Name wird benötigt
+      </h5>
+    </div>
   </UForm>
 </template>
 
@@ -96,10 +136,7 @@ const route = useRoute();
 const tokenStore = useTokenStore();
 const drugStore = useDrugStore();
 const initialLoad = ref(true);
-const runtimeConfig = useRuntimeConfig();
-
-const drugFieldDefinitionsObject = await apiGetFieldDefinitions("dynamic_form")
-
+const runTimeConfig = useRuntimeConfig();
 
 const props = defineProps<{
   color?: string;
@@ -120,22 +157,9 @@ const state = reactive({
   endTime: null,
   dose: 0,
   intervall: null,
-  name: "",
-  darrform: "",
-  ...generateDynamicState(drugFieldDefinitionsObject)
+  customName: "",
+  customDarrform: "",
 });
-
-function generateDynamicState(fieldsObject) {
-  const dynamicState = {};
-
-  Object.values(fieldsObject).forEach((fieldGroup) => {
-    fieldGroup.forEach(([label, key]) => {
-      dynamicState[key] = null;
-    });
-  });
-
-  return dynamicState;
-}
 
 const schema = object({
   selected: string().required("Required"),
@@ -143,39 +167,7 @@ const schema = object({
   dose: number().min(0, "Required"),
   name: string(),
   darrform: string(),
-  // ...generateDynamicSchema(drugFieldDefinitionsObject)
 });
-
-function generateDynamicSchema(fieldsObject) {
-  const dynamicSchema = {};
-
-  Object.values(fieldsObject).forEach((fieldGroup) => {
-    fieldGroup.forEach(([label, key, type]) => {
-      dynamicSchema[key] = getSchemaForType(type);
-    });
-  });
-
-  return dynamicSchema;
-}
-
-function getSchemaForType(type) {
-  switch (type) {
-    case "STR":
-      return "string";
-    case "INT":
-      return "number";
-    case "FLOAT":
-      return "number";
-    case "BOOL":
-      return "boolean";
-    case "DATETIME":
-      return "date";
-    case "DATE":
-      return "date";
-    default:
-      return "string";
-  }
-}
 
 type Schema = InferType<typeof schema>;
 
@@ -222,6 +214,7 @@ const options = [
 
 const tempDose = ref();
 const tempIntervall = ref();
+const customNameError = ref(false)
 
 async function saveIntake() {
 
@@ -270,7 +263,7 @@ async function saveIntake() {
       };
 
       await $fetch(
-        `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
+        `${runTimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
         {
           method: "PATCH",
           headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -299,38 +292,37 @@ async function saveIntake() {
 
   else if (!props.edit && props.custom) {
 
-    const response = await $fetch(
-      `${runtimeConfig.public.baseURL}v2/drug/custom`,
-      {
-        method: "POST",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
-        body: {
-          trade_name: state.name,
-          // market_access_date: "2025-02-26",
-          // market_exit_date: "2025-02-26",
-          // custom_drug_notes: "string",
-        },
+    customNameError.value = !state.customName;
+    showDarrFormError.value = !state.customDarrform;
+
+    if (!customNameError.value && !showDarrFormError.value) {
+      try {
+        let customDrugBody: DrugBody = {
+          trade_name: state.customName,
+          market_access_date: null,
+          market_exit_date: null,
+          custom_drug_notes: null,
+          attrs: Object.entries(attrState.value).map(([key, value]) => ({ field_name: key, value: value == null ? null : String(value) })),
+          attrs_ref: Object.entries(attr_refState).map(([key, value]) => ({ field_name: key, value: value })),
+          attrs_multi: Object.entries(attr_multiState).map(([key, value]) => ({ field_name: key, value: value })),
+          attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({ field_name: key, value: value })),
+          codes: null
+        }
+        console.log(customDrugBody);
+        const response = await $fetch(
+          `${runTimeConfig.public.baseURL}v2/drug/custom`,
+          {
+            method: "POST",
+            headers: { Authorization: "Bearer " + tokenStore.access_token },
+            body: customDrugBody
+          }
+        );
+        console.log(response.id);
+        drugStore.customVisibility = false
+      } catch (error) {
+        console.error(error);
       }
-    );
-
-    const pzn = state.pzn ? state.pzn : null;
-
-    await useCreateIntake(
-      route.params.study_id,
-      route.params.interview_id,
-      pzn,
-      drugStore.source,
-      drugStore.intake_start_time_utc,
-      drugStore.intake_end_time_utc,
-      drugStore.frequency,
-      drugStore.intervall,
-      drugStore.dose,
-      drugStore.consumed_meds_today,
-      response.id
-    );
-
-    drugStore.customVisibility = false
-
+    }
   } else {
     // HERE COMES STUFF
   }
@@ -356,7 +348,7 @@ watch(selectedFrequency, (newValue) => {
   }
 });
 
-//test stuff
+//custom drug
 
 const customDrugForm = [
   {
@@ -374,7 +366,7 @@ const dosageFormTable = ref();
 
 async function getDosageForm() {
   const dosageForm = await $fetch(
-    `${runtimeConfig.public.baseURL}v2/drug/field_def/darreichungsform/refs`,
+    `${runTimeConfig.public.baseURL}v2/drug/field_def/darreichungsform/refs`,
     {
       method: "GET",
       headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -388,8 +380,6 @@ async function getDosageForm() {
     darrform: item.value,
   }));
 }
-
-getDosageForm();
 
 // functioning
 
@@ -407,6 +397,189 @@ if (props.custom && props.edit) {
   state.name = drugStore.drugName
   selectedDosageForm.value = { "label": drugStore.darrForm }
 }
+
+getDosageForm();
+
+// CUSTOM DRUG STUFF
+
+const isDataLoaded = ref(false);
+let drugFieldDefinitionsObject: any = null;
+
+const attrState = ref(null);
+const attr_refState = reactive<Record<string, string | number | boolean>>({});
+const attr_multiState = reactive({});
+const attr_multi_refState = reactive<Record<string, string | number | boolean>>({});
+const refSelectMenus = ref<{ field_name: string, options: { value: string, display: string }[] }[]>([]);
+const multiRefSelectMenus = ref<{ field_name: string, options: { value: string, display: string }[] }[]>([]);
+const inputValues = reactive({});
+
+async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, multiple = false) {
+  try {
+    for (const ref of refs) {
+      let item = { field_name: ref[1], options: [] };
+
+      const response = await $fetch(`${runTimeConfig.public.baseURL}v2/drug/field_def/${ref[1]}/refs`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${tokenStore.access_token}`,
+        },
+      });
+
+      item.options = response.items.map((element) => ({
+        value: element.value,
+        display: element.display,
+      }));
+
+      selectMenus.value.push(item);
+      state[ref[1]] = multiple ? [] : item.options[0]?.value;
+    }
+  } catch (error) {
+    console.error("Create refSelectMenus Error:", error);
+  }
+}
+
+async function createMultiState() {
+  drugFieldDefinitionsObject.attrs_multi.forEach(element => {
+    attr_multiState[element[1]] = [];
+    inputValues[element[1]] = "";
+  });
+}
+
+function updateMultiState(field) {
+  const newValues = inputValues[field]
+    .split(',')
+    .map(w => w.trim())
+    .filter(w => w !== "");
+
+  attr_multiState[field].push(...newValues);
+  inputValues[field] = "";
+}
+
+function removeItem(field, index) {
+  attr_multiState[field].splice(index, 1);
+}
+
+const fetchFieldDefinitions = async () => {
+  try {
+    drugFieldDefinitionsObject = await apiGetFieldDefinitions("dynamic_form");
+    attrState.value = reactive(generateDynamicState(drugFieldDefinitionsObject.attrs));
+    //schema.value = object(generateDynamicSchema(drugFieldDefinitionsObject));
+    isDataLoaded.value = true;
+    createRefSelectMenus(drugFieldDefinitionsObject.attrs_ref, attr_refState, refSelectMenus)
+    createRefSelectMenus(drugFieldDefinitionsObject.attrs_multi_ref, attr_multi_refState, multiRefSelectMenus, true)
+    createMultiState()
+
+  } catch (error) {
+    console.error("Error fetching field definitions:", error);
+  }
+};
+
+function generateDynamicState(fieldsObject: [[]]) {
+  const dynamicState = {};
+  fieldsObject.forEach(([label, key, type]) => {
+    dynamicState[key] = type === "BOOL" ? false : null;
+  });
+  return dynamicState;
+}
+
+// function generateDynamicSchema(fieldsObject) {
+//   const dynamicSchema = {};
+//   Object.values(fieldsObject).forEach((fieldGroup) => {
+//     fieldGroup.forEach(([label, key, type]) => {
+//       dynamicSchema[key] = getSchemaForType(type);
+//     });
+//   });
+//   return dynamicSchema;
+// }
+
+function getSchemaForType(type: any) {
+  switch (type) {
+    case "STR":
+      return string();
+    case "INT":
+      return number().integer();
+    case "FLOAT":
+      return number();
+    case "BOOL":
+      return boolean();
+    case "DATETIME":
+      return date();
+    case "DATE":
+      return date();
+    default:
+      return string();
+  }
+}
+
+function getFormInputType(type: any) {
+  switch (type) {
+    case "STR":
+      return "text";
+    case "INT":
+      return "number";
+    case "FLOAT":
+      return "number";
+    case "BOOL":
+      return "checkbox";
+    case "DATETIME":
+      return "date";
+    case "DATE":
+      return "date";
+    default:
+      return "text";
+  }
+}
+
+interface Attribute {
+  [key: string]: any;
+}
+
+interface DrugBody {
+  trade_name: string;
+  market_access_date: string | null;
+  market_exit_date: string | null;
+  custom_drug_notes: string | null;
+  attrs: Attribute[] | null;
+  attrs_ref: Attribute[] | null;
+  attrs_multi: Attribute[] | null;
+  attrs_multi_ref: Attribute[] | null;
+  codes: Attribute[] | null;
+}
+
+async function onSubmit() {
+  let customDrugBody: DrugBody = {
+    trade_name: "Aspirin Supercomplex",
+    market_access_date: null,
+    market_exit_date: null,
+    custom_drug_notes: null,
+    attrs: Object.entries(attrState.value).map(([key, value]) => ({ field_name: key, value: value == null ? null : String(value) })),
+    attrs_ref: Object.entries(attr_refState).map(([key, value]) => ({ field_name: key, value: value })),
+    attrs_multi: Object.entries(attr_multiState).map(([key, value]) => ({ field_name: key, value: value })),
+    attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({ field_name: key, value: value })),
+    codes: null
+  }
+
+  try {
+    const response = await $fetch(
+      `${runTimeConfig.public.baseURL}v2/drug/custom`,
+      {
+        method: "POST",
+        headers: { Authorization: "Bearer " + tokenStore.access_token },
+        body: customDrugBody
+      }
+    );
+    console.log(customDrugBody);
+
+    console.log(response);
+
+
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+onMounted(fetchFieldDefinitions);
+
 </script>
 
 <style scoped>

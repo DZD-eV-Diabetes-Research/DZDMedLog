@@ -1,11 +1,11 @@
 <template>
   <Layout>
     <div v-if="isDataLoaded">
-      <UForm :state="state" class="space-y-4" @submit="onSubmit">
+      <UForm :state="attrState" class="space-y-4" @submit="onSubmit">
         <UFormGroup v-for="attr in drugFieldDefinitionsObject.attrs" :label="attr[0]" :name="attr[1]" :key="attr[1]">
-          <UInput v-if="getFormInputType(attr[2]) !== 'checkbox'" v-model="state[attr[1]]"
+          <UInput v-if="getFormInputType(attr[2]) !== 'checkbox'" v-model="attrState[attr[1]]"
             :type="getFormInputType(attr[2])" />
-          <UCheckbox v-else v-model="state[attr[1]]" :label="String(state[attr[1]])" :name="state[attr[0]]"
+          <UCheckbox v-else v-model="attrState[attr[1]]" :label="String(attrState[attr[1]])" :name="attrState[attr[0]]"
             :ui="{ background: 'blue' }" />
         </UFormGroup>
         <UFormGroup v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :label="attr_ref[0]" :name="attr_ref[1]"
@@ -52,7 +52,6 @@
 
 <script setup lang="ts">
 
-import { onMounted, ref, reactive } from "vue";
 import { object, number, date, string, type InferType, boolean } from "yup";
 import { apiGetFieldDefinitions } from '~/api/drug';
 const runTimeConfig = useRuntimeConfig();
@@ -61,9 +60,7 @@ const tokenStore = useTokenStore();
 const isDataLoaded = ref(false);
 let drugFieldDefinitionsObject: any = null;
 
-const state = ref(null);
-const schema = ref(null);
-
+const attrState = ref(null);
 const attr_refState = reactive<Record<string, string | number | boolean>>({});
 const attr_multiState = reactive({});
 const attr_multi_refState = reactive<Record<string, string | number | boolean>>({});
@@ -99,7 +96,7 @@ async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, m
 async function createMultiState() {
   drugFieldDefinitionsObject.attrs_multi.forEach(element => {
     attr_multiState[element[1]] = [];
-    inputValues[element[1]] = ""; 
+    inputValues[element[1]] = "";
   });
 }
 
@@ -107,7 +104,7 @@ function updateMultiState(field) {
   const newValues = inputValues[field]
     .split(',')
     .map(w => w.trim())
-    .filter(w => w !== ""); 
+    .filter(w => w !== "");
 
   attr_multiState[field].push(...newValues);
   inputValues[field] = "";
@@ -120,8 +117,8 @@ function removeItem(field, index) {
 const fetchFieldDefinitions = async () => {
   try {
     drugFieldDefinitionsObject = await apiGetFieldDefinitions("dynamic_form");
-    state.value = reactive(generateDynamicState(drugFieldDefinitionsObject));
-    schema.value = object(generateDynamicSchema(drugFieldDefinitionsObject));
+    attrState.value = reactive(generateDynamicState(drugFieldDefinitionsObject.attrs));
+    //schema.value = object(generateDynamicSchema(drugFieldDefinitionsObject));
     isDataLoaded.value = true;
     createRefSelectMenus(drugFieldDefinitionsObject.attrs_ref, attr_refState, refSelectMenus)
     createRefSelectMenus(drugFieldDefinitionsObject.attrs_multi_ref, attr_multi_refState, multiRefSelectMenus, true)
@@ -132,25 +129,23 @@ const fetchFieldDefinitions = async () => {
   }
 };
 
-function generateDynamicState(fieldsObject) {
+function generateDynamicState(fieldsObject: [[]]) {
   const dynamicState = {};
-  Object.values(fieldsObject).forEach((fieldGroup) => {
-    fieldGroup.forEach(([label, key, type]) => {
-      dynamicState[key] = type === "BOOL" ? false : null;
-    });
+  fieldsObject.forEach(([label, key, type]) => {
+    dynamicState[key] = type === "BOOL" ? false : null;
   });
   return dynamicState;
 }
 
-function generateDynamicSchema(fieldsObject) {
-  const dynamicSchema = {};
-  Object.values(fieldsObject).forEach((fieldGroup) => {
-    fieldGroup.forEach(([label, key, type]) => {
-      dynamicSchema[key] = getSchemaForType(type);
-    });
-  });
-  return dynamicSchema;
-}
+// function generateDynamicSchema(fieldsObject) {
+//   const dynamicSchema = {};
+//   Object.values(fieldsObject).forEach((fieldGroup) => {
+//     fieldGroup.forEach(([label, key, type]) => {
+//       dynamicSchema[key] = getSchemaForType(type);
+//     });
+//   });
+//   return dynamicSchema;
+// }
 
 function getSchemaForType(type: any) {
   switch (type) {
@@ -190,9 +185,52 @@ function getFormInputType(type: any) {
   }
 }
 
-function onSubmit() {
-  console.log(state);
-  console.log(attr_refState);
+interface Attribute {
+  [key: string]: any;
+}
+
+interface DrugBody {
+  trade_name: string;
+  market_access_date: string | null;
+  market_exit_date: string | null;
+  custom_drug_notes: string | null;
+  attrs: Attribute[] | null;
+  attrs_ref: Attribute[] | null;
+  attrs_multi: Attribute[] | null;
+  attrs_multi_ref: Attribute[] | null;
+  codes: Attribute[] | null;
+}
+
+async function onSubmit() {
+  let customDrugBody: DrugBody = {
+    trade_name: "Aspirin Supercomplex",
+    market_access_date: null,
+    market_exit_date: null,
+    custom_drug_notes: null,
+    attrs: Object.entries(attrState.value).map(([key, value]) => ({field_name: key, value: value == null ? null : String(value) })),
+    attrs_ref: Object.entries(attr_refState).map(([key, value]) => ({field_name: key, value:value })),
+    attrs_multi: Object.entries(attr_multiState).map(([key, value]) => ({field_name: key, value:value })),
+    attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({field_name: key, value:value })),
+    codes: null
+  }
+
+  try {
+    const response = await $fetch(
+      `${runTimeConfig.public.baseURL}v2/drug/custom`,
+      {
+        method: "POST",
+        headers: { Authorization: "Bearer " + tokenStore.access_token },
+        body: customDrugBody
+      }
+    );
+    console.log(customDrugBody);
+    
+    console.log(response);
+    
+    
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 onMounted(fetchFieldDefinitions);
