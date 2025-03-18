@@ -235,6 +235,8 @@ async function editEvent(eventId: string) {
       method: "GET",
       headers: { 'Authorization': "Bearer " + tokenStore.access_token },
     })
+    console.log(result);
+    
     studyStore.event = selectedCompleteEvent.value.event.name
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + eventId + "/interview/" + result[0].id)
   } catch (error) {

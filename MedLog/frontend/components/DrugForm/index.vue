@@ -1,5 +1,5 @@
 <template>
-  <div style="text-align: center" v-if="!drugStore.item && !initialLoad && !props.custom">
+  <div style="text-align: center" v-if="missingDrugError">
     <br />
     <p style="color: red">Es muss ein Medikament ausgewählt werden</p>
   </div>
@@ -215,6 +215,7 @@ const options = [
 const tempDose = ref();
 const tempIntervall = ref();
 const customNameError = ref(false)
+const missingDrugError = ref(false)
 
 async function saveIntake() {
 
@@ -275,19 +276,25 @@ async function saveIntake() {
     }
   } else if (!props.edit && !props.custom) {
 
-    await useCreateIntake(
-      route.params.study_id,
-      route.params.interview_id,
-      drugStore.administered_by_doctor,
-      drugStore.source,
-      drugStore.intake_start_time_utc,
-      drugStore.intake_end_time_utc,
-      drugStore.frequency,
-      drugStore.intervall,
-      drugStore.dose,
-      drugStore.consumed_meds_today,
-      drugStore.item?.drug_id
-    );
+    try {
+      await useCreateIntake(
+        route.params.study_id,
+        route.params.interview_id,
+        drugStore.administered_by_doctor,
+        drugStore.source,
+        drugStore.intake_start_time_utc,
+        drugStore.intake_end_time_utc,
+        drugStore.frequency,
+        drugStore.intervall,
+        drugStore.dose,
+        drugStore.consumed_meds_today,
+        drugStore.item?.drug_id
+      );
+      missingDrugError.value = false
+    } catch (error) {
+      missingDrugError.value = true
+      console.log(error);
+    }
   }
 
   else if (!props.edit && props.custom) {
@@ -317,7 +324,23 @@ async function saveIntake() {
             body: customDrugBody
           }
         );
-        console.log(response.id);
+
+        await useCreateIntake(
+          route.params.study_id,
+          route.params.interview_id,
+          drugStore.administered_by_doctor,
+          drugStore.source,
+          drugStore.intake_start_time_utc,
+          drugStore.intake_end_time_utc,
+          drugStore.frequency,
+          drugStore.intervall,
+          drugStore.dose,
+          drugStore.consumed_meds_today,
+          response.id
+        );
+
+        console.log(drugStore);
+
         drugStore.customVisibility = false
       } catch (error) {
         console.error(error);
