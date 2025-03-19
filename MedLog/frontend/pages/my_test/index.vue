@@ -1,238 +1,162 @@
-<template>
+<!-- <template>
   <Layout>
-    <div v-if="isDataLoaded">
-      <UForm :state="attrState" class="space-y-4" @submit="onSubmit">
-        <UFormGroup v-for="attr in drugFieldDefinitionsObject.attrs" :label="attr[0]" :name="attr[1]" :key="attr[1]">
-          <UInput v-if="getFormInputType(attr[2]) !== 'checkbox'" v-model="attrState[attr[1]]"
-            :type="getFormInputType(attr[2])" />
-          <UCheckbox v-else v-model="attrState[attr[1]]" :label="String(attrState[attr[1]])" :name="attrState[attr[0]]"
-            :ui="{ background: 'blue' }" />
-        </UFormGroup>
-        <UFormGroup v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :label="attr_ref[0]" :name="attr_ref[1]"
-          :key="attr_ref[1]">
-          <USelectMenu v-model="attr_refState[attr_ref[1]]"
-            :options="refSelectMenus.find(item => item.field_name === attr_ref[1])?.options" value-attribute="value"
-            option-attribute="display" />
-        </UFormGroup>
-        <UFormGroup v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi" :label="attr_multi[0]"
-          :name="attr_multi[1]" :key="attr_multi[1]">
-          <UInput placeholder="Enter a value and press Enter" v-model="inputValues[attr_multi[1]]"
-            @keydown.enter.prevent="updateMultiState(attr_multi[1])" @blur="updateMultiState(attr_multi[1])" />
-          <UBadge v-for="(word, index) in attr_multiState[attr_multi[1]]" :key="index" class="mr-2 cursor-pointer"
-            @click="removeItem(attr_multi[1], index)">
-            {{ word }}
-          </UBadge>
-        </UFormGroup>
-        <UFormGroup v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref" :label="attr_multi_ref[0]"
-          :name="attr_multi_ref[1]" :key="attr_multi_ref[1]">
-          <USelectMenu v-model="attr_multi_refState[attr_multi_ref[1]]"
-            :options="multiRefSelectMenus.find(item => item.field_name === attr_multi_ref[1])?.options"
-            value-attribute="value" option-attribute="display" multiple searchable>
-            <template #label>
-              <span
-                v-if="Array.isArray(attr_multi_refState[attr_multi_ref[1]]) && attr_multi_refState[attr_multi_ref[1]].length">
-                {{attr_multi_refState[attr_multi_ref[1]].map(val => multiRefSelectMenus.find(item => item.field_name ===
-                  attr_multi_ref[1])?.options.find(option => option.value === val)?.display || val)
-                  .join('; ')}}
-              </span>
-              <span v-else>Choose your fighter</span>
-            </template>
-          </USelectMenu>
-        </UFormGroup>
-        <UButton type="submit">
-          Submit
-        </UButton>
-      </UForm>
-    </div>
-    <div v-else>
-      loading
-    </div>
+    <CopyPreviousDrugs/>
   </Layout>
 </template>
 
 <script setup lang="ts">
 
-import { object, number, date, string, type InferType, boolean } from "yup";
-import { apiGetFieldDefinitions } from '~/api/drug';
-const runTimeConfig = useRuntimeConfig();
-const tokenStore = useTokenStore();
+</script> -->
 
-const isDataLoaded = ref(false);
-let drugFieldDefinitionsObject: any = null;
+<script setup lang="ts">
+import { h, resolveComponent } from 'vue'
+import type { TableColumn, TableRow } from '@nuxt/ui'
 
-const attrState = ref(null);
-const attr_refState = reactive<Record<string, string | number | boolean>>({});
-const attr_multiState = reactive({});
-const attr_multi_refState = reactive<Record<string, string | number | boolean>>({});
-const refSelectMenus = ref<{ field_name: string, options: { value: string, display: string }[] }[]>([]);
-const multiRefSelectMenus = ref<{ field_name: string, options: { value: string, display: string }[] }[]>([]);
-const inputValues = reactive({});
+const UBadge = resolveComponent('UBadge')
+const UCheckbox = resolveComponent('UCheckbox')
 
-async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, multiple = false) {
-  try {
-    for (const ref of refs) {
-      let item = { field_name: ref[1], options: [] };
+type Payment = {
+  id: string
+  date: string
+  status: 'paid' | 'failed' | 'refunded'
+  email: string
+  amount: number
+}
 
-      const response = await $fetch(`${runTimeConfig.public.baseURL}v2/drug/field_def/${ref[1]}/refs`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${tokenStore.access_token}`,
-        },
-      });
+const data = ref<Payment[]>([
+  {
+    id: '4600',
+    date: '2024-03-11T15:30:00',
+    status: 'paid',
+    email: 'james.anderson@example.com',
+    amount: 594
+  },
+  {
+    id: '4599',
+    date: '2024-03-11T10:10:00',
+    status: 'failed',
+    email: 'mia.white@example.com',
+    amount: 276
+  },
+  {
+    id: '4598',
+    date: '2024-03-11T08:50:00',
+    status: 'refunded',
+    email: 'william.brown@example.com',
+    amount: 315
+  },
+  {
+    id: '4597',
+    date: '2024-03-10T19:45:00',
+    status: 'paid',
+    email: 'emma.davis@example.com',
+    amount: 529
+  },
+  {
+    id: '4596',
+    date: '2024-03-10T15:55:00',
+    status: 'paid',
+    email: 'ethan.harris@example.com',
+    amount: 639
+  }
+])
 
-      item.options = response.items.map((element) => ({
-        value: element.value,
-        display: element.display,
-      }));
-
-      selectMenus.value.push(item);
-      state[ref[1]] = multiple ? [] : item.options[0]?.value;
+const columns: TableColumn<Payment>[] = [
+  {
+    id: 'select',
+    header: ({ table }) =>
+      h(UCheckbox, {
+        modelValue: table.getIsSomePageRowsSelected()
+          ? 'indeterminate'
+          : table.getIsAllPageRowsSelected(),
+        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
+          table.toggleAllPageRowsSelected(!!value),
+        ariaLabel: 'Select all'
+      }),
+    cell: ({ row }) =>
+      h(UCheckbox, {
+        modelValue: row.getIsSelected(),
+        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
+        ariaLabel: 'Select row'
+      })
+  },
+  {
+    accessorKey: 'date',
+    header: 'Date',
+    cell: ({ row }) => {
+      return new Date(row.getValue('date')).toLocaleString('en-US', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
     }
-  } catch (error) {
-    console.error("Create refSelectMenus Error:", error);
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ row }) => {
+      const color = {
+        paid: 'success' as const,
+        failed: 'error' as const,
+        refunded: 'neutral' as const
+      }[row.getValue('status') as string]
+
+      return h(UBadge, { class: 'capitalize', variant: 'subtle', color }, () =>
+        row.getValue('status')
+      )
+    }
+  },
+  {
+    accessorKey: 'email',
+    header: 'Email'
+  },
+  {
+    accessorKey: 'amount',
+    header: () => h('div', { class: 'text-right' }, 'Amount'),
+    cell: ({ row }) => {
+      const amount = Number.parseFloat(row.getValue('amount'))
+
+      const formatted = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'EUR'
+      }).format(amount)
+
+      return h('div', { class: 'text-right font-medium' }, formatted)
+    }
   }
+]
+
+const table = useTemplateRef('table')
+
+const rowSelection = ref<Record<string, boolean>>({})
+
+function onSelect(row: TableRow<Payment>, e?: Event) {
+  /* If you decide to also select the column you can do this  */
+  row.toggleSelected(!row.getIsSelected())
+
+  console.log(e)
 }
-
-async function createMultiState() {
-  drugFieldDefinitionsObject.attrs_multi.forEach(element => {
-    attr_multiState[element[1]] = [];
-    inputValues[element[1]] = "";
-  });
-}
-
-function updateMultiState(field) {
-  const newValues = inputValues[field]
-    .split(',')
-    .map(w => w.trim())
-    .filter(w => w !== "");
-
-  attr_multiState[field].push(...newValues);
-  inputValues[field] = "";
-}
-
-function removeItem(field, index) {
-  attr_multiState[field].splice(index, 1);
-}
-
-const fetchFieldDefinitions = async () => {
-  try {
-    drugFieldDefinitionsObject = await apiGetFieldDefinitions("dynamic_form");
-    attrState.value = reactive(generateDynamicState(drugFieldDefinitionsObject.attrs));
-    //schema.value = object(generateDynamicSchema(drugFieldDefinitionsObject));
-    isDataLoaded.value = true;
-    createRefSelectMenus(drugFieldDefinitionsObject.attrs_ref, attr_refState, refSelectMenus)
-    createRefSelectMenus(drugFieldDefinitionsObject.attrs_multi_ref, attr_multi_refState, multiRefSelectMenus, true)
-    createMultiState()
-
-  } catch (error) {
-    console.error("Error fetching field definitions:", error);
-  }
-};
-
-function generateDynamicState(fieldsObject: [[]]) {
-  const dynamicState = {};
-  fieldsObject.forEach(([label, key, type]) => {
-    dynamicState[key] = type === "BOOL" ? false : null;
-  });
-  return dynamicState;
-}
-
-// function generateDynamicSchema(fieldsObject) {
-//   const dynamicSchema = {};
-//   Object.values(fieldsObject).forEach((fieldGroup) => {
-//     fieldGroup.forEach(([label, key, type]) => {
-//       dynamicSchema[key] = getSchemaForType(type);
-//     });
-//   });
-//   return dynamicSchema;
-// }
-
-function getSchemaForType(type: any) {
-  switch (type) {
-    case "STR":
-      return string();
-    case "INT":
-      return number().integer();
-    case "FLOAT":
-      return number();
-    case "BOOL":
-      return boolean();
-    case "DATETIME":
-      return date();
-    case "DATE":
-      return date();
-    default:
-      return string();
-  }
-}
-
-function getFormInputType(type: any) {
-  switch (type) {
-    case "STR":
-      return "text";
-    case "INT":
-      return "number";
-    case "FLOAT":
-      return "number";
-    case "BOOL":
-      return "checkbox";
-    case "DATETIME":
-      return "date";
-    case "DATE":
-      return "date";
-    default:
-      return "text";
-  }
-}
-
-interface Attribute {
-  [key: string]: any;
-}
-
-interface DrugBody {
-  trade_name: string;
-  market_access_date: string | null;
-  market_exit_date: string | null;
-  custom_drug_notes: string | null;
-  attrs: Attribute[] | null;
-  attrs_ref: Attribute[] | null;
-  attrs_multi: Attribute[] | null;
-  attrs_multi_ref: Attribute[] | null;
-  codes: Attribute[] | null;
-}
-
-async function onSubmit() {
-  let customDrugBody: DrugBody = {
-    trade_name: "Aspirin Supercomplex",
-    market_access_date: null,
-    market_exit_date: null,
-    custom_drug_notes: null,
-    attrs: Object.entries(attrState.value).map(([key, value]) => ({field_name: key, value: value == null ? null : String(value) })),
-    attrs_ref: Object.entries(attr_refState).map(([key, value]) => ({field_name: key, value:value })),
-    attrs_multi: Object.entries(attr_multiState).map(([key, value]) => ({field_name: key, value:value })),
-    attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({field_name: key, value:value })),
-    codes: null
-  }
-
-  try {
-    const response = await $fetch(
-      `${runTimeConfig.public.baseURL}v2/drug/custom`,
-      {
-        method: "POST",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
-        body: customDrugBody
-      }
-    );
-    console.log(customDrugBody);
-    
-    console.log(response);
-    
-    
-  } catch (error) {
-    console.log(error);
-  }
-}
-
-onMounted(fetchFieldDefinitions);
-
 </script>
+
+<template>
+  <div class=" flex w-full flex-1 gap-1">
+    <div class="flex-1">
+      <UTable
+        ref="table"
+        v-model:row-selection="rowSelection"
+        :data="data"
+        :columns="columns"
+        @select="onSelect"
+      />
+
+      <div
+        class="px-4 py-3.5 border-t border-[var(--ui-border-accented)] text-sm text-[var(--ui-text-muted)]"
+      >
+        {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length || 0 }} of
+        {{ table?.tableApi?.getFilteredRowModel().rows.length || 0 }} row(s) selected.
+      </div>
+    </div>
+  </div>
+</template>
