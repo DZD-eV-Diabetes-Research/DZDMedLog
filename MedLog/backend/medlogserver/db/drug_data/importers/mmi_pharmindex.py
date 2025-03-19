@@ -1124,19 +1124,23 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             except Exception as e:
                 raise ValueError(f"Error reading CSV headers of {file_path}: {e}")
             if key_column:
-                # pre sort data for faster lookups
-                data = data.sort(by=key_column)
+                # pre group data for faster lookups
+                data = data.rows_by_key(key=key_column, include_key=True)
+                # data = data.sort(by=key_column)
 
             self._csv_readers_cache[file_path][key_column] = CsvFileContentCache(
                 data=data, headers=list(schema.keys()), schema=schema
             )
 
             if key_column is not None:
-                if key_column not in self._csv_readers_cache[file_path].headers:
+                if (
+                    key_column
+                    not in self._csv_readers_cache[file_path][key_column].headers
+                ):
                     raise ValueError(
-                        f"Can not find '{key_column}' in headers of file {file_path.absolute()}. headers: {self._csv_readers_cache[file_path].data.schema}"
+                        f"Can not find '{key_column}' in headers of file {file_path.absolute()}. headers: {self._csv_readers_cache[file_path][key_column].data.schema}"
                     )
-        return self._csv_readers_cache[file_path]
+        return self._csv_readers_cache[file_path][key_column]
 
     async def _get_filtered_rows_with_header_from_csv_file(
         self,
@@ -1151,7 +1155,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         ## old code...
         # log.debug(("self._csv_lookups_cache", self._csv_lookups_cache))
         csv_content: CsvFileContentCache = await self._get_csv_file_rows_with_header(
-            file_path=file_path
+            file_path=file_path, key_column=filter_col_name
         )
         if filter_col_name not in csv_content.headers:
             raise ValueError(
@@ -1170,15 +1174,17 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             not in self._csv_lookups_cache[csv_lookup_filter_call_signature]
         ):
             _filter_value_casted = filter_value
-            col_type = csv_content.data[filter_col_name].dtype
+            col_type = csv_content.schema[filter_col_name]
             if col_type == polars.Int64 or col_type == polars.Int32:
                 _filter_value_casted = int(_filter_value_casted)
             elif col_type == polars.Float64 or col_type == polars.Float32:
                 _filter_value_casted = float(_filter_value_casted)
-            result_rows = csv_content.data.filter(
-                polars.col(filter_col_name) == _filter_value_casted
-            )
-            result = list(result_rows.iter_rows())
+
+            # result_rows = csv_content.data.filter(
+            #    polars.col(filter_col_name) == _filter_value_casted
+            # )
+            result = csv_content.data[filter_value]
+            # result = list(result_rows.iter_rows())
             if max_number_rows:
                 result = result[:max_number_rows]
             self._csv_lookups_cache[csv_lookup_filter_call_signature][
