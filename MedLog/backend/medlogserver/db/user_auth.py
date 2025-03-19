@@ -158,7 +158,7 @@ class UserAuthCRUD(
         user_vals = {}
 
         for k, v in user_auth_create.model_dump().items():
-            log.info(f"{k} {v}")
+            # log.debug(f"{k} {v}")
             if k == "password":
                 user_vals["password_hashed"] = password_hashed
             else:

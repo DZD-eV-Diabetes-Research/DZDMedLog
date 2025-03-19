@@ -225,7 +225,6 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         res = await session.exec(query)
         cache_entries: List[GenericSQLDrugSearchCache] = []
         for drug in res.all():
-            print("drug", drug)
             cache_entry = await self._drug_to_cache_obj(drug)
             cache_entries.append(cache_entry)
         session.add_all(cache_entries)
@@ -256,8 +255,11 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             if attr.field_name in drug_attr_field_names_searchable:
                 field_values_aggregated += f" {attr.value}"
         for attr_ref in drug.attrs_ref:
-            log.info(("attr_ref", attr_ref))
-            if attr_ref.field_name in drug_attr_ref_field_names_searchable:
+            # log.debug(("attr_ref", attr_ref))
+            if (
+                attr_ref.field_name in drug_attr_ref_field_names_searchable
+                and attr_ref.value is not None
+            ):
                 field_values_aggregated += (
                     f" {attr_ref.value} {attr_ref.lov_item.display}"
                 )

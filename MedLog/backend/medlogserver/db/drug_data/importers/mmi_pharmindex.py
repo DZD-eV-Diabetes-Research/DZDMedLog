@@ -459,7 +459,7 @@ attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name_display="Darreichungsform",
             field_desc="Darreichungsform IFA",
             type=ValueTypeCasting.STR,
-            optional=False,
+            optional=True,
             # default=False,
             is_reference_list_field=True,
             is_multi_val_field=False,
@@ -660,11 +660,17 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
 
 @dataclass
 class CsvFileContentCache:
-    data: polars.DataFrame
+    dataframe: polars.DataFrame
     headers: List[str]
     schema: polars.Schema
     row_limit: Optional[int] = None
-    key_col: Optional[str] = None
+
+
+@dataclass
+class CsvFileContentViewCache:
+    data: Dict[str, List[Any]]
+    key_col_name: str
+    parent_csv: CsvFileContentCache
 
 
 class MmmiPharmaindex1_32(DrugDataSetImporterBase):
@@ -679,8 +685,10 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self._attr_ref_definitions = None
         self._code_definitions = None
         self._lov_values: Dict[str, List[DrugAttrFieldLovItem]] = {}
-        self._csv_readers_cache: Dict[Path, CsvFileContentCache] = {}
-        self._csv_lookups_cache: Dict[Tuple, Dict[str, List[List]]] = {}
+        self._cache_csv_content: Dict[Path, CsvFileContentCache] = {}
+        self._cache_csv_dataview: Dict[Path, CsvFileContentViewCache] = {}
+        self._cache_csv_lookups: Dict[Tuple, Dict[str, List[List]]] = {}
+        self._cache_validation_target_attrs: Dict[str, DrugAttrFieldDefinition] = {}
         self._debug_stats_csv_lookup: Tuple[int, int] = (0, 0)
 
     async def get_attr_field_definitions(
@@ -762,7 +770,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
         # read all drugs with attributes
         drug_data_objs: Dict[str, DrugData] = await self._parse_drug_data(drug_dataset)
-        log.info(("ALL", drug_data_objs))
+        # log.debug(("ALL", drug_data_objs))
 
         all_objs.extend(drug_data_objs.values())
 
@@ -778,10 +786,20 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         log.info("[DRUG DATA IMPORT] Parse drug data...")
         package_csv_path = Path(self.source_dir, "PACKAGE.CSV")
 
-        row_count = 0
+        row_count_total = 0
+
         # count rows
         with open(package_csv_path) as f:
-            row_count = len(f.readlines()) - 1
+            row_count_total = len(f.readlines()) - 1
+        row_count_processing_max = (
+            config.DRUG_DATA_IMPORT_MAX_ROWS
+            if config.DRUG_DATA_IMPORT_MAX_ROWS
+            else row_count_total
+        )
+        if config.DRUG_DATA_IMPORT_MAX_ROWS:
+            log.warning(
+                f"Config var 'DRUG_DATA_IMPORT_MAX_ROWS' is set to {config.DRUG_DATA_IMPORT_MAX_ROWS}. We maybe will not import all drug entries..."
+            )
         # parse csv
         drug_data_objs: Dict[str, DrugData] = {}
         debug_perf_start = time.time()
@@ -790,18 +808,13 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             package_csv_headers = next(package_csv)
             package_id_column_index = package_csv_headers.index("ID")
             for index, package_row in enumerate(package_csv):
-                if index % 100 == 0:
+                if index % 1000 == 0:
+                    # log status updates every 1000 rows
                     log.info(
-                        f"[DRUG DATA IMPORT] Processed {index} rows from {row_count}"
+                        f"[DRUG DATA IMPORT] Processed {index} rows from {row_count_processing_max}"
                     )
                     log.debug(
                         f"[DRUG DATA IMPORT] Cached/Uncached lookups: {self._debug_stats_csv_lookup[0]}/{self._debug_stats_csv_lookup[1]}"
-                    )
-                    log.debug(
-                        [
-                            (k, len(self._csv_lookups_cache[k]))
-                            for k in list(self._csv_lookups_cache.keys())
-                        ]
                     )
 
                 drug_data_objs[package_row[package_id_column_index]] = (
@@ -809,18 +822,23 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         drug_dataset_version, package_row, package_csv_headers
                     )
                 )
-                if index == 10000:
+                if (
+                    config.DRUG_DATA_IMPORT_MAX_ROWS
+                    and index == row_count_processing_max
+                ):
                     log.warning(
-                        "This code still contains a static limit for development. remove this later."
+                        f"Config var 'DRUG_DATA_IMPORT_MAX_ROWS' is set to {config.DRUG_DATA_IMPORT_MAX_ROWS}. We did not import all drug entries."
                     )
                     debug_perf_end = time.time()
                     # debug line for perf measument. remove later
                     total_time_sec = debug_perf_end - debug_perf_start
-                    log.debug(f"Time needed: {total_time_sec}")
                     log.debug(
-                        f"Estimated time for full import: {((total_time_sec/1000)*row_count)/60} minutes"
+                        f"Time needed: {total_time_sec} secs. for {row_count_processing_max} drug entries."
                     )
-                    exit()
+                    log.debug(
+                        f"Estimated time for full drug data import ({row_count_total} rows): {((total_time_sec/row_count_processing_max)*row_count_total)/60} minutes"
+                    )
+                    break
         # print("drug_data_objs", drug_data_objs)
         return drug_data_objs
 
@@ -871,7 +889,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 drug_attr_value, attr_data.source_mapping
             )
             await self._validate_csv_value(
-                value=drug_attr_value, mapping=attr_data.source_mapping
+                value=drug_attr_value,
+                mapping=attr_data.source_mapping,
+                source_row=package_row,
             )
             result_drug_data.attrs.append(
                 DrugVal(field_name=attr_data.field.field_name, value=drug_attr_value)
@@ -887,7 +907,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 drug_attr_value, attr_ref_data.source_mapping
             )
             await self._validate_csv_value(
-                value=drug_attr_value, mapping=attr_ref_data.source_mapping
+                value=drug_attr_value,
+                mapping=attr_ref_data.source_mapping,
+                source_row=package_row,
             )
 
             result_drug_data.attrs_ref.append(
@@ -953,19 +975,30 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             return mapping.cast_func(value)
         return value
 
-    async def _validate_csv_value(self, value: str, mapping: SourceAttrMapping):
+    async def _validate_csv_value(
+        self, value: str, mapping: SourceAttrMapping, source_row: str = None
+    ):
         return
+        """At the moment this is a pure debuging helper function. Its too expensive for production. 
+        One import takes much longer with all values validated on the fly. 
+        TODO: Make this function cheaper to be able to use it in production code
+        """
         all_defs = await self.get_all_attr_field_definitions()
         mapping_attr = mapping.map2.split(".")
         if len(mapping_attr) == 1:
             # todo: valdiate root values
             return
         attr_type, attr_name = mapping_attr
-
-        target_attr_def: DrugAttrFieldDefinition = next(
-            (d for d in all_defs[attr_type] if d.field_name == attr_name), None
-        )
+        if mapping.map2 not in self._cache_validation_target_attrs:
+            target_attr_def: DrugAttrFieldDefinition = next(
+                (d for d in all_defs[attr_type] if d.field_name == attr_name), None
+            )
+            self._cache_validation_target_attrs[mapping.map2] = target_attr_def
+        else:
+            target_attr_def = self._cache_validation_target_attrs[mapping.map2]
         if target_attr_def is None:
+            if source_row:
+                log.error(source_row)
             raise ValueError(
                 f"No attribute defintion  with name '{attr_name}' existent."
             )
@@ -981,16 +1014,23 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         if target_attr_def.is_reference_list_field:
             ref_value_exists = False
             for lov_item in self._lov_values[attr_name]:
+                # log.debug(
+                #    f"type(lov_item.value): {type(lov_item.value)},type(value): {type(value)}, {value}=={lov_item.value}-> {lov_item.value == value} "
+                # )
                 if lov_item.value == value:
                     ref_value_exists = True
                     break
             if not ref_value_exists:
+                if source_row:
+                    log.error(source_row)
                 raise ValueError(
-                    f"Reference object for {mapping_attr} does not exists for value '{value}'. Possible values: \n{self._lov_values[attr_name]}"
+                    f"Reference object ({mapping.map2}) does not exists for value '{value}'. Possible values: \n{self._lov_values[attr_name][:20]}{'...truncated (' + str(len(self._lov_values[attr_name])) + ' items)' if len(self._lov_values[attr_name]) > 20 else ''}"
                 )
         try:
             target_attr_def.type.value.casting_func(value)
         except:
+            if source_row:
+                log.error(source_row)
             raise ValueError(
                 f"Could not cast raw value '{value}' to type {target_attr_def.type.value.python_type} as defined in {target_attr_def}"
             )
@@ -1101,46 +1141,57 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
     async def _get_csv_file_rows_with_header(
         self, file_path: Path, key_column: str = None
-    ) -> CsvFileContentCache:
-
-        if file_path not in self._csv_readers_cache:
-            self._csv_readers_cache[file_path] = {}
-        if key_column not in self._csv_readers_cache[file_path]:
-            log.debug(f"Read in {file_path} with key column {key_column}")
-            data = polars.read_csv(
+    ) -> CsvFileContentViewCache:
+        if file_path not in self._cache_csv_content:
+            log.debug(f"Parse CSV {file_path}")
+            df = polars.read_csv(
                 source=file_path,
                 has_header=True,
                 separator=";",
-                infer_schema_length=None,
+                infer_schema_length=0,  # ready all values as string. we do not need any type parsing/casting in our case. we do that later with/by the drug schema defintion
                 rechunk=True,
             )
+            self._cache_csv_content[file_path] = CsvFileContentCache(
+                dataframe=df, headers=list(df.schema.keys()), schema=df.schema
+            )
+        if file_path not in self._cache_csv_dataview:
+            self._cache_csv_dataview[file_path] = {}
+        if key_column not in self._cache_csv_dataview[file_path]:
+            log.debug(
+                f"Materialize view on CSV ({file_path})-data for key column {key_column}"
+            )
+            csv_data: CsvFileContentCache = self._cache_csv_content[file_path]
             # Perform sanity checks
             try:
-                schema = data.schema
+                schema = csv_data.schema
                 if not schema:
                     raise ValueError(
                         f"CSV file appears to be empty or missing headers in {file_path}."
                     )
             except Exception as e:
                 raise ValueError(f"Error reading CSV headers of {file_path}: {e}")
-            if key_column:
-                # pre group data for faster lookups
-                data = data.rows_by_key(key=key_column, include_key=True)
-                # data = data.sort(by=key_column)
-
-            self._csv_readers_cache[file_path][key_column] = CsvFileContentCache(
-                data=data, headers=list(schema.keys()), schema=schema
-            )
 
             if key_column is not None:
-                if (
-                    key_column
-                    not in self._csv_readers_cache[file_path][key_column].headers
-                ):
+                if key_column not in csv_data.headers:
                     raise ValueError(
-                        f"Can not find '{key_column}' in headers of file {file_path.absolute()}. headers: {self._csv_readers_cache[file_path][key_column].data.schema}"
+                        f"Can not find '{key_column}' in headers of file {file_path.absolute()}. headers: {csv_data.headers}"
                     )
-        return self._csv_readers_cache[file_path][key_column]
+            if key_column:
+                # pre group data for faster lookups
+                data_view = csv_data.dataframe.rows_by_key(
+                    key=key_column, include_key=True
+                )
+
+                # data = data.sort(by=key_column)
+            else:
+                raise ValueError(
+                    "Parsing with no key not implemented yet. i think we dont need it."
+                )
+            self._cache_csv_dataview[file_path][key_column] = CsvFileContentViewCache(
+                data=data_view, key_col_name=key_column, parent_csv=csv_data
+            )
+
+        return self._cache_csv_dataview[file_path][key_column]
 
     async def _get_filtered_rows_with_header_from_csv_file(
         self,
@@ -1149,45 +1200,33 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         file_path: Path,
         max_number_rows: int | None = None,
     ) -> Tuple[List[str], List[List[str]]]:
-        # you are here:
-        # use https://docs.pola.rs/api/python/stable/reference/dataframe/api/polars.DataFrame.rows_by_key.html#polars-dataframe-rows-by-key
-
-        ## old code...
-        # log.debug(("self._csv_lookups_cache", self._csv_lookups_cache))
-        csv_content: CsvFileContentCache = await self._get_csv_file_rows_with_header(
-            file_path=file_path, key_column=filter_col_name
+        csv_content_view: CsvFileContentViewCache = (
+            await self._get_csv_file_rows_with_header(
+                file_path=file_path, key_column=filter_col_name
+            )
         )
-        if filter_col_name not in csv_content.headers:
+        if filter_col_name not in csv_content_view.parent_csv.headers:
             raise ValueError(
-                f"Can not find '{filter_col_name}' in headers of file {file_path.absolute()}. headers: {csv_content.headers}"
+                f"Can not find '{filter_col_name}' in headers of file {file_path.absolute()}. headers: {csv_content_view.headers}"
             )
         csv_lookup_filter_call_signature = (
             file_path,
             filter_col_name,
             max_number_rows,
         )
-        if csv_lookup_filter_call_signature not in self._csv_lookups_cache:
-            self._csv_lookups_cache[csv_lookup_filter_call_signature] = {}
+        if csv_lookup_filter_call_signature not in self._cache_csv_lookups:
+            self._cache_csv_lookups[csv_lookup_filter_call_signature] = {}
 
         if (
             filter_value
-            not in self._csv_lookups_cache[csv_lookup_filter_call_signature]
+            not in self._cache_csv_lookups[csv_lookup_filter_call_signature]
         ):
             _filter_value_casted = filter_value
-            col_type = csv_content.schema[filter_col_name]
-            if col_type == polars.Int64 or col_type == polars.Int32:
-                _filter_value_casted = int(_filter_value_casted)
-            elif col_type == polars.Float64 or col_type == polars.Float32:
-                _filter_value_casted = float(_filter_value_casted)
 
-            # result_rows = csv_content.data.filter(
-            #    polars.col(filter_col_name) == _filter_value_casted
-            # )
-            result = csv_content.data[filter_value]
-            # result = list(result_rows.iter_rows())
+            result = csv_content_view.data[_filter_value_casted]
             if max_number_rows:
                 result = result[:max_number_rows]
-            self._csv_lookups_cache[csv_lookup_filter_call_signature][
+            self._cache_csv_lookups[csv_lookup_filter_call_signature][
                 filter_value
             ] = result
 
@@ -1202,30 +1241,23 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             )
 
         return (
-            csv_content.headers,
-            self._csv_lookups_cache[csv_lookup_filter_call_signature][filter_value],
+            csv_content_view.parent_csv.headers,
+            self._cache_csv_lookups[csv_lookup_filter_call_signature][filter_value],
         )
 
     async def commit(self, objs):
-        """
-        num_obj = len(objs)
-        for index, obj in enumerate(objs):
-            async with get_async_session_context() as session:
-                print(index, num_obj)
-                session.add(obj)
-
-                await session.commit()
-        return
-        """
         async with get_async_session_context() as session:
-
-            for obj in objs:
-                # log.info(("obj", obj))
-                try:
-                    session.add(obj)
-                except:
-                    log.error(("Failed obj", obj))
-                    raise
+            debug_single_obj_add = False
+            if debug_single_obj_add:
+                for obj in objs:
+                    # log.info(("obj", obj))
+                    try:
+                        session.add(obj)
+                    except:
+                        log.error(("Failed obj", obj))
+                        raise
+            else:
+                session.add_all(objs)
             log.info(
                 "[DRUG DATA IMPORT] Commit Drug data to database. This may take a while..."
             )
