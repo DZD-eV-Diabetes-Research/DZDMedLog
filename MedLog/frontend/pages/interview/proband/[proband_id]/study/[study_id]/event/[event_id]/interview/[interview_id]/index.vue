@@ -370,11 +370,23 @@ const isAction = computed(() => drugStore.isAction)
 watch(isAction, (newValue) => {
   if (newValue) {
     createIntakeList();
-    drugStore.$reset()
+    drugStore.$reset();
     //drugStore.intakeVisibility = false
   } else {
     createIntakeList();
-    drugStore.$reset()
+    drugStore.$reset();
+    // drugStore.item = "",
+    // drugStore.source = "",
+    // drugStore.frequency = "",
+    // drugStore.intervall = "",
+    // drugStore.intake_start_time_utc = "",
+    // drugStore.intake_end_time_utc = "",
+    // drugStore.dose = 0,
+    // drugStore.consumed_meds_today = "Yes",
+    // drugStore.editId = "",
+    // drugStore.drugName = null,
+    // drugStore.darrForm = null,
+    // drugStore.lastFetchTime = null
     //drugStore.intakeVisibility = false
   }
 });

@@ -302,8 +302,8 @@ async function saveIntake() {
     customNameError.value = !state.customName;
     showDarrFormError.value = !state.customDarrform;
 
-    if (!customNameError.value && !showDarrFormError.value) {
-      try {
+    try {
+      if (!customNameError.value && !showDarrFormError.value) {
         let customDrugBody: DrugBody = {
           trade_name: state.customName,
           market_access_date: null,
@@ -315,7 +315,6 @@ async function saveIntake() {
           attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({ field_name: key, value: value })),
           codes: null
         }
-        console.log(customDrugBody);
         const response = await $fetch(
           `${runTimeConfig.public.baseURL}v2/drug/custom`,
           {
@@ -339,15 +338,17 @@ async function saveIntake() {
           response.id
         );
 
-        console.log(drugStore);
-
         drugStore.customVisibility = false
-      } catch (error) {
-        console.error(error);
+      } else {
+        drugStore.customVisibility = true;
       }
+    } catch (error) {
+      console.error(error);
     }
+
   } else {
-    // HERE COMES STUFF
+    console.log("here2");
+
   }
 
   drugStore.action = !drugStore.action;

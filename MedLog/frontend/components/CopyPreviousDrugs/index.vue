@@ -13,8 +13,7 @@
         <UModal v-model="copyPreviousIntakesModal" class="custom-modal">
             <div class="p-10 text-center max-w-5xl">
                 <div v-if="previousIntakes">
-                    <UTable v-model="selected" :rows="people" @row-click="handleRowClick"/>
-                    {{ selected }}
+                    <UTable v-model="selecteIntakes" :rows="previousIntakes"/>
                     <UButton @click="test()" label="Medikation Übernehmen" color="green" variant="soft"
                         style="margin-right: 10px"
                         class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white  mt-4" />
@@ -28,6 +27,7 @@
                 </div>
             </div>
         </UModal>
+        {{ previousIntakes }}
     </div>
 </template>
 
@@ -38,8 +38,11 @@ const tokenStore = useTokenStore();
 const route = useRoute();
 
 const copyPreviousIntakesModal = ref(false)
-const previousIntakes = ref()
 const errorMessage = ref(false)
+
+const previousIntakes = ref<any[]>([])
+// const previousIntakes = [ { "Medikament": "65422", "Einnahmebeginn": "2025-03-18", "Einnahmeende": "Unbekannt", "Dosis": "Unbekannt" }, { "Medikament": "5dfd1", "Einnahmebeginn": "2025-03-18", "Einnahmeende": "Unbekannt", "Dosis": 1 }, { "Medikament": "5dfd1", "Einnahmebeginn": "2025-03-18", "Einnahmeende": "Unbekannt", "Dosis": 1 }, { "Medikament": "c7361", "Einnahmebeginn": "2025-03-18", "Einnahmeende": "Unbekannt", "Dosis": 2 }, { "Medikament": "d1a12", "Einnahmebeginn": "2025-03-18", "Einnahmeende": "Unbekannt", "Dosis": 2 }, { "Medikament": "97a60", "Einnahmebeginn": "2025-03-18", "Einnahmeende": "Unbekannt", "Dosis": "Unbekannt" }, { "Medikament": "2451c", "Einnahmebeginn": "2025-03-18", "Einnahmeende": "Unbekannt", "Dosis": "Unbekannt" } ]
+const selecteIntakes = ref([])
 
 async function openCopyIntakeModal() {
     copyPreviousIntakesModal.value = true
@@ -51,11 +54,17 @@ async function openCopyIntakeModal() {
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
         })
 
-        previousIntakes.value = intakes
+        previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
+            Medikament: intake.drug_id.substring(0, 5),
+            Einnahmebeginn: intake.intake_start_time_utc || 'Unbekannt',
+            Einnahmeende: intake.intake_end_time_utc || 'Unbekannt',
+            Dosis: intake.dose_per_day || 'Unbekannt',
+        })) : []
 
     } catch (error) {
         console.log(error);
         errorMessage.value = true
+        previousIntakes.value = []
     }
 }
 
@@ -63,68 +72,5 @@ function test() {
     console.log("speichert");
     copyPreviousIntakesModal.value = false
 }
-
-function handleRowClick(row: any) {
-    const index = selected.value.findIndex(item => item.id === row.id);
-    if (index === -1) {
-        // Add to selection if not already selected
-        selected.value.push(row);
-    } else {
-        // Remove from selection if already selected
-        selected.value.splice(index, 1);
-    }
-}
-
-const people = [{
-    id: 1,
-    name: 'Lindsay Walton',
-    title: 'Front-end Developer',
-    title1: 'Front-end Developer',
-    title2: 'Front-end Developer',
-    email: 'lindsay.walton@example.com',
-    role: 'Member'
-}, {
-    id: 2,
-    name: 'Courtney Henry',
-    title: 'Designer',
-    title1: 'Designer',
-    title2: 'Designer',
-    email: 'courtney.henry@example.com',
-    role: 'Admin'
-}, {
-    id: 3,
-    name: 'Tom Cook',
-    title: 'Director of Product',
-    title1: 'Director of Product',
-    title2: 'Director of Product',
-    email: 'tom.cook@example.com',
-    role: 'Member'
-}, {
-    id: 4,
-    name: 'Whitney Francis',
-    title: 'Copywriter',
-    title1: 'Copywriter',
-    title2: 'Copywriter',
-    email: 'whitney.francis@example.com',
-    role: 'Admin'
-}, {
-    id: 5,
-    name: 'Leonard Krasner',
-    title: 'Senior Designer',
-    title1: 'Senior Designer',
-    title2: 'Senior Designer',
-    email: 'leonard.krasner@example.com',
-    role: 'Owner'
-}, {
-    id: 6,
-    name: 'Floyd Miles',
-    title: 'Principal Designer',
-    title1: 'Principal Designer',
-    title2: 'Principal Designer',
-    email: 'floyd.miles@example.com',
-    role: 'Member'
-}]
-
-const selected = ref([people[1]])
 
 </script>
