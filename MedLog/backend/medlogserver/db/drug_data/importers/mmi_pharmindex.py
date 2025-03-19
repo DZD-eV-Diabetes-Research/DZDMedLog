@@ -661,7 +661,10 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
 @dataclass
 class CsvFileContentCache:
     data: polars.DataFrame
+    headers: List[str]
+    schema: polars.Schema
     row_limit: Optional[int] = None
+    key_col: Optional[str] = None
 
 
 class MmmiPharmaindex1_32(DrugDataSetImporterBase):
@@ -806,7 +809,10 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         drug_dataset_version, package_row, package_csv_headers
                     )
                 )
-                if index == 1000:
+                if index == 10000:
+                    log.warning(
+                        "This code still contains a static limit for development. remove this later."
+                    )
                     debug_perf_end = time.time()
                     # debug line for perf measument. remove later
                     total_time_sec = debug_perf_end - debug_perf_start
@@ -1094,15 +1100,42 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         return result_values
 
     async def _get_csv_file_rows_with_header(
-        self, file_path: Path, disable_cache: bool = False
+        self, file_path: Path, key_column: str = None
     ) -> CsvFileContentCache:
 
-        if file_path not in self._csv_readers_cache or disable_cache:
-            log.debug(f"Read in {file_path}")
-
-            self._csv_readers_cache[file_path] = CsvFileContentCache(
-                data=polars.read_csv(source=file_path, has_header=True, separator=";")
+        if file_path not in self._csv_readers_cache:
+            self._csv_readers_cache[file_path] = {}
+        if key_column not in self._csv_readers_cache[file_path]:
+            log.debug(f"Read in {file_path} with key column {key_column}")
+            data = polars.read_csv(
+                source=file_path,
+                has_header=True,
+                separator=";",
+                infer_schema_length=None,
+                rechunk=True,
             )
+            # Perform sanity checks
+            try:
+                schema = data.schema
+                if not schema:
+                    raise ValueError(
+                        f"CSV file appears to be empty or missing headers in {file_path}."
+                    )
+            except Exception as e:
+                raise ValueError(f"Error reading CSV headers of {file_path}: {e}")
+            if key_column:
+                # pre sort data for faster lookups
+                data = data.sort(by=key_column)
+
+            self._csv_readers_cache[file_path][key_column] = CsvFileContentCache(
+                data=data, headers=list(schema.keys()), schema=schema
+            )
+
+            if key_column is not None:
+                if key_column not in self._csv_readers_cache[file_path].headers:
+                    raise ValueError(
+                        f"Can not find '{key_column}' in headers of file {file_path.absolute()}. headers: {self._csv_readers_cache[file_path].data.schema}"
+                    )
         return self._csv_readers_cache[file_path]
 
     async def _get_filtered_rows_with_header_from_csv_file(
@@ -1120,50 +1153,37 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         csv_content: CsvFileContentCache = await self._get_csv_file_rows_with_header(
             file_path=file_path
         )
-        # sanity checks
-        if len(csv_content.data) == 0:
-            raise ValueError(f"{file_path} has zero rows.")
-        try:
-            filter_col_index = csv_content.headers.index(filter_col_name)
-        except ValueError:
+        if filter_col_name not in csv_content.headers:
             raise ValueError(
                 f"Can not find '{filter_col_name}' in headers of file {file_path.absolute()}. headers: {csv_content.headers}"
             )
-        csv_lookup_filter_call_signature_ = (
+        csv_lookup_filter_call_signature = (
             file_path,
             filter_col_name,
             max_number_rows,
         )
-        if csv_lookup_filter_call_signature_ not in self._csv_lookups_cache:
-            self._csv_lookups_cache[csv_lookup_filter_call_signature_] = {}
+        if csv_lookup_filter_call_signature not in self._csv_lookups_cache:
+            self._csv_lookups_cache[csv_lookup_filter_call_signature] = {}
 
         if (
             filter_value
-            not in self._csv_lookups_cache[csv_lookup_filter_call_signature_]
+            not in self._csv_lookups_cache[csv_lookup_filter_call_signature]
         ):
-            """
-            result_rows = []
-            for row in csv_content.rows:
-                if row[filter_col_index] == filter_value:
-                    result_rows.append(row)
-                    if len(result_rows) == max_number_rows:
-                        break
-            self._csv_lookups_cache[csv_lookup_filter_call_signature_][
-                filter_value
-            ] = result_rows
-            """
-            self._csv_lookups_cache[csv_lookup_filter_call_signature_][filter_value] = (
-                list(
-                    itertools.islice(
-                        (
-                            row
-                            for row in csv_content.data
-                            if row[filter_col_index] == filter_value
-                        ),
-                        max_number_rows,
-                    )
-                )
+            _filter_value_casted = filter_value
+            col_type = csv_content.data[filter_col_name].dtype
+            if col_type == polars.Int64 or col_type == polars.Int32:
+                _filter_value_casted = int(_filter_value_casted)
+            elif col_type == polars.Float64 or col_type == polars.Float32:
+                _filter_value_casted = float(_filter_value_casted)
+            result_rows = csv_content.data.filter(
+                polars.col(filter_col_name) == _filter_value_casted
             )
+            result = list(result_rows.iter_rows())
+            if max_number_rows:
+                result = result[:max_number_rows]
+            self._csv_lookups_cache[csv_lookup_filter_call_signature][
+                filter_value
+            ] = result
 
             self._debug_stats_csv_lookup = (
                 self._debug_stats_csv_lookup[0],
@@ -1177,7 +1197,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
         return (
             csv_content.headers,
-            self._csv_lookups_cache[csv_lookup_filter_call_signature_][filter_value],
+            self._csv_lookups_cache[csv_lookup_filter_call_signature][filter_value],
         )
 
     async def commit(self, objs):
