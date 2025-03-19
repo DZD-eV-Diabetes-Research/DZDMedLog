@@ -291,6 +291,13 @@ async function saveIntake() {
         drugStore.item?.drug_id
       );
       missingDrugError.value = false
+      // HIER
+      selectedSourceItem.value = sourceItems[0]
+      selectedFrequency.value = frequency[0]
+      selectedInterval.value = intervallOfDose[0]
+      state.dose = 0
+      state.endTime = null
+      state.selected = "Yes"
     } catch (error) {
       missingDrugError.value = true
       console.log(error);
