@@ -1,9 +1,15 @@
 <template>
   <Layout>
     <UIBaseCard :naked="true">
-      <UButton @click="openIntakeForm()" label="Eingabe Präparat" color="green" variant="soft"
-        style="margin-right: 10px"
-        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+      <div class="flex flex-row justify-center">
+        <UButton @click="test()" label="Medikation Übernehmen" color="green" variant="soft" style="margin-right: 10px"
+          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+        <div class="flex items-center ">
+          <UTooltip :delay-duration="0" text="Medikatmente aus dem letzten Events übernehmen">
+            <UIcon name="i-heroicons-question-mark-circle" class="size-5" />
+          </UTooltip>
+        </div>
+      </div>
     </UIBaseCard>
     <div v-if="drugStore.intakeVisibility">
       <UIBaseCard>
@@ -86,6 +92,10 @@
 <script setup lang="ts">
 import { object, number, date, string, type InferType } from "yup";
 
+function test() {
+  console.log("Previous drugs");
+}
+
 // general constants
 
 const route = useRoute();
@@ -98,14 +108,6 @@ const runtimeConfig = useRuntimeConfig();
 
 
 drugStore.item = null;
-// Intakeform
-
-const showIntakeForm = ref(true);
-
-async function openIntakeForm() {
-  drugStore.item = null
-  drugStore.intakeVisibility = !drugStore.intakeVisibility
-}
 
 // Editform Modal
 
@@ -176,13 +178,13 @@ const deleteState = reactive({
 async function openDeleteModal(row: object) {
   deleteState.drug = "";
   deleteModalVisibility.value = true;
-  drugToDelete.value = row;  
+  drugToDelete.value = row;
 }
 
-async function deleteIntake() {  
+async function deleteIntake() {
 
   try {
-    
+
     await $fetch(
       `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.intakeId}`,
       {
@@ -368,10 +370,9 @@ const isAction = computed(() => drugStore.isAction)
 watch(isAction, (newValue) => {
   if (newValue) {
     createIntakeList();
-    //drugStore.intakeVisibility = false
   } else {
     createIntakeList();
-    //drugStore.intakeVisibility = false
+    drugStore.item = ""    
   }
 });
 
