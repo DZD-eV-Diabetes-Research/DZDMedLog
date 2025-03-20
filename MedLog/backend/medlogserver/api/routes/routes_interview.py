@@ -162,7 +162,9 @@ async def get_last_non_completed_interview(
     if interview is None:
         return JSONResponse(
             status_code=status.HTTP_204_NO_CONTENT,
+            content=None,
         )
+
     return interview
 
 
