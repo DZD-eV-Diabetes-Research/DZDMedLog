@@ -15,7 +15,6 @@ from typing import (
 import polars
 import time
 import itertools
-from async_lru import alru_cache
 from pathlib import Path
 import datetime
 import csv
