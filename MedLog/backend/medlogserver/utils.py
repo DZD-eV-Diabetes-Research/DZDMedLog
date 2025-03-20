@@ -195,9 +195,15 @@ class PathContentHasher:
     @classmethod
     def _md5_update_from_file(cls, filename: Union[str, Path], hash: "Hash") -> "Hash":
         assert Path(filename).is_file()
+        file_size = os.path.getsize(filename)
         with open(str(filename), "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                hash.update(chunk)
+            if file_size < 10 * 1024 * 1024:  # 10MB threshold
+                # Read the entire file at once
+                hash.update(f.read())
+            else:
+                # Use larger chunks (1MB) for better performance
+                for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                    hash.update(chunk)
         return hash
 
     @classmethod

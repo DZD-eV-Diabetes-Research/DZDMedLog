@@ -91,7 +91,7 @@ async def get_interview(
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> Interview:
     interview: Interview = await interview_crud.get(interview_id)
-    log.info((interview.event_id, event_id, interview.event_id == event_id))
+    log.debug((interview.event_id, event_id, interview.event_id == event_id))
     if interview.event_id == event_id:
         return interview
     else:

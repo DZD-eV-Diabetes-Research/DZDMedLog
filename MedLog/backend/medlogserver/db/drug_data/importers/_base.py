@@ -45,10 +45,12 @@ class DrugDataSetImporterBase:
         # generic way of creating a version string.
         # if there is more effiecient way for a certain dataset like a date in the directory, overwrite this function.
         # if this method is overwritten, the method "is_dataset_imported()" must be adapted as well.
-        source_dir_hash = PathContentHasher.md5_dir(self.source_dir)
-        epoch_time = int(time.time())
-        version_string = f"{epoch_time}_{source_dir_hash}"
-        return version_string
+        if self.version is None:
+            source_dir_hash = PathContentHasher.md5_dir(self.source_dir)
+            epoch_time = int(time.time())
+            version_string = f"{epoch_time}_{source_dir_hash}"
+            self.version = version_string
+        return self.version
 
     async def was_dataset_version_imported(self) -> DrugDataSetVersion | None:
         # this function is apt to work with method get_drug_dataset_version()

@@ -38,6 +38,7 @@ dependencies = [
     "pip-tools",
     "python-multipart",
     "apscheduler",
+    "async-lru",
 ]
 
 [project.optional-dependencies]

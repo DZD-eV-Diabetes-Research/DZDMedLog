@@ -55,7 +55,7 @@ class StudyCRUD(
 
         results = await self.session.exec(statement=query)
         study: Study | None = results.one_or_none()
-        log.info(f"study {study}")
+        log.debug(f"study {study}")
         if study is None and raise_exception_if_none:
             raise raise_exception_if_none
         return study
