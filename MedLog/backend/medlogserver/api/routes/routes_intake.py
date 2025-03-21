@@ -258,7 +258,7 @@ async def list_all_intakes_of_last_completed_interview(
 
 #############
 @fast_api_intake_router.get(
-    "/study/{study_id}/proband/{proband_id}/interview/last/intake/detailed",
+    "/study/{study_id}/proband/{proband_id}/interview/last/intake/details",
     response_model=List[IntakeDetailListItem],
     description=f"List all medicine intakes of one probands last completed interview with all details attached.",
 )
@@ -318,7 +318,7 @@ async def list_all_intakes_of_last_uncompleted_interview(
 
 #############
 @fast_api_intake_router.get(
-    "/study/{study_id}/proband/{proband_id}/interview/current/intake/detailed",
+    "/study/{study_id}/proband/{proband_id}/interview/current/intake/details",
     response_model=List[IntakeDetailListItem],
     description=f"List all medicine intakes of one probands last completed interview with all details attached.",
 )
