@@ -264,9 +264,6 @@ async def list_all_intakes_of_last_completed_interview(
 )
 async def list_all_intakes_of_last_completed_interview_detailed(
     proband_id: str,
-    interview_id: Annotated[
-        uuid.UUID, Query(description="Filter intakes by a certain interview.")
-    ] = None,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
@@ -322,9 +319,6 @@ async def list_all_intakes_of_last_uncompleted_interview(
 )
 async def list_all_intakes_of_last_uncompleted_interview_detailed(
     proband_id: str,
-    interview_id: Annotated[
-        uuid.UUID, Query(description="Filter intakes by a certain interview.")
-    ] = None,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
