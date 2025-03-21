@@ -270,7 +270,6 @@ async def list_all_intakes_of_last_completed_interview_detailed(
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-    pagination: QueryParamsInterface = Depends(IntakeQueryParams),
 ) -> IntakeDetailListItem:
     last_completed_interview = await interview_crud.get_last_by_proband(
         study_id=study_access.study.id, proband_external_id=proband_id, completed=True
@@ -285,7 +284,6 @@ async def list_all_intakes_of_last_completed_interview_detailed(
         filter_study_id=study_access.study.id,
         filter_proband_external_id=proband_id,
         filter_interview_id=last_completed_interview.id,
-        pagination=pagination,
     )
     return intakes
 
@@ -330,7 +328,6 @@ async def list_all_intakes_of_last_uncompleted_interview_detailed(
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-    pagination: QueryParamsInterface = Depends(IntakeQueryParams),
 ) -> IntakeDetailListItem:
     last_uncompleted_interview = await interview_crud.get_last_by_proband(
         study_id=study_access.study.id, proband_external_id=proband_id, completed=False
@@ -345,7 +342,6 @@ async def list_all_intakes_of_last_uncompleted_interview_detailed(
         filter_study_id=study_access.study.id,
         filter_proband_external_id=proband_id,
         filter_interview_id=last_uncompleted_interview.id,
-        pagination=pagination,
     )
     return intakes
 
