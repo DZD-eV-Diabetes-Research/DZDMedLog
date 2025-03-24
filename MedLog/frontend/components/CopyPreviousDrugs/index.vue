@@ -54,16 +54,6 @@ async function openCopyIntakeModal() {
     errorMessage.value = false
     
     try {
-<<<<<<< HEAD
-        //`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/current/intake`
-        const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/b326a6e1-c2d1-4761-8590-05ca50d4e851/proband/1234/interview/current/intake`, {
-            method: "GET",
-            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-        })
-        
-        previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
-            Medikament: intake.drug_id,
-=======
         const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/details`, {
             method: "GET",
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
@@ -73,7 +63,6 @@ async function openCopyIntakeModal() {
         
         previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
             Medikament: intake.drug.trade_name,
->>>>>>> detailed-last-current-endpoint
             Einnahmebeginn: intake.intake_start_time_utc || 'Unbekannt',
             Einnahmeende: intake.intake_end_time_utc || 'Unbekannt',
             Dosis: intake.dose_per_day || 'Unbekannt',
@@ -115,36 +104,6 @@ const columns = [{
 },]
 
 async function saveIntakes() {
-<<<<<<< HEAD
-    loadingSpinner.value = true
-    // selecteIntakes.value.forEach(element => {
-    //     try {
-    //         //`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake`
-    //         await $fetch(`${runtimeConfig.public.baseURL}study/b6f2c61b-d388-4412-8c9a-461ece251116/interview/1234/intake`, {
-    //         method: "POST",
-    //         headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-    //     })
-
-    //     } catch (error) {
-    //         console.log(error);
-            
-    //     }
-    // });
-    for (const element of selecteIntakes.value) {
-        console.log(element.postBody);
-        try {
-            //`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake`
-            await $fetch(`${runtimeConfig.public.baseURL}study/8713edbc-4190-4ccc-9c2d-21fc75883e77/interview/440ff1cb-0ab3-4a97-a8b5-789ab5830bc1/intake`, {
-            method: "POST",
-            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-        })
-
-        } catch (error) {
-            console.log(error);
-    }
-}
-    loadingSpinner.value = false
-=======
     for (const element of selecteIntakes.value) {
         try {
             await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake`, {
@@ -157,7 +116,6 @@ async function saveIntakes() {
         }
     }
     props.onUpdate();
->>>>>>> detailed-last-current-endpoint
     openCopyPreviousIntakesModal.value = false
 }
 
