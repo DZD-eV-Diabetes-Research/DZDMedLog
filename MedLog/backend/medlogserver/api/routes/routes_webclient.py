@@ -20,7 +20,7 @@ fast_api_webclient_router: APIRouter = APIRouter()
 async def serve_frontend(path_name: Optional[str] = None):
     if path_name:
         file = os.path.join(config.FRONTEND_FILES_DIR, path_name)
-        if not Path(file).exists():
+        if Path(file).is_dir():
             file = os.path.join(config.FRONTEND_FILES_DIR, "index.html")
     else:
         file = os.path.join(config.FRONTEND_FILES_DIR, "index.html")
