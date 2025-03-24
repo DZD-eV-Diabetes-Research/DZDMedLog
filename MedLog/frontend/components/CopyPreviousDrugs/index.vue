@@ -12,14 +12,12 @@
         </div>
         <UModal v-model="openCopyPreviousIntakesModal" class="custom-modal">
             <div class="p-10 text-center max-w-5xl">
-                <div v-if="previousIntakes.length > 0 && !loadingSpinner">
+                <div v-if="previousIntakes.length > 0">
+                    <h3>Medikationsübernahme</h3>
                     <UTable v-model="selecteIntakes" :columns="columns" :rows="previousIntakes" />
                     <UButton @click="saveIntakes()" label="Medikation Übernehmen" color="green" variant="soft"
                         style="margin-right: 10px"
                         class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white  mt-4" />
-                </div>
-                <div v-if="previousIntakes.length > 0 && loadingSpinner">
-                    Loading
                 </div>
                 <div v-if="!previousIntakes && !errorMessage">
                     loading
@@ -39,6 +37,7 @@
 </template>
 
 <script setup lang="ts">
+const props = defineProps<{ onUpdate: () => void }>();
 
 const runtimeConfig = useRuntimeConfig();
 const tokenStore = useTokenStore();
@@ -46,7 +45,6 @@ const route = useRoute();
 
 const openCopyPreviousIntakesModal = ref(false)
 const errorMessage = ref(false)
-const loadingSpinner = ref(false)
 
 const previousIntakes = ref<any[]>([])
 const selecteIntakes = ref([])
@@ -54,7 +52,9 @@ const selecteIntakes = ref([])
 async function openCopyIntakeModal() {
     openCopyPreviousIntakesModal.value = true
     errorMessage.value = false
+    
     try {
+<<<<<<< HEAD
         //`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/current/intake`
         const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/b326a6e1-c2d1-4761-8590-05ca50d4e851/proband/1234/interview/current/intake`, {
             method: "GET",
@@ -63,14 +63,35 @@ async function openCopyIntakeModal() {
         
         previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
             Medikament: intake.drug_id,
+=======
+        const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/details`, {
+            method: "GET",
+            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+        })
+
+        console.log(intakes);
+        
+        previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
+            Medikament: intake.drug.trade_name,
+>>>>>>> detailed-last-current-endpoint
             Einnahmebeginn: intake.intake_start_time_utc || 'Unbekannt',
             Einnahmeende: intake.intake_end_time_utc || 'Unbekannt',
             Dosis: intake.dose_per_day || 'Unbekannt',
             ID: intake.id,
-            postBody: intake
+            postBody: {
+                "drug_id": intake.drug_id,
+                "source_of_drug_information": intake.source_of_drug_information,
+                "intake_start_time_utc": intake.intake_start_time_utc,
+                "intake_end_time_utc": intake.intake_end_time_utc,
+                "administered_by_doctor": intake.administered_by_doctor,
+                "intake_regular_or_as_needed": intake.intake_regular_or_as_needed,
+                "dose_per_day": intake.dose_per_day,
+                "regular_intervall_of_daily_dose": intake.regular_intervall_of_daily_dose,
+                "as_needed_dose_unit": intake.as_needed_dose_unit,
+                "consumed_meds_today": intake.consumed_meds_today,
+            }
         })) : []
         selecteIntakes.value = previousIntakes.value
-
 
     } catch (error) {
         console.log(error);
@@ -94,6 +115,7 @@ const columns = [{
 },]
 
 async function saveIntakes() {
+<<<<<<< HEAD
     loadingSpinner.value = true
     // selecteIntakes.value.forEach(element => {
     //     try {
@@ -122,10 +144,21 @@ async function saveIntakes() {
     }
 }
     loadingSpinner.value = false
+=======
+    for (const element of selecteIntakes.value) {
+        try {
+            await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake`, {
+            method: "POST",
+            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+            body: element.postBody
+        })
+        } catch (error) {
+            console.log(error);
+        }
+    }
+    props.onUpdate();
+>>>>>>> detailed-last-current-endpoint
     openCopyPreviousIntakesModal.value = false
-
 }
-
-
 
 </script>
