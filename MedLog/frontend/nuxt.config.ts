@@ -29,16 +29,14 @@ export default defineNuxtConfig({
     plugins: ['utc'],
   },
 
-  css: [
-    "~/assets/main.scss"
-  ],
+  css: ["~/assets/main.css"],
 
-  postcss: {
-    plugins: {
-      tailwindcss: {},
-      autoprefixer: {},
-    },
-  },
+  // postcss: {
+  //   plugins: {
+  //     tailwindcss: {},
+  //     autoprefixer: {},
+  //   },
+  // },
 
   colorMode: {
     preference: 'light'

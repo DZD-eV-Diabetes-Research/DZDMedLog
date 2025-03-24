@@ -90,135 +90,133 @@ const profileButtonClass = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-@import "../../assets/mixins";
-@import "../../assets/variables/breakpoints";
 
-.anchor {
-  color: #20282D;
-  margin-top: var(--space-4);
-  font-family: var(--font-family-heading);
-  font-weight: var(--font-weight-heading, inherit);
-  text-transform: var(--text-transform-heading, inherit);
-  -webkit-hyphens: auto;
-  hyphens: auto;
-  letter-spacing: var(--letter-spacing-heading, inherit);
-  line-height: 1.2;
-}
+// .anchor {
+//   color: #20282D;
+//   margin-top: var(--space-4);
+//   font-family: var(--font-family-heading);
+//   font-weight: var(--font-weight-heading, inherit);
+//   text-transform: var(--text-transform-heading, inherit);
+//   -webkit-hyphens: auto;
+//   hyphens: auto;
+//   letter-spacing: var(--letter-spacing-heading, inherit);
+//   line-height: 1.2;
+// }
 
-.nav {
-  display: flex;
-  width: 100%;
-  border-bottom: 10px solid var(--accent);
-  position: relative;
-}
+// .nav {
+//   display: flex;
+//   width: 100%;
+//   border-bottom: 10px solid var(--accent);
+//   position: relative;
+// }
 
-.nav__content {
-  @include container();
-  margin: 0;
-  padding: var(--space-4) var(--layout-padding-x);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-start;
-  height: var(--nav-height);
-  pointer-events: auto;
-  transition: height var(--transition-long), background var(--transition-long);
-  position: relative;
-  z-index: 3;
-  background-color: var(--nav-bg-color);
-  gap: var(--space-4);
-  width: 100%;
+// .nav__content {
+//   @include container();
+//   margin: 0;
+//   padding: var(--space-4) var(--layout-padding-x);
+//   display: flex;
+//   flex-direction: column;
+//   justify-content: space-between;
+//   align-items: flex-start;
+//   height: var(--nav-height);
+//   pointer-events: auto;
+//   transition: height var(--transition-long), background var(--transition-long);
+//   position: relative;
+//   z-index: 3;
+//   background-color: var(--nav-bg-color);
+//   gap: var(--space-4);
+//   width: 100%;
 
-  @include breakpoint(md) {
-    flex-direction: row;
-    align-items: center;
-  }
-}
+//   @include breakpoint(md) {
+//     flex-direction: row;
+//     align-items: center;
+//   }
+// }
 
-.nav__title {
-  font-size: var(--font-size-2xl);
-  font-weight: 800;
-  color: var(--primary12);
+// .nav__title {
+//   font-size: var(--font-size-2xl);
+//   font-weight: 800;
+//   color: var(--primary12);
 
-  .router-link-custom {
-    font-size: inherit;
-    font-weight: inherit;
-    text-decoration: none;
-    color: inherit;
-  }
-}
+//   .router-link-custom {
+//     font-size: inherit;
+//     font-weight: inherit;
+//     text-decoration: none;
+//     color: inherit;
+//   }
+// }
 
-.nav__logo {
-  width: 200px;
-  order: -1;
+// .nav__logo {
+//   width: 200px;
+//   order: -1;
 
-  @include breakpoint(md) {
-    order: inherit;
-  }
+//   @include breakpoint(md) {
+//     order: inherit;
+//   }
 
-  img {
-    max-width: 100%;
-  }
-}
+//   img {
+//     max-width: 100%;
+//   }
+// }
 
-.button-container {
-  display: flex;
-  align-items: center;
-  margin-top: 0.25rem;
-  margin-right: 0.25rem;
-  margin-left: 0.25rem;
-}
+// .button-container {
+//   display: flex;
+//   align-items: center;
+//   margin-top: 0.25rem;
+//   margin-right: 0.25rem;
+//   margin-left: 0.25rem;
+// }
 
-.logout_button {
-  margin-right: auto;
-}
+// .logout_button {
+//   margin-right: auto;
+// }
 
-.profile_button {
-  margin-left: auto;
-  color: #34c868;
-}
+// .profile_button {
+//   margin-left: auto;
+//   color: #34c868;
+// }
 
-.toggle_to_user {
-  color: #34c868;
-}
+// .toggle_to_user {
+//   color: #34c868;
+// }
 
-.toggle_to_admin {
-  color: #8ac4fa;
-}
+// .toggle_to_admin {
+//   color: #8ac4fa;
+// }
 
-.about {
-  padding: var(--space-6);
-}
+// .about {
+//   padding: var(--space-6);
+// }
 
-.fixed-size {
-  height: 24px;
-  width: 500px;
-}
+// .fixed-size {
+//   height: 24px;
+//   width: 500px;
+// }
 
-.invisible {
-  visibility: hidden;
-}
+// .invisible {
+//   visibility: hidden;
+// }
 
-.activeStudy-container {
-  display: flex;
-  justify-content: center;
-  flex: 1; 
-}
+// .activeStudy-container {
+//   display: flex;
+//   justify-content: center;
+//   flex: 1; 
+// }
 
-.activeStudy {
-  display: flex;
-  flex-direction: column; 
-  align-items: flex-start; 
-  gap: -10px; 
-  width: 500px; 
-  margin-left: 125px;
-}
+// .activeStudy {
+//   display: flex;
+//   flex-direction: column; 
+//   align-items: flex-start; 
+//   gap: -10px; 
+//   width: 500px; 
+//   margin-left: 125px;
+// }
 
-.flex-item {
-  height: 27px; 
-  width: 100%; 
-  white-space: nowrap; 
-  overflow: hidden; 
-  text-overflow: ellipsis;
-}
+// .flex-item {
+//   height: 27px; 
+//   width: 100%; 
+//   white-space: nowrap; 
+//   overflow: hidden; 
+//   text-overflow: ellipsis;
+// }
 </style>
