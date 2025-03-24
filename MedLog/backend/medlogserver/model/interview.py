@@ -33,7 +33,7 @@ config = Config()
 
 class InterviewCreateAPI(MedLogBaseModel, table=False):
     proband_external_id: str = Field(
-        description="A unique ID given to the proband from the studies external probant management system"
+        description="A unique ID given to the proband from the studies external proband management system"
     )
     interview_start_time_utc: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
