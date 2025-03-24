@@ -54,7 +54,7 @@ async function openCopyIntakeModal() {
     errorMessage.value = false
     
     try {
-        const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/details`, {
+        const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/intake/details`, {
             method: "GET",
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
         })
@@ -109,7 +109,7 @@ async function saveIntakes() {
             await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake`, {
             method: "POST",
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-            body: element.postBody
+            body: element.postBody 
         })
         } catch (error) {
             console.log(error);
