@@ -1,46 +1,43 @@
 <template>
-  <header class="nav">
-    <div class="nav__content">
+  <header class="flex w-full border-b-4 border-accent bg-white shadow-md p-4">
+    <div class="flex w-full justify-between items-center max-w-5xl mx-auto">
       <div>
-        <div class="nav__title">
-          <NuxtLink class="anchor" to="/user" @click="resetStore">
-            DZD Medlog
-          </NuxtLink>
-        </div>
-        <!-- <div class="nav__subtitle">
-          Your trustworthy medication logging page
-        </div> -->
+        <NuxtLink class="text-xl font-bold text-gray-800" to="/user" @click="resetStore">
+          DZD Medlog
+        </NuxtLink>
       </div>
-      <div class="activeStudy-container">
-        <div class="activeStudy">
-          <p :class="{ invisible: !userStore.userName }" class="flex-item">User: {{ userStore.userName }}</p>
-          <p :class="{ invisible: !route.params.study_id }" class="flex-item">Study: {{ studyName }}</p>
-          <p :class="{ invisible: !probandStore.probandID }" class="flex-item">ProbandenID: {{ probandStore.probandID }}</p>
-          <p :class="{ invisible: studyStore.event === '' }" class="flex-item">Event: {{ studyStore.event }}</p>
-        </div>
+
+      <div class="flex flex-col items-start space-y-1">
+        <p v-if="userStore.userName" class="text-sm text-gray-600">User: {{ userStore.userName }}</p>
+        <p v-if="route.params.study_id" class="text-sm text-gray-600">Study: {{ studyName }}</p>
+        <p v-if="probandStore.probandID" class="text-sm text-gray-600">ProbandenID: {{ probandStore.probandID }}</p>
+        <p v-if="studyStore.event" class="text-sm text-gray-600">Event: {{ studyStore.event }}</p>
       </div>
-      <div class="nav__logo">
-        <img src="/img/logos/dzd.png" alt="DZD" />
+
+      <div class="w-40">
+        <img src="/img/logos/dzd.png" alt="DZD" class="max-w-full" />
       </div>
     </div>
   </header>
-  <div class="button-container">
-    <button class="logout_button" v-if="tokenStore.loggedIn" @click="logout()">Logout</button>
-    <button :class="profileButtonClass" v-if="tokenStore.loggedIn" @click="toggelProfile()">{{ userStore.buttonText }}</button>
+
+  <div class="flex justify-end p-2 space-x-2">
+    <button v-if="tokenStore.loggedIn" class="bg-red-500 text-white px-4 py-2 rounded" @click="logout()">Logout</button>
+    <button v-if="tokenStore.loggedIn" :class="profileButtonClass" @click="toggelProfile()">
+      {{ userStore.buttonText }}
+    </button>
   </div>
 </template>
 
 <script setup>
-import { ref, watchEffect } from 'vue';
+import { ref, computed, watchEffect } from 'vue';
 
 const tokenStore = useTokenStore();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
-const probandStore = useProbandStore()
+const probandStore = useProbandStore();
 const router = useRouter();
 const route = useRoute();
 const studyName = ref('');
-
 
 watchEffect(async () => {
   if (route.params.study_id) {
@@ -51,172 +48,24 @@ watchEffect(async () => {
   }
 });
 
-
 function logout() {
-  userStore.$reset()
-  studyStore.$reset()
-  tokenStore.$reset()
-  probandStore.$reset()
-  router.push({ path: "/" })
+  userStore.$reset();
+  studyStore.$reset();
+  tokenStore.$reset();
+  probandStore.$reset();
+  router.push({ path: '/' });
 }
 
 function toggelProfile() {
-  userStore.toggle_profile()
+  userStore.toggle_profile();
 }
-// function toggelProfile() {
-//   userStore.toggle_profile()
-//   if (userStore.buttonText === "Back") {
-//     router.push({ path: "/profile" })
-//   } else {
-//     router.go(-1)
-//   }
-// }
 
 function resetStore() {
-  probandStore.$reset()
-  studyStore.$reset()
+  probandStore.$reset();
+  studyStore.$reset();
 }
 
-
-const profileButtonClass = computed(() => {
-  let baseClass = 'profile_button'
-  if (userStore.buttonText === 'Toggle to User') {
-    return `${baseClass} toggle_to_user`
-  } else {
-    return `${baseClass} toggle_to_admin`
-  }
-})
-
+const profileButtonClass = computed(() =>
+  userStore.buttonText === 'Toggle to User' ? 'bg-green-500 text-white px-4 py-2 rounded' : 'bg-blue-500 text-white px-4 py-2 rounded'
+);
 </script>
-
-<style lang="scss" scoped>
-
-// .anchor {
-//   color: #20282D;
-//   margin-top: var(--space-4);
-//   font-family: var(--font-family-heading);
-//   font-weight: var(--font-weight-heading, inherit);
-//   text-transform: var(--text-transform-heading, inherit);
-//   -webkit-hyphens: auto;
-//   hyphens: auto;
-//   letter-spacing: var(--letter-spacing-heading, inherit);
-//   line-height: 1.2;
-// }
-
-// .nav {
-//   display: flex;
-//   width: 100%;
-//   border-bottom: 10px solid var(--accent);
-//   position: relative;
-// }
-
-// .nav__content {
-//   @include container();
-//   margin: 0;
-//   padding: var(--space-4) var(--layout-padding-x);
-//   display: flex;
-//   flex-direction: column;
-//   justify-content: space-between;
-//   align-items: flex-start;
-//   height: var(--nav-height);
-//   pointer-events: auto;
-//   transition: height var(--transition-long), background var(--transition-long);
-//   position: relative;
-//   z-index: 3;
-//   background-color: var(--nav-bg-color);
-//   gap: var(--space-4);
-//   width: 100%;
-
-//   @include breakpoint(md) {
-//     flex-direction: row;
-//     align-items: center;
-//   }
-// }
-
-// .nav__title {
-//   font-size: var(--font-size-2xl);
-//   font-weight: 800;
-//   color: var(--primary12);
-
-//   .router-link-custom {
-//     font-size: inherit;
-//     font-weight: inherit;
-//     text-decoration: none;
-//     color: inherit;
-//   }
-// }
-
-// .nav__logo {
-//   width: 200px;
-//   order: -1;
-
-//   @include breakpoint(md) {
-//     order: inherit;
-//   }
-
-//   img {
-//     max-width: 100%;
-//   }
-// }
-
-// .button-container {
-//   display: flex;
-//   align-items: center;
-//   margin-top: 0.25rem;
-//   margin-right: 0.25rem;
-//   margin-left: 0.25rem;
-// }
-
-// .logout_button {
-//   margin-right: auto;
-// }
-
-// .profile_button {
-//   margin-left: auto;
-//   color: #34c868;
-// }
-
-// .toggle_to_user {
-//   color: #34c868;
-// }
-
-// .toggle_to_admin {
-//   color: #8ac4fa;
-// }
-
-// .about {
-//   padding: var(--space-6);
-// }
-
-// .fixed-size {
-//   height: 24px;
-//   width: 500px;
-// }
-
-// .invisible {
-//   visibility: hidden;
-// }
-
-// .activeStudy-container {
-//   display: flex;
-//   justify-content: center;
-//   flex: 1; 
-// }
-
-// .activeStudy {
-//   display: flex;
-//   flex-direction: column; 
-//   align-items: flex-start; 
-//   gap: -10px; 
-//   width: 500px; 
-//   margin-left: 125px;
-// }
-
-// .flex-item {
-//   height: 27px; 
-//   width: 100%; 
-//   white-space: nowrap; 
-//   overflow: hidden; 
-//   text-overflow: ellipsis;
-// }
-</style>
