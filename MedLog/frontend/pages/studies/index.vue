@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <div class="center">
+    <div class="flex flex-row justify-center">
       <h1>Studien</h1>
     </div>
     <UIBaseCard v-if="!studyStore.studies">
@@ -124,23 +124,3 @@ async function gotoExport(study_id) {
   router.push({ path: "/studies/" + study_id + "/export" });
 }
 </script>
-
-<style lang="css" scoped>
-
-.center {
-  text-align: center;
-  margin: auto;
-  width: 50%;
-  padding: 10px;
-}
-
-.button-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: relative;
-  width: 52%;
-  margin: 0 21%; 
-}
-
-</style>

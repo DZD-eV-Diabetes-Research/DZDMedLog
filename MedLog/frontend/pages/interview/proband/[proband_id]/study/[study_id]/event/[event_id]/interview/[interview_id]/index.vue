@@ -1,8 +1,10 @@
 <template>
   <Layout>
     <UIBaseCard :naked="true">
-      <div class="flex flex-row justify-center">
+      <div class="flex flex-col justify-center items-center space-y-4">
         <CopyPreviousDrugs :onUpdate="createIntakeList"/>
+        <UButton @click="saveInterview()" label="Interview Speichern" color="green" variant="soft"
+          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"/>
       </div>
     </UIBaseCard>
     <div v-if="drugStore.intakeVisibility">
@@ -47,7 +49,7 @@
         </div>
       </div>
       <div style="text-align: center">
-        <UButton @click="backToOverview()" label="Zurück zur Übersicht" color="green" variant="soft"
+        <UButton @click="saveInterview()" label="Interview Speichern" color="green" variant="soft"
           class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" style="margin: 25px" />
       </div>
     </div>
@@ -85,10 +87,7 @@
 
 <script setup lang="ts">
 import { object, number, date, string, type InferType } from "yup";
-
-function test() {
-  console.log("Previous drugs");
-}
+let test = new Date().toISOString();
 
 // general constants
 
@@ -303,7 +302,25 @@ async function getDosageForm() {
 
 // REST
 
-async function backToOverview() {
+async function saveInterview() {
+
+  try {
+    await $fetch(
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${route.params.event_id}/interview/${route.params.interview_id}`,
+      {
+        method: "PATCH",
+        headers: { Authorization: "Bearer " + tokenStore.access_token },
+        body: {
+          "proband_external_id": `${route.params.proband_id}`,
+          "interview_end_time_utc": new Date().toISOString(),
+          "proband_has_taken_meds": true
+        }
+      }
+    );
+  } catch (error) {
+    console.log(error);
+  }
+
   studyStore.event = "";
   router.push({
     path:
