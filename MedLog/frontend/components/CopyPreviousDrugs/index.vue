@@ -13,7 +13,7 @@
         <UModal v-model="openCopyPreviousIntakesModal" class="custom-modal">
             <div class="p-10 text-center max-w-5xl">
                 <div v-if="previousIntakes.length > 0">
-                    <!-- <h3>Medikationsübernahme</h3> -->
+                    <h3>Medikationsübernahme</h3>
                     <UTable v-model="selecteIntakes" :columns="columns" :rows="previousIntakes" />
                     <UButton @click="saveIntakes()" label="Medikation Übernehmen" color="green" variant="soft"
                         style="margin-right: 10px"
@@ -47,12 +47,15 @@ const selecteIntakes = ref([])
 async function openCopyIntakeModal() {
     openCopyPreviousIntakesModal.value = true
     errorMessage.value = false
+    
     try {
-        const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/current/details`, {
+        const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/details`, {
             method: "GET",
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
         })
 
+        console.log(intakes);
+        
         previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
             Medikament: intake.drug.trade_name,
             Einnahmebeginn: intake.intake_start_time_utc || 'Unbekannt',
