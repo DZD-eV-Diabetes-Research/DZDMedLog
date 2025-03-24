@@ -50,7 +50,10 @@ class EventUpdate(EventCreateAPI, table=False):
     name: Optional[_name_annotation] = _name_field
     completed: Optional[bool] = Field(
         default=False,
-        description="Is the event completed. E.g. All study participants have been interviewed.",
+        description="DEPRECATED: This field is deprecated. A Event is now 'completed' on a per-proband basis, when the event has an interview existing for a proband it is completed for this proband.",
+        schema_extra={
+            "deprecated": True,
+        },
     )
 
 
