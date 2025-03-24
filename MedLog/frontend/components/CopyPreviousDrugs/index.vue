@@ -19,6 +19,9 @@
                         style="margin-right: 10px"
                         class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white  mt-4" />
                 </div>
+                <div v-if="previousIntakes.length === 0">
+                    <h3>Es gibt keine Einträge im letzten Event</h3>
+                </div>
                 <div v-if="!previousIntakes && !errorMessage">
                     loading
                 </div>
