@@ -6,10 +6,16 @@
         <div style="text-align: center">
           <h3 v-if="tokenStore.my_401" style="color:red">Wrong username or password</h3>
         </div>
-        <UFormGroup label="Benutzername" name="username">
+        <UFormGroup name="username">
+          <div class="flex justify-start my-2">
+            <h3 class="text-lg font-medium">Benutzername</h3>
+          </div>
           <UInput v-model="state.username" />
         </UFormGroup>
-        <UFormGroup label="Passwort" name="password">
+        <UFormGroup name="password">
+          <div class="flex justify-start my-2">
+            <h3 class="text-lg font-medium">Password</h3>
+          </div>
           <UInput v-model="state.password" type="password" />
         </UFormGroup>
         <div class="flex justify-center">
