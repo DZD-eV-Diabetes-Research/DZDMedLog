@@ -219,7 +219,7 @@ async def update_interview(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No interview with this id under this event available",
         )
-    return await interview_crud.update(update_obj=interview_update, _id=interview_id)
+    return await interview_crud.update(update_obj=interview_update, id_=interview_id)
 
 
 @fast_api_interview_router.delete(
