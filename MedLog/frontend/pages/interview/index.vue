@@ -62,7 +62,7 @@ async function pushFurther(study) {
 
 </script>
 
-<style lang="scss" scoped>
+<style lang="css" scoped>
 .center {
     text-align: center;
     margin: auto;

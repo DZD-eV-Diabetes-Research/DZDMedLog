@@ -125,7 +125,7 @@ async function gotoExport(study_id) {
 }
 </script>
 
-<style lang="scss" scoped>
+<style lang="css" scoped>
 
 .center {
   text-align: center;
