@@ -2,13 +2,7 @@
   <Layout>
     <UIBaseCard :naked="true">
       <div class="flex flex-row justify-center">
-        <UButton @click="test()" label="Medikation Übernehmen" color="green" variant="soft" style="margin-right: 10px"
-          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
-        <div class="flex items-center ">
-          <UTooltip :delay-duration="0" text="Medikatmente aus dem letzten Events übernehmen">
-            <UIcon name="i-heroicons-question-mark-circle" class="size-5" />
-          </UTooltip>
-        </div>
+        <CopyPreviousDrugs :onUpdate="createIntakeList"/>
       </div>
     </UIBaseCard>
     <div v-if="drugStore.intakeVisibility">

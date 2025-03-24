@@ -1,6 +1,5 @@
 <template>
   <Layout>
-    <CopyPreviousDrugs/>
   </Layout>
 </template>
 
