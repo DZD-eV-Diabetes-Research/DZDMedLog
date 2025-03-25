@@ -10,9 +10,9 @@ export default {
   ],
   theme: {
     extend: {
-      maxWidth: {
-        'lg': '50rem', 
-      }
+      // maxWidth: {
+      //   'lg': '50rem', 
+      // }
     },
   },
   plugins: [],

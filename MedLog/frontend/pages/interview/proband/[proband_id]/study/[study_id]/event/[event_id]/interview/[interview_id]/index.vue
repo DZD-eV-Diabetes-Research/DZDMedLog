@@ -2,7 +2,7 @@
   <Layout>
     <UIBaseCard :naked="true">
       <div class="flex flex-col justify-center items-center space-y-4">
-        <CopyPreviousDrugs :onUpdate="createIntakeList"/>
+        <CopyPreviousDrugs v-if="tableContent.length === 0" :onUpdate="createIntakeList"/>
         <UButton @click="saveInterview()" label="Interview Speichern" color="green" variant="soft"
           class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"/>
       </div>
