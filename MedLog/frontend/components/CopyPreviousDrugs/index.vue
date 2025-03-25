@@ -57,7 +57,7 @@ const lastEventDate = ref("")
 async function openCopyIntakeModal() {
     openCopyPreviousIntakesModal.value = true
     errorMessage.value = false
-    
+
     try {
         const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/intake/details`, {
             method: "GET",
@@ -65,12 +65,12 @@ async function openCopyIntakeModal() {
         })
 
         lastEventName.value = intakes[0].event.name
-        lastEventDate.value = new Date(intakes[0].interview.interview_end_time_utc)
-        console.log(lastEventDate.value);
-        console.log(typeof(lastEventDate.value));
-        
-        
-        
+        lastEventDate.value = new Date(intakes[0].interview.interview_end_time_utc).toLocaleDateString("de-DE", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            });
+
         previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
             Medikament: intake.drug.trade_name,
             Einnahmebeginn: intake.intake_start_time_utc || 'Unbekannt',
@@ -117,10 +117,10 @@ async function saveIntakes() {
     for (const element of selecteIntakes.value) {
         try {
             await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake`, {
-            method: "POST",
-            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-            body: element.postBody 
-        })
+                method: "POST",
+                headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+                body: element.postBody
+            })
         } catch (error) {
             console.log(error);
         }
