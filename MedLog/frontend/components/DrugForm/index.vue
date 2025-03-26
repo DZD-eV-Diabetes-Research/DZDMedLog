@@ -354,8 +354,6 @@ async function saveIntake() {
     }
 
   } else {
-    console.log("here2");
-
   }
 
   drugStore.action = !drugStore.action;
@@ -599,10 +597,6 @@ async function onSubmit() {
         body: customDrugBody
       }
     );
-    console.log(customDrugBody);
-
-    console.log(response);
-
 
   } catch (error) {
     console.log(error);

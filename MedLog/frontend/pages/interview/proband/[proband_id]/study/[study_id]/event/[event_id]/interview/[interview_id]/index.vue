@@ -154,16 +154,6 @@ async function editModalVisibilityFunction(row: object) {
 const deleteModalVisibility = ref(false);
 const drugToDelete = ref();
 
-// const deleteSchema = object({
-//   drug: string()
-//     .required("Required")
-//     .test("is-dynamic-value", "Name muss übereinstimmen", function (value) {
-//       return value === drugToDelete.value.drug;
-//     }),
-// });
-
-type DeleteSchema = InferType<typeof deleteSchema>;
-
 const deleteState = reactive({
   drug: undefined,
 });
@@ -195,7 +185,7 @@ async function deleteIntake() {
 // Table
 
 const page = ref(1);
-const pageCount = 15;
+const pageCount = 10;
 
 const rows = computed(() => {
   const data = q.value ? filteredRows.value : tableContent.value;
