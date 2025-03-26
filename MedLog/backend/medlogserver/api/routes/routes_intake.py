@@ -240,15 +240,18 @@ async def list_all_intakes_of_last_completed_interview(
     proband_id: str,
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Intake]:
-    no_last_interview_exception = ValueError("No last interview")
-    try:
-        return await intake_crud.list_last_completed_interview_intakes_by_proband(
-            study_id=study_access.study.id,
-            proband_external_id=proband_id,
-            raise_exception_if_no_last_interview=no_last_interview_exception,
+    last_completed_interview = await interview_crud.get_last_by_proband(
+        study_id=study_access.study.id, proband_external_id=proband_id, completed=True
+    )
+    if last_completed_interview:
+        return await intake_crud.list(
+            filter_study_id=study_access.study.id,
+            filter_proband_external_id=proband_id,
+            filter_interview_id=last_completed_interview.id,
         )
-    except no_last_interview_exception as e:
+    else:
         return JSONResponse(
             status_code=status.HTTP_204_NO_CONTENT,
             content=None,
@@ -260,7 +263,7 @@ async def list_all_intakes_of_last_completed_interview(
 @fast_api_intake_router.get(
     "/study/{study_id}/proband/{proband_id}/interview/last/intake/details",
     response_model=List[IntakeDetailListItem],
-    description=f"List all medicine intakes of one probands last completed interview with all details attached.",
+    description=f"List all medicine intakes of one probands last completed interview with all drug details attached.",
 )
 async def list_all_intakes_of_last_completed_interview_detailed(
     proband_id: str,
@@ -271,25 +274,25 @@ async def list_all_intakes_of_last_completed_interview_detailed(
     last_completed_interview = await interview_crud.get_last_by_proband(
         study_id=study_access.study.id, proband_external_id=proband_id, completed=True
     )
-    if last_completed_interview is None:
+    if last_completed_interview:
+        return await intake_crud.list_detailed(
+            filter_study_id=study_access.study.id,
+            filter_proband_external_id=proband_id,
+            filter_interview_id=last_completed_interview.id,
+        )
+    else:
         return JSONResponse(
             status_code=status.HTTP_204_NO_CONTENT,
             content=None,
             headers={"X-Reason: No interview exist yet"},
         )
-    intakes = await intake_crud.list_detailed(
-        filter_study_id=study_access.study.id,
-        filter_proband_external_id=proband_id,
-        filter_interview_id=last_completed_interview.id,
-    )
-    return intakes
 
 
 ############
 @fast_api_intake_router.get(
     "/study/{study_id}/proband/{proband_id}/interview/current/intake",
     response_model=List[Intake],
-    description=f"List all medicine intakes of one probands last completed interview.",
+    description=f"List all medicine intakes of one probands current (non completed / Interview.interview_end_time_utc is None) interview.",
     responses={status.HTTP_204_NO_CONTENT: {"description": "No interview exist yet"}},
 )
 async def list_all_intakes_of_last_uncompleted_interview(
@@ -302,7 +305,11 @@ async def list_all_intakes_of_last_uncompleted_interview(
         study_id=study_access.study.id, proband_external_id=proband_id, completed=False
     )
     if last_uncompleted_interview:
-        return await intake_crud.list(filter_interview_id=last_uncompleted_interview.id)
+        return await intake_crud.list(
+            filter_study_id=study_access.study.id,
+            filter_proband_external_id=proband_id,
+            filter_interview_id=last_uncompleted_interview.id,
+        )
     else:
         return JSONResponse(
             status_code=status.HTTP_204_NO_CONTENT,
@@ -323,21 +330,21 @@ async def list_all_intakes_of_last_uncompleted_interview_detailed(
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> IntakeDetailListItem:
-    last_uncompleted_interview = await interview_crud.get_last_by_proband(
+    last_incompleted_interview = await interview_crud.get_last_by_proband(
         study_id=study_access.study.id, proband_external_id=proband_id, completed=False
     )
-    if last_uncompleted_interview is None:
+    if last_incompleted_interview:
+        return await intake_crud.list_detailed(
+            filter_study_id=study_access.study.id,
+            filter_proband_external_id=proband_id,
+            filter_interview_id=last_incompleted_interview.id,
+        )
+    else:
         return JSONResponse(
             status_code=status.HTTP_204_NO_CONTENT,
             content=None,
             headers={"X-Reason: No interview exist yet"},
         )
-    intakes = await intake_crud.list_detailed(
-        filter_study_id=study_access.study.id,
-        filter_proband_external_id=proband_id,
-        filter_interview_id=last_uncompleted_interview.id,
-    )
-    return intakes
 
 
 ############
