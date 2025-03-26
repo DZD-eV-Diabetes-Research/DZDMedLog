@@ -1,7 +1,7 @@
 <template>
   <Layout>
-    <div class="flex flex-row justify-center">
-      <h1>Studien</h1>
+    <div class="flex flex-row justify-center mb-6">
+      <h1 class="text-4xl font-medium">Studien</h1>
     </div>
     <UIBaseCard v-if="!studyStore.studies">
       <h2 v-if="userStore.isAdmin">
@@ -13,57 +13,30 @@
       </h2>
     </UIBaseCard>
     <UIBaseCard v-if="userStore.isAdmin" :naked="true">
-      <UButton
-        @click="openModal()"
-        label="Studie anlegen"
-        color="green"
-        variant="soft"
-        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-      />
-      <UModal v-model="showModal">
-        <div class="p-4" style="text-align: center">
-          <UForm
-            :schema="schema"
-            :state="state"
-            class="space-y-4"
-            @submit="createStudy"
-          >
-            <h3>Studie anlegen</h3>
+      <UButton @click="openModal()" label="Studie anlegen" color="green" variant="soft"
+        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+      <UModal v-model="showModal" class="w-[1000px] !important">
+        <div class="p-4 text-center">
+          <UForm :schema="schema" :state="state" class="space-y-4" @submit="createStudy">
+            <h3 class="text-2xl font-normal">Studie anlegen</h3>
             <UFormGroup label="Studienname" name="study_name">
               <UInput v-model="state.study_name" required />
             </UFormGroup>
-            <h3 v-if="errorMessage" style="color: red">{{errorMessage}}</h3>
-            <UButton
-              type="submit"
-              label="Studie anlegen"
-              color="green"
-              variant="soft"
-              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-            />
+            <h3 v-if="errorMessage" style="color: red">{{ errorMessage }}</h3>
+            <UButton type="submit" label="Studie anlegen" color="green" variant="soft"
+              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
           </UForm>
         </div>
       </UModal>
     </UIBaseCard>
-    <UIBaseCard
-      v-for="study in studyStore.studies.items"
-      :key="study.id"
-      style="text-align: center"
-    >
-      <h3>{{ study.display_name }}</h3>
+    <UIBaseCard v-for="study in studyStore.studies.items" :key="study.id" style="text-align: center">
+      <h3 class="text-2xl font-medium my-4">{{ study.display_name }}</h3>
 
-      <div class="button-container">
-      <UButton type="button"
-              @click="selectStudy(study)"
-              label="Eventverwaltung"
-              color="green"
-              variant="soft"
-              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"/>
-      <UButton type="submit"
-              @click="gotoExport(study.id)"
-              label="Datenexport"
-              color="blue"
-              variant="soft"
-              class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"/>
+      <div class="flex flex-row justify-center space-x-4">
+        <UButton type="button" @click="selectStudy(study)" label="Eventverwaltung" color="green" variant="soft"
+          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+        <UButton type="submit" @click="gotoExport(study.id)" label="Datenexport" color="blue" variant="soft"
+          class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white px-4" />
       </div>
 
     </UIBaseCard>
@@ -91,9 +64,9 @@ const schema = object({
 const errorMessage = ref();
 
 async function openModal() {
-    state.study_name = ""
-    showModal.value = !showModal.value
-    errorMessage.value = ""
+  state.study_name = ""
+  showModal.value = !showModal.value
+  errorMessage.value = ""
 }
 
 async function createStudy() {

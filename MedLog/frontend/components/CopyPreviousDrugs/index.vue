@@ -1,7 +1,7 @@
 <template>
     <div class="flex flex-col justify-center items-center">
         <div class="flex flex-row justify-center">
-            <UButton @click="openCopyIntakeModal()" label="Medikation Übernehmen" color="green" variant="soft"
+            <UButton @click="openCopyIntakeModal()" color="green" variant="soft" label="Medikationsübernahme"
                 style="margin-right: 10px"
                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
             <div class="flex items-center ">
@@ -10,14 +10,20 @@
                 </UTooltip>
             </div>
         </div>
-        <UModal v-model="openCopyPreviousIntakesModal" class="custom-modal">
-            <div class="p-10 text-center max-w-5xl">
+        <UModal v-model="openCopyPreviousIntakesModal" :ui="{ width: 'lg:max-w-6xl' }">
+            <div class="p-10 text-center">
                 <div v-if="previousIntakes.length > 0">
-                    <h3>Medikationsübernahme</h3>
-                    <UTable v-model="selecteIntakes" :columns="columns" :rows="previousIntakes" />
+                    <div class="flex flex-col items-center space-y-2 mb-6">
+                        <h3 class="text-2xl font-normal mb-2">Medikationsübernahme</h3>
+                        <h5 class="text-md font-light">Des Events: <span class="text-md font-bold">{{ lastEventName
+                                }}</span></h5>
+                        <h5 class="text-md font-light">Letzte Änderung: <span class="text-md font-bold">{{ lastEventDate
+                                }}</span></h5>
+                    </div>
+                    <UTable v-model="selecteIntakes" :columns="columns" :rows="previousIntakes" class="border border-slate-400 rounded-md"/>
                     <UButton @click="saveIntakes()" label="Medikation Übernehmen" color="green" variant="soft"
                         style="margin-right: 10px"
-                        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white  mt-4" />
+                        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white  mt-8" />
                 </div>
                 <div v-if="previousIntakes.length === 0">
                     <h3>Es gibt keine Einträge im letzten Event</h3>
@@ -31,11 +37,6 @@
                 </div>
             </div>
         </UModal>
-        <p v-for="intake in previousIntakes">
-            intake: {{ intake }}
-            <br>
-            <br>
-        </p>
     </div>
 </template>
 
@@ -52,18 +53,26 @@ const errorMessage = ref(false)
 const previousIntakes = ref<any[]>([])
 const selecteIntakes = ref([])
 
+const lastEventName = ref("")
+const lastEventDate = ref("")
+
 async function openCopyIntakeModal() {
     openCopyPreviousIntakesModal.value = true
     errorMessage.value = false
-    
+
     try {
         const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/intake/details`, {
             method: "GET",
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
         })
 
-        console.log(intakes);
-        
+        lastEventName.value = intakes[0]?.event.name
+        lastEventDate.value = new Date(intakes[0]?.interview.interview_end_time_utc).toLocaleDateString("de-DE", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        });
+
         previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
             Medikament: intake.drug.trade_name,
             Einnahmebeginn: intake.intake_start_time_utc || 'Unbekannt',
@@ -110,10 +119,10 @@ async function saveIntakes() {
     for (const element of selecteIntakes.value) {
         try {
             await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake`, {
-            method: "POST",
-            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-            body: element.postBody 
-        })
+                method: "POST",
+                headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+                body: element.postBody
+            })
         } catch (error) {
             console.log(error);
         }

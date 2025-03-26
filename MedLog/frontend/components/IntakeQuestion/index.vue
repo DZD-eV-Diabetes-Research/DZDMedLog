@@ -47,15 +47,18 @@
           </li>
         </ul>
         <div class="pagination" v-if="drugList.count >= 6">
-          <button @click="state.currentPage > 1 ? state.currentPage-- : 0">
-            Previous
+          <div class="flex flex-row justify-center space-x-2">
+          <button @click="state.currentPage > 1 ? state.currentPage-- : 0" class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100">
+            <
           </button>
           <button
             @click="state.currentPage < totalPages ? state.currentPage++ : 0"
+            class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100 mx-10"
           >
-            Next
+            >
           </button>
-          <p>Page {{ state.currentPage }} of {{ totalPages }}</p>
+        </div>
+          <p class="text-lg mt-2">Page {{ state.currentPage }} of {{ totalPages }}</p>
         </div>
       </div>
       <div

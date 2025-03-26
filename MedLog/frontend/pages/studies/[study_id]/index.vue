@@ -1,7 +1,7 @@
 <template>
   <Layout>
     <div class="center">
-      <h3>{{ study.display_name }}</h3>
+      <h3 class="text-4xl font-medium my-4">{{ study.display_name }}</h3>
     </div>
     <Draggable :list="myEvents" :disabled="!enabled" item-key="name" class="list-group" ghost-class="ghost"
       @start="dragging = true" @end="dragging = false">

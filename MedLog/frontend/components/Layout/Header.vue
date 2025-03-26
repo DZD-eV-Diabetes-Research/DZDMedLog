@@ -2,16 +2,21 @@
   <header class="flex w-full  border-b-4 border-accent bg-white shadow-md py-4 px-10">
     <div class="flex w-full justify-between items-center mx-auto">
       <div>
-        <NuxtLink class="text-4xl font-bold text-gray-800 hover:border-[#ec372d] hover:border-b-2" to="/user" @click="resetStore">
+        <NuxtLink class="text-4xl font-bold text-gray-800 hover:border-[#ec372d] hover:border-b-2" to="/user"
+          @click="resetStore">
           DZD Medlog
         </NuxtLink>
       </div>
 
       <div class="flex flex-col items-start">
-        <p v-if="userStore.userName" class="text-lg text-gray-600">User: {{ userStore.userName }}</p>
-        <p v-if="route.params.study_id" class="text-lg text-gray-600">Study: {{ studyName }}</p>
-        <p v-if="probandStore.probandID" class="text-lg text-gray-600">ProbandenID: {{ probandStore.probandID }}</p>
-        <p v-if="studyStore.event" class="text-lg text-gray-600">Event: {{ studyStore.event }}</p>
+        <p :class="userStore.userName ? 'text-gray-600' : 'invisible text-transparent'" class="text-lg">Benutzer: {{
+          userStore.userName }}</p>
+        <p :class="route.params.study_id ? 'text-gray-600' : 'invisible text-transparent'" class="text-lg">Studie: {{
+          studyName }}</p>
+        <p :class="probandStore.probandID ? 'text-gray-600' : 'invisible text-transparent'" class="text-lg">ProbandenID:
+          {{ probandStore.probandID }}</p>
+        <p :class="studyStore.event ? 'text-gray-600' : 'invisible text-transparent'" class="text-lg">Event: {{
+          studyStore.event }}</p>
       </div>
 
       <div class="w-60">
@@ -21,7 +26,9 @@
   </header>
 
   <div class="flex justify-between px-10 py-2">
-    <button v-if="tokenStore.loggedIn" class="bg-white text-black border-2 border-black px-4 py-2 rounded-xl hover:bg-black hover:text-white hover:transition hover:duration-300" @click="logout()">Logout</button>
+    <button v-if="tokenStore.loggedIn"
+      class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
+      @click="logout()">Logout</button>
     <button v-if="tokenStore.loggedIn" :class="profileButtonClass" @click="toggelProfile()">
       {{ userStore.buttonText }}
     </button>
@@ -66,6 +73,6 @@ function resetStore() {
 }
 
 const profileButtonClass = computed(() =>
-  userStore.buttonText === 'Toggle to User' ? 'bg-green-500 text-white px-4 py-2 rounded-xl' : 'bg-blue-500 text-white px-4 py-2 rounded-xl'
+  userStore.buttonText === 'Toggle to User' ? 'bg-green-500 text-white px-4 py-2 rounded-lg' : 'bg-blue-500 text-white px-4 py-2 rounded-lg'
 );
 </script>

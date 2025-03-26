@@ -2,15 +2,15 @@
   <Layout>
     <UIBaseCard :naked="true">
       <div class="flex flex-col justify-center items-center space-y-4">
-        <CopyPreviousDrugs :onUpdate="createIntakeList"/>
+        <CopyPreviousDrugs v-if="tableContent.length === 0" :onUpdate="createIntakeList"/>
         <UButton @click="saveInterview()" label="Interview Speichern" color="green" variant="soft"
           class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"/>
       </div>
     </UIBaseCard>
     <div v-if="drugStore.intakeVisibility">
       <UIBaseCard>
-        <IntakeQuestion color="green" />
-        <DrugForm color="green" :edit="false" :custom="false" label="Medikament Speichern" />
+        <IntakeQuestion color="primary" />
+        <DrugForm color="primary" :edit="false" :custom="false" label="Medikament Speichern" />
         <UButton @click="openCustomModal()" label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
           style="margin-top: 2px"
           class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white" />
@@ -154,16 +154,6 @@ async function editModalVisibilityFunction(row: object) {
 const deleteModalVisibility = ref(false);
 const drugToDelete = ref();
 
-// const deleteSchema = object({
-//   drug: string()
-//     .required("Required")
-//     .test("is-dynamic-value", "Name muss übereinstimmen", function (value) {
-//       return value === drugToDelete.value.drug;
-//     }),
-// });
-
-type DeleteSchema = InferType<typeof deleteSchema>;
-
 const deleteState = reactive({
   drug: undefined,
 });
@@ -195,7 +185,7 @@ async function deleteIntake() {
 // Table
 
 const page = ref(1);
-const pageCount = 15;
+const pageCount = 10;
 
 const rows = computed(() => {
   const data = q.value ? filteredRows.value : tableContent.value;
