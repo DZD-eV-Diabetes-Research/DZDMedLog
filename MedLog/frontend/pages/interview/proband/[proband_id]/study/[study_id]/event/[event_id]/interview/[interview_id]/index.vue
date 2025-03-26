@@ -9,8 +9,8 @@
     </UIBaseCard>
     <div v-if="drugStore.intakeVisibility">
       <UIBaseCard>
-        <IntakeQuestion color="green" />
-        <DrugForm color="green" :edit="false" :custom="false" label="Medikament Speichern" />
+        <IntakeQuestion color="primary" />
+        <DrugForm color="primary" :edit="false" :custom="false" label="Medikament Speichern" />
         <UButton @click="openCustomModal()" label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
           style="margin-top: 2px"
           class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white" />

@@ -10,13 +10,15 @@
                 </UTooltip>
             </div>
         </div>
-        <UModal v-model="openCopyPreviousIntakesModal" class="custom-modal">
-            <div class="p-10 text-center max-w-5xl">
+        <UModal v-model="openCopyPreviousIntakesModal" :ui="{ width: 'lg:max-w-6xl' }">
+            <div class="p-10 text-center">
                 <div v-if="previousIntakes.length > 0">
-                    <div class="flex flex-col items-center space-y-2">
-                        <h3 class="text-xl font-light">Medikationsübernahme</h3>
-                        <h5 class="text-md font-light">Des Events: <span class="text-md font-bold">{{ lastEventName }}</span></h5>
-                        <h5 class="text-md font-light">Letzte Änderung: <span class="text-md font-bold">{{ lastEventDate }}</span></h5>
+                    <div class="flex flex-col items-center space-y-2 mb-6">
+                        <h3 class="text-2xl font-normal mb-2">Medikationsübernahme</h3>
+                        <h5 class="text-md font-light">Des Events: <span class="text-md font-bold">{{ lastEventName
+                                }}</span></h5>
+                        <h5 class="text-md font-light">Letzte Änderung: <span class="text-md font-bold">{{ lastEventDate
+                                }}</span></h5>
                     </div>
                     <UTable v-model="selecteIntakes" :columns="columns" :rows="previousIntakes" />
                     <UButton @click="saveIntakes()" label="Medikation Übernehmen" color="green" variant="soft"
@@ -64,12 +66,12 @@ async function openCopyIntakeModal() {
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
         })
 
-        lastEventName.value = intakes[0].event.name
-        lastEventDate.value = new Date(intakes[0].interview.interview_end_time_utc).toLocaleDateString("de-DE", {
+        lastEventName.value = intakes[0]?.event.name
+        lastEventDate.value = new Date(intakes[0]?.interview.interview_end_time_utc).toLocaleDateString("de-DE", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
-            });
+        });
 
         previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
             Medikament: intake.drug.trade_name,
