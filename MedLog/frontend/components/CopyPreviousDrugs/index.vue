@@ -20,10 +20,10 @@
                         <h5 class="text-md font-light">Letzte Änderung: <span class="text-md font-bold">{{ lastEventDate
                                 }}</span></h5>
                     </div>
-                    <UTable v-model="selecteIntakes" :columns="columns" :rows="previousIntakes" />
+                    <UTable v-model="selecteIntakes" :columns="columns" :rows="previousIntakes" class="border border-slate-400 rounded-md"/>
                     <UButton @click="saveIntakes()" label="Medikation Übernehmen" color="green" variant="soft"
                         style="margin-right: 10px"
-                        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white  mt-4" />
+                        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white  mt-8" />
                 </div>
                 <div v-if="previousIntakes.length === 0">
                     <h3>Es gibt keine Einträge im letzten Event</h3>
