@@ -25,14 +25,72 @@
     </div>
   </header>
 
-  <div class="flex justify-between px-10 py-2">
+  <div class="flex justify-between items-center px-10 py-2">
     <button v-if="tokenStore.loggedIn"
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
       @click="logout()">Logout</button>
-    <button v-if="tokenStore.loggedIn" :class="profileButtonClass" @click="toggelProfile()">
-      {{ userStore.buttonText }}
-    </button>
+      
+    <UBreadcrumb :links="links" />
+    
+    <button v-if="tokenStore.loggedIn"
+      class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
+      @click="openSlide = true">Help</button>
   </div>
+
+  <!-- SLIDER INFO HELP -->
+  <USlideover v-model="openSlide">
+
+    <UCard class="flex flex-col flex-1"
+      :ui="{ body: { base: 'flex-1' }, ring: '', divide: 'divide-y divide-gray-400 dark:divide-gray-800' }">
+      <template #header>
+        <h5 class="text-center text-2xl font-medium">How to use DZD-Medlog</h5>
+      </template>
+      <div>
+        <h4 class="text-xl text-center">DZD-Medlog besteht im Kern aus 3 Komponenten</h4>
+        <br>
+        <p class="font-semibold">Teil 1: Studien und Interviews erstellen bzw. verwalten</p>
+        <p class="font-semibold">Teil 2: Medikamente zu einem Interview hinzufügen</p>
+        <p class="font-semibold">Teil 3: Daten einer Studie exportieren</p>
+        <br>
+        <p>Teil 1 finden Sie mittels des Buttons "Studienverwaltung" auf der Landingpage. Diese können Sie von überall
+          erreichen, indem Sie auf den DZD-Medlog-Schriftzug in der oberen linken Ecke klicken.
+          Bitte beachten Sie, dass nur Benutzer mit Admin-Rechten neue Studien und Interviews anlegen können.</p>
+        <br>
+        <p>Teil 2 wird über den Button "Interview durchführen" erreicht. Hier wird eine von Ihnen gewählte
+          Probanden-ID verlangt. Nun sehen Sie eine Medikationsübersicht des Patienten über die gesamte Studie.
+          Hier haben Sie die Möglichkeit, ein Interview durchzuführen oder zu bearbeiten.</p>
+        <br>
+        <p>Wenn noch keine Medikamente bei dem Patienten gelistet sind, haben Sie die Möglichkeit, über den Button
+          "Medikationsübernahme"
+          die Medikamente <strong>des letzten abgeschlossenen Events</strong> zu übernehmen. Dies ist jedoch nur
+          möglich,
+          wenn
+          im jeweiligen Interview noch keine Medikamente gelistet sind.</p>
+        <br>
+        <p>Teil 3, also den <strong>Datenexport</strong>, erreichen Sie, wie die Verwaltung der Studien, über den Button
+          "Studienverwaltung" von
+          der Landingpage aus.</p>
+        <br>
+        <div id="zusatzinfo" class="flex flex-row mt-64">
+          <p>Für Admins oder Technikinteressierte finden Sie hier unser <a
+              class="text-blue-600 hover:border-b-2 hover:border-blue-600" href="https://www.github.com">Repository</a>
+          </p>
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex flex-col text-left text-sm space-y-1">
+          <p>Wenn Sie Fragen oder Feedback haben, melden Sie sich gerne.</p>
+          <p class="text-center">someEmail@someHost.com</p>
+          <!-- <div class="flex flex-row items-center space-x-2 mt-2">
+        <p>Oder besuchen Sie unsere GitHub-Seite: </p>
+        <a href="https://www.github.com" target="_blank"><img src="/icons/github-mark.svg" alt="github-icon" class="w-6" /></a>
+      </div> -->
+        </div>
+      </template>
+    </UCard>
+
+
+  </USlideover>
 </template>
 
 <script setup>
@@ -75,4 +133,54 @@ function resetStore() {
 const profileButtonClass = computed(() =>
   userStore.buttonText === 'Toggle to User' ? 'bg-green-500 text-white px-4 py-2 rounded-lg' : 'bg-blue-500 text-white px-4 py-2 rounded-lg'
 );
+
+const openSlide = ref(false)
+
+
+const resetStores = () => {
+  studyName.value = "test";
+  probandStore.probandID = "";
+  studyStore.event = "";  
+};
+
+const pathSegments = route.path.split('/').filter(Boolean);
+
+const links = [{ 
+  label: 'Home', 
+  icon: 'i-heroicons-home', 
+  to: '/', 
+  onClick: resetStores() 
+}];
+
+if (pathSegments.includes('studies')) {
+  links.push({ label: 'Studien', to: '/studies', onClick: resetStores() });
+
+  const studiesIndex = pathSegments.indexOf('studies');
+  const nextSegment = pathSegments[studiesIndex + 1];
+
+  if (nextSegment === 'export') {
+    links.push({ label: 'Export' });
+  } else if (nextSegment && nextSegment !== 'export') {
+    links.push({ label: 'Eventverwaltung' });
+  }
+} else if (pathSegments.includes('interview')) {
+  links.push({ label: 'Interview', to: '/interview', onClick: resetStores() });
+
+  const probandIndex = pathSegments.indexOf('proband');
+  const studyIndex = pathSegments.indexOf('study');
+  const eventIndex = pathSegments.indexOf('event');
+
+  if (probandIndex !== -1 && studyIndex !== -1) {
+    const probandNr = pathSegments[probandIndex + 1];
+
+    links.push({ label: `Proband ${probandNr}`, to: null }); // Nicht klickbar
+
+    if (eventIndex !== -1) {
+      links.push({ label: 'Event', to: null }); // Nicht klickbar
+    } else {
+      links.push({ label: 'Übersicht', to: null }); // Nicht klickbar
+    }
+  }
+}
+
 </script>
