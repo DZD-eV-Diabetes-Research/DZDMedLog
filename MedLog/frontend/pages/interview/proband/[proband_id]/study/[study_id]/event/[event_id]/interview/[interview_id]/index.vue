@@ -1,10 +1,10 @@
 <template>
   <Layout>
     <UIBaseCard :naked="true">
-      <div class="flex flex-col justify-center items-center space-y-4">
-        <CopyPreviousDrugs v-if="tableContent.length === 0" :onUpdate="createIntakeList"/>
-        <UButton @click="saveInterview()" label="Interview Speichern" color="green" variant="soft"
+      <div class="flex flex-row justify-center items-center space-x-4">
+        <UButton ref="topButton" @click="saveInterview()" label="Interview Beenden" color="green" variant="soft"
           class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"/>
+        <CopyPreviousDrugs :onUpdate="createIntakeList"/>
       </div>
     </UIBaseCard>
     <div v-if="drugStore.intakeVisibility">
@@ -49,7 +49,7 @@
         </div>
       </div>
       <div style="text-align: center">
-        <UButton @click="saveInterview()" label="Interview Speichern" color="green" variant="soft"
+        <UButton v-if="!showScrollButton" @click="saveInterview()" label="Interview Beenden" color="green" variant="soft"
           class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" style="margin: 25px" />
       </div>
     </div>
@@ -196,6 +196,11 @@ const columns = [
   {
     key: "pzn",
     label: "Medikament PZN",
+  },
+  {
+    key: "custom",
+    label: "Custom",
+    sortable: true,
   },
   {
     key: "drug",
@@ -355,9 +360,9 @@ async function createIntakeList() {
           item.drug.attrs_ref.darreichungsform.value +
           ")",
         intakeId: item.id,
-        custom: item.drug?.custom_drug_id,
-        class: item.drug?.custom_drug_id
-          ? "bg-yellow-500/50 dark:bg-yellow-400/50"
+        custom: item.drug?.is_custom_drug ? "Ja": "Nein",
+        class: item.drug?.is_custom_drug
+          ? "bg-yellow-50"
           : null,
       }));
     }
@@ -379,6 +384,30 @@ watch(isAction, (newValue) => {
 
 getDosageForm();
 createIntakeList();
+
+// Buttonobserver
+
+// const topButton = ref(null);
+// const showScrollButton = ref(false);
+// let observer = null;
+
+// onMounted(() => {
+//   observer = new IntersectionObserver(
+//     ([entry]) => {
+//       showScrollButton.value = !entry.isIntersecting;
+//     },
+//     { threshold: 0 }
+//   );
+
+//   // Warte, bis `topButton.value` gesetzt ist
+//   if (topButton.value) {
+//     observer.observe(topButton.value);
+//   }
+// });
+
+// onUnmounted(() => {
+//   if (observer) observer.disconnect();
+// });
 </script>
 
 <style scoped>

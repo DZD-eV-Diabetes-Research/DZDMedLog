@@ -38,7 +38,7 @@
       </div>
     </UModal>
     <br>
-    <div class="tableDiv">
+    <div class="tableDiv max-w-full">
       <h4 style="text-align: center; padding-top: 25px;">Medikationshistorie</h4>
       <div>
         <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
@@ -96,6 +96,10 @@ const columns = [{
 },{
     key: "pzn",
     label: "PZN",
+  },
+  {
+    key: "custom",
+    label: "Custom"
   },
   {
     key: "drug",
@@ -264,9 +268,9 @@ async function createIntakeList() {
         time: item.intake_end_time_utc === null ? item.intake_start_time_utc + " bis unbekannt" : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
         darr: item.drug.attrs_ref.darreichungsform.display + " (" + item.drug.attrs_ref.darreichungsform.value + ")",
         id: item.id ? item.id : item.custom_drug_id,
-        custom: item.custom_drug_id ? true : false,
-        class: item.custom_drug_id
-          ? "bg-yellow-500/50 dark:bg-yellow-400/50"
+        custom: item.drug?.is_custom_drug ? "Ja": "Nein",
+        class: item.drug?.is_custom_drug
+          ? "bg-yellow-50"
           : null,
       }));
     }

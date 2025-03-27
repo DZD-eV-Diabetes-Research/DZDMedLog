@@ -2,7 +2,7 @@
   <Header />
 
   <div class="pt-0">
-    <div class="max-w-5xl mx-auto p-4">
+    <div class="max-w-6xl mx-auto p-4">
       <section v-if="showAbout" class="bg-gray-100 p-6 rounded-lg shadow-md">
         <h2 class="text-xl font-semibold">About</h2>
         <p class="text-gray-600">A web-based tool to log your patients' medication</p>

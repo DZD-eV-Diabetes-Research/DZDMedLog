@@ -161,6 +161,10 @@ const resetStores = () => {
 
 const pathSegments = route.path.split('/').filter(Boolean);
 
+const studyLabelEventVerwaltung = computed(() => `${studyName.value} Eventverwaltung`);
+const studyLabelExport = computed(() => `${studyName.value} Export`);
+const studyInterviewLabel = computed(() => `${studyName.value}: Proband ${route.params.proband_id}`);
+
 const links = [{ 
   label: 'Home', 
   icon: 'i-heroicons-home', 
@@ -173,25 +177,25 @@ if (pathSegments.includes('studies')) {
   const studiesIndex = pathSegments.indexOf('studies');
   
   if (pathSegments.includes('export')) {
-    links.push({ label: 'Export' });
+    links.push({ label: studyLabelExport });
   } 
   else if (studiesIndex + 1 < pathSegments.length) {
-    links.push({ label: 'Eventverwaltung' });
+    
+    links.push({ label: studyLabelEventVerwaltung});
   }
 } else if (pathSegments.includes('interview')) {
-  links.push({ label: 'Interview', to: '/interview' });
+  links.push({ label: 'Neues Interview', to: '/interview' });
 
   const probandIndex = pathSegments.indexOf('proband');
   const studyIndex = pathSegments.indexOf('study');
   const eventIndex = pathSegments.indexOf('event');
 
   if (probandIndex !== -1 && studyIndex !== -1) {
-    const probandNr = pathSegments[probandIndex + 1];
-
-    links.push({ label: `Proband ${probandNr}`, to: null }); 
-
+    //`${studyLabelExport.value}: Proband ${route.params.proband_id}`
+    links.push({ label: studyInterviewLabel, to: null }); 
+    
     if (eventIndex !== -1) {
-      links.push({ label: 'Event', to: null }); 
+      links.push({ label: `Event ${eventName.value}`, to: null }); 
     } else {
       links.push({ label: 'Übersicht', to: null }); 
     }

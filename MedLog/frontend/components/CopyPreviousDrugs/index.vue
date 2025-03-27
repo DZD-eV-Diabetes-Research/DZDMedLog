@@ -5,9 +5,9 @@
                 style="margin-right: 10px"
                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
             <div class="flex items-center ">
-                <UTooltip :delay-duration="0" text="Medikatmente aus dem letzten Event übernehmen">
+                <!-- <UTooltip :delay-duration="0" text="Medikatmente aus dem letzten Event übernehmen">
                     <UIcon name="i-heroicons-question-mark-circle" class="size-5" />
-                </UTooltip>
+                </UTooltip> -->
             </div>
         </div>
         <UModal v-model="openCopyPreviousIntakesModal" :ui="{ width: 'lg:max-w-6xl' }">
@@ -16,11 +16,12 @@
                     <div class="flex flex-col items-center space-y-2 mb-6">
                         <h3 class="text-2xl font-normal mb-2">Medikationsübernahme</h3>
                         <h5 class="text-md font-light">Des Events: <span class="text-md font-bold">{{ lastEventName
-                                }}</span></h5>
+                        }}</span></h5>
                         <h5 class="text-md font-light">Letzte Änderung: <span class="text-md font-bold">{{ lastEventDate
-                                }}</span></h5>
+                        }}</span></h5>
                     </div>
-                    <UTable v-model="selecteIntakes" :columns="columns" :rows="previousIntakes" class="border border-slate-400 rounded-md"/>
+                    <UTable v-model="selecteIntakes" :columns="columns" :rows="previousIntakes"
+                        class="border border-slate-400 rounded-md" />
                     <UButton @click="saveIntakes()" label="Medikation Übernehmen" color="green" variant="soft"
                         style="margin-right: 10px"
                         class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white  mt-8" />
@@ -75,6 +76,7 @@ async function openCopyIntakeModal() {
 
         previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
             Medikament: intake.drug.trade_name,
+            Custom: intake.drug?.is_custom_drug ? "Ja" : "Nein",
             Einnahmebeginn: intake.intake_start_time_utc || 'Unbekannt',
             Einnahmeende: intake.intake_end_time_utc || 'Unbekannt',
             Dosis: intake.dose_per_day || 'Unbekannt',
@@ -90,7 +92,10 @@ async function openCopyIntakeModal() {
                 "regular_intervall_of_daily_dose": intake.regular_intervall_of_daily_dose,
                 "as_needed_dose_unit": intake.as_needed_dose_unit,
                 "consumed_meds_today": intake.consumed_meds_today,
-            }
+            },
+            class: intake.drug?.is_custom_drug
+                ? "bg-yellow-50"
+                : null,
         })) : []
         selecteIntakes.value = previousIntakes.value
 
@@ -104,6 +109,9 @@ async function openCopyIntakeModal() {
 const columns = [{
     key: 'Medikament',
     label: 'Medikament'
+}, {
+    key: 'Custom',
+    label: 'Custom'
 }, {
     key: 'Einnahmebeginn',
     label: 'Einnahmebeginn'

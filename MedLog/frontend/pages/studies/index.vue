@@ -1,7 +1,7 @@
 <template>
   <Layout>
     <div class="flex flex-row justify-center mb-6">
-      <h1 class="text-4xl font-medium">Studien</h1>
+      <h1 class="text-4xl font-medium">Studienverwaltung</h1>
     </div>
     <UIBaseCard v-if="!studyStore.studies">
       <h2 v-if="userStore.isAdmin">
@@ -30,7 +30,7 @@
       </UModal>
     </UIBaseCard>
     <UIBaseCard v-for="study in studyStore.studies.items" :key="study.id" style="text-align: center">
-      <h3 class="text-2xl font-medium my-4">{{ study.display_name }}</h3>
+      <h3 class="text-2xl font-medium my-4">Studie: {{ study.display_name }}</h3>
 
       <div class="flex flex-row justify-center space-x-4">
         <UButton type="button" @click="selectStudy(study)" label="Eventverwaltung" color="green" variant="soft"
