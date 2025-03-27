@@ -13,8 +13,8 @@
           userStore.userName }}</p>
         <p :class="route.params.study_id ? 'text-gray-600' : 'invisible text-transparent'" class="text-lg">Studie: {{
           studyName }}</p>
-        <p :class="probandStore.probandID ? 'text-gray-600' : 'invisible text-transparent'" class="text-lg">ProbandenID:
-          {{ probandStore.probandID }}</p>
+        <p :class="probandID ? 'text-gray-600' : 'invisible text-transparent'" class="text-lg">ProbandenID:
+          {{ probandID }}</p>
         <p :class="studyStore.event ? 'text-gray-600' : 'invisible text-transparent'" class="text-lg">Event: {{
           studyStore.event }}</p>
       </div>
@@ -102,14 +102,29 @@ const studyStore = useStudyStore();
 const probandStore = useProbandStore();
 const router = useRouter();
 const route = useRoute();
+
 const studyName = ref('');
+const probandID = ref('');
+const eventName = ref('');
 
 watchEffect(async () => {
   if (route.params.study_id) {
     const study = await studyStore.getStudy(route.params.study_id);
     studyName.value = study ? study.display_name : 'Study not found';
+    eventName.value = study?.event || '';
   } else {
     studyName.value = '';
+    eventName.value = ''; 
+  }
+  probandID.value = route.params.proband_id || '';
+});
+
+watchEffect(async () => {
+  if (!route.params.event_id) {
+    studyStore.event = "";
+    eventName.value = "";
+  } else {
+    eventName.value = studyStore.event; 
   }
 });
 
@@ -121,24 +136,25 @@ function logout() {
   router.push({ path: '/' });
 }
 
-function toggelProfile() {
-  userStore.toggle_profile();
-}
 
 function resetStore() {
   probandStore.$reset();
   studyStore.$reset();
 }
 
-const profileButtonClass = computed(() =>
-  userStore.buttonText === 'Toggle to User' ? 'bg-green-500 text-white px-4 py-2 rounded-lg' : 'bg-blue-500 text-white px-4 py-2 rounded-lg'
-);
+// function toggelProfile() {
+//   userStore.toggle_profile();
+// }
+
+// const profileButtonClass = computed(() =>
+//   userStore.buttonText === 'Toggle to User' ? 'bg-green-500 text-white px-4 py-2 rounded-lg' : 'bg-blue-500 text-white px-4 py-2 rounded-lg'
+// );
 
 const openSlide = ref(false)
 
 
 const resetStores = () => {
-  studyName.value = "test";
+  studyName.value = "";
   probandStore.probandID = "";
   studyStore.event = "";  
 };
@@ -149,22 +165,21 @@ const links = [{
   label: 'Home', 
   icon: 'i-heroicons-home', 
   to: '/', 
-  onClick: resetStores() 
 }];
 
 if (pathSegments.includes('studies')) {
-  links.push({ label: 'Studien', to: '/studies', onClick: resetStores() });
+  links.push({ label: 'Studien', to: '/studies'});
 
   const studiesIndex = pathSegments.indexOf('studies');
-  const nextSegment = pathSegments[studiesIndex + 1];
-
-  if (nextSegment === 'export') {
+  
+  if (pathSegments.includes('export')) {
     links.push({ label: 'Export' });
-  } else if (nextSegment && nextSegment !== 'export') {
+  } 
+  else if (studiesIndex + 1 < pathSegments.length) {
     links.push({ label: 'Eventverwaltung' });
   }
 } else if (pathSegments.includes('interview')) {
-  links.push({ label: 'Interview', to: '/interview', onClick: resetStores() });
+  links.push({ label: 'Interview', to: '/interview' });
 
   const probandIndex = pathSegments.indexOf('proband');
   const studyIndex = pathSegments.indexOf('study');
@@ -173,12 +188,12 @@ if (pathSegments.includes('studies')) {
   if (probandIndex !== -1 && studyIndex !== -1) {
     const probandNr = pathSegments[probandIndex + 1];
 
-    links.push({ label: `Proband ${probandNr}`, to: null }); // Nicht klickbar
+    links.push({ label: `Proband ${probandNr}`, to: null }); 
 
     if (eventIndex !== -1) {
-      links.push({ label: 'Event', to: null }); // Nicht klickbar
+      links.push({ label: 'Event', to: null }); 
     } else {
-      links.push({ label: 'Übersicht', to: null }); // Nicht klickbar
+      links.push({ label: 'Übersicht', to: null }); 
     }
   }
 }
