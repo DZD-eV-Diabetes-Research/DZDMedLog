@@ -62,16 +62,13 @@
         <br>
         <p>Wenn noch keine Medikamente bei dem Patienten gelistet sind, haben Sie die Möglichkeit, über den Button
           "Medikationsübernahme"
-          die Medikamente <strong>des letzten abgeschlossenen Events</strong> zu übernehmen. Dies ist jedoch nur
-          möglich,
-          wenn
-          im jeweiligen Interview noch keine Medikamente gelistet sind.</p>
+          die Medikamente <strong>des letzten abgeschlossenen Events</strong> zu übernehmen.</p>
         <br>
         <p>Teil 3, also den <strong>Datenexport</strong>, erreichen Sie, wie die Verwaltung der Studien, über den Button
           "Studienverwaltung" von
           der Landingpage aus.</p>
         <br>
-        <div id="zusatzinfo" class="flex flex-row mt-64">
+        <div id="zusatzinfo" class="flex flex-row mt-80">
           <p>Für Admins oder Technikinteressierte finden Sie hier unser <a
               class="text-blue-600 hover:border-b-2 hover:border-blue-600" href="https://www.github.com">Repository</a>
           </p>
