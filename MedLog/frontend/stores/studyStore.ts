@@ -26,7 +26,7 @@ export const useStudyStore = defineStore('StudyStore', {
             tokenStore.error = ""
             try {
                 const runtimeConfig = useRuntimeConfig()
-                const data = await $fetch(runtimeConfig.public.baseURL + "/study", {
+                const data = await $fetch(runtimeConfig.public.baseURL + "study", {
                     method: "GET",
                     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
                 })

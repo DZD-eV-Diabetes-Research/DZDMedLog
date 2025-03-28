@@ -92,7 +92,7 @@ async function toggleSort() {
       test.value.push(element);
     });
     await $fetch(
-      `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/event/order`,
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/order`,
       {
         method: "POST",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -131,7 +131,7 @@ async function createEvent() {
     showEventModal.value = false;
     // refresh()
     getEvents()
-  } catch (error) {
+  } catch (error) {    
     errorMessage.value = error.response._data.detail;
     console.error("Failed to create event: ", error.response._data.detail);
   }

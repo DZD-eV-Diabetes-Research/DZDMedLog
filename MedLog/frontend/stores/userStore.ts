@@ -31,7 +31,7 @@ export const useUserStore = defineStore('UserStore', {
             const tokenStore = useTokenStore()
             try {
                 const runtimeConfig = useRuntimeConfig()
-                const data = await $fetch(runtimeConfig.public.baseURL + "/user/me", {
+                const data = await $fetch(runtimeConfig.public.baseURL + "user/me", {
                     method: "GET",
                     headers: { 'Authorization': "Bearer " + tokenStore.access_token },
                 })
