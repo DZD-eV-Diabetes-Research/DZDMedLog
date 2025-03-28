@@ -39,7 +39,7 @@
       </div>
     </UModal>
     <br>
-    <div class="tableDiv max-w-full">
+    <div class="tableDiv">
       <h4 style="text-align: center; padding-top: 25px;">Medikationshistorie</h4>
       <div>
         <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
@@ -309,8 +309,6 @@ createIntakeList()
   border-radius: 10px;
   border-width: 2px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
-  margin-left: 5%;
-  margin-right: 5%;
 }
 
 :deep(td) {
