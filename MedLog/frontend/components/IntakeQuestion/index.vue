@@ -20,36 +20,45 @@
             @click="console.log(item)"
             class="drug"
             v-for="item in paginatedItems"
-            :key="item.pzn"
+            :key="item.drug.id"
             @mouseover="hoveredItem = item"
             @mouseleave="hoveredItem = null"
             style="position: relative"
           >
-            Name: {{ item.item.name }} <br />
-            PZN: {{ item.pzn }} <br />
-            Größe: {{ item.item.packgroesse }}
+          <div>
+            <strong>Name: {{ item.drug.trade_name }} </strong><br />
+            PZN: {{ item.drug.codes.PZN }} <br />
+            <div v-for="attr in drugFieldDefinitionsObject.attrs" :key="attr[1]">
+              {{ attr[0] }}: {{ item.drug?.attrs?.[attr[1]] }}
+            </div>
+            <div v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :key="attr_ref[1]">
+              {{ attr_ref[0] }}: {{ item.drug?.attrs_ref?.[attr_ref[1]]?.display }}
+            </div>
+          </div>
             <div
               class="info"
               v-if="hoveredItem === item"
-              :style="{ left: '-21%', top: '-10%' }"
+              :style="{ right: '110%', top: '-10%' }"
             >
-              <p><strong>Darreichungsform</strong></p>
-              <p>{{ item.item.darrform_ref.bedeutung }}</p>
-              <p><strong>Applikationsform</strong></p>
-              <p>{{ item.item.appform_ref.bedeutung }}</p>
+            <div v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref" :key="attr_multi_ref[1]">
+              {{ attr_multi_ref[0] }}: {{ item.drug?.attrs_multi_ref?.[attr_multi_ref[1]][0].display }}
+            </div>
             </div>
           </li>
         </ul>
         <div class="pagination" v-if="drugList.count >= 6">
-          <UIBaseButton @click="state.currentPage > 1 ? state.currentPage-- : 0">
-            Previous
-          </UIBaseButton>
-          <UIBaseButton
+          <div class="flex flex-row justify-center space-x-2">
+          <button @click="state.currentPage > 1 ? state.currentPage-- : 0" class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100">
+            <
+          </button>
+          <button
             @click="state.currentPage < totalPages ? state.currentPage++ : 0"
+            class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100 mx-10"
           >
-            Next
-          </UIBaseButton>
-          <p>Page {{ state.currentPage }} of {{ totalPages }}</p>
+            >
+          </button>
+        </div>
+          <p class="text-lg mt-2">Page {{ state.currentPage }} of {{ totalPages }}</p>
         </div>
       </div>
       <div
@@ -70,14 +79,11 @@
     </div>
     <div v-if="drugStore.item">
           <br />
-          <p>Medikament: {{ drugStore.item.item.name }}</p>
-          <p>PZN: {{ drugStore.item.pzn }}</p>
-          <p>Packungsgroesse: {{ drugStore.item.item.packgroesse }}</p>
+          <p>Medikament: {{ drugStore.item.drug.trade_name }}</p>
+          <p>PZN: {{ drugStore.item.drug.codes?.PZN }}</p>
+          <p>Packungsgroesse: {{ drugStore.item.drug.attrs?.amount || 'N/A' }}</p>
           <p>
-            Darreichungsform: {{ drugStore.item.item.darrform_ref.bedeutung }}
-          </p>
-          <p>
-            Applikationsform: {{ drugStore.item.item.appform_ref.bedeutung }}
+            Darreichungsform: {{ drugStore.item.drug.attrs_ref.darreichungsform?.display || 'N/A' }}
           </p>
         </div>
   </UIBaseCard>
@@ -85,6 +91,10 @@
 
 <script setup lang="ts">
 import { ref, watch, reactive } from "vue";
+import { apiGetFieldDefinitions, apiDrugSearch } from '~/api/drug';
+
+
+let drugFieldDefinitionsObject = await apiGetFieldDefinitions("search_result")
 
 const hoveredItem = ref(null);
 const tokenStore = useTokenStore();
@@ -114,15 +124,11 @@ const fetchDrugs = async (edit: boolean, custom: boolean) => {
     return;
   } else {
     if (state.drug.length >= 3) {
-      try {
-        const response = await fetch(
-          `${runtimeConfig.public.baseURL}/drug/search?search_term=${state.drug}&only_current_medications=true&offset=0&limit=100`,
-          {
-            method: "GET",
-            headers: { Authorization: "Bearer " + tokenStore.access_token },
-          }
-        );
-        if (!response.ok) throw new Error("Failed to fetch");
+      try {                
+        const response = await apiDrugSearch(state.drug)
+        
+        if (!response.ok) {throw new Error("Failed to fetch");}
+        
         const data = await response.json();
 
         if (props.edit && initialLoad.value) {

@@ -39,7 +39,7 @@
       </div>
     </UModal>
     <br>
-    <div class="tableDiv">
+    <div class="tableDiv max-w-full">
       <h4 style="text-align: center; padding-top: 25px;">Medikationshistorie</h4>
       <div>
         <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
@@ -48,7 +48,7 @@
         <UTable :rows="rows" :columns="columns">
         </UTable>
         <div v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount" class="flex justify-center px-3 py-3.5 border-t 
-        dark:border-green-700 dark:border-red-500">
+        dark:border-green-700">
           <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
             wrapper: 'flex items-center gap-1',
             rounded: 'rounded-sm',
@@ -71,7 +71,6 @@
 import { object, number, date, string, type InferType } from "yup";
 
 // general constants
-
 const route = useRoute()
 const router = useRouter()
 const runtimeConfig = useRuntimeConfig()
@@ -82,7 +81,7 @@ const studyStore = useStudyStore()
 // table
 
 const page = ref(1)
-const pageCount = 15
+const pageCount = 10
 
 const tableContent = ref([])
 
@@ -98,6 +97,10 @@ const columns = [{
 },{
     key: "pzn",
     label: "PZN",
+  },
+  {
+    key: "custom",
+    label: "Custom"
   },
   {
     key: "drug",
@@ -184,11 +187,10 @@ async function createEvent() {
 async function createInterview() {
   try {
     const interview = await useCreateInterview(route.params.study_id, selectedIncompleteEvent.value.id, route.params.proband_id, true, userStore.userID)
-    studyStore.event = selectedIncompleteEvent.value.event.name
-    userStore.firstEvent = true
+    studyStore.event = selectedIncompleteEvent.value.event.name    
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + selectedIncompleteEvent.value.id + "/interview/" + interview.id)
   }
-  catch (error) {
+  catch (error) {    
     console.log(error);
   }
 }
@@ -240,6 +242,7 @@ async function editEvent(eventId: string) {
       method: "GET",
       headers: { 'Authorization': "Bearer " + tokenStore.access_token },
     })
+        
     studyStore.event = selectedCompleteEvent.value.event.name
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + eventId + "/interview/" + result[0].id)
   } catch (error) {
@@ -260,17 +263,17 @@ async function createIntakeList() {
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map((item) => ({
         event: item.event.name,
-        pzn: item.pharmazentralnummer,
+        pzn: item.drug.codes.PZN,
         source: useDrugSourceTranslator(item.source_of_drug_information, null),
-        drug: item.drug.name,
-        intervall: useIntervallDoseTranslator(item.regular_intervall_of_daily_dose,null),
-        dose: item.dose_per_day === 0 ? "" : item.dose_per_day,
+        drug: item.drug.trade_name,
+        intervall: useIntervallDoseTranslator(item.regular_intervall_of_daily_dose, null),
+        dose: item.dose_per_day === 0 ? "/" : item.dose_per_day,
         time: item.intake_end_time_utc === null ? item.intake_start_time_utc + " bis unbekannt" : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
-        darr: item.drug.darrform_ref.bedeutung + " (" + item.drug.darrform_ref.darrform + ")",
+        darr: item.drug.attrs_ref.darreichungsform.display + " (" + item.drug.attrs_ref.darreichungsform.value + ")",
         id: item.id ? item.id : item.custom_drug_id,
-        custom: item.custom_drug_id ? true : false,
-        class: item.custom_drug_id
-          ? "bg-yellow-500/50 dark:bg-yellow-400/50"
+        custom: item.drug?.is_custom_drug ? "Ja": "Nein",
+        class: item.drug?.is_custom_drug
+          ? "bg-yellow-50"
           : null,
       }));
     }
@@ -308,5 +311,10 @@ createIntakeList()
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
   margin-left: 5%;
   margin-right: 5%;
+}
+
+:deep(td) {
+  white-space: normal !important;
+  word-break: break-word !important;
 }
 </style>

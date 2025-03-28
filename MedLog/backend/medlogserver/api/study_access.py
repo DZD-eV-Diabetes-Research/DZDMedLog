@@ -206,7 +206,13 @@ async def assert_intake_is_part_of_study(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Something went wrong: Intake with id {intake_id} is not parts of study with id {study_id} or not part of interview with id {interview_id}.",
         )
-    intake: Intake = await intake_crud.get(id_=intake_id)
+    intake: Intake = await intake_crud.get(
+        id_=intake_id,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Something went wrong: Intake with id {intake_id} can not be found in the database.",
+        ),
+    )
     return await intake_crud.assert_belongs_to_study(
         intake_id=intake.id,
         study_id=study_id,

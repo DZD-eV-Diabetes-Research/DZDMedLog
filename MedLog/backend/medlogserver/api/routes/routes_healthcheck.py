@@ -61,7 +61,7 @@ async def get_health_status(
     response_model=HealthCheckReport,
     description=f"Get a more detailed health report of the system.",
 )
-async def get_health_status(
+async def get_health_report(
     user: UserCRUD = Security(get_current_user),
     health_read: HealthcheckRead = Depends(HealthcheckRead.get_crud),
 ) -> HealthCheckReport:

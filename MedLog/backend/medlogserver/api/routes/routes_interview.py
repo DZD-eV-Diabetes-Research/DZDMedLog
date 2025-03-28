@@ -91,7 +91,7 @@ async def get_interview(
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> Interview:
     interview: Interview = await interview_crud.get(interview_id)
-    log.info((interview.event_id, event_id, interview.event_id == event_id))
+    log.debug((interview.event_id, event_id, interview.event_id == event_id))
     if interview.event_id == event_id:
         return interview
     else:
@@ -118,11 +118,7 @@ async def list_interviews_of_proband(
     "/study/{study_id}/proband/{proband_id}/interview/last",
     response_model=Optional[Interview],
     description=f"Get the last completed interview of proband.",
-    responses={
-        status.HTTP_204_NO_CONTENT: {
-            "description": "There is no completed interview yet",
-        }
-    },
+    responses={status.HTTP_204_NO_CONTENT: {"description": "No interview exist yet"}},
 )
 async def get_last_completed_interview(
     proband_id: Annotated[str, Path()],
@@ -136,7 +132,8 @@ async def get_last_completed_interview(
         # https://fastapi.tiangolo.com/advanced/additional-responses/#additional-response-with-model
         return JSONResponse(
             status_code=status.HTTP_204_NO_CONTENT,
-            content=HTTPMessage("No interview completed yet").model_dump(),
+            content=None,
+            headers={"X-Reason: No interview exist yet"},
         )
     return interview
 
@@ -145,11 +142,7 @@ async def get_last_completed_interview(
     "/study/{study_id}/proband/{proband_id}/interview/current",
     response_model=Optional[Interview],
     description=f"Get the latest non completed interview of proband.",
-    responses={
-        status.HTTP_204_NO_CONTENT: {
-            "description": "There is no completed interview yet",
-        }
-    },
+    responses={status.HTTP_204_NO_CONTENT: {"description": "No interview exist yet"}},
 )
 async def get_last_non_completed_interview(
     proband_id: Annotated[str, Path()],
@@ -162,7 +155,10 @@ async def get_last_non_completed_interview(
     if interview is None:
         return JSONResponse(
             status_code=status.HTTP_204_NO_CONTENT,
+            content=None,
+            headers={"X-Reason: No interview exist yet"},
         )
+
     return interview
 
 
@@ -223,7 +219,7 @@ async def update_interview(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No interview with this id under this event available",
         )
-    return await interview_crud.update(update_obj=interview_update, _id=interview_id)
+    return await interview_crud.update(update_obj=interview_update, id_=interview_id)
 
 
 @fast_api_interview_router.delete(

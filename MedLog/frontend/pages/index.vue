@@ -6,10 +6,16 @@
         <div style="text-align: center">
           <h3 v-if="tokenStore.my_401" style="color:red">Wrong username or password</h3>
         </div>
-        <UFormGroup label="Benutzername" name="username">
+        <UFormGroup name="username">
+          <div class="flex justify-start my-2">
+            <h3 class="text-lg font-medium">Benutzername</h3>
+          </div>
           <UInput v-model="state.username" />
         </UFormGroup>
-        <UFormGroup label="Passwort" name="password">
+        <UFormGroup name="password">
+          <div class="flex justify-start my-2">
+            <h3 class="text-lg font-medium">Password</h3>
+          </div>
           <UInput v-model="state.password" type="password" />
         </UFormGroup>
         <div class="flex justify-center">
@@ -19,14 +25,14 @@
           </UButton>
         </div>
       </UForm>
-      <!-- <div class="loginButtonContainer">
+      <div class="loginButtonContainer">
         <UButton @click="loginWithAuth()" color="red" variant="soft" label="Login mit DZD Authentik"
           class="border border-red-500 hover:bg-white hover:border-red-500 hover:text-red-500">
           <template #trailing>
             <img src="/public/icons/authentik-orange.svg" alt="DZD Authentik" style="width: 24px; height: 24px;" />
           </template>
         </UButton>
-      </div> -->
+      </div>
       <p>
         Kein Account?
         <a href="https://auth.dzd-ev.org/" target="_blank">Registrieren Sie sich hier.</a>
@@ -55,19 +61,19 @@ const state = reactive({
   password: undefined,
 });
 
-// async function loginWithAuth() {
-//   try {
-//     // await $fetch(`${runtimeConfig.public.baseURL}/auth/oidc/login/openid-connect`, {
-//     //   method: "GET",
-//     //   redirect: "follow"})
-//     window.location.href = `${runtimeConfig.public.baseURL}/auth/oidc/login/openid-connect`
-//     console.log(`${runtimeConfig.public.baseURL}/auth/oidc/login/openid-connect`);
+async function loginWithAuth() {
+  try {
+    // await $fetch(`${runtimeConfig.public.baseURL}/auth/oidc/login/openid-connect`, {
+    //   method: "GET",
+    //   redirect: "follow"})
+    window.location.href = `${runtimeConfig.public.baseURL}/auth/oidc/login/openid-connect`
+    console.log(`${runtimeConfig.public.baseURL}/auth/oidc/login/openid-connect`);
 
-//   } catch (error) {
-//     console.log(error);
+  } catch (error) {
+    console.log(error);
 
-//   }
-// }
+  }
+}
 
 </script>
 

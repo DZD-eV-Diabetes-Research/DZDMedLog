@@ -1,84 +1,56 @@
 <template>
   <Layout>
     <UIBaseCard :naked="true">
-      <UButton
-        @click="openIntakeForm()"
-        label="Eingabe Präparat"
-        color="green"
-        variant="soft"
-        style="margin-right: 10px"
-        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-      />
+      <div class="flex flex-row justify-center items-center space-x-4">
+        <UButton ref="topButton" @click="saveInterview()" label="Interview Beenden" color="green" variant="soft"
+          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"/>
+        <CopyPreviousDrugs :onUpdate="createIntakeList"/>
+      </div>
     </UIBaseCard>
     <div v-if="drugStore.intakeVisibility">
       <UIBaseCard>
-        <IntakeQuestion color="green" />
-        <DrugForm color="green" :edit="false" :custom="false" label="Medikament Speichern"/>
-        <UButton
-        @click="openCustomModal()"
-        label="Ungelistetes Medikament aufnehmen"
-        color="yellow"
-        variant="soft"
-        style="margin-top: 2%"
-        class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white"
-      />
+        <IntakeQuestion color="primary" />
+        <DrugForm color="primary" :edit="false" :custom="false" label="Medikament Speichern" />
+        <UButton @click="openCustomModal()" label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
+          style="margin-top: 2px"
+          class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white" />
         <UModal v-model="drugStore.customVisibility">
           <div class="p-4">
-          <DrugForm color="yellow" label="Ungelistetes Medikament Speichern" :custom=true :edit=false />
+            <DrugForm color="yellow" label="Ungelistetes Medikament Speichern" :custom=true :edit=false />
           </div>
         </UModal>
       </UIBaseCard>
     </div>
     <div class="tableDiv">
-      <h4 style="text-align: center; padding-top: 25px">Medikationshistorie</h4>
+      <h4 style="text-align: center; padding-top: 25px">Medikationen</h4>
       <div>
-        <div
-          class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700"
-        >
+        <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
           <UInput v-model="q" placeholder="Tabelle Filtern" />
         </div>
         <UTable :rows="rows" :columns="columns">
           <template v-if="userStore.isAdmin" #actions-data="{ row }">
             <UDropdown :items="myOptions(row)">
-              <UButton
-                color="gray"
-                variant="ghost"
-                icon="i-heroicons-ellipsis-horizontal-20-solid"
-              />
+              <UButton color="gray" variant="ghost" icon="i-heroicons-ellipsis-horizontal-20-solid" />
             </UDropdown>
           </template>
         </UTable>
-        <div
-          v-if="
-            tableContent.length >= pageCount || filteredRows.length >= pageCount
-          "
-          class="flex justify-center px-3 py-3.5 border-t dark:border-green-700 dark:border-red-500"
-        >
-          <UPagination
-            v-model="page"
-            :page-count="pageCount"
-            :total="filteredRows.length"
-            :ui="{
-              wrapper: 'flex items-center gap-1',
-              rounded: 'rounded-sm',
-              default: {
-                activeButton: {
-                  variant: 'outline',
-                },
+        <div v-if="
+          tableContent.length >= pageCount || filteredRows.length >= pageCount
+        " class="flex justify-center px-3 py-3.5 border-t dark:border-red-500">
+          <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
+            wrapper: 'flex items-center gap-1',
+            rounded: 'rounded-sm',
+            default: {
+              activeButton: {
+                variant: 'outline',
               },
-            }"
-          />
+            },
+          }" />
         </div>
       </div>
       <div style="text-align: center">
-        <UButton
-          @click="backToOverview()"
-          label="Zurück zur Übersicht"
-          color="green"
-          variant="soft"
-          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-          style="margin: 25px"
-        />
+        <UButton v-if="!showScrollButton" @click="saveInterview()" label="Interview Beenden" color="green" variant="soft"
+          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" style="margin: 25px" />
       </div>
     </div>
     <UModal v-model="deleteModalVisibility">
@@ -88,26 +60,13 @@
           <br />
           <h4>{{ drugToDelete.drug }}</h4>
           <br />
-          <UForm
-            :schema="deleteSchema"
-            :state="deleteState"
-            class="space-y-4"
-            @submit="deleteIntake"
-          >
-            <UFormGroup label="Zum löschen den Namen eintragen" name="drug">
-              <UInput
-                v-model="deleteState.drug"
-                color="red"
-                :placeholder="drugToDelete.drug"
-              />
+          <UForm :state="deleteState" class="space-y-4" @submit="deleteIntake">
+            <!-- <UFormGroup label="Zum löschen den Namen eintragen" name="drug">
+              <UInput v-model="deleteState.drug" color="red" :placeholder="drugToDelete.drug" />
             </UFormGroup>
-            <br />
-            <UButton
-              type="submit"
-              color="red"
-              variant="soft"
-              class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white"
-            >
+            <br /> -->
+            <UButton type="submit" color="red" variant="soft"
+              class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white">
               Eintrag löschen
             </UButton>
           </UForm>
@@ -117,14 +76,9 @@
     <UModal v-model="drugStore.editVisibility" @close="drugStore.$reset()">
       <div class="p-4">
         <div style="text-align: center">
-          <IntakeQuestion
-            v-if="!customDrug"
-            :drug="toEditDrug"
-            :edit="true"
-            :custom="customDrug"
-            :color="customDrug ? 'yellow' : 'blue'"
-          />
-          <DrugForm :color="customDrug ? 'yellow' : 'blue'" :edit="true" :custom=customDrug label="Bearbeiten"/>
+          <IntakeQuestion :drug="toEditDrug" :edit="true" :custom="customDrug"
+            :color="customDrug ? 'yellow' : 'blue'" />
+          <DrugForm :color="customDrug ? 'yellow' : 'blue'" :edit="true" :custom=customDrug label="Bearbeiten" />
         </div>
       </div>
     </UModal>
@@ -148,8 +102,8 @@
 </template>
 
 <script setup lang="ts">
-import dayjs from "dayjs";
 import { object, number, date, string, type InferType } from "yup";
+let test = new Date().toISOString();
 
 // general constants
 
@@ -161,22 +115,8 @@ const studyStore = useStudyStore();
 const userStore = useUserStore();
 const runtimeConfig = useRuntimeConfig();
 
+
 drugStore.item = null;
-
-// FirstTime Modal
-
-function resetFirstEvent(){
-  userStore.firstEvent = false
-}
-
-// Intakeform
-
-const showIntakeForm = ref(true);
-
-async function openIntakeForm() {
-  drugStore.item = null
-  drugStore.intakeVisibility = !drugStore.intakeVisibility
-}
 
 // Editform Modal
 
@@ -190,16 +130,19 @@ const tempDose = ref();
 const tempFrequency = ref();
 const my_stuff = ref();
 
-async function editModalVisibilityFunction(row) {  
+const tableContent = ref([]);
+
+
+async function editModalVisibilityFunction(row: object) {
 
   tempIntervall.value = null;
   tempDose.value = null;
   tempFrequency.value = null;
   my_stuff.value = null;
-  
 
-  try {   
-    
+
+  try {
+
     drugStore.editVisibility = true
     drugStore.source = row.source
     drugStore.custom = row.custom;
@@ -213,10 +156,10 @@ async function editModalVisibilityFunction(row) {
     drugStore.darrForm = row.darr ? row.darr : null
     drugStore.drugName = row.drug ? row.drug : null
     tempDose.value = row.dose;
-    drugStore.editId = row.id
+    drugStore.editId = row.intakeId
     toEditDrug.value = row.drug;
-    toEditDrugId.value = row.id;    
-  
+    toEditDrugId.value = row.intakeId;
+
   } catch (error) {
     console.log(error);
   }
@@ -226,16 +169,6 @@ async function editModalVisibilityFunction(row) {
 
 const deleteModalVisibility = ref(false);
 const drugToDelete = ref();
-
-const deleteSchema = object({
-  drug: string()
-    .required("Required")
-    .test("is-dynamic-value", "Name muss übereinstimmen", function (value) {
-      return value === drugToDelete.value.drug;
-    }),
-});
-
-type DeleteSchema = InferType<typeof deleteSchema>;
 
 const deleteState = reactive({
   drug: undefined,
@@ -248,9 +181,11 @@ async function openDeleteModal(row: object) {
 }
 
 async function deleteIntake() {
+
   try {
+
     await $fetch(
-      `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.id}`,
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.intakeId}`,
       {
         method: "DELETE",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -266,7 +201,7 @@ async function deleteIntake() {
 // Table
 
 const page = ref(1);
-const pageCount = 15;
+const pageCount = 10;
 
 const rows = computed(() => {
   const data = q.value ? filteredRows.value : tableContent.value;
@@ -276,7 +211,12 @@ const rows = computed(() => {
 const columns = [
   {
     key: "pzn",
-    label: "PZN",
+    label: "Medikament PZN",
+  },
+  {
+    key: "custom",
+    label: "Custom",
+    sortable: true,
   },
   {
     key: "drug",
@@ -342,8 +282,6 @@ const filteredRows = computed(() => {
   });
 });
 
-const tableContent = ref([]);
-
 // CustomElement Modal
 
 const customDrugModalVisibility = ref(false);
@@ -358,7 +296,7 @@ async function openCustomModal() {
 
 async function getDosageForm() {
   const dosageForm = await $fetch(
-    `${runtimeConfig.public.baseURL}/drug/enum/darrform`,
+    `${runtimeConfig.public.baseURL}v2/drug/field_def/darreichungsform/refs`,
     {
       method: "GET",
       headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -366,16 +304,34 @@ async function getDosageForm() {
   );
 
   dosageFormTable.value = dosageForm.items.map((item) => ({
-    id: item.bedeutung + " (" + item.darrform + ")",
-    label: item.bedeutung + " (" + item.darrform + ")",
-    bedeutung: item.bedeutung,
-    darrform: item.darrform,
+    id: item.display + " (" + item.value + ")",
+    label: item.display + " (" + item.value + ")",
+    bedeutung: item.display,
+    darrform: item.value,
   }));
 }
 
 // REST
 
-async function backToOverview() {
+async function saveInterview() {
+
+  try {
+    await $fetch(
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${route.params.event_id}/interview/${route.params.interview_id}`,
+      {
+        method: "PATCH",
+        headers: { Authorization: "Bearer " + tokenStore.access_token },
+        body: {
+          "proband_external_id": `${route.params.proband_id}`,
+          "interview_end_time_utc": new Date().toISOString(),
+          "proband_has_taken_meds": true
+        }
+      }
+    );
+  } catch (error) {
+    console.log(error);
+  }
+
   studyStore.event = "";
   router.push({
     path:
@@ -386,14 +342,6 @@ async function backToOverview() {
   });
 }
 
-const {data: intakes} = await useFetch(
-      `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`,
-      {
-        method: "GET",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
-      }
-    );    
-
 async function createIntakeList() {
   try {
     const intakes = await $fetch(
@@ -402,13 +350,13 @@ async function createIntakeList() {
         method: "GET",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
       }
-    );    
+    );
 
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map((item) => ({
-        pzn: item.pharmazentralnummer,
+        pzn: item.drug.codes?.PZN,
         source: useDrugSourceTranslator(item.source_of_drug_information, null),
-        drug: item.drug.name,
+        drug: item.drug.trade_name,
         dose: item.dose_per_day === 0 ? "" : item.dose_per_day,
         intervall: useIntervallDoseTranslator(
           item.regular_intervall_of_daily_dose,
@@ -423,14 +371,14 @@ async function createIntakeList() {
             ? item.intake_start_time_utc + " bis unbekannt"
             : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
         darr:
-          item.drug.darrform_ref.bedeutung +
+          item.drug.attrs_ref.darreichungsform.display +
           " (" +
-          item.drug.darrform_ref.darrform +
+          item.drug.attrs_ref.darreichungsform.value +
           ")",
-        id: item.id ? item.id : item.custom_drug_id,
-        custom: item.custom_drug_id ? true : false,
-        class: item.custom_drug_id
-          ? "bg-yellow-500/50 dark:bg-yellow-400/50"
+        intakeId: item.id,
+        custom: item.drug?.is_custom_drug ? "Ja": "Nein",
+        class: item.drug?.is_custom_drug
+          ? "bg-yellow-50"
           : null,
       }));
     }
@@ -444,16 +392,38 @@ const isAction = computed(() => drugStore.isAction)
 watch(isAction, (newValue) => {
   if (newValue) {
     createIntakeList();
-    drugStore.intakeVisibility = false
   } else {
     createIntakeList();
-    drugStore.intakeVisibility = false
+    drugStore.item = ""    
   }
 });
 
 getDosageForm();
 createIntakeList();
-drugStore.$reset()
+
+// Buttonobserver
+
+// const topButton = ref(null);
+// const showScrollButton = ref(false);
+// let observer = null;
+
+// onMounted(() => {
+//   observer = new IntersectionObserver(
+//     ([entry]) => {
+//       showScrollButton.value = !entry.isIntersecting;
+//     },
+//     { threshold: 0 }
+//   );
+
+//   // Warte, bis `topButton.value` gesetzt ist
+//   if (topButton.value) {
+//     observer.observe(topButton.value);
+//   }
+// });
+
+// onUnmounted(() => {
+//   if (observer) observer.disconnect();
+// });
 </script>
 
 <style scoped>
@@ -481,6 +451,11 @@ drugStore.$reset()
   margin-bottom: 2%;
 }
 
+:deep(td) {
+  white-space: normal !important;
+  word-break: break-word !important;
+}
+
 .selectedDarrForm:hover {
   color: #efc85d;
   cursor: pointer;
@@ -491,7 +466,7 @@ drugStore.$reset()
   gap: 16px;
 }
 
-.flex-container > * {
+.flex-container>* {
   flex: 1;
 }
 

@@ -43,9 +43,13 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
 
     fastapi_app.include_router(fast_api_permissions_router, tags=["Study Permissions"])
 
+    ### Event
+
     from medlogserver.api.routes.routes_event import fast_api_event_router
 
     fastapi_app.include_router(fast_api_event_router, tags=["Event"])
+
+    ### Interview
 
     from medlogserver.api.routes.routes_interview import (
         fast_api_interview_router,
@@ -53,19 +57,24 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
 
     fastapi_app.include_router(fast_api_interview_router, tags=["Interview"])
 
+    ### Intake
+
     from medlogserver.api.routes.routes_intake import (
         fast_api_intake_router,
     )
 
     fastapi_app.include_router(fast_api_intake_router, tags=["Intake"])
+    ### Drug V2
+    from medlogserver.api.routes.routes_drug_v2 import fast_api_drug_router_v2
 
-    from medlogserver.api.routes.routes_drug import (
-        fast_api_drug_router,
-    )
-
-    fastapi_app.include_router(fast_api_drug_router, tags=["Drug"])
+    fastapi_app.include_router(fast_api_drug_router_v2, tags=["Drug (Ver.2)"])
 
     # export
     from medlogserver.api.routes.routes_export import fast_api_export_router
 
     fastapi_app.include_router(fast_api_export_router, tags=["Export"])
+
+    # webclient
+    from medlogserver.api.routes.routes_webclient import fast_api_webclient_router
+
+    fastapi_app.include_router(fast_api_webclient_router, tags=["WebClient"])

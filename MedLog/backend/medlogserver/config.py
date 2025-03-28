@@ -6,7 +6,7 @@ from pydantic import (
     Field,
     SecretStr,
     AnyHttpUrl,
-    validator,
+    field_validator,
     StringConstraints,
     model_validator,
 )
@@ -100,10 +100,9 @@ class Config(BaseSettings):
     def get_server_url(self) -> str:
         if self.SERVER_PROTOCOL is not None:
             proto = self.SERVER_PROTOCOL
-        elif self.SERVER_LISTENING_HOST == 443:
+        elif self.SERVER_LISTENING_PORT == 443:
             proto = "https"
-        else:
-            proto = "http"
+
         port = ""
         if self.SERVER_LISTENING_PORT not in [80, 443]:
             port = f":{self.SERVER_LISTENING_PORT}"
@@ -117,7 +116,7 @@ class Config(BaseSettings):
     @model_validator(mode="after")
     def set_empty_client_url(self: Self):
         if self.CLIENT_URL is None:
-            self.CLIENT_URL = self.get_server_url()
+            self.CLIENT_URL = str(self.get_server_url())
         return self
 
     SQL_DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./local.sqlite")
@@ -145,16 +144,6 @@ class Config(BaseSettings):
         description="Default data like some background jobs and vocabulary that is always loaded in the database. Under normal circustances this is nothing you need to changed. if you need to provision data like a Study into the database use the APP_PROVISIONING_DATA_YAML_FILES param.",
         default=str(Path(Path(__file__).parent, "default_data.yaml")),
     )
-    """Remove me on next refactor
-    APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS: Dict = Field(
-        default={
-            "PRESCRIBED": "prescribed",
-            "RECOMMENDED": "recommended",
-            "NO": "no",
-            "UNKNOWN": "unknown",
-        }
-    )
-    """
 
     APP_STUDY_PERMISSION_SYSTEM_DISABLED_BY_DEFAULT: bool = Field(
         default=False,
@@ -274,7 +263,7 @@ class Config(BaseSettings):
         default_factory=list,
     )
 
-    @validator("AUTH_OIDC_PROVIDERS")
+    @field_validator("AUTH_OIDC_PROVIDERS")
     def unique_provider_names(cls, AUTH_OIDC_PROVIDERS: List[OpenIDConnectProvider]):
         names = [prov.PROVIDER_SLUG_NAME for prov in AUTH_OIDC_PROVIDERS]
         if len(set(names)) < len(AUTH_OIDC_PROVIDERS):
@@ -288,13 +277,30 @@ class Config(BaseSettings):
         description="When reading the Arzneimittelindex data files, write every n rows to the database. Lower this number in a low memory env.",
     )
 
+    # Availabe modules live in MedLog/backend/medlogserver/model/drug_data/importers/__init__.py
+    DRUG_IMPORTER_PLUGIN: Literal[
+        "WidoGkvArzneimittelindex52", "MmmiPharmaindex1_32", "DummyDrugImporterV1"
+    ] = Field(
+        default="DummyDrugImporterV1",
+        description="Depending on the drug database that is used, we can define an importer.",
+    )
+
     DRUG_SEARCHENGINE_CLASS: Literal["GenericSQLDrugSearch"] = Field(
         description="The search engine used in the background to answer drug search requests.",
         default="GenericSQLDrugSearch",
     )
     DRUG_TABLE_PROVISIONING_SOURCE_DIR: str = Field(
         description="If MedLog is booted with an empty drug database, it will check if a source data set of the GKV Arzneimittel Index is located in this dir",
-        default="GKV_AI_StammPlus/202301",
+        default=str(
+            Path(
+                Path(__file__).parent.parent, "provisioning_data/dummy_drugset/20241126"
+            ).absolute()
+        ),
+    )
+
+    DRUG_DATA_IMPORT_MAX_ROWS: Optional[int] = Field(
+        description="For debuging or demo purposes you can limit the amount of drug entries that are parsed and import while the drug importer runs. This speeds up the import process massivly but you will not have all drug entries.",
+        default=None,
     )
 
     EXPORT_CACHE_DIR: str = Field(

@@ -16,7 +16,7 @@ from uuid import UUID
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable
+from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 
 log = get_logger()
 config = Config()
@@ -50,7 +50,10 @@ class EventUpdate(EventCreateAPI, table=False):
     name: Optional[_name_annotation] = _name_field
     completed: Optional[bool] = Field(
         default=False,
-        description="Is the event completed. E.g. All study participants have been interviewed.",
+        description="DEPRECATED: This field is deprecated. A Event is now 'completed' on a per-proband basis, when the event has an interview existing for a proband it is completed for this proband.",
+        schema_extra={
+            "deprecated": True,
+        },
     )
 
 
@@ -66,7 +69,7 @@ class EventCreate(EventUpdate, table=False):
         return MedLogBaseModel.id_to_uuid(v, info)
 
 
-class EventRead(EventCreate, BaseTable, table=False):
+class EventRead(EventCreate, BaseTable, TimestampModel, table=False):
     id: uuid.UUID = Field()
 
 

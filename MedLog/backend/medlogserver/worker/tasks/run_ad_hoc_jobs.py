@@ -33,12 +33,12 @@ class WorkerAdHocJobRunner:
         Returns:
             List[WorkerJob]: All finished (Succeeded and Failed) jobs.
         """
-        log.debug("Start background adhoc job runner...")
+        # log.debug("Start background adhoc job runner...")
         try:
             queued_jobs = await self._pick_up_queued_jobs()
             finished_jobs = await self._process_jobs(queued_jobs)
             await self._tidy_up_old_jobs()
-            log.debug("...finished background adhoc job runner.")
+            # log.debug("...finished background adhoc job runner.")
             if finished_jobs:
 
                 return f"Jobs that did run {finished_jobs}"

@@ -14,7 +14,7 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable
+from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 from medlogserver.model.event import Event
 from medlogserver.model.interview import (
     Interview,
@@ -77,13 +77,15 @@ class InterviewCRUD(
         if completed:
             query = (
                 query.where(is_not(Interview.interview_end_time_utc, None))
-                .order_by(desc(Interview.interview_end_time_utc))
+                .order_by(desc(Event.order_position))
+                .order_by(desc(Interview.interview_start_time_utc))
                 .limit(1)
             )
         else:
             # ToDo: actually we should sort by a `updated_at` field here and not by interview_start_time_utc. but that is not implepentedyet
             query = (
                 query.where(is_(Interview.interview_end_time_utc, None))
+                .order_by(desc(Event.order_position))
                 .order_by(desc(Interview.interview_start_time_utc))
                 .limit(1)
             )

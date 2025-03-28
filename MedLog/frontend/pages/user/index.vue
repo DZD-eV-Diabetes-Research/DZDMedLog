@@ -1,12 +1,12 @@
 <template>
     <Layout>
         <UIBaseCard style="text-align:center">
-            <h3 style="margin: 5%;">Hallo {{ userStore.userName }}</h3>
-            <div class="button-container">
-                <UIBaseButton @click="conductInterview()">Interview durchführen</UIBaseButton>
-                <UIBaseButton @click="showStudies()">Studien Verwaltung</UIBaseButton>
-            </div>
-        </UIBaseCard>
+        <h3 class="text-4xl font-medium my-4">Hello {{userStore.userName}}</h3>
+        <div class="flex flex-col space-y-10 my-10 items-center">
+            <button class="text-xl font-light outline outline-1 outline-black hover:outline-2 hover:shadow-xl rounded-lg py-2 px-4" @click="conductInterview()">Interview durchführen</button>
+            <button class="text-xl font-light outline outline-1 outline-black hover:outline-2 hover:shadow-xl rounded-lg py-2 px-4" @click="showStudies()">Studien Verwaltung</button>
+        </div>
+    </UIBaseCard>
     </Layout>
 </template>
 
@@ -31,16 +31,3 @@ async function showStudies() {
 // }
 
 </script>
-
-<style scoped>
-.button-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.button-container button {
-    margin-bottom: 35px;
-}
-</style>

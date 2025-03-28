@@ -6,6 +6,7 @@ https://fastapi-users.github.io/fastapi-users/12.1/
 ## Important Sources / insporations
 
 ### OIDC
+
 https://github.com/tiangolo/full-stack-fastapi-postgresql
 
 https://github.com/tiangolo/fastapi/issues/12#issuecomment-457706256
@@ -25,6 +26,7 @@ https://fastapi-users.github.io/fastapi-users/12.1/configuration/oauth/#instanti
 https://medium.com/@estretyakov/the-ultimate-async-setup-fastapi-sqlmodel-alembic-pytest-ae5cdcfed3d4
 
 ## interesting
+
 https://github.com/gmachado-nextreason/example-oidc-server-fastapi
 
 https://intility.github.io/fastapi-azure-auth/multi-tenant/fastapi_configuration
@@ -38,7 +40,6 @@ https://typesense.org/ <- this looks good
 https://redis.io/ <- i am pretty sure we can achive a good solution with good old redis as well
 https://www.elastic.co/de/elasticsearch <- this is the standard solution
 
-
 ## ditched libs
 
 https://github.com/nextml-code/fastapi-third-party-auth
@@ -48,16 +49,16 @@ https://github.com/yezz123/AuthX
 
 ### Auth
 
-* Refresh token invalidation
+- Refresh token invalidation
 
-### Hardening 
+### Hardening
 
-* introduce and implement "TRUSTED_PROXY" setting
+- introduce and implement "TRUSTED_PROXY" setting
 
 ### importer
 
-* handle failed import greacefully.
-  * delete allready imported data to make retry possible
+- handle failed import greacefully.
+  - delete allready imported data to make retry possible
 
 # OIDC Token types
 
@@ -84,3 +85,23 @@ https://github.com/yezz123/AuthX
     Token ID (Token Identifier):
         Purpose: Token ID refers to the unique identifier associated with a token (e.g., access token, ID token, refresh token).
         Usage: It helps in uniquely identifying and managing tokens. It can be used to track token usage, revoke tokens, or manage token lifecycle.
+
+# MMI Pharmindex
+
+interesting tables
+MMIRohdatenR3->Product.csv
+Package.csv -> pzn
+
+## perf opt
+
+profiled 10000
+74.0836091041565
+66.38373041152954
+33.24803566932678
+
+unprofiled 10000
+Starting Point: Hours... idk
+First gain: 243.82818222045898 secs
+
+Current gain:
+16.51198959350586 sec

@@ -27,7 +27,6 @@ def test_do_export():
         )
         if res["state"] not in ["queued", "running"]:
             processing_export = False
-            continue
         time.sleep(0.5)
     res = req(
         f"study/b6f2c61b-d388-4412-8c9a-461ece251116/export/{res['export_id']}/download",

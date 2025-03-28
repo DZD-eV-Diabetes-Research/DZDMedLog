@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import piniaPluginPersistedState from 'pinia-plugin-persistedstate'
 
 interface DrugState {
     custom: boolean
@@ -17,13 +18,14 @@ interface DrugState {
     editId: string
     drugName: string | null
     darrForm: string | null
+    lastFetchTime: number | null
 }
 
 export const useDrugStore = defineStore('DrugStore',{
     id: "drug-store",
     state: (): DrugState => ({
         custom: false,
-        item: null,
+        item: "",
         source: "",
         frequency: "",
         intervall: "",
@@ -37,11 +39,13 @@ export const useDrugStore = defineStore('DrugStore',{
         customVisibility: false,
         editId : "",
         drugName: null,
-        darrForm: null
-
+        darrForm: null,
+        lastFetchTime: null
     }),
     getters: {
-        isAction: (state) => state.action
+        isAction: (state) => state.action,
     },
-    persist: true
+    persist: {
+        storage: localStorage,
+    }
 }) 

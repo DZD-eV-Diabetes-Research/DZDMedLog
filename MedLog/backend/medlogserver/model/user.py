@@ -12,7 +12,7 @@ from uuid import UUID
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable
+from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 
 # TODO: this generated a circular import we need to seperate model and crud classes
 # from medlogserver.db.user_auth import UserAuthRefreshTokenCRUD
@@ -101,13 +101,10 @@ class _UserWithName(UserBase, table=False):
     @classmethod
     def val_display_name(self, values):
         """if no display name is set for now, we copy the identifying `user_name`"""
-        # print("values", type(values), values)
-
         if isinstance(values, dict) and values["display_name"] is None:
             values["display_name"] = values["user_name"]
 
         if isinstance(values, self) and self.display_name is None:
-            # print("self.user_name", type(self.user_name), self.user_name)
             self.display_name = self.user_name
         return values
 
@@ -116,7 +113,7 @@ class UserCreate(_UserWithName, table=False):
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4)
 
 
-class User(_UserWithName, UserUpdateByAdmin, BaseTable, table=True):
+class User(_UserWithName, UserUpdateByAdmin, BaseTable, TimestampModel, table=True):
     __tablename__ = "user"
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,

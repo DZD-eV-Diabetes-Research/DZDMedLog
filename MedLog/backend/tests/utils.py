@@ -11,6 +11,7 @@ def get_access_token() -> str | None:
     return os.environ.get(MEDLOG_ACCESS_TOKEN_ENV_NAME, None)
 
 
+print("SQL_DATABASE_URL", os.environ.get("SQL_DATABASE_URL"))
 medlogserver_config = Config()
 
 

@@ -108,7 +108,7 @@ class StudyDataExporter:
         async with get_async_session_context() as session:
             async with StudyCRUD.crud_context(session) as study_crud:
                 study_crud: StudyCRUD = study_crud
-                study = await study_crud.get(study_id=self.study_id)
+                study: Study = await study_crud.get(study_id=self.study_id)
                 return StudyExport(**study.model_dump())
 
     async def _get_event_data(self, event_id: uuid.UUID) -> EventExport:

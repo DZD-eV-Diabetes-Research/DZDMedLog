@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    background-color: white;
+}
+
+.u-checkbox {
+    border: 1px solid black !important;
+    border-radius: 4px;
+    padding: 4px;
+  }

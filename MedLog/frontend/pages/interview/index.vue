@@ -1,7 +1,7 @@
 <template>
     <Layout>
         <div class="center">
-            <h1>Interviews</h1>
+            <h1 class="text-4xl font-normal">Neue Interviews</h1>
         </div>
         <UIBaseCard v-if="!studyStore.studies">
             <h2 v-if="userStore.isAdmin">Aktuell sind keine Studien aufgelistet bitte, legen Sie eine Studie an</h2>
@@ -9,7 +9,7 @@
             </h2>
         </UIBaseCard>
         <UIBaseCard class="active" v-for="study in studyStore.studies.items" :key="study.id" style="text-align: center">
-            <h3>{{ study.display_name }}</h3>
+            <h3 class="text-2xl font-light">Studie: {{ study.display_name }}</h3>
             <UForm :schema="schema" :state="state" class="space-y-4" @submit="pushFurther(study)">
                 <UFormGroup label="ProbandenID" name="probandID">
                     <UInput v-model="state.probandID" />
@@ -62,7 +62,7 @@ async function pushFurther(study) {
 
 </script>
 
-<style lang="scss" scoped>
+<style lang="css" scoped>
 .center {
     text-align: center;
     margin: auto;

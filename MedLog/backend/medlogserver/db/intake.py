@@ -15,7 +15,7 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable
+from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 from medlogserver.model.event import Event
 from medlogserver.model.interview import Interview
 from medlogserver.model.intake import (
@@ -24,13 +24,10 @@ from medlogserver.model.intake import (
     IntakeUpdate,
     IntakeDetailListItem,
 )
-from medlogserver.model.wido_gkv_arzneimittelindex.stamm import (
-    StammRead,
-    StammUserCustomRead,
-)
-from medlogserver.db.wido_gkv_arzneimittelindex.stamm import StammCRUD
-from medlogserver.db.wido_gkv_arzneimittelindex.stamm_user_custom import (
-    StammUserCustomCRUD,
+from medlogserver.model.drug_data.drug import DrugData
+from medlogserver.model.drug_data.api_drug_model_factory import (
+    DrugAPIRead,
+    drug_to_drugAPI_obj,
 )
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
@@ -120,35 +117,18 @@ class IntakeCRUD(
         results = await self.session.exec(statement=query)
         detailed_intakes: List[IntakeDetailListItem] = []
         for intake, interview, event in results:
-            drug: StammRead | StammUserCustomRead = None
-            # log.debug(f"intake: {intake}")
-            if intake.custom_drug_id is not None:
-                async with StammUserCustomCRUD.crud_context(
-                    session=self.session
-                ) as drug_crud:
-                    # for code completion only
-                    drug_crud: StammUserCustomCRUD = drug_crud
-
-                    drug = await drug_crud.get(intake.custom_drug_id)
-            elif intake.pharmazentralnummer is not None:
-                async with StammCRUD.crud_context(session=self.session) as drug_crud:
-                    # for code completion only
-                    drug_crud: StammCRUD = drug_crud
-                    # log.debug("get drug")
-                    drug = await drug_crud.get(
-                        intake.pharmazentralnummer,
-                        # raise_exception_if_none=HTTPException(
-                        #    status_code=status.HTTP_404_NOT_FOUND,
-                        #    detail=f"Drug with PZN {intake.pharmazentralnummer} not found",
-                        # ),
-                    )
-            # log.debug(f"drug ({type(drug)}): {drug} ")
+            drug_read: DrugAPIRead = None
+            drug_result = await self.session.exec(
+                select(DrugData).where(DrugData.id == intake.drug_id)
+            )
+            drug = drug_result.one()
+            drug_read = await drug_to_drugAPI_obj(drug)
             detailed_intakes.append(
                 IntakeDetailListItem(
                     **intake.model_dump(),
                     event=event,
                     interview=interview,
-                    drug=drug,
+                    drug=drug_read,
                 )
             )
 

@@ -58,10 +58,6 @@ def start(with_background_worker: bool = True):
 
     log = get_logger()
 
-    print(
-        f"Start medlogserver version: {getversion.get_module_version(medlogserver)[0]} as user with id {os.getuid()}"
-    )
-
     log.debug("----CONFIG-----")
     log.debug(yaml.dump(json.loads(config.model_dump_json()), sort_keys=False))
     log.debug("----CONFIG-END-----")
@@ -116,8 +112,15 @@ def start(with_background_worker: bool = True):
         loop=event_loop,
     )
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
+    from medlogserver.db.drug_data.importers.wido_gkv_arzneimittelindex import (
+        WidoAiImporter52,
+    )
 
     event_loop.run_until_complete(init_db())
+
+    print(
+        f"Start medlogserver version: {getversion.get_module_version(medlogserver)[0]} as user with id {os.getuid()}"
+    )
     if config.DEMO_MODE:
         log.info(
             f"Hey, we are in demo mode. Login as admin with the following account:"

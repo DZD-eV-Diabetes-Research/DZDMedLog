@@ -406,4 +406,262 @@ def pydnatic_shadow_warning_test():
         created_at: datetime.datetime = Field(exclude=True)
 
 
-pydnatic_shadow_warning_test()
+def dynamic_pclass_test():
+    from pydantic import create_model, Field
+
+    create_model("fuck", arsch=(str, Field(default=None)))
+
+
+def named_tuple_test():
+    from typing import NamedTuple
+
+    class my(NamedTuple):
+        val: str
+        key: str
+
+    a = my("A", "a")._asdict()
+    print(a)
+
+
+def named_tuple_as_db_col():
+    from typing import NamedTuple
+    import uuid
+
+    from pydantic import PositiveInt
+    from sqlmodel import Field, SQLModel, create_engine, Session, select, Column, JSON
+
+    engine = create_engine(url="sqlite:///./testdb.sqlite")
+
+    class Coordinates(NamedTuple):
+        latitude: float
+        longitude: float
+        altitude: float
+
+    class Address(SQLModel, table=True):
+        id: uuid.UUID | None = Field(default_factory=uuid.uuid4, primary_key=True)
+        zipcode: PositiveInt
+        coordinates: Coordinates = Field(sa_column=Column(JSON))
+
+    SQLModel.metadata.create_all(engine)
+    coordinates = Coordinates(1.2, 1.3, 1.4)
+    coordinates_from_db = None
+
+    # Lets write an address with our NamedTuple coordinates into the DB
+    with Session(engine) as s:
+        s.add(Address(zipcode="55252", coordinates=Coordinates(1.2, 1.3, 1.4)))
+        s.commit()
+
+    # And now lets it read it from the DB
+    with Session(engine) as s:
+        adr = s.exec(select(Address)).first()
+        coordinates_from_db = adr.coordinates
+
+    # Now we compare our NamedTuple coordinates with the stuff that came from the DB
+    print("FROM MEM", type(coordinates), coordinates)
+    # > FROM MEM <class '__main__.named_tuple_as_db_col.<locals>.Coordinates'> Coordinates(latitude=1.2, longitude=1.3, altitude=1.4)
+    print("FROM DB", type(coordinates_from_db), coordinates_from_db)
+    # > FROM DB <class 'list'> [1.2, 1.3, 1.4]
+    print("Is it the same?", coordinates == coordinates_from_db)
+    # > False
+    print(
+        "is it the same if cast the result back into coordinates?",
+        Coordinates(*coordinates_from_db) == coordinates,
+    )
+    # > True
+    # Yay!
+
+    # Although the type of `coordinates_from_db` is a `list` we use it to write coordinates into the databse
+    with Session(engine) as s:
+        # This works!
+        s.add(Address(zipcode="55253", coordinates=coordinates_from_db))
+        s.commit()
+
+
+def str_enum_test():
+    from typing import Callable
+    import enum
+    from functools import partial
+    import datetime
+
+    from dataclasses import dataclass
+
+    @dataclass
+    class TypCastingInfo:
+        python_type: Callable
+        casting_func: Callable
+
+    # We need an string Enum here. This is a fixed constraint
+    class MyEnum(enum.Enum):
+        state1 = TypCastingInfo(int, int)
+
+    val = MyEnum.state1.value
+    print(val)
+    print(type(val))
+    exit()
+    print(
+        MyEnum.state1.value
+    )  # returns `str_enum_test.<locals>.TypCastingInfo(python_type=<class 'int'>, casting_func=<class 'int'>)`
+
+    print(
+        type(MyEnum.state1._value_)
+    )  # returns `<class 'str'>` instead of `<class 'TypCastingInfo'>`. Why?
+
+    print(
+        MyEnum.state1._value_.python_type
+    )  # This is not possible and throws and error `AttributeError: 'str' object has no attribute 'python_type'`
+
+
+def classnametest():
+    class MyClass:
+        def __init__(self):
+            pass
+
+        def printname(self):
+            print(self.__class__.__name__)
+
+    my = MyClass()
+    my.printname()
+
+
+def python_typing_unpack():
+    from typing_extensions import Unpack
+
+    # that seems to be a wrong usage(arrocding to chatgpt. investiuagte further)
+    def myfunc(**kwargs: Unpack[int | str]):
+        print(bool(kwargs))
+
+    myfunc(d="")
+
+
+def python_typing_unpack2():
+    from typing_extensions import TypedDict, Unpack
+
+    class Person(TypedDict):
+        name: str
+        age: int
+
+    def greet_person(**kwargs: Unpack[Person]) -> None:
+        print(f"Hello, {kwargs['name']}! You are {kwargs['age']} years old.")
+
+    # Using unpacked keyword arguments from the TypedDict
+    greet_person(name="Alice", age=30)  # This works
+
+
+def enum_as_dict_keys():
+    import enum
+    from pydantic import BaseModel
+
+    class Things(enum.Enum):
+        books = "books"
+        shoes = "shoes"
+
+    d = dict()
+    d[Things.books.name] = "Was ist was Band 1"
+    d[Things.shoes] = "Sneakers"
+
+    print(d)
+
+
+def extract_sb_value():
+    import re
+
+    def extract_bracket_values(input_string, count, default=None) -> list[str]:
+
+        # Find all occurrences of values inside square brackets
+        matches = re.findall(r"\[([^\]]+)\]", input_string)
+
+        # Check if we have enough matches
+        if len(matches) < count:
+            if default is not None:
+                # If not enough matches, extend with default value
+                matches.extend([default] * (count - len(matches)))
+            else:
+                # Raise an error if there are not enough matches and no default value
+                raise ValueError(
+                    f"Expected {count} values, but only found {len(matches)}."
+                )
+
+        # Return the first `count` values as a tuple
+        return tuple(matches[:count])
+
+    # e.g. ARV_PACKAGEGROUP.CSV[PACKAGEID]/PACKAGE.CSV[ID]>[PRODUCTID]
+    # we need the first key for now. e.g. "PACKAGEID"
+    # Use regular expression to find the first occurrence of a value inside the square brackets
+    print(
+        extract_bracket_values(
+            "ARV_PACKAGEGROUP.CSV[PACKAGEID]/PACKAGE.CSV[ID]>[PRODUCTID]", 1
+        )
+    )
+    print(
+        extract_bracket_values(
+            "ARV_PACKAGEGROUP.CSV[PACKAGEID]/PACKAGE.CSV[ID]>[PRODUCTID]",
+            4,
+            default="bla",
+        )
+    )
+    print(
+        extract_bracket_values(
+            "ARV_PACKAGEGROUP.CSV[PACKAGEID]/PACKAGE.CSV[ID]>[PRODUCTID]",
+            4,
+        )
+    )
+
+
+def sqlmodel_emtpy_val():
+    import uuid
+    from sqlmodel import SQLModel, Field
+
+    class DrugVal(SQLModel, table=True):
+        __tablename__ = "drug_attr_val"
+
+        drug_id: uuid.UUID = Field(foreign_key="drug.id", primary_key=True)
+        field_name: str = Field(
+            primary_key=True, foreign_key="drug_attr_field_definition.field_name"
+        )
+        value: Optional[str] = Field(
+            default=None,
+            description="Generic storage of a value as string. Can be typed via the function in DrugAttrFieldDefinition.type",
+        )
+
+    d = DrugVal(field_name="Bla", value="1")
+    d2 = DrugVal()
+    d2.value = "Bla"
+    print(d)
+    print(d2)
+
+
+def nested_sqlmodel_obj_commit():
+    from pathlib import Path
+    from sqlmodel import Field, Session, SQLModel, create_engine, select, Relationship
+
+    class Parent(SQLModel, table=True):
+        name: str = Field(primary_key=True)
+        children: List["Child"] = Relationship(back_populates="parent")
+
+    class Child(SQLModel, table=True):
+        name: str = Field(primary_key=True)
+        parent_id: str = Field(foreign_key="parent.name")
+        parent: Parent = Relationship(back_populates="children")
+
+    dbpath = Path("/tmp/database.db")
+    dbpath.unlink(missing_ok=True)
+    sqlite_url = f"sqlite:///{dbpath}"
+
+    engine = create_engine(sqlite_url, echo=False)
+
+    def create_db_and_tables():
+        SQLModel.metadata.create_all(engine)
+
+    p = Parent(name="Freddy")
+    c = Child(name="Frederike")
+    p.children.append(c)
+    create_db_and_tables()
+    with Session(engine) as session:
+        session.add(p)
+        session.commit()
+    with Session(engine) as session:
+        res = session.exec(select(Parent))
+        print(res.one().children)
+
+
+nested_sqlmodel_obj_commit()

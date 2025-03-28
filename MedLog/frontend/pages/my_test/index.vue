@@ -1,9 +1,5 @@
-import { DrugForm } from '../../.nuxt/components';
 <template>
   <Layout>
-    <UIBaseCard>
-    <DrugForm color="yellow" label="Ungelistetes Medikament Speichern" :custom=true />
-  </UIBaseCard>
   </Layout>
 </template>
 
@@ -11,6 +7,3 @@ import { DrugForm } from '../../.nuxt/components';
 
 </script>
 
-<style scoped>
-/* Add any additional scoped styles here */
-</style>

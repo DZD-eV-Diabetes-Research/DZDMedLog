@@ -13,7 +13,12 @@ from uuid import UUID
 from medlogserver.db._session import get_async_session, get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable, ExportBaseModel
+from medlogserver.model._base_model import (
+    MedLogBaseModel,
+    BaseTable,
+    ExportBaseModel,
+    TimestampModel,
+)
 
 
 log = get_logger()
@@ -49,7 +54,7 @@ class StudyCreate(StudyUpdate):
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4)
 
 
-class Study(StudyCreate, BaseTable, table=True):
+class Study(StudyCreate, BaseTable, TimestampModel, table=True):
     __tablename__ = "study"
 
     id: uuid.UUID = Field(

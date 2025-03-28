@@ -9,5 +9,5 @@ log = get_logger()
 
 
 db_engine = create_async_engine(
-    str(config.SQL_DATABASE_URL), echo=config.DEBUG_SQL, future=True
+    config.SQL_DATABASE_URL, echo=config.DEBUG_SQL, future=True
 )

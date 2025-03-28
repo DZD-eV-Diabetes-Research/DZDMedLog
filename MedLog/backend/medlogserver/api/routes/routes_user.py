@@ -224,7 +224,7 @@ async def update_user(
 
 @fast_api_user_manage_router.put(
     "/user/{user_id}/password",
-    response_model=User,
+    response_model=bool,
     description=f"Set a local users password. If the user is provisioned via an external OpenID Connect provider this does nothing except the return value will be `false`.  {NEEDS_USERMAN_API_INFO}",
 )
 async def set_user_password(
@@ -232,9 +232,10 @@ async def set_user_password(
     new_password: str = Form(default=None),
     new_password_repeated: str = Form(
         default=None,
-        description="For good measure we require the password twice to mitiage typos.",
+        description="For good measure we require the password twice to mitigate typos.",
     ),
     current_user_is_user_manager: bool = Security(user_is_usermanager),
+    user_crud: UserCRUD = Depends(UserCRUD.get_crud),
     user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
 ) -> bool:
     if new_password != new_password_repeated:
@@ -242,9 +243,22 @@ async def set_user_password(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="new password and repeated new password do not match",
         )
-    old_user_auth = user_auth_crud.get_local_auth_source_by_user_id(user_id)
+    user = await user_crud.get(
+        user_id=user_id,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Can not find user with id '{user_id}'",
+        ),
+    )
+    old_user_auth = await user_auth_crud.get_local_auth_source_by_user_id(user_id)
     if old_user_auth is None:
-        return False
+        new_auth = UserAuthCreate(
+            password=new_password,
+            user_id=user_id,
+            auth_source_type=AllowedAuthSourceTypes.local,
+        )
+        await user_auth_crud.create(new_auth)
+        return True
     updated_user_auth = UserAuthUpdate(password=new_password)
     await user_auth_crud.update(user_auth_update=updated_user_auth, id=old_user_auth.id)
     return True

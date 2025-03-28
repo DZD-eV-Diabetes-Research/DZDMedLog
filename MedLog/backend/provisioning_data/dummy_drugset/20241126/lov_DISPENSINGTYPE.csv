@@ -1,0 +1,4 @@
+DISPENSINGTYPE_CODE;DISPENSINGTYPE
+0;prescription
+2;pharmacy-only
+3;over-the-counter

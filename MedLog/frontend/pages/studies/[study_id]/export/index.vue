@@ -1,7 +1,7 @@
 <template>
   <Layout>
     <div style="text-align: center">
-      <h2>Datenexport</h2>
+      <h2 class="text-4xl font-normal mb-4">Datenexport</h2>
     </div>
     <div style="text-align: center">
       <UButton
@@ -121,7 +121,6 @@ async function getDownloads() {
 }
 
 async function downloadFile(row) {
-  console.log(row.downloadLink);
   const fileUrl = row.downloadLink;
   try {
     const response = await fetch(fileUrl, {

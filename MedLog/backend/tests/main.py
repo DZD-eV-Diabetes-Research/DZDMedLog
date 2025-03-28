@@ -12,7 +12,6 @@ if __name__ == "__main__":
     MODULE_DIR = Path(__file__).parent
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
     sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
-from utils import get_medlogserver_base_url, get_dot_env_file_variable, authorize
 
 from statics import (
     DB_PATH,
@@ -21,6 +20,22 @@ from statics import (
     ADMIN_USER_PW,
     ADMIN_USER_NAME,
 )
+
+
+def set_config_for_test_env():
+    os.environ["MEDLOG_DOT_ENV_FILE"] = DOT_ENV_FILE_PATH
+    print(f"set SQL_DATABASE_URL to {DB_PATH}")
+    os.environ["SQL_DATABASE_URL"] = f"sqlite+aiosqlite:///{DB_PATH}"
+    os.environ["ADMIN_USER_NAME"] = ADMIN_USER_NAME
+    os.environ["ADMIN_USER_PW"] = ADMIN_USER_PW
+    os.environ["ADMIN_USER_EMAIL"] = ADMIN_USER_EMAIL
+
+
+set_config_for_test_env()
+
+
+from utils import get_medlogserver_base_url, get_dot_env_file_variable, authorize
+
 
 RESET_DB = os.getenv(
     "MEDLOG_TESTS_RESET_DB",
@@ -39,17 +54,6 @@ if RESET_DB:
     )
     Path(DB_PATH).unlink(missing_ok=True)
 
-
-def set_config_for_test_env():
-    os.environ["MEDLOG_DOT_ENV_FILE"] = DOT_ENV_FILE_PATH
-    print(f"set SQL_DATABASE_URL to {DB_PATH}")
-    os.environ["SQL_DATABASE_URL"] = f"sqlite+aiosqlite:///{DB_PATH}"
-    os.environ["ADMIN_USER_NAME"] = ADMIN_USER_NAME
-    os.environ["ADMIN_USER_PW"] = ADMIN_USER_PW
-    os.environ["ADMIN_USER_EMAIL"] = ADMIN_USER_EMAIL
-
-
-set_config_for_test_env()
 
 from medlogserver.main import start as medlogserver_start
 from medlogserver.worker.worker import run_background_worker
@@ -118,14 +122,14 @@ start_medlogserver_and_backgroundworker()
 # RUN TESTS
 from tests_users import run_all_tests_users
 from tests_export import test_do_export
-from tests_interview import test_interview
-from tests_intakes import test_intakes
+from tests_drugv2 import test_do_drugv2
+from tests_health import test_do_health
 
 try:
     authorize(user=ADMIN_USER_NAME, pw=ADMIN_USER_PW)
-    # run_all_tests_users()
-    test_interview()
-    test_intakes()
+    test_do_health()
+    run_all_tests_users()
+    test_do_drugv2()
     test_do_export()
 except Exception as e:
     print("Error in user tests")

@@ -15,18 +15,24 @@ import uuid
 from uuid import UUID
 from medlogserver.model.event import Event
 from medlogserver.model.interview import Interview
-from medlogserver.model.wido_gkv_arzneimittelindex.stamm import (
-    StammRead,
-    StammUserCustomRead,
+from medlogserver.model.drug_data.drug import DrugData
+from medlogserver.model.drug_data.api_drug_model_factory import (
+    DrugAPIRead,
 )
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable, ExportBaseModel
+from medlogserver.model._base_model import (
+    MedLogBaseModel,
+    BaseTable,
+    ExportBaseModel,
+    TimestampModel,
+)
 
 
 log = get_logger()
 config = Config()
+
 
 # AdministeredByDoctorAnswers = enum.Enum(
 #    "AdministeredByDoctorAnswers", config.APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS
@@ -79,33 +85,14 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
     fields (with meatdata like options) could be defined in json schema. so clients can generate dynamic forms relatively easy.
     """
 
-    pharmazentralnummer: Annotated[
-        Optional[str],
-        StringConstraints(
-            strip_whitespace=True,
-            to_upper=True,
-            pattern=r"^(PZN-)|(-)|( -)?\d{2,9}$",
-            max_length=12,
-            min_length=2,
-        ),
-    ] = Field(
-        description="Take the Pharmazentralnummer in many formats, but all formats will be normalized to just a 8 digit number.",
+    drug_id: uuid.UUID = Field(
+        description="ID of the drug as returned from the drug search.",
         default=None,
-        schema_extra={"examples": ["23894732", "PZN-88888888"]},
+        foreign_key="drug.id",
     )
     source_of_drug_information: Optional[SourceOfDrugInformationAnwers] = Field(
         default=None,
         description="How was the drug/medication identified.",
-    )
-    custom_drug_id: Optional[uuid.UUID] = Field(
-        description="Alternative to pharmazentralnummer. If a drug is not findable in the Arzeimittelindex, and the pharmazentralnummer(pzn) is unknown, the id of a custom drug can be provided.",
-        default=None,
-        schema_extra={
-            "examples": [
-                None,
-                "231583a9-95bf-4876-8b41-3c77ff396101",
-            ]
-        },
     )
     intake_start_time_utc: date = Field()
     intake_end_time_utc: Optional[date] = Field(default=None)
@@ -122,17 +109,6 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
     consumed_meds_today: ConsumedMedsTodayAnswers = Field()
 
     @model_validator(mode="after")
-    def clean_pzn(self):
-        # todo:
-        return self
-        self["pharmazentralnummer"] = (
-            self.pharmazentralnummer.replace("PZN", "")
-            .replace("-", "")
-            .replace(" ", "")
-        )
-        self.pharmazentralnummer = self.pharmazentralnummer.rjust(8, 0)
-
-    @model_validator(mode="after")
     def validate_intake_regular_or_as_needed(self):
         if self.intake_regular_or_as_needed == IntakeRegularOrAsNeededAnswers.REGULAR:
             if self.as_needed_dose_unit is not None:
@@ -146,14 +122,6 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
                 raise ValueError(
                     "When choosing 'as needed' intake, regular_intervall_of_daily_dose must be empty"
                 )
-        return self
-
-    @model_validator(mode="after")
-    def either_set_pzn_or_custom_drug(self):
-        if not self.pharmazentralnummer and not self.custom_drug_id:
-            raise ValueError(
-                "Can not create intake record. Either `pharmazentralnummer` or `custom_drug_id` must be set. Both are empty atm."
-            )
         return self
 
 
@@ -177,20 +145,8 @@ class IntakeCreate(IntakeCreateAPI, table=False):
         return MedLogBaseModel.id_to_uuid(v, info)
 
 
-class Intake(IntakeCreate, BaseTable, table=True):
+class Intake(IntakeCreate, BaseTable, TimestampModel, table=True):
     __tablename__ = "intake"
-    pharmazentralnummer: Annotated[
-        Optional[str],
-        StringConstraints(
-            strip_whitespace=True,
-            max_length=8,
-            min_length=2,
-        ),
-    ] = Field(
-        description="Pharmazentralnummer as 8 digits only",
-        default=None,
-        schema_extra={"examples": ["23894732"]},
-    )
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,
         primary_key=True,
@@ -210,4 +166,4 @@ class IntakeExport(IntakeCreate, BaseTable, table=False):
 class IntakeDetailListItem(IntakeCreate, BaseTable, table=False):
     interview: Interview
     event: Event
-    drug: Optional[StammRead | StammUserCustomRead] = None
+    drug: DrugAPIRead

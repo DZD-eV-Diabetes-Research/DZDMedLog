@@ -10,5 +10,7 @@ export const useProbandStore = defineStore('ProbandStore',{
         probandID: "",
         interviews: null
     }),
-    persist: true
+    persist: {
+        storage: localStorage,
+    }
 }) 
