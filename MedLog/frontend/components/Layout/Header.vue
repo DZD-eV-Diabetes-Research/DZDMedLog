@@ -191,7 +191,6 @@ if (pathSegments.includes('studies')) {
   const eventIndex = pathSegments.indexOf('event');
 
   if (probandIndex !== -1 && studyIndex !== -1) {
-    //`${studyLabelExport.value}: Proband ${route.params.proband_id}`
     links.push({ label: studyInterviewLabel, to: null }); 
     
     if (eventIndex !== -1) {
