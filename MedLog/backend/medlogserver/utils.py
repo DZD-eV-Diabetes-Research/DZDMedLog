@@ -212,7 +212,7 @@ class PathContentHasher:
 
     @classmethod
     def _md5_update_from_dir(cls, directory: Union[str, Path], hash: "Hash") -> "Hash":
-        assert Path(directory).is_dir()
+        assert Path(directory).is_dir(), f"{directory} not a directory"
         for path in sorted(Path(directory).iterdir(), key=lambda p: str(p).lower()):
             hash.update(path.name.encode())
             if path.is_file():

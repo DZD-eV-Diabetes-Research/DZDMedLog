@@ -36,7 +36,6 @@ def start_oidc_server_thread(port: int = 8884):
                 print("Press Ctrl+C to exit the loop.")
 
             while True:
-                # Perform your tasks here
                 pass
         except KeyboardInterrupt:
             print("\nKeyboardInterrupt detected. Exiting the loop safely.")

@@ -41,26 +41,38 @@ kill_processes_by_path() {
 # Trap SIGINT (Ctrl+C) and SIGTERM
 trap cleanup SIGINT SIGTERM
 
-DOT_ENV_FILE_PATH=./bbapprove/.env
-if ! [ -f $DOT_ENV_FILE_PATH ]; then
-echo "Create dummy '${DOT_ENV_FILE_PATH}' file"
-cat >$DOT_ENV_FILE_PATH <<EOL
+
+
 OIDC_COOKIE_SECRET=devdummyvalue1345
 OIDC_CLIENT_ID=devdummyvalue1345
-OIDC_CLIENT_SECRET=devdummyvalue1345
 OIDC_SERVER_METADATA_URL=http://localhost:8884/.well-known/openid-configuration
-EOL
-fi
-export LOG_LEVEL=DEBUG
-export DOT_ENV_FILE_PATH=.env
+
+
+# using somewhat akward EOF/heredoc for dogding even more akward escaping
+export AUTH_OIDC_PROVIDERS=$(cat <<EOF
+[{"PROVIDER_DISPLAY_NAME":"Mockup OIDC","CLIENT_ID":"${OIDC_CLIENT_ID}","CLIENT_SECRET":"${OIDC_COOKIE_SECRET}","DISCOVERY_ENDPOINT":"${OIDC_SERVER_METADATA_URL}"}]
+EOF
+)
 echo "Kill zombie processes..."
 kill_processes_by_path oidc_provider_mock_server.py
 
 echo "Start dummy OIDC Provider"
 # boot OIDC mockup authenticaion server
-(cd ./bbapprove/_dev/ && pdm run oidc_provider_mock_server.py) &
-PIDS+=($!)  # Store PID of last background process
-# Boot streamlit app
-(cd ./bbapprove && pdm run main.py) & 
+(cd ./MedLog/backend/medlogserver/_dev && python3 oidc_provider_mock_server.py) &
+mock_server_PID=$!
+
+# Wait up to 3 seconds for oidc mockup server to boot successfull
+for i in {1..3}; do
+    if ! kill -0 $mock_server_PID 2>/dev/null; then
+        # Process has exited, check its exit code
+        echo "OIDC mockup server failed to start."
+        exit 1
+    fi
+    sleep 1
+done
+echo "OIDC mockup server seemed to have booted."
+PIDS+=($mock_server_PID)  # Store PID
+# Boot MedLog Backend
+python3 ./MedLog/backend/medlogserver/main.py & 
 PIDS+=($!)  # Store PID of last background process
 wait
