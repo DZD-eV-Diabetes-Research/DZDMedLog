@@ -3,8 +3,10 @@
     <UIBaseCard :naked="true">
       <div class="flex flex-row justify-center items-center space-x-4">
         <UButton ref="topButton" @click="saveInterview()" label="Interview Beenden" color="green" variant="soft"
-          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"/>
-        <CopyPreviousDrugs :onUpdate="createIntakeList"/>
+          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+        <CopyPreviousDrugs
+          v-if="route.params.interview_id !== latestItems[0]?.interview_id"
+          :onUpdate="createIntakeList" />
       </div>
     </UIBaseCard>
     <div v-if="drugStore.intakeVisibility">
@@ -49,8 +51,9 @@
         </div>
       </div>
       <div style="text-align: center">
-        <UButton v-if="!showScrollButton" @click="saveInterview()" label="Interview Beenden" color="green" variant="soft"
-          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" style="margin: 25px" />
+        <UButton v-if="!showScrollButton" @click="saveInterview()" label="Interview Beenden" color="green"
+          variant="soft" class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+          style="margin: 25px" />
       </div>
     </div>
     <UModal v-model="deleteModalVisibility">
@@ -86,14 +89,23 @@
       <div class="p-4">
         <div style="text-align: center">
           <h3>Eingangsfrage</h3>
-          <p>Wir möchten Ihre Einnahme von Diabetes-Medikamenten in den vergangegen 12 Monaten erfassen. Dazu gehören sowohl Tabletten als auch Insulinpräparate.</p> 
+          <p>Wir möchten Ihre Einnahme von Diabetes-Medikamenten in den vergangegen 12 Monaten erfassen. Dazu gehören
+            sowohl
+            Tabletten als auch Insulinpräparate.</p>
           <br>
-          <p>Außerdem bitten wir Sie um Angabe, welche anderen Medikamente Sie innerhalb der letzten 7 Tage eingenommen haben. Bitte denken Sie auch an Schmerzmittel und vom Arzt erhaltene Spritzen. Geben Sie Depotmittel an, auch wenn Sie diese zuletzt vor mehr als 7 Tagen eingenommen oder bekommen haben.</p>
+          <p>Außerdem bitten wir Sie um Angabe, welche anderen Medikamente Sie innerhalb der letzten 7 Tage eingenommen
+            haben. Bitte denken Sie auch an Schmerzmittel und vom Arzt erhaltene Spritzen. Geben Sie Depotmittel an,
+            auch
+            wenn Sie diese zuletzt vor mehr als 7 Tagen eingenommen oder bekommen haben.</p>
           <br>
           <p><strong>Nur bei Frauen</strong></p>
-          <p>Denken Sie bitte auch an Medikamente wie die Pille, Hormonersatzpräparate, Depotmittel oder die Spirale, auch wenn Sie diese zuletzt vor mehr als 7 Tagen eingenommen oder bekommen haben.</p>
+          <p>Denken Sie bitte auch an Medikamente wie die Pille, Hormonersatzpräparate, Depotmittel oder die Spirale,
+            auch
+            wenn Sie diese zuletzt vor mehr als 7 Tagen eingenommen oder bekommen haben.</p>
           <br>
-          <p><strong>Haben Sie Diabetes-Medikamente in den vergangenen 12 Monaten bzw. andere Medikamente in den letzten 7 Tagen eingenommen?</strong></p>
+          <p><strong>Haben Sie Diabetes-Medikamente in den vergangenen 12 Monaten bzw. andere Medikamente in den letzten
+              7
+              Tagen eingenommen?</strong></p>
         </div>
       </div>
     </UModal>
@@ -115,6 +127,15 @@ const studyStore = useStudyStore();
 const userStore = useUserStore();
 const runtimeConfig = useRuntimeConfig();
 
+const { data: latestItems } = await useFetch(
+  `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/intake`,
+  {
+    headers: { Authorization: "Bearer " + tokenStore.access_token }
+  }
+);
+
+// console.log(latestItems?.value[0].interview_id);
+// console.log(route.params.interview_id)
 
 drugStore.item = null;
 
@@ -376,7 +397,7 @@ async function createIntakeList() {
           item.drug.attrs_ref.darreichungsform.value +
           ")",
         intakeId: item.id,
-        custom: item.drug?.is_custom_drug ? "Ja": "Nein",
+        custom: item.drug?.is_custom_drug ? "Ja" : "Nein",
         class: item.drug?.is_custom_drug
           ? "bg-yellow-50"
           : null,
@@ -394,7 +415,7 @@ watch(isAction, (newValue) => {
     createIntakeList();
   } else {
     createIntakeList();
-    drugStore.item = ""    
+    drugStore.item = ""
   }
 });
 
@@ -446,9 +467,6 @@ createIntakeList();
   border-radius: 10px;
   border-width: 2px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
-  margin-left: 5%;
-  margin-right: 5%;
-  margin-bottom: 2%;
 }
 
 :deep(td) {
@@ -482,7 +500,7 @@ createIntakeList();
   border-color: green !important;
 }
 
-.custom-modal{
+.custom-modal {
   width: 20px;
 }
 </style>

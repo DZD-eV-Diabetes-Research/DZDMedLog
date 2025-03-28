@@ -4,11 +4,6 @@
             <UButton @click="openCopyIntakeModal()" color="green" variant="soft" label="Medikationsübernahme"
                 style="margin-right: 10px"
                 class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
-            <div class="flex items-center ">
-                <!-- <UTooltip :delay-duration="0" text="Medikatmente aus dem letzten Event übernehmen">
-                    <UIcon name="i-heroicons-question-mark-circle" class="size-5" />
-                </UTooltip> -->
-            </div>
         </div>
         <UModal v-model="openCopyPreviousIntakesModal" :ui="{ width: 'lg:max-w-6xl' }">
             <div class="p-10 text-center">
