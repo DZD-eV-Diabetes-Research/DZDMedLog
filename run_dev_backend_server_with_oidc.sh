@@ -50,7 +50,7 @@ OIDC_SERVER_METADATA_URL=http://localhost:8884/.well-known/openid-configuration
 
 # using somewhat akward EOF/heredoc for dogding even more akward escaping
 export AUTH_OIDC_PROVIDERS=$(cat <<EOF
-[{"PROVIDER_DISPLAY_NAME":"Mockup OIDC","CLIENT_ID":"${OIDC_CLIENT_ID}","CLIENT_SECRET":"${OIDC_COOKIE_SECRET}","DISCOVERY_ENDPOINT":"${OIDC_SERVER_METADATA_URL}"}]
+[{"PROVIDER_SLUG_NAME": "mockup-server-oidc", "PROVIDER_DISPLAY_NAME":"Mockup Server OIDC","CLIENT_ID":"${OIDC_CLIENT_ID}","CLIENT_SECRET":"${OIDC_COOKIE_SECRET}","DISCOVERY_ENDPOINT":"${OIDC_SERVER_METADATA_URL}"}]
 EOF
 )
 echo "Kill zombie processes..."
