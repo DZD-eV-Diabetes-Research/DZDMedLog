@@ -308,14 +308,6 @@ class Config(BaseSettings):
         description="The directory to store the result of export jobs (CSV files, JSON files,...).",
     )
 
-    DEV_START_OIDC_MOCKSERVER_PORT: bool = Field(
-        default=False,
-        description="Boots an oauth/oidc mokcup server (https://github.com/Soluto/oidc-server-mock) in an extra thread at http://localhost:<PORT>. Only needed for local developement.",
-    )
-    DEV_OIDC_MOCKSERVER_PORT: int = Field(
-        default=8884, description="See DEV_START_OIDC_MOCKSERVER_PORT"
-    )
-
     ###### CONFIG END ######
     # "class Config:" is a pydantic-settings pre-defined config class to control the behaviour of our settings model
     # you could call it a "meta config" class
