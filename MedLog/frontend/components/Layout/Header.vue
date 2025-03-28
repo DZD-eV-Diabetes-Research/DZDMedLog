@@ -30,7 +30,7 @@
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
       @click="logout()">Logout</button>
       
-    <UBreadcrumb :links="links" />
+    <UBreadcrumb v-if="tokenStore.loggedIn" :links="links" />
     
     <button v-if="tokenStore.loggedIn"
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
