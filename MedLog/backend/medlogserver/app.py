@@ -26,7 +26,6 @@ app = FastAPI(
 
 
 def add_api_middleware(fastapiapp: FastAPI):
-    # TODO FIX THIS: ONLY FOR DEV!!!
     allow_origins = []
     for oidc in config.AUTH_OIDC_PROVIDERS:
         allow_origins.append(
@@ -42,10 +41,11 @@ def add_api_middleware(fastapiapp: FastAPI):
             str(config.get_server_url()).rstrip("/"),
         ]
     )
+    allow_origins = set(allow_origins)
     log.info(f"Origin allowed: {allow_origins}")
     fastapiapp.add_middleware(
         CORSMiddleware,
-        allow_origins=allow_origins,
+        allow_origins=set(allow_origins),
         allow_methods=["*"],
         allow_headers=["*"],
         allow_credentials=True,
