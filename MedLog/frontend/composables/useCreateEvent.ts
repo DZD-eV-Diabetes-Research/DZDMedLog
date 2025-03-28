@@ -6,7 +6,7 @@ export async function useCreateEvent(name: string, study_id:string): Promise<voi
     
     try {        
         const runtimeConfig = useRuntimeConfig()
-        const data = await $fetch(runtimeConfig.public.baseURL + "/study/" + study_id + "/event", {
+        const data = await $fetch(runtimeConfig.public.baseURL + "study/" + study_id + "/event", {
             method: "POST",
             headers: { 'Authorization': "Bearer " + tokenStore.access_token },
             body,

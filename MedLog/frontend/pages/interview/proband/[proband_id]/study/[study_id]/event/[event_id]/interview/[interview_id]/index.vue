@@ -345,7 +345,7 @@ async function saveInterview() {
 async function createIntakeList() {
   try {
     const intakes = await $fetch(
-      `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`,
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`,
       {
         method: "GET",
         headers: { Authorization: "Bearer " + tokenStore.access_token },

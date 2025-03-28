@@ -98,7 +98,7 @@ function parseTime(time:string) {
 
 async function getDownloads() {
   const data = await $fetch(
-    `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/export`,
+    `${runtimeConfig.public.baseURL}study/${route.params.study_id}/export`,
     {
       method: "GET",
       headers: { Authorization: "Bearer " + tokenStore.access_token },
@@ -111,7 +111,7 @@ async function getDownloads() {
     study: studyName.display_name,
     time: parseTime(item.created_at),
     status: item.state,
-    downloadLink: `${runtimeConfig.public.baseURL}/${item.download_file_path}`,
+    downloadLink: `${runtimeConfig.public.baseURL}${item.download_file_path}`,
   }));
 
   if (!downloads.value.some(download => download.status === "queued") && downloadCheckInterval) {
@@ -147,7 +147,7 @@ async function downloadFile(row) {
 async function requestDownload() {
   try {
     await $fetch(
-      `${runtimeConfig.public.baseURL}/study/${route.params.study_id}/export?format=csv`,
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/export?format=csv`,
       {
         method: "POST",
         headers: { Authorization: "Bearer " + tokenStore.access_token },
