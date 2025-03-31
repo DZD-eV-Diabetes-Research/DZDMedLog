@@ -61,12 +61,7 @@ const state = reactive({
 
 const loginOIDC = async function (oidc_method) {
   try {
-    console.log(`${runtimeConfig.public.baseURL}${oidc_method.login_endpoint}`);
-
-    await $fetch(`http://localhost:8888${oidc_method.login_endpoint}`, {
-      method: "GET",
-      redirect: "follow"})
-    window.location.href = `${runtimeConfig.public.baseURL}${oidc_method.login_endpoint}`
+    window.location.href = `http://localhost:8888${oidc_method.login_endpoint}`
 
   } catch (error) {
     console.log(error);

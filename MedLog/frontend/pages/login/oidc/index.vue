@@ -1,4 +1,3 @@
-import { UIBaseCard } from '../../../.nuxt/components';
 <template>
     <Layout>
         <UIBaseCard>
@@ -12,7 +11,7 @@ import { UIBaseCard } from '../../../.nuxt/components';
     </Layout>
 </template>
 
-<script setup>
+<script setup lang="ts">
 
 const route = useRoute()
 const runtimeConfig = useRuntimeConfig();
