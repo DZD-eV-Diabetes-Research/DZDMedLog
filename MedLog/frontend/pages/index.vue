@@ -25,13 +25,12 @@
           </UButton>
         </div>
       </UForm>
-      <div class="loginButtonContainer">
-        <UButton @click="loginWithAuth()" color="red" variant="soft" label="Login mit DZD Authentik"
-          class="border border-red-500 hover:bg-white hover:border-red-500 hover:text-red-500">
-          <template #trailing>
-            <img src="/public/icons/authentik-orange.svg" alt="DZD Authentik" style="width: 24px; height: 24px;" />
-          </template>
-        </UButton>
+      <div class="loginButtonContainer" v-if="data">
+        <div v-for="loginMethod in data">
+          <UButton v-if="loginMethod.name !== 'Login'" :class="[getRandomColorClass(), 'rounded-lg']" @click="loginOIDC(loginMethod)">
+            Login via: {{loginMethod.name}}
+          </Ubutton>
+        </div>
       </div>
       <p>
         Kein Account?
@@ -47,7 +46,6 @@ const tokenStore = useTokenStore();
 tokenStore.my_401 = false
 
 import { object, string, type InferType } from "yup";
-import type { FormSubmitEvent } from "#ui/types";
 
 const schema = object({
   username: string().required("Benötigt"),
@@ -61,13 +59,14 @@ const state = reactive({
   password: undefined,
 });
 
-async function loginWithAuth() {
+const loginOIDC = async function (oidc_method) {
   try {
-    await $fetch(`${runtimeConfig.public.baseURL}auth/oidc/login/openid-connect`, {
+    console.log(`${runtimeConfig.public.baseURL}${oidc_method.login_endpoint}`);
+
+    await $fetch(`http://localhost:8888${oidc_method.login_endpoint}`, {
       method: "GET",
       redirect: "follow"})
-    window.location.href = `${runtimeConfig.public.baseURL}auth/oidc/login/openid-connect`
-    console.log(`${runtimeConfig.public.baseURL}auth/oidc/login/openid-connect`);
+    window.location.href = `${runtimeConfig.public.baseURL}${oidc_method.login_endpoint}`
 
   } catch (error) {
     console.log(error);
@@ -75,6 +74,17 @@ async function loginWithAuth() {
   }
 }
 
+const { data, status, error, refresh, clear } = await useFetch(`${runtimeConfig.public.baseURL}auth/schemes`, {
+  method: "GET",
+  headers: { 'Authorization': "Bearer " + tokenStore.access_token },
+})
+
+const colors = ["border border-fuchsia-400 bg-fuchsia-100 hover:bg-fuchsia-300 hover:border-white text-fuchsia-400 hover:text-white","border bg-purple-100 border-purple-400 hover:bg-purple-300 hover:border-white text-purple-400 hover:text-white", "border bg-indigo-100 border-indigo-400 hover:bg-indigo-300 hover:border-white text-indigo-400 hover:text-white", "border bg-violet-100 border-violet-400 hover:bg-violet-300 hover:border-white text-violet-400 hover:text-white",
+];
+function getRandomColorClass() {
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  return color;
+}
 </script>
 
 <style scoped>
