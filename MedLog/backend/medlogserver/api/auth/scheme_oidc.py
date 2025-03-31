@@ -89,7 +89,7 @@ class StarletteOAuthProviderAppContainer:
         redirect_uri = str(config.get_server_url()).strip("/")
         if str(config.get_server_url()).strip("/") != str(config.CLIENT_URL).strip("/"):
             log.warning("Check if this is working: 7326472")
-            redirect_uri += str(config.CLIENT_URL)
+            redirect_uri = str(config.CLIENT_URL)
         redirect_uri += "/login/oidc"
         return await self.app.authorize_redirect(request, str(redirect_uri))
 
