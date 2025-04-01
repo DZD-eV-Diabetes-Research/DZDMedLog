@@ -8,7 +8,7 @@
         </NuxtLink>
       </div>
 
-      <div class="flex flex-col items-start">
+      <div class="flex flex-col text-start justify-center">
         <p :class="userStore.userName ? 'text-gray-600' : 'invisible text-transparent'" class="text-lg">Benutzer: {{
           userStore.userName }}</p>
         <p :class="route.params.study_id ? 'text-gray-600' : 'invisible text-transparent'" class="text-lg">Studie: {{
@@ -139,16 +139,7 @@ function resetStore() {
   studyStore.$reset();
 }
 
-// function toggelProfile() {
-//   userStore.toggle_profile();
-// }
-
-// const profileButtonClass = computed(() =>
-//   userStore.buttonText === 'Toggle to User' ? 'bg-green-500 text-white px-4 py-2 rounded-lg' : 'bg-blue-500 text-white px-4 py-2 rounded-lg'
-// );
-
 const openSlide = ref(false)
-
 
 const resetStores = () => {
   studyName.value = "";
@@ -188,13 +179,11 @@ if (pathSegments.includes('studies')) {
   const eventIndex = pathSegments.indexOf('event');
 
   if (probandIndex !== -1 && studyIndex !== -1) {
-    links.push({ label: studyInterviewLabel, to: null }); 
+    links.push({ label: studyInterviewLabel, to: `/interview/proband/${route.params.proband_id}/study/${route.params.study_id}` }); 
     
     if (eventIndex !== -1) {
       links.push({ label: `Event ${eventName.value}`, to: null }); 
-    } else {
-      links.push({ label: 'Übersicht', to: null }); 
-    }
+    } 
   }
 }
 
