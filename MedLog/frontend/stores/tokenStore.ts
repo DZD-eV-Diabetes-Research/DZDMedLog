@@ -48,6 +48,9 @@ export const useTokenStore = defineStore('TokenStore',{
                 
                 this.my_401 = true
               }
+    },
+    set401(value: boolean) {
+      this.my_401 = value;
     }
 },
 persist: {
