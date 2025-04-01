@@ -98,6 +98,7 @@ class StarletteOAuthProviderAppContainer:
         self,
         request: Request,
         code: str = None,
+        state: str = None,
         user_crud: UserCRUD = Depends(UserCRUD.get_crud),
         user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
         user_auth_access_token_crud: UserAuthRefreshTokenCRUD = Depends(
