@@ -76,7 +76,7 @@ const login = () => {
 
 const loginOIDC = async function (oidc_method) {
   try {
-    window.location.href = `http://localhost:8888${oidc_method.login_endpoint}`
+    window.location.href = `${runtimeConfig.public.baseURL.slice(0,-1)}${oidc_method.login_endpoint}`
 
   } catch (error) {
     console.log(error);
@@ -90,8 +90,6 @@ function getRandomColorClass() {
   const color = colors[Math.floor(Math.random() * colors.length)];
   return color;
 }
-
-console.log(`${runtimeConfig.public.baseURL}`.slice(0, -1))
 </script>
 
 <style scoped>
