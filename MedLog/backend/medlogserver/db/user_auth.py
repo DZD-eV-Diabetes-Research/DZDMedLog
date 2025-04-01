@@ -92,10 +92,12 @@ class UserAuthCRUD(
         raise_exception_if_none: Exception = None,
     ) -> UserAuth | None:
         query = select(UserAuth).where(
-            UserAuth.user_id == user_id
-            and UserAuth.auth_source_type == auth_source
-            and UserAuth.oidc_provider_name == oidc_provider_name
+            UserAuth.user_id == user_id and UserAuth.auth_source_type == auth_source
         )
+        if oidc_provider_name is not None:
+            query = query.where(UserAuth.oidc_provider_name == oidc_provider_name)
+        else:
+            query = query.where(UserAuth.oidc_provider_name == None)
         results = await self.session.exec(statement=query)
         user_auth: Sequence[UserAuth] | None = results.one_or_none()
         if user_auth is None and raise_exception_if_none:
