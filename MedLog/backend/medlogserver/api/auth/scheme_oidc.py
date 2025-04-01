@@ -147,15 +147,23 @@ class StarletteOAuthProviderAppContainer:
         try:
             log.debug(("user_name_attribute", user_name_attribute))
             log.debug(("userinfo", userinfo))
+            if "userinfo" in userinfo:
+                outer_userinfo = userinfo
+                userinfo = outer_userinfo["userinfo"]
+
             user_name = userinfo.get(user_name_attribute)
             if user_name is None:
-                raise ValueError("")
+                if "sub" in outer_userinfo:
+                    user_name = outer_userinfo["sub"]
+                else:
+                    raise ValueError("No username")
         except Exception as ex:
+            log.debug(f"Userinfo: {userinfo}")
             log.error(ex)
 
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Could not extract OIDC user_name in endpoint or token from '{self.oidc_provider_config.PROVIDER_DISPLAY_NAME}'.",
+                detail=f"Could not extract OIDC user_name in endpoint or token from '{self.oidc_provider_config.PROVIDER_DISPLAY_NAME}'. ",
             )
         if self.oidc_provider_config.PREFIX_USER_ID_WITH_PROVIDER_NAME:
             user_name = f"{self.name}{user_name}"
