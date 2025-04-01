@@ -18,5 +18,4 @@ const runtimeConfig = useRuntimeConfig();
 
 const {data:response} = await useFetch(`${runtimeConfig.public.baseURL}auth/oidc/token/mockup-server-oidc?code=${route.query.code}&state=${route.query.state}`)
 
-
 </script>
