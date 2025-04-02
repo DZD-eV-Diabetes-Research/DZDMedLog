@@ -39,6 +39,7 @@ dependencies = [
     "python-multipart",
     "apscheduler",
     "async-lru",
+    "websockets",
 ]
 
 [project.optional-dependencies]
