@@ -114,14 +114,17 @@ class StarletteOAuthProviderAppContainer:
             pass
 
         try:
+            log.debug(("request.query_params", request.query_params))
             # We use the OAuth2 Authorization Code Flow. That means the OIDC provider send the auth code to here.
             # we create the refresh and access token from the auth code and send the access token back to the user
             user_oauth_token: OAuth2Token = await self.app.authorize_access_token(
                 request
             )
+            log.debug(("user_oauth_token", user_oauth_token))
             # log.debug(f"token: {type(user_oauth_token)},{user_oauth_token}")
 
         except OAuthError as error:
+            log.error(error.description)
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail=error.description)
 
         # <=0.15
