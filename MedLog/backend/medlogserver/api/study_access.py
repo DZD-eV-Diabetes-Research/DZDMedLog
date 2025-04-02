@@ -111,9 +111,7 @@ class UserStudyAccessCollection:
             filter_user_id=self.user.id, filter_study_id=study_id
         )
         for study_perm in study_permissions:
-            study = next(
-                (s.id for s in studies_data if s.id == study_perm.study_id), None
-            )
+            study = next((s for s in studies_data if s.id == study_perm.study_id), None)
             if study:
                 self.studies_access[study_perm.study_id] = UserStudyAccess(
                     self.user, study, study_perm
