@@ -1,12 +1,7 @@
 <template>
     <Layout>
         <UIBaseCard>
-            code : {{ route.query.code }}
-            <br>
-            state : {{ route.query.state }}
-        </UIBaseCard>
-        <UIBaseCard>
-            {{ response }}
+           <h1 class="text-4xl">Sie werden zum Start weitergeleitet</h1>
         </UIBaseCard>
     </Layout>
 </template>
@@ -15,7 +10,10 @@
 
 const route = useRoute()
 const runtimeConfig = useRuntimeConfig();
+const tokenStore = useTokenStore();
 
 const {data:response} = await useFetch(`${runtimeConfig.public.baseURL}auth/oidc/token/mockup-server-oidc?code=${route.query.code}&state=${route.query.state}`)
+
+tokenStore.loginViaOpenIDToken(response)
 
 </script>
