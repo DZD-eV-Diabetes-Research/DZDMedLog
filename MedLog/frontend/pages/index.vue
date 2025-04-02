@@ -1,7 +1,7 @@
 <template>
   <Layout>
     <UIBaseCard>
-      <div v-if="healthStatus?.healthy">
+      <div v-if="healthStatus?.healthy" class="flex flex-col justify-center items-center">
         <div class="flex flex-col space-y-2" v-if="data">
           <div v-for="loginMethod in data">
             <div v-if="loginMethod.type === 'credentials'">
@@ -37,11 +37,13 @@
             </div>
           </div>
         </div>
+        <div class="mt-4">
         <p>
           Kein Account?
           <a href="https://auth.dzd-ev.org/" target="_blank"
             class="hover:border-[#ec372d] hover:border-b-2">Registrieren Sie sich hier.</a>
         </p>
+      </div>
       </div>
       <div v-else class="flex flex-col space-y-8 text-center">
         <h3 class="text-4xl text-red-500">Backened status is not healthy</h3>
