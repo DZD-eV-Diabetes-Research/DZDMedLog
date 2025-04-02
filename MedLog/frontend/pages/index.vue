@@ -35,7 +35,7 @@
         </div>
         <p>
           Kein Account?
-          <a href="https://auth.dzd-ev.org/" target="_blank" class="hover:outline-bottom hover:outline-sky-500">Registrieren Sie sich hier.</a>
+          <a href="https://auth.dzd-ev.org/" target="_blank" class="hover:border-[#ec372d] hover:border-b-2">Registrieren Sie sich hier.</a>
         </p>
       </div>
       <div v-else class="flex flex-col space-y-8 text-center">
