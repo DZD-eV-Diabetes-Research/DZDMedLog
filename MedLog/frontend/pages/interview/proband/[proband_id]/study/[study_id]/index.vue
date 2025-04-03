@@ -10,7 +10,7 @@
             class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
             Interview Durchführen
           </UButton>
-          <UButton v-if="userStore.isAdmin" @click="showEventModal = !showEventModal" color="green" variant="soft"
+          <UButton v-if="userStore.isAdmin" @click="openEventModal()" color="green" variant="soft"
             class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
             Neues Event anlegen
           </UButton>
@@ -187,7 +187,8 @@ async function createEvent() {
 async function createInterview() {
   try {
     const interview = await useCreateInterview(route.params.study_id, selectedIncompleteEvent.value.id, route.params.proband_id, true, userStore.userID)
-    studyStore.event = selectedIncompleteEvent.value.event.name    
+    studyStore.event = selectedIncompleteEvent.value.event.name 
+    userStore.firstEvent = true;   
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + selectedIncompleteEvent.value.id + "/interview/" + interview.id)
   }
   catch (error) {    
@@ -280,6 +281,13 @@ async function createIntakeList() {
   } catch (error) {
     console.log(error);
   }
+}
+
+//eventmodal logic
+
+const openEventModal = () => {
+  showEventModal.value = true;
+  eventError.value = "";
 }
 
 createIntakeList()

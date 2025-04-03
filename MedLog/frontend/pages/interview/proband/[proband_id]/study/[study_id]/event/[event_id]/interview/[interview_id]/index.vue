@@ -114,9 +114,6 @@
 </template>
 
 <script setup lang="ts">
-import { object, number, date, string, type InferType } from "yup";
-let test = new Date().toISOString();
-
 // general constants
 
 const route = useRoute();
@@ -418,6 +415,10 @@ watch(isAction, (newValue) => {
     drugStore.item = ""
   }
 });
+
+const resetFirstEvent = () => {
+  userStore.firstEvent = false;
+}
 
 getDosageForm();
 createIntakeList();

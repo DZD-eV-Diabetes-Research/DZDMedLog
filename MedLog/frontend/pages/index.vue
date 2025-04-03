@@ -1,7 +1,7 @@
 <template>
   <Layout>
     <UIBaseCard>
-      <div v-if="healthStatus?.healthy" class="flex flex-col justify-center items-center">
+      <div v-if="healthStatus?.healthy" class="flex flex-col justify-center">
         <div class="flex flex-col space-y-2" v-if="data">
           <div v-for="loginMethod in data">
             <div v-if="loginMethod.type === 'credentials'">
@@ -23,7 +23,7 @@
                 </UFormGroup>
                 <div class="flex justify-center">
                   <UButton color="green" variant="soft"
-                    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+                    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white mb-2"
                     type="submit">
                     Einloggen
                   </UButton>

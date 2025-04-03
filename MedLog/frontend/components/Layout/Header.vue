@@ -34,7 +34,7 @@
     
     <button v-if="tokenStore.loggedIn"
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
-      @click="openSlide = true">Help</button>
+      @click="openSlide = true">Hilfe</button>
   </div>
 
   <!-- SLIDER INFO HELP -->
@@ -60,13 +60,14 @@
           Probanden-ID verlangt. Nun sehen Sie eine Medikationsübersicht des Patienten über die gesamte Studie.
           Hier haben Sie die Möglichkeit, ein Interview durchzuführen oder zu bearbeiten.</p>
         <br>
-        <p>Wenn noch keine Medikamente bei dem Patienten gelistet sind, haben Sie die Möglichkeit, über den Button
+        <p>Sie haben die Möglichkeit, über den Button
           "Medikationsübernahme"
           die Medikamente <strong>des letzten abgeschlossenen Events</strong> zu übernehmen.</p>
         <br>
-        <p>Teil 3, also den <strong>Datenexport</strong>, erreichen Sie, wie die Verwaltung der Studien, über den Button
+        <p>Teil 3, den <strong>Datenexport</strong>, erreichen Sie, wie die Verwaltung der Studien, über den Button
           "Studienverwaltung" von
           der Landingpage aus.</p>
+        <p>Des weiteren können Sie sich über die Breadcrumbs, am oberen Bildschirmrand, zu den jeweiligen vorher besuchten Seiten klicken</p>
         <br>
         <div id="zusatzinfo" class="flex flex-row mt-80">
           <p>Für Admins oder Technikinteressierte finden Sie hier unser <a
