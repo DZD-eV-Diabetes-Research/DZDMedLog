@@ -1,7 +1,7 @@
 <template>
     <Layout>
         <div class="center">
-            <h1 class="text-4xl font-normal">Neue Interviews</h1>
+            <h1 class="text-4xl font-normal">Neue Interviews Starten</h1>
         </div>
         <UIBaseCard v-if="!studyStore.studies">
             <h2 v-if="userStore.isAdmin">Aktuell sind keine Studien aufgelistet bitte, legen Sie eine Studie an</h2>
@@ -17,7 +17,7 @@
                 <UButton color="green" variant="soft"
                     class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
                     type="submit">
-                    Suchen
+                    Proband aufrufen
                 </UButton>
             </UForm>
         </UIBaseCard>

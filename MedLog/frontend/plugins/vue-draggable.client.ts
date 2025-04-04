@@ -1,4 +1,3 @@
-// plugins/vue-draggable.ts
 import draggable from "vuedraggable";
 
 export default defineNuxtPlugin((nuxtApp) => {

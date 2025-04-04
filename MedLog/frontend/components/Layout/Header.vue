@@ -173,7 +173,7 @@ if (pathSegments.includes('studies')) {
     links.push({ label: studyLabelEventVerwaltung});
   }
 } else if (pathSegments.includes('interview')) {
-  links.push({ label: 'Neues Interview', to: '/interview' });
+  links.push({ label: 'Neue Interviews Starten', to: '/interview' });
 
   const probandIndex = pathSegments.indexOf('proband');
   const studyIndex = pathSegments.indexOf('study');
