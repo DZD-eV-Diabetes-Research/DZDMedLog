@@ -5,6 +5,7 @@ interface TokenState {
   refresh_token: string
   loggedIn: boolean
   my_401: boolean
+  oidcTokenURL: string
 
 }
 
@@ -15,7 +16,8 @@ export const useTokenStore = defineStore('TokenStore', {
     access_token: "",
     refresh_token: "",
     loggedIn: false,
-    my_401: false
+    my_401: false,
+    oidcTokenURL: "",
 
   }),
   actions: {
@@ -55,6 +57,7 @@ export const useTokenStore = defineStore('TokenStore', {
       this.access_token = token.value.access_token
       this.refresh_token = token.value.refresh_token
       this.loggedIn = true
+      this.oidcTokenURL = ""
       userStore.userMe()
 
       const router = useRouter()
@@ -63,7 +66,10 @@ export const useTokenStore = defineStore('TokenStore', {
     },
     set401(value: boolean) {
       this.my_401 = value;
-    }
+    },
+    setOidcTokenURL(value: string){
+      this.oidcTokenURL = value
+    },
   },
   persist: {
     storage: localStorage,

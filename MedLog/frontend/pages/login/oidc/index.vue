@@ -12,7 +12,7 @@ const route = useRoute()
 const runtimeConfig = useRuntimeConfig();
 const tokenStore = useTokenStore();
 
-const {data:response} = await useFetch(`${runtimeConfig.public.baseURL}auth/oidc/token/mockup-server-oidc?code=${route.query.code}&state=${route.query.state}`)
+const {data:response} = await useFetch(`${runtimeConfig.public.baseURL.slice(0, -1)}${tokenStore.oidcTokenURL}?code=${route.query.code}&state=${route.query.state}`)
 
 tokenStore.loginViaOpenIDToken(response)
 
