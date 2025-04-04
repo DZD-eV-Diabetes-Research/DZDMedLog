@@ -5,9 +5,17 @@ Users:
       email: admin@test.com
       given_name: Admin Maier
       groups:
-        - admins
+        - medlog-admins
         - others
         - icecream-lovers
+  - sub: admin2
+    name: admin2
+    email: admin2@test.com
+    given_name: Admin Two
+    groups:
+      - others
+      - icecream-lovers
+      - medlog-admins
   - sub: user1
     userinfo:
       name: user1
