@@ -67,7 +67,6 @@ const tokenStore = useTokenStore();
 tokenStore.set401(false);
 
 import { object, string, type InferType } from "yup";
-import { UModal } from '../.nuxt/components';
 
 const { data: healthStatus, error: healthError } = await useFetch(`${runtimeConfig.public.baseURL}health`, {
   method: "GET",
