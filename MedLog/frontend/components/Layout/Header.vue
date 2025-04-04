@@ -69,7 +69,7 @@
           der Landingpage aus.</p>
         <p>Des weiteren können Sie sich über die Breadcrumbs, am oberen Bildschirmrand, zu den jeweiligen vorher besuchten Seiten klicken</p>
         <br>
-        <div id="zusatzinfo" class="flex flex-row mt-80">
+        <div id="zusatzinfo">
           <p>Für Admins oder Technikinteressierte finden Sie hier unser <a
               class="text-blue-600 hover:border-b-2 hover:border-blue-600" href="https://www.github.com">Repository</a>
           </p>

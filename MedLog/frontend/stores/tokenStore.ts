@@ -5,6 +5,7 @@ interface TokenState {
   refresh_token: string
   loggedIn: boolean
   my_401: boolean
+  expiredToken:boolean
   oidcTokenURL: string
 
 }
@@ -18,6 +19,7 @@ export const useTokenStore = defineStore('TokenStore', {
     loggedIn: false,
     my_401: false,
     oidcTokenURL: "",
+    expiredToken: false,
 
   }),
   actions: {
@@ -38,6 +40,7 @@ export const useTokenStore = defineStore('TokenStore', {
         this.access_token = data.access_token
         this.refresh_token = data.refresh_token
         this.loggedIn = true
+        this.expiredToken = false
 
         userStore.userMe()
 
@@ -58,6 +61,8 @@ export const useTokenStore = defineStore('TokenStore', {
       this.refresh_token = token.value.refresh_token
       this.loggedIn = true
       this.oidcTokenURL = ""
+      this.expiredToken = false
+
       userStore.userMe()
 
       const router = useRouter()

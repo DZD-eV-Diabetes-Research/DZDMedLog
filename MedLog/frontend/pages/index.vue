@@ -43,11 +43,14 @@
           <a href="https://auth.dzd-ev.org/" target="_blank"
             class="hover:border-[#ec372d] hover:border-b-2">Registrieren Sie sich hier.</a>
         </p>
+        <div v-if="tokenStore.expiredToken">
+          <h3 class="text-4xl text-red-500">Ihre Session ist abgelaufen, bitte loggen Sie sich erneut ein</h3>
+        </div>
       </div>
       </div>
       <div v-else class="flex flex-col space-y-8 text-center">
-        <h3 class="text-4xl text-red-500">Backened status is not healthy</h3>
-        <p class="text-lg text-red-500">Please start the backend or notify the admin</p>
+        <h3 class="text-4xl text-red-500">Der Backendstatus ist "not healthy"</h3>
+        <p class="text-lg text-red-500">Bitte wenden Sie sich an ihren Admin</p>
         <p class="text-lg text-red-500">{{ healthError }}
         </p>
       </div>
@@ -64,6 +67,7 @@ const tokenStore = useTokenStore();
 tokenStore.set401(false);
 
 import { object, string, type InferType } from "yup";
+import { UModal } from '../.nuxt/components';
 
 const { data: healthStatus, error: healthError } = await useFetch(`${runtimeConfig.public.baseURL}health`, {
   method: "GET",
