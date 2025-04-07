@@ -44,7 +44,7 @@
           <p class="text-lg mt-2">Page {{ state.currentPage }} of {{ totalPages }}</p>
         </div>
       </div>
-      <div v-if="drugList.count == 0 && state.drug.length >= 3" class="text-center my-6">
+      <div v-if="drugList.count == 0 && state.drug.length >= 3 && !initialLoad" class="text-center my-6">
         <h4>
           Es konnte kein Medikament zu folgender Eingabe gefunden werden:
         </h4>
@@ -55,8 +55,7 @@
         <h3>{{ customDrug }}</h3>
       </div>
     </div>
-    <div v-if="drugStore.item">
-      <br />
+    <div v-if="drugStore.item" class="my-8">
       <p>Medikament: {{ drugStore.item.drug.trade_name }}</p>
       <p>PZN: {{ drugStore.item.drug.codes?.PZN }}</p>
       <p>Packungsgroesse: {{ drugStore.item.drug.attrs?.amount || 'N/A' }}</p>

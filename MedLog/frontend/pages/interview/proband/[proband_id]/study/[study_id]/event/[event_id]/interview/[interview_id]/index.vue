@@ -79,9 +79,9 @@
     <UModal v-model="drugStore.editVisibility" @close="drugStore.$reset()">
       <div class="p-4">
         <div style="text-align: center">
-          <IntakeQuestion :drug="toEditDrug" :edit="true" :custom="customDrug"
-            :color="customDrug ? 'yellow' : 'blue'" />
-          <DrugForm :color="customDrug ? 'yellow' : 'blue'" :edit="true" :custom=customDrug label="Bearbeiten" />
+          <IntakeQuestion :drug="toEditDrug" :edit="true" :custom="customDrug === 'Nein' ? false : true"
+            :color="customDrug === 'Nein' ? 'blue' : 'yellow'" />
+          <DrugForm :color="customDrug === 'Nein' ? 'blue' : 'yellow'" :edit="true" :custom="customDrug === 'Nein' ? false : true" label="Bearbeiten" />
         </div>
       </div>
     </UModal>
