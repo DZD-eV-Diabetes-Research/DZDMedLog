@@ -1,12 +1,8 @@
 <template>
   <UIBaseCard :naked="true">
     <UFormGroup label="Medikament" name="drug" required>
-      <UInput
-        v-model="state.drug"
-        placeholder="Medikament/PZN oder ATC-Code eingeben"
-        icon="i-heroicons-magnifying-glass-20-solid"
-        :color="props.color"
-      />
+      <UInput v-model="state.drug" placeholder="Medikament/PZN oder ATC-Code eingeben"
+        icon="i-heroicons-magnifying-glass-20-solid" :color="props.color" />
     </UFormGroup>
     <div v-if="isLoading && props.edit && !props.custom">
       <br />
@@ -16,61 +12,43 @@
     <div>
       <div v-if="drugList.items.length > 0">
         <ul>
-          <li
-            @click="printMedication(item)"
-            class="drug"
-            v-for="item in paginatedItems"
-            :key="item.drug.id"
-            @mouseover="hoveredItem = item"
-            @mouseleave="hoveredItem = null"
-            style="position: relative"
-          >
-          <div>
-            <strong>Name: {{ item.drug.trade_name }} </strong><br />
-            PZN: {{ item.drug.codes.PZN }} <br />
-            <div v-for="attr in drugFieldDefinitionsObject.attrs" :key="attr[1]">
-              {{ attr[0] }}: {{ item.drug?.attrs?.[attr[1]] }}
+          <li @click="printMedication(item)" class="drug" v-for="item in paginatedItems" :key="item.drug.id"
+            @mouseover="hoveredItem = item" @mouseleave="hoveredItem = null" style="position: relative">
+            <div>
+              <strong>Name: {{ item.drug.trade_name }} </strong><br />
+              PZN: {{ item.drug.codes.PZN }} <br />
+              <div v-for="attr in drugFieldDefinitionsObject.attrs" :key="attr[1]">
+                {{ attr[0] }}: {{ item.drug?.attrs?.[attr[1]] }}
+              </div>
+              <div v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :key="attr_ref[1]">
+                {{ attr_ref[0] }}: {{ item.drug?.attrs_ref?.[attr_ref[1]]?.display }}
+              </div>
             </div>
-            <div v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :key="attr_ref[1]">
-              {{ attr_ref[0] }}: {{ item.drug?.attrs_ref?.[attr_ref[1]]?.display }}
-            </div>
-          </div>
-            <div
-              class="info"
-              v-if="hoveredItem === item"
-              :style="{ right: '110%', top: '-10%' }"
-            >
-            <div v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref" :key="attr_multi_ref[1]">
-              {{ attr_multi_ref[0] }}: {{ item.drug?.attrs_multi_ref?.[attr_multi_ref[1]][0].display }}
-            </div>
+            <div class="info" v-if="hoveredItem === item" :style="{ right: '110%', top: '-10%' }">
+              <div v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref" :key="attr_multi_ref[1]">
+                {{ attr_multi_ref[0] }}: {{ item.drug?.attrs_multi_ref?.[attr_multi_ref[1]][0].display }}
+              </div>
             </div>
           </li>
         </ul>
         <div class="pagination" v-if="drugList.count >= 6">
           <div class="flex flex-row justify-center space-x-2">
-          <button @click="state.currentPage > 1 ? state.currentPage-- : 0" class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100">
-            <
-          </button>
-          <button
-            @click="state.currentPage < totalPages ? state.currentPage++ : 0"
-            class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100 mx-10"
-          >
-            >
-          </button>
-        </div>
+            <button @click="state.currentPage > 1 ? state.currentPage-- : 0"
+              class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100">
+              < </button>
+                <button @click="state.currentPage < totalPages ? state.currentPage++ : 0"
+                  class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100 mx-10">
+                  >
+                </button>
+          </div>
           <p class="text-lg mt-2">Page {{ state.currentPage }} of {{ totalPages }}</p>
         </div>
       </div>
-      <div
-        v-if="drugList.count == 0 && state.drug.length >= 3"
-        style="text-align: center"
-      >
-        <div v-if="!initialLoad">
-          <h4>
-            Es konnte kein Medikament zu folgender Eingabe gefunden werden:
-          </h4>
-          <h3>{{ state.drug }}</h3>
-        </div>
+      <div v-if="drugList.count == 0 && state.drug.length >= 3" class="text-center my-6">
+        <h4>
+          Es konnte kein Medikament zu folgender Eingabe gefunden werden:
+        </h4>
+        <h3 class="text-2xl my-2">{{ state.drug }}</h3>
       </div>
       <div v-if="props.custom && !drugStore.item">
         <h4>Custom Medikament</h4>
@@ -78,14 +56,14 @@
       </div>
     </div>
     <div v-if="drugStore.item">
-          <br />
-          <p>Medikament: {{ drugStore.item.drug.trade_name }}</p>
-          <p>PZN: {{ drugStore.item.drug.codes?.PZN }}</p>
-          <p>Packungsgroesse: {{ drugStore.item.drug.attrs?.amount || 'N/A' }}</p>
-          <p>
-            Darreichungsform: {{ drugStore.item.drug.attrs_ref.darreichungsform?.display || 'N/A' }}
-          </p>
-        </div>
+      <br />
+      <p>Medikament: {{ drugStore.item.drug.trade_name }}</p>
+      <p>PZN: {{ drugStore.item.drug.codes?.PZN }}</p>
+      <p>Packungsgroesse: {{ drugStore.item.drug.attrs?.amount || 'N/A' }}</p>
+      <p>
+        Darreichungsform: {{ drugStore.item.drug.attrs_ref.darreichungsform?.display || 'N/A' }}
+      </p>
+    </div>
   </UIBaseCard>
 </template>
 
@@ -124,11 +102,11 @@ const fetchDrugs = async (edit: boolean, custom: boolean) => {
     return;
   } else {
     if (state.drug.length >= 3) {
-      try {                
+      try {
         const response = await apiDrugSearch(state.drug)
-        
-        if (!response.ok) {throw new Error("Failed to fetch");}
-        
+
+        if (!response.ok) { throw new Error("Failed to fetch"); }
+
         const data = await response.json();
 
         if (props.edit && initialLoad.value) {
