@@ -44,7 +44,7 @@
           <p class="text-lg mt-2">Page {{ state.currentPage }} of {{ totalPages }}</p>
         </div>
       </div>
-      <div v-if="drugList.count == 0 && state.drug.length >= 3 && !initialLoad" class="text-center my-6">
+      <div v-if="drugList.count == 0 && state.drug.length >= 3 && showMissingDrugOnLoad" class="text-center my-6">
         <h4>
           Es konnte kein Medikament zu folgender Eingabe gefunden werden:
         </h4>
@@ -92,6 +92,7 @@ const drugList = reactive({
 const isLoading = ref(true);
 const initialLoad = ref(true);
 const customDrug = ref();
+const showMissingDrugOnLoad = ref(false)
 
 const fetchDrugs = async (edit: boolean, custom: boolean) => {
   if (props.custom && initialLoad.value) {
@@ -102,11 +103,16 @@ const fetchDrugs = async (edit: boolean, custom: boolean) => {
   } else {
     if (state.drug.length >= 3) {
       try {
+        showMissingDrugOnLoad.value = false
         const response = await apiDrugSearch(state.drug)
 
         if (!response.ok) { throw new Error("Failed to fetch"); }
 
         const data = await response.json();
+        
+        if (data.count == 0){
+          showMissingDrugOnLoad.value = true
+        }
 
         if (props.edit && initialLoad.value) {
           printMedication(data.items[0]);

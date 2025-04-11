@@ -26,7 +26,8 @@
             :groups="[{ key: 'dosageFormTable', commands: dosageFormTable }]"
             :fuse="{ resultLimit: 5, fuseOptions: { threshold: 0.2 } }" />
           <div v-else class="my-5">
-            <p @click="state.customDarrform = null" class="text-lg text-center hover:cursor-pointer hover:text-yellow-500" style="margin-bottom:2%">
+            <p @click="state.customDarrform = null"
+              class="text-lg text-center hover:cursor-pointer hover:text-yellow-500" style="margin-bottom:2%">
               {{ state.customDarrform?.label }}
             </p>
           </div>
@@ -39,19 +40,19 @@
                   :key="attr[1]">
                   <UInput v-if="getFormInputType(attr[2]) !== 'checkbox'" v-model="attrState[attr[1]]" color="yellow"
                     :type="getFormInputType(attr[2])" />
-                  <UCheckbox v-else v-model="attrState[attr[1]]" color="yellow"
-                    :name="attrState[attr[0]]"/>
+                  <UCheckbox v-else v-model="attrState[attr[1]]" color="yellow" :name="attrState[attr[0]]" />
                 </UFormGroup>
                 <UFormGroup v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :label="attr_ref[0]"
                   :name="attr_ref[1]" :key="attr_ref[1]">
                   <USelectMenu v-model="attr_refState[attr_ref[1]]"
                     :options="refSelectMenus.find(item => item.field_name === attr_ref[1])?.options"
-                    value-attribute="value" option-attribute="display" color="yellow"/>
+                    value-attribute="value" option-attribute="display" color="yellow" />
                 </UFormGroup>
                 <UFormGroup v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi" :label="attr_multi[0]"
                   :name="attr_multi[1]" :key="attr_multi[1]">
                   <UInput placeholder="Enter a value and press Enter" v-model="inputValues[attr_multi[1]]"
-                    @keydown.enter.prevent="updateMultiState(attr_multi[1])" @blur="updateMultiState(attr_multi[1])" color="yellow"/>
+                    @keydown.enter.prevent="updateMultiState(attr_multi[1])" @blur="updateMultiState(attr_multi[1])"
+                    color="yellow" />
                   <UBadge v-for="(word, index) in attr_multiState[attr_multi[1]]" :key="index"
                     class="mr-2 cursor-pointer" @click="removeItem(attr_multi[1], index)" color="yellow">
                     {{ word }}
@@ -59,7 +60,7 @@
                 </UFormGroup>
                 <UFormGroup v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref"
                   :label="attr_multi_ref[0]" :name="attr_multi_ref[1]" :key="attr_multi_ref[1]">
-                  <USelectMenu v-model="attr_multi_refState[attr_multi_ref[1]]" 
+                  <USelectMenu v-model="attr_multi_refState[attr_multi_ref[1]]"
                     :options="multiRefSelectMenus.find(item => item.field_name === attr_multi_ref[1])?.options"
                     value-attribute="value" option-attribute="display" multiple searchable color="yellow">
                     <template #label>
@@ -111,7 +112,13 @@
     <URadioGroup v-model="state.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
       :options="options" :color="props.color" />
     <div style="text-align: center">
-      <UButton type="submit" :label="props.label" :color="props.color" variant="soft" :class="buttonClass" />
+      <div v-if="props.edit" class="flex flex-row justify-center space-x-6">
+        <UButton type="submit" label="Speichern" :color="props.color" variant="soft" :class="buttonClass" />
+        <UButton label="Abbrechen" :color="props.color" variant="soft" :class="buttonClass" @click="drugStore.editVisibility = false"></UButton>
+      </div>
+      <div v-else>
+        <UButton type="submit" :label="props.label" :color="props.color" variant="soft" :class="buttonClass" />
+      </div>
     </div>
     <div class="flex flex-col justify-center items-center">
       <h5 v-if="showDarrFormError" style="color: red">
