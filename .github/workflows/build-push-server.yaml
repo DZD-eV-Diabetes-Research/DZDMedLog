@@ -8,28 +8,18 @@ on:
       - dev
 
 jobs:
-  push_to_registry:
+  push_prod_image:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
+    if: github.event_name == 'release'
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Required to get git tags
-
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_DZD_USERNAME }}
           password: ${{ secrets.DOCKERHUB_DZD_PASSWORD }}
-
-      - name: Set dynamic Docker tag for dev branch
-        if: github.ref == 'refs/heads/dev'
-        id: devtag
-        run: |
-          LAST_TAG=$(git describe --tags --abbrev=0)
-          SHORT_SHA=$(git rev-parse --short HEAD)
-          echo "DEV_TAG=${LAST_TAG}-${SHORT_SHA}-dev" >> $GITHUB_OUTPUT
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -43,13 +33,9 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: |
-            ${{ steps.meta.outputs.tags }}
-            ${{ steps.devtag.outputs.DEV_TAG }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
       - name: Docker Hub Description
-        if: github.event_name == 'release'
         uses: peter-evans/dockerhub-description@v4
         with:
           username: ${{ secrets.DOCKERHUB_DZD_USERNAME }}
@@ -58,3 +44,35 @@ jobs:
           short-description: "The server module for DZDMedLog, a system to document the medical history of study participant."
           enable-url-completion: true
           readme-filepath: "DOCKERHUB_README.md"
+
+  push_dev_image:
+    name: Build and tag dev image
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_DZD_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_DZD_PASSWORD }}
+
+      - name: Get latest tag
+        id: get_tag
+        run: echo "tag=$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
+
+      - name: Get short commit SHA
+        id: get_sha
+        run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push Docker image (dev)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            dzdde/dzdmedlog:${{ steps.get_tag.outputs.tag }}-${{ steps.get_sha.outputs.sha }}-dev
+            dzdde/dzdmedlog:dev
