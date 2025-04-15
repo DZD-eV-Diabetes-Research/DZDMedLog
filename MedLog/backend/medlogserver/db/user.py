@@ -128,8 +128,11 @@ class UserCRUD(
             raise_exception_if_none=raise_exception_if_not_exists,
             show_deactivated=True,
         )
+        log.info("UPDATE USER user_update: {user_update}")
+        log.info("UPDATE USER user_from_db: {user_from_db}")
         for k, v in user_update.model_dump(exclude_unset=True).items():
             if k in UserUpdate.model_fields.keys():
+                log.info("UPDATE USER set {k}: {v}")
                 setattr(user_from_db, k, v)
         self.session.add(user_from_db)
         await self.session.commit()
