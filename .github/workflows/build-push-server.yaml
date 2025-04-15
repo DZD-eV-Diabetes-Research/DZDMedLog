@@ -8,7 +8,7 @@ on:
       - dev
 
 jobs:
-  push_prod_image:
+  push_prod_release_image:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
@@ -52,6 +52,8 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # important! to get the lag list
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -59,9 +61,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_DZD_USERNAME }}
           password: ${{ secrets.DOCKERHUB_DZD_PASSWORD }}
 
-      - name: Get latest tag
+      - name: Get latest tag (fallback to 'latest')
         id: get_tag
-        run: echo "tag=$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
+        run: |
+          git fetch --tags
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "latest")
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Get short commit SHA
         id: get_sha
