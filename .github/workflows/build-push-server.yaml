@@ -78,4 +78,4 @@ jobs:
       - name: Tag and push Docker image (dev)
         run: |
           docker tag dzdde/dzdmedlog:dev dzdde/dzdmedlog:${{ steps.get_version.outputs.version }}
-          docker push --all-tags dzdde/dzdmedlog:dev
+          docker push --all-tags dzdde/dzdmedlog
