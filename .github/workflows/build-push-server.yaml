@@ -70,7 +70,7 @@ jobs:
         id: get_version
         run: |
           # Extract version from the image
-          VERSION=$(docker run --rm dzdde/dzdmedlog:dev python3 -c "import re; exec(open('MedLog/backend/medlogserver/__version__.py').read()); print(__version__)")
+          VERSION=$(docker run --entrypoint python3 --rm dzdde/dzdmedlog:dev -c "import re; exec(open('__version__.py').read()); print(__version__)")
           # Optionally sanitize the version string
           SANITIZED_VERSION=${VERSION//+/_}
           echo "version=${SANITIZED_VERSION}" >> "$GITHUB_OUTPUT"
