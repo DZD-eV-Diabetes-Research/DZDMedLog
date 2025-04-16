@@ -2,11 +2,6 @@
 requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools_scm]
-root = "../.."
-relative_to = "pyproject.toml"
-git_describe_command = ["git", "describe", "--tags", "--long"]
-
 [project]
 name = "medlogserver"
 authors = [{ name = "Tim Bleimehl", email = "bleimehl@helmholtz-munich.de" }]
