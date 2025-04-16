@@ -44,7 +44,7 @@ if __name__ == "__main__":
 from medlogserver.config import Config
 
 
-def start(with_background_worker: bool = True):
+def start():
     import medlogserver
 
     print(
@@ -116,7 +116,7 @@ def start(with_background_worker: bool = True):
         log.info(
             f"USERNAME: {config.ADMIN_USER_NAME}\nPASSWORD: {config.ADMIN_USER_PW}"
         )
-    if with_background_worker:
+    if config.BACKGROUND_WORKER_START_IN_EXTRA_PROCESS:
         # Start background worker in second process
         background_worker = run_background_worker(run_in_extra_process=True)
     try:
@@ -150,5 +150,4 @@ if __name__ == "__main__":
 
         run_background_worker(run_in_extra_process=False)
     else:
-        config = Config()
-        start(with_background_worker=config.BACKGROUND_WORKER_START_IN_EXTRA_PROCESS)
+        start()
