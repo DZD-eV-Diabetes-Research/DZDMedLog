@@ -43,12 +43,13 @@ if __name__ == "__main__":
 # Import and load config
 from medlogserver.config import Config
 
-config = Config()
-
 
 def start(with_background_worker: bool = True):
     import medlogserver
 
+    print(
+        f"Start medlogserver version: {getversion.get_module_version(medlogserver)[0]} under user with id {os.getuid()}"
+    )
     from medlogserver.log import (
         get_logger,
         get_loglevel,
@@ -57,10 +58,12 @@ def start(with_background_worker: bool = True):
     )
 
     log = get_logger()
-
+    log.info("Parse config for completeness...")
+    config = Config()
     log.debug("----CONFIG-----")
     log.debug(yaml.dump(json.loads(config.model_dump_json()), sort_keys=False))
     log.debug("----CONFIG-END-----")
+    log.info("...config ok!")
     # test_exporter()
     # exit()
     print(f"LOG_LEVEL: {config.LOG_LEVEL}")
@@ -106,9 +109,6 @@ def start(with_background_worker: bool = True):
 
     event_loop.run_until_complete(init_db())
 
-    print(
-        f"Start medlogserver version: {getversion.get_module_version(medlogserver)[0]} as user with id {os.getuid()}"
-    )
     if config.DEMO_MODE:
         log.info(
             f"Hey, we are in demo mode. Login as admin with the following account:"
@@ -150,4 +150,5 @@ if __name__ == "__main__":
 
         run_background_worker(run_in_extra_process=False)
     else:
+        config = Config()
         start(with_background_worker=config.BACKGROUND_WORKER_START_IN_EXTRA_PROCESS)
