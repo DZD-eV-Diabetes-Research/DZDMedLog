@@ -119,7 +119,10 @@ class Config(BaseSettings):
             self.CLIENT_URL = str(self.get_server_url())
         return self
 
-    SQL_DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./local.sqlite")
+    SQL_DATABASE_URL: str = Field(
+        default="sqlite+aiosqlite:///./local.sqlite",
+        description="Connection URL for the database based on the RFC-1738 standard. Mind the 3 (instead of 2) leading slashes in sqlite file pathes https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#connect-strings",
+    )
 
     ADMIN_USER_NAME: str = Field(default="admin")
     ADMIN_USER_PW: SecretStr = Field()

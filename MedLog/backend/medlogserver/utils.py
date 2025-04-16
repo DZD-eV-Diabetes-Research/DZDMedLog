@@ -14,6 +14,7 @@ import fastapi
 import pydantic
 import os
 from getversion.main import DetailedResults
+from urllib.parse import urlparse
 
 
 def to_path(
@@ -50,6 +51,37 @@ def to_path(
     if absolute:
         result_path = result_path.absolute()
     return result_path
+
+
+from pathlib import Path
+from urllib.parse import urlparse
+
+
+def prepare_sqlite_parent_path_if_needed(db_url: str) -> Path | None:
+    """
+    Checks if the given SQL connection URL points to a SQLite file.
+    If so, creates any missing parent directories for the file path and returns the path
+
+    Parameters:
+        db_url (str): The SQL database connection URL.
+
+    Returns:
+        Path | None: Path instance if it was a SQLite file and directories were ensured/created,
+              None if not a SQLite file.
+    """
+    parsed_db_url = urlparse(db_url)
+
+    # SQLite URLs typically look like: sqlite:///path/to/db.sqlite3
+    if "sqlite" not in parsed_db_url.scheme:
+        return None
+    # remove sqlite style leading "/" (see https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#connect-strings)
+    db_path_clean = parsed_db_url.path[1:]
+    if db_path_clean == ":memory:":
+        # Skip in-memory SQLite
+        return None
+    full_db_path = Path(db_path_clean).resolve()
+    full_db_path.parent.mkdir(exist_ok=True, parents=True)
+    return full_db_path
 
 
 def get_random_string(

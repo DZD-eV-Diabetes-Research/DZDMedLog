@@ -43,6 +43,7 @@ from medlogserver.db.worker_job import WorkerJob
 from medlogserver.log import get_logger
 from medlogserver.config import Config
 from sqlalchemy.dialects.sqlite.aiosqlite import AsyncAdapt_aiosqlite_connection
+from medlogserver.utils import prepare_sqlite_parent_path_if_needed
 
 log = get_logger()
 config = Config()
@@ -152,6 +153,9 @@ async def provision_base_data():
 
 async def init_db():
     log.info(f"Init DB {config.SQL_DATABASE_URL}")
+    sqlite_path = prepare_sqlite_parent_path_if_needed(config.SQL_DATABASE_URL)
+    if sqlite_path:
+        log.info(f"Using sqlite file at '{sqlite_path}'")
     async with db_engine.begin() as conn:
         # await conn.run_sync(SQLModel.metadata.drop_all)
         log.info(("Create Tables if needed", list(SQLModel.metadata.tables.keys())))
