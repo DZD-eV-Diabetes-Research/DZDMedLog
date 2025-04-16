@@ -1,14 +1,17 @@
-
 name: Publish Docker image
 
 on:
   release:
     types: [published]
+  push:
+    branches:
+      - dev
 
 jobs:
-  push_to_registry:
+  push_prod_release_image:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
+    if: github.event_name == 'release'
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
@@ -41,3 +44,40 @@ jobs:
           short-description: "The server module for DZDMedLog, a system to document the medical history of study participant."
           enable-url-completion: true
           readme-filepath: "DOCKERHUB_README.md"
+
+  push_dev_commit_image:
+    name: Build and tag dev image
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # important! to get the tag list
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_DZD_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_DZD_PASSWORD }}
+
+      - name: Get latest git(-hub) tag (fallback to 'latest')
+        id: get_tag
+        run: |
+          git fetch --tags
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "latest")
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Get short commit SHA
+        id: get_sha
+        run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push Docker image (dev)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            dzdde/dzdmedlog:${{ steps.get_tag.outputs.tag }}-${{ steps.get_sha.outputs.sha }}-dev
+            dzdde/dzdmedlog:dev
