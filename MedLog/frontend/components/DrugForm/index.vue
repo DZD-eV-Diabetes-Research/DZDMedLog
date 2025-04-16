@@ -114,7 +114,7 @@
     <div style="text-align: center">
       <div v-if="props.edit" class="flex flex-row justify-center space-x-6">
         <UButton type="submit" label="Speichern" :color="props.color" variant="soft" :class="buttonClass" />
-        <UButton label="Abbrechen" :color="props.color" variant="soft" :class="buttonClass" @click="drugStore.editVisibility = false"></UButton>
+        <UButton label="Abbrechen" :color="props.color" variant="soft" :class="buttonClass" @click="closeEditModal()"></UButton>
       </div>
       <div v-else>
         <UButton type="submit" :label="props.label" :color="props.color" variant="soft" :class="buttonClass" />
@@ -609,6 +609,11 @@ async function onSubmit() {
   } catch (error) {
     console.log(error);
   }
+}
+
+const closeEditModal = function(){
+  drugStore.editVisibility = false
+  drugStore.item = null
 }
 
 onMounted(fetchFieldDefinitions);
