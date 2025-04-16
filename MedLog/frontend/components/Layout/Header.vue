@@ -43,7 +43,10 @@
     <UCard class="flex flex-col flex-1"
       :ui="{ body: { base: 'flex-1' }, ring: '', divide: 'divide-y divide-gray-400 dark:divide-gray-800' }">
       <template #header>
-        <h5 class="text-center text-2xl font-medium">How to use DZD-Medlog</h5>
+        <div class="flex flex-row justify-around items-center">
+          <h5 class="text-center text-2xl font-medium">How to use DZD-Medlog</h5>
+          <UButton @click="openSettingModal()" v-if="userStore.isAdmin" class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300">  <UIcon name="i-heroicons-cog-6-tooth" class="w-5 h-5" /></UButton>
+        </div>
       </template>
       <div>
         <h4 class="text-xl text-center">DZD-Medlog besteht im Kern aus 3 Komponenten</h4>
@@ -86,9 +89,13 @@
         </div>
       </template>
     </UCard>
-
-
   </USlideover>
+
+  <!-- SETTINGS MODAL -->
+
+  <UModal v-model="settingModalVisibility" :ui="{ width: 'lg:max-w-6xl' }">
+    <UserManagement></UserManagement>
+  </UModal>
 </template>
 
 <script setup>
@@ -186,6 +193,13 @@ if (pathSegments.includes('studies')) {
       links.push({ label: `Event ${eventName.value}`, to: null }); 
     } 
   }
+}
+
+const settingModalVisibility = ref(false)
+
+const openSettingModal = function(){
+  openSlide.value = false
+  settingModalVisibility.value = true
 }
 
 </script>

@@ -229,7 +229,7 @@ class Config(BaseSettings):
             description="The discovery endpoint of the OpenID Connect provider."
         )
         SCOPES: List[str] = Field(
-            description="", default=["openid", "profile", "email"]
+            description="", default=["openid", "profile", "email", "groups"]
         )
         USER_ID_ATTRIBUTE: str = Field(
             description="The attribute of the OpenID Connect provider that contains a unique id of the user.",
@@ -247,7 +247,11 @@ class Config(BaseSettings):
             description="The attribute of the OpenID Connect provider that contains the info if the email adress is verified.",
             default="email_verified",
         )
-        USER_GROUP_ATTRIBUTE: str = Field(description="", default="groups")
+        USER_GROUP_ATTRIBUTE: str = Field(description="The ", default="groups")
+        ADMIN_MAPPING_GROUPS: Optional[List[str]] = Field(
+            default_factory=list,
+            description="If the user is member of this oidc group, they will get the admin role.",
+        )
 
         AUTO_CREATE_AUTHORIZED_USER: bool = Field(
             default=True,

@@ -118,6 +118,12 @@ class UserCRUD(
         user_id: str | UUID = None,
         raise_exception_if_not_exists=None,
     ) -> User:
+        if not isinstance(
+            user_update, (UserUpdate, UserUpdateByUser, UserUpdateByAdmin)
+        ):
+            raise ValueError(
+                f"Expected update data of class UserUpdate | UserUpdateByUser | UserUpdateByAdmin got {user_update.__class__}"
+            )
         user_id = user_id if user_id else user_update.id
         if user_id is None:
             raise ValueError(
@@ -128,8 +134,11 @@ class UserCRUD(
             raise_exception_if_none=raise_exception_if_not_exists,
             show_deactivated=True,
         )
+        log.info(f"UPDATE USER user_update: {user_update}")
+        log.info(f"UPDATE USER user_from_db: {user_from_db}")
+
         for k, v in user_update.model_dump(exclude_unset=True).items():
-            if k in UserUpdate.model_fields.keys():
+            if k in user_update.__class__.model_fields.keys():
                 setattr(user_from_db, k, v)
         self.session.add(user_from_db)
         await self.session.commit()

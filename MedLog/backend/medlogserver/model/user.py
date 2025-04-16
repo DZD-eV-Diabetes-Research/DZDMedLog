@@ -46,7 +46,7 @@ class UserUpdate(UserBase, table=False):
 
 
 class UserUpdateByAdmin(UserUpdate, table=False):
-    roles: List[str] = Field(default=[], sa_column=Column(JSON))
+    roles: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     deactivated: bool = Field(default=False)
     is_email_verified: bool = Field(default=False)
 

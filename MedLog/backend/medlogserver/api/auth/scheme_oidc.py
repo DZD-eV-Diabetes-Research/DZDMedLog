@@ -1,11 +1,11 @@
-from typing import Generator
+from typing import Generator, Dict
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from authlib.integrations.starlette_client.apps import StarletteOAuth2App
 from fastapi import FastAPI, Request, Depends, status, APIRouter, HTTPException
 from fastapi.security.open_id_connect_url import OpenIdConnect
 from oauthlib.oauth2 import OAuth2Token
 from authlib.oidc.core.claims import UserInfo as OIDCUserInfo
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 
 # intern imports
@@ -17,7 +17,7 @@ from medlogserver.api.auth.model_token import (
     JWTBundleTokenResponse,
 )
 from medlogserver.api.base import HTTPErrorResponeRepresentation
-from medlogserver.db.user import User, UserCRUD, UserUpdate
+from medlogserver.db.user import User, UserCRUD, UserUpdate, UserUpdateByAdmin
 from medlogserver.db.user_auth import (
     UserAuthCreate,
     UserAuthCRUD,
@@ -133,6 +133,7 @@ class StarletteOAuthProviderAppContainer:
             userinfo: OIDCUserInfo = await self.app.userinfo(
                 token={"access_token": user_oauth_token["access_token"]}
             )
+            log.debug(f"Userinfo from OIDC Provider endpoint: {userinfo}")
         except Exception as exp:
             # extract user info from token if userinfo endpoint did not work
             claims = OIDCUserInfo.REGISTERED_CLAIMS + [
@@ -145,19 +146,24 @@ class StarletteOAuthProviderAppContainer:
             userinfo = OIDCUserInfo()
             for claim in claims:
                 userinfo[claim] = user_oauth_token.get(claim, None)
+            log.debug(f"Userinfo extracted from OIDC token: {userinfo}")
 
         user_name_attribute = self.oidc_provider_config.USER_ID_ATTRIBUTE
         try:
             log.debug(("user_name_attribute", user_name_attribute))
             log.debug(("userinfo", userinfo))
+
+            outer_userinfo = None
             if "userinfo" in userinfo:
                 outer_userinfo = userinfo
                 userinfo = outer_userinfo["userinfo"]
 
             user_name = userinfo.get(user_name_attribute)
             if user_name is None:
-                if "sub" in outer_userinfo:
-                    user_name = outer_userinfo["sub"]
+                if outer_userinfo and "sub" in outer_userinfo:
+                    user_name = outer_userinfo.get("sub")
+                elif "sub" in userinfo:
+                    user_name = userinfo.get("sub")
                 else:
                     raise ValueError("No username")
         except Exception as ex:
@@ -168,19 +174,24 @@ class StarletteOAuthProviderAppContainer:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Could not extract OIDC user_name in endpoint or token from '{self.oidc_provider_config.PROVIDER_DISPLAY_NAME}'. ",
             )
+        log.debug(("user_name", user_name))
         if self.oidc_provider_config.PREFIX_USER_ID_WITH_PROVIDER_NAME:
             user_name = f"{self.name}{user_name}"
 
         user = await user_crud.get_by_user_name(user_name)
 
         if user is None and self.oidc_provider_config.AUTO_CREATE_AUTHORIZED_USER:
+            log.debug(f"Create new user based on OIDC userinfo: {userinfo}")
+            log.debug(
+                f"self.oidc_provider_config.USER_MAIL_ATTRIBUTE: {self.oidc_provider_config.USER_MAIL_ATTRIBUTE}"
+            )
+            log.debug(
+                f"userinfo.get(self.oidc_provider_config.USER_MAIL_ATTRIBUTE, None): {userinfo.get(self.oidc_provider_config.USER_MAIL_ATTRIBUTE, None)}"
+            )
             user = User(
                 email=userinfo.get(self.oidc_provider_config.USER_MAIL_ATTRIBUTE, None),
                 display_name=userinfo.get(
                     self.oidc_provider_config.USER_DISPLAY_NAME_ATTRIBUTE, None
-                ),
-                roles=userinfo.get(
-                    self.oidc_provider_config.USER_GROUP_ATTRIBUTE, None
                 ),
                 deactivated=False,
                 is_email_verified=userinfo.get(
@@ -188,7 +199,15 @@ class StarletteOAuthProviderAppContainer:
                 ),
                 user_name=user_name,
             )
-            user = await user_crud.create(user)
+            user = self.apply_oidc_group_to_roles_mapping(userinfo, user)
+            log.debug(f"Write new user to database: {user}")
+            try:
+                user = await user_crud.create(user)
+            except ValidationError as val_err:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Userinfo not parsable: {val_err}.",
+                )
         elif user is None and not self.oidc_provider_config.AUTO_CREATE_AUTHORIZED_USER:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -198,21 +217,20 @@ class StarletteOAuthProviderAppContainer:
             # update userdata
             log.info(f"Update user data for {user.id}")
             log.debug(f"Updated userinfo: {userinfo}")
-            user_update = UserUpdate(
+            user_update = UserUpdateByAdmin(
                 email=userinfo.get(self.oidc_provider_config.USER_MAIL_ATTRIBUTE, None),
                 display_name=userinfo.get(
                     self.oidc_provider_config.USER_DISPLAY_NAME_ATTRIBUTE, user_name
                 ),
-                roles=userinfo.get(
-                    self.oidc_provider_config.USER_GROUP_ATTRIBUTE, None
-                ),
+                roles=[],
                 deactivated=False,
                 is_email_verified=userinfo.get(
                     self.oidc_provider_config.USER_MAIL_VERIFIED_ATTRIBUTE, False
                 ),
                 user_name=user_name,
             )
-
+            user_update = self.apply_oidc_group_to_roles_mapping(userinfo, user_update)
+            log.debug(f"Write updated user to database {user_update}")
             user = await user_crud.update(user_update, user_id=user.id)
         user_auth = await user_auth_crud.list_by_user_id(
             user.id,
@@ -251,6 +269,28 @@ class StarletteOAuthProviderAppContainer:
             )
         )
         return refresh_token.to_token_set_response(access_token=access_token)
+
+    def apply_oidc_group_to_roles_mapping(
+        self, oidc_userinfo: Dict, user: User | UserUpdateByAdmin
+    ) -> User | UserUpdateByAdmin:
+        if self.oidc_provider_config.ADMIN_MAPPING_GROUPS:
+            log.debug(f"Apply role mapping for user {user}")
+            log.debug(f"oidc_userinfo: {oidc_userinfo}")
+            roles = []
+            user_oidc_groups = None
+            if self.oidc_provider_config.USER_GROUP_ATTRIBUTE in oidc_userinfo:
+                user_oidc_groups = oidc_userinfo.get(
+                    self.oidc_provider_config.USER_GROUP_ATTRIBUTE, []
+                )
+
+                for oidc_admin_group in self.oidc_provider_config.ADMIN_MAPPING_GROUPS:
+                    if oidc_admin_group in user_oidc_groups:
+                        log.debug(
+                            f"User gets role {config.ADMIN_ROLE_NAME} because of membership in OIDC group {oidc_admin_group}"
+                        )
+                        roles.append(config.ADMIN_ROLE_NAME)
+                user.roles.extend(roles)
+        return user
 
 
 def generate_oidc_provider_auth_routhers() -> Generator[APIRouter, None, None]:
