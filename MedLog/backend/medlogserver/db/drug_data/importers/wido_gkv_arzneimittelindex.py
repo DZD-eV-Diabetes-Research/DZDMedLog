@@ -4,7 +4,11 @@ import datetime
 import csv
 from dataclasses import dataclass
 from sqlmodel import SQLModel, select
-from medlogserver.db._session import get_async_session_context
+from medlogserver.db._session import (
+    get_async_session_context,
+    get_async_session,
+    AsyncSession,
+)
 
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef
@@ -118,9 +122,11 @@ class WidoAiImporter52(DrugDataSetImporterBase):
         )
         self.source_dir = None
         self.version = None
+        self.batch_size = 5000
         self._attr_definitons = None
         self._attr_ref_definitions = None
         self._code_definitions = None
+        self._db_session: AsyncSession | None = None
 
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None
@@ -207,10 +213,14 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 )
             )
         # read all drugs with attributes
-        async for obj in self._parse_wido_stamm_data(drug_dataset):
-            all_objs.append(obj)
+        async for i, obj in enumerate(self._parse_wido_stamm_data(drug_dataset)):
+            if i % self.batch_size == 0:
+                await self.add_and_flush(objs=all_objs)
+                all_objs = []
+            else:
+                all_objs.append(obj)
 
-        # write everything to database
+        # write all left obj to database
         await self.commit(all_objs)
 
     async def _parse_wido_stamm_data(
@@ -276,14 +286,31 @@ class WidoAiImporter52(DrugDataSetImporterBase):
             setattr(parent_drug, field_name, row_val)
             return
 
+    async def init_session_if_needed(self):
+        if self._db_session is None:
+            self._db_session = await get_async_session()
+
+    async def add_and_flush(self, objs):
+        log.debug(f"[DRUG DATA IMPORT] Flush next {len(objs)} Drug data to database...")
+        await self.init_session_if_needed()
+        session = self._db_session
+        session.add_all(objs)
+        session.flush()
+        session.expunge_all()
+        # maybe we need to clean/reset the cache here for https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/58
+
     async def commit(self, objs):
-        async with get_async_session_context() as session:
-            for obj in objs:
-                session.add(obj)
-            log.info(
-                "[DRUG DATA IMPORT] Commit Drug data to database. This may take a while..."
-            )
-            await session.commit()
+        await self.init_session_if_needed()
+        session = self._db_session
+
+        for obj in objs:
+            session.add(obj)
+        log.info(
+            "[DRUG DATA IMPORT] Commit Drug data to database. This may take a while..."
+        )
+        await session.commit()
+        await self._db_session.close()
+        self._db_session = None
 
     async def _get_attr_definitons(self) -> List[DrugAttrFieldDefinition]:
         """

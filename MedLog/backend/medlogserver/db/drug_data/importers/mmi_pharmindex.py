@@ -11,6 +11,7 @@ from typing import (
     Type,
     Union,
     Iterator,
+    AsyncGenerator,
 )
 import polars
 import time
@@ -21,7 +22,11 @@ import csv
 import re
 from dataclasses import dataclass
 from sqlmodel import SQLModel, select
-from medlogserver.db._session import get_async_session_context
+from medlogserver.db._session import (
+    get_async_session_context,
+    AsyncSession,
+    get_async_session,
+)
 
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.drug_attr import (
@@ -680,6 +685,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self.dataset_link = "https://www.MmiPi.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/"
         self.source_dir = None
         self.version = None
+        self.batch_size = 5000
         self._attr_definitions = None
         self._attr_ref_definitions = None
         self._code_definitions = None
@@ -689,6 +695,8 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self._cache_csv_lookups: Dict[Tuple, Dict[str, List[List]]] = {}
         self._cache_validation_target_attrs: Dict[str, DrugAttrFieldDefinition] = {}
         self._debug_stats_csv_lookup: Tuple[int, int] = (0, 0)
+
+        self._db_session: AsyncSession | None = None
 
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None
@@ -766,20 +774,28 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             self._lov_values[ref_lov_field_obj.field.field_name] = lov_item_objs
 
             all_objs.extend(lov_item_objs)
-
+        await self.add_and_flush(objs=all_objs)
+        all_objs = []
         # read all drugs with attributes
-        drug_data_objs: Dict[str, DrugData] = await self._parse_drug_data(drug_dataset)
-        # log.debug(("ALL", drug_data_objs))
+        drug_data_objs: List[DrugData] = []
+        async for i, drug_obj in enumerate(self._parse_drug_data(drug_dataset)):
+            if i % self.batch_size == 0:
+                await self.add_and_flush(objs=all_objs)
+                drug_data_objs = []
+            else:
+                drug_data_objs.append(drug_obj)
 
-        all_objs.extend(drug_data_objs.values())
+        all_objs.extend(drug_data_objs)
+        # log.debug(("ALL", drug_data_objs))
 
         # write everything to database
         await self.commit(all_objs)
 
     async def _parse_drug_data(
         self, drug_dataset_version: DrugDataSetVersion
-    ) -> List[
-        DrugData | DrugVal | DrugValRef | DrugCode | DrugValMulti | DrugValMultiRef
+    ) -> AsyncGenerator[
+        DrugData | DrugVal | DrugValRef | DrugCode | DrugValMulti | DrugValMultiRef,
+        None,
     ]:
 
         log.info("[DRUG DATA IMPORT] Parse drug data...")
@@ -821,6 +837,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         drug_dataset_version, package_row, package_csv_headers
                     )
                 )
+                yield drug_data_objs[package_row[package_id_column_index]]
                 if (
                     config.DRUG_DATA_IMPORT_MAX_ROWS
                     and index == row_count_processing_max
@@ -838,8 +855,6 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         f"Estimated time for full drug data import ({row_count_total} rows): {((total_time_sec/row_count_processing_max)*row_count_total)/60} minutes"
                     )
                     break
-        # print("drug_data_objs", drug_data_objs)
-        return drug_data_objs
 
     async def _parse_drug_data_package_row(
         self,
@@ -1244,6 +1259,33 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             self._cache_csv_lookups[csv_lookup_filter_call_signature][filter_value],
         )
 
+    async def init_session_if_needed(self):
+        if self._db_session is None:
+            self._db_session = await get_async_session()
+
+    async def add_and_flush(self, objs):
+        log.debug(f"[DRUG DATA IMPORT] Flush next {len(objs)} Drug data to database...")
+        await self.init_session_if_needed()
+        session = self._db_session
+        session.add_all(objs)
+        session.flush()
+        session.expunge_all()
+        # maybe we need to clean/reset the cache here for https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/58
+
+    async def commit(self, objs):
+        await self.init_session_if_needed()
+        session = self._db_session
+
+        for obj in objs:
+            session.add(obj)
+        log.info(
+            "[DRUG DATA IMPORT] Commit Drug data to database. This may take a while..."
+        )
+        await session.commit()
+        await self._db_session.close()
+        self._db_session = None
+
+    """
     async def commit(self, objs):
         async with get_async_session_context() as session:
             debug_single_obj_add = False
@@ -1261,6 +1303,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 "[DRUG DATA IMPORT] Commit Drug data to database. This may take a while..."
             )
             await session.commit()
+    """
 
     async def _generate_lov_items(
         self,

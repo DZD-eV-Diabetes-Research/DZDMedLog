@@ -373,3 +373,4 @@ database
 **/*.db
 
 _MMI_Pharmindex/*
+mprofile*
