@@ -75,13 +75,6 @@ jobs:
           SANITIZED_VERSION=${VERSION//+/_}
           echo "version=${SANITIZED_VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Extract version from __version__.py
-        id: get_version
-        run: |
-          VERSION=$(python3 -c "import re; exec(open('MedLog/backend/medlogserver/__version__.py').read()); print(__version__)")
-          SANITIZED_VERSION=${VERSION//+/_}
-          echo "version=${SANITIZED_VERSION}" >> "$GITHUB_OUTPUT"
-
       - name: Tag and push Docker image (dev)
         run: |
           docker tag dzdde/dzdmedlog:dev dzdde/dzdmedlog:${{ steps.get_version.outputs.version }}
