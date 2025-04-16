@@ -31,6 +31,7 @@ from medlogserver.db.user_auth import (
     UserAuthCRUD,
     AllowedAuthSourceTypes,
 )
+from medlogserver.model.user_role import UserRoleApiRead
 from medlogserver.api.auth.security import (
     user_is_admin,
     user_is_usermanager,
@@ -54,6 +55,28 @@ log = get_logger()
 
 
 fast_api_user_manage_router: APIRouter = APIRouter()
+
+
+@fast_api_user_manage_router.get(
+    "/role",
+    response_model=List[UserRoleApiRead],
+    name="Get Roles",
+    description=f"List available roles",
+)
+async def create_user(
+    current_user: bool = Security(get_current_user),
+) -> List[UserRoleApiRead]:
+
+    return [
+        UserRoleApiRead(
+            role_name=config.ADMIN_ROLE_NAME,
+            description="The admin role enables the user to access and edit all studies.",
+        ),
+        UserRoleApiRead(
+            role_name=config.USERMANAGER_ROLE_NAME,
+            description="The user manager role allows a user to edit all user allocation for all studies.",
+        ),
+    ]
 
 
 @fast_api_user_manage_router.post(
