@@ -75,7 +75,7 @@ def start(with_background_worker: bool = True):
 
     mount_fast_api_routers(app)
     add_api_middleware(app)
-    print("THIS IS JUST A TEST")
+
     if config.CLIENT_URL == config.get_server_url():
         if (
             not Path(config.FRONTEND_FILES_DIR).exists()

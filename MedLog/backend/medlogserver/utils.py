@@ -13,6 +13,7 @@ import json
 import fastapi
 import pydantic
 import os
+from getversion.main import DetailedResults
 
 
 def to_path(
@@ -69,6 +70,15 @@ def val_means_true(s: int | str | bool) -> bool:
     return False
 
 
+def get_app_version() -> str:
+    import medlogserver
+
+    get_version_result_details: DetailedResults = (
+        getversion.get_module_version.__wrapped__(medlogserver)[1]
+    )
+    return get_version_result_details.version_found
+
+
 def set_version_file(base_dir=Path("./")) -> Path:
     import medlogserver
     from importlib import reload
@@ -77,11 +87,29 @@ def set_version_file(base_dir=Path("./")) -> Path:
     if version_file_path.exists():
         version_file_path.unlink()
     # medlogserver = reload(medlogserver)
-    content = (
-        f'__version__="{getversion.get_module_version.__wrapped__(medlogserver)[0]}"'
-    )
+    content = f'__version__="{get_app_version()}"\n__version_git_branch__="{get_version_git_branch_name()}"'
     version_file_path.write_text(content)
     return version_file_path
+
+
+def get_version_git_branch_name() -> str:
+    try:
+        from medlogserver.__version__ import __version_git_branch__
+
+        return __version_git_branch__
+    except (ImportError, ModuleNotFoundError):
+        # get branch from git
+
+        # the branch name this app version is based on
+        dot_git_dir = Path(PurePath(Path(__file__).parent, "../../..", ".git"))
+
+        head_path = Path(PurePath(dot_git_dir, "HEAD"))
+        with head_path.open("r") as f:
+            content = f.read().splitlines()
+
+        for line in content:
+            if line[0:4] == "ref:":
+                return line.partition("refs/heads/")[2]
 
 
 def sanitize_string(s: str, replace_space_with: str = "_") -> str:

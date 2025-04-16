@@ -23,12 +23,12 @@ from fastapi import Depends, APIRouter
 
 
 from medlogserver.db.user import User
-
-
 from medlogserver.config import Config
-from medlogserver.db.user import UserCRUD
-from medlogserver.model.healthcheck import HealthCheck, HealthCheckReport
-from medlogserver.db.healthcheck import HealthcheckRead
+
+
+from medlogserver.utils import get_app_version, get_version_git_branch_name
+
+from medlogserver.model.app_version import AppVersion
 from medlogserver.api.paginator import (
     PaginatedResponse,
     create_query_params_class,
@@ -42,34 +42,13 @@ from medlogserver.log import get_logger
 log = get_logger()
 
 
-fast_api_healthcheck_router: APIRouter = APIRouter()
+fast_api_config_router: APIRouter = APIRouter()
 
 
-@fast_api_healthcheck_router.get(
+@fast_api_config_router.get(
     "/config/version",
-    response_model=HealthCheck,
+    response_model=AppVersion,
     description=f"Get the basic health state of the system.",
 )
-async def get_version(
-    health_read: HealthcheckRead = Depends(HealthcheckRead.get_crud),
-) -> HealthCheck:
-    return await health_read.get()
-
-
-@fast_api_healthcheck_router.get(
-    "/health/report",
-    response_model=HealthCheckReport,
-    description=f"Get a more detailed health report of the system.",
-)
-async def get_health_report(
-    user: UserCRUD = Security(get_current_user),
-    health_read: HealthcheckRead = Depends(HealthcheckRead.get_crud),
-) -> HealthCheckReport:
-    return await health_read.get_report()
-
-
-async def get_health_report(
-    user: UserCRUD = Security(get_current_user),
-    health_read: HealthcheckRead = Depends(HealthcheckRead.get_crud),
-) -> HealthCheckReport:
-    return await health_read.get_report()
+async def get_version() -> AppVersion:
+    return AppVersion(version=get_app_version(), branch=get_version_git_branch_name())
