@@ -61,6 +61,20 @@ jobs:
           username: ${{ secrets.DOCKERHUB_DZD_USERNAME }}
           password: ${{ secrets.DOCKERHUB_DZD_PASSWORD }}
 
+      - name: Build Docker image (dev)
+        id: build_image
+        run: |
+          docker build -t dzdde/dzdmedlog:dev .
+
+      - name: Extract version from built Docker image
+        id: get_version
+        run: |
+          # Extract version from the image
+          VERSION=$(docker run --rm dzdde/dzdmedlog:dev python3 -c "import re; exec(open('MedLog/backend/medlogserver/__version__.py').read()); print(__version__)")
+          # Optionally sanitize the version string
+          SANITIZED_VERSION=${VERSION//+/_}
+          echo "version=${SANITIZED_VERSION}" >> "$GITHUB_OUTPUT"
+
       - name: Extract version from __version__.py
         id: get_version
         run: |
@@ -68,12 +82,7 @@ jobs:
           SANITIZED_VERSION=${VERSION//+/_}
           echo "version=${SANITIZED_VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push Docker image (dev)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: |
-            dzdde/dzdmedlog:${{ steps.get_tag.outputs.version }}
-            dzdde/dzdmedlog:dev
+      - name: Tag and push Docker image (dev)
+        run: |
+          docker tag dzdde/dzdmedlog:dev dzdde/dzdmedlog:${{ steps.get_version.outputs.version }}
+          docker push --all-tags dzdde/dzdmedlog:dev
