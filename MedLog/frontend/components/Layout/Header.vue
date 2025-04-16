@@ -29,9 +29,9 @@
     <button v-if="tokenStore.loggedIn"
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
       @click="logout()">Logout</button>
-      
+
     <UBreadcrumb v-if="tokenStore.loggedIn" :links="links" />
-    
+
     <button v-if="tokenStore.loggedIn"
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
       @click="openSlide = true">Hilfe</button>
@@ -45,7 +45,10 @@
       <template #header>
         <div class="flex flex-row justify-around items-center">
           <h5 class="text-center text-2xl font-medium">How to use DZD-Medlog</h5>
-          <UButton @click="openSettingModal()" v-if="userStore.isAdmin" class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300">  <UIcon name="i-heroicons-cog-6-tooth" class="w-5 h-5" /></UButton>
+          <UButton @click="openSettingModal()" v-if="userStore.isAdmin"
+            class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300">
+            <UIcon name="i-heroicons-cog-6-tooth" class="w-5 h-5" />
+          </UButton>
         </div>
       </template>
       <div>
@@ -70,7 +73,9 @@
         <p>Teil 3, den <strong>Datenexport</strong>, erreichen Sie, wie die Verwaltung der Studien, über den Button
           "Studienverwaltung" von
           der Landingpage aus.</p>
-        <p>Des weiteren können Sie sich über die Breadcrumbs, am oberen Bildschirmrand, zu den jeweiligen vorher besuchten Seiten klicken</p>
+        <p>Des weiteren können Sie sich über die Breadcrumbs, am oberen Bildschirmrand, zu den jeweiligen vorher
+          besuchten
+          Seiten klicken</p>
         <br>
         <div id="zusatzinfo">
           <p>Für Admins oder Technikinteressierte finden Sie hier unser <a
@@ -82,6 +87,11 @@
         <div class="flex flex-col text-left text-sm space-y-1">
           <p>Wenn Sie Fragen oder Feedback haben, melden Sie sich gerne.</p>
           <p class="text-center">someEmail@someHost.com</p>
+          <hr>
+          <div class="text-center font-extralight">
+            <p>Version: {{ config.version }}</p>
+            <p>Branch: {{ config.branch }}</p>
+          </div>
           <!-- <div class="flex flex-row items-center space-x-2 mt-2">
         <p>Oder besuchen Sie unsere GitHub-Seite: </p>
         <a href="https://www.github.com" target="_blank"><img src="/icons/github-mark.svg" alt="github-icon" class="w-6" /></a>
@@ -101,6 +111,7 @@
 <script setup>
 import { ref, computed, watchEffect } from 'vue';
 
+const runtimeConfig = useRuntimeConfig();
 const tokenStore = useTokenStore();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
@@ -119,7 +130,7 @@ watchEffect(async () => {
     eventName.value = study?.event || '';
   } else {
     studyName.value = '';
-    eventName.value = ''; 
+    eventName.value = '';
   }
   probandID.value = route.params.proband_id || '';
 });
@@ -129,7 +140,7 @@ watchEffect(async () => {
     studyStore.event = "";
     eventName.value = "";
   } else {
-    eventName.value = studyStore.event; 
+    eventName.value = studyStore.event;
   }
 });
 
@@ -149,35 +160,29 @@ function resetStore() {
 
 const openSlide = ref(false)
 
-const resetStores = () => {
-  studyName.value = "";
-  probandStore.probandID = "";
-  studyStore.event = "";  
-};
-
 const pathSegments = route.path.split('/').filter(Boolean);
 
 const studyLabelEventVerwaltung = computed(() => `${studyName.value} Eventverwaltung`);
 const studyLabelExport = computed(() => `${studyName.value} Export`);
 const studyInterviewLabel = computed(() => `${studyName.value}: Proband ${route.params.proband_id}`);
 
-const links = [{ 
-  label: 'Home', 
-  icon: 'i-heroicons-home', 
-  to: '/', 
+const links = [{
+  label: 'Home',
+  icon: 'i-heroicons-home',
+  to: '/',
 }];
 
 if (pathSegments.includes('studies')) {
-  links.push({ label: 'Studien', to: '/studies'});
+  links.push({ label: 'Studien', to: '/studies' });
 
   const studiesIndex = pathSegments.indexOf('studies');
-  
+
   if (pathSegments.includes('export')) {
     links.push({ label: studyLabelExport });
-  } 
+  }
   else if (studiesIndex + 1 < pathSegments.length) {
-    
-    links.push({ label: studyLabelEventVerwaltung});
+
+    links.push({ label: studyLabelEventVerwaltung });
   }
 } else if (pathSegments.includes('interview')) {
   links.push({ label: 'Neue Interviews Starten', to: '/interview' });
@@ -187,19 +192,27 @@ if (pathSegments.includes('studies')) {
   const eventIndex = pathSegments.indexOf('event');
 
   if (probandIndex !== -1 && studyIndex !== -1) {
-    links.push({ label: studyInterviewLabel, to: `/interview/proband/${route.params.proband_id}/study/${route.params.study_id}` }); 
-    
+    links.push({ label: studyInterviewLabel, to: `/interview/proband/${route.params.proband_id}/study/${route.params.study_id}` });
+
     if (eventIndex !== -1) {
-      links.push({ label: `Event ${eventName.value}`, to: null }); 
-    } 
+      links.push({ label: `Event ${eventName.value}`, to: null });
+    }
   }
 }
 
 const settingModalVisibility = ref(false)
 
-const openSettingModal = function(){
+const openSettingModal = function () {
   openSlide.value = false
   settingModalVisibility.value = true
 }
+
+// Version & Branch
+
+const { data: config } = await useFetch(`${runtimeConfig.public.baseURL}config/version`, {
+  method: "GET",
+  headers: { 'Authorization': "Bearer " + tokenStore.access_token }
+
+})
 
 </script>
