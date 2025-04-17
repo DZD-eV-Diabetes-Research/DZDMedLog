@@ -10,6 +10,15 @@
         <div v-if="mappedUsers">
             <UTable v-model:expand="expand" :rows="mappedUsers" :columns="columns">
 
+                <template #roles-data="{ row }">
+                    <div v-if="row.roles.length > 0" class="space-x-2" >
+                        <UBadge v-for="role in row.roles" class="">{{ role }}</UBadge>
+                    </div>
+                    <div v-else>
+
+                    </div>
+                </template>
+
                 <template #expand="{ row }">
                     <div class="flex flex-col p-4 bg-gray-50 rounded text-center items-center space-y-3">
                         <p v-if="row.roles.length > 0">{{ row.user_name }} sind folgenden Rollen zugewiesen: </p>
