@@ -77,6 +77,7 @@ done
 echo "OIDC mockup server seemed to have booted."
 PIDS+=($mock_server_PID)  # Store PID
 # Boot MedLog Backend
+
 python3 ./MedLog/backend/medlogserver/main.py $1 & 
 PIDS+=($!)  # Store PID of last background process
 wait
