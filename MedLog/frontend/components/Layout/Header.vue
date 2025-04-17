@@ -88,9 +88,12 @@
           <p>Wenn Sie Fragen oder Feedback haben, melden Sie sich gerne.</p>
           <p class="text-center">someEmail@someHost.com</p>
           <hr>
-          <div class="text-center font-extralight">
+          <div v-if="configStatus !== 'error'" class="text-center font-extralight">
             <p>Version: {{ config.version }}</p>
             <p>Branch: {{ config.branch }}</p>
+          </div>
+          <div v-else>
+            {{ configError }}
           </div>
           <!-- <div class="flex flex-row items-center space-x-2 mt-2">
         <p>Oder besuchen Sie unsere GitHub-Seite: </p>
@@ -209,10 +212,14 @@ const openSettingModal = function () {
 
 // Version & Branch
 
-const { data: config } = await useFetch(`${runtimeConfig.public.baseURL}config/version`, {
+const { data: config, error: configError, status: configStatus } = await useFetch(`${runtimeConfig.public.baseURL}config/version`, {
   method: "GET",
   headers: { 'Authorization': "Bearer " + tokenStore.access_token }
 
 })
+
+if (configError.value) {
+  console.error('Fehler beim Laden der Konfiguration:', configError.value)
+}
 
 </script>
