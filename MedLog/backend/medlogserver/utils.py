@@ -120,28 +120,16 @@ def set_version_file(base_dir=Path("./")) -> Path:
         version_file_path.unlink()
     # medlogserver = reload(medlogserver)
     content = f'__version__="{get_app_version()}"\n__version_git_branch__="{get_version_git_branch_name()}"'
+    print(f"Write version file to '{version_file_path}'. Content:\n{content}\n")
     version_file_path.write_text(content)
     return version_file_path
 
 
 def get_version_git_branch_name() -> str:
-    try:
-        from medlogserver.__version__ import __version_git_branch__
 
-        return __version_git_branch__
-    except (ImportError, ModuleNotFoundError):
-        # get branch from git
+    from medlogserver import __version_git_branch__
 
-        # the branch name this app version is based on
-        dot_git_dir = Path(PurePath(Path(__file__).parent, "../../..", ".git"))
-
-        head_path = Path(PurePath(dot_git_dir, "HEAD"))
-        with head_path.open("r") as f:
-            content = f.read().splitlines()
-
-        for line in content:
-            if line[0:4] == "ref:":
-                return line.partition("refs/heads/")[2]
+    return __version_git_branch__
 
 
 def sanitize_string(s: str, replace_space_with: str = "_") -> str:
