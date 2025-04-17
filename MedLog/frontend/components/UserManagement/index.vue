@@ -12,7 +12,7 @@
 
                 <template #roles-data="{ row }">
                     <div v-if="row.roles.length > 0" class="space-x-2" >
-                        <UBadge v-for="role in row.roles" class="">{{ role }}</UBadge>
+                        <UBadge class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg" v-for="role in row.roles">{{ role }}</UBadge>
                     </div>
                     <div v-else>
 
