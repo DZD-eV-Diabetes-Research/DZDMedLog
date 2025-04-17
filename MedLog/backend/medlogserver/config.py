@@ -19,18 +19,34 @@ from medlogserver.utils import get_random_string, val_means_true
 env_file_path = os.environ.get("MEDLOG_DOT_ENV_FILE", Path(__file__).parent / ".env")
 
 
+class Constants:
+    # todo
+    pass
+
+
 class Config(BaseSettings):
     APP_NAME: str = "DZDMedLog"
-    DOCKER_MODE: bool = False
-    FRONTEND_FILES_DIR: str = Field(
-        description="The generated nuxt dir that contains index.html,...",
-        default=str(
-            Path(Path(__file__).parent.parent.parent, "frontend/.output/public")
-        ),
-    )
     LOG_LEVEL: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"] = Field(
         default="INFO"
     )
+    DOCKER_MODE: bool = False
+    FRONTEND_MODE: Literal["nodejs", "static", "external", "off"] = Field(
+        default="nodejs",
+        description="""How should the frontend be served. 
+        'nodejs' -> The backend will try to spin up a nodejs server and reverse proxy it via the root '/' path.
+        'static' -> The backend only serves the static build files. Dynamic client routes will not really work in this mode. It is for local debuging and development
+        'external' -> You run the client runs on a different host or in a different process. it is still reverse proxied by the backend server. Define the URL in `FRONTENT_URL`
+        'off' -> No client handling at all in the backend. This is for the case when the client run external and an addiotional external reverse proxy.
+        """,
+    )
+    FRONTENT_URL: str = Field(
+        default="http://localhost:3000",
+        description="Used for FRONTEND_MODE=nodejs or FRONTEND_MODE=external",
+    )
+    FRONTEND_FILES_DIR: str = str(
+        Path(Path(__file__).parent.parent.parent, "frontend/.output/public")
+    )  # todo: move to Constants
+
     DEMO_MODE: bool = Field(
         default=False,
         description="If set to yes, the database will initiate with some demo data and most config mandatory config vars, like crypto secrets will be set to something random.",
@@ -127,8 +143,10 @@ class Config(BaseSettings):
     ADMIN_USER_NAME: str = Field(default="admin")
     ADMIN_USER_PW: SecretStr = Field()
     ADMIN_USER_EMAIL: Optional[str] = Field(default=None)
-    ADMIN_ROLE_NAME: str = Field(default="medlog-admin")
-    USERMANAGER_ROLE_NAME: str = Field(default="medlog-user-manager")
+    ADMIN_ROLE_NAME: str = Field(default="medlog-admin")  # Todo: move to Constants
+    USERMANAGER_ROLE_NAME: str = Field(
+        default="medlog-user-manager"
+    )  # Todo: move to Constants
     BACKGROUND_WORKER_START_IN_EXTRA_PROCESS: bool = Field(
         default=True,
         description="If set to True the background service will start in an extra Process next to the webserver. If set to False, the backgroundworker will not run. You have to setup an extra instance of the worker.",

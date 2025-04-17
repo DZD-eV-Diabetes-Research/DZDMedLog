@@ -17,20 +17,43 @@ ENV FRONTEND_FILES_DIR=$BASEDIR/medlogfrontend
 
 # prep stuff
 RUN mkdir -p $BASEDIR/medlogserver
-RUN mkdir -p $BASEDIR/medlogfrontend
+#RUN mkdir -p $BASEDIR/medlogfrontend
 RUN mkdir -p /data
 RUN mkdir -p /data/provisioning/database
 RUN mkdir -p /data/provisioning/arzneimittelindex/demo
 
+
+
+
+WORKDIR $BASEDIR
+
+
+#### FRONTEND SERVER ####
+# RUN apt-get update && apt-get install -y wget curl && rm -rf /var/lib/apt/lists/*
 # Copy frontend dist from pre stage
+
 COPY --from=medlog-frontend-build /frontend_build/.output/public $BASEDIR/medlogfrontend
 
+ENV NODE_VERSION=22.14.0
+# Download and install Node.js binary
+RUN curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v22.14.0-linux-x64.tar.xz" -o node.tar.xz \
+    && tar -xJf node.tar.xz -C /usr/local --strip-components=1 \
+    && rm node.tar.xz
 
-# Install Server
-WORKDIR $BASEDIR
+# Remove npm and associated files (optional)
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    && rm -rf /usr/local/bin/npm \
+    && rm -rf /usr/local/bin/npx \
+    && rm -rf /usr/local/lib/node_modules/npx
+RUN node -v
+#### BACKEND SERVER ####
+
+
 
 RUN python3 -m pip install --upgrade pip
 RUN pip install -U pip-tools
+
+
 
 # Generate requirements.txt based on depenencies defined in pyproject.toml
 COPY MedLog/backend/pyproject.toml $BASEDIR/medlogserver/pyproject.toml
@@ -63,5 +86,9 @@ ENV DRUG_TABLE_PROVISIONING_SOURCE_DIR=/data/provisioning/arzneimittelindex/demo
 ENV SERVER_HOSTNAME=localhost
 ENV EXPORT_CACHE_DIR=/data/export
 ENV SQL_DATABASE_URL="sqlite+aiosqlite:///$BASEDIR/data/db/medlog.db"
+
+
+
+
 ENTRYPOINT ["python", "./main.py"]
 #CMD [ "python", "./main.py" ]
