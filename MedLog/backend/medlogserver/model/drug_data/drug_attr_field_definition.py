@@ -130,6 +130,7 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
     __table_args__ = {
         "comment": "Definition of dataset specific fields and lookup fields. this is a read only table. The attribute field definitons are defined in code. Any changes on the SQL table rows/values will be overwriten."
     }
+    field_name: str = Field(primary_key=True)
     desc: Optional[str] = Field(
         default=None,
         description="Describe what is in the field. For internal documenation purposes. For user helptext see 'field_desc'",
@@ -152,4 +153,15 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
         description="Function that can transform the input value into a fitting string",
     )
     examples: List[str] = Field(default_factory=list, sa_column=Column(JSON))
-    list_of_values: List["DrugAttrFieldLovItem"] = Relationship(back_populates="field")
+
+    list_of_values: List["DrugAttrFieldLovItem"] = Relationship(
+        back_populates="field",
+        # sa_relationship_kwargs={
+        #    "primaryjoin": "drug_attr_field_definition.field_name==drug_attr_field_lov_item.field_name AND drug_attr_field_definition.importer_name==drug_attr_field_lov_item.importer_name",
+        #    "lazy": "joined",
+        # }
+        sa_relationship_kwargs={
+            "primaryjoin": "and_(DrugAttrFieldLovItem.field_name==DrugAttrFieldDefinition.field_name, DrugAttrFieldLovItem.importer_name==DrugAttrFieldDefinition.importer_name)",
+            "foreign_keys": "[DrugAttrFieldLovItem.field_name, DrugAttrFieldLovItem.importer_name, DrugAttrFieldLovItem.value]",
+        },
+    )

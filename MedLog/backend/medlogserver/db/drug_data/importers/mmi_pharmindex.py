@@ -700,7 +700,10 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self._db_session: AsyncSession | None = None
 
     def _reset_cache_csv_lookupscache(self):
-
+        # deleting self._cache_csv_dataview makes no sense
+        # see https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/58#issuecomment-2821409937
+        # del self._cache_csv_dataview
+        # self._cache_csv_dataview = {}
         del self._cache_csv_lookups
         self._cache_csv_lookups = {}
 
@@ -783,8 +786,11 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
                 all_objs.extend(lov_item_objs)
             await self.add_and_flush(objs=all_objs)
+            # Free memory
+            del all_objs
             all_objs = []
-            # read all drugs with attributes
+            gc.collect()
+
             drug_data_objs: List[DrugData] = []
 
             async for i, drug_obj in async_enumerate(
@@ -795,14 +801,12 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     await self.add_and_flush(objs=drug_data_objs)
                     del drug_data_objs
                     drug_data_objs = []
-                    # self._reset_cache_csv_lookupscache()
                     gc.collect()
 
             # log.debug(("ALL", drug_data_objs))
             await self.add_and_flush(objs=drug_data_objs)
             del drug_data_objs
             drug_data_objs = []
-            # self._reset_cache_csv_lookupscache()
             gc.collect()
             # write everything to database
             await self.commit(all_objs)
@@ -1239,10 +1243,8 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             raise ValueError(
                 f"Can not find '{filter_col_name}' in headers of file {file_path.absolute()}. headers: {csv_content_view.headers}"
             )
-        csv_lookup_filter_call_signature = (
-            file_path,
-            filter_col_name,
-            max_number_rows,
+        csv_lookup_filter_call_signature = hash(
+            (file_path, filter_col_name, max_number_rows)
         )
         if csv_lookup_filter_call_signature not in self._cache_csv_lookups:
             self._cache_csv_lookups[csv_lookup_filter_call_signature] = {}
@@ -1276,15 +1278,13 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         )
 
     async def add_and_flush(self, objs):
-        from sys import getsizeof
-
         log.debug(f"[DRUG DATA IMPORT] Flush {len(objs)} objects to database...")
         # log.debug(f"{objs}")
         session = self._db_session
         session.add_all(objs)
         await session.flush()
         session.expunge_all()
-        # self._reset_cache()
+        # self._reset_cache_csv_lookupscache()
 
     async def commit(self, objs=None):
         session = self._db_session
