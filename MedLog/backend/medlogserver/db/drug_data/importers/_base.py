@@ -62,8 +62,6 @@ class DrugDataSetImporterBase:
                 imported_dataset.dataset_version.split("_")
             )
             if source_dir_hash == imported_source_dir_hash:
-                print("source_dir_hash", source_dir_hash)
-                print("imported_source_dir_hash", imported_source_dir_hash)
                 return imported_dataset
         return None
 
@@ -118,7 +116,7 @@ class DrugDataSetImporterBase:
         if dataset_with_same_version_imported is not None:
             if dataset_with_same_version_imported.import_status == "failed":
                 log.warning(
-                    f"[DRUG DATA IMPORT] Dataset '{self.dataset_name}' with version '{self.version}' failed last time. Error:\n {dataset_with_same_version_imported.import_error}"
+                    f"[DRUG DATA IMPORT] Dataset '{self.dataset_name}' with version '{self.version}' failed last time. Error:\n {dataset_with_same_version_imported.import_error}\n!!This is warning of the error occured drug importer run and not a current error!!"
                 )
                 time.sleep(2)
             else:

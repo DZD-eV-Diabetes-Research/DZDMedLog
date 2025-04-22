@@ -6,6 +6,10 @@
 set -e
 # Store process IDs
 PIDS=()
+
+PYTHON_BIN=$(which python)
+echo "Python: $PYTHON_BIN"
+
 # Function to handle script termination
 cleanup() {
     echo "Stopping all processes..."
@@ -59,10 +63,11 @@ EOF
 )
 echo "Kill zombie processes..."
 kill_processes_by_path oidc_provider_mock_server.py
+kill_processes_by_path medlogserver/main.py
 
 echo "Start dummy OIDC Provider"
 # boot OIDC mockup authenticaion server
-(cd ./MedLog/backend/medlogserver/_dev && python3 oidc_provider_mock_server.py) &
+(cd ./MedLog/backend/medlogserver/_dev && "$PYTHON_BIN" oidc_provider_mock_server.py) &
 mock_server_PID=$!
 
 # Wait up to 3 seconds for oidc mockup server to boot successfull
@@ -78,6 +83,6 @@ echo "OIDC mockup server seemed to have booted."
 PIDS+=($mock_server_PID)  # Store PID
 # Boot MedLog Backend
 
-python3 ./MedLog/backend/medlogserver/main.py $1 & 
+"$PYTHON_BIN" ./MedLog/backend/medlogserver/main.py $1 & 
 PIDS+=($!)  # Store PID of last background process
 wait
