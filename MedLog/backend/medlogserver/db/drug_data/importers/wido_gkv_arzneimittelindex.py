@@ -503,6 +503,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                         value=value,
                         display=display_value,
                         sort_order=index,
+                        importer_name=self.__class__.__name__,
                     )
                     lov_items.append(li)
         elif isinstance(lov_definition, list):

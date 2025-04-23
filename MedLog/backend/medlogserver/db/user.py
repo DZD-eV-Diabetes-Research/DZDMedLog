@@ -77,7 +77,6 @@ class UserCRUD(
         if show_deactivated:
             query = select(User).where(User.user_name == user_name)
         else:
-            print("user_name", user_name)
             query = select(User).where(
                 User.user_name == user_name and User.deactivated == False
             )

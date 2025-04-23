@@ -238,6 +238,7 @@ class DrugCRUD(
                 DrugVal(
                     field_name=attr_def.field_name,
                     value=attr_create.value,
+                    importer_name=config.DRUG_IMPORTER_PLUGIN,
                 )
             )
         # attrs_ref
@@ -252,6 +253,7 @@ class DrugCRUD(
                     field_name=attr_ref_def.field_name,
                     value=attr_ref_create.value,
                     # lov_item=lov_item,
+                    importer_name=config.DRUG_IMPORTER_PLUGIN,
                 )
             )
         # attrs_multi
@@ -265,6 +267,7 @@ class DrugCRUD(
                         value_index=index,
                         field_name=attr_multi_def.field_name,
                         value=multi_val,
+                        importer_name=config.DRUG_IMPORTER_PLUGIN,
                     )
                 )
         # attrs_multi_ref
@@ -283,6 +286,7 @@ class DrugCRUD(
                         value_index=index,
                         field_name=attr_multi_ref_def.field_name,
                         value=multi_val,
+                        importer_name=config.DRUG_IMPORTER_PLUGIN,
                         # lov_item=lov_item,
                     )
                 )

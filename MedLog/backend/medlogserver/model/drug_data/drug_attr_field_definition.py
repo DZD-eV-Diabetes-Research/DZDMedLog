@@ -3,7 +3,7 @@ import uuid
 from functools import partial
 from pydantic import BaseModel, field_validator, model_validator
 
-from sqlmodel import Field, SQLModel, Relationship, JSON, Enum, Column
+from sqlmodel import Field, SQLModel, Relationship, JSON, Enum, Column, UniqueConstraint
 from pydantic_core import PydanticUndefined
 from sqlalchemy import String, Integer, Column, SmallInteger
 import datetime
@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from medlogserver.model.drug_data._base import (
     DrugModelTableBase,
 )
-
+from sqlalchemy.orm import RelationshipProperty
 
 if TYPE_CHECKING:
     from medlogserver.model.drug_data.drug_attr_field_lov_item import (
@@ -127,9 +127,16 @@ class DrugAttrMultiRefFieldDefinitionAPIRead(
 
 class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
     __tablename__ = "drug_attr_field_definition"
-    __table_args__ = {
-        "comment": "Definition of dataset specific fields and lookup fields. this is a read only table. The attribute field definitons are defined in code. Any changes on the SQL table rows/values will be overwriten."
-    }
+    __table_args__ = (
+        UniqueConstraint(
+            "field_name",
+            "importer_name",
+            name="uq_drug_attr_field_definition__field__importer",
+        ),
+        {
+            "comment": "Definition of dataset specific fields and lookup fields. this is a read only table. The attribute field definitons are defined in code. Any changes on the SQL table rows/values will be overwriten."
+        },
+    )
     field_name: str = Field(primary_key=True)
     desc: Optional[str] = Field(
         default=None,
@@ -155,13 +162,10 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
     examples: List[str] = Field(default_factory=list, sa_column=Column(JSON))
 
     list_of_values: List["DrugAttrFieldLovItem"] = Relationship(
-        back_populates="field",
-        # sa_relationship_kwargs={
-        #    "primaryjoin": "drug_attr_field_definition.field_name==drug_attr_field_lov_item.field_name AND drug_attr_field_definition.importer_name==drug_attr_field_lov_item.importer_name",
-        #    "lazy": "joined",
-        # }
-        sa_relationship_kwargs={
-            "primaryjoin": "and_(DrugAttrFieldLovItem.field_name==DrugAttrFieldDefinition.field_name, DrugAttrFieldLovItem.importer_name==DrugAttrFieldDefinition.importer_name)",
-            "foreign_keys": "[DrugAttrFieldLovItem.field_name, DrugAttrFieldLovItem.importer_name, DrugAttrFieldLovItem.value]",
-        },
+        sa_relationship=RelationshipProperty(
+            "DrugAttrFieldLovItem",
+            back_populates="field_definition",
+            foreign_keys="[DrugAttrFieldLovItem.importer_name,DrugAttrFieldLovItem.field_name]",
+            primaryjoin="and_(DrugAttrFieldLovItem.importer_name==DrugAttrFieldDefinition.importer_name, DrugAttrFieldLovItem.field_name==DrugAttrFieldDefinition.field_name)",
+        )
     )

@@ -45,12 +45,12 @@ if __name__ == "__main__":
 from medlogserver.config import Config
 
 
-print(
-    "WARNING by Tim: Memory Profiler is still enabled. This degrades perfomance drasticly. Please remove for production!!!!"
-)
+# print(
+#    "WARNING by Tim: Memory Profiler is still enabled. This degrades perfomance drasticly. Please remove for production!!!!"
+# )
 
 
-@profile
+# @profile
 def start():
     import medlogserver
 

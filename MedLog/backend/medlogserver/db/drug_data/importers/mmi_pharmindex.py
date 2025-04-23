@@ -928,7 +928,11 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 source_row=package_row,
             )
             result_drug_data.attrs.append(
-                DrugVal(field_name=attr_data.field.field_name, value=drug_attr_value)
+                DrugVal(
+                    field_name=attr_data.field.field_name,
+                    value=drug_attr_value,
+                    importer_name=importername,
+                )
             )
         # drug ref attr
         for attr_ref_data in attr_ref_definitions:
@@ -948,7 +952,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
             result_drug_data.attrs_ref.append(
                 DrugValRef(
-                    field_name=attr_ref_data.field.field_name, value=drug_attr_value
+                    field_name=attr_ref_data.field.field_name,
+                    value=drug_attr_value,
+                    importer_name=importername,
                 )
             )
         # drug multi attrs
@@ -971,6 +977,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         field_name=attr_multi_data.field.field_name,
                         value=drug_attr_val,
                         value_index=index,
+                        importer_name=importername,
                     )
                 )
         # drug multi ref attrs
@@ -998,6 +1005,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         field_name=attr_multi_ref_data.field.field_name,
                         value=drug_attr_val,
                         value_index=index,
+                        importer_name=importername,
                     )
                 )
         return result_drug_data
@@ -1361,6 +1369,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     value=value,
                     display=display_value,
                     sort_order=index,
+                    importer_name=importername,
                 )
                 lov_items.append(li)
 

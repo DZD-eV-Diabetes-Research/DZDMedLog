@@ -1,6 +1,13 @@
 from typing import List, Self, Optional, TYPE_CHECKING
 import uuid
-from sqlmodel import Field, SQLModel, Relationship, ForeignKeyConstraint, JSON
+from sqlmodel import (
+    Field,
+    SQLModel,
+    Relationship,
+    ForeignKeyConstraint,
+    JSON,
+)
+from sqlalchemy.orm import RelationshipProperty
 from sqlalchemy import String, Integer, Column, SmallInteger
 import datetime
 from medlogserver.model.drug_data._base import (
@@ -48,7 +55,18 @@ class DrugVal(DrugModelTableBase, table=True):
         default=None,
         description="Generic storage of a value as string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
-    field_definition: DrugAttrFieldDefinition = Relationship()
+    importer_name: str = Field(
+        foreign_key="drug_attr_field_definition.importer_name", primary_key=True
+    )
+    # field_definition: DrugAttrFieldDefinition = Relationship()
+    field_definition: DrugAttrFieldDefinition = Relationship(
+        sa_relationship=RelationshipProperty(
+            "DrugAttrFieldDefinition",
+            foreign_keys="[DrugVal.importer_name,DrugVal.field_name]",
+            primaryjoin="and_(DrugVal.importer_name==DrugAttrFieldDefinition.importer_name, DrugVal.field_name==DrugAttrFieldDefinition.field_name)",
+            # back_populates="list_of_values",
+        ),
+    )
     drug: "DrugData" = Relationship(back_populates="attrs")
 
 
@@ -57,9 +75,10 @@ class DrugValRef(DrugModelTableBase, table=True):
     __table_args__ = (
         ForeignKeyConstraint(
             name="composite_foreign_key_drug_ref_value_obj",
-            columns=["field_name", "value"],
+            columns=["field_name", "value", "importer_name"],
             refcolumns=[
                 "drug_attr_field_lov_item.field_name",
+                "drug_attr_field_lov_item.importer_name",
                 "drug_attr_field_lov_item.value",
             ],
         ),
@@ -74,7 +93,18 @@ class DrugValRef(DrugModelTableBase, table=True):
         default=None,
         description="Generic storage of a value as string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
-    field_definition: DrugAttrFieldDefinition = Relationship()
+    importer_name: str = Field(
+        foreign_key="drug_attr_field_definition.importer_name", primary_key=True
+    )
+    # field_definition: DrugAttrFieldDefinition = Relationship()
+    field_definition: DrugAttrFieldDefinition = Relationship(
+        sa_relationship=RelationshipProperty(
+            "DrugAttrFieldDefinition",
+            foreign_keys="[DrugValRef.importer_name,DrugValRef.field_name]",
+            primaryjoin="and_(DrugValRef.importer_name==DrugAttrFieldDefinition.importer_name, DrugValRef.field_name==DrugAttrFieldDefinition.field_name)",
+            # back_populates="list_of_values",
+        ),
+    )
     lov_item: DrugAttrFieldLovItem = Relationship(
         sa_relationship_kwargs={"lazy": "selectin"}
     )
@@ -93,7 +123,17 @@ class DrugValMulti(DrugModelTableBase, table=True):
         default=None,
         description="Generic storage of multiple value as list of string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
-    field_definition: DrugAttrFieldDefinition = Relationship()
+    importer_name: str = Field(
+        foreign_key="drug_attr_field_definition.importer_name", primary_key=True
+    )
+    field_definition: DrugAttrFieldDefinition = Relationship(
+        sa_relationship=RelationshipProperty(
+            "DrugAttrFieldDefinition",
+            foreign_keys="[DrugValMulti.importer_name,DrugValMulti.field_name]",
+            primaryjoin="and_(DrugValMulti.importer_name==DrugAttrFieldDefinition.importer_name, DrugValMulti.field_name==DrugAttrFieldDefinition.field_name)",
+            # back_populates="list_of_values",
+        ),
+    )
     drug: "DrugData" = Relationship(back_populates="attrs_multi")
 
 
@@ -102,10 +142,11 @@ class DrugValMultiRef(DrugModelTableBase, table=True):
     __table_args__ = (
         ForeignKeyConstraint(
             name="composite_foreign_key_drug_ref_value_obj",
-            columns=["field_name", "value"],
+            columns=["field_name", "value", "importer_name"],
             refcolumns=[
                 "drug_attr_field_lov_item.field_name",
                 "drug_attr_field_lov_item.value",
+                "drug_attr_field_lov_item.importer_name",
             ],
         ),
         {"comment": "Definition of dataset specific fields and lookup fields"},
@@ -120,8 +161,18 @@ class DrugValMultiRef(DrugModelTableBase, table=True):
         default=None,
         description="Generic storage of multiple reference value as list of string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
+    importer_name: str = Field(
+        foreign_key="drug_attr_field_definition.importer_name", primary_key=True
+    )
 
-    field_definition: DrugAttrFieldDefinition = Relationship()
+    field_definition: DrugAttrFieldDefinition = Relationship(
+        sa_relationship=RelationshipProperty(
+            "DrugAttrFieldDefinition",
+            foreign_keys="[DrugValMultiRef.importer_name,DrugValMultiRef.field_name]",
+            primaryjoin="and_(DrugValMultiRef.importer_name==DrugAttrFieldDefinition.importer_name, DrugValMultiRef.field_name==DrugAttrFieldDefinition.field_name)",
+            # back_populates="list_of_values",
+        ),
+    )
     lov_item: DrugAttrFieldLovItem = Relationship(
         sa_relationship_kwargs={"lazy": "selectin"}
     )

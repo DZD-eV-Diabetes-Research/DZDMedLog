@@ -15,6 +15,7 @@ from medlogserver.db.user import (
     User,
     UserCRUD,
 )
+from medlogserver.model.__tables__ import all_tables
 from medlogserver.db.user_auth import (
     UserAuth,
     UserAuthCreate,
@@ -158,8 +159,11 @@ async def init_db():
         log.info(f"Using sqlite file at '{sqlite_path}'")
     async with db_engine.begin() as conn:
         # await conn.run_sync(SQLModel.metadata.drop_all)
+
         log.info(("Create Tables if needed", list(SQLModel.metadata.tables.keys())))
-        await conn.run_sync(SQLModel.metadata.create_all)
+        res = await conn.run_sync(SQLModel.metadata.create_all)
+        log.debug(("RES", res))
+
         await create_admin_if_not_exists()
         await provision_drug_data()
         await init_drugsearch()
