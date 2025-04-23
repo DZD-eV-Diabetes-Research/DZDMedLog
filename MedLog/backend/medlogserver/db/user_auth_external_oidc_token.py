@@ -82,11 +82,25 @@ class UserAuthExternalOIDCTokenCRUD(
         exists_ok: bool = False,
         raise_custom_exception_if_exists: Exception = None,
     ) -> UserAuthExternalOIDCToken:
-        query = select(UserAuthExternalOIDCToken).where(
+        # Todo: json comparison in defautl postgres seems not to work
+        """
+         query = select(UserAuthExternalOIDCToken).where(
             UserAuthExternalOIDCToken.oauth_token == obj.oauth_token
-        )
-        results = await self.session.exec(statement=query)
+         )
+
+         results = await self.session.exec(statement=query)
+         results = await self.session.exec(statement=query)
         existing_oidc_token: UserAuthExternalOIDCToken = results.one_or_none()
+        """
+        # quickfix
+        query = select(UserAuthExternalOIDCToken)
+        results = await self.session.exec(statement=query)
+        existing_oidc_token = None
+        for token in results.all():
+            token: UserAuthExternalOIDCToken = token
+            if token.oauth_token == obj.oauth_token:
+                existing_oidc_token = token
+
         if existing_oidc_token and not exists_ok:
             raise ValueError(f"Token allready exists (id:'{existing_oidc_token.id}')")
         elif existing_oidc_token and exists_ok:

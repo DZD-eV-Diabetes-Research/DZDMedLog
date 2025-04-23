@@ -36,7 +36,9 @@ class TaskBase:
                 f"Task '{self.__class__.__name__}' can not run in context of a job, as no job was given on initilization."
             )
         # log.debug(f"Run job: {self.job.task_name}")
-        self.job.run_started_at = datetime.datetime.now(tz=datetime.UTC)
+        self.job.run_started_at = datetime.datetime.now(tz=datetime.UTC).replace(
+            tzinfo=None
+        )
         self.job = await self._update_job(self.job)
         error = None
         result = None
@@ -56,7 +58,7 @@ class TaskBase:
     async def job_finish(self, result: str = None, error: str = None):
         job_update = WorkerJobUpdate(
             id=self.job.id,
-            run_finished_at=datetime.datetime.now(tz=datetime.UTC),
+            run_finished_at=datetime.datetime.now(tz=datetime.UTC).replace(tzinfo=None),
             last_result=result,
             last_error=error,
         )

@@ -786,7 +786,6 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
                 all_objs.extend(lov_item_objs)
             await self.add_and_flush(objs=all_objs)
-            await self.commit()
             # Free memory
             del all_objs
             all_objs = []
@@ -950,6 +949,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 mapping=attr_ref_data.source_mapping,
                 source_row=package_row,
             )
+            if drug_attr_value is None:
+                # todo: investigate if this makes sense to have None value here?
+                continue
 
             result_drug_data.attrs_ref.append(
                 DrugValRef(
@@ -998,6 +1000,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 )
                 # log.debug(("AFTER: drug_attr_val",drug_attr_val))
 
+                if drug_attr_val is None:
+                    # todo: investigate if this makes sense to have None value here?
+                    continue
                 await self._validate_csv_value(
                     value=drug_attr_val, mapping=attr_multi_ref_data.source_mapping
                 )

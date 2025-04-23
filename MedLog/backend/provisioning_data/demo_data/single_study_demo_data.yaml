@@ -70,8 +70,8 @@ items:
       - id: 15b593f8-c501-4f44-a8c5-d3dfd2120194
         event_id: ed1e311a-75f2-47dd-bee9-333db4592174
         proband_external_id: "1234"
-        interview_start_time_utc: "2024-02-28 10:01:26.916345+00:00"
-        interview_end_time_utc: "2024-02-28 12:01:26.916345+00:00"
+        interview_start_time_utc: "2024-02-28 10:01:26.916345"
+        interview_end_time_utc: "2024-02-28 12:01:26.916345"
         proband_has_taken_meds: True
         interviewer_user_id: e337335c-426e-4122-9f1f-2a8a69b18fb0
   # - medlogserver.model.intake.IntakeCreate:
@@ -96,8 +96,8 @@ items:
       - id: 8c3aac56-0ab0-4f0c-8b8b-69c869a45b7e
         event_id: ed1e311a-75f2-47dd-bee9-333db4592174
         proband_external_id: "1234"
-        interview_start_time_utc: "2024-03-27 11:01:26.916345+00:00"
-        interview_end_time_utc: "2024-03-27 13:01:26.916345+00:00"
+        interview_start_time_utc: "2024-03-27 11:01:26.916345"
+        interview_end_time_utc: "2024-03-27 13:01:26.916345"
         proband_has_taken_meds: True
         interviewer_user_id: e337335c-426e-4122-9f1f-2a8a69b18fb0
   # - medlogserver.model.intake.IntakeCreate:
@@ -122,8 +122,8 @@ items:
       - id: 1c123653-6ea7-4b8e-95fd-a0b07256a1c6
         event_id: 123e9e8b-6e0d-4bf6-8ea2-ec1620abb341
         proband_external_id: "1234"
-        interview_start_time_utc: "2024-03-27 11:01:26.916345+00:00"
-        interview_end_time_utc: "2024-03-27 13:01:26.916345+00:00"
+        interview_start_time_utc: "2024-03-27 11:01:26.916345"
+        interview_end_time_utc: "2024-03-27 13:01:26.916345"
         proband_has_taken_meds: True
         interviewer_user_id: e337335c-426e-4122-9f1f-2a8a69b18fb0
   # - medlogserver.model.intake.IntakeCreate:
@@ -148,8 +148,8 @@ items:
       - id: dff06c18-0ab9-4f9d-9777-1111a5adbcde
         event_id: ed1e311a-75f2-47dd-bee9-333db4592174
         proband_external_id: "9876"
-        interview_start_time_utc: "2024-03-27 11:01:26.916345+00:00"
-        interview_end_time_utc: "2024-03-27 13:01:26.916345+00:00"
+        interview_start_time_utc: "2024-03-27 11:01:26.916345"
+        interview_end_time_utc: "2024-03-27 13:01:26.916345"
         proband_has_taken_meds: True
         interviewer_user_id: e337335c-426e-4122-9f1f-2a8a69b18fb0
   # - medlogserver.model.intake.IntakeCreate:
@@ -171,11 +171,11 @@ items:
   #       consumed_meds_today: "Yes"
 
   - medlogserver.model.interview.InterviewCreate:
-      - id: dff06c18-0ab9-4f9d-9777-1111a5adbcde
+      - id: 77706c18-0ab9-4f9d-9777-1111a5adb666
         event_id: ed1e311a-75f2-47dd-bee9-333db4592174
         proband_external_id: "9876"
-        interview_start_time_utc: "2024-03-27 11:01:26.916345+00:00"
-        interview_end_time_utc: "2024-03-27 13:01:26.916345+00:00"
+        interview_start_time_utc: "2024-03-27 11:01:26.916345"
+        interview_end_time_utc: "2024-03-27 13:01:26.916345"
         proband_has_taken_meds: True
         interviewer_user_id: e337335c-426e-4122-9f1f-2a8a69b18fb0
   # - medlogserver.model.intake.IntakeCreate:
@@ -200,8 +200,8 @@ items:
       - id: 2699c5e1-c939-4293-b6a8-fb8c14f244e9
         event_id: 123e9e8b-6e0d-4bf6-8ea2-ec1620abb341
         proband_external_id: "9876"
-        interview_start_time_utc: "2024-03-27 11:01:26.916345+00:00"
-        interview_end_time_utc: "2024-03-27 13:01:26.916345+00:00"
+        interview_start_time_utc: "2024-03-27 11:01:26.916345"
+        interview_end_time_utc: "2024-03-27 13:01:26.916345"
         proband_has_taken_meds: True
         interviewer_user_id: e337335c-426e-4122-9f1f-2a8a69b18fb0
   # - medlogserver.model.intake.IntakeCreate:

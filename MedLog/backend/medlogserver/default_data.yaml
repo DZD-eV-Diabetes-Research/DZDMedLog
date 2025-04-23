@@ -4,15 +4,15 @@ items:
   - medlogserver.model.worker_job.WorkerJobCreate:
       - id: 46365a4d-a6e1-4d07-abba-1d44552d360c
         task_name: CLEAN_TOKENS
-        task_params: null
-        user_id: null
+        #task_params: null
+        #user_id: null
         tags: ["background-job"]
         interval_params:
           minutes: 1
       - id: dc2c3027-3609-4217-aa10-97ad453d7ebc
         task_name: RUN_ADHOC_JOBS
-        task_params: null
-        user_id: null
+        #task_params: null
+        #user_id: null
         tags: ["background-job"]
         interval_params:
           seconds: 10

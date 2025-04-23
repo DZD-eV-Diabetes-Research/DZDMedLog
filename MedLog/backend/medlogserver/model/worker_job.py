@@ -41,6 +41,7 @@ class WorkerJobCreate(MedLogBaseModel, table=False):
     user_id: Optional[uuid.UUID] = Field(
         foreign_key="user.id",
         description="If Job was triggered by a certain user this should contain the users id, otherwise its a system job.",
+        default=None,
     )
     tags: List[str] = Field(
         default_factory=list,

@@ -65,17 +65,19 @@ class WorkerJobCRUD(
         if filter_intervalled_job is not None:
             if filter_intervalled_job == True:
                 query = query.where(
-                    and_(
-                        is_not(WorkerJob.interval_params, None),
-                        is_not(WorkerJob.interval_params, "null"),
-                    )
+                    is_not(WorkerJob.interval_params, None),
+                    # and_(
+                    #    is_not(WorkerJob.interval_params, None),
+                    #    is_not(WorkerJob.interval_params, {}),
+                    # )
                 )
             elif filter_intervalled_job == False:
                 query = query.where(
-                    or_(
-                        is_(WorkerJob.interval_params, None),
-                        is_(WorkerJob.interval_params, "null"),
-                    )
+                    is_(WorkerJob.interval_params, None),
+                    # or_(
+                    #    is_(WorkerJob.interval_params, None),
+                    #    is_(WorkerJob.interval_params, {}),
+                    # )
                 )
         results = await self.session.exec(statement=query)
 

@@ -36,7 +36,7 @@ class InterviewCreateAPI(MedLogBaseModel, table=False):
         description="A unique ID given to the proband from the studies external proband management system"
     )
     interview_start_time_utc: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
         description="Defaults to current time.",
     )
     interview_end_time_utc: Optional[datetime] = Field(default=None)
