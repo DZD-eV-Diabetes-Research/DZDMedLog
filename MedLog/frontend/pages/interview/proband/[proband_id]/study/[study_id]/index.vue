@@ -77,6 +77,7 @@ const runtimeConfig = useRuntimeConfig()
 const tokenStore = useTokenStore()
 const userStore = useUserStore()
 const studyStore = useStudyStore()
+const { $api } = useNuxtApp();
 
 // table
 
@@ -166,10 +167,7 @@ async function createEvent() {
   try {
     await useCreateEvent(eventState.name.trim(), route.params.study_id);
 
-    const events = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
-      method: "GET",
-      headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-    })
+    const events = await $api(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`)
     incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
     incompletedItems.value = incompletedItems.value.map(event => ({
       id: event.id,
@@ -203,10 +201,7 @@ const incompletedItems = ref([]);
 
 // REST 
 
-const { data: events } = await useFetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`, {
-  method: "GET",
-  headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-})
+const { data: events } = await useAPI(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`)
 
 function createEventList(events) {
   if (events && events.items) {
@@ -239,10 +234,7 @@ watch(events, (newEvents) => {
 
 async function editEvent(eventId: string) {
   try {
-    const result = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${eventId}/interview`, {
-      method: "GET",
-      headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-    })
+    const result = await $api(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${eventId}/interview`)
         
     studyStore.event = selectedCompleteEvent.value.event.name
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + eventId + "/interview/" + result[0].id)
@@ -253,13 +245,8 @@ async function editEvent(eventId: string) {
 
 async function createIntakeList() {
   try {
-    const intakes = await $fetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`,
-      {
-        method: "GET",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
-      }
-    );
+    const intakes = await $api(
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`);
 
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map((item) => ({

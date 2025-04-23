@@ -123,8 +123,10 @@ const drugStore = useDrugStore();
 const studyStore = useStudyStore();
 const userStore = useUserStore();
 const runtimeConfig = useRuntimeConfig();
+const { $api } = useNuxtApp();
 
-const { data: latestItems } = await useFetch(
+
+const { data: latestItems } = await useAPI(
   `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/intake`,
   {
     headers: { Authorization: "Bearer " + tokenStore.access_token }
@@ -202,11 +204,10 @@ async function deleteIntake() {
 
   try {
 
-    await $fetch(
+    await $api(
       `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.intakeId}`,
       {
         method: "DELETE",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
       }
     );
     deleteModalVisibility.value = false;
@@ -313,13 +314,8 @@ async function openCustomModal() {
 }
 
 async function getDosageForm() {
-  const dosageForm = await $fetch(
-    `${runtimeConfig.public.baseURL}v2/drug/field_def/darreichungsform/refs`,
-    {
-      method: "GET",
-      headers: { Authorization: "Bearer " + tokenStore.access_token },
-    }
-  );
+  const dosageForm = await $api(
+    `${runtimeConfig.public.baseURL}v2/drug/field_def/darreichungsform/refs`);
 
   dosageFormTable.value = dosageForm.items.map((item) => ({
     id: item.display + " (" + item.value + ")",
@@ -334,11 +330,10 @@ async function getDosageForm() {
 async function saveInterview() {
 
   try {
-    await $fetch(
+    await $api(
       `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${route.params.event_id}/interview/${route.params.interview_id}`,
       {
         method: "PATCH",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
         body: {
           "proband_external_id": `${route.params.proband_id}`,
           "interview_end_time_utc": new Date().toISOString(),
@@ -362,13 +357,8 @@ async function saveInterview() {
 
 async function createIntakeList() {
   try {
-    const intakes = await $fetch(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`,
-      {
-        method: "GET",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
-      }
-    );
+    const intakes = await $api(
+      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`);
 
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map((item) => ({

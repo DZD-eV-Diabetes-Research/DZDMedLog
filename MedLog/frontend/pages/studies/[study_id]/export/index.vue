@@ -58,6 +58,8 @@ const route = useRoute();
 const tokenStore = useTokenStore();
 const runtimeConfig = useRuntimeConfig();
 const studyStore = useStudyStore();
+const { $api } = useNuxtApp();
+
 
 const columns = [
   {
@@ -97,13 +99,8 @@ function parseTime(time:string) {
 
 
 async function getDownloads() {
-  const data = await $fetch(
-    `${runtimeConfig.public.baseURL}study/${route.params.study_id}/export`,
-    {
-      method: "GET",
-      headers: { Authorization: "Bearer " + tokenStore.access_token },
-    }
-  );
+  const data = await $api(
+    `${runtimeConfig.public.baseURL}study/${route.params.study_id}/export`);
 
   const studyName = await studyStore.getStudy(route.params.study_id);
 
@@ -146,11 +143,10 @@ async function downloadFile(row) {
 
 async function requestDownload() {
   try {
-    await $fetch(
+    await $api(
       `${runtimeConfig.public.baseURL}study/${route.params.study_id}/export?format=csv`,
       {
         method: "POST",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
       }
     );
     getDownloads();

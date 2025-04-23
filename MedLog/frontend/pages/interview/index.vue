@@ -34,6 +34,8 @@ const tokenStore = useTokenStore()
 const probandStore = useProbandStore()
 const router = useRouter()
 const runtimeConfig = useRuntimeConfig()
+const { $api } = useNuxtApp();
+
 
 const schema = object({
     probandID: string().required('Required'),
@@ -47,10 +49,7 @@ const state = reactive({
 
 async function pushFurther(study) {
     try {
-        const response = await $fetch(`${runtimeConfig.public.baseURL}study/${study.id}/proband/${state.probandID}/interview`, {
-            method: "GET",
-            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-        });
+        const response = await $api(`${runtimeConfig.public.baseURL}study/${study.id}/proband/${state.probandID}/interview`);
         probandStore.interviews = response
         probandStore.probandID = state.probandID
 

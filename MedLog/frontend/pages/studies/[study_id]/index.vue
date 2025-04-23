@@ -48,6 +48,8 @@ import { computed } from "vue";
 
 const enabled = ref(false);
 const dragging = ref(false);
+const { $api } = useNuxtApp();
+
 
 const studyStore = useStudyStore();
 const tokenStore = useTokenStore();
@@ -64,13 +66,8 @@ const study = await studyStore.getStudy(route.params.study_id);
 const myEvents = ref([])
 
 async function getEvents() {
-  const events = await $fetch(
-    `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event?hide_completed=false&offset=0&limit=100`,
-    {
-      method: "GET",
-      headers: { Authorization: "Bearer " + tokenStore.access_token },
-    }
-  );
+  const events = await $api(
+    `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event?hide_completed=false&offset=0&limit=100`);
   myEvents.value = events.items
 }
 
@@ -91,11 +88,10 @@ async function toggleSort() {
     myEvents.value.map((element) => {
       test.value.push(element);
     });
-    await $fetch(
+    await $api(
       `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/order`,
       {
         method: "POST",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
         body: test.value,
       }
     );
@@ -117,14 +113,13 @@ const errorMessage = ref();
 async function createEvent() {
   const body = { name: eventState.name };
   try {
-    await $fetch(
+    await $api(
       runtimeConfig.public.baseURL +
       "study/" +
       route.params.study_id +
       "/event",
       {
         method: "POST",
-        headers: { Authorization: "Bearer " + tokenStore.access_token },
         body,
       }
     );
