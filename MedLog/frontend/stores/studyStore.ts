@@ -23,18 +23,16 @@ export const useStudyStore = defineStore('StudyStore', {
     actions: {
         async listStudies(): Promise<void> {
             const tokenStore = useTokenStore()
+            const { $api } = useNuxtApp();
             tokenStore.error = ""
             try {
                 const runtimeConfig = useRuntimeConfig()
-                const data = await $fetch(runtimeConfig.public.baseURL + "study", {
-                    method: "GET",
-                    headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-                })
+                const data = await $api(runtimeConfig.public.baseURL + "study")
 
                 this.studies = data
             }
             catch (err: any) {
-                tokenStore.error = err.response.data.detail
+                tokenStore.error = err?.response.data.detail
             }
         },
 

@@ -40,6 +40,7 @@
 const props = defineProps<{ onUpdate: () => void }>();
 
 const runtimeConfig = useRuntimeConfig();
+const { $api } = useNuxtApp();
 const tokenStore = useTokenStore();
 const route = useRoute();
 
@@ -57,10 +58,7 @@ async function openCopyIntakeModal() {
     errorMessage.value = false
 
     try {
-        const intakes = await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/intake/details`, {
-            method: "GET",
-            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-        })
+        const intakes = await $api(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/intake/details`)
 
         lastEventName.value = intakes[0]?.event.name
         lastEventDate.value = new Date(intakes[0]?.interview.interview_end_time_utc).toLocaleDateString("de-DE", {
@@ -121,9 +119,8 @@ const columns = [{
 async function saveIntakes() {
     for (const element of selecteIntakes.value) {
         try {
-            await $fetch(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake`, {
+            await $api(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake`, {
                 method: "POST",
-                headers: { 'Authorization': "Bearer " + tokenStore.access_token },
                 body: element.postBody
             })
         } catch (error) {

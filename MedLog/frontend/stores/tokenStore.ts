@@ -23,7 +23,9 @@ export const useTokenStore = defineStore('TokenStore', {
 
   }),
   actions: {
+
     async login(username, password, event: FormSubmitEvent<Schema>) {
+      const { $api } = useNuxtApp();
       const userStore = useUserStore();
       const body = new FormData()
       body.append("username", username)
@@ -31,7 +33,7 @@ export const useTokenStore = defineStore('TokenStore', {
 
       const runtimeConfig = useRuntimeConfig()
       try {
-        const data = await $fetch(runtimeConfig.public.baseURL + "auth/token", {
+        const data = await $api(runtimeConfig.public.baseURL + "auth/token", {
           method: "POST",
           body,
         })

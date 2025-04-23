@@ -212,11 +212,7 @@ const openSettingModal = function () {
 
 // Version & Branch
 
-const { data: config, error: configError, status: configStatus } = await useFetch(`${runtimeConfig.public.baseURL}config/version`, {
-  method: "GET",
-  headers: { 'Authorization': "Bearer " + tokenStore.access_token }
-
-})
+const { data: config, error: configError, status: configStatus } = await useAPI(`${runtimeConfig.public.baseURL}config/version`)
 
 if (configError.value) {
   console.error('Fehler beim Laden der Konfiguration:', configError.value)
