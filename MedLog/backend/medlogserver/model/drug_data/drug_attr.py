@@ -86,8 +86,8 @@ class DrugValRef(DrugModelTableBase, table=True):
             columns=["field_name", "value", "importer_name"],
             refcolumns=[
                 "drug_attr_field_lov_item.field_name",
-                "drug_attr_field_lov_item.importer_name",
                 "drug_attr_field_lov_item.value",
+                "drug_attr_field_lov_item.importer_name",
             ],
         ),
         ForeignKeyConstraint(
@@ -167,8 +167,8 @@ class DrugValMultiRef(DrugModelTableBase, table=True):
             columns=["field_name", "value", "importer_name"],
             refcolumns=[
                 "drug_attr_field_lov_item.field_name",
-                "drug_attr_field_lov_item.importer_name",
                 "drug_attr_field_lov_item.value",
+                "drug_attr_field_lov_item.importer_name",
             ],
         ),
         ForeignKeyConstraint(
