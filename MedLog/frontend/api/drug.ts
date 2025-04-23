@@ -37,7 +37,7 @@ export async function apiDrugSearch(drugName: string) {
     const runTimeConfig = useRuntimeConfig();
     const tokenStore = useTokenStore();
 
-    const result = await fetch(
+    const result = await $fetch(
         `${runTimeConfig.public.baseURL}v2/drug/search?search_term=${drugName}&only_current_medications=true&offset=0&limit=100`,
         {
             method: "GET",
