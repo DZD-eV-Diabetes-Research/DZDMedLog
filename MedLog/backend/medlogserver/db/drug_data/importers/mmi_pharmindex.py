@@ -786,6 +786,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
                 all_objs.extend(lov_item_objs)
             await self.add_and_flush(objs=all_objs)
+            await self.commit()
             # Free memory
             del all_objs
             all_objs = []
@@ -930,7 +931,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             result_drug_data.attrs.append(
                 DrugVal(
                     field_name=attr_data.field.field_name,
-                    value=drug_attr_value,
+                    value=str(drug_attr_value),
                     importer_name=importername,
                 )
             )
@@ -953,7 +954,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             result_drug_data.attrs_ref.append(
                 DrugValRef(
                     field_name=attr_ref_data.field.field_name,
-                    value=drug_attr_value,
+                    value=str(drug_attr_value),
                     importer_name=importername,
                 )
             )
@@ -975,7 +976,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 result_drug_data.attrs_multi.append(
                     DrugValMulti(
                         field_name=attr_multi_data.field.field_name,
-                        value=drug_attr_val,
+                        value=str(drug_attr_val),
                         value_index=index,
                         importer_name=importername,
                     )
@@ -1003,7 +1004,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 result_drug_data.attrs_multi_ref.append(
                     DrugValMultiRef(
                         field_name=attr_multi_ref_data.field.field_name,
-                        value=drug_attr_val,
+                        value=str(drug_attr_val),
                         value_index=index,
                         importer_name=importername,
                     )
@@ -1290,7 +1291,14 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         # log.debug(f"{objs}")
         session = self._db_session
         session.add_all(objs)
-        await session.flush()
+        try:
+            await session.flush()
+        except Exception as e:
+            log.debug("FLUSH FAILED objs:")
+            for obj in objs:
+                obj: DrugModelTableBase = obj
+                log.debug(obj.attrs_multi_ref)
+            raise e
         session.expunge_all()
         # self._reset_cache_csv_lookupscache()
 
@@ -1366,7 +1374,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
                 li = DrugAttrFieldLovItem(
                     field_name=paren_field.field_name,
-                    value=value,
+                    value=str(value),
                     display=display_value,
                     sort_order=index,
                     importer_name=importername,

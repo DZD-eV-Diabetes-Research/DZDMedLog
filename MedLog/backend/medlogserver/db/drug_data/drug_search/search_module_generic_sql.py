@@ -171,7 +171,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             raise err
         state = await self._get_state()
         state.index_build_up_in_process = False
-        state.last_index_build_at = datetime.datetime.now(tz=datetime.timezone.utc)
+        state.last_index_build_at = datetime.datetime.now(
+            tz=datetime.timezone.utc
+        ).replace(tzinfo=None)
         state.last_index_build_based_on_drug_datasetversion_id = (
             target_drug_dataset_version.id
         )
@@ -227,7 +229,6 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         res = await session.exec(query, execution_options={"populate_existing": True})
         cache_entries: List[GenericSQLDrugSearchCache] = []
         for drug in res.all():
-            log.debug(("DRUG", drug.model_dump()))
             cache_entry = await self._drug_to_cache_obj(drug)
             cache_entries.append(cache_entry)
         session.add_all(cache_entries)
@@ -263,7 +264,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 attr_ref.field_name in drug_attr_ref_field_names_searchable
                 and attr_ref.value is not None
             ):
-                log.debug(attr_ref)
+                # log.debug(attr_ref)
                 field_values_aggregated += (
                     f" {attr_ref.value} {attr_ref.lov_item.display}"
                 )

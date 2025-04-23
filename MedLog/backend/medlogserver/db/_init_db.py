@@ -157,11 +157,12 @@ async def init_db():
     sqlite_path = prepare_sqlite_parent_path_if_needed(config.SQL_DATABASE_URL)
     if sqlite_path:
         log.info(f"Using sqlite file at '{sqlite_path}'")
-    async with db_engine.begin() as conn:
+    async with db_engine.connect() as conn:
         # await conn.run_sync(SQLModel.metadata.drop_all)
 
         log.info(("Create Tables if needed", list(SQLModel.metadata.tables.keys())))
         res = await conn.run_sync(SQLModel.metadata.create_all)
+        await conn.commit()
         log.debug(("RES", res))
 
         await create_admin_if_not_exists()

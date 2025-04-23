@@ -199,7 +199,7 @@ class DrugDataSetImporterBase:
                 drug_dataset = await self.generate_drug_data_set_definition()
                 drug_dataset.import_start_datetime_utc = datetime.datetime.now(
                     tz=datetime.timezone.utc
-                )
+                ).replace(tzinfo=None)
                 drug_dataset.import_file_path = str(Path(source_dir).resolve())
                 async with get_async_session_context() as session:
                     session.add(drug_dataset)
@@ -227,7 +227,7 @@ class DrugDataSetImporterBase:
                 custom_drug_dataset = await self.generate_custom_drug_set_definition()
                 custom_drug_dataset.import_start_datetime_utc = datetime.datetime.now(
                     tz=datetime.timezone.utc
-                )
+                ).replace(tzinfo=None)
                 custom_drug_dataset.import_status = "done"
                 async with get_async_session_context() as session:
                     session.add(custom_drug_dataset)
