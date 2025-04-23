@@ -40,20 +40,9 @@ class DrugAttrFieldLovItem(DrugModelTableBase, DrugAttrFieldLovItemAPIRead, tabl
         ),
         {"comment": "Attr fields lists of values"},
     )
-    field_name: str = Field(
-        foreign_key="drug_attr_field_definition.field_name", primary_key=True
-    )
-    importer_name: str = Field(
-        foreign_key="drug_attr_field_definition.importer_name", primary_key=True
-    )
+    field_name: str = Field(primary_key=True)
+    importer_name: str = Field(primary_key=True)
     value: str = Field(primary_key=True)
     display: str = Field()
     sort_order: Optional[int] = Field(default=0)
-    field_definition: DrugAttrFieldDefinition = Relationship(
-        sa_relationship=RelationshipProperty(
-            "DrugAttrFieldDefinition",
-            foreign_keys="[DrugAttrFieldLovItem.importer_name,DrugAttrFieldLovItem.field_name]",
-            primaryjoin="and_(DrugAttrFieldLovItem.importer_name==DrugAttrFieldDefinition.importer_name, DrugAttrFieldLovItem.field_name==DrugAttrFieldDefinition.field_name)",
-            back_populates="list_of_values",
-        ),
-    )
+    field_definition: DrugAttrFieldDefinition = Relationship()

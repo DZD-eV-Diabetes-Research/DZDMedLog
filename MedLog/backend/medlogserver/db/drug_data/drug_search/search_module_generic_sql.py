@@ -211,8 +211,10 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         custom_drugs_dataset = await self._get_custom_drugs_dataset_version()
         # fetch all drugs of the current dataset
         query = select(DrugData).where(
-            DrugData.source_dataset_id == target_drug_dataset_version.id
-            or DrugData.source_dataset_id == custom_drugs_dataset.id
+            or_(
+                DrugData.source_dataset_id == target_drug_dataset_version.id,
+                DrugData.source_dataset_id == custom_drugs_dataset.id,
+            )
         )
         query = query.options(
             selectinload(DrugData.attrs),
@@ -222,7 +224,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             ),
             selectinload(DrugData.codes),
         )
-        res = await session.exec(query)
+        res = await session.exec(query, execution_options={"populate_existing": True})
         cache_entries: List[GenericSQLDrugSearchCache] = []
         for drug in res.all():
             log.debug(("DRUG", drug.model_dump()))
