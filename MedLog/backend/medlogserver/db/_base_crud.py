@@ -9,7 +9,7 @@ from typing import (
     Generic,
 )
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import text
+from sqlalchemy import text, cast, literal, String
 from fastapi import Depends
 import contextlib
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -175,7 +175,10 @@ class CRUDBase(
             await self.session.commit()
         except IntegrityError as err:
             # log.debug("IntegrityError", err)
-            if "UNIQUE constraint failed" in str(err) and exists_ok:
+            if (
+                "UNIQUE constraint failed" in str(err)
+                or "duplicate key value" in str(err)
+            ) and exists_ok:
                 log.debug(
                     f"Object of object of type '{type(obj)}' already exists. Skipping creation. <{obj}>"
                 )
@@ -212,7 +215,15 @@ class CRUDBase(
         query = select(tbl)
 
         for attr, val in obj.model_dump().items():
-            query = query.where(getattr(tbl, attr) == val)
+            if isinstance(val, (dict, list)):
+                # json value. Postgres seems to not support json comparison atm?!?!
+                # https://github.com/sqlalchemy/sqlalchemy/issues/5575#issuecomment-691121030
+                log.warning(
+                    f"Can not compare JSON value. Will be irgnored for finding row of {tbl.__class__.__name__}.{attr}"
+                )
+            else:
+
+                query = query.where(getattr(tbl, attr) == val)
         res = await self.session.exec(query)
         result_objs = res.all()
         if len(result_objs) == 0 and raise_exception_if_not_exists:

@@ -42,10 +42,11 @@ dependencies = [
     "async-lru",
     "websockets",
     "polars",
+    "psycopg[binary]",
 ]
 
 [project.optional-dependencies]
-tests = ["pytest", "requests", "oidc-provider-mock"]
+tests = ["pytest", "requests", "oidc-provider-mock", "memory_profiler"]
 docs = ["mkdocs", "mkdocstrings[python]", "mkdocs-autorefs", "mkdocs-material"]
 
 
