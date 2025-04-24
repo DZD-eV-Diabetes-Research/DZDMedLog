@@ -59,6 +59,7 @@ EOF
 )
 echo "Kill zombie processes..."
 kill_processes_by_path oidc_provider_mock_server.py
+kill_processes_by_path medlogserver/main.py
 
 echo "Start dummy OIDC Provider"
 # boot OIDC mockup authenticaion server
