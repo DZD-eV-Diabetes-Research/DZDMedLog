@@ -64,11 +64,10 @@ export const useTokenStore = defineStore('TokenStore', {
       this.loggedIn = true
       this.oidcTokenURL = ""
       this.expiredToken = false
-
       userStore.userMe()
 
       const router = useRouter()
-      router.push({ path: "/user" })
+      router.push({ path: "/" })
 
     },
     set401(value: boolean) {
