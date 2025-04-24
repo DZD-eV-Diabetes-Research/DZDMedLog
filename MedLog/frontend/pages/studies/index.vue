@@ -51,6 +51,8 @@ const userStore = useUserStore();
 const studyStore = useStudyStore();
 const tokenStore = useTokenStore();
 const router = useRouter();
+const { $api } = useNuxtApp();
+
 
 const showModal = ref(false);
 const state = reactive({
@@ -72,9 +74,8 @@ async function openModal() {
 async function createStudy() {
   try {
     const body = { display_name: state.study_name.trim() };
-    const data = await $fetch(runtimeConfig.public.baseURL + "study", {
+    const data = await $api(runtimeConfig.public.baseURL + "study", {
       method: "POST",
-      headers: { Authorization: "Bearer " + tokenStore.access_token },
       body,
     });
     studyStore.listStudies();

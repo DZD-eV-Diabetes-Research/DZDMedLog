@@ -1,9 +1,11 @@
 export async function apiGetFieldDefinitions(type: string) {
     const runTimeConfig = useRuntimeConfig();
     const tokenStore = useTokenStore();
+    const { $api } = useNuxtApp();
+
 
     try {
-        const response = await $fetch(`${runTimeConfig.public.baseURL}v2/drug/field_def`, {
+        const response = await $api(`${runTimeConfig.public.baseURL}v2/drug/field_def`, {
             method: 'GET',
             headers: {
                 Authorization: `Bearer ${tokenStore.access_token}`,
@@ -36,8 +38,9 @@ export async function apiGetFieldDefinitions(type: string) {
 export async function apiDrugSearch(drugName: string) {
     const runTimeConfig = useRuntimeConfig();
     const tokenStore = useTokenStore();
+    const { $api } = useNuxtApp();
 
-    const result = await fetch(
+    const result = await $api(
         `${runTimeConfig.public.baseURL}v2/drug/search?search_term=${drugName}&only_current_medications=true&offset=0&limit=100`,
         {
             method: "GET",

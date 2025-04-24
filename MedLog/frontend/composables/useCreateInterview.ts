@@ -1,5 +1,7 @@
 export async function useCreateInterview(study_id:string, event_id:string, proband_external_id: string, proband_has_taken_meds:boolean, interview_number:number): Promise<any>{
     const tokenStore = useTokenStore()
+    const { $api } = useNuxtApp();
+
     tokenStore.error = ""
     
     let body = {"proband_external_id": proband_external_id,
@@ -9,9 +11,8 @@ export async function useCreateInterview(study_id:string, event_id:string, proba
 
     try {
         const runtimeConfig = useRuntimeConfig()
-        const response = await $fetch(runtimeConfig.public.baseURL + "study/" + study_id + "/event/" + event_id + "/interview", {
+        const response = await $api(runtimeConfig.public.baseURL + "study/" + study_id + "/event/" + event_id + "/interview", {
             method: "POST",
-            headers: { 'Authorization': "Bearer " + tokenStore.access_token },
             body,
         })
         return response     

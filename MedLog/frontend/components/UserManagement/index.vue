@@ -60,16 +60,15 @@
 <script setup lang="ts">
 const tokenStore = useTokenStore();
 const runtimeConfig = useRuntimeConfig();
+const { $api } = useNuxtApp();
 
 
-const { status, data: users, refresh } = useFetch(`${runtimeConfig.public.baseURL}user`, {
+const { status, data: users, refresh } = useAPI(`${runtimeConfig.public.baseURL}user`, {
     method: "GET",
-    headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
 
-const { data: roles } = useFetch(`${runtimeConfig.public.baseURL}role`, {
+const { data: roles } = useAPI(`${runtimeConfig.public.baseURL}role`, {
     method: "GET",
-    headers: { 'Authorization': "Bearer " + tokenStore.access_token },
 })
 
 
@@ -106,11 +105,10 @@ const currentUser = ref()
 const patchUser = async function (id: string) {
     try {
         const patchBody = { "roles": selectedRolesPerUser.value[id] }
-        await $fetch(
+        await $api(
             `${runtimeConfig.public.baseURL}user/${id}`,
             {
                 method: "PATCH",
-                headers: { Authorization: "Bearer " + tokenStore.access_token },
                 body: patchBody,
             }
         );

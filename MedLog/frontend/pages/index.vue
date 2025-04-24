@@ -43,7 +43,7 @@
           <a href="https://auth.dzd-ev.org/" target="_blank"
             class="hover:border-[#ec372d] hover:border-b-2">Registrieren Sie sich hier.</a>
         </p>
-        <div v-if="tokenStore.expiredToken">
+        <div v-if="tokenStore.expiredToken" class="my-6">
           <h3 class="text-4xl text-red-500">Ihre Session ist abgelaufen, bitte loggen Sie sich erneut ein</h3>
         </div>
       </div>
@@ -68,9 +68,7 @@ tokenStore.set401(false);
 
 import { object, string, type InferType } from "yup";
 
-const { data: healthStatus, error: healthError } = await useFetch(`${runtimeConfig.public.baseURL}health`, {
-  method: "GET",
-})
+const { data: healthStatus, error: healthError } = await useAPI(`${runtimeConfig.public.baseURL}health`)
 
 const schema = object({
   username: string().required("Benötigt"),
@@ -84,10 +82,7 @@ const state = reactive({
   password: "",
 });
 
-const { data } = await useFetch(`${runtimeConfig.public.baseURL}auth/schemes`, {
-  method: "GET",
-  headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-})
+const { data } = await useAPI(`${runtimeConfig.public.baseURL}auth/schemes`)
 
 const login = () => {
   try {

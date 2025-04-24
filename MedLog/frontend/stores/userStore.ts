@@ -29,12 +29,11 @@ export const useUserStore = defineStore('UserStore', {
     actions: {
         async userMe() {
             const tokenStore = useTokenStore()
+            const { $api } = useNuxtApp();
+
             try {
                 const runtimeConfig = useRuntimeConfig()
-                const data = await $fetch(runtimeConfig.public.baseURL + "user/me", {
-                    method: "GET",
-                    headers: { 'Authorization': "Bearer " + tokenStore.access_token },
-                })
+                const data = await $api(runtimeConfig.public.baseURL + "user/me")
 
                 this.email = data.email
                 this.displayName = data.display_name

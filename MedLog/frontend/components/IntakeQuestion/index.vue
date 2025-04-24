@@ -70,7 +70,6 @@
 import { ref, watch, reactive } from "vue";
 import { apiGetFieldDefinitions, apiDrugSearch } from '~/api/drug';
 
-
 let drugFieldDefinitionsObject = await apiGetFieldDefinitions("search_result")
 
 const hoveredItem = ref(null);
@@ -105,24 +104,20 @@ const fetchDrugs = async (edit: boolean, custom: boolean) => {
       try {
         showMissingDrugOnLoad.value = false
         const response = await apiDrugSearch(state.drug)
-
-        if (!response.ok) { throw new Error("Failed to fetch"); }
-
-        const data = await response.json();
         
-        if (data.count == 0){
+        if (response.items == 0){
           showMissingDrugOnLoad.value = true
         }
 
         if (props.edit && initialLoad.value) {
-          printMedication(data.items[0]);
+          printMedication(response.items[0]);
           state.drug = ""
           initialLoad.value = false;
           isLoading.value = false;
           return;
         }
-        drugList.items = data.items || [];
-        drugList.count = data.count || 0;
+        drugList.items = response.items || [];
+        drugList.count = response.count || 0;
         state.currentPage = 1;
       } catch (error) {
         console.error("Error fetching drugs:", error);
