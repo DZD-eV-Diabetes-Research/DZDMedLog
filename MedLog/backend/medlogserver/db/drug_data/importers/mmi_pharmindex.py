@@ -686,7 +686,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self.dataset_link = "https://www.MmiPi.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/"
         self.source_dir = None
         self.version = None
-        self.batch_size = 1000
+        self.batch_size = 5000
         self._attr_definitions = None
         self._attr_ref_definitions = None
         self._code_definitions = None
@@ -1191,7 +1191,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self, file_path: Path, key_column: str = None
     ) -> CsvFileContentViewCache:
         if file_path not in self._cache_csv_content:
-            log.debug(f"Parse CSV {file_path}")
+            log.debug(f"[DRUG DATA IMPORT] Parse CSV {file_path}")
             df = polars.read_csv(
                 source=file_path,
                 has_header=True,
@@ -1206,7 +1206,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             self._cache_csv_dataview[file_path] = {}
         if key_column not in self._cache_csv_dataview[file_path]:
             log.debug(
-                f"Materialize view on CSV ({file_path})-data for key column {key_column}"
+                f"[DRUG DATA IMPORT] Materialize view on CSV ({file_path})-data for key column {key_column}"
             )
             csv_data: CsvFileContentCache = self._cache_csv_content[file_path]
             # Perform sanity checks

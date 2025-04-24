@@ -13,7 +13,7 @@ from pathlib import Path
 import sys, os
 
 # Main can be started with arguments. Lets parse these first.
-from memory_profiler import profile
+
 
 arg_parser = argparse.ArgumentParser("DZDMedLog")
 arg_parser.add_argument(
@@ -44,13 +44,16 @@ if __name__ == "__main__":
 # Import and load config
 from medlogserver.config import Config
 
+# memory profiling- uncomment for activating
+"""
+print(
+   "WARNING by Tim: Memory Profiler is still enabled. This degrades perfomance drasticly. Please remove for production!!!!"
+)
+from memory_profiler import profile
+@profile
+"""
 
-# print(
-#    "WARNING by Tim: Memory Profiler is still enabled. This degrades perfomance drasticly. Please remove for production!!!!"
-# )
 
-
-# @profile
 def start():
     import medlogserver
 
