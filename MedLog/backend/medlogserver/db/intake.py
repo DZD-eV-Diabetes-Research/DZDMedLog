@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc, and_
 
 from datetime import datetime, timezone
 import uuid
@@ -146,8 +146,10 @@ class IntakeCRUD(
             select(Interview)
             .join(Event)
             .where(
-                Interview.proband_external_id == proband_external_id
-                and Event.study_id == study_id
+                and_(
+                    Interview.proband_external_id == proband_external_id,
+                    Event.study_id == study_id,
+                )
             )
             .order_by(desc(Interview.interview_end_time_utc))
             .limit(1)
@@ -213,7 +215,7 @@ class IntakeCRUD(
             select(Intake)
             .join(Interview)
             .join(Event)
-            .where(Event.study_id == study_id and Intake.id == intake_id)
+            .where(and_(Event.study_id == study_id, Intake.id == intake_id))
         )
         if interview_id is not None:
             query = query.where(Interview.id == interview_id)

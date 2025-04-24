@@ -5,7 +5,18 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func, col, desc
+from sqlmodel import (
+    Field,
+    select,
+    delete,
+    Column,
+    JSON,
+    SQLModel,
+    func,
+    col,
+    desc,
+    and_,
+)
 from sqlmodel.sql import expression as sqlEpression
 import uuid
 from uuid import UUID
@@ -66,15 +77,20 @@ class DrugDataSetVersionCRUD(
         query = (
             select(DrugDataSetVersion)
             .where(
-                DrugDataSetVersion.dataset_source_name
-                == self._get_current_dataset_name()
-                and DrugDataSetVersion.is_custom_drugs_collection == False
+                and_(
+                    DrugDataSetVersion.dataset_source_name
+                    == self._get_current_dataset_name(),
+                    DrugDataSetVersion.is_custom_drugs_collection == False,
+                )
             )
             .order_by(desc(DrugDataSetVersion.current_active))
             .order_by(desc(DrugDataSetVersion.dataset_version))
             .limit(1)
         )
         results = await self.session.exec(statement=query)
+        res = results.one_or_none()
+        log.debug(f"DrugDataSetVersion get_current {res}")
+        return res
         return results.one_or_none()
 
     async def get_custom(
@@ -83,14 +99,18 @@ class DrugDataSetVersionCRUD(
         query = (
             select(DrugDataSetVersion)
             .where(
-                DrugDataSetVersion.dataset_source_name
-                == self._get_current_dataset_name()
-                and DrugDataSetVersion.is_custom_drugs_collection == True
+                and_(
+                    DrugDataSetVersion.dataset_source_name
+                    == self._get_current_dataset_name(),
+                    DrugDataSetVersion.is_custom_drugs_collection == True,
+                )
             )
             .limit(1)
         )
         results = await self.session.exec(statement=query)
-        return results.one_or_none()
+        res = results.one_or_none()
+        log.debug(f"DrugDataSetVersion get_custom {res}")
+        return res
 
         # old code can be removed
         current_drug_dataset = await self.get_current()

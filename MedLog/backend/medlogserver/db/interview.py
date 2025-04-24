@@ -5,7 +5,7 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc, and_
 from sqlalchemy.sql.operators import is_not, is_
 from datetime import datetime, timezone
 import uuid
@@ -105,7 +105,7 @@ class InterviewCRUD(
         query = (
             select(Event)
             .join(Interview)
-            .where(Event.study_id == study_id and Interview.id == interview_id)
+            .where(and_(Event.study_id == study_id, Interview.id == interview_id))
         )
         log.debug(f"##query: {query}")
         results = await self.session.exec(statement=query)

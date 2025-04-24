@@ -159,6 +159,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 await self._clear_cache(session=session)
                 await self._build_index(session=session)
                 index_item_count = await self._count_cache_items(session=session)
+                log.debug(f"Index build up index_item_count: {index_item_count}")
                 await session.commit()
             log.info("...building drug search index done.")
         except Exception as err:
@@ -210,7 +211,14 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         drug_search_attr = []
         # collect all drug attributes definition that are definied "searchable"
         target_drug_dataset_version = await self._get_current_dataset_version()
+        log.debug(
+            f"INDEX BUILD UP target_drug_dataset_version: {target_drug_dataset_version.id} {type(target_drug_dataset_version.id)}"
+        )
+
         custom_drugs_dataset = await self._get_custom_drugs_dataset_version()
+        log.debug(
+            f"INDEX BUILD UP custom_drugs_dataset: {custom_drugs_dataset.id} {type(custom_drugs_dataset.id)}"
+        )
         # fetch all drugs of the current dataset
         query = select(DrugData).where(
             or_(
@@ -402,7 +410,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                     GenericSQLDrugSearchCache.market_exit_date < datetime.date.today(),
                 )
             )
-        query = query.where(Column("score") > 0)
+        query = query.where(score_cases > 0)
         if pagination:
             query = pagination.append_to_query(
                 query, ignore_limit=True, ignore_order_by=True

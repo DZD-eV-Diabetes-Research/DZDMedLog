@@ -222,7 +222,6 @@ class CRUDBase(
                     f"Can not compare JSON value. Will be irgnored for finding row of {tbl.__class__.__name__}.{attr}"
                 )
             else:
-
                 query = query.where(getattr(tbl, attr) == val)
         res = await self.session.exec(query)
         result_objs = res.all()
