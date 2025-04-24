@@ -95,10 +95,9 @@ const login = () => {
 const loginOIDC = async function (oidc_method) {
   try {
     tokenStore.setOidcTokenURL(oidc_method.token_endpoint)
-    window.location.href = `${runtimeConfig.public.baseURL.slice(0, -1)}${oidc_method.login_endpoint}`
+    window.location.href = `${runtimeConfig.public.baseURL.slice(0, -1)}${oidc_method.login_endpoint}`    
   } catch (error) {
     console.log(error);
-
   }
 }
 
