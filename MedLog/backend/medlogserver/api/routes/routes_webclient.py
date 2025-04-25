@@ -44,7 +44,7 @@ async def serve_frontend(req: Request, path_name: Optional[str] = None):
         file = os.path.join(config.FRONTEND_FILES_DIR, path_name)
     if full_path.is_dir():
         file = os.path.join(config.FRONTEND_FILES_DIR, path_name, "index.html")
-    if Path(file).exists():
+    if file is not None and Path(file).exists():
         if file.endswith(".css"):
             headers["content-type"] = "text/css; charset=UTF-8"
         elif file.endswith(".js"):
