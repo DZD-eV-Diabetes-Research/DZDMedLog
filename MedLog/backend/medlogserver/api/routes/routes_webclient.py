@@ -57,7 +57,7 @@ async def serve_frontend(req: Request, path_name: Optional[str] = None):
             f"Response on path_name:'{path_name}' file:'{file}' (RespHeaders: {headers} ReqHeaders: {req.headers})"
         )
         return FileResponse(file, headers=headers)
-    elif "_nuxt" in path_name:
+    elif path_name and "_nuxt" in path_name:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"{path_name} could not be found.",
