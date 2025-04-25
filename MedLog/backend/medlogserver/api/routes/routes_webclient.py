@@ -34,7 +34,7 @@ async def serve_frontend(req: Request, path_name: Optional[str] = None):
         file = os.path.join(config.FRONTEND_FILES_DIR, "index.html")
     if full_path.is_file():
         file = os.path.join(config.FRONTEND_FILES_DIR, path_name)
-    else:
+    if full_path.is_dir():
         file = os.path.join(config.FRONTEND_FILES_DIR, path_name, "index.html")
     if Path(file).exists():
         if file.endswith(".css"):
@@ -46,12 +46,12 @@ async def serve_frontend(req: Request, path_name: Optional[str] = None):
         elif file.endswith(".json"):
             headers["content-type"] = "application/json; charset=UTF-8"
         log.debug(
-            f"Response on {path_name}(Headers: {req.headers}) with FileResponse {file} (Header: {headers})"
+            f"Response on path_name:'{path_name}' file:'{file}' (RespHeaders: {headers} ReqHeaders: {req.headers})"
         )
         return FileResponse(file, headers=headers)
     # SPA Fallback. Let the Nuxt Client router parse URL
     headers["content-type"] = "text/html; charset=UTF-8"
     log.debug(
-        f"Response on {path_name}(Headers: {req.headers}) with Default Index(Header: {headers})"
+        f"Response on path_name:'{path_name}' with default index '{config.FRONTEND_FILES_DIR}/index.html' (RespHeaders: {headers} ReqHeaders: {req.headers})"
     )
     return FileResponse(f"{config.FRONTEND_FILES_DIR}/index.html", headers=headers)
