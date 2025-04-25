@@ -686,7 +686,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self.dataset_link = "https://www.MmiPi.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/"
         self.source_dir = None
         self.version = None
-        self.batch_size = 5000
+        self.batch_size = 50000
         self._attr_definitions = None
         self._attr_ref_definitions = None
         self._code_definitions = None
