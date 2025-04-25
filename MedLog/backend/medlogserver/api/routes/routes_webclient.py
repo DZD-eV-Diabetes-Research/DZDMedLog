@@ -31,12 +31,26 @@ fast_api_webclient_router: APIRouter = APIRouter()
 
 
 # We use the compiled static file client
+@fast_api_webclient_router.get("/")
+async def serve_client_root(req: Request, path_name: Optional[str] = None):
+    # SPA Fallback. Let the Nuxt Client router parse URL
+    headers = {}
+    headers["content-type"] = "text/html; charset=UTF-8"
+    log.debug(
+        f"Server Application '{config.FRONTEND_FILES_DIR}/index.html' (RespHeaders: {headers} ReqHeaders: {req.headers})"
+    )
+    return FileResponse(f"{config.FRONTEND_FILES_DIR}/index.html", headers=headers)
+
+
+# We use the compiled static file client
 @fast_api_webclient_router.get("/{path_name:path}")
-async def serve_frontend(req: Request, path_name: Optional[str] = None):
+async def serve_frontend_files(req: Request, path_name: Optional[str] = None):
     headers = {}
 
     full_path = Path(config.FRONTEND_FILES_DIR, path_name)
-    log.debug(f"request frontend path {path_name} {full_path.is_file()}")
+    log.debug(
+        f"request frontend path '{path_name}' (is existing file: {full_path.is_file()})"
+    )
     file: str = None
     if not path_name:
         file = os.path.join(config.FRONTEND_FILES_DIR, "index.html")
