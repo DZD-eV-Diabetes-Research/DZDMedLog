@@ -2,7 +2,15 @@ from typing import Annotated, Sequence, List, Type, Optional
 import os
 from pathlib import Path
 from urllib.parse import urlparse, urljoin
-from fastapi import FastAPI, APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    FastAPI,
+    APIRouter,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+    HTTPException,
+    status,
+)
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from medlogserver.config import Config
 import httpx
@@ -49,6 +57,11 @@ async def serve_frontend(req: Request, path_name: Optional[str] = None):
             f"Response on path_name:'{path_name}' file:'{file}' (RespHeaders: {headers} ReqHeaders: {req.headers})"
         )
         return FileResponse(file, headers=headers)
+    elif "_nuxt" in path_name:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{path_name} could not be found.",
+        )
     # SPA Fallback. Let the Nuxt Client router parse URL
     headers["content-type"] = "text/html; charset=UTF-8"
     log.debug(
