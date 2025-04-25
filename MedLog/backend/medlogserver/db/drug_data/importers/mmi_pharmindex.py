@@ -686,7 +686,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self.dataset_link = "https://www.MmiPi.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/"
         self.source_dir = None
         self.version = None
-        self.batch_size = 50000
+        self.batch_size = 200000
         self._attr_definitions = None
         self._attr_ref_definitions = None
         self._code_definitions = None
@@ -1295,6 +1295,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         log.debug(f"[DRUG DATA IMPORT] Flush {len(objs)} objects to database...")
         # log.debug(f"{objs}")
         session = self._db_session
+
         session.add_all(objs)
         try:
             await session.flush()
