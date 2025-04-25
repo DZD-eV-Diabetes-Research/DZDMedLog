@@ -1305,7 +1305,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 log.debug(obj.attrs_multi_ref)
             raise e
         session.expunge_all()
-        # self._reset_cache_csv_lookupscache()
+        self._reset_cache_csv_lookupscache()
 
     async def commit(self, objs=None):
         session = self._db_session
