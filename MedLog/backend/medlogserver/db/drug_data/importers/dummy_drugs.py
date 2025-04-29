@@ -221,7 +221,7 @@ attr_definitions = [
             field_name="amount",
             field_name_display="Amount",
             field_desc="Amount in package",
-            type=ValueTypeCasting.FLOAT,
+            value_type=ValueTypeCasting.FLOAT,
             optional=False,
             is_reference_list_field=False,
             is_multi_val_field=False,
@@ -236,7 +236,7 @@ attr_definitions = [
             field_name="manufacturer",
             field_name_display="Manufacturer",
             field_desc="Manufacturing company of the drug",
-            type=ValueTypeCasting.STR,
+            value_type=ValueTypeCasting.STR,
             optional=False,
             # default=None,
             is_reference_list_field=False,
@@ -251,7 +251,7 @@ attr_definitions = [
             field_name="deliverysystem",
             field_name_display="Delivery System",
             field_desc="Drug delivery refers to approaches, formulations, manufacturing techniques, storage systems, and technologies involved in transporting a pharmaceutical compound to its target site to achieve a desired therapeutic effect.",
-            type=ValueTypeCasting.STR,
+            value_type=ValueTypeCasting.STR,
             optional=True,
             default=None,
             is_reference_list_field=False,
@@ -266,7 +266,7 @@ attr_definitions = [
             field_name="routeofadministration",
             field_name_display="Route of administration",
             field_desc="route of administration is the way by which a drug, fluid, poison, or other substance is taken into the body.",
-            type=ValueTypeCasting.STR,
+            value_type=ValueTypeCasting.STR,
             optional=True,
             default=None,
             is_reference_list_field=False,
@@ -285,7 +285,7 @@ attr_multi_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name="keywords",
             field_name_display="Keywords",
             field_desc="How are the drugs made available.",
-            type=ValueTypeCasting.STR,
+            value_type=ValueTypeCasting.STR,
             optional=False,
             # default=False,
             is_reference_list_field=False,
@@ -305,7 +305,7 @@ attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name="dispensingtype",
             field_name_display="Dispensing Type",
             field_desc="How are the drugs made available.",
-            type=ValueTypeCasting.INT,
+            value_type=ValueTypeCasting.INT,
             optional=False,
             # default=False,
             is_reference_list_field=True,
@@ -330,7 +330,7 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name="producing_country",
             field_name_display="Producing Country",
             field_desc="Country in which the manufacturer produces this drug",
-            type=ValueTypeCasting.STR,
+            value_type=ValueTypeCasting.STR,
             optional=True,
             # default=False,
             is_reference_list_field=True,
@@ -617,10 +617,10 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                     f"Reference object for {mapping_attr} does not exists for value {value}. '{self._lov_values[attr_name]}'\n{self._lov_values}"
                 )
         try:
-            target_attr_def.type.value.casting_func(value)
+            target_attr_def.value_type.value.casting_func(value)
         except:
             raise ValueError(
-                f"Could not cast raw value '{value}' to type {target_attr_def.type.value.python_type} as defined in {target_attr_def}. "
+                f"Could not cast raw value '{value}' to type {target_attr_def.value_type.value.python_type} as defined in {target_attr_def}. "
             )
 
     async def commit(self, objs):

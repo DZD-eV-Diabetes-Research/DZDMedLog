@@ -201,11 +201,13 @@ async def async_enumerate(aiterable, start=0):
         index += 1
 
 
-class Unset:
+class HelperUnset:
     pass
 
 
-def extract_bracket_values(input_string: str, count: int, default=Unset) -> Tuple[str]:
+def extract_bracket_values(
+    input_string: str, count: int, default=HelperUnset
+) -> Tuple[str]:
     """
     Extracts a specified number of values enclosed in square brackets from a given string.
 
@@ -255,7 +257,7 @@ def extract_bracket_values(input_string: str, count: int, default=Unset) -> Tupl
 
     # Check if we have enough matches
     if len(matches) < count:
-        if default != Unset:
+        if default != HelperUnset:
             # If not enough matches, extend with default value
             matches.extend([default] * (count - len(matches)))
         else:

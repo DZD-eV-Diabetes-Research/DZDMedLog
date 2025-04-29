@@ -176,42 +176,42 @@ mmi_rohdaten_r3_mappings = {
         "CONTRACEPTIVE_FLAG",
         source_path="PACKAGE.CSV[PRODUCTID]/PRODUCT_FLAG.CSV[PRODUCTID]",
         map2="attrs.ist_verhuetungsmittel",
-        cast_func=lambda x: bool(int(x)),
+        cast_func=lambda x: bool(int(x)) if x is not None else None,
     ),
     "attrs.ist_kosmetikum": SourceAttrMapping(
         "PRODUCT_FLAG.CSV",
         "COSMETICS_FLAG",
         source_path="PACKAGE.CSV[PRODUCTID]/PRODUCT_FLAG.CSV[PRODUCTID]",
         map2="attrs.ist_kosmetikum",
-        cast_func=lambda x: bool(int(x)),
+        cast_func=lambda x: bool(int(x)) if x is not None else None,
     ),
     "attrs.ist_nahrungsergaenzungsmittel": SourceAttrMapping(
         "PRODUCT_FLAG.CSV",
         "DIETARYSUPPLEMENT_FLAG",
         source_path="PACKAGE.CSV[PRODUCTID]/PRODUCT_FLAG.CSV[PRODUCTID]",
         map2="attrs.ist_nahrungsergaenzungsmittel",
-        cast_func=lambda x: bool(int(x)),
+        cast_func=lambda x: bool(int(x)) if x is not None else None,
     ),
     "attrs.ist_pflanzlich": SourceAttrMapping(
         "PRODUCT_FLAG.CSV",
         "HERBAL_FLAG",
         source_path="PACKAGE.CSV[PRODUCTID]/PRODUCT_FLAG.CSV[PRODUCTID]",
         map2="attrs.ist_pflanzlich",
-        cast_func=lambda x: bool(int(x)),
+        cast_func=lambda x: bool(int(x)) if x is not None else None,
     ),
     "attrs.ist_generikum": SourceAttrMapping(
         "PRODUCT_FLAG.CSV",
         "GENERIC_FLAG",
         source_path="PACKAGE.CSV[PRODUCTID]/PRODUCT_FLAG.CSV[PRODUCTID]",
         map2="attrs.ist_generikum",
-        cast_func=lambda x: bool(int(x)),
+        cast_func=lambda x: bool(int(x)) if x is not None else None,
     ),
     "attrs.ist_homoeopathisch": SourceAttrMapping(
         "PRODUCT_FLAG.CSV",
         "HOMOEOPATHIC_FLAG",
         source_path="PACKAGE.CSV[PRODUCTID]/PRODUCT_FLAG.CSV[PRODUCTID]",
         map2="attrs.ist_homoeopathisch",
-        cast_func=lambda x: bool(int(x)),
+        cast_func=lambda x: bool(int(x)) if x is not None else None,
     ),
     "attrs_ref.darreichungsform":
     # ref attrs
@@ -337,7 +337,7 @@ attr_definitions = [
             field_name="amount",
             field_name_display="Menge",
             field_desc="Menge in der Produktpackung",
-            type=ValueTypeCasting.STR,
+            value_type=ValueTypeCasting.STR,
             optional=True,
             is_reference_list_field=False,
             is_multi_val_field=False,
@@ -352,7 +352,7 @@ attr_definitions = [
             field_name="ist_verhuetungsmittel",
             field_name_display="Verhütungsmittel",
             field_desc="Ist das Produkt ein Verhütungsmittel",
-            type=ValueTypeCasting.BOOL,
+            value_type=ValueTypeCasting.BOOL,
             optional=True,
             default=None,
             is_reference_list_field=False,
@@ -367,7 +367,7 @@ attr_definitions = [
             field_name="ist_kosmetikum",
             field_name_display="Kosmetikum",
             field_desc="Ist das Produkt ein Kosmetikum",
-            type=ValueTypeCasting.BOOL,
+            value_type=ValueTypeCasting.BOOL,
             optional=True,
             default=None,
             is_reference_list_field=False,
@@ -382,7 +382,7 @@ attr_definitions = [
             field_name="ist_nahrungsergaenzungsmittel",
             field_name_display="Nahrungsergänzungsmittel",
             field_desc="Ist das Produkt ein Nahrungsergänzungsmittel",
-            type=ValueTypeCasting.BOOL,
+            value_type=ValueTypeCasting.BOOL,
             optional=True,
             default=None,
             is_reference_list_field=False,
@@ -397,7 +397,7 @@ attr_definitions = [
             field_name="ist_pflanzlich",
             field_name_display="Pflanzlich",
             field_desc="Ist das Produkt Pflanzlich",
-            type=ValueTypeCasting.BOOL,
+            value_type=ValueTypeCasting.BOOL,
             optional=True,
             default=None,
             is_reference_list_field=False,
@@ -412,7 +412,7 @@ attr_definitions = [
             field_name="ist_generikum",
             field_name_display="Generikum",
             field_desc="Ist das Produkt ein Generikum",
-            type=ValueTypeCasting.BOOL,
+            value_type=ValueTypeCasting.BOOL,
             optional=True,
             default=None,
             is_reference_list_field=False,
@@ -427,7 +427,7 @@ attr_definitions = [
             field_name="ist_homoeopathisch",
             field_name_display="Homöopathisch",
             field_desc="Ist das Produkt Homöopathisch",
-            type=ValueTypeCasting.BOOL,
+            value_type=ValueTypeCasting.BOOL,
             optional=True,
             default=None,
             is_reference_list_field=False,
@@ -463,7 +463,7 @@ attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name="darreichungsform",
             field_name_display="Darreichungsform",
             field_desc="Darreichungsform IFA",
-            type=ValueTypeCasting.STR,
+            value_type=ValueTypeCasting.STR,
             optional=True,
             # default=False,
             is_reference_list_field=True,
@@ -482,7 +482,7 @@ attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name="vertriebsstatus",
             field_name_display="Vertriebsstatus",
             field_desc="Wird das Produkt momentan vertrieben",
-            type=ValueTypeCasting.STR,
+            value_type=ValueTypeCasting.STR,
             optional=False,
             # default=False,
             is_reference_list_field=True,
@@ -501,7 +501,7 @@ attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name="normgroesse",
             field_name_display="Normgrösse",
             field_desc="Packungsgrößenkennzeichnung für Medikamente ist eine in Deutschland bestehende Normierung der in der Apotheke abzugebenden Menge",
-            type=ValueTypeCasting.STR,
+            value_type=ValueTypeCasting.STR,
             optional=True,
             # default=False,
             is_reference_list_field=True,
@@ -520,7 +520,7 @@ attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name="abgabestatus",
             field_name_display="Abgabestatus",
             field_desc="Ob und wie das Produkt an den Patienten abgegeben werden darf",
-            type=ValueTypeCasting.INT,
+            value_type=ValueTypeCasting.INT,
             optional=True,
             # default=False,
             is_reference_list_field=True,
@@ -539,7 +539,7 @@ attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name="lebensmittel",
             field_name_display="Lebensmittel",
             field_desc="Lebensmittelstatus des Produkt",
-            type=ValueTypeCasting.STR,
+            value_type=ValueTypeCasting.STR,
             optional=True,
             # default=False,
             is_reference_list_field=True,
@@ -558,7 +558,7 @@ attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name="diaetetikum",
             field_name_display="Diätetikum",
             field_desc="Diaetetikumstatus des Produkt",
-            type=ValueTypeCasting.STR,
+            value_type=ValueTypeCasting.STR,
             optional=True,
             # default=False,
             is_reference_list_field=True,
@@ -577,7 +577,7 @@ attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name="hersteller",
             field_name_display="Hersteller",
             field_desc="Hersteller des Produkt",
-            type=ValueTypeCasting.STR,
+            value_type=ValueTypeCasting.STR,
             optional=False,
             # default=False,
             is_reference_list_field=True,
@@ -604,7 +604,7 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name="applikationsart",
             field_name_display="Applikationsart",
             field_desc="Art und Weise wie ein Arzneimittel verabreicht wird",
-            type=ValueTypeCasting.INT,
+            value_type=ValueTypeCasting.INT,
             optional=True,
             # default=False,
             is_reference_list_field=True,
@@ -623,7 +623,7 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name="keywords",
             field_name_display="Stichwörter",
             field_desc="Stichwörter",
-            type=ValueTypeCasting.INT,
+            value_type=ValueTypeCasting.INT,
             optional=False,
             # default=False,
             is_reference_list_field=True,
@@ -646,7 +646,7 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name="icd10",
             field_name_display="ICD-10 Codes",
             field_desc="Einordnung der Präparate nach ICD-10-Schlüssel",
-            type=ValueTypeCasting.STR,
+            value_type=ValueTypeCasting.STR,
             optional=False,
             # default=False,
             is_reference_list_field=True,
@@ -930,7 +930,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             result_drug_data.attrs.append(
                 DrugVal(
                     field_name=attr_data.field.field_name,
-                    value=str(drug_attr_value),
+                    value=drug_attr_value,
                     importer_name=importername,
                 )
             )
@@ -956,7 +956,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             result_drug_data.attrs_ref.append(
                 DrugValRef(
                     field_name=attr_ref_data.field.field_name,
-                    value=str(drug_attr_value),
+                    value=drug_attr_value,
                     importer_name=importername,
                 )
             )
@@ -978,7 +978,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 result_drug_data.attrs_multi.append(
                     DrugValMulti(
                         field_name=attr_multi_data.field.field_name,
-                        value=str(drug_attr_val),
+                        value=drug_attr_val,
                         value_index=index,
                         importer_name=importername,
                     )
@@ -1009,7 +1009,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 result_drug_data.attrs_multi_ref.append(
                     DrugValMultiRef(
                         field_name=attr_multi_ref_data.field.field_name,
-                        value=str(drug_attr_val),
+                        value=drug_attr_val,
                         value_index=index,
                         importer_name=importername,
                     )
@@ -1021,7 +1021,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             return None
         if mapping.cast_func:
             return mapping.cast_func(value)
-        return value
+        return str(value)
 
     async def _validate_csv_value(
         self, value: str, mapping: SourceAttrMapping, source_row: str = None
@@ -1303,7 +1303,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             log.debug("FLUSH FAILED objs:")
             for obj in objs:
                 obj: DrugModelTableBase = obj
-                log.debug(obj.attrs_multi_ref)
+
             raise e
         session.expunge_all()
         self._reset_cache_csv_lookupscache()
@@ -1380,7 +1380,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
                 li = DrugAttrFieldLovItem(
                     field_name=paren_field.field_name,
-                    value=str(value),
+                    value=value,
                     display=display_value,
                     sort_order=index,
                     importer_name=importername,
