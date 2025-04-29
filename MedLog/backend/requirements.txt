@@ -22,7 +22,7 @@ bcrypt==4.3.0
     # via passlib
 build==1.2.2.post1
     # via pip-tools
-certifi==2025.1.31
+certifi==2025.4.26
     # via
     #   httpcore
     #   httpx
@@ -49,11 +49,11 @@ getversion==1.0.2
     # via medlogserver (MedLog/backend/pyproject.toml)
 greenlet==3.2.1
     # via sqlalchemy
-h11==0.14.0
+h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
-httpcore==1.0.8
+httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via medlogserver (MedLog/backend/pyproject.toml)
@@ -74,7 +74,7 @@ passlib[bcrypt]==1.7.4
     # via medlogserver (MedLog/backend/pyproject.toml)
 pip-tools==7.4.1
     # via medlogserver (MedLog/backend/pyproject.toml)
-polars==1.27.1
+polars==1.28.1
     # via medlogserver (MedLog/backend/pyproject.toml)
 psycopg[binary]==3.2.6
     # via medlogserver (MedLog/backend/pyproject.toml)

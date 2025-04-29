@@ -1,4 +1,14 @@
-from typing import List, Literal, Dict, Union, Tuple, Annotated, Optional, TYPE_CHECKING
+from typing import (
+    List,
+    Literal,
+    Dict,
+    Union,
+    Tuple,
+    Annotated,
+    Optional,
+    TYPE_CHECKING,
+    Callable,
+)
 
 if TYPE_CHECKING:
     from hashlib import _Hash as Hash  # https://github.com/python/typeshed/issues/2928
@@ -15,6 +25,7 @@ import pydantic
 import os
 from getversion.main import DetailedResults
 from urllib.parse import urlparse
+import multiprocessing
 
 
 def to_path(

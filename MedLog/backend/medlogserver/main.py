@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 import sys, os
+import time
 
 # Main can be started with arguments. Lets parse these first.
 
@@ -129,7 +130,9 @@ def start():
     if config.BACKGROUND_WORKER_START_IN_EXTRA_PROCESS:
         # Start background worker in second process
         background_worker = run_background_worker(run_in_extra_process=True)
+
     try:
+        log.debug("Start uvicorn server...")
         event_loop.run_until_complete(uvicorn_server.serve())
     except (KeyboardInterrupt, Exception) as e:
         if isinstance(e, KeyboardInterrupt):

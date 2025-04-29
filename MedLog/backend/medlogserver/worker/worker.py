@@ -18,19 +18,24 @@ log = get_logger()
 config = Config()
 
 
-async def _inital_setup_scheduled_background_tasks(event_loop=None) -> AsyncIOScheduler:
-    log.info("Setup background tasks..")
+async def _inital_setup_scheduled_background_tasks() -> AsyncIOScheduler:
+    log.info("Setup background tasks.....")
     background_jobs: List[WorkerJob] = []
-    async with get_async_session_context() as session:
-        async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
-            worker_job_crud: WorkerJobCRUD = worker_job_crud
-            background_jobs: List[WorkerJob] = await worker_job_crud.list(
-                filter_intervalled_job=True
-            )
-    scheduler = AsyncIOScheduler(event_loop=event_loop)
+    try:
+        async with get_async_session_context() as session:
+            async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
+                c = await worker_job_crud.count()
+                worker_job_crud: WorkerJobCRUD = worker_job_crud
+                background_jobs: List[WorkerJob] = await worker_job_crud.list(
+                    filter_intervalled_job=True
+                )
+            log.debug(f"Following Background jobs found for setup: {background_jobs}")
+    except Exception as e:
+        log.info(f"Querying Background Jobs for inital setup failed {e}")
+        raise e
+    scheduler = AsyncIOScheduler()
     log.debug(f"Register background job: {background_jobs}")
     for b_job in background_jobs:
-        log.debug(("event_loop", event_loop, "thread", threading.current_thread().name))
         task_class = import_task_class(Tasks[b_job.task_name].value)
         log.info(
             f"Add Scheduled job {task_class} with intervall {b_job.interval_params}"
@@ -49,11 +54,14 @@ async def _inital_setup_scheduled_background_tasks(event_loop=None) -> AsyncIOSc
 
 def _start_background_scheduler(event_loop=None):
     if event_loop is None:
-        event_loop = asyncio.get_event_loop()
+        event_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(event_loop)
     background_scheduler = event_loop.run_until_complete(
-        _inital_setup_scheduled_background_tasks(event_loop)
+        _inital_setup_scheduled_background_tasks()
     )
     try:
+        log.info("[WORKER] Start background job scheduler...")
+        background_scheduler._eventloop = event_loop
         background_scheduler.start()
     except KeyboardInterrupt:
         log.info("Shutdown background worker...")

@@ -163,7 +163,6 @@ async def init_db():
         log.info(("Create Tables if needed", list(SQLModel.metadata.tables.keys())))
         res = await conn.run_sync(SQLModel.metadata.create_all)
         await conn.commit()
-        log.debug(("RES", res))
 
         await create_admin_if_not_exists()
         await provision_drug_data()

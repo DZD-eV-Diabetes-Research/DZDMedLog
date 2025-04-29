@@ -26,7 +26,7 @@ blinker==1.9.0
     # via flask
 build==1.2.2.post1
     # via pip-tools
-certifi==2025.1.31
+certifi==2025.4.26
     # via
     #   httpcore
     #   httpx
@@ -60,13 +60,13 @@ getversion==1.0.2
     # via medlogserver (MedLog/backend/pyproject.toml)
 greenlet==3.2.1
     # via sqlalchemy
-h11==0.14.0
+h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
 htpy==25.4.2
     # via oidc-provider-mock
-httpcore==1.0.8
+httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via
@@ -110,7 +110,7 @@ pip-tools==7.4.1
     # via medlogserver (MedLog/backend/pyproject.toml)
 pluggy==1.5.0
     # via pytest
-polars==1.27.1
+polars==1.28.1
     # via medlogserver (MedLog/backend/pyproject.toml)
 psutil==7.0.0
     # via memory-profiler
