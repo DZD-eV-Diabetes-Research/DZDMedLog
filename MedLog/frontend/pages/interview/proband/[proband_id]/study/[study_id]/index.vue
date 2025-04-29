@@ -1,36 +1,40 @@
 <template>
   <Layout>
-    <div class="card-container">
-      <UIBaseCard>
-        <h5>Unbearbeitete Events</h5>
-        <UInputMenu v-model="selectedIncompleteEvent" :options="incompletedItems" />
-        <br>
-        <div class="button-container">
-          <UButton @click="createInterview()" color="green" variant="soft"
-            class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
-            Interview Durchführen
+    <div class="flex flex-row gap-4">
+      <div class="flex flex-1">
+        <UIBaseCard class="w-full">
+          <h5>Unbearbeitete Events</h5>
+          <UInputMenu v-model="selectedIncompleteEvent" :options="incompletedItems" />
+          <br>
+          <div class="flex justify-evenly">
+            <UButton @click="createInterview()" color="green" variant="soft"
+              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
+              Interview Durchführen
+            </UButton>
+            <UButton v-if="userStore.isAdmin" @click="openEventModal()" color="green" variant="soft"
+              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
+              Neues Event anlegen
+            </UButton>
+          </div>
+        </UIBaseCard>
+      </div>
+      <div class="flex flex-1">
+        <UIBaseCard class="w-full">
+          <h5>Bearbeitete Events</h5>
+          <UInputMenu v-model="selectedCompleteEvent" :options="completedItems" />
+          <br>
+          <UButton @click="editEvent(selectedCompleteEvent.id)" color="blue" variant="soft"
+            class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white">
+            Interview Bearbeiten
           </UButton>
-          <UButton v-if="userStore.isAdmin" @click="openEventModal()" color="green" variant="soft"
-            class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
-            Neues Event anlegen
-          </UButton>
-        </div>
-      </UIBaseCard>
-      <UIBaseCard>
-        <h5>Bearbeitete Events</h5>
-        <UInputMenu v-model="selectedCompleteEvent" :options="completedItems" />
-        <br>
-        <UButton @click="editEvent(selectedCompleteEvent.id)" color="blue" variant="soft"
-          class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white">
-          Interview Bearbeiten
-        </UButton>
-      </UIBaseCard>
+        </UIBaseCard>
+      </div>
     </div>
     <UModal v-model="showEventModal">
       <div class="p-4" style="text-align: center">
         <UForm :schema="eventSchema" :state="eventState" class="space-y-4" @submit="createEvent">
           <UFormGroup label="Event Name" name="name">
-            <UInput v-model="eventState.name" required placeholder="Interview Campaign Year Quarter"/>
+            <UInput v-model="eventState.name" required placeholder="Interview Campaign Year Quarter" />
           </UFormGroup>
           <h3 v-if="eventError" style="color: red;">{{ eventError }}</h3>
           <UButton type="submit" label="Event anlegen" color="green" variant="soft"
@@ -39,7 +43,7 @@
       </div>
     </UModal>
     <br>
-    <div class="tableDiv">
+    <div class="border-2 border-[#ededed] rounded-md shadow-lg">
       <h4 style="text-align: center; padding-top: 25px;">Medikationshistorie</h4>
       <div>
         <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
@@ -95,44 +99,44 @@ const columns = [{
   key: 'event',
   label: 'Event',
   sortable: true
-},{
-    key: "pzn",
-    label: "PZN",
-  },
-  {
-    key: "custom",
-    label: "Custom"
-  },
-  {
-    key: "drug",
-    label: "Medikament",
-    sortable: true,
-  },
-  {
-    key: "source",
-    label: "Quelle der Angabe",
-    sortable: true,
-  },
-  {
-    key: "dose",
-    label: "Dosis",
-    sortable: true,
-  },
-  {
-    key: "intervall",
-    label: "Intervall",
-    sortable: true,
-  },
-  {
-    key: "time",
-    label: "Einnahme Zeitraum",
-    sortable: true,
-  },
-  {
-    key: "darr",
-    label: "Darreichung",
-    sortable: true,
-  }]
+}, {
+  key: "pzn",
+  label: "PZN",
+},
+{
+  key: "custom",
+  label: "Custom"
+},
+{
+  key: "drug",
+  label: "Medikament",
+  sortable: true,
+},
+{
+  key: "source",
+  label: "Quelle der Angabe",
+  sortable: true,
+},
+{
+  key: "dose",
+  label: "Dosis",
+  sortable: true,
+},
+{
+  key: "intervall",
+  label: "Intervall",
+  sortable: true,
+},
+{
+  key: "time",
+  label: "Einnahme Zeitraum",
+  sortable: true,
+},
+{
+  key: "darr",
+  label: "Darreichung",
+  sortable: true,
+}]
 
 
 const q = ref('')
@@ -185,11 +189,11 @@ async function createEvent() {
 async function createInterview() {
   try {
     const interview = await useCreateInterview(route.params.study_id, selectedIncompleteEvent.value.id, route.params.proband_id, true, userStore.userID)
-    studyStore.event = selectedIncompleteEvent.value.event.name 
-    userStore.firstEvent = true;   
+    studyStore.event = selectedIncompleteEvent.value.event.name
+    userStore.firstEvent = true;
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + selectedIncompleteEvent.value.id + "/interview/" + interview.id)
   }
-  catch (error) {    
+  catch (error) {
     console.log(error);
   }
 }
@@ -211,15 +215,15 @@ function createEventList(events) {
       event: event,
       label: event.name,
       order: event.order_position
-    })).sort((a,b) => b.order - a.order)
+    })).sort((a, b) => b.order - a.order)
 
     incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
     incompletedItems.value = incompletedItems.value.map(event => ({
-      id: event.id, 
+      id: event.id,
       event: event,
       label: event.name,
       order: event.order_position
-    })).sort((a,b) => a.order - b.order)
+    })).sort((a, b) => a.order - b.order)
   }
 
   selectedCompleteEvent.value = completedItems.value[0]
@@ -235,7 +239,7 @@ watch(events, (newEvents) => {
 async function editEvent(eventId: string) {
   try {
     const result = await $api(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${eventId}/interview`)
-        
+
     studyStore.event = selectedCompleteEvent.value.event.name
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + eventId + "/interview/" + result[0].id)
   } catch (error) {
@@ -259,7 +263,7 @@ async function createIntakeList() {
         time: item.intake_end_time_utc === null ? item.intake_start_time_utc + " bis unbekannt" : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
         darr: item.drug.attrs_ref.darreichungsform.display + " (" + item.drug.attrs_ref.darreichungsform.value + ")",
         id: item.id ? item.id : item.custom_drug_id,
-        custom: item.drug?.is_custom_drug ? "Ja": "Nein",
+        custom: item.drug?.is_custom_drug ? "Ja" : "Nein",
         class: item.drug?.is_custom_drug
           ? "bg-yellow-50"
           : null,
@@ -282,30 +286,6 @@ createIntakeList()
 </script>
 
 <style scoped>
-.card-container {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.card-container>* {
-  flex: 1;
-}
-
-.button-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0 1rem;
-  gap: 1rem;
-}
-
-.tableDiv {
-  border-radius: 10px;
-  border-width: 2px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
-}
-
 :deep(td) {
   white-space: normal !important;
   word-break: break-word !important;

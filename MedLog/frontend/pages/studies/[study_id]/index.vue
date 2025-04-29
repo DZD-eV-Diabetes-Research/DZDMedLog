@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <div class="center">
+    <div class="flex justify-center">
       <h3 class="text-4xl font-medium my-4">{{ study.display_name }}</h3>
     </div>
     <Draggable :list="myEvents" :disabled="!enabled" item-key="name" class="list-group" ghost-class="ghost"
@@ -134,13 +134,6 @@ async function createEvent() {
 </script>
 
 <style scoped>
-.center {
-  text-align: center;
-  margin: auto;
-  width: 50%;
-  padding: 10px;
-}
-
 .events {
   text-align: center;
   margin: 1rem auto;
@@ -152,23 +145,6 @@ async function createEvent() {
 
 .sorted {
   cursor: move;
-  background-color: #cee4fc;
+  background-color: #d1e8ff;
 }
-
-.button-wrapper {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  margin-bottom: 1%;
-}
-
-.button-container {
-  display: flex;
-  gap: 20px;
-}
-
-.button-container UButton {
-  flex: 0 1 auto; 
-}
-
 </style>
