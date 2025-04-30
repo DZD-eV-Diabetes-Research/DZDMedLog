@@ -6,7 +6,7 @@ from fastapi import FastAPI
 import getversion.plugin_setuptools_scm
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
-
+from medlogserver.api.routers_map import mount_fast_api_routers
 
 # from fastapi.security import
 
@@ -38,6 +38,7 @@ class FastApiAppContainer:
             # debug=settings.debug,
             lifespan=self._app_lifespan,
         )
+        self._mount_routers()
         self._apply_api_middleware()
 
     def add_startup_callback(self, func: Callable, params: Dict | None = None):
@@ -87,3 +88,6 @@ class FastApiAppContainer:
             SessionMiddleware,
             secret_key=config.SERVER_SESSION_SECRET.get_secret_value(),
         )
+
+    def _mount_routers(self):
+        mount_fast_api_routers(self.app)

@@ -84,7 +84,7 @@ def start():
     import uvicorn
     from uvicorn.config import LOGGING_CONFIG
     from medlogserver.app import FastApiAppContainer
-    from medlogserver.api.routers_map import mount_fast_api_routers
+
     from medlogserver.worker.worker import run_background_worker
 
     if config.CLIENT_URL == config.get_server_url():
