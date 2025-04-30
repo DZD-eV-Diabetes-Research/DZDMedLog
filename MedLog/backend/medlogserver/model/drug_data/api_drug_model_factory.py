@@ -27,6 +27,7 @@ from medlogserver.model.drug_data.drug_attr import (
     DrugValMultiRef,
 )
 from medlogserver.model.drug_data.drug_code import DrugCode
+from medlogserver.model.unset import Unset
 
 config = Config()
 
@@ -143,15 +144,16 @@ class DrugApiReadClassFactory:
         attrs = {}
 
         for field in attr_fields:
-            type_def = field.type.value.python_type
+            type_def = field.value_type.value.python_type
 
             if field.optional:
                 type_def = Optional[type_def]
             pydantic_field_attrs = {}
             pydantic_field_attrs["description"] = field.field_desc
-            pydantic_field_attrs["default"] = field.default
+            if field.default is not None or (field.default is None and field.optional):
+                pydantic_field_attrs["default"] = field.default
             pydantic_field_attrs["examples"] = [
-                field.type.value.casting_func(ex) for ex in field.examples
+                field.value_type.value.casting_func(ex) for ex in field.examples
             ]
 
             attrs[field.field_name] = (type_def, Field(**pydantic_field_attrs))
@@ -193,7 +195,7 @@ class DrugApiReadClassFactory:
 
         for field in attr_ref_fields:
             model_name = f"{'Multi' if as_multi_ref else ''}AttrRefVal{field.field_name.capitalize()}"
-            value_type = field.type.value.python_type
+            value_type = field.value_type.value.python_type
             ref_list_api_path = f"/v2/drug/field_def/{field.field_name}/refs"
             if field.optional:
                 value_type = Optional[value_type]
@@ -219,11 +221,17 @@ class DrugApiReadClassFactory:
             pydantic_field_attrs = {}
             pydantic_field_attrs["description"] = field.field_desc
             if as_multi_ref:
-                pydantic_field_attrs["default"] = (
-                    [] if field.default is None else field.default
-                )
+                if field.default is not None or (
+                    field.default is None and field.optional
+                ):
+                    pydantic_field_attrs["default"] = (
+                        [] if field.default is None else field.default
+                    )
             else:
-                pydantic_field_attrs["default"] = field.default
+                if field.default is not None or (
+                    field.default is None and field.optional
+                ):
+                    pydantic_field_attrs["default"] = field.default
 
             attrs_ref[field.field_name] = (type_def, Field(**pydantic_field_attrs))
 
@@ -247,12 +255,13 @@ class DrugApiReadClassFactory:
         attr_fields = await importer.get_attr_multi_field_definitions()
         attrs = {}
         for field in attr_fields:
-            type_def = List[field.type.value.python_type]
+            type_def = List[field.value_type.value.python_type]
             # if field.optional:
             #    type_def = List[type_def]
             pydantic_field_attrs = {}
             pydantic_field_attrs["description"] = field.field_desc
-            pydantic_field_attrs["default"] = field.default
+            if field.default is not None or (field.default is None and field.optional):
+                pydantic_field_attrs["default"] = field.default
             pydantic_field_attrs["examples"] = [field.examples]
 
             attrs[field.field_name] = (type_def, Field(**pydantic_field_attrs))
@@ -280,48 +289,6 @@ class DrugApiReadClassFactory:
             keywords: List[AttrRefDarreichungsform]
         """
         return await self._get_attrs_ref_submodel(importer, as_multi_ref=True)
-        attr_ref_fields = await importer.get_attr_ref_field_definitions()
-        attrs_ref = {}
-
-        for field in attr_ref_fields:
-            model_name = f"RefAttrMultiVal{field.field_name.capitalize()}"
-            value_type = field.type.value.python_type
-            ref_list_api_path = f"/v2/drug/field_def/{field.field_name}/refs"
-            if field.optional:
-                value_type = Optional[value_type]
-            ref_value_model = create_model(
-                model_name,
-                value=(
-                    value_type,
-                    Field(default=field.default, description=field.desc),
-                ),
-                display=(Optional[str], Field(default=None)),
-                ref_list=(
-                    Literal[ref_list_api_path],
-                    Field(
-                        default=ref_list_api_path,
-                        description="The API path to the list this value references",
-                    ),
-                ),
-            )
-
-            type_def = List[ref_value_model]
-            if field.optional:
-                type_def = Optional[type_def]
-            pydantic_field_attrs = {}
-            pydantic_field_attrs["description"] = field.field_desc
-            pydantic_field_attrs["default"] = field.default
-
-            attrs_ref[field.field_name] = (type_def, Field(**pydantic_field_attrs))
-
-        """from pydantic create model docs:
-        field_definitions: Attributes of the new model. They should be passed in the format:
-                `<name>=(<type>, <default value>)`, `<name>=(<type>, <FieldInfo>)`, or `typing.Annotated[<type>, <FieldInfo>]`.
-                Any additional metadata in `typing.Annotated[<type>, <FieldInfo>, ...]` will be ignored.
-        """
-
-        m = create_model(f"{importer.api_name}AttrRefs", **attrs_ref)
-        return m
 
     async def _get_codes_container_class(
         self, importer: DrugDataSetImporterBase

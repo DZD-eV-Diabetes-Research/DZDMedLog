@@ -1,7 +1,12 @@
 from typing import List, Self, Optional, TYPE_CHECKING, Type, Callable, Any, Literal
 import uuid
 from functools import partial
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    field_validator,
+    model_validator,
+    field_serializer,
+)
 
 from sqlmodel import Field, SQLModel, Relationship, JSON, Enum, Column, UniqueConstraint
 from pydantic_core import PydanticUndefined
@@ -18,6 +23,10 @@ if TYPE_CHECKING:
         DrugAttrFieldLovItem,
     )
 import enum
+from medlogserver.model.unset import Unset
+from medlogserver.log import get_logger
+
+log = get_logger()
 
 
 class TypCastingInfo(BaseModel):
@@ -69,7 +78,7 @@ class DrugAttrFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIReadBase, table=F
         default=False,
         description="If true this field can hold a list of values instead of a single one. E.g. A drug can have a list of keywords.",
     )
-    type: Literal[tuple([e.name for e in ValueTypeCasting])] = Field(
+    value_type: Literal[tuple([e.name for e in ValueTypeCasting])] = Field(
         default=ValueTypeCasting.STR.name,
         description="The type of this value gets casted into, by the backend, as before its passing the RestAPI",
     )
@@ -103,7 +112,7 @@ class DrugAttrMultiFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=
         default=True,
         description="If true this field can hold a list of values instead of a single one. E.g. A drug can have a list of keywords.",
     )
-    type: Literal[tuple([e.name for e in ValueTypeCasting])] = Field(
+    value_type: Literal[tuple([e.name for e in ValueTypeCasting])] = Field(
         default=f"List[{ValueTypeCasting.STR.name}]",
         description="The type of this value gets casted into, by the backend, as before its passing the RestAPI",
     )
@@ -137,6 +146,12 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
             "comment": "Definition of dataset specific fields and lookup fields. this is a read only table. The attribute field definitons are defined in code. Any changes on the SQL table rows/values will be overwriten."
         },
     )
+
+    def __init__(self, **data):
+        if data.get("default") == Unset:
+            data["default"] = "<Unset>"
+        super().__init__(**data)
+
     field_name: str = Field(primary_key=True)
     desc: Optional[str] = Field(
         default=None,
@@ -146,11 +161,26 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
         primary_key=True,
         description="A field definiton always comes from one drug data importer. We may have multiple importers in the lifecycle of the application, therefore we need to distinguish the fields per drug data importer.",
     )
-    type: ValueTypeCasting = Field(
+    value_type: ValueTypeCasting = Field(
         default=ValueTypeCasting.STR,
         description="The type of this value gets casted into, as before its passing the RestAPI",
     )
-    default: Optional[str]
+    has_default: bool = Field(
+        default=False,
+        description=(
+            "Indicates whether a default value is explicitly defined for this field. "
+            "If False, no default is set and the field is considered unset."
+        ),
+    )
+    default: Optional[str] = Field(
+        default=None,
+        description=(
+            "The default value to use when no input is provided. "
+            "Only applies if 'has_default' is True. "
+            "If this is None and 'has_default' is True, it means the default is explicitly set to null/empty."
+        ),
+    )
+
     searchable: bool = Field(
         default=False,
         description="If this field is will be take into account while using /drug/search endpoint.",

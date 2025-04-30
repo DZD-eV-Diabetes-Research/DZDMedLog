@@ -31,7 +31,7 @@ from medlogserver.api.routes.routes_auth import NEEDS_ADMIN_API_INFO
 from medlogserver.api.study_access import (
     get_current_user,
 )
-
+from medlogserver.model.unset import Unset
 
 from medlogserver.config import Config
 
@@ -125,7 +125,7 @@ drug_field_api_read_types = {
 drug_search_filter_ref_fields = {}
 for f in drug_field_definitions["attrs_ref"]:
     drug_search_filter_ref_fields["filter_" + f.field_name] = (
-        Optional[int if f.type.name == "INT" else str],
+        Optional[int if f.value_type.name == "INT" else str],
         None,
     )
 
@@ -263,8 +263,8 @@ async def list_field_definitions(
             field_def_read_vals = {}
             for k, v in field_def.model_dump(exclude_unset=True).items():
                 if k in DrugAttrFieldDefinitionAPIRead.model_fields.keys():
-                    if k == "type":
-                        # from the "type"-enum attribute we only want the name (INT,STR,FLOAT,...), not the value (casting function)
+                    if k == "value_type":
+                        # from the "value_type"-enum attribute we only want the name (INT,STR,FLOAT,...), not the value (casting function)
                         v = v.name
                     field_def_read_vals[k] = v
 
@@ -315,7 +315,7 @@ async def get_field_definition(
     field_def_read_vals = {}
     for k, v in field_def.model_dump(exclude_unset=True).items():
         if k in DrugAttrFieldDefinitionAPIRead.model_fields.keys():
-            if k == "type":
+            if k == "value_type":
                 v = v.name
             field_def_read_vals[k] = v
     return DrugAttrFieldDefinitionAPIRead(**field_def_read_vals)

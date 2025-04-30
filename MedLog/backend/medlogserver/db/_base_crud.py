@@ -36,7 +36,7 @@ GenericCRUDCreateType = TypeVar("GenericCRUDCreateType", bound=MedLogBaseModel)
 
 class CRUDBaseMetaClass(type):
     @property
-    def crud_context(cls):
+    def crud_context(cls: "DatabaseInteractionBase"):
         return contextlib.asynccontextmanager(cls.get_crud)
 
 

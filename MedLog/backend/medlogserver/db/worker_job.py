@@ -58,10 +58,31 @@ class WorkerJobCRUD(
             query = query.where(WorkerJob.user_id == filter_user_id)
         if hide_user_jobs:
             query = query.where(is_(WorkerJob.user_id, None))
-        for f_tag in filter_tags:
-            query = query.filter(col(WorkerJob.tags).contains(f_tag))
         if pagination:
             query = pagination.append_to_query(query)
+        results = await self.session.exec(statement=query)
+        all_jobs = results.all()
+        # json quering is very finicky on certain databases. lets do filtering on python side
+
+        if filter_tags:
+            all_jobs = [j for j in all_jobs if bool(set(j.tags) & set(filter_tags))]
+
+        if filter_intervalled_job is not None:
+            all_jobs = [
+                j
+                for j in all_jobs
+                if (filter_intervalled_job and j.interval_params)
+                or (not filter_intervalled_job and not j.interval_params)
+            ]
+        if filter_job_state is not None:
+            all_jobs = [o for o in all_jobs if o.get_state() == filter_job_state]
+        return all_jobs
+
+        ### old code with json querying on db side. Can be removed on next review
+
+        for f_tag in filter_tags:
+            query = query.filter(col(WorkerJob.tags).contains(f_tag))
+
         if filter_intervalled_job is not None:
             if filter_intervalled_job == True:
                 query = query.where(
@@ -79,7 +100,9 @@ class WorkerJobCRUD(
                     #    is_(WorkerJob.interval_params, {}),
                     # )
                 )
+        log.info(f"DO STUFF 1: {query}")
         results = await self.session.exec(statement=query)
+        log.info("DO STUFF 2")
 
         if filter_job_state is not None:
             result_objs = [
@@ -87,6 +110,7 @@ class WorkerJobCRUD(
             ]
         else:
             result_objs = results.all()
+        log.info("DO STUFF 3")
         return result_objs
 
     async def count(
