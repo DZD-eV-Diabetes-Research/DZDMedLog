@@ -91,30 +91,39 @@
     <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?">
       <USelect v-model="selectedFrequency" :options="frequency" :color="props.color" />
     </UFormGroup>
-    <div class="flex-container">
-      <UFormGroup label="Dosis pro Einnahme" style="border-color: red" name="dose">
-        <UInput type="number" v-model="state.dose" :disabled="selectedFrequency !== 'regelmäßig'"
-          :color="selectedFrequency !== 'regelmäßig' ? 'gray' : props.color" />
-      </UFormGroup>
-      <UFormGroup label="Intervall der Tagesdosen">
-        <USelect v-model="state.intervall" :options="intervallOfDose" :disabled="selectedFrequency !== 'regelmäßig'"
-          :color="selectedFrequency !== 'regelmäßig' ? 'gray' : props.color" />
-      </UFormGroup>
+    <div class="flex flex-row space-x-4">
+      <div class="flex-1">
+        <UFormGroup label="Dosis pro Einnahme" style="border-color: red" name="dose">
+          <UInput type="number" v-model="state.dose" :disabled="selectedFrequency !== 'regelmäßig'"
+            :color="selectedFrequency !== 'regelmäßig' ? 'gray' : props.color" />
+        </UFormGroup>
+      </div>
+      <div class="flex-1">
+        <UFormGroup label="Intervall der Tagesdosen">
+          <USelect v-model="state.intervall" :options="intervallOfDose" :disabled="selectedFrequency !== 'regelmäßig'"
+            :color="selectedFrequency !== 'regelmäßig' ? 'gray' : props.color" />
+        </UFormGroup>
+      </div>
     </div>
-    <div class="flex-container">
-      <UFormGroup label="Einnahme Beginn (Datum)" name="startTime">
-        <UInput type="date" v-model="state.startTime" :color="props.color" />
-      </UFormGroup>
-      <UFormGroup label="Einnahme Ende (Datum)" name="endTime">
-        <UInput type="date" v-model="state.endTime" :color="props.color" />
-      </UFormGroup>
+    <div class="flex flex-row space-x-4">
+      <div class="flex-1">
+        <UFormGroup label="Einnahme Beginn (Datum)" name="startTime">
+          <UInput type="date" v-model="state.startTime" :color="props.color" />
+        </UFormGroup>
+      </div>
+      <div class="flex-1">
+        <UFormGroup label="Einnahme Ende (Datum)" name="endTime">
+          <UInput type="date" v-model="state.endTime" :color="props.color" />
+        </UFormGroup>
+      </div>
     </div>
     <URadioGroup v-model="state.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
       :options="options" :color="props.color" />
     <div style="text-align: center">
       <div v-if="props.edit" class="flex flex-row justify-center space-x-6">
         <UButton type="submit" label="Speichern" :color="props.color" variant="soft" :class="buttonClass" />
-        <UButton label="Abbrechen" :color="props.color" variant="soft" :class="buttonClass" @click="closeEditModal()"></UButton>
+        <UButton label="Abbrechen" :color="props.color" variant="soft" :class="buttonClass" @click="closeEditModal()">
+        </UButton>
       </div>
       <div v-else>
         <UButton type="submit" :label="props.label" :color="props.color" variant="soft" :class="buttonClass" />
@@ -600,7 +609,7 @@ async function onSubmit() {
   }
 }
 
-const closeEditModal = function(){
+const closeEditModal = function () {
   drugStore.editVisibility = false
   drugStore.item = null
 }
@@ -608,52 +617,3 @@ const closeEditModal = function(){
 onMounted(fetchFieldDefinitions);
 
 </script>
-
-<style scoped>
-.newDrugButton {
-  text-align: center;
-  border-color: #a9e7bc;
-  border-radius: 10px;
-  background-color: white;
-}
-
-.new-drug-box {
-  padding: 20px;
-  border-style: solid;
-  border-color: #adecc0;
-  border-radius: 10px;
-  border-width: 2px;
-}
-
-.tableDiv {
-  border-radius: 10px;
-  border-width: 2px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
-}
-
-:deep(td) {
-  white-space: normal !important;
-  word-break: break-word !important;
-}
-
-.flex-container {
-  display: flex;
-  gap: 16px;
-}
-
-.flex-container>* {
-  flex: 1;
-}
-
-.custom-disabled {
-  background-color: #c2c2c2;
-  border-style: solid !important;
-  border-color: white;
-}
-
-.custom-border input {
-  color: sky;
-  border-style: dotted !important;
-  border-color: green !important;
-}
-</style>

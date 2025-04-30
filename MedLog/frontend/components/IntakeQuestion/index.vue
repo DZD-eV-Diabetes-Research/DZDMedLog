@@ -5,14 +5,14 @@
         icon="i-heroicons-magnifying-glass-20-solid" :color="props.color" />
     </UFormGroup>
     <div v-if="isLoading && props.edit && !props.custom">
-      <br />
+      {{ isLoading && props.edit && !props.custom }}
       <UProgress animation="elastic" color="blue" />
-      <br />
+      {{ isLoading }}
     </div>
     <div>
       <div v-if="drugList.items.length > 0">
         <ul>
-          <li @click="printMedication(item)" class="drug" v-for="item in paginatedItems" :key="item.drug.id"
+          <li @click="printMedication(item)" class="relative border border-[#ededed] my-1 py-2 rounded-md hover:bg-[#ededed] hover:cursor-pointer" v-for="item in paginatedItems" :key="item.drug.id"
             @mouseover="hoveredItem = item" @mouseleave="hoveredItem = null" style="position: relative">
             <div>
               <strong>Name: {{ item.drug.trade_name }} </strong><br />
@@ -24,9 +24,9 @@
                 {{ attr_ref[0] }}: {{ item.drug?.attrs_ref?.[attr_ref[1]]?.display }}
               </div>
             </div>
-            <div class="info" v-if="hoveredItem === item" :style="{ right: '110%', top: '-10%' }">
+            <div class="absolute top-1/2 -translate-y-1/2 right-full w-1/2 mx-10 bg-[#f9f9f9] border border-[#ededed] rounded-md py-2 px-4" v-if="hoveredItem === item">
               <div v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref" :key="attr_multi_ref[1]">
-                {{ attr_multi_ref[0] }}: {{ item.drug?.attrs_multi_ref?.[attr_multi_ref[1]][0].display }}
+                <span class="text-sm font-bold">{{ attr_multi_ref[0] }}:</span> <span class="text-sm">{{ item.drug?.attrs_multi_ref?.[attr_multi_ref[1]][0]?.display }}</span>
               </div>
             </div>
           </li>
@@ -110,6 +110,8 @@ const fetchDrugs = async (edit: boolean, custom: boolean) => {
         }
 
         if (props.edit && initialLoad.value) {
+          console.log("here");
+          
           printMedication(response.items[0]);
           state.drug = ""
           initialLoad.value = false;
@@ -174,41 +176,3 @@ watch(
   { immediate: true }
 );
 </script>
-
-<style scoped>
-.pagination {
-  text-align: center;
-  margin-top: 15px;
-  margin-bottom: 15px;
-}
-
-.drug:hover {
-  background-color: #ededed;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.drug {
-  border-radius: 4px;
-  border: 1px solid;
-  border-color: #ededed;
-  margin-top: 5px;
-  text-align: center;
-}
-
-.info {
-  position: absolute;
-  background-color: rgba(237, 237, 237, 0.5);
-  color: rgba(0, 0, 0, 0.75);
-  font-size: 0.8rem;
-  text-align: center;
-  padding: 5px 10px;
-  border-radius: 6px;
-  z-index: 1;
-  visibility: hidden;
-}
-
-.drug:hover .info {
-  visibility: visible;
-}
-</style>

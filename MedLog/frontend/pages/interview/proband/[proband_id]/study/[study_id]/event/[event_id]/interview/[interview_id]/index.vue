@@ -23,13 +23,14 @@
         </UModal>
       </UIBaseCard>
     </div>
-    <div class="tableDiv">
+    <!-- TABLE -->
+    <div class="border-2 border-[#ededed] rounded-md shadow-lg">
       <h4 style="text-align: center; padding-top: 25px">Medikationen</h4>
       <div>
         <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
           <UInput v-model="q" placeholder="Tabelle Filtern" />
         </div>
-        <UTable :rows="rows" :columns="columns">
+        <UTable :rows="rows" :columns="columns" class="break-words">
           <template v-if="userStore.isAdmin" #actions-data="{ row }">
             <UDropdown :items="myOptions(row)">
               <UButton color="gray" variant="ghost" icon="i-heroicons-ellipsis-horizontal-20-solid" />
@@ -85,7 +86,7 @@
         </div>
       </div>
     </UModal>
-    <UModal v-model="userStore.firstEvent" @close="resetFirstEvent()" class="custom-modal">
+    <UModal v-model="userStore.firstEvent" @close="resetFirstEvent()">
       <div class="p-4">
         <div style="text-align: center">
           <h3>Eingangsfrage</h3>
@@ -132,9 +133,6 @@ const { data: latestItems } = await useAPI(
     headers: { Authorization: "Bearer " + tokenStore.access_token }
   }
 );
-
-// console.log(latestItems?.value[0].interview_id);
-// console.log(route.params.interview_id)
 
 drugStore.item = null;
 
@@ -438,60 +436,13 @@ createIntakeList();
 // });
 </script>
 
+
 <style scoped>
-.newDrugButton {
-  text-align: center;
-  border-color: #a9e7bc;
-  border-radius: 10px;
-  background-color: white;
-}
 
-.new-drug-box {
-  padding: 20px;
-  border-style: solid;
-  border-color: #adecc0;
-  border-radius: 10px;
-  border-width: 2px;
-}
-
-.tableDiv {
-  border-radius: 10px;
-  border-width: 2px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
-}
-
+/* I don't like that this is here but I can't get the wordbreak otherwise */
 :deep(td) {
   white-space: normal !important;
   word-break: break-word !important;
 }
 
-.selectedDarrForm:hover {
-  color: #efc85d;
-  cursor: pointer;
-}
-
-.flex-container {
-  display: flex;
-  gap: 16px;
-}
-
-.flex-container>* {
-  flex: 1;
-}
-
-.custom-disabled {
-  background-color: #c2c2c2;
-  border-style: solid !important;
-  border-color: white;
-}
-
-.custom-border input {
-  color: sky;
-  border-style: dotted !important;
-  border-color: green !important;
-}
-
-.custom-modal {
-  width: 20px;
-}
 </style>

@@ -1,6 +1,6 @@
 <template>
     <Layout>
-        <div class="center">
+        <div class="flex justify-center">
             <h1 class="text-4xl font-normal">Neue Interviews Starten</h1>
         </div>
         <UIBaseCard v-if="studyStore.studies?.count === 0 || !studyStore.studies">
@@ -32,7 +32,6 @@
 
 <script setup lang="ts">
 import { object, string, type InferType, number } from 'yup'
-import type { FormSubmitEvent } from '#ui/types'
 
 const userStore = useUserStore()
 const studyStore = useStudyStore()
@@ -70,12 +69,3 @@ const moveToStudies = function() {
 }
 
 </script>
-
-<style lang="css" scoped>
-.center {
-    text-align: center;
-    margin: auto;
-    width: 50%;
-    padding: 10px;
-}
-</style>
