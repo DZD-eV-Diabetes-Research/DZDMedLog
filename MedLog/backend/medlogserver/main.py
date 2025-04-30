@@ -7,10 +7,10 @@ import sys
 import asyncio
 import json
 import argparse
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
 from pathlib import Path
 import sys, os
+from contextlib import asynccontextmanager
 import time
 
 # Main can be started with arguments. Lets parse these first.
@@ -83,12 +83,9 @@ def start():
     from medlogserver.db._init_db import init_db
     import uvicorn
     from uvicorn.config import LOGGING_CONFIG
-    from medlogserver.app import app, add_api_middleware
+    from medlogserver.app import FastApiAppContainer
     from medlogserver.api.routers_map import mount_fast_api_routers
     from medlogserver.worker.worker import run_background_worker
-
-    mount_fast_api_routers(app)
-    add_api_middleware(app)
 
     if config.CLIENT_URL == config.get_server_url():
         if (
@@ -104,14 +101,16 @@ def start():
         "handlers": ["default"],
         "level": get_loglevel(),
     }
+    fast_api_app_container = FastApiAppContainer()
     event_loop = asyncio.get_event_loop()
     uvicorn_config = uvicorn.Config(
-        app=app,
+        app=fast_api_app_container.app,
         host=config.SERVER_LISTENING_HOST,
         port=config.SERVER_LISTENING_PORT,
         log_level=get_uvicorn_loglevel(),
         log_config=uvicorn_log_config,
         loop=event_loop,
+        lifespan="on",
     )
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
     from medlogserver.db.drug_data.importers.wido_gkv_arzneimittelindex import (
@@ -121,15 +120,30 @@ def start():
     event_loop.run_until_complete(init_db())
 
     if config.DEMO_MODE:
-        log.info(
+        log.warning(
             f"Hey, we are in demo mode. Login as admin with the following account:"
         )
         log.info(
-            f"USERNAME: {config.ADMIN_USER_NAME}\nPASSWORD: {config.ADMIN_USER_PW}"
+            f"USERNAME: {config.ADMIN_USER_NAME}\nPASSWORD: {config.ADMIN_USER_PW.get_secret_value()}"
         )
+    cancel_background_worker_func = lambda: log.info(
+        "No background worker shutdown neccessary"
+    )
     if config.BACKGROUND_WORKER_START_IN_EXTRA_PROCESS:
         # Start background worker in second process
         background_worker = run_background_worker(run_in_extra_process=True)
+
+        def cancel_background_worker():
+            log.info("Stop background worker process...")
+            background_worker.terminate()
+            time.sleep(3)
+            if background_worker.is_alive():
+                log.info("Kill background worker...")
+                background_worker.kill()
+            background_worker.join()
+
+        cancel_background_worker_func = cancel_background_worker
+        fast_api_app_container.add_shutdown_callback(cancel_background_worker)
 
     try:
         log.debug("Start uvicorn server...")
@@ -139,10 +153,8 @@ def start():
             log.info("KeyboardInterrupt shutdown...")
         if isinstance(e, Exception):
             log.info("Panic shutdown...")
-        if background_worker is not None:
-            log.info("Stop background worker process...")
-            background_worker.kill()
-            background_worker.join()
+        if background_worker is not None and background_worker.is_alive():
+            cancel_background_worker_func()
         if isinstance(e, Exception):
             raise e
 
