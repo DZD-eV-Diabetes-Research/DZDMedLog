@@ -113,10 +113,6 @@ def start():
         lifespan="on",
     )
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
-    from medlogserver.db.drug_data.importers.wido_gkv_arzneimittelindex import (
-        WidoAiImporter52,
-    )
-
     event_loop.run_until_complete(init_db())
 
     if config.DEMO_MODE:

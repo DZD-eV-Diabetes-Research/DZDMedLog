@@ -232,7 +232,6 @@ class DrugCRUD(
 
         # attrs
         for attr_create in drug_create.attrs:
-            print("attr_create", attr_create)
             attr_def = find_attr_def("attrs", attr_create.field_name)
             drug.attrs.append(
                 DrugVal(
@@ -243,7 +242,6 @@ class DrugCRUD(
             )
         # attrs_ref
         for attr_ref_create in drug_create.attrs_ref:
-            print("attr_ref_create", attr_ref_create)
             attr_ref_def = find_attr_def("attrs_ref", attr_ref_create.field_name)
             lov_item = await find_lov_item(
                 "attrs_ref", attr_ref_def.field_name, attr_ref_create.value

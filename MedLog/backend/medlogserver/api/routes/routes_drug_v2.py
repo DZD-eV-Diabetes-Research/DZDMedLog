@@ -46,7 +46,9 @@ from medlogserver.api.paginator import (
 )
 from medlogserver.model.drug_data.api_drug_model_factory import (
     DrugAPIRead,
+    CustomDrugAPIRead,
     drug_to_drugAPI_obj,
+    DrugData,
 )
 from medlogserver.model.drug_data.drug import DrugCustomCreate
 from medlogserver.db.drug_data.drug import (
@@ -195,7 +197,7 @@ async def search_drugs(
 
 @fast_api_drug_router_v2.get(
     "/drug/id/{drug_id}",
-    response_model=DrugAPIRead,
+    response_model=DrugAPIRead | CustomDrugAPIRead,
     description=f"Get a certain drug by its id",
 )
 async def get_drug(
@@ -203,7 +205,7 @@ async def get_drug(
     user: User = Security(get_current_user),
     drug_crud: DrugCRUD = Depends(DrugCRUD.get_crud),
 ) -> DrugAPIRead:
-    drug_result = await drug_crud.get(
+    drug_result: DrugData = await drug_crud.get(
         id_=drug_id,
         raise_exception_if_none=HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -425,7 +427,7 @@ async def get_drug_code_details(
 
 @fast_api_drug_router_v2.post(
     "/drug/custom",
-    response_model=DrugAPIRead,
+    response_model=CustomDrugAPIRead,
     description=f"Add a custom drug to the drug database. Should be used as a last resort if the user can not find a specific drug in the search.",
 )
 async def create_custom_drug(
@@ -435,7 +437,7 @@ async def create_custom_drug(
         DrugDataSetVersionCRUD.get_crud
     ),
     drug_crud: DrugCRUD = Depends(DrugCRUD.get_crud),
-) -> DrugAPIRead:
+) -> CustomDrugAPIRead:
     custom_drug_dataset = await drug_dataset_crud.get_custom()
     try:
         new_custom_drug = await drug_crud.create_custom(

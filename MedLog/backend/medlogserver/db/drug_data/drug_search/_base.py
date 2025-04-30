@@ -7,13 +7,14 @@ from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.api_drug_model_factory import (
     DrugAPIRead,
+    CustomDrugAPIRead,
 )
 
 
 class MedLogSearchEngineResult(BaseModel):
     drug_id: uuid.UUID = Field(examples=["ff16fc08-6484-4097-bd51-f8c17c640a06"])
     relevance_score: float = Field(examples=["1.4"])
-    drug: DrugAPIRead
+    drug: DrugAPIRead | CustomDrugAPIRead
 
 
 class MedLogDrugSearchEngineBase:

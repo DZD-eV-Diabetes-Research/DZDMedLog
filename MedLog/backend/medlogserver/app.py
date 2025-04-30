@@ -1,6 +1,7 @@
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Awaitable
 from contextlib import asynccontextmanager
 import getversion
+import inspect
 from fastapi import Depends
 from fastapi import FastAPI
 import getversion.plugin_setuptools_scm
@@ -25,6 +26,9 @@ from dataclasses import dataclass
 class AppLifespanCallback:
     func: Callable
     params: Dict | None = None
+
+    def is_async(self):
+        return inspect.iscoroutinefunction(self.func)
 
 
 class FastApiAppContainer:
@@ -52,12 +56,18 @@ class FastApiAppContainer:
         # https://fastapi.tiangolo.com/advanced/events/#lifespan
         for cb in self.startup_callbacks:
             params = cb.params if cb.params else {}
-            cb.func(**params)
+            if cb.is_async():
+                await cb.func(**params)
+            else:
+                cb.func(**params)
 
         yield
         for cb in self.shutdown_callbacks:
             params = cb.params if cb.params else {}
-            cb.func(**params)
+            if cb.is_async():
+                await cb.func(**params)
+            else:
+                cb.func(**params)
 
     def _apply_api_middleware(self):
         allow_origins = []

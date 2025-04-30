@@ -18,6 +18,7 @@ from medlogserver.model.interview import Interview
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.api_drug_model_factory import (
     DrugAPIRead,
+    CustomDrugAPIRead,
 )
 
 from medlogserver.config import Config
@@ -166,4 +167,4 @@ class IntakeExport(IntakeCreate, BaseTable, table=False):
 class IntakeDetailListItem(IntakeCreate, BaseTable, table=False):
     interview: Interview
     event: Event
-    drug: DrugAPIRead
+    drug: DrugAPIRead | CustomDrugAPIRead

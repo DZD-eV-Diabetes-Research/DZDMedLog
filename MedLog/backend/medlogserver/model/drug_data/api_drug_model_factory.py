@@ -11,9 +11,7 @@ from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 
 from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
 
-from medlogserver.db.drug_data.importers.wido_gkv_arzneimittelindex import (
-    WidoAiImporter52,
-)
+
 from medlogserver.model.drug_data.drug_code import DrugCodeApi
 from medlogserver.model.drug_data.drug_attr_field_definition import ValueTypeCasting
 
@@ -28,18 +26,23 @@ from medlogserver.model.drug_data.drug_attr import (
 )
 from medlogserver.model.drug_data.drug_code import DrugCode
 from medlogserver.model.unset import Unset
+from medlogserver.log import get_logger
 
+log = get_logger()
 config = Config()
 
 
 class DrugApiReadClassFactory:
-    def __init__(self):
-        # TODO: this return should be cached somehow....
+
+    def __init__(self, all_optional: bool = False):
         self.drug_api_read_class = None
         self.importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
         self.ref_value_models: Dict[str, Type[BaseModel]] = {}
+        self.all_optional = all_optional
 
-    def get_drug_api_read_class(self) -> Type[BaseModel]:
+    def get_drug_api_read_class(
+        self,
+    ) -> Type[BaseModel]:
         """
         Dynamic creation of Pydantic classes für Drugs.
         Depending on the used drug data source (e.g Wido GKV Arnzeimittelindex) we have different attributes for Drug datasets.
@@ -146,11 +149,17 @@ class DrugApiReadClassFactory:
         for field in attr_fields:
             type_def = field.value_type.value.python_type
 
-            if field.optional:
+            if field.optional or self.all_optional:
                 type_def = Optional[type_def]
             pydantic_field_attrs = {}
             pydantic_field_attrs["description"] = field.field_desc
-            if field.default is not None or (field.default is None and field.optional):
+            if self.all_optional:
+                pydantic_field_attrs["default"] = (
+                    field.default if field.default else None
+                )
+            elif field.default is not None or (
+                field.default is None and field.optional
+            ):
                 pydantic_field_attrs["default"] = field.default
             pydantic_field_attrs["examples"] = [
                 field.value_type.value.casting_func(ex) for ex in field.examples
@@ -197,7 +206,7 @@ class DrugApiReadClassFactory:
             model_name = f"{'Multi' if as_multi_ref else ''}AttrRefVal{field.field_name.capitalize()}"
             value_type = field.value_type.value.python_type
             ref_list_api_path = f"/v2/drug/field_def/{field.field_name}/refs"
-            if field.optional:
+            if field.optional or self.all_optional:
                 value_type = Optional[value_type]
             ref_value_model = create_model(
                 model_name,
@@ -216,19 +225,28 @@ class DrugApiReadClassFactory:
             )
 
             type_def = List[ref_value_model] if as_multi_ref else ref_value_model
-            if field.optional:
+
+            if field.optional or self.all_optional:
                 type_def = Optional[type_def]
             pydantic_field_attrs = {}
             pydantic_field_attrs["description"] = field.field_desc
             if as_multi_ref:
-                if field.default is not None or (
+                if self.all_optional:
+                    pydantic_field_attrs["default"] = (
+                        field.default if field.default else []
+                    )
+                elif field.default is not None or (
                     field.default is None and field.optional
                 ):
                     pydantic_field_attrs["default"] = (
                         [] if field.default is None else field.default
                     )
             else:
-                if field.default is not None or (
+                if self.all_optional:
+                    pydantic_field_attrs["default"] = (
+                        field.default if field.default else []
+                    )
+                elif field.default is not None or (
                     field.default is None and field.optional
                 ):
                     pydantic_field_attrs["default"] = field.default
@@ -260,7 +278,13 @@ class DrugApiReadClassFactory:
             #    type_def = List[type_def]
             pydantic_field_attrs = {}
             pydantic_field_attrs["description"] = field.field_desc
-            if field.default is not None or (field.default is None and field.optional):
+            if self.all_optional:
+                pydantic_field_attrs["default"] = (
+                    field.default if field.default else None
+                )
+            elif field.default is not None or (
+                field.default is None and field.optional
+            ):
                 pydantic_field_attrs["default"] = field.default
             pydantic_field_attrs["examples"] = [field.examples]
 
@@ -309,10 +333,16 @@ class DrugApiReadClassFactory:
 
 drug_read_api_factory = DrugApiReadClassFactory()
 DrugAPIRead = drug_read_api_factory.get_drug_api_read_class()
+custom_drug_read_api_factory = DrugApiReadClassFactory(all_optional=True)
+CustomDrugAPIRead = custom_drug_read_api_factory.get_drug_api_read_class()
 
 
 # async def drug_to_drugAPI_obj(drug: Drug) -> DrugAPIRead:
-async def drug_to_drugAPI_obj(drug: DrugData) -> Dict:
+async def drug_to_drugAPI_obj(
+    drug: DrugData,
+) -> DrugAPIRead | CustomDrugAPIRead:
+
+    # log.debug(f"drug_to_drugAPI_obj drug: {drug}")
     vals = {}
     for field_name, field_val in iter(drug):
         if field_name in [
@@ -327,7 +357,12 @@ async def drug_to_drugAPI_obj(drug: DrugData) -> Dict:
             vals[field_name] = field_val
 
     drug_codes = {}
+    # codes_submodel: Type[BaseModel] = DrugAPIRead.model_fields["codes"].annotation
+    # for drug_code_field_name in codes_submodel.model_fields.keys():
+    #    log.info(f"drug_code_field_name {drug_code_field_name}")
+    # log.info(f"drug.codes {drug.codes}")
     for code in drug.codes:
+
         drug_codes[code.code_system_id] = code.code
 
     drug_attrs = {}
@@ -350,7 +385,9 @@ async def drug_to_drugAPI_obj(drug: DrugData) -> Dict:
         }
 
     drug_attrs_multi_ref: Dict[str, List[DrugValMultiRef]] = {}
+    # log.debug(f"drug.attrs_multi_ref {drug.attrs_multi_ref}")
     for attr_multi_ref in drug.attrs_multi_ref:
+        # log.debug(f"add attr_multi_ref {attr_multi_ref}")
         if attr_multi_ref.field_name not in drug_attrs_multi_ref:
             drug_attrs_multi_ref[attr_multi_ref.field_name] = []
         lov_item = attr_multi_ref.lov_item
@@ -366,6 +403,9 @@ async def drug_to_drugAPI_obj(drug: DrugData) -> Dict:
     vals["attrs_ref"] = drug_attrs_ref
     vals["attrs_multi"] = drug_attrs_multi
     vals["attrs_multi_ref"] = drug_attrs_multi_ref
+    # log.debug(f"DrugAPIRead.model_validate ->vals {vals}")
+    if drug.is_custom_drug:
+        return CustomDrugAPIRead.model_validate(vals)
     return DrugAPIRead.model_validate(vals)
 
 
