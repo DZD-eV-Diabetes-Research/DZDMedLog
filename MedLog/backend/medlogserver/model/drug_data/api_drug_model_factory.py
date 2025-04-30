@@ -23,6 +23,7 @@ from medlogserver.model.drug_data.drug_attr import (
     DrugValRef,
     DrugAttrRefApiRead,
     DrugValMultiRef,
+    DrugValMulti,
 )
 from medlogserver.model.drug_data.drug_code import DrugCode
 from medlogserver.model.unset import Unset
@@ -321,7 +322,13 @@ class DrugApiReadClassFactory:
         attrs = {}
 
         for field in code_fields:
-            attrs[field.id] = (str, None)
+            pydantic_field_attrs = {}
+            pydantic_field_attrs["description"] = field.desc
+            value_type = str
+            if field.optional or self.all_optional:
+                value_type = Optional[value_type]
+                pydantic_field_attrs["default"] = None
+            attrs[field.id] = (value_type, Field(**pydantic_field_attrs))
 
         """from pydantic create model docs:
         field_definitions: Attributes of the new model. They should be passed in the format:
@@ -357,24 +364,80 @@ async def drug_to_drugAPI_obj(
             vals[field_name] = field_val
 
     drug_codes = {}
-    # codes_submodel: Type[BaseModel] = DrugAPIRead.model_fields["codes"].annotation
-    # for drug_code_field_name in codes_submodel.model_fields.keys():
-    #    log.info(f"drug_code_field_name {drug_code_field_name}")
+    codes_submodel: Type[BaseModel] = DrugAPIRead.model_fields["codes"].annotation
+    for drug_code_field_name in codes_submodel.model_fields.keys():
+
+        drug_codes[drug_code_field_name] = next(
+            (
+                code.code
+                for code in drug.codes
+                if code.code_system_id == drug_code_field_name
+            ),
+            None,
+        )
     # log.info(f"drug.codes {drug.codes}")
-    for code in drug.codes:
+    # for code in drug.codes:
+    #
+    #    drug_codes[code.code_system_id] = code.code
 
-        drug_codes[code.code_system_id] = code.code
+    drug_attrs: Dict[str, List[Dict[str, str]]] = {}
+    drug_attrs_submodel: Type[BaseModel] = DrugAPIRead.model_fields["attrs"].annotation
+    for drug_attrs_field_name in drug_attrs_submodel.model_fields.keys():
 
+        val: DrugVal = next(
+            (attr for attr in drug.attrs if attr.field_name == drug_attrs_field_name),
+            None,
+        )
+        drug_attrs[drug_attrs_field_name] = val.value
+    """old style 
     drug_attrs = {}
     for attr in drug.attrs:
         drug_attrs[attr.field_name] = attr.value
+    """
 
+    drug_attrs_multi: Dict[str, List[Dict[str, str]]] = {}
+    drug_attrs_multi_submodel: Type[BaseModel] = DrugAPIRead.model_fields[
+        "attrs_multi"
+    ].annotation
+    for drug_attrs_multi_field_name in drug_attrs_multi_submodel.model_fields.keys():
+        if drug_attrs_multi_field_name not in drug_attrs_multi:
+            drug_attrs_multi[drug_attrs_multi_field_name] = []
+        val: DrugValMulti = next(
+            (
+                attrs_multi
+                for attrs_multi in drug.attrs_multi
+                if attrs_multi.field_name == drug_attrs_multi_field_name
+            ),
+            None,
+        )
+        drug_attrs_multi[drug_attrs_multi_field_name].append(val.value)
+    """old style
     drug_attrs_multi = {}
     for attr in drug.attrs_multi:
         if attr.field_name not in drug_attrs_multi:
             drug_attrs_multi[attr.field_name] = []
         drug_attrs_multi[attr.field_name].append(attr.value)
+    """
 
+    drug_attrs_ref: Dict[str, List[Dict[str, str]]] = {}
+    drug_attrs_ref_submodel: Type[BaseModel] = DrugAPIRead.model_fields[
+        "attrs_ref"
+    ].annotation
+    for drug_attrs_ref_field_name in drug_attrs_ref_submodel.model_fields.keys():
+
+        val: DrugValRef = next(
+            (
+                attr_ref
+                for attr_ref in drug.attrs_ref
+                if attr_ref.field_name == drug_attrs_ref_field_name
+            ),
+            None,
+        )
+        drug_attrs_ref[drug_attrs_ref_field_name] = {
+            "value": val.value,
+            "display": val.lov_item.display if val.lov_item is not None else None,
+        }
+    """old style
     drug_attrs_ref = {}
     for attr_ref in drug.attrs_ref:
         lov_item = attr_ref.lov_item
@@ -383,7 +446,39 @@ async def drug_to_drugAPI_obj(
             "display": lov_item.display if lov_item is not None else None,
             # "ref_list": f"/v2/drug/field_def/{attr_ref.field_name}/refs", #<- Is auto filled by class defintion now
         }
+    """
 
+    drug_attrs_multi_ref: Dict[str, List] = {}
+    attrs_multi_ref_submodel: Type[BaseModel] = DrugAPIRead.model_fields[
+        "attrs_multi_ref"
+    ].annotation
+    for drug_attrs_multi_ref_field_name in attrs_multi_ref_submodel.model_fields.keys():
+        if drug_attrs_multi_ref_field_name not in drug_attrs_multi_ref:
+            drug_attrs_multi_ref[drug_attrs_multi_ref_field_name] = []
+        val: DrugValMultiRef = next(
+            (
+                attr_m_ref
+                for attr_m_ref in drug.attrs_multi_ref
+                if attr_m_ref.field_name == drug_attrs_multi_ref_field_name
+            ),
+            None,
+        )
+        if val is not None:
+            lov_item = val.lov_item
+            drug_attrs_multi_ref[drug_attrs_multi_ref_field_name].append(val)
+    for val_list in drug_attrs_multi_ref.values():
+        val_list.sort(key=lambda o: o.value_index)
+    for key, val_list in drug_attrs_multi_ref.items():
+        drug_attrs_multi_ref[key] = [
+            {
+                "value": val.value,
+                "display": val.lov_item.display if val.lov_item is not None else None,
+            }
+            for val in val_list
+        ]
+
+    """ old sytle
+    
     drug_attrs_multi_ref: Dict[str, List[DrugValMultiRef]] = {}
     # log.debug(f"drug.attrs_multi_ref {drug.attrs_multi_ref}")
     for attr_multi_ref in drug.attrs_multi_ref:
@@ -397,6 +492,7 @@ async def drug_to_drugAPI_obj(
                 "display": lov_item.display if lov_item is not None else None,
             }
         )
+    """
 
     vals["codes"] = drug_codes
     vals["attrs"] = drug_attrs

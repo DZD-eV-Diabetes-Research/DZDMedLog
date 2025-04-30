@@ -624,7 +624,7 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name_display="Stichwörter",
             field_desc="Stichwörter",
             value_type=ValueTypeCasting.INT,
-            optional=False,
+            optional=True,
             # default=False,
             is_reference_list_field=True,
             is_multi_val_field=True,
@@ -647,7 +647,7 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             field_name_display="ICD-10 Codes",
             field_desc="Einordnung der Präparate nach ICD-10-Schlüssel",
             value_type=ValueTypeCasting.STR,
-            optional=False,
+            optional=True,
             # default=False,
             is_reference_list_field=True,
             is_multi_val_field=True,
@@ -846,7 +846,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 if index % 1000 == 0:
                     # log status updates every 1000 rows
                     log.info(
-                        f"[DRUG DATA IMPORT] Processed {index} rows from {row_count_processing_max}"
+                        f"[DRUG DATA IMPORT] Processed {index} rows of {row_count_processing_max}"
                     )
                     log.debug(
                         f"[DRUG DATA IMPORT] Cached/Uncached lookups: {self._debug_stats_csv_lookup[0]}/{self._debug_stats_csv_lookup[1]}"

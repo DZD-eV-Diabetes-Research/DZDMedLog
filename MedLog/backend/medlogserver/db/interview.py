@@ -70,8 +70,10 @@ class InterviewCRUD(
             select(Interview)
             .join(Event)
             .where(
-                Interview.proband_external_id == proband_external_id
-                and Event.study_id == study_id
+                and_(
+                    Interview.proband_external_id == proband_external_id,
+                    Event.study_id == study_id,
+                )
             )
         )
         if completed:
