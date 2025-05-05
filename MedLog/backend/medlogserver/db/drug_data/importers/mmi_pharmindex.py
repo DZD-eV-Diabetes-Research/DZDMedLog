@@ -13,6 +13,7 @@ from typing import (
     Iterator,
     AsyncGenerator,
 )
+import tracemalloc
 import polars
 import time
 import itertools
@@ -55,6 +56,21 @@ from medlogserver.config import Config
 from medlogserver.model.unset import Unset
 from medlogserver.utils import extract_bracket_values, async_enumerate, humanbytes
 import gc
+
+### DEBUG STUFF TO BE RTEMOVED
+print(
+    "WARNING by Tim: Memory Profiler is still enabled. This degrades perfomance drasticly. Please remove for production!!!!"
+)
+from memory_profiler import profile
+import objgraph
+from sqlalchemy.orm.state import InstanceState
+
+
+def count_instancestates():
+    return sum(1 for o in gc.get_objects() if isinstance(o, InstanceState))
+
+
+# <<<<< ### DEBUG STUFF TO BE RTEMOVED
 
 config = Config()
 log = get_logger()
@@ -686,7 +702,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self.dataset_link = "https://www.MmiPi.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/"
         self.source_dir = None
         self.version = None
-        self.batch_size = 200000
+        # self.batch_size = 200000
+        # self.batch_size = 10000
+        self.batch_size = 500
         self._attr_definitions = None
         self._attr_ref_definitions = None
         self._code_definitions = None
@@ -762,7 +780,10 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             ]
         return [field_def.field for field_def in code_attr_definitions]
 
+    @profile
     async def run_import(self):
+        # log.warning("TRACEMALLOG IS STILL ACTIVE!!!!!")
+        # tracemalloc.start()
         # generate schema definitions; fields,lov-defintions,...
         async with get_async_session_context() as db_session:
             self._db_session = db_session
@@ -786,10 +807,6 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
                 all_objs.extend(lov_item_objs)
             await self.add_and_flush(objs=all_objs)
-            # Free memory
-            del all_objs
-            all_objs = []
-            gc.collect()
 
             drug_data_objs: List[DrugData] = []
 
@@ -797,17 +814,24 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 self._parse_drug_data(drug_dataset)
             ):
                 drug_data_objs.append(drug_obj)
-                if i % self.batch_size == 0:
-                    await self.add_and_flush(objs=drug_data_objs)
-                    del drug_data_objs
-                    drug_data_objs = []
-                    gc.collect()
+                if i > 0 and i % self.batch_size == 0:
+                    await self.add_and_flush(objs=drug_data_objs, an=True)
+                    print(f"drug_data_objs len {len(drug_data_objs)}")
+                    print(len(self._db_session.identity_map.values()))
+
+            # debug
+            # analysel large objects in memory
+            """
+            snapshot = tracemalloc.take_snapshot()
+            top_stats = snapshot.statistics("lineno")
+            for stat in top_stats[:100]:
+                print(stat)
+            exit()
+            """
 
             # log.debug(("ALL", drug_data_objs))
             await self.add_and_flush(objs=drug_data_objs)
-            del drug_data_objs
-            drug_data_objs = []
-            gc.collect()
+
             # write everything to database
             await self.commit(all_objs)
 
@@ -1291,22 +1315,72 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             self._cache_csv_lookups[csv_lookup_filter_call_signature][filter_value],
         )
 
-    async def add_and_flush(self, objs):
+    async def add_and_flush(self, objs: List[SQLModel], an: bool = False):
         log.debug(f"[DRUG DATA IMPORT] Flush {len(objs)} objects to database...")
         # log.debug(f"{objs}")
         session = self._db_session
+        """
+        if an:
+            snapshot_before = tracemalloc.take_snapshot()
+        """
+        # debug_obj = objs[0]
+        print("Before clear:", count_instancestates())
+        async with session.begin() as transaction:
+            # async with get_async_session_context() as session:
 
-        session.add_all(objs)
-        try:
+            session.add_all(objs)
             await session.flush()
-        except Exception as e:
-            log.debug("FLUSH FAILED objs:")
-            for obj in objs:
-                obj: DrugModelTableBase = obj
-
-            raise e
+            # await session.close()
         session.expunge_all()
+        if an:
+
+            debug_obj = objs[0]
+            objgraph.show_growth()
+
+        objs.clear()
         self._reset_cache_csv_lookupscache()
+
+        gc.collect()
+        session.expunge_all()
+        gc.collect()
+
+        print("After clear:", count_instancestates())
+        for obj in gc.get_objects():
+            if isinstance(obj, InstanceState):
+                print(f"OBJ", obj)
+                refs = gc.get_referrers(obj)
+                for index, ref in enumerate(refs):
+                    print(" -", type(ref), repr(ref)[:300])
+                    print("Render backrefs")
+                    objgraph.show_backrefs(
+                        [ref], max_depth=3, filename=f"leak{index}.png"
+                    )
+                    print("exit")
+                exit()
+
+        if an:
+
+            # print("Before clear:", count_instancestates())
+
+            rs = gc.get_referrers(debug_obj)
+            for i, r in enumerate(rs):
+                print(f"Referrer #{i+1}: {type(r)} -> {r}")
+            objgraph.show_most_common_types()
+            objgraph.show_refs(debug_obj, filename="show_refs.png")
+
+        # log.debug(f"-----References of debug_obj {debug_obj}")
+        # for ref in gc.get_referrers(debug_obj):
+        #    log.debug(f"  - {type(ref).__name__}: {ref}")
+        """
+        if an:
+            log.debug(f"----- Snapshit comaprison")
+            snapshot_after = tracemalloc.take_snapshot()
+            # compareison = snapshot_before.compare_to(snapshot_after, key_type="lineno")
+            # log.debug(compareison)
+            top_stats = snapshot_after.statistics("lineno")
+            for stat in top_stats[:50]:
+                print(stat)
+        """
 
     async def commit(self, objs=None):
         session = self._db_session
