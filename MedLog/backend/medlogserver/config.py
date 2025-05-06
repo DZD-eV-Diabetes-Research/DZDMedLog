@@ -292,6 +292,11 @@ class Config(BaseSettings):
         description="Depending on the drug database that is used, we can define an importer.",
     )
 
+    DRUG_IMPORTER_BATCH_SIZE: int = Field(
+        default=100000,
+        description="If the drug import supports batching, this is the size per batch.",
+    )
+
     DRUG_SEARCHENGINE_CLASS: Literal["GenericSQLDrugSearch"] = Field(
         description="The search engine used in the background to answer drug search requests.",
         default="GenericSQLDrugSearch",
