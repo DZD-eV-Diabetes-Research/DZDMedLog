@@ -311,6 +311,11 @@ root_props_mapping = {
     if not "." in prop_name
 }
 
+
+def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
+    return
+
+
 code_attr_definitions = [
     DrugAttrFieldDefinitionContainer(
         field=DrugCodeSystem(
@@ -345,6 +350,10 @@ code_attr_definitions = [
         source_mapping=mmi_rohdaten_r3_mappings["codes.MMIP"],
     ),
 ]
+
+
+def get_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
+    return
 
 
 attr_definitions = [
@@ -470,7 +479,17 @@ DrugAttrFieldDefinitionContainer(
 ),
 """
 
+
+def get_attr_multi_definitions() -> List[DrugAttrFieldDefinitionContainer]:
+    return []
+
+
 attr_multi_definitions: List[DrugAttrFieldDefinitionContainer] = []
+
+
+def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
+    return []
+
 
 # ref values packed together into a tuple with ref LOV import data
 attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
@@ -612,6 +631,11 @@ attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
         ),
     ),
 ]
+
+
+def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
+    return []
+
 
 # ref values packed together into a tuple with ref LOV import data
 attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
