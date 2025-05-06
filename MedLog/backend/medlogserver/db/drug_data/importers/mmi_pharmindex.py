@@ -689,8 +689,8 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self.source_dir = None
         self.version = None
         # self.batch_size = 200000
-        # self.batch_size = 10000
-        self.batch_size = 500
+        self.batch_size = 10000
+        # self.batch_size = 500
         self._attr_definitions = None
         self._attr_ref_definitions = None
         self._code_definitions = None
