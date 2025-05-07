@@ -257,6 +257,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
 
         while True:
             # Fetch batch of drugs
+            log.debug(
+                f"[INDEX BUILD UP] Fetching next DrugData batch of max size {batch_size}"
+            )
             batch_query = query.offset(offset).limit(batch_size)
             res = await session.exec(
                 batch_query, execution_options={"populate_existing": True}
@@ -266,12 +269,19 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             # Exit loop if no more drugs to process
             if not drugs:
                 break
+            log.debug(
+                f"[INDEX BUILD UP] Fetched next DrugData batch of size {len(drugs)}"
+            )
 
             cache_entries = []
             for drug in drugs:
-                cache_entry = await self._drug_to_cache_obj(drug)
+                cache_entry: GenericSQLDrugSearchCache = await self._drug_to_cache_obj(
+                    drug
+                )
                 cache_entries.append(cache_entry)
-
+            log.debug(
+                f"[INDEX BUILD UP] Writing next GenericSQLDrugSearchCache-batch of {len(cache_entries)}"
+            )
             # Add batch to session and flush
             session.add_all(cache_entries)
             await session.flush()
@@ -285,7 +295,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             offset += batch_count
 
             log.debug(
-                f"Processed batch of {batch_count} drugs, total processed: {total_processed}"
+                f"[INDEX BUILD UP] Processed batch of {batch_count} drugs, total processed: {total_processed}"
             )
 
     async def _drug_to_cache_obj(self, drug: DrugData) -> GenericSQLDrugSearchCache:
