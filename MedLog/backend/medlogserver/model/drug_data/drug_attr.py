@@ -54,7 +54,6 @@ class DrugVal(DrugModelTableBase, table=True):
                 "drug_attr_field_definition.field_name",
                 "drug_attr_field_definition.importer_name",
             ],
-            initially="DEFERRED",
         ),
         {"comment": "Actual attribute value for a drug"},
     )
@@ -93,7 +92,6 @@ class DrugValRef(DrugModelTableBase, table=True):
                 "drug_attr_field_lov_item.value",
                 "drug_attr_field_lov_item.importer_name",
             ],
-            initially="DEFERRED",
         ),
         ForeignKeyConstraint(
             name="composite_foreign_key_drug_attr_ref_val_field_def",
@@ -102,7 +100,6 @@ class DrugValRef(DrugModelTableBase, table=True):
                 "drug_attr_field_definition.field_name",
                 "drug_attr_field_definition.importer_name",
             ],
-            initially="DEFERRED",
         ),
         {"comment": "Definition of dataset specific fields and lookup fields"},
     )
@@ -145,7 +142,6 @@ class DrugValMulti(DrugModelTableBase, table=True):
                 "drug_attr_field_definition.field_name",
                 "drug_attr_field_definition.importer_name",
             ],
-            initially="DEFERRED",
         ),
         {"comment": "Actual single value of a multi/list attribute  for a drug"},
     )
@@ -185,7 +181,6 @@ class DrugValMultiRef(DrugModelTableBase, table=True):
                 "drug_attr_field_lov_item.value",
                 "drug_attr_field_lov_item.importer_name",
             ],
-            initially="DEFERRED",
         ),
         ForeignKeyConstraint(
             name="composite_foreign_key_drug_attr_multi_ref_val__field_def",
@@ -194,7 +189,6 @@ class DrugValMultiRef(DrugModelTableBase, table=True):
                 "drug_attr_field_definition.field_name",
                 "drug_attr_field_definition.importer_name",
             ],
-            initially="DEFERRED",
         ),
         {"comment": "Definition of dataset specific fields and lookup fields"},
     )

@@ -433,10 +433,11 @@ async def drug_to_drugAPI_obj(
             ),
             None,
         )
-        drug_attrs_ref[drug_attrs_ref_field_name] = {
-            "value": val.value,
-            "display": val.lov_item.display if val.lov_item is not None else None,
-        }
+        if val is not None:
+            drug_attrs_ref[drug_attrs_ref_field_name] = {
+                "value": val.value,
+                "display": val.lov_item.display if val.lov_item is not None else None,
+            }
     """old style
     drug_attrs_ref = {}
     for attr_ref in drug.attrs_ref:
