@@ -13,6 +13,8 @@ from typing import (
     Iterator,
     AsyncGenerator,
 )
+import uuid
+from sqlalchemy.orm.collections import InstrumentedList
 import tracemalloc
 import polars
 import time
@@ -28,7 +30,7 @@ from medlogserver.db._session import (
     AsyncSession,
     get_async_session,
 )
-
+from sqlalchemy import insert
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.drug_attr import (
     DrugModelTableBase,
@@ -843,27 +845,47 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             self._attr_def_cache.clear()
             gc.collect()
 
-            drug_data_objs: List[DrugData] = []
+            drug_data_objs: dict[type, List[dict]] = {}
             async for i, drug_obj in async_enumerate(
                 self._parse_drug_data(drug_dataset)
             ):
-                drug_data_objs.append(drug_obj)
+                drug_data_obj: DrugData = drug_obj
+                async for drug_obj in self._disect_drug_data(drug_data=drug_data_obj):
+
+                    drug_obj_type = drug_obj.__class__
+                    if drug_obj_type not in drug_data_objs:
+                        drug_data_objs[drug_obj_type] = []
+                    drug_data_objs[drug_obj_type].append(drug_obj.model_dump())
                 if i > 0 and i % self.batch_size == 0:
-                    await self.add_and_flush(objs=drug_data_objs)
+                    await self.add_and_flush(table_data=drug_data_objs)
 
             if drug_data_objs:
                 # Add remaining not flushed objects
-                await self.add_and_flush(objs=drug_data_objs)
+                await self.add_and_flush(table_data=drug_data_objs)
 
             # write everything to database
             await self.commit()
 
-    async def _parse_drug_data(
-        self, drug_dataset_version: DrugDataSetVersion
-    ) -> AsyncGenerator[
+    async def _disect_drug_data(self, drug_data: DrugData) -> AsyncGenerator[
         DrugData | DrugVal | DrugValRef | DrugCode | DrugValMulti | DrugValMultiRef,
         None,
     ]:
+        child_attr_names = [
+            "attrs",
+            "attrs_ref",
+            "attrs_multi",
+            "attrs_multi_ref",
+            "codes",
+        ]
+        yield drug_data
+        for attr_name in child_attr_names:
+            attr = getattr(drug_data, attr_name)
+            for item in attr:
+                yield item
+
+    async def _parse_drug_data(
+        self, drug_dataset_version: DrugDataSetVersion
+    ) -> AsyncGenerator[DrugData, None]:
 
         log.info("[DRUG DATA IMPORT] Parse drug data...")
         package_csv_path = Path(self.source_dir, "PACKAGE.CSV")
@@ -929,7 +951,10 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         package_row: List[str],
         package_row_headers: List[str],
     ) -> DrugData:
-        result_drug_data = DrugData(source_dataset=drug_dataset_version)
+        result_drug_data = DrugData(
+            id=uuid.uuid4(), source_dataset_id=drug_dataset_version.id
+        )
+
         # drug root attrs
         for root_prop_name, mapping in root_props_mapping.items():
             drug_attr_value = await self._resolve_source_mapping_to_value(
@@ -957,7 +982,11 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             #    value=drug_code_value, mapping=drug_code_data.source_mapping
             # )
             result_drug_data.codes.append(
-                DrugCode(code_system_id=drug_code_def.field.id, code=drug_code_value)
+                DrugCode(
+                    drug_id=result_drug_data.id,
+                    code_system_id=drug_code_def.field.id,
+                    code=drug_code_value,
+                )
             )
         # drug attrs
         for attr_def in get_attr_definitions():
@@ -976,6 +1005,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             )
             result_drug_data.attrs.append(
                 DrugVal(
+                    drug_id=result_drug_data.id,
                     field_name=attr_def.field.field_name,
                     value=drug_attr_value,
                     importer_name=importername,
@@ -1002,6 +1032,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
             result_drug_data.attrs_ref.append(
                 DrugValRef(
+                    drug_id=result_drug_data.id,
                     field_name=attr_ref_def.field.field_name,
                     value=drug_attr_value,
                     importer_name=importername,
@@ -1024,6 +1055,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 )
                 result_drug_data.attrs_multi.append(
                     DrugValMulti(
+                        drug_id=result_drug_data.id,
                         field_name=attr_multi_def.field.field_name,
                         value=drug_attr_val,
                         value_index=index,
@@ -1055,6 +1087,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 )
                 result_drug_data.attrs_multi_ref.append(
                     DrugValMultiRef(
+                        drug_id=result_drug_data.id,
                         field_name=attr_multi_ref_def.field.field_name,
                         value=drug_attr_val,
                         value_index=index,
@@ -1338,14 +1371,28 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             self._cache_csv_lookups[csv_lookup_filter_call_signature][filter_value],
         )
 
-    async def add_and_flush(self, objs: List[SQLModel]):
-        log.debug(f"[DRUG DATA IMPORT] Flush {len(objs)} objects to database...")
-        # log.debug(f"{objs}")
+    async def add_and_flush(
+        self, objs: List[SQLModel] = None, table_data: dict[type, list[dict]] = None
+    ):
         session = self._db_session
-        async with session.begin() as transaction:
-            session.add_all(objs)
-            await session.flush()
-        objs.clear()
+        if objs:
+            log.debug(f"[DRUG DATA IMPORT] Flush {len(objs)} objects to database...")
+            # log.debug(f"{objs}")
+
+            async with session.begin() as transaction:
+                session.add_all(objs)
+                await session.flush()
+            objs.clear()
+        if table_data:
+            async with session.begin() as transaction:
+                for table_type, data in table_data.items():
+                    log.debug(
+                        f"[DRUG DATA IMPORT] Flush {len(data)} '{table_type.__name__}'-objects to database..."
+                    )
+                    await session.exec(insert(table_type), params=data)
+                await session.flush()
+            table_data.clear()
+
         self._reset_cache_csv_lookupscache()
 
     async def commit(self, objs=None):
