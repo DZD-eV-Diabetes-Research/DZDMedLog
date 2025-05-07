@@ -12,7 +12,7 @@ from fastapi import (
     Query,
 )
 import uuid
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from medlogserver.db.interview import InterviewCRUD
 from medlogserver.model.intake import (
     Intake,
@@ -252,7 +252,7 @@ async def list_all_intakes_of_last_completed_interview(
             filter_interview_id=last_completed_interview.id,
         )
     else:
-        return JSONResponse(
+        return Response(
             status_code=status.HTTP_204_NO_CONTENT,
             content=None,
             headers={"X-Reason: No interview exist yet"},
@@ -270,7 +270,7 @@ async def list_all_intakes_of_last_completed_interview_detailed(
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> IntakeDetailListItem:
+) -> List[IntakeDetailListItem]:
     last_completed_interview = await interview_crud.get_last_by_proband(
         study_id=study_access.study.id, proband_external_id=proband_id, completed=True
     )

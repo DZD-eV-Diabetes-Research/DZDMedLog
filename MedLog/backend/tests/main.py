@@ -62,7 +62,7 @@ from medlogserver.worker.worker import run_background_worker
 medlogserver_process = multiprocessing.Process(
     target=medlogserver_start,
     name="DZDMedLogServer",
-    kwargs={"with_background_worker": False},
+    kwargs={},
 )
 
 background_worker_process = multiprocessing.Process(
@@ -124,13 +124,15 @@ from tests_users import run_all_tests_users
 from tests_export import test_do_export
 from tests_drugv2 import test_do_drugv2
 from tests_health import test_do_health
+from tests_last_interview_intakes import last_interview_intakes
 
 try:
     authorize(user=ADMIN_USER_NAME, pw=ADMIN_USER_PW)
-    test_do_health()
-    run_all_tests_users()
-    test_do_drugv2()
-    test_do_export()
+    last_interview_intakes()
+    # test_do_health()
+    # run_all_tests_users()
+    # test_do_drugv2()
+    # test_do_export()
 except Exception as e:
     print("Error in user tests")
     print(print(traceback.format_exc()))

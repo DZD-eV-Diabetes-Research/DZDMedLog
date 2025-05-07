@@ -31,7 +31,15 @@ log = get_logger()
 config = Config()
 
 
-class InterviewCreateAPI(MedLogBaseModel, table=False):
+class InterviewUpdateAPI(MedLogBaseModel, table=False):
+    interview_start_time_utc: Optional[datetime] = Field(
+        default=None,
+    )
+    interview_end_time_utc: Optional[datetime] = Field(default=None)
+    proband_has_taken_meds: Optional[bool] = Field(default=None)
+
+
+class InterviewCreateAPI(InterviewUpdateAPI, table=False):
     proband_external_id: str = Field(
         description="A unique ID given to the proband from the studies external proband management system"
     )

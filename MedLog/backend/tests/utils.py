@@ -216,3 +216,18 @@ def list_contains_dict_that_must_contain(
     ):
         return True
     return False
+
+
+import pydantic
+import sqlmodel
+import json
+
+
+def dictyfy(val: str | sqlmodel.SQLModel | pydantic.BaseModel | dict) -> dict:
+    if isinstance(val, dict):
+        return val
+    if isinstance(val, str):
+        return json.loads(val)
+    if isinstance(val, (sqlmodel.SQLModel, pydantic.BaseModel)):
+        return json.loads(val.model_dump_json(exclude_unset=True))
+    raise ValueError("Dont know how to inteprete value as dict")

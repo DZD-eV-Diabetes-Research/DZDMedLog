@@ -30,6 +30,7 @@ from medlogserver.model.interview import (
     Interview,
     InterviewCreate,
     InterviewUpdate,
+    InterviewUpdateAPI,
     InterviewCreateAPI,
 )
 
@@ -204,7 +205,7 @@ async def create_interview(
 async def update_interview(
     interview_id: uuid.UUID,
     event_id: uuid.UUID,
-    interview_update: InterviewUpdate,
+    interview_update: InterviewUpdateAPI,
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> User:
