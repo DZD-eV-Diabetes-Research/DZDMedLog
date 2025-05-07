@@ -232,11 +232,15 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         )
 
         # Build the base query to fetch drugs
-        query = select(DrugData).where(
-            or_(
-                DrugData.source_dataset_id == target_drug_dataset_version.id,
-                DrugData.source_dataset_id == custom_drugs_dataset.id,
+        query = (
+            select(DrugData)
+            .where(
+                or_(
+                    DrugData.source_dataset_id == target_drug_dataset_version.id,
+                    DrugData.source_dataset_id == custom_drugs_dataset.id,
+                )
             )
+            .order_by(DrugData.id)
         )
         query = query.options(
             selectinload(DrugData.attrs),
