@@ -209,9 +209,17 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             )
         return self._drug_attr_ref_field_definitions
 
-    async def _build_index(self, session: AsyncSession, skip_commit: bool = True):
-        drug_search_attr = []
-        # collect all drug attributes definition that are definied "searchable"
+    async def _build_index(
+        self, session: AsyncSession, skip_commit: bool = True, batch_size: int = 100000
+    ):
+        """
+        Build search index with batch processing to reduce memory consumption.
+
+        Args:
+            session: Database session
+            skip_commit: Whether to skip final commit
+            batch_size: Number of records to process before flushing to database
+        """
         target_drug_dataset_version = await self._get_current_dataset_version()
         log.debug(
             f"INDEX BUILD UP target_drug_dataset_version: {target_drug_dataset_version.id} {type(target_drug_dataset_version.id)}"
@@ -221,7 +229,8 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         log.debug(
             f"INDEX BUILD UP custom_drugs_dataset: {custom_drugs_dataset.id} {type(custom_drugs_dataset.id)}"
         )
-        # fetch all drugs of the current dataset
+
+        # Build the base query to fetch drugs
         query = select(DrugData).where(
             or_(
                 DrugData.source_dataset_id == target_drug_dataset_version.id,
@@ -236,17 +245,43 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             ),
             selectinload(DrugData.codes),
         )
-        res = await session.exec(query, execution_options={"populate_existing": True})
-        cache_entries: List[GenericSQLDrugSearchCache] = []
-        for drug in res.all():
-            cache_entry = await self._drug_to_cache_obj(drug)
-            cache_entries.append(cache_entry)
-        session.add_all(cache_entries)
-        if not skip_commit:
-            await session.commit()
 
-    # async def refresh_index(self, force_rebuild: bool = False):
-    #    await self.build_index(force_rebuild=True)
+        # Process in batches using offset and limit
+        offset = 0
+        total_processed = 0
+
+        while True:
+            # Fetch batch of drugs
+            batch_query = query.offset(offset).limit(batch_size)
+            res = await session.exec(
+                batch_query, execution_options={"populate_existing": True}
+            )
+            drugs = res.all()
+
+            # Exit loop if no more drugs to process
+            if not drugs:
+                break
+
+            cache_entries = []
+            for drug in drugs:
+                cache_entry = await self._drug_to_cache_obj(drug)
+                cache_entries.append(cache_entry)
+
+            # Add batch to session and flush
+            session.add_all(cache_entries)
+            await session.flush()
+
+            # Clear session to free memory (but maintain transaction)
+            session.expunge_all()
+
+            # Update counters
+            batch_count = len(drugs)
+            total_processed += batch_count
+            offset += batch_count
+
+            log.debug(
+                f"Processed batch of {batch_count} drugs, total processed: {total_processed}"
+            )
 
     async def _drug_to_cache_obj(self, drug: DrugData) -> GenericSQLDrugSearchCache:
         drug_attr_field_defs_all = await self._get_drug_attr_definitions_fields()
