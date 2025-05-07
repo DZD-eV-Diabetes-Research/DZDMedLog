@@ -122,6 +122,20 @@ async def init_drugsearch():
         config.DRUG_SEARCHENGINE_CLASS
     ]
     search_engine = search_engine_class()
+
+    # reset drug_search_generic_sql_state.index_build_up_in_process if we are stuck from a recent crash
+    # see https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/83
+    if search_engine_class == GenericSQLDrugSearchEngine:
+        search_engine: GenericSQLDrugSearchEngine = search_engine
+        state = await search_engine._get_state()
+        if state.index_build_up_in_process:
+            # we were in a "just running" state on exit.
+            # We assume the index is an undefinable state.
+            # lets reset it and force a rebuild.
+            state.index_build_up_in_process = False
+            state.last_index_build_based_on_drug_datasetversion_id = None
+            await search_engine._save_state(state)
+
     await search_engine.build_index()
     """
     current_ai_data_version = await get_current_ai_data_version()
