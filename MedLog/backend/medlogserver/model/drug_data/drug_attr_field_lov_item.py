@@ -37,6 +37,8 @@ class DrugAttrFieldLovItem(DrugModelTableBase, DrugAttrFieldLovItemAPIRead, tabl
                 "drug_attr_field_definition.field_name",
             ],
             name="fk_lovitem_fielddef",
+            deferrable=True,  # Only PostgreSQL will respect this
+            initially="IMMEDIATE",
         ),
         {"comment": "Attr fields lists of values"},
     )

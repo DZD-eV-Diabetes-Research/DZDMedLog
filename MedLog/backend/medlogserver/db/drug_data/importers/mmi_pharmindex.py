@@ -24,7 +24,7 @@ import datetime
 import csv
 import re
 from dataclasses import dataclass
-from sqlmodel import SQLModel, select
+from sqlmodel import SQLModel, select, text
 from medlogserver.db._session import (
     get_async_session_context,
     AsyncSession,
@@ -816,6 +816,14 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
     async def run_import(self):
         async with get_async_session_context() as db_session:
+            if db_session.bind.dialect.name == "postgresql":
+                """
+                log.debug("Set Postgres DB: SET CONSTRAINTS ALL DEFERRED")
+                await db_session.exec(text("SET CONSTRAINTS ALL DEFERRED"))
+                """
+                # TODO: it does not look like, we can gain anything substancial with deferring our foreing keys.
+                # this is counter intiutive, as we do a lot flushing, which results in a lot of redudant work regarding constraint checks. review later if there is time.
+                pass
             self._db_session = db_session
             log.info("[DRUG DATA IMPORT] Parse metadata...")
             drug_schema_objects = []
@@ -900,7 +908,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         )
         if config.DRUG_DATA_IMPORT_MAX_ROWS:
             log.warning(
-                f"Config var 'DRUG_DATA_IMPORT_MAX_ROWS' is set to {config.DRUG_DATA_IMPORT_MAX_ROWS}. We maybe will not import all drug entries..."
+                f"[DRUG DATA IMPORT] Config var 'DRUG_DATA_IMPORT_MAX_ROWS' is set to {config.DRUG_DATA_IMPORT_MAX_ROWS}. We maybe will not import all drug entries..."
             )
         # parse csv
         debug_perf_start = time.time()
@@ -927,18 +935,24 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     and index == row_count_processing_max
                 ):
                     log.warning(
-                        f"Config var 'DRUG_DATA_IMPORT_MAX_ROWS' is set to {config.DRUG_DATA_IMPORT_MAX_ROWS}. We did not import all drug entries."
+                        f"[DRUG DATA IMPORT] Config var 'DRUG_DATA_IMPORT_MAX_ROWS' is set to {config.DRUG_DATA_IMPORT_MAX_ROWS}. We did not import all drug entries."
                     )
                     debug_perf_end = time.time()
                     # debug line for perf measument. remove later
                     total_time_sec = debug_perf_end - debug_perf_start
-                    log.debug(
-                        f"Time needed: {total_time_sec} secs. for {row_count_processing_max} drug entries."
+                    log.info(
+                        f"[DRUG DATA IMPORT] Time needed: {total_time_sec} secs. for {row_count_processing_max} drug entries."
                     )
-                    log.debug(
-                        f"Estimated time for full drug data import ({row_count_total} rows): {((total_time_sec/row_count_processing_max)*row_count_total)/60} minutes"
+                    log.info(
+                        f"[DRUG DATA IMPORT] Estimated time for full drug data import ({row_count_total} rows): {((total_time_sec/row_count_processing_max)*row_count_total)/60} minutes"
                     )
-                    break
+                    return
+        debug_perf_end = time.time()
+        # debug line for perf measument. remove later
+        total_time_sec = debug_perf_end - debug_perf_start
+        log.info(
+            f"[DRUG DATA IMPORT] Time needed: {total_time_sec} secs. for {row_count_processing_max} drug entries."
+        )
 
     async def _parse_drug_data_package_row(
         self,
@@ -1443,6 +1457,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             objs.clear()
         if table_data:
             async with session.begin() as transaction:
+
                 for table_type, data in table_data.items():
                     if len(data) == 0:
                         continue
