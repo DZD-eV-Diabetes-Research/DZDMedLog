@@ -885,7 +885,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
     async def _parse_drug_data(
         self, drug_dataset_version: DrugDataSetVersion
-    ) -> AsyncGenerator[DrugData, None]:
+    ) -> AsyncGenerator[Dict[str, Dict[type, List[Dict]]], None]:
 
         log.info("[DRUG DATA IMPORT] Parse drug data...")
         package_csv_path = Path(self.source_dir, "PACKAGE.CSV")
@@ -905,7 +905,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 f"Config var 'DRUG_DATA_IMPORT_MAX_ROWS' is set to {config.DRUG_DATA_IMPORT_MAX_ROWS}. We maybe will not import all drug entries..."
             )
         # parse csv
-        drug_data_objs: Dict[str, DrugData] = {}
+        drug_data_objs: Dict[str, Dict[type, List[Dict]]] = {}
         debug_perf_start = time.time()
         with open(package_csv_path, "rt") as package_csv_file:
             package_csv = csv.reader(package_csv_file, delimiter=";")
@@ -950,10 +950,19 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         drug_dataset_version: DrugDataSetVersion,
         package_row: List[str],
         package_row_headers: List[str],
-    ) -> DrugData:
-        result_drug_data = DrugData(
-            id=uuid.uuid4(), source_dataset_id=drug_dataset_version.id
-        )
+    ) -> Dict[type, List[Dict]]:
+        drug_id = uuid.uuid4()
+        drug_objs: Dict[type, List[Dict]] = {}
+
+        # result_drug_data = DrugData(
+        #    id=uuid.uuid4(), source_dataset_id=drug_dataset_version.id
+        # )
+        drug_objs[DrugData] = {
+            "id": drug_id,
+            "source_dataset_id": drug_dataset_version.id,
+        }
+        for child_class in DrugCode, DrugVal, DrugValRef, DrugValMulti, DrugValMultiRef:
+            drug_objs[child_class] = []
 
         # drug root attrs
         for root_prop_name, mapping in root_props_mapping.items():
@@ -965,7 +974,8 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             drug_attr_value = self._cast_raw_csv_value_if_needed(
                 drug_attr_value, mapping
             )
-            setattr(result_drug_data, root_prop_name, drug_attr_value)
+            drug_objs[DrugData][root_prop_name] = drug_attr_value
+            # setattr(result_drug_data, root_prop_name, drug_attr_value)
         # drug codes
         for drug_code_def in get_code_attr_definitions():
             drug_code_value = await self._resolve_source_mapping_to_value(
@@ -981,13 +991,21 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             # await self._validate_csv_value(
             #    value=drug_code_value, mapping=drug_code_data.source_mapping
             # )
-            result_drug_data.codes.append(
-                DrugCode(
-                    drug_id=result_drug_data.id,
-                    code_system_id=drug_code_def.field.id,
-                    code=drug_code_value,
-                )
+            drug_objs[DrugCode].append(
+                {
+                    "drug_id": drug_id,
+                    "code_system_id": drug_code_def.field.id,
+                    "code": drug_code_value,
+                }
             )
+
+            # result_drug_data.codes.append(
+            #    DrugCode(
+            #        drug_id=result_drug_data.id,
+            #        code_system_id=drug_code_def.field.id,
+            #        code=drug_code_value,
+            #    )
+            # )
         # drug attrs
         for attr_def in get_attr_definitions():
             drug_attr_value = await self._resolve_source_mapping_to_value(
@@ -1003,6 +1021,16 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 mapping=attr_def.source_mapping,
                 source_row=package_row,
             )
+
+            drug_objs[DrugVal].append(
+                {
+                    "drug_id": drug_id,
+                    "field_name": attr_def.field.field_name,
+                    "value": drug_attr_value,
+                    "importer_name": importername,
+                }
+            )
+            """
             result_drug_data.attrs.append(
                 DrugVal(
                     drug_id=result_drug_data.id,
@@ -1011,6 +1039,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     importer_name=importername,
                 )
             )
+            """
         # drug ref attr
         for attr_ref_def in get_attr_ref_definitions():
             drug_attr_value = await self._resolve_source_mapping_to_value(
@@ -1030,6 +1059,15 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 # todo: investigate if this makes sense to have None value here?
                 continue
 
+            drug_objs[DrugValRef].append(
+                {
+                    "drug_id": drug_id,
+                    "field_name": attr_ref_def.field.field_name,
+                    "value": drug_attr_value,
+                    "importer_name": importername,
+                }
+            )
+            """
             result_drug_data.attrs_ref.append(
                 DrugValRef(
                     drug_id=result_drug_data.id,
@@ -1038,6 +1076,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     importer_name=importername,
                 )
             )
+            """
         # drug multi attrs
         for attr_multi_def in get_attr_multi_definitions():
             drug_attr_values = await self._resolve_source_mapping_to_value(
@@ -1046,13 +1085,24 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 mapping=attr_multi_def.source_mapping,
                 singular_val=False,
             )
+
             for index, drug_attr_val in enumerate(drug_attr_values):
                 drug_attr_val = self._cast_raw_csv_value_if_needed(
                     drug_attr_val, attr_multi_def.source_mapping
                 )
-                await self._validate_csv_value(
-                    value=drug_attr_value, mapping=attr_multi_def.source_mapping
+                # await self._validate_csv_value(
+                #    value=drug_attr_val, mapping=attr_multi_def.source_mapping
+                # )
+                drug_objs[DrugValMulti].append(
+                    {
+                        "drug_id": drug_id,
+                        "field_name": attr_multi_def.field.field_name,
+                        "value": drug_attr_val,
+                        "value_index": index,
+                        "importer_name": importername,
+                    }
                 )
+                """
                 result_drug_data.attrs_multi.append(
                     DrugValMulti(
                         drug_id=result_drug_data.id,
@@ -1062,6 +1112,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         importer_name=importername,
                     )
                 )
+                """
         # drug multi ref attrs
         for attr_multi_ref_def in get_attr_multi_ref_definitions():
             drug_attr_values = await self._resolve_source_mapping_to_value(
@@ -1085,6 +1136,16 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 await self._validate_csv_value(
                     value=drug_attr_val, mapping=attr_multi_ref_def.source_mapping
                 )
+                drug_objs[DrugValMultiRef].append(
+                    {
+                        "drug_id": drug_id,
+                        "field_name": attr_multi_ref_def.field.field_name,
+                        "value": drug_attr_val,
+                        "value_index": index,
+                        "importer_name": importername,
+                    }
+                )
+                """
                 result_drug_data.attrs_multi_ref.append(
                     DrugValMultiRef(
                         drug_id=result_drug_data.id,
@@ -1094,7 +1155,8 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         importer_name=importername,
                     )
                 )
-        return result_drug_data
+                """
+        return drug_objs
 
     def _cast_raw_csv_value_if_needed(self, value: Any, mapping: SourceAttrMapping):
         if value == "" or value is None:
