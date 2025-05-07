@@ -158,6 +158,8 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             async with get_async_session_context() as session:
                 await self._clear_cache(session=session)
                 await self._build_index(session=session)
+                # flush content, so we can count it.
+                await session.flush()
                 index_item_count = await self._count_cache_items(session=session)
                 log.debug(f"Index build up index_item_count: {index_item_count}")
                 await session.commit()

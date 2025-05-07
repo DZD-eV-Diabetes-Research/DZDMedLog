@@ -849,13 +849,11 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             async for i, drug_obj in async_enumerate(
                 self._parse_drug_data(drug_dataset)
             ):
-                drug_data_obj: DrugData = drug_obj
-                async for drug_obj in self._disect_drug_data(drug_data=drug_data_obj):
 
-                    drug_obj_type = drug_obj.__class__
-                    if drug_obj_type not in drug_data_objs:
-                        drug_data_objs[drug_obj_type] = []
-                    drug_data_objs[drug_obj_type].append(drug_obj.model_dump())
+                for table_type, data in drug_obj.items():
+                    if table_type not in drug_data_objs:
+                        drug_data_objs[table_type] = []
+                    drug_data_objs[table_type].extend(data)
                 if i > 0 and i % self.batch_size == 0:
                     await self.add_and_flush(table_data=drug_data_objs)
 
@@ -885,7 +883,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
     async def _parse_drug_data(
         self, drug_dataset_version: DrugDataSetVersion
-    ) -> AsyncGenerator[Dict[str, Dict[type, List[Dict]]], None]:
+    ) -> AsyncGenerator[Dict[type, List[Dict]], None]:
 
         log.info("[DRUG DATA IMPORT] Parse drug data...")
         package_csv_path = Path(self.source_dir, "PACKAGE.CSV")
@@ -905,12 +903,11 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 f"Config var 'DRUG_DATA_IMPORT_MAX_ROWS' is set to {config.DRUG_DATA_IMPORT_MAX_ROWS}. We maybe will not import all drug entries..."
             )
         # parse csv
-        drug_data_objs: Dict[str, Dict[type, List[Dict]]] = {}
         debug_perf_start = time.time()
         with open(package_csv_path, "rt") as package_csv_file:
             package_csv = csv.reader(package_csv_file, delimiter=";")
             package_csv_headers = next(package_csv)
-            package_id_column_index = package_csv_headers.index("ID")
+            # package_id_column_index = package_csv_headers.index("ID")
             for index, package_row in enumerate(package_csv):
                 if index % 1000 == 0:
                     # log status updates every 1000 rows
@@ -921,12 +918,10 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         f"[DRUG DATA IMPORT] Cached/Uncached lookups: {self._debug_stats_csv_lookup[0]}/{self._debug_stats_csv_lookup[1]}"
                     )
 
-                drug_data_objs[package_row[package_id_column_index]] = (
-                    await self._parse_drug_data_package_row(
-                        drug_dataset_version, package_row, package_csv_headers
-                    )
+                yield await self._parse_drug_data_package_row(
+                    drug_dataset_version, package_row, package_csv_headers
                 )
-                yield drug_data_objs[package_row[package_id_column_index]]
+
                 if (
                     config.DRUG_DATA_IMPORT_MAX_ROWS
                     and index == row_count_processing_max
@@ -957,10 +952,11 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         # result_drug_data = DrugData(
         #    id=uuid.uuid4(), source_dataset_id=drug_dataset_version.id
         # )
-        drug_objs[DrugData] = {
+        drug_root_obj = {
             "id": drug_id,
             "source_dataset_id": drug_dataset_version.id,
         }
+        drug_objs[DrugData] = [drug_root_obj]
         for child_class in DrugCode, DrugVal, DrugValRef, DrugValMulti, DrugValMultiRef:
             drug_objs[child_class] = []
 
@@ -974,7 +970,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             drug_attr_value = self._cast_raw_csv_value_if_needed(
                 drug_attr_value, mapping
             )
-            drug_objs[DrugData][root_prop_name] = drug_attr_value
+            drug_root_obj[root_prop_name] = drug_attr_value
             # setattr(result_drug_data, root_prop_name, drug_attr_value)
         # drug codes
         for drug_code_def in get_code_attr_definitions():
@@ -1448,6 +1444,8 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         if table_data:
             async with session.begin() as transaction:
                 for table_type, data in table_data.items():
+                    if len(data) == 0:
+                        continue
                     log.debug(
                         f"[DRUG DATA IMPORT] Flush {len(data)} '{table_type.__name__}'-objects to database..."
                     )
