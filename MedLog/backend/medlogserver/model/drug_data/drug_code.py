@@ -26,5 +26,5 @@ class DrugCode(DrugModelTableBase, DrugCodeApi, table=True):
     drug_id: uuid.UUID = Field(primary_key=True, foreign_key="drug.id")
     code_system_id: str = Field(primary_key=True, foreign_key="drug_code_system.id")
     code: str = Field()
-    drug: "DrugData" = Relationship(back_populates="codes")
     code_system: DrugCodeSystem = Relationship()
+    drug: "DrugData" = Relationship(back_populates="codes")

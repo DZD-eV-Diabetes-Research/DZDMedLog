@@ -37,6 +37,7 @@ class DrugAttrFieldLovItem(DrugModelTableBase, DrugAttrFieldLovItemAPIRead, tabl
                 "drug_attr_field_definition.field_name",
             ],
             name="fk_lovitem_fielddef",
+            initially="DEFERRED",
         ),
         {"comment": "Attr fields lists of values"},
     )
@@ -45,4 +46,6 @@ class DrugAttrFieldLovItem(DrugModelTableBase, DrugAttrFieldLovItemAPIRead, tabl
     value: str = Field(primary_key=True)
     display: str = Field()
     sort_order: Optional[int] = Field(default=0)
+    """
     field_definition: DrugAttrFieldDefinition = Relationship()
+    """

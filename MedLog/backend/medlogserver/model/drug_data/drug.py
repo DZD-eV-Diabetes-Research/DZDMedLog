@@ -42,7 +42,9 @@ class DrugData(DrugModelTableBase, table=True):
         "comment": "Tracks different version of same drug indexes that were imported"
     }
     id: uuid.UUID = Field(primary_key=True, default_factory=uuid.uuid4)
-    source_dataset_id: uuid.UUID = Field(foreign_key="drug_dataset_version.id")
+    source_dataset_id: uuid.UUID = Field(
+        foreign_key="drug_dataset_version.id", ondelete="CASCADE"
+    )
     trade_name: str = Field(index=True)
     market_access_date: Optional[datetime.date] = Field(default=None)
     market_exit_date: Optional[datetime.date] = Field(default=None)

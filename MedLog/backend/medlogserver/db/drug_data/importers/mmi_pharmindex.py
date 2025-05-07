@@ -299,156 +299,154 @@ root_props_mapping = {
 
 
 def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
-    return
-
-
-code_attr_definitions = [
-    DrugAttrFieldDefinitionContainer(
-        field=DrugCodeSystem(
-            id="ATC",
-            name="ATC (nach DIMDI)",
-            country="Germany",
-            desc="Anatomisch-therapeutisch-chemische Klassifikation, die Erstellung erfolgt unter Verwendung der amtlichen Fassung der ATC-Klassifikation des Deutschen Instituts für Medizinische Dokumentation und Information (DIMDI)",
-            optional=True,
-            unique=False,
+    return [
+        DrugAttrFieldDefinitionContainer(
+            field=DrugCodeSystem(
+                id="ATC",
+                name="ATC (nach DIMDI)",
+                country="Germany",
+                desc="Anatomisch-therapeutisch-chemische Klassifikation, die Erstellung erfolgt unter Verwendung der amtlichen Fassung der ATC-Klassifikation des Deutschen Instituts für Medizinische Dokumentation und Information (DIMDI)",
+                optional=True,
+                unique=False,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["codes.ATC"],
         ),
-        source_mapping=mmi_rohdaten_r3_mappings["codes.ATC"],
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugCodeSystem(
-            id="PZN",
-            name="Pharmazentralnummer",
-            country="Germany",
-            optional=False,
-            unique=True,
+        DrugAttrFieldDefinitionContainer(
+            field=DrugCodeSystem(
+                id="PZN",
+                name="Pharmazentralnummer",
+                country="Germany",
+                optional=False,
+                unique=True,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["codes.PZN"],
         ),
-        source_mapping=mmi_rohdaten_r3_mappings["codes.PZN"],
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugCodeSystem(
-            id="MMIP",
-            name="MMI Product ID",
-            country="Internal",
-            desc="Interne 'PRODUCTID' des Vidal MMI Pharmindex",
-            optional=False,
-            unique=False,
+        DrugAttrFieldDefinitionContainer(
+            field=DrugCodeSystem(
+                id="MMIP",
+                name="MMI Product ID",
+                country="Internal",
+                desc="Interne 'PRODUCTID' des Vidal MMI Pharmindex",
+                optional=False,
+                unique=False,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["codes.MMIP"],
         ),
-        source_mapping=mmi_rohdaten_r3_mappings["codes.MMIP"],
-    ),
-]
+    ]
 
 
 def get_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
-    return
+    return [
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="amount",
+                field_name_display="Menge",
+                field_desc="Menge in der Produktpackung",
+                value_type=ValueTypeCasting.STR,
+                optional=True,
+                is_reference_list_field=False,
+                is_multi_val_field=False,
+                examples=["3.5 g", "2x100 ml", "60 st"],
+                importer_name=importername,
+                searchable=False,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs.amount"],
+        ),
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="ist_verhuetungsmittel",
+                field_name_display="Verhütungsmittel",
+                field_desc="Ist das Produkt ein Verhütungsmittel",
+                value_type=ValueTypeCasting.BOOL,
+                optional=True,
+                default=None,
+                is_reference_list_field=False,
+                is_multi_val_field=False,
+                examples=[True, False],
+                importer_name=importername,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_verhuetungsmittel"],
+        ),
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="ist_kosmetikum",
+                field_name_display="Kosmetikum",
+                field_desc="Ist das Produkt ein Kosmetikum",
+                value_type=ValueTypeCasting.BOOL,
+                optional=True,
+                default=None,
+                is_reference_list_field=False,
+                is_multi_val_field=False,
+                examples=[True, False],
+                importer_name=importername,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_kosmetikum"],
+        ),
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="ist_nahrungsergaenzungsmittel",
+                field_name_display="Nahrungsergänzungsmittel",
+                field_desc="Ist das Produkt ein Nahrungsergänzungsmittel",
+                value_type=ValueTypeCasting.BOOL,
+                optional=True,
+                default=None,
+                is_reference_list_field=False,
+                is_multi_val_field=False,
+                examples=[True, False],
+                importer_name=importername,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings[
+                "attrs.ist_nahrungsergaenzungsmittel"
+            ],
+        ),
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="ist_pflanzlich",
+                field_name_display="Pflanzlich",
+                field_desc="Ist das Produkt Pflanzlich",
+                value_type=ValueTypeCasting.BOOL,
+                optional=True,
+                default=None,
+                is_reference_list_field=False,
+                is_multi_val_field=False,
+                examples=[True, False],
+                importer_name=importername,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_pflanzlich"],
+        ),
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="ist_generikum",
+                field_name_display="Generikum",
+                field_desc="Ist das Produkt ein Generikum",
+                value_type=ValueTypeCasting.BOOL,
+                optional=True,
+                default=None,
+                is_reference_list_field=False,
+                is_multi_val_field=False,
+                examples=[1, 0],
+                importer_name=importername,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_generikum"],
+        ),
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="ist_homoeopathisch",
+                field_name_display="Homöopathisch",
+                field_desc="Ist das Produkt Homöopathisch",
+                value_type=ValueTypeCasting.BOOL,
+                optional=True,
+                default=None,
+                is_reference_list_field=False,
+                is_multi_val_field=False,
+                examples=[1, 0],
+                importer_name=importername,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_homoeopathisch"],
+        ),
+    ]
 
 
-attr_definitions = [
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="amount",
-            field_name_display="Menge",
-            field_desc="Menge in der Produktpackung",
-            value_type=ValueTypeCasting.STR,
-            optional=True,
-            is_reference_list_field=False,
-            is_multi_val_field=False,
-            examples=["3.5 g", "2x100 ml", "60 st"],
-            importer_name=importername,
-            searchable=False,
-        ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs.amount"],
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="ist_verhuetungsmittel",
-            field_name_display="Verhütungsmittel",
-            field_desc="Ist das Produkt ein Verhütungsmittel",
-            value_type=ValueTypeCasting.BOOL,
-            optional=True,
-            default=None,
-            is_reference_list_field=False,
-            is_multi_val_field=False,
-            examples=[True, False],
-            importer_name=importername,
-        ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_verhuetungsmittel"],
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="ist_kosmetikum",
-            field_name_display="Kosmetikum",
-            field_desc="Ist das Produkt ein Kosmetikum",
-            value_type=ValueTypeCasting.BOOL,
-            optional=True,
-            default=None,
-            is_reference_list_field=False,
-            is_multi_val_field=False,
-            examples=[True, False],
-            importer_name=importername,
-        ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_kosmetikum"],
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="ist_nahrungsergaenzungsmittel",
-            field_name_display="Nahrungsergänzungsmittel",
-            field_desc="Ist das Produkt ein Nahrungsergänzungsmittel",
-            value_type=ValueTypeCasting.BOOL,
-            optional=True,
-            default=None,
-            is_reference_list_field=False,
-            is_multi_val_field=False,
-            examples=[True, False],
-            importer_name=importername,
-        ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_nahrungsergaenzungsmittel"],
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="ist_pflanzlich",
-            field_name_display="Pflanzlich",
-            field_desc="Ist das Produkt Pflanzlich",
-            value_type=ValueTypeCasting.BOOL,
-            optional=True,
-            default=None,
-            is_reference_list_field=False,
-            is_multi_val_field=False,
-            examples=[True, False],
-            importer_name=importername,
-        ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_pflanzlich"],
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="ist_generikum",
-            field_name_display="Generikum",
-            field_desc="Ist das Produkt ein Generikum",
-            value_type=ValueTypeCasting.BOOL,
-            optional=True,
-            default=None,
-            is_reference_list_field=False,
-            is_multi_val_field=False,
-            examples=[1, 0],
-            importer_name=importername,
-        ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_generikum"],
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="ist_homoeopathisch",
-            field_name_display="Homöopathisch",
-            field_desc="Ist das Produkt Homöopathisch",
-            value_type=ValueTypeCasting.BOOL,
-            optional=True,
-            default=None,
-            is_reference_list_field=False,
-            is_multi_val_field=False,
-            examples=[1, 0],
-            importer_name=importername,
-        ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_homoeopathisch"],
-    ),
-]
 """ I can not grasp the DDD in mmi pharmindex. there is only a DDD per Arzneimittelvereinbarungen (AVR) but that makes no sense for me. Lets keep that stuff out for now.
 DrugAttrFieldDefinitionContainer(
         field=DrugAttrFieldDefinition(
@@ -470,223 +468,212 @@ def get_attr_multi_definitions() -> List[DrugAttrFieldDefinitionContainer]:
     return []
 
 
-attr_multi_definitions: List[DrugAttrFieldDefinitionContainer] = []
-
-
 def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
-    return []
-
-
-# ref values packed together into a tuple with ref LOV import data
-attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="darreichungsform",
-            field_name_display="Darreichungsform",
-            field_desc="Darreichungsform IFA",
-            value_type=ValueTypeCasting.STR,
-            optional=True,
-            # default=False,
-            is_reference_list_field=True,
-            is_multi_val_field=False,
-            examples=["AUGEN", "DIL"],
-            importer_name=importername,
-            searchable=True,
+    return [
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="darreichungsform",
+                field_name_display="Darreichungsform",
+                field_desc="Darreichungsform IFA",
+                value_type=ValueTypeCasting.STR,
+                optional=True,
+                # default=False,
+                is_reference_list_field=True,
+                is_multi_val_field=False,
+                examples=["AUGEN", "DIL"],
+                importer_name=importername,
+                searchable=True,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.darreichungsform"],
+            lov=MmiPiDrugAttrRefFieldLovImportDefinition(
+                filter_val="109",
+            ),
         ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.darreichungsform"],
-        lov=MmiPiDrugAttrRefFieldLovImportDefinition(
-            filter_val="109",
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="vertriebsstatus",
+                field_name_display="Vertriebsstatus",
+                field_desc="Wird das Produkt momentan vertrieben",
+                value_type=ValueTypeCasting.STR,
+                optional=False,
+                # default=False,
+                is_reference_list_field=True,
+                is_multi_val_field=False,
+                examples=["D", "F"],
+                importer_name=importername,
+                searchable=False,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.vertriebsstatus"],
+            lov=MmiPiDrugAttrRefFieldLovImportDefinition(
+                filter_val="116",
+            ),
         ),
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="vertriebsstatus",
-            field_name_display="Vertriebsstatus",
-            field_desc="Wird das Produkt momentan vertrieben",
-            value_type=ValueTypeCasting.STR,
-            optional=False,
-            # default=False,
-            is_reference_list_field=True,
-            is_multi_val_field=False,
-            examples=["D", "F"],
-            importer_name=importername,
-            searchable=False,
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="normgroesse",
+                field_name_display="Normgrösse",
+                field_desc="Packungsgrößenkennzeichnung für Medikamente ist eine in Deutschland bestehende Normierung der in der Apotheke abzugebenden Menge",
+                value_type=ValueTypeCasting.STR,
+                optional=True,
+                # default=False,
+                is_reference_list_field=True,
+                is_multi_val_field=False,
+                examples=["A", "1"],
+                importer_name=importername,
+                searchable=False,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.normgroesse"],
+            lov=MmiPiDrugAttrRefFieldLovImportDefinition(
+                filter_val="117",
+            ),
         ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.vertriebsstatus"],
-        lov=MmiPiDrugAttrRefFieldLovImportDefinition(
-            filter_val="116",
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="abgabestatus",
+                field_name_display="Abgabestatus",
+                field_desc="Ob und wie das Produkt an den Patienten abgegeben werden darf",
+                value_type=ValueTypeCasting.INT,
+                optional=True,
+                # default=False,
+                is_reference_list_field=True,
+                is_multi_val_field=False,
+                examples=["0", "2"],
+                importer_name=importername,
+                searchable=False,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.abgabestatus"],
+            lov=MmiPiDrugAttrRefFieldLovImportDefinition(
+                filter_val="119",
+            ),
         ),
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="normgroesse",
-            field_name_display="Normgrösse",
-            field_desc="Packungsgrößenkennzeichnung für Medikamente ist eine in Deutschland bestehende Normierung der in der Apotheke abzugebenden Menge",
-            value_type=ValueTypeCasting.STR,
-            optional=True,
-            # default=False,
-            is_reference_list_field=True,
-            is_multi_val_field=False,
-            examples=["A", "1"],
-            importer_name=importername,
-            searchable=False,
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="lebensmittel",
+                field_name_display="Lebensmittel",
+                field_desc="Lebensmittelstatus des Produkt",
+                value_type=ValueTypeCasting.STR,
+                optional=True,
+                # default=False,
+                is_reference_list_field=True,
+                is_multi_val_field=False,
+                examples=["E", "N", "Y"],
+                importer_name=importername,
+                searchable=False,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.lebensmittel"],
+            lov=MmiPiDrugAttrRefFieldLovImportDefinition(
+                filter_val="205",
+            ),
         ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.normgroesse"],
-        lov=MmiPiDrugAttrRefFieldLovImportDefinition(
-            filter_val="117",
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="diaetetikum",
+                field_name_display="Diätetikum",
+                field_desc="Diaetetikumstatus des Produkt",
+                value_type=ValueTypeCasting.STR,
+                optional=True,
+                # default=False,
+                is_reference_list_field=True,
+                is_multi_val_field=False,
+                examples=["E", "N", "Y"],
+                importer_name=importername,
+                searchable=False,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.diaetetikum"],
+            lov=MmiPiDrugAttrRefFieldLovImportDefinition(
+                filter_val="206",
+            ),
         ),
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="abgabestatus",
-            field_name_display="Abgabestatus",
-            field_desc="Ob und wie das Produkt an den Patienten abgegeben werden darf",
-            value_type=ValueTypeCasting.INT,
-            optional=True,
-            # default=False,
-            is_reference_list_field=True,
-            is_multi_val_field=False,
-            examples=["0", "2"],
-            importer_name=importername,
-            searchable=False,
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="hersteller",
+                field_name_display="Hersteller",
+                field_desc="Hersteller des Produkt",
+                value_type=ValueTypeCasting.STR,
+                optional=False,
+                # default=False,
+                is_reference_list_field=True,
+                is_multi_val_field=False,
+                examples=["13819", "15777", "12"],
+                importer_name=importername,
+                searchable=False,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.hersteller"],
+            lov=MmiPiDrugAttrRefFieldLovImportDefinition(
+                lov_source_file="COMPANY.CSV",
+                values_col_name="ID",
+                display_value_col_name="NAME",
+                filter_col=None,
+                filter_val=None,
+            ),
         ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.abgabestatus"],
-        lov=MmiPiDrugAttrRefFieldLovImportDefinition(
-            filter_val="119",
-        ),
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="lebensmittel",
-            field_name_display="Lebensmittel",
-            field_desc="Lebensmittelstatus des Produkt",
-            value_type=ValueTypeCasting.STR,
-            optional=True,
-            # default=False,
-            is_reference_list_field=True,
-            is_multi_val_field=False,
-            examples=["E", "N", "Y"],
-            importer_name=importername,
-            searchable=False,
-        ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.lebensmittel"],
-        lov=MmiPiDrugAttrRefFieldLovImportDefinition(
-            filter_val="205",
-        ),
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="diaetetikum",
-            field_name_display="Diätetikum",
-            field_desc="Diaetetikumstatus des Produkt",
-            value_type=ValueTypeCasting.STR,
-            optional=True,
-            # default=False,
-            is_reference_list_field=True,
-            is_multi_val_field=False,
-            examples=["E", "N", "Y"],
-            importer_name=importername,
-            searchable=False,
-        ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.diaetetikum"],
-        lov=MmiPiDrugAttrRefFieldLovImportDefinition(
-            filter_val="206",
-        ),
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="hersteller",
-            field_name_display="Hersteller",
-            field_desc="Hersteller des Produkt",
-            value_type=ValueTypeCasting.STR,
-            optional=False,
-            # default=False,
-            is_reference_list_field=True,
-            is_multi_val_field=False,
-            examples=["13819", "15777", "12"],
-            importer_name=importername,
-            searchable=False,
-        ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.hersteller"],
-        lov=MmiPiDrugAttrRefFieldLovImportDefinition(
-            lov_source_file="COMPANY.CSV",
-            values_col_name="ID",
-            display_value_col_name="NAME",
-            filter_col=None,
-            filter_val=None,
-        ),
-    ),
-]
+    ]
 
 
 def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
-    return []
-
-
-# ref values packed together into a tuple with ref LOV import data
-attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="applikationsart",
-            field_name_display="Applikationsart",
-            field_desc="Art und Weise wie ein Arzneimittel verabreicht wird",
-            value_type=ValueTypeCasting.INT,
-            optional=True,
-            # default=False,
-            is_reference_list_field=True,
-            is_multi_val_field=True,
-            examples=["104", "19"],
-            importer_name=importername,
-            searchable=True,
+    return [
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="applikationsart",
+                field_name_display="Applikationsart",
+                field_desc="Art und Weise wie ein Arzneimittel verabreicht wird",
+                value_type=ValueTypeCasting.INT,
+                optional=True,
+                # default=False,
+                is_reference_list_field=True,
+                is_multi_val_field=True,
+                examples=["104", "19"],
+                importer_name=importername,
+                searchable=True,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs_multi_ref.applikationsart"],
+            lov=MmiPiDrugAttrRefFieldLovImportDefinition(
+                filter_val="123",
+            ),
         ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs_multi_ref.applikationsart"],
-        lov=MmiPiDrugAttrRefFieldLovImportDefinition(
-            filter_val="123",
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="keywords",
+                field_name_display="Stichwörter",
+                field_desc="Stichwörter",
+                value_type=ValueTypeCasting.INT,
+                optional=True,
+                # default=False,
+                is_reference_list_field=True,
+                is_multi_val_field=True,
+                examples=[["8", "23"], ["70"]],
+                importer_name=importername,
+                searchable=True,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs_multi_ref.keywords"],
+            lov=MmiPiDrugAttrRefFieldLovImportDefinition(
+                lov_source_file="KEYWORD.CSV",
+                values_col_name="CODE",
+                display_value_col_name="NAME",
+                filter_col=None,
+                filter_val=None,
+            ),
         ),
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="keywords",
-            field_name_display="Stichwörter",
-            field_desc="Stichwörter",
-            value_type=ValueTypeCasting.INT,
-            optional=True,
-            # default=False,
-            is_reference_list_field=True,
-            is_multi_val_field=True,
-            examples=[["8", "23"], ["70"]],
-            importer_name=importername,
-            searchable=True,
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="icd10",
+                field_name_display="ICD-10 Codes",
+                field_desc="Einordnung der Präparate nach ICD-10-Schlüssel",
+                value_type=ValueTypeCasting.STR,
+                optional=True,
+                # default=False,
+                is_reference_list_field=True,
+                is_multi_val_field=True,
+                examples=[["A01.0 M01.39", "B44.8 K23.8"], ["F41.1"]],
+                importer_name=importername,
+                searchable=True,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs_multi_ref.icd10"],
+            lov=MmiPiDrugAttrRefFieldLovImportDefinition(
+                filter_val="18",
+            ),
         ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs_multi_ref.keywords"],
-        lov=MmiPiDrugAttrRefFieldLovImportDefinition(
-            lov_source_file="KEYWORD.CSV",
-            values_col_name="CODE",
-            display_value_col_name="NAME",
-            filter_col=None,
-            filter_val=None,
-        ),
-    ),
-    DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-            field_name="icd10",
-            field_name_display="ICD-10 Codes",
-            field_desc="Einordnung der Präparate nach ICD-10-Schlüssel",
-            value_type=ValueTypeCasting.STR,
-            optional=True,
-            # default=False,
-            is_reference_list_field=True,
-            is_multi_val_field=True,
-            examples=[["A01.0 M01.39", "B44.8 K23.8"], ["F41.1"]],
-            importer_name=importername,
-            searchable=True,
-        ),
-        source_mapping=mmi_rohdaten_r3_mappings["attrs_multi_ref.icd10"],
-        lov=MmiPiDrugAttrRefFieldLovImportDefinition(
-            filter_val="18",
-        ),
-    ),
-]
+    ]
 
 
 @dataclass
@@ -712,9 +699,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self.dataset_link = "https://www.MmiPi.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/"
         self.source_dir = None
         self.version = None
-        # self.batch_size = 200000
         self.batch_size = config.DRUG_IMPORTER_BATCH_SIZE
-        # self.batch_size = 500
         self._attr_definitions = None
         self._attr_ref_definitions = None
         self._code_definitions = None
@@ -724,6 +709,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self._cache_csv_lookups: Dict[Tuple, Dict[str, List[List]]] = {}
         self._cache_validation_target_attrs: Dict[str, DrugAttrFieldDefinition] = {}
         self._debug_stats_csv_lookup: Tuple[int, int] = (0, 0)
+        self._attr_def_cache = {}
 
         self._db_session: AsyncSession | None = None
 
@@ -738,84 +724,126 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None
     ) -> List[DrugAttrFieldDefinition]:
+        if "attr_definitions" not in self._attr_def_cache:
+            self._attr_def_cache["attr_definitions"] = get_attr_definitions()
         if by_name:
             return [
                 attr_def.field
-                for attr_def in attr_definitions
+                for attr_def in self._attr_def_cache["attr_definitions"]
                 if attr_def.field.field_name == by_name
             ]
-        return [attr_def.field for attr_def in attr_definitions]
+        return [attr_def.field for attr_def in self._attr_def_cache["attr_definitions"]]
 
     async def get_attr_ref_field_definitions(
         self, by_name: Optional[str] = None
     ) -> List[DrugAttrFieldDefinition]:
+        if "attr_ref_definitions" not in self._attr_def_cache:
+            self._attr_def_cache["attr_ref_definitions"] = get_attr_ref_definitions()
         if by_name:
             return [
                 attr_def.field
-                for attr_def in attr_ref_definitions
+                for attr_def in self._attr_def_cache["attr_ref_definitions"]
                 if attr_def.field.field_name == by_name
             ]
-        return [field_def.field for field_def in attr_ref_definitions]
+        return [
+            field_def.field
+            for field_def in self._attr_def_cache["attr_ref_definitions"]
+        ]
 
     async def get_attr_multi_field_definitions(
         self, by_name: Optional[str] = None
     ) -> List[DrugAttrFieldDefinition]:
+        if "attr_multi_definitions" not in self._attr_def_cache:
+            self._attr_def_cache["attr_multi_definitions"] = (
+                get_attr_multi_definitions()
+            )
         if by_name:
             return [
                 attr_def.field
-                for attr_def in attr_multi_definitions
+                for attr_def in self._attr_def_cache["attr_multi_definitions"]
                 if attr_def.field.field_name == by_name
             ]
-        return [field_def.field for field_def in attr_multi_definitions]
+        return [
+            field_def.field
+            for field_def in self._attr_def_cache["attr_multi_definitions"]
+        ]
 
     async def get_attr_multi_ref_field_definitions(
         self, by_name: Optional[str] = None
     ) -> List[DrugAttrFieldDefinition]:
+        if "attr_multi_ref_definitions" not in self._attr_def_cache:
+            self._attr_def_cache["attr_multi_ref_definitions"] = (
+                get_attr_multi_ref_definitions()
+            )
         if by_name:
             return [
                 field_def.field
-                for field_def in attr_multi_ref_definitions
+                for field_def in self._attr_def_cache["attr_multi_ref_definitions"]
                 if field_def.field.field_name == by_name
             ]
-        return [field_def.field for field_def in attr_multi_ref_definitions]
+        return [
+            field_def.field
+            for field_def in self._attr_def_cache["attr_multi_ref_definitions"]
+        ]
 
     async def get_code_definitions(
         self, by_id: Optional[str] = None
     ) -> List[DrugCodeSystem]:
+        if "code_attr_definitions" not in self._attr_def_cache:
+            self._attr_def_cache["code_attr_definitions"] = get_code_attr_definitions()
         if by_id:
             return [
                 field_def.field
-                for field_def in attr_multi_ref_definitions
+                for field_def in self._attr_def_cache["code_attr_definitions"]
                 if field_def.field.field_name == by_id
             ]
-        return [field_def.field for field_def in code_attr_definitions]
+        return [
+            field_def.field
+            for field_def in self._attr_def_cache["code_attr_definitions"]
+        ]
+
+    def _debug_print_all_of(self, objs, cls):
+        to_be_printed = []
+        for obj in objs:
+            if isinstance(obj, cls):
+                to_be_printed.append(obj)
+
+                print(f"- {obj}")
+        print(f"----printed {len(to_be_printed)}/{len(objs)} objs")
+        return to_be_printed
 
     async def run_import(self):
         async with get_async_session_context() as db_session:
             self._db_session = db_session
             log.info("[DRUG DATA IMPORT] Parse metadata...")
-            all_objs = []
+            drug_schema_objects = []
             drug_dataset = await self._ensure_drug_dataset_version()
             # generate list of values
             all_attr_defs_by_type = await self.get_all_attr_field_definitions()
-            all_attr_defs_flat = []
+
             for attrdefs in all_attr_defs_by_type.values():
                 for attrdef in attrdefs:
-                    all_attr_defs_flat.append(attrdef)
+                    drug_schema_objects.append(attrdef)
 
-            all_objs.extend(all_attr_defs_flat)
-            for ref_lov_field_obj in attr_ref_definitions + attr_multi_ref_definitions:
-                all_objs.append(ref_lov_field_obj.field)
+            for ref_lov_field_obj in (
+                get_attr_ref_definitions() + get_attr_multi_ref_definitions()
+            ):
+                # drug_schema_objects.append(ref_lov_field_obj.field)
                 lov_item_objs = await self._generate_lov_items(
                     ref_lov_field_obj.field, lov_definition=ref_lov_field_obj.lov
                 )
-                self._lov_values[ref_lov_field_obj.field.field_name] = lov_item_objs
+                # only needed for debugin validation
+                # self._lov_values[ref_lov_field_obj.field.field_name] = lov_item_objs
 
-                all_objs.extend(lov_item_objs)
-            await self.add_and_flush(objs=all_objs)
+                drug_schema_objects.extend(lov_item_objs)
+
+            await self.add_and_flush(objs=drug_schema_objects)
+            drug_schema_objects.clear
+            del drug_schema_objects
+            self._attr_def_cache.clear()
+            gc.collect()
 
             drug_data_objs: List[DrugData] = []
-
             async for i, drug_obj in async_enumerate(
                 self._parse_drug_data(drug_dataset)
             ):
@@ -823,11 +851,12 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 if i > 0 and i % self.batch_size == 0:
                     await self.add_and_flush(objs=drug_data_objs)
 
-            # log.debug(("ALL", drug_data_objs))
-            await self.add_and_flush(objs=drug_data_objs)
+            if drug_data_objs:
+                # Add remaining not flushed objects
+                await self.add_and_flush(objs=drug_data_objs)
 
             # write everything to database
-            await self.commit(all_objs)
+            await self.commit()
 
     async def _parse_drug_data(
         self, drug_dataset_version: DrugDataSetVersion
@@ -913,14 +942,14 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             )
             setattr(result_drug_data, root_prop_name, drug_attr_value)
         # drug codes
-        for drug_code_data in code_attr_definitions:
+        for drug_code_def in get_code_attr_definitions():
             drug_code_value = await self._resolve_source_mapping_to_value(
                 package_row=package_row,
                 package_row_headers=package_row_headers,
-                mapping=drug_code_data.source_mapping,
+                mapping=drug_code_def.source_mapping,
             )
             drug_code_value = self._cast_raw_csv_value_if_needed(
-                drug_code_value, drug_code_data.source_mapping
+                drug_code_value, drug_code_def.source_mapping
             )
             if drug_code_value is None:
                 continue
@@ -928,43 +957,43 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             #    value=drug_code_value, mapping=drug_code_data.source_mapping
             # )
             result_drug_data.codes.append(
-                DrugCode(code_system_id=drug_code_data.field.id, code=drug_code_value)
+                DrugCode(code_system_id=drug_code_def.field.id, code=drug_code_value)
             )
         # drug attrs
-        for attr_data in attr_definitions:
+        for attr_def in get_attr_definitions():
             drug_attr_value = await self._resolve_source_mapping_to_value(
                 package_row=package_row,
                 package_row_headers=package_row_headers,
-                mapping=attr_data.source_mapping,
+                mapping=attr_def.source_mapping,
             )
             drug_attr_value = self._cast_raw_csv_value_if_needed(
-                drug_attr_value, attr_data.source_mapping
+                drug_attr_value, attr_def.source_mapping
             )
             await self._validate_csv_value(
                 value=drug_attr_value,
-                mapping=attr_data.source_mapping,
+                mapping=attr_def.source_mapping,
                 source_row=package_row,
             )
             result_drug_data.attrs.append(
                 DrugVal(
-                    field_name=attr_data.field.field_name,
+                    field_name=attr_def.field.field_name,
                     value=drug_attr_value,
                     importer_name=importername,
                 )
             )
         # drug ref attr
-        for attr_ref_data in attr_ref_definitions:
+        for attr_ref_def in get_attr_ref_definitions():
             drug_attr_value = await self._resolve_source_mapping_to_value(
                 package_row=package_row,
                 package_row_headers=package_row_headers,
-                mapping=attr_ref_data.source_mapping,
+                mapping=attr_ref_def.source_mapping,
             )
             drug_attr_value = self._cast_raw_csv_value_if_needed(
-                drug_attr_value, attr_ref_data.source_mapping
+                drug_attr_value, attr_ref_def.source_mapping
             )
             await self._validate_csv_value(
                 value=drug_attr_value,
-                mapping=attr_ref_data.source_mapping,
+                mapping=attr_ref_def.source_mapping,
                 source_row=package_row,
             )
             if drug_attr_value is None:
@@ -973,40 +1002,40 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
 
             result_drug_data.attrs_ref.append(
                 DrugValRef(
-                    field_name=attr_ref_data.field.field_name,
+                    field_name=attr_ref_def.field.field_name,
                     value=drug_attr_value,
                     importer_name=importername,
                 )
             )
         # drug multi attrs
-        for attr_multi_data in attr_multi_definitions:
+        for attr_multi_def in get_attr_multi_definitions():
             drug_attr_values = await self._resolve_source_mapping_to_value(
                 package_row=package_row,
                 package_row_headers=package_row_headers,
-                mapping=attr_multi_data.source_mapping,
+                mapping=attr_multi_def.source_mapping,
                 singular_val=False,
             )
             for index, drug_attr_val in enumerate(drug_attr_values):
                 drug_attr_val = self._cast_raw_csv_value_if_needed(
-                    drug_attr_val, attr_multi_data.source_mapping
+                    drug_attr_val, attr_multi_def.source_mapping
                 )
                 await self._validate_csv_value(
-                    value=drug_attr_value, mapping=attr_multi_data.source_mapping
+                    value=drug_attr_value, mapping=attr_multi_def.source_mapping
                 )
                 result_drug_data.attrs_multi.append(
                     DrugValMulti(
-                        field_name=attr_multi_data.field.field_name,
+                        field_name=attr_multi_def.field.field_name,
                         value=drug_attr_val,
                         value_index=index,
                         importer_name=importername,
                     )
                 )
         # drug multi ref attrs
-        for attr_multi_ref_data in attr_multi_ref_definitions:
+        for attr_multi_ref_def in get_attr_multi_ref_definitions():
             drug_attr_values = await self._resolve_source_mapping_to_value(
                 package_row=package_row,
                 package_row_headers=package_row_headers,
-                mapping=attr_multi_ref_data.source_mapping,
+                mapping=attr_multi_ref_def.source_mapping,
                 singular_val=False,
             )
             # log.debug(("drug_attr_values",drug_attr_values))
@@ -1014,7 +1043,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             for index, drug_attr_val in enumerate(drug_attr_values):
                 # log.debug(("BEFORE: drug_attr_val",drug_attr_val))
                 drug_attr_val = self._cast_raw_csv_value_if_needed(
-                    drug_attr_val, attr_multi_ref_data.source_mapping
+                    drug_attr_val, attr_multi_ref_def.source_mapping
                 )
                 # log.debug(("AFTER: drug_attr_val",drug_attr_val))
 
@@ -1022,11 +1051,11 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     # todo: investigate if this makes sense to have None value here?
                     continue
                 await self._validate_csv_value(
-                    value=drug_attr_val, mapping=attr_multi_ref_data.source_mapping
+                    value=drug_attr_val, mapping=attr_multi_ref_def.source_mapping
                 )
                 result_drug_data.attrs_multi_ref.append(
                     DrugValMultiRef(
-                        field_name=attr_multi_ref_data.field.field_name,
+                        field_name=attr_multi_ref_def.field.field_name,
                         value=drug_attr_val,
                         value_index=index,
                         importer_name=importername,
@@ -1318,8 +1347,6 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             await session.flush()
         objs.clear()
         self._reset_cache_csv_lookupscache()
-        session.expunge_all()
-        gc.collect()
 
     async def commit(self, objs=None):
         session = self._db_session

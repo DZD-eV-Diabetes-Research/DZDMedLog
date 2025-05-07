@@ -6,6 +6,7 @@ from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
+import gc
 from medlogserver.db._engine import db_engine
 from medlogserver.db._session import get_async_session_context
 from medlogserver.model.study import Study
@@ -142,6 +143,7 @@ async def provision_drug_data():
     DRUG_IMPORTER = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
     im = DRUG_IMPORTER()
     await im._run_import(source_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR)
+    gc.collect()
 
 
 async def provision_base_data():

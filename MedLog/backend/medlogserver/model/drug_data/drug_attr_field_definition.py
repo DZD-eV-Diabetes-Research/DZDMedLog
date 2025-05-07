@@ -190,7 +190,7 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
         description="Function that can transform the input value into a fitting string",
     )
     examples: List[str] = Field(default_factory=list, sa_column=Column(JSON))
-
+    """
     list_of_values: List["DrugAttrFieldLovItem"] = Relationship(
         sa_relationship=RelationshipProperty(
             "DrugAttrFieldLovItem",
@@ -199,3 +199,4 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
             primaryjoin="and_(DrugAttrFieldLovItem.importer_name==DrugAttrFieldDefinition.importer_name, DrugAttrFieldLovItem.field_name==DrugAttrFieldDefinition.field_name)",
         )
     )
+    """

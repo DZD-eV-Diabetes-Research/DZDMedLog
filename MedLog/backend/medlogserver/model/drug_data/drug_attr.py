@@ -54,18 +54,22 @@ class DrugVal(DrugModelTableBase, table=True):
                 "drug_attr_field_definition.field_name",
                 "drug_attr_field_definition.importer_name",
             ],
+            initially="DEFERRED",
         ),
         {"comment": "Actual attribute value for a drug"},
     )
-    drug_id: uuid.UUID = Field(foreign_key="drug.id", primary_key=True)
+    drug_id: uuid.UUID = Field(
+        foreign_key="drug.id", primary_key=True, ondelete="CASCADE"
+    )
     field_name: str = Field(primary_key=True)
     value: Optional[str] = Field(
         default=None,
         description="Generic storage of a value as string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
     importer_name: str = Field()
-    field_definition: DrugAttrFieldDefinition = Relationship()
     """
+    field_definition: DrugAttrFieldDefinition = Relationship()
+    
     field_definition: DrugAttrFieldDefinition = Relationship(
         sa_relationship=RelationshipProperty(
             "DrugAttrFieldDefinition",
@@ -89,6 +93,7 @@ class DrugValRef(DrugModelTableBase, table=True):
                 "drug_attr_field_lov_item.value",
                 "drug_attr_field_lov_item.importer_name",
             ],
+            initially="DEFERRED",
         ),
         ForeignKeyConstraint(
             name="composite_foreign_key_drug_attr_ref_val_field_def",
@@ -97,18 +102,23 @@ class DrugValRef(DrugModelTableBase, table=True):
                 "drug_attr_field_definition.field_name",
                 "drug_attr_field_definition.importer_name",
             ],
+            initially="DEFERRED",
         ),
         {"comment": "Definition of dataset specific fields and lookup fields"},
     )
 
-    drug_id: uuid.UUID = Field(foreign_key="drug.id", primary_key=True)
+    drug_id: uuid.UUID = Field(
+        foreign_key="drug.id", primary_key=True, ondelete="CASCADE"
+    )
     field_name: str = Field(primary_key=True)
     value: Optional[str] = Field(
         default=None,
         description="Generic storage of a value as string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
     importer_name: str = Field()
+    """
     field_definition: DrugAttrFieldDefinition = Relationship()
+    """
     lov_item: DrugAttrFieldLovItem = Relationship(
         sa_relationship_kwargs={
             "lazy": "selectin",
@@ -121,6 +131,7 @@ class DrugValRef(DrugModelTableBase, table=True):
             ),
         }
     )
+
     drug: "DrugData" = Relationship(back_populates="attrs_ref")
 
 
@@ -134,10 +145,13 @@ class DrugValMulti(DrugModelTableBase, table=True):
                 "drug_attr_field_definition.field_name",
                 "drug_attr_field_definition.importer_name",
             ],
+            initially="DEFERRED",
         ),
         {"comment": "Actual single value of a multi/list attribute  for a drug"},
     )
-    drug_id: uuid.UUID = Field(foreign_key="drug.id", primary_key=True)
+    drug_id: uuid.UUID = Field(
+        foreign_key="drug.id", primary_key=True, ondelete="CASCADE"
+    )
     field_name: str = Field(primary_key=True)
     value_index: int = Field(primary_key=True)
     value: Optional[str] = Field(
@@ -145,8 +159,9 @@ class DrugValMulti(DrugModelTableBase, table=True):
         description="Generic storage of multiple value as list of string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
     importer_name: str = Field()
-    field_definition: DrugAttrFieldDefinition = Relationship()
     """
+    field_definition: DrugAttrFieldDefinition = Relationship()
+    
     field_definition: DrugAttrFieldDefinition = Relationship(
         sa_relationship=RelationshipProperty(
             "DrugAttrFieldDefinition",
@@ -170,6 +185,7 @@ class DrugValMultiRef(DrugModelTableBase, table=True):
                 "drug_attr_field_lov_item.value",
                 "drug_attr_field_lov_item.importer_name",
             ],
+            initially="DEFERRED",
         ),
         ForeignKeyConstraint(
             name="composite_foreign_key_drug_attr_multi_ref_val__field_def",
@@ -178,11 +194,16 @@ class DrugValMultiRef(DrugModelTableBase, table=True):
                 "drug_attr_field_definition.field_name",
                 "drug_attr_field_definition.importer_name",
             ],
+            initially="DEFERRED",
         ),
         {"comment": "Definition of dataset specific fields and lookup fields"},
     )
 
-    drug_id: uuid.UUID = Field(foreign_key="drug.id", primary_key=True)
+    drug_id: uuid.UUID = Field(
+        foreign_key="drug.id",
+        primary_key=True,
+        ondelete="CASCADE",
+    )
     field_name: str = Field(primary_key=True)
     value_index: int = Field(primary_key=True)
     value: Optional[str] = Field(
@@ -190,8 +211,9 @@ class DrugValMultiRef(DrugModelTableBase, table=True):
         description="Generic storage of multiple reference value as list of string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
     importer_name: str = Field()
-    field_definition: DrugAttrFieldDefinition = Relationship()
     """
+    field_definition: DrugAttrFieldDefinition = Relationship()
+    
     field_definition: DrugAttrFieldDefinition = Relationship(
         sa_relationship=RelationshipProperty(
             "DrugAttrFieldDefinition",
@@ -204,6 +226,7 @@ class DrugValMultiRef(DrugModelTableBase, table=True):
     lov_item: DrugAttrFieldLovItem = Relationship(
         sa_relationship_kwargs={"lazy": "selectin"}
     )
+
     drug: "DrugData" = Relationship(back_populates="attrs_multi_ref")
 
 

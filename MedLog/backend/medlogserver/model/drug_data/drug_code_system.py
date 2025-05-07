@@ -8,9 +8,7 @@ from medlogserver.model.drug_data._base import DrugModelTableBase
 
 class DrugCodeSystem(DrugModelTableBase, table=True):
     __tablename__ = "drug_code_system"
-    __table_args__ = {
-        "comment": "A list of national pharmaceutical product indexes. To be completed..."
-    }
+    __table_args__ = {"comment": ""}
 
     id: str = Field(
         description="Shortname identifier for the national mmedication code system. Also the name for one code instance.",
