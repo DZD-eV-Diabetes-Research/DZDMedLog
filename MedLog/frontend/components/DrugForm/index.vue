@@ -9,7 +9,7 @@
         <div class="text-center pt-4 pb-8" v-if="!props.edit">
           <h4 class="text-xl font-light">
             Hiermit wird einmalig ein Medikament angelegt, das in der
-            Medikamentensuche nicht gefunden wurde
+            Medikamentensuche nicht gefunden wurde.
           </h4>
         </div>
         <h5 v-if="customNameError" style="color: red">
@@ -17,20 +17,6 @@
         </h5>
         <UFormGroup label="Name" name="customName" required class="mb-6">
           <UInput v-model="state.customName" color="yellow" />
-        </UFormGroup>
-        <h5 v-if="showDarrFormError" style="color: red">
-          Darreichungsform wird benötigt
-        </h5>
-        <UFormGroup label="Darreichungsform" name="darrform" required class="mb-8">
-          <UCommandPalette v-if="!state.customDarrform" v-model="state.customDarrform" :autoselect="false"
-            :groups="[{ key: 'dosageFormTable', commands: dosageFormTable }]"
-            :fuse="{ resultLimit: 5, fuseOptions: { threshold: 0.2 } }" />
-          <div v-else class="my-5">
-            <p @click="state.customDarrform = null"
-              class="text-lg text-center hover:cursor-pointer hover:text-yellow-500" style="margin-bottom:2%">
-              {{ state.customDarrform?.label }}
-            </p>
-          </div>
         </UFormGroup>
         <UAccordion :items="customDrugForm" color="yellow">
           <template #custom-form>
@@ -177,7 +163,6 @@ const state = reactive({
   dose: 0,
   intervall: null,
   customName: "",
-  customDarrform: "",
 });
 
 const schema = object({
@@ -324,10 +309,10 @@ async function saveIntake() {
   else if (!props.edit && props.custom) {
 
     customNameError.value = !state.customName;
-    showDarrFormError.value = !state.customDarrform;
+    
 
     try {
-      if (!customNameError.value && !showDarrFormError.value) {
+      if (!customNameError.value) {
         let customDrugBody: DrugBody = {
           trade_name: state.customName,
           market_access_date: null,
@@ -339,6 +324,7 @@ async function saveIntake() {
           attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({ field_name: key, value: value })),
           codes: null
         }
+        
         const response = await $api(
           `${runTimeConfig.public.baseURL}v2/drug/custom`,
           {
@@ -368,8 +354,6 @@ async function saveIntake() {
     } catch (error) {
       console.error(error);
     }
-
-  } else {
   }
 
   drugStore.action = !drugStore.action;
@@ -403,8 +387,6 @@ const customDrugForm = [
   },
 ];
 
-
-const showDarrFormError = ref(false);
 const selectedDosageForm = ref();
 const dosageFormTable = ref();
 
