@@ -101,3 +101,6 @@ class FastApiAppContainer:
 
     def _mount_routers(self):
         mount_fast_api_routers(self.app)
+
+
+fast_api_app_container = FastApiAppContainer()

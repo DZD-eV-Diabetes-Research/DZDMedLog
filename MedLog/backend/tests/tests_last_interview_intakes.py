@@ -59,7 +59,7 @@ def last_interview_intakes():
     from medlogserver.api.routes.routes_drug import search_drugs
 
     drug_search_result = req(
-        f"/v2/drug/search", method="get", q={"search_term": "aspi"}
+        f"/api/drug/search", method="get", q={"search_term": "aspi"}
     )
     print("drug_search_result", drug_search_result)
     drug_id = drug_search_result["items"][0]["drug_id"]

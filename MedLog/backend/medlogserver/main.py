@@ -83,7 +83,6 @@ def start():
     from medlogserver.db._init_db import init_db
     import uvicorn
     from uvicorn.config import LOGGING_CONFIG
-    from medlogserver.app import FastApiAppContainer
 
     from medlogserver.worker.worker import run_background_worker
 
@@ -101,8 +100,9 @@ def start():
         "handlers": ["default"],
         "level": get_loglevel(),
     }
-    fast_api_app_container = FastApiAppContainer()
     event_loop = asyncio.get_event_loop()
+    from medlogserver.app import fast_api_app_container
+
     uvicorn_config = uvicorn.Config(
         app=fast_api_app_container.app,
         host=config.SERVER_LISTENING_HOST,
