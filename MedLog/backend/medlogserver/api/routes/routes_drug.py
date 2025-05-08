@@ -12,6 +12,7 @@ from fastapi import (
     Form,
     Path,
     Response,
+    status,
 )
 from itertools import chain
 import asyncio
@@ -166,6 +167,11 @@ class DrugAttrFieldDefinitionContainer(BaseModel):
     "/drug/search",
     response_model=PaginatedResponse[MedLogSearchEngineResult],
     description=f"List all medicine/drugs from the system. {NEEDS_ADMIN_API_INFO}",
+    responses={
+        status.HTTP_425_TOO_EARLY: {
+            "description": "The search index is not ready yet. Please try it later"
+        }
+    },
 )
 async def search_drugs(
     search_term: Annotated[
@@ -186,6 +192,12 @@ async def search_drugs(
     drug_search: DrugSearch = Depends(get_drug_search),
     pagination: QueryParamsInterface = Depends(DrugQueryParams),
 ) -> PaginatedResponse[MedLogSearchEngineResult]:
+    index_ready = await drug_search.search_engine.index_ready()
+    if not index_ready:
+        raise HTTPException(
+            status=status.HTTP_425_TOO_EARLY,
+            details="The search index is not ready yet. Please try it later",
+        )
     search_results = await drug_search.search(
         search_term=search_term,
         market_accessable=market_accessable,
