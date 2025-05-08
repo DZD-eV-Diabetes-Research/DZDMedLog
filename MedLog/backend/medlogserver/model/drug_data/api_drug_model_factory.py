@@ -206,7 +206,7 @@ class DrugApiReadClassFactory:
         for field in attr_ref_fields:
             model_name = f"{'Multi' if as_multi_ref else ''}AttrRefVal{field.field_name.capitalize()}"
             value_type = field.value_type.value.python_type
-            ref_list_api_path = f"/v2/drug/field_def/{field.field_name}/refs"
+            ref_list_api_path = f"/api/drug/field_def/{field.field_name}/refs"
             if field.optional or self.all_optional:
                 value_type = Optional[value_type]
             ref_value_model = create_model(
@@ -445,7 +445,7 @@ async def drug_to_drugAPI_obj(
         drug_attrs_ref[attr_ref.field_name] = {
             "value": attr_ref.value,
             "display": lov_item.display if lov_item is not None else None,
-            # "ref_list": f"/v2/drug/field_def/{attr_ref.field_name}/refs", #<- Is auto filled by class defintion now
+            # "ref_list": f"/api/drug/field_def/{attr_ref.field_name}/refs", #<- Is auto filled by class defintion now
         }
     """
 

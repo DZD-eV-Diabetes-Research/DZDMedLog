@@ -64,7 +64,7 @@ def test_do_drugv2():
             "hersteller": {
                 "value": "225",
                 "display": "Hexal AG",
-                "ref_list": "/v2/drug/field_def/hersteller/refs",
+                "ref_list": "/api/drug/field_def/hersteller/refs",
             }
         },
         exception_dict_identifier="create custom drug object attrs_ref",
@@ -76,12 +76,12 @@ def test_do_drugv2():
                 {
                     "value": 1,
                     "display": "Mund, Zähne",
-                    "ref_list": "/v2/drug/field_def/keywords/refs",
+                    "ref_list": "/api/drug/field_def/keywords/refs",
                 },
                 {
                     "value": 4,
                     "display": "Munddesinfizientien",
-                    "ref_list": "/v2/drug/field_def/keywords/refs",
+                    "ref_list": "/api/drug/field_def/keywords/refs",
                 },
             ]
         },
