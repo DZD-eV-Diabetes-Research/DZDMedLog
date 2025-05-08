@@ -234,7 +234,17 @@ async def list_all_intakes_detailed(
     "/study/{study_id}/proband/{proband_id}/interview/last/intake",
     response_model=List[Intake],
     description=f"List all medicine intakes of one probands last completed interview.",
-    responses={status.HTTP_204_NO_CONTENT: {"description": "No interview exist yet"}},
+    responses={
+        status.HTTP_204_NO_CONTENT: {
+            "description": "No interview exists yet.",
+            "headers": {
+                "X-Reason": {
+                    "description": "Reason why no content was returned",
+                    "schema": {"type": "string", "example": "No interview exist yet"},
+                }
+            },
+        }
+    },
 )
 async def list_all_intakes_of_last_completed_interview(
     proband_id: str,
@@ -255,7 +265,7 @@ async def list_all_intakes_of_last_completed_interview(
         return Response(
             status_code=status.HTTP_204_NO_CONTENT,
             content=None,
-            headers={"X-Reason: No interview exist yet"},
+            headers={"X-Reason": "No interview exist yet"},
         )
 
 
@@ -264,6 +274,17 @@ async def list_all_intakes_of_last_completed_interview(
     "/study/{study_id}/proband/{proband_id}/interview/last/intake/details",
     response_model=List[IntakeDetailListItem],
     description=f"List all medicine intakes of one probands last completed interview with all drug details attached.",
+    responses={
+        status.HTTP_204_NO_CONTENT: {
+            "description": "No interview exists yet.",
+            "headers": {
+                "X-Reason": {
+                    "description": "Reason why no content was returned",
+                    "schema": {"type": "string", "example": "No interview exist yet"},
+                }
+            },
+        }
+    },
 )
 async def list_all_intakes_of_last_completed_interview_detailed(
     proband_id: str,
@@ -281,10 +302,10 @@ async def list_all_intakes_of_last_completed_interview_detailed(
             filter_interview_id=last_completed_interview.id,
         )
     else:
-        return JSONResponse(
+        return Response(
             status_code=status.HTTP_204_NO_CONTENT,
             content=None,
-            headers={"X-Reason: No interview exist yet"},
+            headers={"X-Reason": "No interview exist yet"},
         )
 
 
@@ -293,7 +314,17 @@ async def list_all_intakes_of_last_completed_interview_detailed(
     "/study/{study_id}/proband/{proband_id}/interview/current/intake",
     response_model=List[Intake],
     description=f"List all medicine intakes of one probands current (non completed / Interview.interview_end_time_utc is None) interview.",
-    responses={status.HTTP_204_NO_CONTENT: {"description": "No interview exist yet"}},
+    responses={
+        status.HTTP_204_NO_CONTENT: {
+            "description": "No interview exists yet.",
+            "headers": {
+                "X-Reason": {
+                    "description": "Reason why no content was returned",
+                    "schema": {"type": "string", "example": "No interview exist yet"},
+                }
+            },
+        }
+    },
 )
 async def list_all_intakes_of_last_uncompleted_interview(
     proband_id: str,
@@ -311,10 +342,10 @@ async def list_all_intakes_of_last_uncompleted_interview(
             filter_interview_id=last_uncompleted_interview.id,
         )
     else:
-        return JSONResponse(
+        return Response(
             status_code=status.HTTP_204_NO_CONTENT,
             content=None,
-            headers={"X-Reason: No interview exist yet"},
+            headers={"X-Reason": "No interview exist yet"},
         )
 
 
@@ -323,6 +354,17 @@ async def list_all_intakes_of_last_uncompleted_interview(
     "/study/{study_id}/proband/{proband_id}/interview/current/intake/details",
     response_model=List[IntakeDetailListItem],
     description=f"List all medicine intakes of one probands last completed interview with all details attached.",
+    responses={
+        status.HTTP_204_NO_CONTENT: {
+            "description": "No interview exists yet.",
+            "headers": {
+                "X-Reason": {
+                    "description": "Reason why no content was returned",
+                    "schema": {"type": "string", "example": "No interview exist yet"},
+                }
+            },
+        }
+    },
 )
 async def list_all_intakes_of_last_uncompleted_interview_detailed(
     proband_id: str,
@@ -340,10 +382,10 @@ async def list_all_intakes_of_last_uncompleted_interview_detailed(
             filter_interview_id=last_incompleted_interview.id,
         )
     else:
-        return JSONResponse(
+        return Response(
             status_code=status.HTTP_204_NO_CONTENT,
             content=None,
-            headers={"X-Reason: No interview exist yet"},
+            headers={"X-Reason": "No interview exist yet"},
         )
 
 
