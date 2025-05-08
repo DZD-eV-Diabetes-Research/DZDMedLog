@@ -9,12 +9,12 @@ from statics import (
 
 
 # import only as IDE Shortcut
-import medlogserver.api.routes.routes_drug_v2
+import MedLog.backend.medlogserver.api.routes.routes_drug
 
 
 def test_do_drugv2():
     # import only as IDE Shortcut
-    from medlogserver.api.routes.routes_drug_v2 import create_custom_drug
+    from medlogserver.api.routes.routes_drug import create_custom_drug
     from medlogserver.model.drug_data.drug import (
         DrugCustomCreate,
         DrugValApiCreate,

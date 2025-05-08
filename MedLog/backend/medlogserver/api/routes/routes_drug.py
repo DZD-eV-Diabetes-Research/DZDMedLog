@@ -85,7 +85,7 @@ log = get_logger()
 
 drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
 
-fast_api_drug_router_v2: APIRouter = APIRouter(prefix="/v2")
+fast_api_drug_router: APIRouter = APIRouter()
 
 drug_importer = drug_importer_class()
 """
@@ -162,7 +162,7 @@ class DrugAttrFieldDefinitionContainer(BaseModel):
     )
 
 
-@fast_api_drug_router_v2.get(
+@fast_api_drug_router.get(
     "/drug/search",
     response_model=PaginatedResponse[MedLogSearchEngineResult],
     description=f"List all medicine/drugs from the system. {NEEDS_ADMIN_API_INFO}",
@@ -195,7 +195,7 @@ async def search_drugs(
     return search_results
 
 
-@fast_api_drug_router_v2.get(
+@fast_api_drug_router.get(
     "/drug/id/{drug_id}",
     response_model=DrugAPIRead | CustomDrugAPIRead,
     description=f"Get a certain drug by its id",
@@ -243,7 +243,7 @@ async def list_drugs(
 """
 
 
-@fast_api_drug_router_v2.get(
+@fast_api_drug_router.get(
     "/drug/field_def",
     response_model=DrugAttrFieldDefinitionContainer,
     description=f"List all field definitions for the current drug dataset",
@@ -290,7 +290,7 @@ async def list_field_definitions(
     return result_container
 
 
-@fast_api_drug_router_v2.get(
+@fast_api_drug_router.get(
     "/drug/field_def/{field_name}",
     response_model=DrugAttrFieldDefinitionAPIRead,
     description=f"Get enum field data for the certain field",
@@ -328,7 +328,7 @@ LovItemQueryParams: Type[QueryParamsInterface] = create_query_params_class(
 )
 
 
-@fast_api_drug_router_v2.get(
+@fast_api_drug_router.get(
     "/drug/field_def/{field_name}/refs",
     response_model=PaginatedResponse[DrugAttrFieldLovItemAPIRead],
     description=f"List possible values, display values, sort_oder of a LOV (List of values) for a reference field.",
@@ -368,7 +368,7 @@ async def get_reference_field_values(
     )
 
 
-@fast_api_drug_router_v2.get(
+@fast_api_drug_router.get(
     "/drug/field_def/{field_name}/refs/{ref_val}",
     response_model=DrugAttrFieldLovItemAPIRead,
     description=f"get a certain values, display values, sort_oder of a LOV (List of values) for a reference field.",
@@ -400,7 +400,7 @@ async def get_reference_field_value(
     )
 
 
-@fast_api_drug_router_v2.get(
+@fast_api_drug_router.get(
     "/drug/code_def",
     response_model=List[DrugCodeSystem],
     description=f"List all drug coding system used in the current drug dataset.",
@@ -412,7 +412,7 @@ async def list_drug_code_systems(
     return await drug_code_sys_crud.list()
 
 
-@fast_api_drug_router_v2.get(
+@fast_api_drug_router.get(
     "/drug/code_def/{code_id}",
     response_model=DrugCodeSystem,
     description=f"List detail if a specific drug code system",
@@ -425,7 +425,7 @@ async def get_drug_code_details(
     return await drug_code_sys_crud.get(code_id)
 
 
-@fast_api_drug_router_v2.post(
+@fast_api_drug_router.post(
     "/drug/custom",
     response_model=CustomDrugAPIRead,
     description=f"Add a custom drug to the drug database. Should be used as a last resort if the user can not find a specific drug in the search.",
