@@ -56,10 +56,10 @@ def last_interview_intakes():
     )
     interview1_id = interview1["id"]
 
-    from medlogserver.api.routes.routes_drug_v2 import search_drugs
+    from medlogserver.api.routes.routes_drug import search_drugs
 
     drug_search_result = req(
-        f"/v2/drug/search", method="get", q={"search_term": "aspi"}
+        f"/api/drug/search", method="get", q={"search_term": "aspi"}
     )
     print("drug_search_result", drug_search_result)
     drug_id = drug_search_result["items"][0]["drug_id"]

@@ -326,7 +326,7 @@ async function saveIntake() {
         }
         
         const response = await $api(
-          `${runTimeConfig.public.baseURL}v2/drug/custom`,
+          `${runTimeConfig.public.baseURL}drug/custom`,
           {
             method: "POST",
             body: customDrugBody
@@ -393,7 +393,7 @@ const dosageFormTable = ref();
 
 async function getDosageForm() {
   const dosageForm = await $api(
-    `${runTimeConfig.public.baseURL}v2/drug/field_def/darreichungsform/refs`);
+    `${runTimeConfig.public.baseURL}drug/field_def/darreichungsform/refs`);
 
   dosageFormTable.value = dosageForm.items.map((item) => ({
     id: item.display + " (" + item.value + ")",
@@ -440,7 +440,7 @@ async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, m
     for (const ref of refs) {
       let item = { field_name: ref[1], options: [] };
 
-      const response = await $api(`${runTimeConfig.public.baseURL}v2/drug/field_def/${ref[1]}/refs`);
+      const response = await $api(`${runTimeConfig.public.baseURL}drug/field_def/${ref[1]}/refs`);
 
       item.options = response.items.map((element) => ({
         value: element.value,
@@ -579,7 +579,7 @@ async function onSubmit() {
 
   try {
     const response = await $api(
-      `${runTimeConfig.public.baseURL}v2/drug/custom`,
+      `${runTimeConfig.public.baseURL}drug/custom`,
       {
         method: "POST",
         body: customDrugBody

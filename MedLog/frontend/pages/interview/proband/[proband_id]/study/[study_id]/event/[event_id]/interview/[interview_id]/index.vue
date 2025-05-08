@@ -313,7 +313,7 @@ async function openCustomModal() {
 
 async function getDosageForm() {
   const dosageForm = await $api(
-    `${runtimeConfig.public.baseURL}v2/drug/field_def/darreichungsform/refs`);
+    `${runtimeConfig.public.baseURL}drug/field_def/darreichungsform/refs`);
 
   dosageFormTable.value = dosageForm.items.map((item) => ({
     id: item.display + " (" + item.value + ")",

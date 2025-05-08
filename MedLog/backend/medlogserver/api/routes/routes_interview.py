@@ -119,7 +119,17 @@ async def list_interviews_of_proband(
     "/study/{study_id}/proband/{proband_id}/interview/last",
     response_model=Optional[Interview],
     description=f"Get the last completed interview of proband.",
-    responses={status.HTTP_204_NO_CONTENT: {"description": "No interview exist yet"}},
+    responses={
+        status.HTTP_204_NO_CONTENT: {
+            "description": "No interview exists yet.",
+            "headers": {
+                "X-Reason": {
+                    "description": "Reason why no content was returned",
+                    "schema": {"type": "string", "example": "No interview exist yet"},
+                }
+            },
+        }
+    },
 )
 async def get_last_completed_interview(
     proband_id: Annotated[str, Path()],
@@ -131,10 +141,10 @@ async def get_last_completed_interview(
     )
     if interview is None:
         # https://fastapi.tiangolo.com/advanced/additional-responses/#additional-response-with-model
-        return JSONResponse(
+        return Response(
             status_code=status.HTTP_204_NO_CONTENT,
             content=None,
-            headers={"X-Reason: No interview exist yet"},
+            headers={"X-Reason": "No interview exist yet"},
         )
     return interview
 
@@ -143,7 +153,17 @@ async def get_last_completed_interview(
     "/study/{study_id}/proband/{proband_id}/interview/current",
     response_model=Optional[Interview],
     description=f"Get the latest non completed interview of proband.",
-    responses={status.HTTP_204_NO_CONTENT: {"description": "No interview exist yet"}},
+    responses={
+        status.HTTP_204_NO_CONTENT: {
+            "description": "No interview exists yet.",
+            "headers": {
+                "X-Reason": {
+                    "description": "Reason why no content was returned",
+                    "schema": {"type": "string", "example": "No interview exist yet"},
+                }
+            },
+        }
+    },
 )
 async def get_last_non_completed_interview(
     proband_id: Annotated[str, Path()],
@@ -154,10 +174,10 @@ async def get_last_non_completed_interview(
         study_id=study_access.study.id, proband_external_id=proband_id, completed=False
     )
     if interview is None:
-        return JSONResponse(
+        return Response(
             status_code=status.HTTP_204_NO_CONTENT,
             content=None,
-            headers={"X-Reason: No interview exist yet"},
+            headers={"X-Reason": "No interview exist yet"},
         )
 
     return interview

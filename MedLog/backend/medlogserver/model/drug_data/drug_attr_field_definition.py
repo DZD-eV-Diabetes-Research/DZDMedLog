@@ -103,7 +103,7 @@ class DrugAttrRefFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=Fa
 
     @model_validator(mode="after")
     def _gen_ref_list_path(self: Self) -> Self:
-        self.ref_list = f"/v2/drug/field_def/{self.field_name}/refs"
+        self.ref_list = f"/api/drug/field_def/{self.field_name}/refs"
         return self
 
 
