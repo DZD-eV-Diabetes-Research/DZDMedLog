@@ -10,7 +10,7 @@ from statics import (
 
 def test_do_export():
     res = req(
-        "study/b6f2c61b-d388-4412-8c9a-461ece251116/export",
+        "api/study/b6f2c61b-d388-4412-8c9a-461ece251116/export",
         method="post",
         q={"format": "json"},
     )

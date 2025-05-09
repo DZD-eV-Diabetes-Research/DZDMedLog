@@ -1,7 +1,7 @@
 from typing import List, Dict
 import json
 import time
-from utils import req, dict_must_contain, list_contains_dict_that_must_contain
+from utils import req, dict_must_contain, list_contains_dict_that_must_contain, dictyfy
 from statics import (
     ADMIN_USER_EMAIL,
     ADMIN_USER_NAME,
@@ -9,7 +9,7 @@ from statics import (
 
 
 # import only as IDE Shortcut
-import MedLog.backend.medlogserver.api.routes.routes_drug
+import medlogserver.api.routes.routes_drug
 
 
 def test_do_drugv2():
@@ -20,32 +20,38 @@ def test_do_drugv2():
         DrugValApiCreate,
         DrugCodeApi,
         DrugValRef,
+        DrugValMulti,
         DrugMultiValApiCreate,
+        DrugVal,
     )
     from medlogserver.model.drug_data.drug import DrugData
 
+    search_identifiert_flag = "SEARCHIDENTIFIERT328794623"
     custom_drug_payload = DrugCustomCreate(
         custom_drug_notes="Look mom, my custom Drug!",
-        trade_name="My Custom Drug",
+        trade_name=f"My Custom Drug {search_identifiert_flag}",
         codes=[DrugCodeApi(code_system_id="PZN", code="12345678910")],
         attrs=[
             DrugValApiCreate(field_name="amount", value="100"),
-            DrugValApiCreate(field_name="ist_verhuetungsmittel", value="true"),
+            DrugValApiCreate(field_name="manufacturer", value="MyHomeLab"),
         ],
         attrs_ref=[
-            DrugValApiCreate(field_name="hersteller", value="225"),
-            DrugValApiCreate(field_name="darreichungsform", value="AMP"),
-            DrugValApiCreate(field_name="diaetetikum", value="E"),
+            DrugValApiCreate(field_name="dispensingtype", value="0"),
+        ],
+        attrs_multi=[
+            DrugMultiValApiCreate(
+                field_name="keywords", value=["homemade", "custom", "test"]
+            ),
         ],
         attrs_multi_ref=[
-            DrugMultiValApiCreate(field_name="keywords", values=["1", "4"])
+            DrugMultiValApiCreate(field_name="producing_country", values=["DE", "UK"])
         ],
     )
-    print("custom_drug_payload", custom_drug_payload)
+
     res = req(
-        "v2/drug/custom",
+        "api/drug/custom",
         method="post",
-        b=custom_drug_payload.model_dump(exclude_unset=True),
+        b=dictyfy(custom_drug_payload),
     )
     print("res", res)
     dict_must_contain(
@@ -55,16 +61,17 @@ def test_do_drugv2():
             "custom_drug_notes": custom_drug_payload.custom_drug_notes,
             "is_custom_drug": True,
         },
-        required_keys=["codes", "attrs", "attrs_multi_ref"],
+        required_keys=["codes", "attrs", "attrs_ref", "attrs_multi", "attrs_multi_ref"],
         exception_dict_identifier="create custom drug object",
     )
+
     dict_must_contain(
         res["attrs_ref"],
         required_keys_and_val={
-            "hersteller": {
-                "value": "225",
-                "display": "Hexal AG",
-                "ref_list": "/api/drug/field_def/hersteller/refs",
+            "dispensingtype": {
+                "value": 0,
+                "display": "prescription",
+                "ref_list": "/api/drug/field_def/dispensingtype/refs",
             }
         },
         exception_dict_identifier="create custom drug object attrs_ref",
@@ -72,23 +79,33 @@ def test_do_drugv2():
     dict_must_contain(
         res["attrs_multi_ref"],
         required_keys_and_val={
-            "keywords": [
+            "producing_country": [
                 {
-                    "value": 1,
-                    "display": "Mund, Zähne",
-                    "ref_list": "/api/drug/field_def/keywords/refs",
+                    "value": "DE",
+                    "display": "Germany",
+                    "ref_list": "/api/drug/field_def/producing_country/refs",
                 },
                 {
-                    "value": 4,
-                    "display": "Munddesinfizientien",
-                    "ref_list": "/api/drug/field_def/keywords/refs",
+                    "value": "UK",
+                    "display": "United Kingdom",
+                    "ref_list": "/api/drug/field_def/producing_country/refs",
                 },
             ]
         },
-        exception_dict_identifier="create custom drug object attrs_ref",
+        exception_dict_identifier="custom drug attrs_multi_ref",
     )
     dict_must_contain(
         res["codes"],
-        required_keys_and_val={"ATC": None, "PZN": "12345678910", "MMIP": None},
+        required_keys_and_val={"PZN": "12345678910", "ATC": None},
         exception_dict_identifier="create custom drug object attrs_ref",
     )
+
+    # lets look up our new drug
+    from medlogserver.api.routes.routes_drug import search_drugs
+
+    drug_search_result = req(
+        f"/api/drug/search", method="get", q={"search_term": search_identifiert_flag}
+    )
+    print("drug_search_result", drug_search_result)
+    drug_id_from_search = drug_search_result["items"][0]["drug_id"]
+    assert drug_id_from_search == res["id"]

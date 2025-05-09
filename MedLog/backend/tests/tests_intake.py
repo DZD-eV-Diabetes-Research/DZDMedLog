@@ -9,7 +9,7 @@ from statics import (
 
 
 # import only as IDE Shortcut
-import MedLog.backend.medlogserver.api.routes.routes_drug
+import medlogserver.api.routes.routes_drug
 
 
 def test_do_drugv2():
@@ -43,7 +43,7 @@ def test_do_drugv2():
     )
     print("custom_drug_payload", custom_drug_payload)
     res = req(
-        "v2/drug/custom",
+        "api/drug/custom",
         method="post",
         b=custom_drug_payload.model_dump(exclude_unset=True),
     )

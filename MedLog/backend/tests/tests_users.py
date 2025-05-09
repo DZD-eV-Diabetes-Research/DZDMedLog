@@ -15,7 +15,7 @@ from statics import ADMIN_USER_EMAIL, ADMIN_USER_NAME, TEST_USER_NAME, TEST_USER
 class Helper:
     @classmethod
     def get_user_id_by_username(cls, name: str):
-        all_users = req("user", q={"incl_deactivated": True})["items"]
+        all_users = req("api/user", q={"incl_deactivated": True})["items"]
         return find_first_dict_in_list(
             all_users,
             required_keys_and_val={"user_name": name},
@@ -24,7 +24,7 @@ class Helper:
 
 
 def test_user_me():
-    res = req("user/me")
+    res = req("api/user/me")
     dict_must_contain(
         res,
         {"email": ADMIN_USER_EMAIL, "user_name": ADMIN_USER_NAME},
@@ -43,7 +43,9 @@ def test_user_create_with_no_password(tolerate_existing: bool = True):
         "display_name": "aintgot nopw",
         "user_name": TEST_USER_NAME,
     }
-    res = req("user", "post", b=user_init_data, tolerated_error_body=[tolerated_error])
+    res = req(
+        "api/user", "post", b=user_init_data, tolerated_error_body=[tolerated_error]
+    )
     if res != tolerated_error:
         dict_must_contain(
             res, user_init_data, required_keys=["created_at", "roles", "id"]
@@ -62,7 +64,7 @@ def test_duplicate_username_catch():
 
 
 def test_user_list_with_deactivted():
-    res = req("user", q={"incl_deactivated": True})
+    res = req("api/user", q={"incl_deactivated": True})
     list_contains_dict_that_must_contain(
         res["items"],
         {"email": ADMIN_USER_EMAIL, "user_name": ADMIN_USER_NAME},
@@ -76,7 +78,7 @@ def test_user_list_with_deactivted():
 
 
 def test_user_list_with_active_only():
-    res = req("user")
+    res = req("api/user")
     list_contains_dict_that_must_contain(
         res["items"],
         {"email": ADMIN_USER_EMAIL, "user_name": ADMIN_USER_NAME},

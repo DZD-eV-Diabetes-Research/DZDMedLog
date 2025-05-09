@@ -88,7 +88,7 @@ def wait_for_medlogserver_up_and_healthy(timeout_sec=120):
             urllib3.exceptions.MaxRetryError,
         ):
             time.sleep(1)
-    print(f"SERVER UP FOR TESTING: {r.status_code}: {r.json()}")
+    print(f"SERVER UP FOR TESTING: {r.status_code}")
 
 
 def shutdown_medlogserver_and_backgroundworker():
@@ -128,10 +128,10 @@ from tests_last_interview_intakes import last_interview_intakes
 
 try:
     authorize(user=ADMIN_USER_NAME, pw=ADMIN_USER_PW)
-    last_interview_intakes()
+    # last_interview_intakes()
     # test_do_health()
     # run_all_tests_users()
-    # test_do_drugv2()
+    test_do_drugv2()
     # test_do_export()
 except Exception as e:
     print("Error in user tests")

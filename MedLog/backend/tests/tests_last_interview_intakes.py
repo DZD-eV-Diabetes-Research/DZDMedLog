@@ -16,7 +16,7 @@ def last_interview_intakes():
     from medlogserver.api.routes.routes_study import create_study
 
     study = req(
-        "/study",
+        "api//study",
         method="post",
         b=StudyCreateAPI(display_name="MedikationsübernahmeTest").model_dump(
             exclude_unset=True

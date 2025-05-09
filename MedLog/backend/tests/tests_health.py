@@ -4,7 +4,7 @@ from utils import req, dict_must_contain
 def test_health():
     from medlogserver.api.routes.routes_healthcheck import get_health_status
 
-    res = req("health")
+    res = req("api/health")
     print(res)
     dict_must_contain(res, required_keys_and_val={"healthy": True})
 
@@ -12,7 +12,7 @@ def test_health():
 def test_health_report():
     from medlogserver.api.routes.routes_healthcheck import get_health_report
 
-    res = req("health/report")
+    res = req("api/health/report")
     dict_must_contain(
         res,
         required_keys_and_val={

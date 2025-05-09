@@ -21,7 +21,7 @@ def get_medlogserver_base_url():
 
 
 def authorize(user, pw):
-    response = req("auth/token", "post", f={"username": user, "password": pw})
+    response = req("api/auth/token", "post", f={"username": user, "password": pw})
     """response example:
     {
     "token_type": "Bearer",
@@ -159,7 +159,7 @@ def dict_must_contain(
             if d[k] != v:
                 if raise_if_not_fullfilled:
                     raise ValueError(
-                        f"""Expected value '{v}' in key '{k}' {"in dict "+exception_dict_identifier if exception_dict_identifier else ""}' got '{d[k]}'"""
+                        f"""Expected value following val in key '{k}' {"in dict "+exception_dict_identifier if exception_dict_identifier else ""}'\n'{v}'\n got \n'{d[k]}'"""
                     )
                 return False
         except KeyError:

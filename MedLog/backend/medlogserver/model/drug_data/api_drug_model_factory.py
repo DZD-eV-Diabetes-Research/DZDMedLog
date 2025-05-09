@@ -375,10 +375,6 @@ async def drug_to_drugAPI_obj(
             ),
             None,
         )
-    # log.info(f"drug.codes {drug.codes}")
-    # for code in drug.codes:
-    #
-    #    drug_codes[code.code_system_id] = code.code
 
     drug_attrs: Dict[str, List[Dict[str, str]]] = {}
     drug_attrs_submodel: Type[BaseModel] = DrugAPIRead.model_fields["attrs"].annotation
@@ -388,36 +384,27 @@ async def drug_to_drugAPI_obj(
             (attr for attr in drug.attrs if attr.field_name == drug_attrs_field_name),
             None,
         )
-        drug_attrs[drug_attrs_field_name] = val.value
-    """old style 
-    drug_attrs = {}
-    for attr in drug.attrs:
-        drug_attrs[attr.field_name] = attr.value
-    """
+        try:
+            drug_attrs[drug_attrs_field_name] = val.value if val is not None else None
+        except AttributeError as e:
+            log.debug(
+                f"drug_attrs_field_name: {drug_attrs_field_name}, drug.attrs: {drug.attrs}"
+            )
+            raise e
 
     drug_attrs_multi: Dict[str, List[Dict[str, str]]] = {}
     drug_attrs_multi_submodel: Type[BaseModel] = DrugAPIRead.model_fields[
         "attrs_multi"
     ].annotation
     for drug_attrs_multi_field_name in drug_attrs_multi_submodel.model_fields.keys():
-        if drug_attrs_multi_field_name not in drug_attrs_multi:
-            drug_attrs_multi[drug_attrs_multi_field_name] = []
-        val: DrugValMulti = next(
-            (
-                attrs_multi
-                for attrs_multi in drug.attrs_multi
-                if attrs_multi.field_name == drug_attrs_multi_field_name
-            ),
-            None,
-        )
-        drug_attrs_multi[drug_attrs_multi_field_name].append(val.value)
-    """old style
-    drug_attrs_multi = {}
-    for attr in drug.attrs_multi:
-        if attr.field_name not in drug_attrs_multi:
-            drug_attrs_multi[attr.field_name] = []
-        drug_attrs_multi[attr.field_name].append(attr.value)
-    """
+        multi_vals: List[DrugValMulti] = [
+            attrs_multi
+            for attrs_multi in drug.attrs_multi
+            if attrs_multi.field_name == drug_attrs_multi_field_name
+        ]
+        multi_vals.sort(key=lambda o: o.value_index)
+
+        drug_attrs_multi[drug_attrs_multi_field_name] = [v.value for v in multi_vals]
 
     drug_attrs_ref: Dict[str, List[Dict[str, str]]] = {}
     drug_attrs_ref_submodel: Type[BaseModel] = DrugAPIRead.model_fields[
@@ -438,62 +425,31 @@ async def drug_to_drugAPI_obj(
                 "value": val.value,
                 "display": val.lov_item.display if val.lov_item is not None else None,
             }
-    """old style
-    drug_attrs_ref = {}
-    for attr_ref in drug.attrs_ref:
-        lov_item = attr_ref.lov_item
-        drug_attrs_ref[attr_ref.field_name] = {
-            "value": attr_ref.value,
-            "display": lov_item.display if lov_item is not None else None,
-            # "ref_list": f"/api/drug/field_def/{attr_ref.field_name}/refs", #<- Is auto filled by class defintion now
-        }
-    """
 
     drug_attrs_multi_ref: Dict[str, List] = {}
     attrs_multi_ref_submodel: Type[BaseModel] = DrugAPIRead.model_fields[
         "attrs_multi_ref"
     ].annotation
+
     for drug_attrs_multi_ref_field_name in attrs_multi_ref_submodel.model_fields.keys():
-        if drug_attrs_multi_ref_field_name not in drug_attrs_multi_ref:
-            drug_attrs_multi_ref[drug_attrs_multi_ref_field_name] = []
-        val: DrugValMultiRef = next(
-            (
-                attr_m_ref
-                for attr_m_ref in drug.attrs_multi_ref
-                if attr_m_ref.field_name == drug_attrs_multi_ref_field_name
-            ),
-            None,
-        )
-        if val is not None:
-            lov_item = val.lov_item
-            drug_attrs_multi_ref[drug_attrs_multi_ref_field_name].append(val)
-    for val_list in drug_attrs_multi_ref.values():
-        val_list.sort(key=lambda o: o.value_index)
-    for key, val_list in drug_attrs_multi_ref.items():
-        drug_attrs_multi_ref[key] = [
+
+        multi_ref_vals: List[DrugValMultiRef] = [
+            attr_m_ref
+            for attr_m_ref in drug.attrs_multi_ref
+            if attr_m_ref.field_name == drug_attrs_multi_ref_field_name
+        ]
+        multi_ref_vals.sort(key=lambda o: o.value_index)
+        drug_attrs_multi_ref[drug_attrs_multi_ref_field_name] = [
             {
-                "value": val.value,
-                "display": val.lov_item.display if val.lov_item is not None else None,
+                "value": mrval.value,
+                "display": (
+                    mrval.lov_item.display if mrval.lov_item is not None else None
+                ),
             }
-            for val in val_list
+            for mrval in multi_ref_vals
         ]
 
-    """ old sytle
-    
-    drug_attrs_multi_ref: Dict[str, List[DrugValMultiRef]] = {}
-    # log.debug(f"drug.attrs_multi_ref {drug.attrs_multi_ref}")
-    for attr_multi_ref in drug.attrs_multi_ref:
-        # log.debug(f"add attr_multi_ref {attr_multi_ref}")
-        if attr_multi_ref.field_name not in drug_attrs_multi_ref:
-            drug_attrs_multi_ref[attr_multi_ref.field_name] = []
-        lov_item = attr_multi_ref.lov_item
-        drug_attrs_multi_ref[attr_multi_ref.field_name].append(
-            {
-                "value": attr_multi_ref.value,
-                "display": lov_item.display if lov_item is not None else None,
-            }
-        )
-    """
+    log.debug(f"drug_attrs_multi_ref: {drug_attrs_multi_ref}")
 
     vals["codes"] = drug_codes
     vals["attrs"] = drug_attrs

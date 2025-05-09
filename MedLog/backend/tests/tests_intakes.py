@@ -14,7 +14,7 @@ def list_last_intakes():
     )
 
     res = req(
-        "/study/b6f2c61b-d388-4412-8c9a-461ece251116/proband/1234/interview/last/intake",
+        "api//study/b6f2c61b-d388-4412-8c9a-461ece251116/proband/1234/interview/last/intake",
         method="get",
     )
     for intake in res:
