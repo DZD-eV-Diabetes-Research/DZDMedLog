@@ -17,6 +17,7 @@ from medlogserver.db import (
     InterviewCRUD,
     IntakeCRUD,
 )
+from medlogserver.api.routes.routes_drug import get_drug
 from medlogserver.model import (
     IntakeExport,
     Intake,
@@ -27,7 +28,13 @@ from medlogserver.model import (
     InterviewExport,
     Interview,
 )
-
+from medlogserver.model.drug_data.api_drug_model_factory import (
+    DrugAPIRead,
+    CustomDrugAPIRead,
+    drug_to_drugAPI_obj,
+    DrugData,
+)
+from medlogserver.db.drug_data.drug import DrugCRUD
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -35,10 +42,16 @@ log = get_logger()
 config = Config()
 
 
+class DrugCodesExport(BaseModel):
+    drug_code_system_name: str
+    drug_code: str
+
+
 class ExportIntakeContainer(BaseModel):
     event: EventExport
     interview: InterviewExport
     intake: IntakeExport
+    drug_codes: DrugCodesExport
 
 
 class ExportContainer(BaseModel):
@@ -54,6 +67,7 @@ class ExportContainer(BaseModel):
                 (intake.event, "event"),
                 (intake.interview, "interview"),
                 (intake.intake, "intake"),
+                (intake.drug_codes, "drug_codes"),
             ]:
                 obj: BaseModel = obj
                 if not include_study_data_each_row and obj_class_name == "study":
@@ -95,6 +109,7 @@ class StudyDataExporter:
                 flatten_export_data = exportdata.to_flat_dict(
                     include_study_data_each_row=True
                 )
+                log.debug(f"flatten_export_data: {flatten_export_data}")
 
                 writer = csv.writer(target_file)
                 writer.writerow(flatten_export_data[0].keys())
@@ -109,7 +124,7 @@ class StudyDataExporter:
             async with StudyCRUD.crud_context(session) as study_crud:
                 study_crud: StudyCRUD = study_crud
                 study: Study = await study_crud.get(study_id=self.study_id)
-                return StudyExport(**study.model_dump())
+        return StudyExport(**study.model_dump())
 
     async def _get_event_data(self, event_id: uuid.UUID) -> EventExport:
         if not self.events:
@@ -120,6 +135,22 @@ class StudyDataExporter:
                     # cast into export format
                     self.events = [EventExport(**e.model_dump()) for e in events]
         return next(e for e in self.events if e.id == event_id)
+
+    async def _get_drug_data(self, drug_id: uuid.UUID) -> List[DrugCodesExport]:
+        codes: List[DrugCodesExport] = []
+        async with get_async_session_context() as session:
+            async with DrugCRUD.crud_context(session) as drug_crud:
+                drug_crud: DrugCRUD = drug_crud
+                drug: DrugData = await drug_crud.get(drug_id, include_relations=True)
+
+                for code in drug.codes:
+                    codes.append(
+                        DrugCodesExport(
+                            drug_code_system_name=code.code_system.name,
+                            drug_code=code.code,
+                        )
+                    )
+        return codes
 
     async def _get_interview_data(self, interview_id: uuid.UUID) -> InterviewExport:
         if not self.interviews:
@@ -150,12 +181,14 @@ class StudyDataExporter:
                     event_data = await self._get_event_data(
                         event_id=interview_data.event_id
                     )
+                    drug_codes = await self._get_drug_data(drug_id=intake_data.drug_id)
                     export_data.intakes.append(
                         ExportIntakeContainer(
                             study=study_data,
                             event=event_data,
                             interview=interview_data,
                             intake=intake_data,
+                            drug_codes=drug_codes,
                         )
                     )
         return export_data
