@@ -142,6 +142,8 @@ from medlogserver.db.drug_data.drug_search._base import MedLogSearchEngineResult
 from medlogserver.db.drug_data.drug_search.search_interface import (
     get_drug_search,
     DrugSearch,
+    SearchEngineNotConfiguredException,
+    SearchEngineNotReadyException,
 )
 
 
@@ -169,8 +171,14 @@ class DrugAttrFieldDefinitionContainer(BaseModel):
     description=f"List all medicine/drugs from the system. {NEEDS_ADMIN_API_INFO}",
     responses={
         status.HTTP_425_TOO_EARLY: {
-            "description": "The search index is not ready yet. Please try it later"
-        }
+            "description": "Index in build up error </br>The Index is still busy being build and therefore no search is available at the moment. </br>The Error detail message will be: `The search index is not ready yet. Please try it later`"
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "No search engine configured. </br>This can happen if the config is borked. By default search engine settings it wont.</br> The Error detail message will be: `The search index is not configured. Please contact the admin.`"
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "Other Errors. </br>If anything else goes wrong on server side."
+        },
     },
 )
 async def search_drugs(
@@ -192,18 +200,26 @@ async def search_drugs(
     drug_search: DrugSearch = Depends(get_drug_search),
     pagination: QueryParamsInterface = Depends(DrugQueryParams),
 ) -> PaginatedResponse[MedLogSearchEngineResult]:
-    index_ready = await drug_search.search_engine.index_ready()
-    if not index_ready:
+    try:
+        search_results = await drug_search.search(
+            search_term=search_term,
+            market_accessable=market_accessable,
+            pagination=pagination,
+            **filter_params.model_dump(),
+        )
+    except SearchEngineNotReadyException as e:
+
         raise HTTPException(
             status=status.HTTP_425_TOO_EARLY,
             details="The search index is not ready yet. Please try it later",
         )
-    search_results = await drug_search.search(
-        search_term=search_term,
-        market_accessable=market_accessable,
-        pagination=pagination,
-        **filter_params.model_dump(),
-    )
+    except SearchEngineNotConfiguredException:
+
+        raise HTTPException(
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            details="The search index is not configured. Please contact the admin.",
+        )
+
     return search_results
 
 
@@ -449,6 +465,7 @@ async def create_custom_drug(
         DrugDataSetVersionCRUD.get_crud
     ),
     drug_crud: DrugCRUD = Depends(DrugCRUD.get_crud),
+    drug_search: DrugSearch = Depends(get_drug_search),
 ) -> CustomDrugAPIRead:
     custom_drug_dataset = await drug_dataset_crud.get_custom()
     try:
@@ -461,4 +478,6 @@ async def create_custom_drug(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
         )
+    await drug_search._preflight()
+    await drug_search.search_engine.insert_drug_to_index(new_custom_drug)
     return await drug_to_drugAPI_obj(new_custom_drug)
