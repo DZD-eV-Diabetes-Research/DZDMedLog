@@ -25,6 +25,7 @@
               </div>
             </div>
             <div class="absolute top-1/2 -translate-y-1/2 right-full w-1/2 mx-10 bg-[#f9f9f9] border border-[#ededed] rounded-md py-2 px-4" v-if="hoveredItem === item">
+              {{drugFieldDefinitionsObject.attrs_multi_ref}}
               <div v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref" :key="attr_multi_ref[1]">
                 <span class="text-sm font-bold">{{ attr_multi_ref[0] }}:</span> <span class="text-sm">{{ item.drug?.attrs_multi_ref?.[attr_multi_ref[1]][0]?.display }}</span>
               </div>
