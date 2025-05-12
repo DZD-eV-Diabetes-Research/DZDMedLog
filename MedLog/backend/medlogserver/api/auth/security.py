@@ -38,14 +38,14 @@ log = get_logger()
 config = Config()
 
 
-TOKEN_ENDPOINT_PATH = "/api/auth/token"
+TOKEN_ENDPOINT_PATH = "/auth/token"
 REFRESH_ACCESS_TOKEN_ENDPOINT_PATH = "/auth/refresh"
 fast_api_auth_base_router: APIRouter = APIRouter()
 
 NEEDS_ADMIN_API_INFO = "Needs admin role."
 NEEDS_USERMAN_API_INFO = "Needs admin or user-manager role."
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=TOKEN_ENDPOINT_PATH)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"/api{TOKEN_ENDPOINT_PATH}")
 
 
 async def get_current_user(

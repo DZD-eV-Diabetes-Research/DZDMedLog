@@ -65,7 +65,7 @@ class WorkerJobCRUD(
         # json quering is very finicky on certain databases. lets do filtering on python side
 
         if filter_tags:
-            all_jobs = [j for j in all_jobs if bool(set(j.tags) & set(filter_tags))]
+            all_jobs = [j for j in all_jobs if bool(set(j.tags) == set(filter_tags))]
 
         if filter_intervalled_job is not None:
             all_jobs = [
