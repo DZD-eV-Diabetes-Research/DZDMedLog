@@ -1,5 +1,5 @@
 from utils import req, dict_must_contain
-from _single_test_file_runner import run_all_tests_from_caller
+from _single_test_file_runner import run_all_tests_if_test_file_called
 
 
 def test_health():
@@ -42,4 +42,4 @@ a = {
 }
 
 
-run_all_tests_from_caller()
+run_all_tests_if_test_file_called()

@@ -38,7 +38,7 @@ log = get_logger()
 config = Config()
 
 
-TOKEN_ENDPOINT_PATH = "/auth/token"
+TOKEN_ENDPOINT_PATH = "/api/auth/token"
 REFRESH_ACCESS_TOKEN_ENDPOINT_PATH = "/auth/refresh"
 fast_api_auth_base_router: APIRouter = APIRouter()
 

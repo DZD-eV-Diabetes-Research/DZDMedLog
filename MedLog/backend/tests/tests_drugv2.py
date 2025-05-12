@@ -1,7 +1,7 @@
 from typing import List, Dict
 import json
 import time
-from _single_test_file_runner import run_all_tests_from_caller
+from _single_test_file_runner import run_all_tests_if_test_file_called
 from utils import req, dict_must_contain, list_contains_dict_that_must_contain, dictyfy
 from statics import (
     ADMIN_USER_EMAIL,
@@ -112,4 +112,4 @@ def test_do_drugv2():
     assert drug_id_from_search == res["id"]
 
 
-run_all_tests_from_caller()
+run_all_tests_if_test_file_called()

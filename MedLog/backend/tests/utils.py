@@ -7,7 +7,7 @@ import pydantic
 import sqlmodel
 import json
 import inspect
-
+from pathlib import Path
 
 from medlogserver.config import Config
 
@@ -239,23 +239,34 @@ def dictyfy(val: str | sqlmodel.SQLModel | pydantic.BaseModel | dict) -> dict:
     raise ValueError("Dont know how to inteprete value as dict")
 
 
-def get_test_functions_from_file(filename):
-    if not os.path.isfile(filename):
-        raise FileNotFoundError(f"No such file: {filename}")
+def get_test_functions_from_file_or_module(
+    file_or_module: str | Path | types.ModuleType,
+):
+    if isinstance(file_or_module, (str, Path)):
 
-    # Derive a module name from the file path
-    module_name = os.path.splitext(os.path.basename(filename))[0]
+        if not os.path.isfile(file_or_module):
+            raise FileNotFoundError(f"No such file: {file_or_module}")
 
-    # Load the module from the file
-    spec = importlib.util.spec_from_file_location(module_name, filename)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+        # Derive a module name from the file path
+        module_name = os.path.splitext(os.path.basename(file_or_module))[0]
+
+        # Load the module from the file
+        spec = importlib.util.spec_from_file_location(module_name, file_or_module)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    else:
+        module = file_or_module
 
     # Extract all functions starting with "test_"
+    # print("vars(module).items()", vars(module).items())
+    for name, func in vars(module).items():
+        print(name, type(func), func)
     test_functions = [
         (name, func)
         for name, func in vars(module).items()
-        if name.startswith("test_") and isinstance(func, types.FunctionType)
+        if name.startswith("test_")
+        or name.startswith("tests_")
+        and isinstance(func, types.FunctionType)
     ]
 
     return test_functions

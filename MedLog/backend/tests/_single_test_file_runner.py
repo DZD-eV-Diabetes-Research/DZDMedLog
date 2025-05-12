@@ -1,35 +1,21 @@
 import inspect
-
+import os
+import sys
 import types
-
-frame = inspect.stack()[1].frame
-globals_in_caller = frame.f_globals
-print("--------")
-for index, frame_info in enumerate(inspect.stack()):
-    print(index, frame_info.frame)
-print(globals_in_caller.get("__name__"))
+import __main__
+from pathlib import Path
 
 
-def run_all_tests_from_caller():
+def run_all_tests_if_test_file_called():
     # Get the caller's frame
-    frame = inspect.stack()[1].frame
-    globals_in_caller = frame.f_globals
-
-    # Only run if the caller is __main__
-    if globals_in_caller.get("__name__") != "__main__":
+    entry_script = __main__.__file__
+    entry_script_name = os.path.basename(entry_script)
+    if not entry_script_name.startswith("tests_"):
         return
 
-    # Find all functions starting with "test_"
-    test_functions = [
-        func
-        for name, func in globals_in_caller.items()
-        if name.startswith("test_") and isinstance(func, types.FunctionType)
-    ]
+    MODULE_DIR = Path(__file__).parent
+    MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
+    sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
+    import main
 
-    for test in test_functions:
-        print(f"Running {test.__name__}...")
-        try:
-            test()
-            print(f"{test.__name__} passed.")
-        except Exception as e:
-            print(f"{test.__name__} failed with error: {e}")
+    main.run_single_test_file(entry_script, authorize_before=True, exit_on_success=True)

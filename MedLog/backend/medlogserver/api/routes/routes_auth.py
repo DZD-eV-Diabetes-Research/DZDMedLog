@@ -39,7 +39,7 @@ log = get_logger()
 config = Config()
 
 
-TOKEN_ENDPOINT_PATH = "/auth/token"
+TOKEN_ENDPOINT_PATH = "/api/auth/token"
 REFRESH_ACCESS_TOKEN_ENDPOINT_PATH = "/auth/refresh"
 fast_api_auth_base_router: APIRouter = APIRouter()
 
@@ -58,7 +58,7 @@ def list_auth_schemes():
                 name="Login",
                 slug="login",
                 type="credentials",
-                login_endpoint="/auth/token",
+                login_endpoint="/api/auth/token",
                 token_endpoint="/auth/refresh",
             )
         )

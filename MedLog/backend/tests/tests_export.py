@@ -1,7 +1,7 @@
 from typing import List, Dict
 import json
 import time
-from _single_test_file_runner import run_all_tests_from_caller
+from _single_test_file_runner import run_all_tests_if_test_file_called
 from utils import (
     req,
     dict_must_contain,
@@ -27,17 +27,17 @@ def test_do_export():
     processing_export = True
     while processing_export:
         res = req(
-            f"study/b6f2c61b-d388-4412-8c9a-461ece251116/export/{res['export_id']}",
+            f"api/study/b6f2c61b-d388-4412-8c9a-461ece251116/export/{res['export_id']}",
             method="get",
         )
         if res["state"] not in ["queued", "running"]:
             processing_export = False
         time.sleep(0.5)
     res = req(
-        f"study/b6f2c61b-d388-4412-8c9a-461ece251116/export/{res['export_id']}/download",
+        f"api/study/b6f2c61b-d388-4412-8c9a-461ece251116/export/{res['export_id']}/download",
         method="get",
     )
     print(res)
 
 
-run_all_tests_from_caller()
+run_all_tests_if_test_file_called()
