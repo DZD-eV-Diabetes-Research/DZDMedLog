@@ -2,7 +2,18 @@ from typing import Dict, List, Literal
 import os
 import requests
 import json
+
+import pydantic
+import sqlmodel
+import json
+import inspect
+
+
 from medlogserver.config import Config
+
+import importlib.util
+import os
+import types
 
 MEDLOG_ACCESS_TOKEN_ENV_NAME = "MEDLOG_ACCESS_TOKEN"
 
@@ -218,11 +229,6 @@ def list_contains_dict_that_must_contain(
     return False
 
 
-import pydantic
-import sqlmodel
-import json
-
-
 def dictyfy(val: str | sqlmodel.SQLModel | pydantic.BaseModel | dict) -> dict:
     if isinstance(val, dict):
         return val
@@ -231,3 +237,25 @@ def dictyfy(val: str | sqlmodel.SQLModel | pydantic.BaseModel | dict) -> dict:
     if isinstance(val, (sqlmodel.SQLModel, pydantic.BaseModel)):
         return json.loads(val.model_dump_json(exclude_unset=True))
     raise ValueError("Dont know how to inteprete value as dict")
+
+
+def get_test_functions_from_file(filename):
+    if not os.path.isfile(filename):
+        raise FileNotFoundError(f"No such file: {filename}")
+
+    # Derive a module name from the file path
+    module_name = os.path.splitext(os.path.basename(filename))[0]
+
+    # Load the module from the file
+    spec = importlib.util.spec_from_file_location(module_name, filename)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    # Extract all functions starting with "test_"
+    test_functions = [
+        (name, func)
+        for name, func in vars(module).items()
+        if name.startswith("test_") and isinstance(func, types.FunctionType)
+    ]
+
+    return test_functions

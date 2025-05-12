@@ -2,6 +2,7 @@ from typing import List, Dict
 import json
 import time
 from utils import req, dict_must_contain, list_contains_dict_that_must_contain
+from _single_test_file_runner import run_all_tests_from_caller
 from statics import (
     ADMIN_USER_EMAIL,
     ADMIN_USER_NAME,
@@ -14,7 +15,7 @@ def list_last_intakes():
     )
 
     res = req(
-        "api//study/b6f2c61b-d388-4412-8c9a-461ece251116/proband/1234/interview/last/intake",
+        "api/study/b6f2c61b-d388-4412-8c9a-461ece251116/proband/1234/interview/last/intake",
         method="get",
     )
     for intake in res:
@@ -32,3 +33,6 @@ def list_last_intakes():
 
 def test_intakes():
     list_last_intakes()
+
+
+run_all_tests_from_caller()

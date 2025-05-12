@@ -34,7 +34,12 @@ def set_config_for_test_env():
 set_config_for_test_env()
 
 
-from utils import get_medlogserver_base_url, get_dot_env_file_variable, authorize
+from utils import (
+    get_medlogserver_base_url,
+    get_dot_env_file_variable,
+    authorize,
+    get_test_functions_from_file,
+)
 
 
 RESET_DB = os.getenv(
@@ -119,28 +124,38 @@ def start_medlogserver_and_backgroundworker():
 
 start_medlogserver_and_backgroundworker()
 
-# RUN TESTS
-from tests_users import run_all_tests_users
-from tests_export import test_do_export
-from tests_drugv2 import test_do_drugv2
-from tests_health import test_do_health
-from tests_last_interview_intakes import last_interview_intakes
 
-try:
+def run_single_test_file(file_name: str | Module, authorize_before: bool = False):
+    try:
+        if authorize_before:
+            authorize(user=ADMIN_USER_NAME, pw=ADMIN_USER_PW)
+        for test_function in get_test_functions_from_file(file_name):
+            print(f"--------------- RUN test function {test_function.__name__}")
+            test_function()
+    except Exception as e:
+        print("Error in tests")
+        print(print(traceback.format_exc()))
+        shutdown_medlogserver_and_backgroundworker()
+        print(f"----- TESTS {test_function.__name__} FAILED")
+        exit(1)
+
+
+if __name__ == "__main__":
+    # RUN TESTS
+    from tests_users import run_all_tests_users
+    from tests_export import test_do_export
+    from tests_drugv2 import test_do_drugv2
+    from tests_health import test_do_health
+    from tests_last_interview_intakes import last_interview_intakes
+
     authorize(user=ADMIN_USER_NAME, pw=ADMIN_USER_PW)
-    # last_interview_intakes()
-    # test_do_health()
-    # run_all_tests_users()
+    run_single_test_file("test_users.py")
+    last_interview_intakes()
+    test_do_health()
+    run_all_tests_users()
     test_do_drugv2()
-    # test_do_export()
-except Exception as e:
-    print("Error in user tests")
-    print(print(traceback.format_exc()))
+    test_do_export()
+
     shutdown_medlogserver_and_backgroundworker()
-    print("TESTS FAILED")
-    exit(1)
-
-
-shutdown_medlogserver_and_backgroundworker()
-print("TESTS SUCCEDED")
-exit(0)
+    print("TESTS SUCCEDED")
+    exit(0)

@@ -1,4 +1,5 @@
 from utils import req, dict_must_contain
+from _single_test_file_runner import run_all_tests_from_caller
 
 
 def test_health():
@@ -39,3 +40,6 @@ a = {
     "last_worker_run_succesfull": True,
     "drug_search_index_working": False,
 }
+
+
+run_all_tests_from_caller()

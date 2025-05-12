@@ -1,6 +1,7 @@
 from typing import List, Dict
 import json
 import time
+from _single_test_file_runner import run_all_tests_from_caller
 from utils import req, dict_must_contain, list_contains_dict_that_must_contain, dictyfy
 from statics import (
     ADMIN_USER_EMAIL,
@@ -9,14 +10,14 @@ from statics import (
 import datetime
 
 
-def last_interview_intakes():
+def test_last_interview_intakes():
     proband_id = "5678"
 
     from medlogserver.model.study import StudyCreateAPI
     from medlogserver.api.routes.routes_study import create_study
 
     study = req(
-        "api//study",
+        "api/study",
         method="post",
         b=StudyCreateAPI(display_name="MedikationsübernahmeTest").model_dump(
             exclude_unset=True
@@ -134,5 +135,4 @@ def last_interview_intakes():
     assert last_intakes_detailed[0]["drug"]["id"] == drug_id
 
 
-def test_interview():
-    last_interview_intakes()
+run_all_tests_from_caller()

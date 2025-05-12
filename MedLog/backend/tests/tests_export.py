@@ -1,7 +1,12 @@
 from typing import List, Dict
 import json
 import time
-from utils import req, dict_must_contain, list_contains_dict_that_must_contain
+from _single_test_file_runner import run_all_tests_from_caller
+from utils import (
+    req,
+    dict_must_contain,
+    list_contains_dict_that_must_contain,
+)
 from statics import (
     ADMIN_USER_EMAIL,
     ADMIN_USER_NAME,
@@ -33,3 +38,6 @@ def test_do_export():
         method="get",
     )
     print(res)
+
+
+run_all_tests_from_caller()

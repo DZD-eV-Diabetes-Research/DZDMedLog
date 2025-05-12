@@ -1,7 +1,7 @@
 from typing import List, Dict
 import json
 
-
+from _single_test_file_runner import run_all_tests_from_caller
 import requests
 from utils import (
     req,
@@ -100,10 +100,4 @@ def test_set_other_user_password_as_admin():
 #    test_user_create_with_no_password()
 
 
-def run_all_tests_users():
-    test_user_me()
-    test_user_create_with_no_password()
-    test_duplicate_username_catch()
-    test_user_list_with_active_only()
-    test_user_list_with_deactivted()
-    test_set_other_user_password_as_admin()
+run_all_tests_from_caller()
