@@ -130,7 +130,9 @@ def run_single_test_file(
     file_name_or_module: str | types.ModuleType,
     authorize_before: bool = False,
     exit_on_success: bool = False,
+    exit_on_fail: bool = True,
 ):
+    all_function_success = True
     print("file_name_or_module", file_name_or_module)
     try:
         if authorize_before:
@@ -138,19 +140,20 @@ def run_single_test_file(
         for name, test_function in get_test_functions_from_file_or_module(
             file_name_or_module
         ):
-
             print(f"--------------- RUN test function {name}")
             test_function()
-            if exit_on_success:
-                shutdown_medlogserver_and_backgroundworker()
-                print("✅️ TESTS SUCCEDED")
-                exit(0)
     except Exception as e:
+        all_function_success = False
         print("Error in tests")
         print(print(traceback.format_exc()))
         shutdown_medlogserver_and_backgroundworker()
         print(f"🚫 TESTS {test_function.__name__} FAILED")
-        exit(1)
+        if exit_on_fail:
+            exit(1)
+    if exit_on_success:
+        shutdown_medlogserver_and_backgroundworker()
+        print("✅️ TESTS SUCCEDED")
+        exit(0)
 
 
 if __name__ == "__main__":

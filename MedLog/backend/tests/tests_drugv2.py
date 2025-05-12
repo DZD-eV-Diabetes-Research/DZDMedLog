@@ -2,6 +2,9 @@ from typing import List, Dict
 import json
 import time
 from _single_test_file_runner import run_all_tests_if_test_file_called
+
+if __name__ == "__main__":
+    run_all_tests_if_test_file_called()
 from utils import req, dict_must_contain, list_contains_dict_that_must_contain, dictyfy
 from statics import (
     ADMIN_USER_EMAIL,
@@ -110,6 +113,3 @@ def test_do_drugv2():
     print("drug_search_result", drug_search_result)
     drug_id_from_search = drug_search_result["items"][0]["drug_id"]
     assert drug_id_from_search == res["id"]
-
-
-run_all_tests_if_test_file_called()

@@ -1,6 +1,9 @@
 from utils import req, dict_must_contain
 from _single_test_file_runner import run_all_tests_if_test_file_called
 
+if __name__ == "__main__":
+    run_all_tests_if_test_file_called()
+
 
 def test_health():
     from medlogserver.api.routes.routes_healthcheck import get_health_status
@@ -40,6 +43,3 @@ a = {
     "last_worker_run_succesfull": True,
     "drug_search_index_working": False,
 }
-
-
-run_all_tests_if_test_file_called()
