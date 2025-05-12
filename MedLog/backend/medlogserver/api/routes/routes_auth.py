@@ -46,7 +46,7 @@ fast_api_auth_base_router: APIRouter = APIRouter()
 NEEDS_ADMIN_API_INFO = "Needs admin role."
 NEEDS_USERMAN_API_INFO = "Needs admin or user-manager role."
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=TOKEN_ENDPOINT_PATH)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"/api{TOKEN_ENDPOINT_PATH}")
 
 
 @fast_api_auth_base_router.get("/auth/schemes", response_model=List[AuthScheme])
@@ -58,8 +58,8 @@ def list_auth_schemes():
                 name="Login",
                 slug="login",
                 type="credentials",
-                login_endpoint="/auth/token",
-                token_endpoint="/auth/refresh",
+                login_endpoint="/api/auth/token",
+                token_endpoint="/api/auth/refresh",
             )
         )
     for oidc_provider in config.AUTH_OIDC_PROVIDERS:
@@ -68,8 +68,8 @@ def list_auth_schemes():
                 name=oidc_provider.PROVIDER_DISPLAY_NAME,
                 slug=oidc_provider.PROVIDER_SLUG_NAME,
                 type="oidc",
-                login_endpoint=f"/auth/oidc/login/{oidc_provider.PROVIDER_SLUG_NAME}",
-                token_endpoint=f"/auth/oidc/token/{oidc_provider.PROVIDER_SLUG_NAME}",
+                login_endpoint=f"/api/auth/oidc/login/{oidc_provider.PROVIDER_SLUG_NAME}",
+                token_endpoint=f"/api/auth/oidc/token/{oidc_provider.PROVIDER_SLUG_NAME}",
             )
         )
     return schemes
