@@ -706,4 +706,33 @@ def sqlite_path():
     print("sqlite:///./local.sqlite", get_sqlite_path("sqlite:///./local.sqlite"))
 
 
-sqlite_path()
+import datetime
+import random
+
+
+def random_past_date(
+    min_date: datetime.date, random_gen: random.Random = None
+) -> datetime.date:
+    """
+    Generate a random date between a minimum date (default: two years ago) and today.
+
+    Args:
+        min_date (date, optional): The earliest allowable date. Defaults to two years ago from today.
+
+    Returns:
+        date: A random date between min_date and today.
+    """
+    today = datetime.date.today()
+    if random_gen is None:
+        random_gen = random.Random()
+    if min_date is None:
+        min_date = today - datetime.timedelta(days=730)  # Approx. 2 years
+    if min_date > today:
+        raise ValueError("min_date cannot be in the future.")
+
+    delta_days = (today - min_date).days
+    random_days = random_gen.randint(0, delta_days)
+    return min_date + datetime.timedelta(days=random_days)
+
+
+print(random_past_date())

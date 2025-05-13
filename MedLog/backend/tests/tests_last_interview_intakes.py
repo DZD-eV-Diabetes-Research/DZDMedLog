@@ -1,6 +1,10 @@
 from typing import List, Dict
 import json
 import time
+from _single_test_file_runner import run_all_tests_if_test_file_called
+
+if __name__ == "__main__":
+    run_all_tests_if_test_file_called()
 from utils import req, dict_must_contain, list_contains_dict_that_must_contain, dictyfy
 from statics import (
     ADMIN_USER_EMAIL,
@@ -9,14 +13,14 @@ from statics import (
 import datetime
 
 
-def last_interview_intakes():
+def test_last_interview_intakes():
     proband_id = "5678"
 
     from medlogserver.model.study import StudyCreateAPI
     from medlogserver.api.routes.routes_study import create_study
 
     study = req(
-        "api//study",
+        "api/study",
         method="post",
         b=StudyCreateAPI(display_name="MedikationsübernahmeTest").model_dump(
             exclude_unset=True
@@ -28,7 +32,7 @@ def last_interview_intakes():
     from medlogserver.api.routes.routes_event import create_event
 
     event1 = req(
-        f"/study/{study_id}/event",
+        f"api/study/{study_id}/event",
         method="post",
         b=EventCreateAPI(name="event1", order_position=1).model_dump(
             exclude_unset=True
@@ -36,7 +40,7 @@ def last_interview_intakes():
     )
     event1_id = event1["id"]
     event2 = req(
-        f"/study/{study_id}/event",
+        f"api/study/{study_id}/event",
         method="post",
         b=EventCreateAPI(name="event2", order_position=2).model_dump(
             exclude_unset=True
@@ -48,7 +52,7 @@ def last_interview_intakes():
     from medlogserver.api.routes.routes_interview import create_interview
 
     interview1 = req(
-        f"/study/{study_id}/event/{event1_id}/interview",
+        f"api/study/{study_id}/event/{event1_id}/interview",
         method="post",
         b=InterviewCreateAPI(
             proband_external_id=proband_id, proband_has_taken_meds=True
@@ -68,7 +72,7 @@ def last_interview_intakes():
     from medlogserver.api.routes.routes_intake import create_intake
 
     intake = req(
-        f"/study/{study_id}/interview/{interview1_id}/intake",
+        f"api/study/{study_id}/interview/{interview1_id}/intake",
         method="post",
         b=dictyfy(
             IntakeCreateAPI(
@@ -84,7 +88,7 @@ def last_interview_intakes():
 
     # end interview
     interview1 = req(
-        f"/study/{study_id}/event/{event1_id}/interview/{interview1_id}",
+        f"api/study/{study_id}/event/{event1_id}/interview/{interview1_id}",
         method="patch",
         b=dictyfy(
             InterviewUpdateAPI(
@@ -94,7 +98,7 @@ def last_interview_intakes():
     )
     # create interview in event2
     interview2 = req(
-        f"/study/{study_id}/event/{event2_id}/interview",
+        f"api/study/{study_id}/event/{event2_id}/interview",
         method="post",
         b=dictyfy(
             InterviewCreateAPI(
@@ -108,7 +112,7 @@ def last_interview_intakes():
     )
 
     last_intakes = req(
-        f"/study/{study_id}/proband/{proband_id}/interview/last/intake",
+        f"api/study/{study_id}/proband/{proband_id}/interview/last/intake",
         method="get",
         q={},
     )
@@ -123,7 +127,7 @@ def last_interview_intakes():
     )
 
     last_intakes_detailed = req(
-        f"/study/{study_id}/proband/{proband_id}/interview/last/intake/details",
+        f"api/study/{study_id}/proband/{proband_id}/interview/last/intake/details",
         method="get",
         q={},
     )
@@ -132,7 +136,3 @@ def last_interview_intakes():
     assert len(last_intakes_detailed) == 1
     assert last_intakes_detailed[0]["drug_id"] == drug_id
     assert last_intakes_detailed[0]["drug"]["id"] == drug_id
-
-
-def test_interview():
-    last_interview_intakes()

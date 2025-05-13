@@ -125,7 +125,6 @@ class DrugCRUD(
     async def list(
         self,
         filter_study_id: UUID = None,
-        hide_completed: bool = False,
         pagination: QueryParamsInterface = None,
         include_relations: bool = False,
     ) -> Sequence[DrugData]:
@@ -149,6 +148,33 @@ class DrugCRUD(
             query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)
         return results.all()
+
+    async def get(
+        self,
+        id_: UUID,
+        include_relations: bool = False,
+        raise_exception_if_none: Exception = None,
+    ) -> DrugData | None:
+        # log.info(f"Event.Config.order_by {Event.Config.order_by}")
+        query = select(DrugData)
+        if include_relations:
+            query = query.options(
+                selectinload(DrugData.attrs),
+                selectinload(DrugData.attrs_ref).selectinload(DrugValRef.lov_item),
+                selectinload(DrugData.attrs_multi_ref).selectinload(
+                    DrugValMultiRef.lov_item
+                ),
+                selectinload(DrugData.codes).selectinload(DrugCode.code_system),
+            )
+        query = query.where(DrugData.id == id_)
+        query = await self.append_current_and_custom_drugs_dataset_version_where_clause(
+            query
+        )
+        results = await self.session.exec(statement=query)
+        drug = results.one_or_none()
+        if drug is None and raise_exception_if_none:
+            raise raise_exception_if_none
+        return drug
 
     async def get_multiple(
         self,

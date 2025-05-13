@@ -339,9 +339,11 @@ class DrugApiReadClassFactory:
 
 
 drug_read_api_factory = DrugApiReadClassFactory()
-DrugAPIRead = drug_read_api_factory.get_drug_api_read_class()
+DrugAPIRead: Type[BaseModel] = drug_read_api_factory.get_drug_api_read_class()
 custom_drug_read_api_factory = DrugApiReadClassFactory(all_optional=True)
-CustomDrugAPIRead = custom_drug_read_api_factory.get_drug_api_read_class()
+CustomDrugAPIRead: Type[BaseModel] = (
+    custom_drug_read_api_factory.get_drug_api_read_class()
+)
 
 
 # async def drug_to_drugAPI_obj(drug: Drug) -> DrugAPIRead:

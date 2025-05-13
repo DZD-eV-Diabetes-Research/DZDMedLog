@@ -1,7 +1,10 @@
 from typing import List, Dict
 import json
 
+from _single_test_file_runner import run_all_tests_if_test_file_called
 
+if __name__ == "__main__":
+    run_all_tests_if_test_file_called()
 import requests
 from utils import (
     req,
@@ -90,7 +93,7 @@ def test_set_other_user_password_as_admin():
     from medlogserver.api.routes.routes_user import set_user_password
 
     res = req(
-        f"user/{Helper.get_user_id_by_username(TEST_USER_NAME)['id']}/password",
+        f"api/user/{Helper.get_user_id_by_username(TEST_USER_NAME)['id']}/password",
         method="put",
         f={"new_password": TEST_USER_PW, "new_password_repeated": TEST_USER_PW},
     )
@@ -98,12 +101,3 @@ def test_set_other_user_password_as_admin():
 
 # def run_all_tests_users():
 #    test_user_create_with_no_password()
-
-
-def run_all_tests_users():
-    test_user_me()
-    test_user_create_with_no_password()
-    test_duplicate_username_catch()
-    test_user_list_with_active_only()
-    test_user_list_with_deactivted()
-    test_set_other_user_password_as_admin()

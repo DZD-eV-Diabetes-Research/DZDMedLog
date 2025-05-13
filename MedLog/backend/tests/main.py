@@ -4,10 +4,11 @@ import time
 import urllib3
 import os
 import traceback
+import types
+from pathlib import Path
+import sys, os
 
 if __name__ == "__main__":
-    from pathlib import Path
-    import sys, os
 
     MODULE_DIR = Path(__file__).parent
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
@@ -34,7 +35,12 @@ def set_config_for_test_env():
 set_config_for_test_env()
 
 
-from utils import get_medlogserver_base_url, get_dot_env_file_variable, authorize
+from utils import (
+    get_medlogserver_base_url,
+    get_dot_env_file_variable,
+    authorize,
+    get_test_functions_from_file_or_module,
+)
 
 
 RESET_DB = os.getenv(
@@ -119,28 +125,58 @@ def start_medlogserver_and_backgroundworker():
 
 start_medlogserver_and_backgroundworker()
 
-# RUN TESTS
-from tests_users import run_all_tests_users
-from tests_export import test_do_export
-from tests_drugv2 import test_do_drugv2
-from tests_health import test_do_health
-from tests_last_interview_intakes import last_interview_intakes
 
-try:
+def run_single_test_file(
+    file_name_or_module: str | types.ModuleType,
+    authorize_before: bool = False,
+    exit_on_success: bool = False,
+    exit_on_fail: bool = True,
+):
+    all_function_success = True
+    print("file_name_or_module", file_name_or_module)
+    try:
+        if authorize_before:
+            authorize(user=ADMIN_USER_NAME, pw=ADMIN_USER_PW)
+        for name, test_function in get_test_functions_from_file_or_module(
+            file_name_or_module
+        ):
+            print(f"--------------- RUN test function {name}")
+            test_function()
+    except Exception as e:
+        all_function_success = False
+        print("Error in tests")
+        print(print(traceback.format_exc()))
+        shutdown_medlogserver_and_backgroundworker()
+        print(f"🚫 TESTS {test_function.__name__} FAILED")
+        if exit_on_fail:
+            exit(1)
+    if exit_on_success:
+        shutdown_medlogserver_and_backgroundworker()
+        print("✅️ TESTS SUCCEDED")
+        exit(0)
+
+
+if __name__ == "__main__":
+    # RUN TESTS
+    import tests_users
+    import tests_export
+    import tests_drugv2
+    import tests_health
+    import tests_last_interview_intakes
+
     authorize(user=ADMIN_USER_NAME, pw=ADMIN_USER_PW)
+    run_single_test_file(tests_users)
+    run_single_test_file(tests_export)
+    run_single_test_file(tests_drugv2)
+    run_single_test_file(tests_health)
+    run_single_test_file(tests_last_interview_intakes)
+
     # last_interview_intakes()
     # test_do_health()
     # run_all_tests_users()
-    test_do_drugv2()
+    # test_do_drugv2()
     # test_do_export()
-except Exception as e:
-    print("Error in user tests")
-    print(print(traceback.format_exc()))
+
     shutdown_medlogserver_and_backgroundworker()
-    print("TESTS FAILED")
-    exit(1)
-
-
-shutdown_medlogserver_and_backgroundworker()
-print("TESTS SUCCEDED")
-exit(0)
+    print("✅️ TESTS SUCCEDED")
+    exit(0)
