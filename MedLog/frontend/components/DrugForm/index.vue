@@ -32,13 +32,13 @@
                   :name="attr_ref[1]" :key="attr_ref[1]">
                   <USelectMenu v-model="attr_refState[attr_ref[1]]"
                     :options="refSelectMenus.find(item => item.field_name === attr_ref[1])?.options"
-                    value-attribute="value" option-attribute="display" color="yellow" />
+                    value-attribute="value" option-attribute="display" color="yellow" placeholder="Option auswählen"/>
                 </UFormGroup>
                 <UFormGroup v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi" :label="attr_multi[0]"
                   :name="attr_multi[1]" :key="attr_multi[1]">
-                  <UInput placeholder="Enter a value and press Enter" v-model="inputValues[attr_multi[1]]"
+                  <UInput placeholder="Option auswählen und Enter drücken" v-model="inputValues[attr_multi[1]]"
                     @keydown.enter.prevent="updateMultiState(attr_multi[1])" @blur="updateMultiState(attr_multi[1])"
-                    color="yellow" />
+                    color="yellow"/>
                   <UBadge v-for="(word, index) in attr_multiState[attr_multi[1]]" :key="index"
                     class="mr-2 cursor-pointer" @click="removeItem(attr_multi[1], index)" color="yellow">
                     {{ word }}
@@ -48,7 +48,7 @@
                   :label="attr_multi_ref[0]" :name="attr_multi_ref[1]" :key="attr_multi_ref[1]">
                   <USelectMenu v-model="attr_multi_refState[attr_multi_ref[1]]"
                     :options="multiRefSelectMenus.find(item => item.field_name === attr_multi_ref[1])?.options"
-                    value-attribute="value" option-attribute="display" multiple searchable color="yellow">
+                    value-attribute="value" option-attribute="display" multiple searchable color="yellow" placeholder="Option auswählen">
                     <template #label>
                       <span
                         v-if="Array.isArray(attr_multi_refState[attr_multi_ref[1]]) && attr_multi_refState[attr_multi_ref[1]].length">
@@ -57,7 +57,7 @@
                           attr_multi_ref[1])?.options.find(option => option.value === val)?.display || val)
                           .join('; ')}}
                       </span>
-                      <span v-else>Choose your fighter</span>
+                      <span v-else>Mehrfachauswahl möglich</span>
                     </template>
                   </USelectMenu>
                 </UFormGroup>
@@ -422,7 +422,7 @@ if (props.custom && props.edit) {
 
 getDosageForm();
 
-// CUSTOM DRUG STUFF
+// CUSTOM DRUG
 
 const isDataLoaded = ref(false);
 let drugFieldDefinitionsObject: any = null;
@@ -448,7 +448,7 @@ async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, m
       }));
 
       selectMenus.value.push(item);
-      state[ref[1]] = multiple ? [] : item.options[0]?.value;
+      state[ref[1]] = multiple ? [] : null;
     }
   } catch (error) {
     console.error("Create refSelectMenus Error:", error);
@@ -564,32 +564,32 @@ interface DrugBody {
   codes: Attribute[] | null;
 }
 
-async function onSubmit() {
-  let customDrugBody: DrugBody = {
-    trade_name: "Aspirin Supercomplex",
-    market_access_date: null,
-    market_exit_date: null,
-    custom_drug_notes: null,
-    attrs: Object.entries(attrState.value).map(([key, value]) => ({ field_name: key, value: value == null ? null : String(value) })),
-    attrs_ref: Object.entries(attr_refState).map(([key, value]) => ({ field_name: key, value: value })),
-    attrs_multi: Object.entries(attr_multiState).map(([key, value]) => ({ field_name: key, value: value })),
-    attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({ field_name: key, value: value })),
-    codes: null
-  }
+// async function onSubmit() {
+//   let customDrugBody: DrugBody = {
+//     trade_name: "Aspirin Supercomplex",
+//     market_access_date: null,
+//     market_exit_date: null,
+//     custom_drug_notes: null,
+//     attrs: Object.entries(attrState.value).map(([key, value]) => ({ field_name: key, value: value == null ? null : String(value) })),
+//     attrs_ref: Object.entries(attr_refState).map(([key, value]) => ({ field_name: key, value: value })),
+//     attrs_multi: Object.entries(attr_multiState).map(([key, value]) => ({ field_name: key, value: value })),
+//     attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({ field_name: key, value: value })),
+//     codes: null
+//   }
 
-  try {
-    const response = await $api(
-      `${runTimeConfig.public.baseURL}drug/custom`,
-      {
-        method: "POST",
-        body: customDrugBody
-      }
-    );
+//   try {
+//     const response = await $api(
+//       `${runTimeConfig.public.baseURL}drug/custom`,
+//       {
+//         method: "POST",
+//         body: customDrugBody
+//       }
+//     );
 
-  } catch (error) {
-    console.log(error);
-  }
-}
+//   } catch (error) {
+//     console.log(error);
+//   }
+// }
 
 const closeEditModal = function () {
   drugStore.editVisibility = false
