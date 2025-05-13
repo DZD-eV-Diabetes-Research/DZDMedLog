@@ -8,6 +8,8 @@ import sqlmodel
 import json
 import inspect
 from pathlib import Path
+import csv
+import io
 
 from medlogserver.config import Config
 
@@ -487,3 +489,37 @@ def create_test_study(
                     )
                     interview_container.intakes.append(intake_data_container)
     return test_data_container
+
+
+def is_valid_csv_with_rows(
+    csv_string: str, expected_row_count: int, has_header: bool = True
+) -> bool:
+    """
+    Validates if a string is a valid CSV with the expected number of data rows.
+
+    Args:
+        csv_string (str): The CSV content as a string.
+        expected_rows (int): The expected number of data rows (excluding header if has_header=True).
+        has_header (bool): Whether the CSV includes a header row.
+
+    Returns:
+        bool: True if the string is a valid CSV with the expected number of rows, else False.
+    """
+    try:
+        reader = csv.reader(io.StringIO(csv_string.strip()))
+        rows = list(reader)
+
+        if not rows:
+            return expected_row_count == 0
+
+        if has_header:
+            data_rows = rows[1:]  # Exclude header
+        else:
+            data_rows = rows
+        row_count = len(data_rows)
+        if row_count != expected_row_count:
+            print(f"CSV has {row_count} rows. Expected {expected_row_count}")
+        return row_count == expected_row_count
+    except Exception:
+        print(f"Failed parsing CSV.")
+        return False

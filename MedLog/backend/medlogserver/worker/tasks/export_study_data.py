@@ -51,7 +51,7 @@ class ExportIntakeContainer(BaseModel):
     event: EventExport
     interview: InterviewExport
     intake: IntakeExport
-    drug_codes: DrugCodesExport
+    drug_codes: List[DrugCodesExport]
 
 
 class ExportContainer(BaseModel):
@@ -62,23 +62,32 @@ class ExportContainer(BaseModel):
         values = []
         for intake in self.intakes:
             row = {}
-            for obj, obj_class_name in [
-                (self.study, "study"),
-                (intake.event, "event"),
-                (intake.interview, "interview"),
-                (intake.intake, "intake"),
-                (intake.drug_codes, "drug_codes"),
+            for objs, obj_class_name, pivot_by_column in [
+                (self.study, "study", None),
+                (intake.event, "event", None),
+                (intake.interview, "interview", None),
+                (intake.intake, "intake", None),
+                (intake.drug_codes, "drug", "drug_code_system_name"),
             ]:
-                obj: BaseModel = obj
+                objs: BaseModel | List[BaseModel] = objs
                 if not include_study_data_each_row and obj_class_name == "study":
                     continue
+                if not isinstance(objs, list):
+                    objs = [objs]
                 # obj_class_name = obj.__class__.__name__.lower()
-                for prop_name, prop_value in obj.model_dump().items():
+                for obj in objs:
 
-                    if not prop_name.startswith(obj_class_name):
-                        row[f"{obj_class_name}_{prop_name}"] = prop_value
-                    else:
-                        row[prop_name] = prop_value
+                    for prop_name, prop_value in obj.model_dump(
+                        exclude=[pivot_by_column]
+                    ).items():
+                        column_name = f"{obj_class_name}_{prop_name}"
+                        if prop_name.startswith(obj_class_name):
+                            column_name = prop_name
+                        if pivot_by_column:
+                            list_column_att = getattr(obj, pivot_by_column)
+                            column_name = f"{column_name}_{list_column_att}".lower()
+                        row[column_name] = prop_value
+
             values.append(row)
         return values
 
@@ -109,7 +118,7 @@ class StudyDataExporter:
                 flatten_export_data = exportdata.to_flat_dict(
                     include_study_data_each_row=True
                 )
-                log.debug(f"flatten_export_data: {flatten_export_data}")
+                # log.debug(f"flatten_export_data: {flatten_export_data}")
 
                 writer = csv.writer(target_file)
                 writer.writerow(flatten_export_data[0].keys())

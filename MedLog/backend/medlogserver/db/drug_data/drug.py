@@ -164,7 +164,7 @@ class DrugCRUD(
                 selectinload(DrugData.attrs_multi_ref).selectinload(
                     DrugValMultiRef.lov_item
                 ),
-                selectinload(DrugData.codes),
+                selectinload(DrugData.codes).selectinload(DrugCode.code_system),
             )
         query = query.where(DrugData.id == id_)
         query = await self.append_current_and_custom_drugs_dataset_version_where_clause(
