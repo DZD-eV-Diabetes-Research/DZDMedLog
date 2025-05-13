@@ -3,7 +3,6 @@
         <UIBaseCard>
            <h1 class="text-4xl">Sie werden zum Start weitergeleitet</h1>
         </UIBaseCard>
-        {{response}}
     </Layout>
 </template>
 
