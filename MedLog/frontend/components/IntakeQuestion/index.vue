@@ -5,9 +5,7 @@
         icon="i-heroicons-magnifying-glass-20-solid" :color="props.color" />
     </UFormGroup>
     <div v-if="isLoading && props.edit && !props.custom">
-      {{ isLoading && props.edit && !props.custom }}
-      <UProgress animation="elastic" color="blue" />
-      {{ isLoading }}
+      <UProgress animation="elastic" color="blue" class="my-6"/>
     </div>
     <div>
       <div v-if="drugList.items.length > 0">
@@ -109,9 +107,7 @@ const fetchDrugs = async (edit: boolean, custom: boolean) => {
           showMissingDrugOnLoad.value = true
         }
 
-        if (props.edit && initialLoad.value) {
-          console.log("here");
-          
+        if (props.edit && initialLoad.value) {          
           printMedication(response.items[0]);
           state.drug = ""
           initialLoad.value = false;
