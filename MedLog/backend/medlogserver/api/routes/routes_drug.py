@@ -22,7 +22,7 @@ from typing import Annotated
 from fastapi import Depends, APIRouter
 
 from medlogserver.db.user import User
-
+from medlogserver.utils import run_async_sync
 from medlogserver.api.auth.security import (
     user_is_admin,
     user_is_usermanager,
@@ -114,9 +114,9 @@ drug_field_attr_multi_ref_defs = asyncio.get_event_loop().run_until_complete(
     drug_importer.get_attr_multi_ref_field_definitions()
 )
 """
-drug_field_definitions = asyncio.get_event_loop().run_until_complete(
-    drug_importer.get_all_attr_field_definitions()
-)
+drug_field_definitions = run_async_sync(drug_importer.get_all_attr_field_definitions())
+log.debug(f"drug_field_definitions {drug_field_definitions}")
+
 drug_field_api_read_types = {
     "attrs": DrugAttrFieldDefinitionAPIRead,
     "attrs_ref": DrugAttrRefFieldDefinitionAPIRead,

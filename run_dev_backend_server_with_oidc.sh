@@ -9,7 +9,7 @@ PIDS=()
 
 PYTHON_BIN=$(which python)
 echo "Python: $PYTHON_BIN"
-
+RUN_BACKGROUND_WORKER_IN_EXTRA_JOB=False
 # Function to handle script termination
 cleanup() {
     echo "Stopping all processes..."
@@ -55,12 +55,17 @@ USER_DISPLAY_NAME_ATTRIBUTE=given_name
 USER_MAIL_ATTRIBUTE=email
 ADMIN_MAPPING_GROUPS='["medlog-admins"]'
 
-
 # using somewhat akward EOF/heredoc for dogding even more akward escaping
 export AUTH_OIDC_PROVIDERS=$(cat <<EOF
 [{"PROVIDER_SLUG_NAME": "mockup-server-oidc", "PROVIDER_DISPLAY_NAME":"Mockup Server OIDC","CLIENT_ID":"${OIDC_CLIENT_ID}","CLIENT_SECRET":"${OIDC_CLIENT_SECRET}","DISCOVERY_ENDPOINT":"${OIDC_SERVER_METADATA_URL}","USER_ID_ATTRIBUTE":"${USER_ID_ATTRIBUTE}","USER_DISPLAY_NAME_ATTRIBUTE":"${USER_DISPLAY_NAME_ATTRIBUTE}","USER_MAIL_ATTRIBUTE":"${USER_MAIL_ATTRIBUTE}","ADMIN_MAPPING_GROUPS": ${ADMIN_MAPPING_GROUPS}}]
 EOF
 )
+
+
+if [[ "${RUN_BACKGROUND_WORKER_IN_EXTRA_JOB}" =~ ^([Yy][Ee][Ss]|[Yy]|1|[Tt][Rr][Uu][Ee])$ ]]; then
+  export BACKGROUND_WORKER_START_IN_EXTRA_PROCESS=false
+fi
+
 echo "Kill zombie processes..."
 kill_processes_by_path oidc_provider_mock_server.py
 kill_processes_by_path medlogserver/main.py
@@ -83,6 +88,15 @@ echo "OIDC mockup server seemed to have booted."
 PIDS+=($mock_server_PID)  # Store PID
 # Boot MedLog Backend
 
+
+
 "$PYTHON_BIN" ./MedLog/backend/medlogserver/main.py $1 & 
 PIDS+=($!)  # Store PID of last background process
+
+if [[ "${RUN_BACKGROUND_WORKER_IN_EXTRA_JOB}" =~ ^([Yy][Ee][Ss]|[Yy]|1|[Tt][Rr][Uu][Ee])$ ]]; then
+    echo "Start Background worker in extra process"
+  "$PYTHON_BIN" ./MedLog/backend/medlogserver/main.py --run_worker_only $1 & 
+  PIDS+=($!)
+fi
+
 wait

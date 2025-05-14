@@ -8,6 +8,7 @@ from typing import (
     Optional,
     TYPE_CHECKING,
     Callable,
+    Any,
 )
 
 if TYPE_CHECKING:
@@ -26,6 +27,9 @@ import os
 from getversion.main import DetailedResults
 from urllib.parse import urlparse
 import multiprocessing
+
+import asyncio
+import threading
 
 
 def to_path(
@@ -312,3 +316,32 @@ class PathContentHasher:
     @classmethod
     def md5_dir(cls, directory: Union[str, Path]) -> str:
         return str(cls._md5_update_from_dir(directory, hashlib.md5()).hexdigest())
+
+
+def run_async_sync(awaitable) -> Any:
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # No loop running, use asyncio.run
+        return asyncio.run(awaitable)
+
+    # Already in a running loop — must run in a thread
+    result_container = {}
+    done = threading.Event()
+
+    def run():
+        try:
+            coro_result = asyncio.run(awaitable)
+            result_container["result"] = coro_result
+        except Exception as e:
+            result_container["exception"] = e
+        finally:
+            done.set()
+
+    thread = threading.Thread(target=run)
+    thread.start()
+    done.wait()
+
+    if "exception" in result_container:
+        raise result_container["exception"]
+    return result_container["result"]
