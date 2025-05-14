@@ -7,6 +7,7 @@ from medlogserver.db.worker_job import WorkerJobCRUD
 from medlogserver.model.worker_job import WorkerJob, WorkerJobUpdate
 from medlogserver.config import Config
 from medlogserver.log import get_logger
+from medlogserver.utils import run_async_sync
 
 log = get_logger()
 config = Config()
@@ -23,12 +24,19 @@ class TaskBase:
         self.task_params = task_params if task_params is not None else {}
         if instant_run:
             # event_loop = asyncio.get_event_loop() # -> RuntimeError There is no current event loop in thread 'asyncio_0'
+            run_async_sync(self.job_start())
+            return
             try:
                 event_loop = asyncio.get_event_loop()
                 event_loop.create_task(self.job_start())
-            except RuntimeError:
+            except RuntimeError as e:
+                log.debug(("RuntimeError Exception:", type(e), e))
                 event_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(event_loop)
                 event_loop.run_until_complete(self.job_start())
+            except Exception as e:
+                log.debug(("Exception:", type(e), e))
+                raise e
 
     async def job_start(self):
         if self.job is None:
