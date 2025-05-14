@@ -242,6 +242,8 @@ class DrugCRUD(
         async def find_lov_item(
             attr_type: AttrNamesType, field_name: str, val: str
         ) -> DrugAttrFieldLovItem:
+            if val is None:
+                return None
             lov_item_query = select(DrugAttrFieldLovItem).where(
                 and_(
                     DrugAttrFieldLovItem.field_name == field_name,

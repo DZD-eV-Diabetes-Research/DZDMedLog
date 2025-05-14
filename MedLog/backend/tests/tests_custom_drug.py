@@ -28,11 +28,12 @@ def test_custom_drug_incomplete():
         DrugMultiValApiCreate,
         DrugVal,
     )
-    from medlogserver.model.drug_data.drug import DrugData
+    from medlogserver.model.drug_data.drug import DrugData, DrugValMultiRef, DrugValRef
 
     search_identifiert_flag = "SEARCHIDENTIFIERT328794623"
     custom_drug_payload = DrugCustomCreate(
-        trade_name=f"Look mom, my custom Drug! {search_identifiert_flag}"
+        trade_name=f"Look mom, my custom Drug! {search_identifiert_flag}",
+        attrs_ref=[DrugValRef(field_name="dispensingtype", value=None)],
     )
 
     res = req(
