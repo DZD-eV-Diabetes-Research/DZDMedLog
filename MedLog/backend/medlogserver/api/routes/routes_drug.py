@@ -115,7 +115,7 @@ drug_field_attr_multi_ref_defs = asyncio.get_event_loop().run_until_complete(
 )
 """
 drug_field_definitions = run_async_sync(drug_importer.get_all_attr_field_definitions())
-log.debug(f"drug_field_definitions {drug_field_definitions}")
+
 
 drug_field_api_read_types = {
     "attrs": DrugAttrFieldDefinitionAPIRead,
