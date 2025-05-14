@@ -33,7 +33,7 @@ class TaskBase:
     async def job_start(self):
         if self.job is None:
             raise ValueError(
-                f"Task '{self.__class__.__name__}' can not run in context of a job, as no job was given on initilization."
+                f"Task '{self.__class__.__name__}' must run in context of a worker job ({WorkerJob.__class__}), no parent job was given on initilization."
             )
         log.debug(f"Run job: {self.job.task_name}")
         self.job.run_started_at = datetime.datetime.now(tz=datetime.UTC).replace(
