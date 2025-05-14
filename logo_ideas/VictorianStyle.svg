@@ -5,7 +5,7 @@
    viewBox="0 0 1200 1200"
    version="1.1"
    id="svg17"
-   sodipodi:docname="New Project(6).svg"
+   sodipodi:docname="VictorianStyle.svg"
    inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -100,15 +100,15 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#505050"
      showgrid="false"
-     inkscape:zoom="1.3765012"
-     inkscape:cx="560.47899"
-     inkscape:cy="521.61233"
+     inkscape:zoom="0.97333333"
+     inkscape:cx="712.5"
+     inkscape:cy="501.36986"
      inkscape:window-width="2560"
      inkscape:window-height="1339"
      inkscape:window-x="0"
      inkscape:window-y="32"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg17" />
+     inkscape:current-layer="g8" />
   <g
      id="Plate">
     <g
@@ -180,7 +180,7 @@
       </g>
       <g
          id="g20"
-         transform="translate(504.4107,717.84449)">
+         transform="matrix(1.2327722,0,0,1.1050209,483.35331,711.36166)">
         <g
            clip-path="url(#clipPath12)"
            id="g19">
