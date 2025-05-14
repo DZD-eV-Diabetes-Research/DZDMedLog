@@ -160,14 +160,14 @@ if __name__ == "__main__":
     # RUN TESTS
     import tests_users
     import tests_export
-    import tests_drugv2
+    import tests_drug
     import tests_health
     import tests_last_interview_intakes
 
     authorize(user=ADMIN_USER_NAME, pw=ADMIN_USER_PW)
     run_single_test_file(tests_users)
     run_single_test_file(tests_export)
-    run_single_test_file(tests_drugv2)
+    run_single_test_file(tests_drug)
     run_single_test_file(tests_health)
     run_single_test_file(tests_last_interview_intakes)
 
