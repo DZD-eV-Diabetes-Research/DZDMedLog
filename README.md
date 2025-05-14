@@ -1,10 +1,13 @@
+
+> [!WARNING]  
+> Under heavy development. Do not use yet.
+
 # DZDMedLog
 
-A Webapplication to log medication history of studyparticipants.
-Uses https://www.wido.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/ as Drug database (Not included here)
-(The usage if the GKV-Arzneimittelindex will change in near futur due to licensing issues with the usecase in this project)
+A Webapplication to log medication history of study participants.
 
-Current Status: Development/Alpha
+> [!IMPORTANT]  
+> MedLog requires you to bring your own drug database. As these are always licensed, we can not include a drug database in MedLog.
 
 - [DZDMedLog](#dzdmedlog)
 - [Run](#run)
@@ -32,9 +35,6 @@ Run the container
 
 `docker run -v ./database:/opt/medlog/data -p 8888:8888 -e DEMO_MODE=true dzdde/dzdmedlog`
 
-If you have a WiDo GKV Arzneimittelindex to hand:
-
-`docker run -v ./database:/opt/medlog/data -v ./GKV_AI_StammPlus/202301:/opt/medlog/arzneimittelindex -p 8888:8888 -e DEMO_MODE=true dzdde/dzdmedlog`
 
 visit http://localhost:8888
 
