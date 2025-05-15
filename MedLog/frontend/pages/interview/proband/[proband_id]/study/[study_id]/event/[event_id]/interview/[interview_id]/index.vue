@@ -4,8 +4,7 @@
       <div class="flex flex-row justify-center items-center space-x-4">
         <UButton ref="topButton" @click="saveInterview()" label="Interview Beenden" color="green" variant="soft"
           class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
-        <CopyPreviousDrugs
-          v-if="route.params.interview_id !== latestItems[0]?.interview_id"
+        <CopyPreviousDrugs v-if="!pending && latestItems && route.params.interview_id !== latestItems[0]?.interview_id"
           :onUpdate="createIntakeList" />
       </div>
     </UIBaseCard>
@@ -82,7 +81,8 @@
         <div style="text-align: center">
           <IntakeQuestion :drug="toEditDrug" :edit="true" :custom="customDrug === 'Nein' ? false : true"
             :color="customDrug === 'Nein' ? 'blue' : 'yellow'" />
-          <DrugForm :color="customDrug === 'Nein' ? 'blue' : 'yellow'" :edit="true" :custom="customDrug === 'Nein' ? false : true" label="Bearbeiten" />
+          <DrugForm :color="customDrug === 'Nein' ? 'blue' : 'yellow'" :edit="true"
+            :custom="customDrug === 'Nein' ? false : true" label="Bearbeiten" />
         </div>
       </div>
     </UModal>
@@ -127,11 +127,14 @@ const runtimeConfig = useRuntimeConfig();
 const { $api } = useNuxtApp();
 
 
-const { data: latestItems } = await useAPI(
-  `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/intake`,
-  {
-    headers: { Authorization: "Bearer " + tokenStore.access_token }
-  }
+const { data: latestItems, pending, error } = await useAsyncData(
+  'latestItems',
+  () => $api(
+    `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/intake`,
+    {
+      headers: { Authorization: "Bearer " + tokenStore.access_token }
+    }
+  )
 );
 
 drugStore.item = null;
@@ -438,11 +441,9 @@ createIntakeList();
 
 
 <style scoped>
-
 /* I don't like that this is here but I can't get the wordbreak otherwise */
 :deep(td) {
   white-space: normal !important;
   word-break: break-word !important;
 }
-
 </style>
