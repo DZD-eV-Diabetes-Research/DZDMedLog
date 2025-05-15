@@ -1286,8 +1286,8 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     f"We can just extract the value from package.csv. What are you doing here? Path: {path}"
                 )
             if is_last_path_segment:
-                col_name = extract_bracket_values(current_path_segment, 1)[0]
-                col_index = row_headers.index(col_name)
+                # col_name = extract_bracket_values(current_path_segment, 1)[0]
+                col_index = row_headers.index(target_col_name)
                 result_values.append(row[col_index])
             else:
                 next_file_name = path[1].split("[")[0]

@@ -45,6 +45,8 @@ class SearchEngineNotConfiguredException(Exception):
     pass
 
 
+# TODO: define as  Abstract Base Classes to be more of an correct interface
+# at the moment its a "stub"-class (for lack of a better word)
 class DrugSearch:
     def __init__(self, session: AsyncSession):
         self.session = session
