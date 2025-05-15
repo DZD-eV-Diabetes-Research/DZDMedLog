@@ -245,6 +245,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         query = query.options(
             selectinload(DrugData.attrs),
             selectinload(DrugData.attrs_ref).selectinload(DrugValRef.lov_item),
+            selectinload(DrugData.attrs_multi),
             selectinload(DrugData.attrs_multi_ref).selectinload(
                 DrugValMultiRef.lov_item
             ),
@@ -317,6 +318,10 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         field_values_aggregated = drug.trade_name
         for attr in drug.attrs:
             if attr.field_name in drug_attr_field_names_searchable:
+                field_values_aggregated += f" {attr.value}"
+        for m_attr in drug.attrs_multi:
+            log.debug(f"m_attr {m_attr}")
+            if m_attr.field_name in drug_attr_field_names_searchable:
                 field_values_aggregated += f" {attr.value}"
         for attr_ref in drug.attrs_ref:
             # log.debug(("attr_ref", attr_ref))
