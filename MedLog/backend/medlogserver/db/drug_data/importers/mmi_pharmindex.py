@@ -1281,7 +1281,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 )
             if is_last_path_segment:
                 col_name = extract_bracket_values(current_path_segment, 1)[0]
-                col_index = row_headers.index(target_col_name)
+                col_index = row_headers.index(col_name)
                 result_values.append(row[col_index])
             else:
                 next_file_name = path[1].split("[")[0]
@@ -1304,7 +1304,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     # e.g. path[1] -> "ITEM.CSV[PRODUCTID]>[ID]" or "ATC.CSV[PRODUCTID]"
                     # "PACKAGE.CSV[PRODUCTID]/ITEM.CSV[PRODUCTID]>[ID]/ITEM_ATC.CSV[ITEMID]"
                     next_file_col_name = extract_bracket_values(path[1], 1)[0]
-                    bridge_col_name = extract_bracket_values(current_path_segment, 1)[0]
+                    bridge_col_name = extract_bracket_values(current_path_segment, 2)[1]
                     bridge_col_index = row_headers.index(bridge_col_name)
                     bridge_col_val = row[bridge_col_index]
                     next_row_headers, next_rows = (
