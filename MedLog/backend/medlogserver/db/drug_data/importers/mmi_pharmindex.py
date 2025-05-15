@@ -162,11 +162,11 @@ mmi_rohdaten_r3_mappings = {
         # source_path="PACKAGE.CSV[ID]",
         map2="codes.MMIP",
     ),
-    "codes.ATC": SourceAttrMapping(
+    "attrs_multi.ATC": SourceAttrMapping(
         "ITEM_ATC.CSV",
         "ATCCODE",
         source_path="PACKAGE.CSV[PRODUCTID]/ITEM.CSV[PRODUCTID]>[ID]/ITEM_ATC.CSV[ITEMID]",
-        map2="codes.ATC",
+        map2="attrs_multi.ATC",
     ),
     # attrs
     "attrs.amount": SourceAttrMapping(
@@ -302,17 +302,6 @@ root_props_mapping = {
 
 def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
     return [
-        DrugAttrFieldDefinitionContainer(
-            field=DrugCodeSystem(
-                id="ATC",
-                name="ATC (nach DIMDI)",
-                country="Germany",
-                desc="Anatomisch-therapeutisch-chemische Klassifikation, die Erstellung erfolgt unter Verwendung der amtlichen Fassung der ATC-Klassifikation des Deutschen Instituts für Medizinische Dokumentation und Information (DIMDI)",
-                optional=True,
-                unique=False,
-            ),
-            source_mapping=mmi_rohdaten_r3_mappings["codes.ATC"],
-        ),
         DrugAttrFieldDefinitionContainer(
             field=DrugCodeSystem(
                 id="PZN",
@@ -467,7 +456,24 @@ DrugAttrFieldDefinitionContainer(
 
 
 def get_attr_multi_definitions() -> List[DrugAttrFieldDefinitionContainer]:
-    return []
+    return [
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="ATC",
+                field_name_display="ATC Codes",
+                field_desc="Anatomical Therapeutic Chemical code. A unique code assigned to a medicine according to the organ or system it works on and how it works. The classification system is maintained by the World Health Organization (WHO). ",
+                value_type=ValueTypeCasting.STR,
+                optional=True,
+                # default=False,
+                is_reference_list_field=False,
+                is_multi_val_field=True,
+                examples=["D04AA04", "V60A"],
+                importer_name=importername,
+                searchable=True,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs_multi.ATC"],
+        )
+    ]
 
 
 def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:

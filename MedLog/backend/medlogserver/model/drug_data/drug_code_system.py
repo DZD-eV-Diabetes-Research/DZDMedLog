@@ -37,3 +37,7 @@ class DrugCodeSystem(DrugModelTableBase, table=True):
         default=True,
         description="Will every drug have a unique code or can multiple drug products can have the same code.",
     )
+    client_visible: bool = Field(
+        default=True,
+        description="Should the code be shown in the UI. Some IDs are internal and are not interesting for the client.",
+    )
