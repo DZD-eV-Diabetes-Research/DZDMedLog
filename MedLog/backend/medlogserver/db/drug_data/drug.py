@@ -229,7 +229,9 @@ class DrugCRUD(
         )
         attr_defs = await drug_importer.get_all_attr_field_definitions()
 
-        def find_attr_def(attr_type: AttrNamesType, field_name: str):
+        def find_attr_def(
+            attr_type: AttrNamesType, field_name: str
+        ) -> DrugAttrFieldDefinition | None:
             try:
                 return next(
                     (ad for ad in attr_defs[attr_type] if ad.field_name == field_name)
@@ -242,12 +244,20 @@ class DrugCRUD(
         async def find_lov_item(
             attr_type: AttrNamesType, field_name: str, val: str
         ) -> DrugAttrFieldLovItem:
+
+            if val is None:
+                attr_def: DrugAttrFieldDefinition = find_attr_def(attr_type, field_name)
+                if not attr_def.has_default:
+                    return None
+                else:
+                    val = attr_def.default
             lov_item_query = select(DrugAttrFieldLovItem).where(
                 and_(
                     DrugAttrFieldLovItem.field_name == field_name,
                     DrugAttrFieldLovItem.value == val,
                 )
             )
+
             lov_item_res = await self.session.exec(lov_item_query)
             lov_item = lov_item_res.one_or_none()
             if lov_item is None:

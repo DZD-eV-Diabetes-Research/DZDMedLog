@@ -21,12 +21,23 @@ def get_loglevel():
 log = None
 
 
-def get_logger(name: str = APP_LOGGER_DEFAULT_NAME) -> logging.Logger:
+def get_logger(name: str = APP_LOGGER_DEFAULT_NAME, prefix: str = "") -> logging.Logger:
     global log
     if log is None or log.name != name:
         log = logging.getLogger(name)
         log.setLevel(get_loglevel())
-        log.addHandler(logging.StreamHandler(sys.stdout))
+
+        # Clear existing handlers to avoid duplicate logs
+        log.handlers.clear()
+
+        handler = logging.StreamHandler(sys.stdout)
+
+        format_string = f"{prefix}%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        formatter = logging.Formatter(format_string)
+        handler.setFormatter(formatter)
+
+        log.addHandler(handler)
+
     return log
 
 

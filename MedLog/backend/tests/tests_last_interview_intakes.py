@@ -5,7 +5,15 @@ from _single_test_file_runner import run_all_tests_if_test_file_called
 
 if __name__ == "__main__":
     run_all_tests_if_test_file_called()
-from utils import req, dict_must_contain, list_contains_dict_that_must_contain, dictyfy
+from utils import (
+    req,
+    dict_must_contain,
+    list_contains_dict_that_must_contain,
+    create_test_study,
+    TestDataContainerStudy,
+    is_valid_csv_with_rows,
+    dictyfy,
+)
 from statics import (
     ADMIN_USER_EMAIL,
     ADMIN_USER_NAME,
@@ -14,81 +22,41 @@ import datetime
 
 
 def test_last_interview_intakes():
-    proband_id = "5678"
 
-    from medlogserver.model.study import StudyCreateAPI
-    from medlogserver.api.routes.routes_study import create_study
-
-    study = req(
-        "api/study",
-        method="post",
-        b=StudyCreateAPI(display_name="MedikationsübernahmeTest").model_dump(
-            exclude_unset=True
-        ),
+    noise_study_data: TestDataContainerStudy = create_test_study(
+        study_name="TextLastIntakesStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        with_intakes=1,
     )
-    study_id = study["id"]
-
-    from medlogserver.model.event import EventCreateAPI
-    from medlogserver.api.routes.routes_event import create_event
-
-    event1 = req(
-        f"api/study/{study_id}/event",
-        method="post",
-        b=EventCreateAPI(name="event1", order_position=1).model_dump(
-            exclude_unset=True
-        ),
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TextLastIntakesStudy2",
+        with_events=2,
+        with_interviews_per_event_per_proband=2,
+        with_intakes=1,
+        proband_count=1,
+        deterministic=True,
     )
-    event1_id = event1["id"]
-    event2 = req(
-        f"api/study/{study_id}/event",
-        method="post",
-        b=EventCreateAPI(name="event2", order_position=2).model_dump(
-            exclude_unset=True
-        ),
-    )
-    event2_id = event2["id"]
-
-    from medlogserver.model.interview import InterviewCreateAPI
-    from medlogserver.api.routes.routes_interview import create_interview
-
-    interview1 = req(
-        f"api/study/{study_id}/event/{event1_id}/interview",
-        method="post",
-        b=InterviewCreateAPI(
-            proband_external_id=proband_id, proband_has_taken_meds=True
-        ).model_dump(exclude_unset=True),
-    )
-    interview1_id = interview1["id"]
-
-    from medlogserver.api.routes.routes_drug import search_drugs
-
-    drug_search_result = req(
-        f"/api/drug/search", method="get", q={"search_term": "aspi"}
-    )
-    print("drug_search_result", drug_search_result)
-    drug_id = drug_search_result["items"][0]["drug_id"]
-
-    from medlogserver.model.intake import IntakeCreateAPI, ConsumedMedsTodayAnswers
-    from medlogserver.api.routes.routes_intake import create_intake
-
-    intake = req(
-        f"api/study/{study_id}/interview/{interview1_id}/intake",
-        method="post",
-        b=dictyfy(
-            IntakeCreateAPI(
-                drug_id=drug_id,
-                intake_start_time_utc=datetime.date.today(),
-                consumed_meds_today=ConsumedMedsTodayAnswers.UNKNOWN,
-                as_needed_dose_unit=None,
-            )
-        ),
-    )
-    from medlogserver.model.interview import InterviewUpdate, InterviewUpdateAPI
-    from medlogserver.api.routes.routes_interview import update_interview
+    proband_id = 51235
+    # create interview in event2
 
     # end interview
+    study_id = study_data.study.id
+    penultimate_event = study_data.events[0]
+    last_event = study_data.events[1]
+
+    from medlogserver.api.routes.routes_interview import (
+        create_interview,
+        InterviewCreateAPI,
+        InterviewUpdateAPI,
+    )
+
+    interview1_id = penultimate_event.interviews[0].interview.id
+    interview2_id = last_event.interviews[0].interview.id
+    proband_id = penultimate_event.interviews[0].interview.proband_external_id
+    drug_id = str(penultimate_event.interviews[0].intakes[0].drug.id)
     interview1 = req(
-        f"api/study/{study_id}/event/{event1_id}/interview/{interview1_id}",
+        f"api/study/{study_id}/event/{penultimate_event.event.id}/interview/{interview1_id}",
         method="patch",
         b=dictyfy(
             InterviewUpdateAPI(
@@ -96,13 +64,13 @@ def test_last_interview_intakes():
             )
         ),
     )
-    # create interview in event2
+
     interview2 = req(
-        f"api/study/{study_id}/event/{event2_id}/interview",
-        method="post",
+        f"api/study/{study_id}/event/{last_event.event.id}/interview/{interview2_id}",
+        method="patch",
         b=dictyfy(
-            InterviewCreateAPI(
-                proband_external_id=proband_id, proband_has_taken_meds=True
+            InterviewUpdateAPI(
+                interview_end_time_utc=None,
             )
         ),
     )
@@ -116,10 +84,13 @@ def test_last_interview_intakes():
         method="get",
         q={},
     )
-
+    print("drug_id", drug_id)
+    last_intake_drug_id = last_intakes[0]["drug_id"]
+    print("last_intake_drug_id ", type(last_intake_drug_id), last_intake_drug_id)
+    print("drug_id             ", type(drug_id), drug_id)
     # we only have on drug in last interview
     assert len(last_intakes) == 1
-    assert last_intakes[0]["drug_id"] == drug_id
+    assert last_intake_drug_id == drug_id
 
     from medlogserver.api.routes.routes_intake import (
         list_all_intakes_of_last_completed_interview_detailed,
