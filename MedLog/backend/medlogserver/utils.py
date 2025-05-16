@@ -28,7 +28,7 @@ import os
 from getversion.main import DetailedResults
 from urllib.parse import urlparse
 
-from sqlalchemy.types import TypeDecorator, Text, String
+
 import json
 import asyncio
 import threading
@@ -177,14 +177,6 @@ def sanitize_string(s: str, replace_space_with: str = "_") -> str:
         for char in s
         if char.isalnum() or char == " "
     )
-
-
-class JSONEncoderMedLogCustom(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, uuid.UUID):
-            # if the obj is uuid, we simply return the value of uuid
-            return str(obj)
-        return json.JSONEncoder.default(self, obj)
 
 
 def http_exception_to_resp_desc(e: fastapi.HTTPException) -> Dict[int, str]:
@@ -349,47 +341,3 @@ def run_async_sync(awaitable) -> Any:
     if "exception" in result_container:
         raise result_container["exception"]
     return result_container["result"]
-
-
-class SqlJsonText(TypeDecorator):
-    """Stores JSON-serializable Python objects as TEXT."""
-
-    impl = Text
-
-    def process_bind_param(self, value: Dict | None, dialect):
-        return json.dumps(value) if value is not None else "{}"
-
-    def process_result_value(self, value: str, dialect):
-        if value is None:
-            return {}
-        return json.loads(value)
-
-
-class SqlStringListText(TypeDecorator):
-    """
-    SQLAlchemy TypeDecorator to store a list of strings in a TEXT column,
-    using CSV serialization for safe and reversible storage.
-    """
-
-    impl = Text
-    cache_ok = True
-
-    def process_bind_param(self, value: Optional[List[str]], dialect) -> Optional[str]:
-        if value is None:
-            return None
-        if not isinstance(value, list):
-            raise ValueError("Expected a list of strings.")
-        if not all(isinstance(item, str) for item in value):
-            raise ValueError("All items must be strings.")
-
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(value)
-        return output.getvalue().strip("\r\n")  # remove trailing newline
-
-    def process_result_value(self, value: Optional[str], dialect) -> List[str]:
-        if not value:
-            return []
-        input_ = io.StringIO(value)
-        reader = csv.reader(input_)
-        return next(reader)

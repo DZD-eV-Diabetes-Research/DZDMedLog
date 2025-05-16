@@ -5,7 +5,7 @@ import shutil
 import csv
 import uuid
 from pydantic import BaseModel
-from medlogserver.utils import JSONEncoderMedLogCustom, path_is_parent
+from medlogserver.utils import path_is_parent
 from medlogserver.worker.task import TaskBase
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db import (

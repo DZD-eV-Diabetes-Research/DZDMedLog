@@ -7,7 +7,7 @@ from pydantic import (
     model_validator,
     field_serializer,
 )
-
+from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, SQLModel, Relationship, JSON, Enum, Column, UniqueConstraint
 from pydantic_core import PydanticUndefined
 from sqlalchemy import String, Integer, Column, SmallInteger
@@ -16,7 +16,8 @@ from dataclasses import dataclass
 from medlogserver.model.drug_data._base import (
     DrugModelTableBase,
 )
-from sqlalchemy.orm import RelationshipProperty
+from medlogserver.model._utils import SqlStringListText, SqlStringListAny
+
 
 if TYPE_CHECKING:
     from medlogserver.model.drug_data.drug_attr_field_lov_item import (
@@ -189,7 +190,9 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
         default=None,
         description="Function that can transform the input value into a fitting string",
     )
-    examples: List[str] = Field(default_factory=list, sa_column=Column(JSON))
+    examples: List[str] = Field(
+        default_factory=list, sa_column=Column(SqlStringListAny)
+    )
     """
     list_of_values: List["DrugAttrFieldLovItem"] = Relationship(
         sa_relationship=RelationshipProperty(

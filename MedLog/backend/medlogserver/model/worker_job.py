@@ -12,7 +12,7 @@ from sqlmodel import Field, Column, JSON, Enum
 import datetime
 import uuid
 import enum
-from medlogserver.utils import SqlJsonText, SqlStringListText
+from medlogserver.model._utils import SqlJsonText, SqlStringListText
 from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 from medlogserver.config import Config
 from medlogserver.log import get_logger

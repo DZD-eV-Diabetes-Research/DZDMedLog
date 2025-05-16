@@ -130,3 +130,46 @@ class WorkerJobCRUD(
                 hide_user_jobs=hide_user_jobs,
             )
         )
+
+    async def find(
+        self,
+        obj: WorkerJob | WorkerJobUpdate | WorkerJobCreate,
+        raise_exception_if_not_exists: Exception = None,
+        raise_exception_if_more_than_one_result: Exception = None,
+    ) -> Sequence[WorkerJob]:
+        """Find matching objects in the database, based on the attributes in the given "obj"
+
+        Args:
+            obj (GenericCRUDReadType): _description_
+            raise_exception_if_not_exists (Exception, optional): _description_. Defaults to None.
+        """
+        tbl = self.get_table_cls()
+        query = select(tbl)
+
+        for attr, val in obj.model_dump().items():
+
+            if isinstance(val, (dict, list)):
+                # json value. Postgres seems to not support json comparison atm?!?!
+                # https://github.com/sqlalchemy/sqlalchemy/issues/5575#issuecomment-691121030
+                # we will match WorkerJob.tags on python level
+                continue
+
+            else:
+                query = query.where(getattr(tbl, attr) == val)
+        res = await self.session.exec(query)
+        query_result_objs: List[WorkerJob] = res.all()
+
+        # Tag filtering
+        result_objs: List[WorkerJob] = []
+        if obj.tags:
+            for robj in query_result_objs:
+                if set(obj.tags) == set(robj.tags):
+                    result_objs.append(robj)
+        else:
+            result_objs = query_result_objs
+
+        if len(query_result_objs) == 0 and raise_exception_if_not_exists:
+            raise raise_exception_if_not_exists
+        elif len(query_result_objs) > 1 and raise_exception_if_more_than_one_result:
+            raise raise_exception_if_more_than_one_result
+        return query_result_objs
