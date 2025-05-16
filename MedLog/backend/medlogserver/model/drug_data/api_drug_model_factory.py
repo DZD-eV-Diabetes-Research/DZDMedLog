@@ -451,8 +451,6 @@ async def drug_to_drugAPI_obj(
             for mrval in multi_ref_vals
         ]
 
-    log.debug(f"drug_attrs_multi_ref: {drug_attrs_multi_ref}")
-
     vals["codes"] = drug_codes
     vals["attrs"] = drug_attrs
     vals["attrs_ref"] = drug_attrs_ref

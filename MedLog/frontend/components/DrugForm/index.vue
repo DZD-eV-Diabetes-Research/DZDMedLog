@@ -320,8 +320,8 @@ async function saveIntake() {
           custom_drug_notes: null,
           attrs: Object.entries(attrState.value).map(([key, value]) => ({ field_name: key, value: value == null ? null : String(value) })),
           attrs_ref: Object.entries(attr_refState).map(([key, value]) => ({ field_name: key, value: value })),
-          attrs_multi: Object.entries(attr_multiState).map(([key, value]) => ({ field_name: key, value: value })),
-          attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({ field_name: key, value: value })),
+          attrs_multi: Object.entries(attr_multiState).map(([key, value]) => ({ field_name: key, values: value })),
+          attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({ field_name: key, values: value })),
           codes: null
         }
         

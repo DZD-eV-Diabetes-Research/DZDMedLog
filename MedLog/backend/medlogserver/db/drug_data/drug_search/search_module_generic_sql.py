@@ -1,11 +1,10 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Literal
 from typing_extensions import Unpack
 import shlex
 import traceback
 import datetime
 import uuid
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, delete, desc
-
 from sqlalchemy.sql.operators import (
     is_not,
     is_,
@@ -34,12 +33,14 @@ from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.db.drug_data.drug_dataset_version import DrugDataSetVersionCRUD
 from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
 from medlogserver.model.drug_data.drug import DrugData
+from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.db.drug_data.drug import DrugCRUD
 from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef, DrugValMultiRef
 from medlogserver.model.drug_data.api_drug_model_factory import drug_to_drugAPI_obj
 from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.config import Config
 from medlogserver.log import get_logger
+from medlogserver.model.drug_data.drug import DrugAttrTypeName
 
 log = get_logger()
 config = Config()
@@ -91,10 +92,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         self.drug_data_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
         self.current_dataset_version: Optional[DrugDataSetVersion] = None
         self.custom_drugs_dataset_version: Optional[DrugDataSetVersion] = None
-        self._drug_attr_field_definitions: List[DrugAttrFieldDefinition] | None = None
-        self._drug_attr_ref_field_definitions: List[DrugAttrFieldDefinition] | None = (
-            None
-        )
+        self._all_drug_attr_field_definitions: (
+            Dict[DrugAttrTypeName, List[DrugAttrFieldDefinition]] | None
+        ) = None
 
     async def disable(self):
         """If we switch the search engine, we may need to tidy up some thing (e.g. Remove large indexed that are not needed anymore).
@@ -196,19 +196,17 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         results = await session.exec(statement=query)
         return results.first()
 
-    async def _get_drug_attr_definitions_fields(self):
-        if self._drug_attr_field_definitions is None:
-            self._drug_attr_field_definitions = (
-                await self.drug_data_importer_class().get_attr_field_definitions()
+    async def _get_all_drug_attr_definitions_fields(
+        self,
+    ) -> Dict[
+        DrugAttrTypeName,
+        List[DrugAttrFieldDefinition],
+    ]:
+        if self._all_drug_attr_field_definitions is None:
+            self._all_drug_attr_field_definitions = (
+                await self.drug_data_importer_class().get_all_attr_field_definitions()
             )
-        return self._drug_attr_field_definitions
-
-    async def _get_drug_attr_ref_definitions_fields(self):
-        if self._drug_attr_ref_field_definitions is None:
-            self._drug_attr_ref_field_definitions = (
-                await self.drug_data_importer_class().get_attr_ref_field_definitions()
-            )
-        return self._drug_attr_ref_field_definitions
+        return self._all_drug_attr_field_definitions
 
     async def _build_index(
         self, session: AsyncSession, skip_commit: bool = True, batch_size: int = 100000
@@ -245,6 +243,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         query = query.options(
             selectinload(DrugData.attrs),
             selectinload(DrugData.attrs_ref).selectinload(DrugValRef.lov_item),
+            selectinload(DrugData.attrs_multi),
             selectinload(DrugData.attrs_multi_ref).selectinload(
                 DrugValMultiRef.lov_item
             ),
@@ -299,34 +298,47 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             )
 
     async def _drug_to_cache_obj(self, drug: DrugData) -> GenericSQLDrugSearchCache:
-        drug_attr_field_defs_all = await self._get_drug_attr_definitions_fields()
-        drug_attr_field_names_searchable: List[str] = [
-            dd.field_name for dd in drug_attr_field_defs_all if dd.searchable == True
-        ]
-
-        # collect all drug reference attributes (select/list-of-values) definition that are definied "searchable"
-        drug_attr_ref_field_defs_all = (
-            await self._get_drug_attr_ref_definitions_fields()
-        )
-        drug_attr_ref_field_names_searchable: List[str] = [
-            drd.field_name
-            for drd in drug_attr_ref_field_defs_all
-            if drd.searchable == True
-        ]
-
+        drug_attr_field_defs_all = await self._get_all_drug_attr_definitions_fields()
+        searchable_drug_fields_names_by_type: Dict[
+            DrugAttrTypeName,
+            List[DrugAttrFieldDefinition],
+        ] = {}
+        for attr_type_name, field_defintions in drug_attr_field_defs_all.items():
+            if attr_type_name == "codes":
+                # Drug Codes are handled extra.
+                continue
+            if attr_type_name not in searchable_drug_fields_names_by_type:
+                searchable_drug_fields_names_by_type[attr_type_name] = []
+            searchable_drug_fields_names_by_type[attr_type_name] = [
+                dd.field_name for dd in field_defintions if dd.searchable == True
+            ]
         field_values_aggregated = drug.trade_name
         for attr in drug.attrs:
-            if attr.field_name in drug_attr_field_names_searchable:
+            if attr.field_name in searchable_drug_fields_names_by_type["attrs"]:
                 field_values_aggregated += f" {attr.value}"
-        for attr_ref in drug.attrs_ref:
-            # log.debug(("attr_ref", attr_ref))
+        for attr_multi in drug.attrs_multi:
             if (
-                attr_ref.field_name in drug_attr_ref_field_names_searchable
+                attr_multi.field_name
+                in searchable_drug_fields_names_by_type["attrs_multi"]
+                and attr_multi.value is not None
+            ):
+                field_values_aggregated += f" {attr_multi.value}"
+        for attr_ref in drug.attrs_ref:
+            if (
+                attr_ref.field_name in searchable_drug_fields_names_by_type["attrs_ref"]
                 and attr_ref.value is not None
             ):
-                # log.debug(attr_ref)
                 field_values_aggregated += (
                     f" {attr_ref.value} {attr_ref.lov_item.display}"
+                )
+        for attr_multi_ref in drug.attrs_multi_ref:
+            if (
+                attr_multi_ref.field_name
+                in searchable_drug_fields_names_by_type["attrs_multi_ref"]
+                and attr_multi_ref.value is not None
+            ):
+                field_values_aggregated += (
+                    f" {attr_multi_ref.value} {attr_multi_ref.lov_item.display}"
                 )
         for code in drug.codes:
             field_values_aggregated += f" {code.code}"

@@ -2,6 +2,7 @@ from typing import Dict, List, AsyncIterator, Literal, Optional
 import traceback
 from pathlib import Path
 import datetime
+import time
 from sqlmodel import select, and_
 from medlogserver.db._session import get_async_session_context
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
@@ -13,12 +14,15 @@ from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.utils import PathContentHasher
+from medlogserver.model.drug_data.drug import DrugAttrTypeName
 from medlogserver.log import get_logger
-import time
+
 
 log = get_logger()
 
 
+# TODO: define as  Abstract Base Classes to be more of an correct interface
+# at the moment its a "stub"-class (for lack of a better word)
 class DrugDataSetImporterBase:
     def __init__(self):
         self.dataset_name = "Base Example"
@@ -68,7 +72,7 @@ class DrugDataSetImporterBase:
     async def get_all_attr_field_definitions(
         self,
     ) -> Dict[
-        Literal["attrs", "attrs_ref", "attrs_multi", "attrs_multi_ref"],
+        DrugAttrTypeName,
         List[DrugAttrFieldDefinition],
     ]:
         return {
