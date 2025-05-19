@@ -7,6 +7,9 @@
     <div v-if="isLoading && props.edit && !props.custom">
       <UProgress animation="elastic" color="blue" class="my-6"/>
     </div>
+    <div v-if="isLoading && props.edit && props.custom">
+      <UProgress animation="elastic" color="yellow" class="my-6"/>
+    </div>
     <div>
       <div v-if="drugList.items.length > 0">
         <ul>
@@ -49,7 +52,6 @@
         <h3 class="text-2xl my-2">{{ state.drug }}</h3>
       </div>
       <div v-if="props.custom && !drugStore.item">
-        <h4>Custom Medikament</h4>
         <h3>{{ customDrug }}</h3>
       </div>
     </div>
@@ -93,10 +95,33 @@ const showMissingDrugOnLoad = ref(false)
 
 const fetchDrugs = async (edit: boolean, custom: boolean) => {
   if (props.custom && initialLoad.value) {
-    initialLoad.value = false;
     customDrug.value = state.drug;
-    state.drug = "";
-    return;
+    // return
+    if (state.drug.length >= 3) {
+      try {
+        showMissingDrugOnLoad.value = false
+        const response = await apiDrugSearch(state.drug)
+        
+        if (response.items == 0){
+          showMissingDrugOnLoad.value = true
+        }
+        
+        if (props.edit && initialLoad.value) { 
+          printMedication(response.items.at(-1));
+          state.drug = ""
+          initialLoad.value = false;
+          isLoading.value = false;
+          return;
+        }
+        drugList.items = response.items || [];
+        drugList.count = response.count || 0;
+        state.currentPage = 1;
+      } catch (error) {
+        console.error("Error fetching drugs:", error);
+        drugList.items = [];
+        drugList.count = 0;
+      }
+    }
   } else {
     if (state.drug.length >= 3) {
       try {
@@ -107,7 +132,7 @@ const fetchDrugs = async (edit: boolean, custom: boolean) => {
           showMissingDrugOnLoad.value = true
         }
 
-        if (props.edit && initialLoad.value) {          
+        if (props.edit && initialLoad.value) {     
           printMedication(response.items[0]);
           state.drug = ""
           initialLoad.value = false;

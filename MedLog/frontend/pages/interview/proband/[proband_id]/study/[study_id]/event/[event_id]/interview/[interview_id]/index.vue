@@ -79,10 +79,15 @@
     <UModal v-model="drugStore.editVisibility" @close="drugStore.$reset()">
       <div class="p-4">
         <div style="text-align: center">
-          <IntakeQuestion :drug="toEditDrug" :edit="true" :custom="customDrug === 'Nein' ? false : true"
+          <div v-if="customDrug === 'Nein'">
+            <IntakeQuestion :drug="toEditDrug" :edit="true" :custom="customDrug === 'Nein' ? false : true"
             :color="customDrug === 'Nein' ? 'blue' : 'yellow'" />
           <DrugForm :color="customDrug === 'Nein' ? 'blue' : 'yellow'" :edit="true"
             :custom="customDrug === 'Nein' ? false : true" label="Bearbeiten" />
+          </div>
+          <div v-else>
+            <EditCustomDrug :drug="toEditDrug"/>
+          </div>
         </div>
       </div>
     </UModal>
@@ -138,6 +143,10 @@ const { data: latestItems, pending, error } = await useAsyncData(
 );
 
 drugStore.item = null;
+
+// custom drug modal
+
+drugStore.customVisibility = false
 
 // Editform Modal
 
