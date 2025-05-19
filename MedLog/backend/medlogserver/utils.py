@@ -28,7 +28,6 @@ import os
 from getversion.main import DetailedResults
 from urllib.parse import urlparse
 
-
 import json
 import asyncio
 import threading
@@ -72,8 +71,19 @@ def to_path(
     return result_path
 
 
-from pathlib import Path
-from urllib.parse import urlparse
+def get_db_type(
+    db_url: str, raise_if_unkown: Exception = None
+) -> Literal["sqlite", "postgres", "sqlite-memory"] | None:
+    parsed_db_url = urlparse(db_url)
+    if "sqlite" in parsed_db_url.scheme:
+        if ":memory:" in parsed_db_url.path:
+            return "sqlite-memory"
+        return "sqlite"
+    if "postgres" in parsed_db_url.scheme:
+        return "postgres"
+    if raise_if_unkown:
+        raise raise_if_unkown
+    return None
 
 
 def prepare_sqlite_parent_path_if_needed(db_url: str) -> Path | None:
@@ -91,13 +101,10 @@ def prepare_sqlite_parent_path_if_needed(db_url: str) -> Path | None:
     parsed_db_url = urlparse(db_url)
 
     # SQLite URLs typically look like: sqlite:///path/to/db.sqlite3
-    if "sqlite" not in parsed_db_url.scheme:
+    if get_db_type(db_url) != "sqlite":
         return None
     # remove sqlite style leading "/" (see https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#connect-strings)
     db_path_clean = parsed_db_url.path[1:]
-    if db_path_clean == ":memory:":
-        # Skip in-memory SQLite
-        return None
     full_db_path = Path(db_path_clean).resolve()
     full_db_path.parent.mkdir(exist_ok=True, parents=True)
     return full_db_path

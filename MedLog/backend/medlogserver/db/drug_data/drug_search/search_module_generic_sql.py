@@ -17,8 +17,11 @@ from sqlalchemy.sql.operators import (
     or_,
     and_,
 )
+from pydantic import field_validator
+
 from sqlalchemy.orm import selectinload
 from sqlalchemy import case, func
+from medlogserver.utils import get_db_type
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db.drug_data.drug_search._base import (
     MedLogDrugSearchEngineBase,
@@ -44,6 +47,10 @@ from medlogserver.model.drug_data.drug import DrugAttrTypeName
 
 log = get_logger()
 config = Config()
+MAX_INDEXABLE_LENGTH = 4096
+if get_db_type(config.SQL_DATABASE_URL) == "postgres":
+    # hotfix for https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/110
+    MAX_INDEXABLE_LENGTH = 512
 
 
 class GenericSQLDrugSearchState(SQLModel, table=True):
@@ -331,6 +338,10 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 field_values_aggregated += (
                     f" {attr_ref.value} {attr_ref.lov_item.display}"
                 )
+
+        for code in drug.codes:
+            field_values_aggregated += f" {code.code}"
+
         for attr_multi_ref in drug.attrs_multi_ref:
             if (
                 attr_multi_ref.field_name
@@ -340,8 +351,11 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 field_values_aggregated += (
                     f" {attr_multi_ref.value} {attr_multi_ref.lov_item.display}"
                 )
-        for code in drug.codes:
-            field_values_aggregated += f" {code.code}"
+        field_values_aggregated = (
+            field_values_aggregated[:MAX_INDEXABLE_LENGTH]
+            if field_values_aggregated
+            else ""
+        )
         return GenericSQLDrugSearchCache(
             id=drug.id,
             search_index_content=field_values_aggregated,
