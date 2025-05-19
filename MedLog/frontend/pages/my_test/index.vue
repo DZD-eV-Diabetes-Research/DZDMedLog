@@ -1,6 +1,5 @@
 <template>
   <Layout>
-    <EditCustomDrug/>
   </Layout>
 </template>
 
