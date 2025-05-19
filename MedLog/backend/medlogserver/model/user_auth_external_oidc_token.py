@@ -2,13 +2,17 @@ from typing import AsyncGenerator, List, Optional, Literal, Dict, Sequence
 from pydantic import SecretStr, Json
 from fastapi import Depends
 import contextlib
+from sqlmodel import Field, select, delete, Column, JSON
+import uuid
+
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model._base_model import BaseTable
-from medlogserver.db._session import AsyncSession, get_async_session
-from sqlmodel import Field, select, delete, Column, JSON
-import uuid
+from medlogserver.db._session import AsyncSession
+
+
 from oauthlib.oauth2 import OAuth2Token
+from medlogserver.model._utils import SqlJsonText, SqlStringListText
 from medlogserver.db.user import User
 from medlogserver.db.user_auth import (
     UserAuth,
@@ -32,7 +36,7 @@ class UserAuthExternalOIDCToken(BaseTable, table=True):
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
     oidc_provider_name: str = Field(index=True)
-    oauth_token: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
+    oauth_token: Optional[Dict] = Field(default=None, sa_column=Column(SqlJsonText))
     # valid_until_timestamp: int = Field(default=None)
     deactivated: bool = Field(default=False)
     user_auth_id: uuid.UUID = Field(default=None, foreign_key="user_auth.id")

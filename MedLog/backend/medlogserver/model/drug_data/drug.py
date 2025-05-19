@@ -1,4 +1,4 @@
-from typing import List, Dict, Type, Optional
+from typing import List, Dict, Type, Optional, Literal
 import uuid
 import datetime
 from sqlmodel import Field, SQLModel, Relationship
@@ -20,6 +20,10 @@ from medlogserver.model.drug_data.drug_attr import (
 from medlogserver.model.drug_data.drug_code import DrugCodeApi
 from medlogserver.model.drug_data.drug_code import DrugCode
 from medlogserver.model.user import User
+
+DrugAttrTypeName = Literal[
+    "attrs", "attrs_ref", "attrs_multi", "attrs_multi_ref", "codes"
+]
 
 
 class DrugCustomCreate(DrugModelTableBase, table=False):

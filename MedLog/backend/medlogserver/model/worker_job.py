@@ -12,9 +12,10 @@ from sqlmodel import Field, Column, JSON, Enum
 import datetime
 import uuid
 import enum
+from medlogserver.model._utils import SqlJsonText, SqlStringListText
+from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 
 
 log = get_logger()
@@ -36,7 +37,7 @@ class WorkerJobCreate(MedLogBaseModel, table=False):
     task_name: str = Field(description="Class that will executed as task.")
     task_params: Optional[Dict] = Field(
         default_factory=dict,
-        sa_column=Column(JSON),
+        sa_column=Column(SqlJsonText),
     )
     user_id: Optional[uuid.UUID] = Field(
         foreign_key="user.id",
@@ -46,12 +47,12 @@ class WorkerJobCreate(MedLogBaseModel, table=False):
     tags: List[str] = Field(
         default_factory=list,
         description="A list of strings, can help to categorize, filter and/or find specific jobs or job categories.",
-        sa_column=Column(JSON),
+        sa_column=Column(SqlStringListText),
     )
     interval_params: Optional[Dict[str, int]] = Field(
         description="If the task needs to rerun in an interval define dictonary of apscheduler params as strings (https://apscheduler.readthedocs.io/en/3.x/modules/triggers/interval.html#module-apscheduler.triggers.interval). If nothing is set the task will runce once and the job will be cleaned up.",
         default=None,
-        sa_column=Column(JSON),
+        sa_column=Column(SqlJsonText),
     )
 
 

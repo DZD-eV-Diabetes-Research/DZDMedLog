@@ -162,11 +162,11 @@ mmi_rohdaten_r3_mappings = {
         # source_path="PACKAGE.CSV[ID]",
         map2="codes.MMIP",
     ),
-    "codes.ATC": SourceAttrMapping(
+    "attrs_multi.ATC": SourceAttrMapping(
         "ITEM_ATC.CSV",
         "ATCCODE",
         source_path="PACKAGE.CSV[PRODUCTID]/ITEM.CSV[PRODUCTID]>[ID]/ITEM_ATC.CSV[ITEMID]",
-        map2="codes.ATC",
+        map2="attrs_multi.ATC",
     ),
     # attrs
     "attrs.amount": SourceAttrMapping(
@@ -302,17 +302,6 @@ root_props_mapping = {
 
 def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
     return [
-        DrugAttrFieldDefinitionContainer(
-            field=DrugCodeSystem(
-                id="ATC",
-                name="ATC (nach DIMDI)",
-                country="Germany",
-                desc="Anatomisch-therapeutisch-chemische Klassifikation, die Erstellung erfolgt unter Verwendung der amtlichen Fassung der ATC-Klassifikation des Deutschen Instituts für Medizinische Dokumentation und Information (DIMDI)",
-                optional=True,
-                unique=False,
-            ),
-            source_mapping=mmi_rohdaten_r3_mappings["codes.ATC"],
-        ),
         DrugAttrFieldDefinitionContainer(
             field=DrugCodeSystem(
                 id="PZN",
@@ -467,7 +456,24 @@ DrugAttrFieldDefinitionContainer(
 
 
 def get_attr_multi_definitions() -> List[DrugAttrFieldDefinitionContainer]:
-    return []
+    return [
+        DrugAttrFieldDefinitionContainer(
+            field=DrugAttrFieldDefinition(
+                field_name="ATC",
+                field_name_display="ATC Codes",
+                field_desc="Anatomical Therapeutic Chemical code. A unique code assigned to a medicine according to the organ or system it works on and how it works. The classification system is maintained by the World Health Organization (WHO). ",
+                value_type=ValueTypeCasting.STR,
+                optional=True,
+                # default=False,
+                is_reference_list_field=False,
+                is_multi_val_field=True,
+                examples=["D04AA04", "V60A"],
+                importer_name=importername,
+                searchable=True,
+            ),
+            source_mapping=mmi_rohdaten_r3_mappings["attrs_multi.ATC"],
+        )
+    ]
 
 
 def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
@@ -643,7 +649,7 @@ def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 # default=False,
                 is_reference_list_field=True,
                 is_multi_val_field=True,
-                examples=[["8", "23"], ["70"]],
+                examples=["8", "23", "70"],
                 importer_name=importername,
                 searchable=True,
             ),
@@ -666,7 +672,7 @@ def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 # default=False,
                 is_reference_list_field=True,
                 is_multi_val_field=True,
-                examples=[["A01.0 M01.39", "B44.8 K23.8"], ["F41.1"]],
+                examples=["A01.0, M01.39", "B44.8 K23.8", "F41.1"],
                 importer_name=importername,
                 searchable=True,
             ),
@@ -1280,7 +1286,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     f"We can just extract the value from package.csv. What are you doing here? Path: {path}"
                 )
             if is_last_path_segment:
-                col_name = extract_bracket_values(current_path_segment, 1)[0]
+                # col_name = extract_bracket_values(current_path_segment, 1)[0]
                 col_index = row_headers.index(target_col_name)
                 result_values.append(row[col_index])
             else:
@@ -1304,7 +1310,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     # e.g. path[1] -> "ITEM.CSV[PRODUCTID]>[ID]" or "ATC.CSV[PRODUCTID]"
                     # "PACKAGE.CSV[PRODUCTID]/ITEM.CSV[PRODUCTID]>[ID]/ITEM_ATC.CSV[ITEMID]"
                     next_file_col_name = extract_bracket_values(path[1], 1)[0]
-                    bridge_col_name = extract_bracket_values(current_path_segment, 1)[0]
+                    bridge_col_name = extract_bracket_values(current_path_segment, 2)[1]
                     bridge_col_index = row_headers.index(bridge_col_name)
                     bridge_col_val = row[bridge_col_index]
                     next_row_headers, next_rows = (

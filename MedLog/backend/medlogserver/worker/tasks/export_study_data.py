@@ -5,7 +5,7 @@ import shutil
 import csv
 import uuid
 from pydantic import BaseModel
-from medlogserver.utils import JSONEncoderMedLogCustom, path_is_parent
+from medlogserver.utils import path_is_parent
 from medlogserver.worker.task import TaskBase
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db import (
@@ -58,7 +58,10 @@ class ExportContainer(BaseModel):
     study: StudyExport
     intakes: List[ExportIntakeContainer]
 
-    def to_flat_dict(self, include_study_data_each_row: bool = False) -> Dict[str, Any]:
+    def to_flat_dict(
+        self,
+        include_study_data_each_row: bool = False,
+    ) -> Dict[str, Any]:
         values = []
         for intake in self.intakes:
             row = {}
@@ -115,13 +118,18 @@ class StudyDataExporter:
                 target_file.write(exportdata.model_dump_json(indent=4))
         elif self.format == "csv":
             with open(self.target_file, "w", encoding="utf-8") as target_file:
+                log.debug(f"exportdata {exportdata}")
                 flatten_export_data = exportdata.to_flat_dict(
                     include_study_data_each_row=True
                 )
                 # log.debug(f"flatten_export_data: {flatten_export_data}")
 
                 writer = csv.writer(target_file)
-                writer.writerow(flatten_export_data[0].keys())
+                log.debug(
+                    f"flatten_export_data: {flatten_export_data} \n type: {flatten_export_data}"
+                )
+                if flatten_export_data:
+                    writer.writerow(flatten_export_data[0].keys())
                 for row_data in flatten_export_data:
                     writer.writerow(row_data.values())
         else:

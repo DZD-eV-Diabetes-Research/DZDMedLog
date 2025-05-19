@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Any,
+    Type,
 )
 
 if TYPE_CHECKING:
@@ -26,10 +27,13 @@ import pydantic
 import os
 from getversion.main import DetailedResults
 from urllib.parse import urlparse
-import multiprocessing
 
+
+import json
 import asyncio
 import threading
+import csv
+import io
 
 
 def to_path(
@@ -173,14 +177,6 @@ def sanitize_string(s: str, replace_space_with: str = "_") -> str:
         for char in s
         if char.isalnum() or char == " "
     )
-
-
-class JSONEncoderMedLogCustom(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, uuid.UUID):
-            # if the obj is uuid, we simply return the value of uuid
-            return str(obj)
-        return json.JSONEncoder.default(self, obj)
 
 
 def http_exception_to_resp_desc(e: fastapi.HTTPException) -> Dict[int, str]:

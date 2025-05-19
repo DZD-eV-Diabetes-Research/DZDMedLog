@@ -12,6 +12,7 @@ from uuid import UUID
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
+from medlogserver.model._utils import SqlStringListText
 from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 
 # TODO: this generated a circular import we need to seperate model and crud classes
@@ -46,7 +47,7 @@ class UserUpdate(UserBase, table=False):
 
 
 class UserUpdateByAdmin(UserUpdate, table=False):
-    roles: List[str] = Field(default_factory=list, sa_column=Column(JSON))
+    roles: List[str] = Field(default_factory=list, sa_column=Column(SqlStringListText))
     deactivated: bool = Field(default=False)
     is_email_verified: bool = Field(default=False)
 
