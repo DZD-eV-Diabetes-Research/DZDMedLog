@@ -308,7 +308,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         drug_attr_field_defs_all = await self._get_all_drug_attr_definitions_fields()
         searchable_drug_fields_names_by_type: Dict[
             DrugAttrTypeName,
-            List[DrugAttrFieldDefinition],
+            List[str],
         ] = {}
         for attr_type_name, field_defintions in drug_attr_field_defs_all.items():
             if attr_type_name == "codes":
