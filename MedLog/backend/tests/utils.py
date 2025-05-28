@@ -10,7 +10,7 @@ import inspect
 from pathlib import Path
 import csv
 import io
-
+import pathlib
 from medlogserver.config import Config
 
 import importlib.util
@@ -523,3 +523,26 @@ def is_valid_csv_with_rows(
     except Exception:
         print(f"Failed parsing CSV.")
         return False
+
+
+def import_test_modules(from_dir: pathlib.Path) -> List[types.ModuleType]:
+    """
+    Imports all Python modules in the current directory whose names start with 'tests_'.
+
+    Returns:
+        A list of imported modules as instances of types.ModuleType.
+    """
+    modules: List[types.ModuleType] = []
+
+    for py_file in from_dir.glob("tests_*.py"):
+        module_name: str = py_file.stem
+        module_spec: importlib.machinery.ModuleSpec | None = (
+            importlib.util.spec_from_file_location(module_name, py_file)
+        )
+
+        if module_spec and module_spec.loader:
+            module: types.ModuleType = importlib.util.module_from_spec(module_spec)
+            module_spec.loader.exec_module(module)
+            modules.append(module)
+
+    return modules
