@@ -52,4 +52,9 @@ BioShield;2022-01-01;;2;44331122;N02BE02;ProtectMed;syrup;oral;immune,boost;200;
 CardioCare;2019-05-15;;0;22334411;C01AA06;HeartCare Ltd.;capsule;oral;hypertension,heart;30;capsules;DE,UK,US
 AspiSheen;2019-05-15;;0;22334455;N02BA51;Martin Sheen Ltd.;capsule;oral;headache,relief;30;capsules;DE,UK,US
 AntiIdiote;2019-05-16;;0;22334466;N02BA51;HeadRelief Ltd.;capsule;oral;headache,relief;30;capsules;DE
-TestDrug;2023-04-16;;0;22334466;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+TestDrug;2023-04-16;;0;22334461;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test1Drug;2023-04-17;;0;22334462;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test2Drug;2023-04-18;;0;22334463;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test3Drug;2023-04-19;;0;22334464;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test4Drug;2023-04-20;;0;22334465;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test5Drug;2023-04-21;;0;22334466;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK

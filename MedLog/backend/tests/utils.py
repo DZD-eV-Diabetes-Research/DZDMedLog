@@ -121,7 +121,7 @@ def req(
                     body = r.json()
                 except requests.exceptions.JSONDecodeError:
                     body = r.content
-                if not body in tolerated_error_body:
+                if body != tolerated_error_body:
                     if body:
                         print("Error body: ", body)
                     raise err
