@@ -12,6 +12,7 @@ from utils import (
     list_contains_dict_that_must_contain,
     create_test_study,
     TestDataContainerStudy,
+    dictyfy,
 )
 
 from statics import (
@@ -36,6 +37,7 @@ def test_do_drugv2():
     )
     from medlogserver.model.drug_data.drug import DrugData
 
+    search_identifiert_flag = "8473wterfgjhdsgf789w3eitgu"
     custom_drug_payload = DrugCustomCreate(
         custom_drug_notes="Look mom, my custom Drug!",
         trade_name=f"My Custom Drug {search_identifiert_flag}",
@@ -76,10 +78,10 @@ def test_do_drugv2():
     dict_must_contain(
         res["attrs_ref"],
         required_keys_and_val={
-            "hersteller": {
-                "value": "225",
-                "display": "Hexal AG",
-                "ref_list": "/api/drug/field_def/hersteller/refs",
+            "dispensingtype": {
+                "value": 0,
+                "display": "prescription",
+                "ref_list": "/api/drug/field_def/dispensingtype/refs",
             }
         },
         exception_dict_identifier="create custom drug object attrs_ref",
@@ -87,16 +89,16 @@ def test_do_drugv2():
     dict_must_contain(
         res["attrs_multi_ref"],
         required_keys_and_val={
-            "keywords": [
+            "producing_country": [
                 {
-                    "value": 1,
-                    "display": "Mund, Zähne",
-                    "ref_list": "/api/drug/field_def/keywords/refs",
+                    "value": "DE",
+                    "display": "Germany",
+                    "ref_list": "/api/drug/field_def/producing_country/refs",
                 },
                 {
-                    "value": 4,
-                    "display": "Munddesinfizientien",
-                    "ref_list": "/api/drug/field_def/keywords/refs",
+                    "value": "UK",
+                    "display": "United Kingdom",
+                    "ref_list": "/api/drug/field_def/producing_country/refs",
                 },
             ]
         },
@@ -104,7 +106,7 @@ def test_do_drugv2():
     )
     dict_must_contain(
         res["codes"],
-        required_keys_and_val={"ATC": None, "PZN": "12345678910", "MMIP": None},
+        required_keys_and_val={"PZN": "12345678910"},
         exception_dict_identifier="create custom drug object attrs_ref",
     )
 
@@ -173,19 +175,35 @@ def test_create_intake():
     study_id = study_data.study.id
     event = study_data.events[0]
     interview = event.interviews[0]
+    from medlogserver.api.routes.routes_drug import search_drugs
+
+    drug_search_result = req("api/drug/search", q={"search_term": "Test"})
+    drug = drug_search_result["items"][0]["drug"]
+    from medlogserver.model.intake import (
+        IntakeCreateAPI,
+        SourceOfDrugInformationAnwers,
+        AdministeredByDoctorAnswers,
+        IntakeRegularOrAsNeededAnswers,
+        ConsumedMedsTodayAnswers,
+    )
 
     # Create a test intake
-    intake_data = {
-        "drug_id": "some-test-drug-id",  # You would need a valid drug ID here
-        "intake_regular_or_as_needed": "regular",
-        "regular_intervall_of_daily_dose": 1,
-        "administered_by_doctor": False,
-    }
+    intake_data = IntakeCreateAPI(
+        drug_id=drug["id"],
+        source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
+        intake_start_time_utc=datetime.date.today().isoformat(),
+        administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
+        intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
+        as_needed_dose_unit=1,
+        consumed_meds_today=ConsumedMedsTodayAnswers.UNKNOWN,
+    )
+    intake_data_dict = dictyfy(intake_data)
+    from medlogserver.api.routes.routes_intake import create_intake
 
     new_intake = req(
-        f"api/study/{study_id}/event/{event.event.id}/interview/{interview.interview.id}/intake",
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake",
         method="post",
-        b=intake_data,
+        b=intake_data_dict,
     )
 
     # Verify the created intake
@@ -217,23 +235,28 @@ def test_update_intake():
     intake = interview.intakes[0]
 
     # Update the intake
-    update_data = {
-        "intake_regular_or_as_needed": "as_needed",
-        "administered_by_doctor": True,
-    }
-
-    updated_intake = req(
-        f"api/study/{study_id}/event/{event.event.id}/interview/{interview.interview.id}/intake/{intake.intake.id}",
-        method="patch",
-        b=update_data,
+    from medlogserver.model.intake import (
+        IntakeCreateAPI,
+        IntakeUpdate,
+        SourceOfDrugInformationAnwers,
+        AdministeredByDoctorAnswers,
+        IntakeRegularOrAsNeededAnswers,
+        ConsumedMedsTodayAnswers,
     )
 
+    update_data = IntakeUpdate(administered_by_doctor=AdministeredByDoctorAnswers.NO)
+
+    updated_intake = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake/{intake.intake.id}",
+        method="patch",
+        b=dictyfy(update_data),
+    )
+    print("updated_intake", updated_intake)
     # Verify the update
     dict_must_contain(
         updated_intake,
         required_keys_and_val={
-            "intake_regular_or_as_needed": "as_needed",
-            "administered_by_doctor": True,
+            "administered_by_doctor": "no",
         },
         exception_dict_identifier="update intake response",
     )

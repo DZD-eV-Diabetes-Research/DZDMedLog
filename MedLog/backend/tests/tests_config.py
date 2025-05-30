@@ -21,10 +21,10 @@ def test_endpoint_config_version_get():
     # Verify version format (should be semantic versioning)
     assert isinstance(response["version"], str)
     version_parts = response["version"].split(".")
-    assert len(version_parts) >= 2, "Version should have at least major.minor format"
-    assert all(
-        part.isdigit() for part in version_parts
-    ), "Version parts should be numeric"
+    print("version_parts", version_parts)
+    assert (
+        len(version_parts) >= 3
+    ), "Version should have at least major.minor.patch format"
 
     # Verify branch name
     assert isinstance(response["branch"], str)

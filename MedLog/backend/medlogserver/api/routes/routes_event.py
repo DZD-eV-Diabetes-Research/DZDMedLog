@@ -136,8 +136,8 @@ async def update_event(
             detail="Not authorized to update event",
         )
     return await event_crud.update(
-        event_id=event_id,
-        event=event,
+        id_=event_id,
+        update_obj=event,
         raise_exception_if_not_exists=HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"No study with id '{event_id}'",
@@ -187,7 +187,7 @@ async def delete_event(
     description=f"This endpoint accepts a list of event objects or IDs and assigns a sequential integer to each event's order_position attribute based on their order in the input list. The first event in the list will be assigned `order_position`: `10`, the second event will be assigned  `order_position`: `20`, and so on.",
 )
 async def reorder_events(
-    events: List[EventRead | Event | uuid.UUID],
+    events: List[EventRead | Event | uuid.UUID | str],
     reverse: bool = Query(
         False, description="Reorder events in the reversed order as given"
     ),
