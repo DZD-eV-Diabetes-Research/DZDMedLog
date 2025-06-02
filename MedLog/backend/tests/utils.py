@@ -36,7 +36,7 @@ def get_medlogserver_base_url():
     return f"http://{medlogserver_config.SERVER_LISTENING_HOST}:{medlogserver_config.SERVER_LISTENING_PORT}"
 
 
-def authorize(user, pw):
+def authorize(user, pw, set_as_global_default_login: bool = False) -> str:
     response = req("api/auth/token", "post", f={"username": user, "password": pw})
     """response example:
     {
@@ -49,7 +49,9 @@ def authorize(user, pw):
     "refresh_token_expires_at": 1723028061
     }
     """
-    os.environ[MEDLOG_ACCESS_TOKEN_ENV_NAME] = response["access_token"]
+    if set_as_global_default_login:
+        os.environ[MEDLOG_ACCESS_TOKEN_ENV_NAME] = response["access_token"]
+    return response["access_token"]
 
 
 def req(
@@ -62,6 +64,7 @@ def req(
     suppress_auth: bool = False,
     tolerated_error_codes: List[int] = None,
     tolerated_error_body: List[Dict | str] = None,
+    access_token: str = None,
 ) -> Dict | str:
     if tolerated_error_codes is None:
         tolerated_error_codes = []
@@ -87,7 +90,7 @@ def req(
     http_method_func_params["url"] = url
 
     # auth
-    access_token = get_access_token()
+    access_token = access_token if access_token is not None else get_access_token()
     http_method_func_headers_print = None
     if access_token and not suppress_auth:
         http_method_func_headers_print = http_method_func_headers.copy()
