@@ -102,7 +102,9 @@ class _UserWithName(UserBase, table=False):
     @classmethod
     def val_display_name(self, values):
         """if no display name is set for now, we copy the identifying `user_name`"""
-        if isinstance(values, dict) and values["display_name"] is None:
+        if isinstance(values, dict) and (
+            "display_name" not in values or values["display_name"] is None
+        ):
             values["display_name"] = values["user_name"]
 
         if isinstance(values, self) and self.display_name is None:

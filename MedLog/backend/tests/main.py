@@ -137,7 +137,9 @@ def run_single_test_file(
     try:
         if authorize_before:
             authorize(
-                user=ADMIN_USER_NAME, pw=ADMIN_USER_PW, set_as_global_default_login=True
+                username=ADMIN_USER_NAME,
+                pw=ADMIN_USER_PW,
+                set_as_global_default_login=True,
             )
         for name, test_function in get_test_functions_from_file_or_module(
             file_name_or_module
@@ -172,7 +174,9 @@ if __name__ == "__main__":
 
     import tests_last_interview_intakes
 
-    authorize(user=ADMIN_USER_NAME, pw=ADMIN_USER_PW, set_as_global_default_login=True)
+    authorize(
+        username=ADMIN_USER_NAME, pw=ADMIN_USER_PW, set_as_global_default_login=True
+    )
     run_single_test_file(tests_config)
     run_single_test_file(tests_health)
     run_single_test_file(tests_users)

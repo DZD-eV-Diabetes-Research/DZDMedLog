@@ -95,7 +95,7 @@ async def create_event(
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
 ) -> EventRead:
-    if not study_access.user_is_study_interviewer():
+    if not study_access.user_is_study_admin():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to create new event",

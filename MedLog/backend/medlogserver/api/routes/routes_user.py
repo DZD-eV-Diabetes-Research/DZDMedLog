@@ -184,9 +184,9 @@ async def update_myself(
     description="Set my password if i am a 'local' user. If my account was provisioned via an external OpenID Connect provider this does nothing except the return value will be `false`.",
 )
 async def set_my_password(
-    old_password: str = Form(default=None),
-    new_password: str = Form(default=None),
-    new_password_repeated: str = Form(
+    old_password: str = Body(default=None),
+    new_password: str = Body(default=None),
+    new_password_repeated: str = Body(
         default=None,
         description="For good measure we require the password twice to mitiage typos.",
     ),
@@ -252,8 +252,8 @@ async def update_user(
 )
 async def set_user_password(
     user_id: uuid.UUID,
-    new_password: str = Form(default=None),
-    new_password_repeated: str = Form(
+    new_password: str = Body(default=None),
+    new_password_repeated: str = Body(
         default=None,
         description="For good measure we require the password twice to mitigate typos.",
     ),

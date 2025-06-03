@@ -36,8 +36,8 @@ def get_medlogserver_base_url():
     return f"http://{medlogserver_config.SERVER_LISTENING_HOST}:{medlogserver_config.SERVER_LISTENING_PORT}"
 
 
-def authorize(user, pw, set_as_global_default_login: bool = False) -> str:
-    response = req("api/auth/token", "post", f={"username": user, "password": pw})
+def authorize(username, pw, set_as_global_default_login: bool = False) -> str:
+    response = req("api/auth/token", "post", f={"username": username, "password": pw})
     """response example:
     {
     "token_type": "Bearer",
@@ -267,8 +267,6 @@ def get_test_functions_from_file_or_module(
 
     # Extract all functions starting with "test_"
     # print("vars(module).items()", vars(module).items())
-    for name, func in vars(module).items():
-        print(name, type(func), func)
     test_functions = [
         (name, func)
         for name, func in vars(module).items()
@@ -322,6 +320,36 @@ def random_past_date(
     delta_days = (today - min_date).days
     random_days = random_gen.randint(0, delta_days)
     return min_date + datetime.timedelta(days=random_days)
+
+
+if TYPE_CHECKING:
+    from medlogserver.model.user import User
+
+
+def create_test_user(user_name: str, password: str, email: str) -> "User":
+    from medlogserver.model.user import UserCreate, User
+    from medlogserver.api.routes.routes_user import create_user
+
+    user_create = UserCreate(user_name=user_name, email=email)
+    user_raw = req(
+        "api/user",
+        method="post",
+        b=dictyfy(user_create),
+    )
+    user = User.model_validate(user_raw)
+    # set user password
+    req(
+        f"/api/user/{user.id}/password",
+        method="put",
+        b={"new_password": password, "new_password_repeated": password},
+    )
+    # enable user
+    req(
+        f"/api/user/{user.id}",
+        method="patch",
+        b={"deactivated": False},
+    )
+    return user
 
 
 if TYPE_CHECKING:

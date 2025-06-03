@@ -14,6 +14,7 @@ from sqlmodel import (
     SQLModel,
     UniqueConstraint,
     func,
+    and_,
 )
 from datetime import datetime
 import uuid
@@ -88,12 +89,12 @@ class StudyPermissonCRUD(
 
     async def get_by_user_and_study(
         self,
-        user_id: uuid.UUID | str,
-        study_id: uuid.UUID | str,
+        user_id: uuid.UUID,
+        study_id: uuid.UUID,
         raise_exception_if_none: Exception = None,
     ) -> Optional[StudyPermisson]:
         query = select(StudyPermisson).where(
-            StudyPermisson.id == study_id and StudyPermisson.user_id == user_id
+            and_(StudyPermisson.study_id == study_id, StudyPermisson.user_id == user_id)
         )
         results = await self.session.exec(statement=query)
         study_permission: StudyPermisson | None = results.one_or_none()
@@ -102,16 +103,27 @@ class StudyPermissonCRUD(
         return study_permission
 
     async def update_or_create_if_not_exists(
-        self, study_permission=StudyPermisson
+        self,
+        user_id: uuid.UUID,
+        study_id: uuid.UUID,
+        study_permission: StudyPermissonUpdate | StudyPermisson,
     ) -> StudyPermisson:
-        existing_study_permission: StudyPermisson = await self.list(
-            filter_study_id=study_permission.study_id,
-            filter_user_id=study_permission.user_id,
+        existing_study_permission: StudyPermisson = await self.get_by_user_and_study(
+            study_id=study_id,
+            user_id=user_id,
         )
+        log.debug(("existing_study_permission", existing_study_permission))
         if existing_study_permission:
-            for k in StudyPermissonUpdate.model_fields.keys():
-                setattr(existing_study_permission, k, getattr(study_permission, k))
+            for key, val in study_permission.model_dump(exclude_unset=True).items():
+                if key in StudyPermissonUpdate.model_fields.keys():
+                    setattr(existing_study_permission, key, val)
             study_permission = existing_study_permission
+        elif isinstance(study_permission, StudyPermissonUpdate):
+            study_permission = StudyPermisson(
+                user_id=user_id,
+                study_id=study_id,
+                **study_permission.model_dump(exclude_unset=True),
+            )
         self.session.add(study_permission)
         await self.session.commit()
         await self.session.refresh(study_permission)
