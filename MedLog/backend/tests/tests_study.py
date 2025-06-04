@@ -11,6 +11,7 @@ from utils import (
     dict_must_contain,
     create_test_study,
     TestDataContainerStudy,
+    dictyfy,
 )
 
 
@@ -43,21 +44,26 @@ def test_endpoint_study_list():
 
 def test_endpoint_study_create():
     """Test POST /api/study endpoint"""
-    study_data = {
-        "display_name": "Test Study Creation",
-        "description": "A test study for testing study creation",
-    }
 
-    # Create new study
-    new_study = req("api/study", method="post", b=study_data)
+    from medlogserver.model.study import StudyCreateAPI, Study
+    from medlogserver.api.routes.routes_study import create_study
+
+    study_name = "test_endpoint_study_create"
+    study_data = StudyCreateAPI(display_name=study_name)
+    study_response = req(
+        "api/study",
+        method="post",
+        b=dictyfy(study_data),
+    )
+    print("study_response", study_response)
 
     dict_must_contain(
-        new_study,
-        required_keys=["id", "display_name", "created_at", "deactivated"],
+        study_response,
+        required_keys=["id", "created_at"],
         required_keys_and_val={
-            "display_name": study_data["display_name"],
-            "description": study_data["description"],
             "deactivated": False,
+            "display_name": study_name,
+            "no_permissions": False,
         },
         exception_dict_identifier="create study response",
     )
@@ -66,9 +72,8 @@ def test_endpoint_study_create():
     req(
         "api/study",
         method="post",
-        b=study_data,
-        expected_http_code=400,
-        tolerated_error_codes=[400],
+        b=dictyfy(study_data),
+        expected_http_code=409,
     )
 
 
@@ -78,7 +83,6 @@ def test_endpoint_study_update():
 
     update_data = {
         "display_name": "Updated Study Name",
-        "description": "Updated study description",
     }
 
     # Update study
@@ -88,12 +92,13 @@ def test_endpoint_study_update():
 
     dict_must_contain(
         updated_study,
-        required_keys=["id", "display_name", "created_at", "deactivated"],
+        required_keys=["id", "created_at"],
         required_keys_and_val={
-            "display_name": update_data["display_name"],
-            "description": update_data["description"],
+            "deactivated": False,
+            "display_name": "Updated Study Name",
+            "no_permissions": False,
         },
-        exception_dict_identifier="update study response",
+        exception_dict_identifier="update study",
     )
 
 
@@ -106,5 +111,42 @@ def test_endpoint_study_delete():
         f"api/study/{study_data.study.id}",
         method="delete",
         expected_http_code=501,
-        tolerated_error_codes=[501],
+    )
+
+
+def test_create_duplicate_study_name():
+
+    from medlogserver.model.study import StudyCreateAPI, Study, StudyUpdate
+    from medlogserver.api.routes.routes_study import create_study
+
+    study_name = "test_create_duplicate_study_name"
+    study_data = StudyCreateAPI(display_name=study_name)
+    study_response = req(
+        "api/study",
+        method="post",
+        b=dictyfy(study_data),
+    )
+    print("study_response", study_response)
+
+    # Try duplicate study name
+    req(
+        "api/study",
+        method="post",
+        b=dictyfy(study_data),
+        expected_http_code=409,
+    )
+
+    # create new study with temp
+    new_study_with_temp_name = req(
+        "api/study",
+        method="post",
+        b=dictyfy(StudyCreateAPI(display_name=f"{study_name}_tmp")),
+    )
+
+    # Try Update study with themp name to dupplicate name
+    updated_study = req(
+        f"api/study/{new_study_with_temp_name['id']}",
+        method="patch",
+        b=dictyfy(StudyUpdate(display_name=study_name)),
+        expected_http_code=409,
     )

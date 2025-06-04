@@ -114,7 +114,7 @@ def req(
     if expected_http_code:
         assert (
             r.status_code == expected_http_code
-        ), f"Exptected http status {expected_http_code} got {r.status_code} for {log_msg_request}"
+        ), f"Exptected http status {expected_http_code} got {r.status_code} for {log_msg_request} \n {r.content}"
     else:
         try:
             r.raise_for_status()

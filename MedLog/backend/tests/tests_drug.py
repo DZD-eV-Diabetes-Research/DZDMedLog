@@ -86,7 +86,7 @@ def test_create_custom_drug_with_refs():
     custom_drug_payload = DrugCustomCreate(
         custom_drug_notes="Look mom, my custom Drug!",
         trade_name="My Custom Drug",
-        codes=[DrugCodeApi(code_system_id="PZN", code="12345678910")],
+        codes=[DrugCodeApi(code_system_id="PZN", code="34576456745")],
         attrs=[
             DrugValApiCreate(field_name="amount", value="100"),
             DrugValApiCreate(field_name="manufacturer", value="Company1"),
@@ -146,14 +146,14 @@ def test_create_custom_drug_with_refs():
     )
     dict_must_contain(
         res["codes"],
-        required_keys_and_val={"PZN": "12345678910"},
+        required_keys_and_val={"PZN": "34576456745"},
         exception_dict_identifier="create custom drug object attrs_ref",
     )
 
 
 def test_create_custom_drug_with_multi_values():
     """Test creating a custom drug with multi-value attributes"""
-    search_identifiert_flag = "SEARCHIDENTIFIERT328794623"
+    search_identifiert_flag = "SEARCHIDENTIFIER23789rgfiewsdh"
     custom_drug_payload = DrugCustomCreate(
         custom_drug_notes="Look mom, my custom Drug!",
         trade_name=f"My Custom Drug {search_identifiert_flag}",
@@ -175,14 +175,14 @@ def test_create_custom_drug_with_multi_values():
         ],
     )
 
-    res = req(
+    custom_drug_created = req(
         "api/drug/custom",
         method="post",
         b=dictyfy(custom_drug_payload),
     )
-    print("res", res)
+    print("custom_drug_created", custom_drug_created)
     dict_must_contain(
-        res,
+        custom_drug_created,
         required_keys_and_val={
             "trade_name": custom_drug_payload.trade_name,
             "custom_drug_notes": custom_drug_payload.custom_drug_notes,
@@ -193,7 +193,7 @@ def test_create_custom_drug_with_multi_values():
     )
 
     dict_must_contain(
-        res["attrs_ref"],
+        custom_drug_created["attrs_ref"],
         required_keys_and_val={
             "dispensingtype": {
                 "value": 0,
@@ -204,7 +204,7 @@ def test_create_custom_drug_with_multi_values():
         exception_dict_identifier="create custom drug object attrs_ref",
     )
     dict_must_contain(
-        res["attrs_multi_ref"],
+        custom_drug_created["attrs_multi_ref"],
         required_keys_and_val={
             "producing_country": [
                 {
@@ -222,7 +222,7 @@ def test_create_custom_drug_with_multi_values():
         exception_dict_identifier="custom drug attrs_multi_ref",
     )
     dict_must_contain(
-        res["codes"],
+        custom_drug_created["codes"],
         required_keys_and_val={"PZN": "654643534534", "ATC": None},
         exception_dict_identifier="create custom drug object attrs_ref",
     )
@@ -235,7 +235,8 @@ def test_create_custom_drug_with_multi_values():
     )
     print("drug_search_result", drug_search_result)
     drug_id_from_search = drug_search_result["items"][0]["drug_id"]
-    assert drug_id_from_search == res["id"]
+    print("drug_id_from_search", drug_id_from_search)
+    assert drug_id_from_search == custom_drug_created["id"]
 
 
 def test_endpoint_drug_search():

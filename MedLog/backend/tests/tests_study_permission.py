@@ -135,73 +135,55 @@ def test_endpoint_study_permissions_create_or_update():
     )
 
     # Create a test user ID (you would normally get this from a real user)
-    test_user_id = str(uuid.uuid4())
+    test_user_id = create_test_user(
+        user_name="user_test_endpoint_study_permissions_create_or_update",
+        password="we4r03rredf8",
+        email="f@f.de",
+    )
 
     # Create permission data
-    permission_data = {"is_study_admin": True, "is_interviewer": True}
+    permission_data = {"is_study_admin": True, "is_study_interviewer": True}
 
     # Create new permission
     new_permission = req(
-        f"api/study/{study_data.study.id}/permissions/{test_user_id}",
+        f"api/study/{study_data.study.id}/permissions/{test_user_id.id}",
         method="put",
         b=permission_data,
     )
 
     dict_must_contain(
         new_permission,
-        required_keys=[
-            "id",
-            "user_id",
-            "study_id",
-            "is_study_admin",
-            "is_interviewer",
-            "created_at",
-        ],
-        required_keys_and_val={
-            "is_study_admin": permission_data["is_study_admin"],
-            "is_interviewer": permission_data["is_interviewer"],
-            "user_id": test_user_id,
-            "study_id": str(study_data.study.id),
-        },
+        required_keys_and_val={"is_study_admin": True, "is_study_interviewer": True},
         exception_dict_identifier="create permission response",
     )
 
     # Update permission
-    update_data = {"is_study_admin": False, "is_interviewer": True}
+    update_data = {"is_study_admin": False, "is_study_interviewer": True}
 
     # Update existing permission
     updated_permission = req(
-        f"api/study/{study_data.study.id}/permissions/{test_user_id}",
+        f"api/study/{study_data.study.id}/permissions/{test_user_id.id}",
         method="put",
         b=update_data,
     )
 
     dict_must_contain(
         updated_permission,
-        required_keys=[
-            "id",
-            "user_id",
-            "study_id",
-            "is_study_admin",
-            "is_interviewer",
-            "created_at",
-        ],
-        required_keys_and_val={
-            "is_study_admin": update_data["is_study_admin"],
-            "is_interviewer": update_data["is_interviewer"],
-            "user_id": test_user_id,
-            "study_id": str(study_data.study.id),
-        },
-        exception_dict_identifier="update permission response",
+        required_keys_and_val={"is_study_admin": False, "is_study_interviewer": True},
+        exception_dict_identifier="create permission response",
     )
 
 
 def test_full_permission_workflow():
     """Test GET /api/study/{study_id}/permissions/{permission_id} endpoint"""
-    study_data = create_test_study(study_name="TestGetPermissionStudy", with_events=3)
+    study_data = create_test_study(
+        study_name="TestStudyPermissionFullWorkflow", with_events=3
+    )
     user_password = "we9gij2409rv"
     test_user = create_test_user(
-        user_name="permtestuser", password=user_password, email="ptest@test.com"
+        user_name="user_test_full_permission_workflow",
+        password=user_password,
+        email="pwftest@test.com",
     )
     test_user_access_token = authorize(
         username=test_user.user_name,

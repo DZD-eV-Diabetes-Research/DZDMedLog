@@ -167,9 +167,11 @@ if __name__ == "__main__":
     import tests_event
     import tests_users
     import tests_export
-    import tests_drug
+    import tests_study
+    import tests_study_permission
     import tests_health
     import tests_interview
+    import tests_drug
     import tests_intake
 
     import tests_last_interview_intakes
@@ -180,12 +182,14 @@ if __name__ == "__main__":
     run_single_test_file(tests_config)
     run_single_test_file(tests_health)
     run_single_test_file(tests_users)
+    run_single_test_file(tests_study)
     run_single_test_file(tests_event)
-    run_single_test_file(tests_export)
-    run_single_test_file(tests_drug)
     run_single_test_file(tests_interview)
     run_single_test_file(tests_intake)
     run_single_test_file(tests_last_interview_intakes)
+    run_single_test_file(tests_study_permission)
+    run_single_test_file(tests_export)
+    run_single_test_file(tests_drug)
 
     # last_interview_intakes()
     # test_do_health()

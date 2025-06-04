@@ -496,7 +496,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         query = query.order_by(GenericSQLDrugSearchCache.is_custom_drug)
         query = query.order_by(desc("score"))
 
-        log.debug(f"DRUG SEARCH QUERY: {query}")
+        # log.debug(f"DRUG SEARCH QUERY: {query}")
         async with get_async_session_context() as session:
             search_res = await session.exec(query)
             drug_ids_with_score = search_res.all()
