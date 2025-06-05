@@ -23,37 +23,26 @@ from medlogserver.model.event import (
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.db.interview import Interview
 from medlogserver.api.paginator import QueryParamsInterface
-
+from medlogserver.db._base_crud import CRUDBase
 
 log = get_logger()
 config = Config()
 
 
-class EventCRUD(
-    create_crud_base(
-        table_model=Event,
-        read_model=EventRead,
-        create_model=EventCreate,
-        update_model=EventUpdate,
-    )
-):
+class EventCRUD(create_crud_base(Event, EventRead, EventCreate, EventUpdate)):
     async def count(
         self,
         filter_study_id: uuid.UUID | str = None,
-        hide_completed: bool = False,
     ) -> int:
         query = select(func.count()).select_from(Event)
         if filter_study_id:
             query = query.where(Event.study_id == filter_study_id)
-        if hide_completed:
-            query = query.where(Event.completed == True)
         results = await self.session.exec(statement=query)
         return results.first()
 
     async def list(
         self,
         filter_study_id: UUID = None,
-        hide_completed: bool = False,
         pagination: QueryParamsInterface = None,
     ) -> Sequence[Event]:
         if isinstance(filter_study_id, str):
@@ -62,8 +51,6 @@ class EventCRUD(
         query = select(Event)
         if filter_study_id:
             query = query.where(Event.study_id == filter_study_id)
-        if hide_completed:
-            query = query.where(Event.completed == True)
         if pagination:
             query = pagination.append_to_query(query)
         # log.debug(f"List Event query: {query}")
@@ -75,22 +62,17 @@ class EventCRUD(
         proband_id: str = None,
         exlude_empty_events: bool = False,
         filter_study_id: UUID = None,
-        hide_completed: bool = False,
         pagination: QueryParamsInterface = None,
     ) -> Sequence[EventReadPerProband]:
         """List all events that a proband participated"""
-        if isinstance(filter_study_id, str):
-            filter_study_id: UUID = UUID(filter_study_id)
         query = (
-            select(Event, func.count(Event.id))
+            select(Event, func.count(col(Interview.id)))
             .join(Interview)
             .where(Interview.proband_external_id == proband_id)
         )
 
         if filter_study_id:
             query = query.where(Event.study_id == filter_study_id)
-        if hide_completed:
-            query = query.where(Event.completed == True)
         if pagination:
             query = pagination.append_to_query(query)
         query = query.group_by(Event)
@@ -100,8 +82,8 @@ class EventCRUD(
         event_obj_with_proband_count: List[Tuple[Event, int]] = query_result.all()
         if not exlude_empty_events:
             #  we need to include event with no interview for this proband
-            all_study_events: List[Event] = await self.list(
-                filter_study_id=filter_study_id, hide_completed=hide_completed
+            all_study_events: Sequence[Event] = await self.list(
+                filter_study_id=filter_study_id
             )
             for event in all_study_events:
                 if event not in [res[0] for res in event_obj_with_proband_count]:

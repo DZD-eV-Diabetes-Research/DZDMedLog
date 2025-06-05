@@ -1,7 +1,8 @@
 from typing import Optional
 import datetime
-from pydantic import Field, field_validator, ValidationInfo
+from pydantic import field_validator, ValidationInfo
 from sqlalchemy import text
+from sqlmodel import Field
 import uuid
 
 
@@ -45,11 +46,14 @@ class UUIDModel(SQLModel):
 """
 
 
+get_now_datetime_witout_timezone = lambda: datetime.datetime.now(
+    tz=datetime.timezone.utc
+).replace(tzinfo=None)
+
+
 class TimestampModel(SQLModel):
     created_at: datetime.datetime = Field(
-        default_factory=lambda: datetime.datetime.now(tz=datetime.timezone.utc).replace(
-            tzinfo=None
-        ),
+        default_factory=get_now_datetime_witout_timezone,
         nullable=False,
     )
 

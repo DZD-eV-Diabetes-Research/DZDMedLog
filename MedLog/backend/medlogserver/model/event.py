@@ -14,12 +14,12 @@ from sqlmodel import Field, UniqueConstraint
 import uuid
 from uuid import UUID
 
-from medlogserver.config import Config
+from medlogserver.config import Config as AppConfig
 from medlogserver.log import get_logger
 from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 
 log = get_logger()
-config = Config()
+config = AppConfig()
 
 
 _name_annotation = Annotated[
@@ -38,28 +38,22 @@ _name_field = Field(
 )
 
 
-class EventCreateAPI(MedLogBaseModel, table=False):
-    name: _name_annotation = _name_field
+class EventBase(MedLogBaseModel, table=False):
     order_position: Optional[int] = Field(
         default=None,
         description="A ranked value to sort this event if its contained in list of events. If not provided, it will default to highest sort order compared to existing events in this study.",
     )
 
 
-class EventUpdate(EventCreateAPI, table=False):
-    name: Optional[_name_annotation] = _name_field
-    completed: Optional[bool] = Field(
-        default=False,
-        description="DEPRECATED: This field is deprecated. A Event is now 'completed' on a per-proband basis, when the event has an interview existing for a proband it is completed for this proband.",
-        schema_extra={
-            "deprecated": True,
-        },
-    )
-
-
-class EventCreate(EventUpdate, table=False):
+class EventCreateAPI(EventBase, table=False):
     name: _name_annotation = _name_field
 
+
+class EventUpdate(EventBase, table=False):
+    name: Optional[_name_annotation] = _name_field
+
+
+class EventCreate(EventCreateAPI, TimestampModel, table=False):
     study_id: UUID = Field(foreign_key="study.id")
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4)
 
@@ -69,7 +63,7 @@ class EventCreate(EventUpdate, table=False):
         return MedLogBaseModel.id_to_uuid(v, info)
 
 
-class EventRead(EventCreate, BaseTable, TimestampModel, table=False):
+class EventRead(EventCreate, table=False):
     id: uuid.UUID = Field()
 
 
@@ -101,5 +95,4 @@ class Event(EventRead, table=True):
 
 class EventExport(EventRead, table=False):
     created_at: datetime.datetime = Field(exclude=True)
-    completed: bool = Field(exclude=True)
     study_id: UUID = Field(exclude=True)
