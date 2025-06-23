@@ -13,6 +13,7 @@ export default defineNuxtConfig({
     '@pinia-plugin-persistedstate/nuxt',
     "@nuxt/ui",
     "dayjs-nuxt",
+    "@nuxt/test-utils/module"
   ],
 
   piniaPersistedstate: {
