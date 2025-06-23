@@ -34,6 +34,10 @@ import threading
 import csv
 import io
 
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
+import re
+
 
 def to_path(
     *args: str | Path | PurePath | List[str | Path | PurePath],
@@ -348,3 +352,74 @@ def run_async_sync(awaitable) -> Any:
     if "exception" in result_container:
         raise result_container["exception"]
     return result_container["result"]
+
+
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
+import re
+
+
+def handle_integrity_error(e: Exception, reraise_others: bool = True) -> None:
+    """
+    Raise HTTP 409 Conflict for unique constraint violations.
+    Optionally reraise non-integrity errors as-is.
+    """
+    if not isinstance(e, IntegrityError):
+        if reraise_others:
+            raise e
+        return
+
+    msg = str(e.orig).lower()
+
+    # Check for unique constraint patterns
+    unique_patterns = [
+        "unique constraint",
+        "duplicate key value violates unique constraint",
+    ]
+
+    if not any(pattern in msg for pattern in unique_patterns):
+        if reraise_others:
+            raise e
+        return
+
+    table, field = _extract_table_and_field_name_from_db_unqiue_constraint_error(e)
+    if table and field:
+        detail = f"Duplicate value for field '{field}' in table '{table}'"
+    elif field:
+        detail = f"Duplicate value for field '{field}'"
+    else:
+        detail = "Duplicate value violates unique constraint"
+
+    raise HTTPException(status_code=409, detail=detail)
+
+
+def _extract_table_and_field_name_from_db_unqiue_constraint_error(
+    e: IntegrityError,
+) -> tuple[str | None, str | None]:
+    """Extract table and column name from IntegrityError message.
+
+    Returns:
+        tuple: (table_name, column_name) or (None, None) if extraction fails
+    """
+    msg = str(e.orig)
+
+    # PostgreSQL: duplicate key value violates unique constraint "studies_name_key"
+    if match := re.search(r'unique constraint "([^"]+)"', msg):
+        constraint = match.group(1)
+        # Extract table name (prefix before first underscore)
+        parts = constraint.split("_")
+        if len(parts) >= 2:
+            table = parts[0]
+            field = constraint.replace("_key", "").split("_")[-1]
+            return table, field
+        return None, constraint.replace("_key", "")
+
+    # SQLite: UNIQUE constraint failed: studies.name
+    if match := re.search(r"unique constraint failed: ([\w\.]+)", msg.lower()):
+        full_column = match.group(1)
+        if "." in full_column:
+            table, field = full_column.split(".", 1)
+            return table, field
+        return None, full_column
+
+    return None, None

@@ -10,7 +10,7 @@ import inspect
 from pathlib import Path
 import csv
 import io
-
+import pathlib
 from medlogserver.config import Config
 
 import importlib.util
@@ -36,8 +36,8 @@ def get_medlogserver_base_url():
     return f"http://{medlogserver_config.SERVER_LISTENING_HOST}:{medlogserver_config.SERVER_LISTENING_PORT}"
 
 
-def authorize(user, pw):
-    response = req("api/auth/token", "post", f={"username": user, "password": pw})
+def authorize(username, pw, set_as_global_default_login: bool = False) -> str:
+    response = req("api/auth/token", "post", f={"username": username, "password": pw})
     """response example:
     {
     "token_type": "Bearer",
@@ -49,7 +49,9 @@ def authorize(user, pw):
     "refresh_token_expires_at": 1723028061
     }
     """
-    os.environ[MEDLOG_ACCESS_TOKEN_ENV_NAME] = response["access_token"]
+    if set_as_global_default_login:
+        os.environ[MEDLOG_ACCESS_TOKEN_ENV_NAME] = response["access_token"]
+    return response["access_token"]
 
 
 def req(
@@ -62,6 +64,7 @@ def req(
     suppress_auth: bool = False,
     tolerated_error_codes: List[int] = None,
     tolerated_error_body: List[Dict | str] = None,
+    access_token: str = None,
 ) -> Dict | str:
     if tolerated_error_codes is None:
         tolerated_error_codes = []
@@ -87,7 +90,7 @@ def req(
     http_method_func_params["url"] = url
 
     # auth
-    access_token = get_access_token()
+    access_token = access_token if access_token is not None else get_access_token()
     http_method_func_headers_print = None
     if access_token and not suppress_auth:
         http_method_func_headers_print = http_method_func_headers.copy()
@@ -111,7 +114,7 @@ def req(
     if expected_http_code:
         assert (
             r.status_code == expected_http_code
-        ), f"Exptected http status {expected_http_code} got {r.status_code} for {log_msg_request}"
+        ), f"Exptected http status {expected_http_code} got {r.status_code} for {log_msg_request} \n {r.content}"
     else:
         try:
             r.raise_for_status()
@@ -121,7 +124,7 @@ def req(
                     body = r.json()
                 except requests.exceptions.JSONDecodeError:
                     body = r.content
-                if not body in tolerated_error_body:
+                if body != tolerated_error_body:
                     if body:
                         print("Error body: ", body)
                     raise err
@@ -264,8 +267,6 @@ def get_test_functions_from_file_or_module(
 
     # Extract all functions starting with "test_"
     # print("vars(module).items()", vars(module).items())
-    for name, func in vars(module).items():
-        print(name, type(func), func)
     test_functions = [
         (name, func)
         for name, func in vars(module).items()
@@ -319,6 +320,36 @@ def random_past_date(
     delta_days = (today - min_date).days
     random_days = random_gen.randint(0, delta_days)
     return min_date + datetime.timedelta(days=random_days)
+
+
+if TYPE_CHECKING:
+    from medlogserver.model.user import User
+
+
+def create_test_user(user_name: str, password: str, email: str) -> "User":
+    from medlogserver.model.user import UserCreate, User
+    from medlogserver.api.routes.routes_user import create_user
+
+    user_create = UserCreate(user_name=user_name, email=email)
+    user_raw = req(
+        "api/user",
+        method="post",
+        b=dictyfy(user_create),
+    )
+    user = User.model_validate(user_raw)
+    # set user password
+    req(
+        f"/api/user/{user.id}/password",
+        method="put",
+        b={"new_password": password, "new_password_repeated": password},
+    )
+    # enable user
+    req(
+        f"/api/user/{user.id}",
+        method="patch",
+        b={"deactivated": False},
+    )
+    return user
 
 
 if TYPE_CHECKING:
@@ -523,3 +554,26 @@ def is_valid_csv_with_rows(
     except Exception:
         print(f"Failed parsing CSV.")
         return False
+
+
+def import_test_modules(from_dir: pathlib.Path) -> List[types.ModuleType]:
+    """
+    Imports all Python modules in the current directory whose names start with 'tests_'.
+
+    Returns:
+        A list of imported modules as instances of types.ModuleType.
+    """
+    modules: List[types.ModuleType] = []
+
+    for py_file in from_dir.glob("tests_*.py"):
+        module_name: str = py_file.stem
+        module_spec: importlib.machinery.ModuleSpec | None = (
+            importlib.util.spec_from_file_location(module_name, py_file)
+        )
+
+        if module_spec and module_spec.loader:
+            module: types.ModuleType = importlib.util.module_from_spec(module_spec)
+            module_spec.loader.exec_module(module)
+            modules.append(module)
+
+    return modules

@@ -13,7 +13,7 @@ from fastapi import (
     Path,
     Response,
 )
-
+import uuid
 from typing import Annotated
 
 from fastapi import Depends, APIRouter
@@ -44,7 +44,10 @@ from medlogserver.db.study_permission import StudyPermissonCRUD
 from medlogserver.api.study_access import (
     user_has_studies_access_map,
     UserStudyAccessCollection,
+    UserStudyAccess,
+    user_has_study_access,
 )
+from medlogserver.utils import handle_integrity_error
 
 from medlogserver.config import Config
 
@@ -111,7 +114,7 @@ async def create_study(
     return await study_crud.create(
         study_create,
         raise_custom_exception_if_exists=HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
             detail=f"Study with name '{study.display_name}' allready exists",
         ),
     )
@@ -123,34 +126,24 @@ async def create_study(
     description=f"Update existing study",
 )
 async def update_study(
-    study_id: Annotated[str, Path()],
+    study_id: Annotated[uuid.UUID, Path()],
     study: Annotated[
         StudyUpdate, Body(description="The study object with updated data")
     ],
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
     study_permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
+    study_access: UserStudyAccess = Security(user_has_study_access),
     current_user: User = Security(get_current_user),
 ) -> Study:
-    # security
-    not_allowed_error = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail=f"You are not allowed to update this study",
-    )
-    passed_security_check: bool = False
-    if config.ADMIN_ROLE_NAME in current_user.roles:
-        passed_security_check = True
-    else:
-        perm: StudyPermisson = await study_permission_crud.get_by_user_and_study(
-            study_id=study_id,
-            user_id=current_user.id,
-            raise_exception_if_none=not_allowed_error,
+    if not study_access.user_is_study_admin():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"You are not allowed to update this study",
         )
-        if perm.is_study_admin:
-            passed_security_check = True
-    if not passed_security_check:
-        raise not_allowed_error
-    # creation
-    return await study_crud.create(study)
+    try:
+        return await study_crud.update(id_=study_id, update_obj=study)
+    except Exception as e:
+        handle_integrity_error(e)
 
 
 @fast_api_study_router.delete(

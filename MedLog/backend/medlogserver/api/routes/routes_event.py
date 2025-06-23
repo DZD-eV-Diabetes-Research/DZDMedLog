@@ -64,20 +64,17 @@ EventQueryParams: Type[QueryParamsInterface] = create_query_params_class(
     description=f"List all events of a study.",
 )
 async def list_events(
-    hide_completed: bool = Query(False),
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
     pagination: QueryParamsInterface = Depends(EventQueryParams),
 ) -> PaginatedResponse[EventRead]:
     result_items = await event_crud.list(
         filter_study_id=study_access.study.id,
-        hide_completed=hide_completed,
         pagination=pagination,
     )
     return PaginatedResponse(
         total_count=await event_crud.count(
             filter_study_id=study_access.study.id,
-            hide_completed=hide_completed,
         ),
         offset=pagination.offset,
         count=len(result_items),
@@ -95,7 +92,7 @@ async def create_event(
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
 ) -> EventRead:
-    if not study_access.user_is_study_interviewer():
+    if not study_access.user_is_study_admin():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to create new event",
@@ -136,8 +133,8 @@ async def update_event(
             detail="Not authorized to update event",
         )
     return await event_crud.update(
-        event_id=event_id,
-        event=event,
+        id_=event_id,
+        update_obj=event,
         raise_exception_if_not_exists=HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"No study with id '{event_id}'",
@@ -187,7 +184,7 @@ async def delete_event(
     description=f"This endpoint accepts a list of event objects or IDs and assigns a sequential integer to each event's order_position attribute based on their order in the input list. The first event in the list will be assigned `order_position`: `10`, the second event will be assigned  `order_position`: `20`, and so on.",
 )
 async def reorder_events(
-    events: List[EventRead | Event | uuid.UUID],
+    events: List[EventRead | Event | uuid.UUID | str],
     reverse: bool = Query(
         False, description="Reorder events in the reversed order as given"
     ),

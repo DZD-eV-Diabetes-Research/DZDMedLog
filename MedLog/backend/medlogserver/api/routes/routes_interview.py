@@ -199,7 +199,7 @@ async def create_interview(
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            details="User not authorized to create interview in this study",
+            detail="User not authorized to create interview in this study",
         )
     event: Event = await event_crud.get(
         event_id,

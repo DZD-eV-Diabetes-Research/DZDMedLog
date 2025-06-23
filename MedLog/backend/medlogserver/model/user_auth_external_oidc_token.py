@@ -120,8 +120,8 @@ class UserAuthExternalOIDCTokenCRUD:
             UserAuthExternalOIDCToken.oauth_token == oidc_token.oauth_token
         )
         results = await self.session.exec(statement=query)
-        existing_oidc_token: UserAuthExternalOIDCToken = results.one_or_none()
-        if existing_oidc_token and not exists_ok:
+        existing_oidc_token: UserAuthExternalOIDCToken | None = results.one_or_none()
+        if existing_oidc_token is not None and not exists_ok:
             raise ValueError(f"Token allready exists (id:'{existing_oidc_token.id}')")
         elif existing_oidc_token and exists_ok:
             return existing_oidc_token

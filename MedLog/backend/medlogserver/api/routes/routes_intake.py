@@ -331,7 +331,7 @@ async def list_all_intakes_of_last_uncompleted_interview(
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> List[Intake]:
+) -> Sequence[Intake] | Response:
     last_uncompleted_interview = await interview_crud.get_last_by_proband(
         study_id=study_access.study.id, proband_external_id=proband_id, completed=False
     )

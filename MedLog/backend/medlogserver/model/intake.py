@@ -79,7 +79,49 @@ class SourceOfDrugInformationAnwers(str, enum.Enum):
     FOLLOW_UP_DRUG_NAME = "Follow up via phone/message: Medication name"
 
 
-class IntakeCreateAPI(MedLogBaseModel, table=False):
+class IntakeUpdate(MedLogBaseModel, table=False):
+    source_of_drug_information: Optional[SourceOfDrugInformationAnwers] = Field(
+        default=None,
+        description="How was the drug/medication identified.",
+    )
+    intake_start_time_utc: Optional[date] = Field(
+        default=None,
+    )
+    intake_end_time_utc: Optional[date] = Field(default=None)
+    administered_by_doctor: Optional[AdministeredByDoctorAnswers] = Field(default=None)
+    intake_regular_or_as_needed: Optional[IntakeRegularOrAsNeededAnswers] = Field(
+        default=None,
+        description="If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version",
+    )
+    dose_per_day: Optional[int] = Field(default=None)
+    regular_intervall_of_daily_dose: Optional[IntervalOfDailyDoseAnswers] = Field(
+        default=None
+    )
+    as_needed_dose_unit: Optional[int] = Field(
+        default=None,
+    )
+    consumed_meds_today: Optional[ConsumedMedsTodayAnswers] = Field(
+        default=None,
+    )
+
+    @model_validator(mode="after")
+    def validate_intake_regular_or_as_needed(self):
+        if self.intake_regular_or_as_needed == IntakeRegularOrAsNeededAnswers.REGULAR:
+            if self.as_needed_dose_unit is not None:
+                raise ValueError(
+                    "When choosing regular intake, as_needed_dose_unit must be empty"
+                )
+        elif (
+            self.intake_regular_or_as_needed == IntakeRegularOrAsNeededAnswers.ASNEEDED
+        ):
+            if self.regular_intervall_of_daily_dose is not None:
+                raise ValueError(
+                    "When choosing 'as needed' intake, regular_intervall_of_daily_dose must be empty"
+                )
+        return self
+
+
+class IntakeCreateAPI(IntakeUpdate, table=False):
     """This class/table also saves some extra question for every interview. This is 1-to-1 what the old IDOM software did. and its a mess.
     i fucking hate it. its unflexible, complex and ugly!
     for a future version we need an extra class/table to store extra question on a per study base.
@@ -108,26 +150,6 @@ class IntakeCreateAPI(MedLogBaseModel, table=False):
     )
     as_needed_dose_unit: Optional[int] = Field()
     consumed_meds_today: ConsumedMedsTodayAnswers = Field()
-
-    @model_validator(mode="after")
-    def validate_intake_regular_or_as_needed(self):
-        if self.intake_regular_or_as_needed == IntakeRegularOrAsNeededAnswers.REGULAR:
-            if self.as_needed_dose_unit is not None:
-                raise ValueError(
-                    "When choosing regular intake, as_needed_dose_unit must be empty"
-                )
-        elif (
-            self.intake_regular_or_as_needed == IntakeRegularOrAsNeededAnswers.ASNEEDED
-        ):
-            if self.regular_intervall_of_daily_dose is not None:
-                raise ValueError(
-                    "When choosing 'as needed' intake, regular_intervall_of_daily_dose must be empty"
-                )
-        return self
-
-
-class IntakeUpdate(IntakeCreateAPI, table=False):
-    pass
 
 
 class IntakeCreate(IntakeCreateAPI, table=False):

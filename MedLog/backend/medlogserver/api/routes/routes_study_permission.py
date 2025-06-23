@@ -118,5 +118,7 @@ async def create_or_update_permission(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not allowed to manage study permissions",
         )
-    perm = StudyPermisson(user_id=user_id, study_id=study_access.study.id, **study_perm)
-    return await permission_crud.update_or_create_if_not_exists(perm)
+
+    return await permission_crud.update_or_create_if_not_exists(
+        user_id=user_id, study_id=study_access.study.id, study_permission=study_perm
+    )

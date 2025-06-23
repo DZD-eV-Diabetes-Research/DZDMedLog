@@ -1,4 +1,12 @@
-from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated
+from typing import (
+    AsyncGenerator,
+    List,
+    Optional,
+    Literal,
+    Sequence,
+    Annotated,
+    overload,
+)
 from pydantic import validate_email, validator, StringConstraints, model_validator
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -51,6 +59,22 @@ class UserCRUD(
             query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)
         return results.all()
+
+    @overload
+    async def get(
+        self,
+        user_id: str | UUID,
+        show_deactivated: bool = False,
+        raise_exception_if_none: None = None,
+    ) -> Optional[User]: ...
+
+    @overload
+    async def get(
+        self,
+        user_id: str | UUID,
+        show_deactivated: bool = False,
+        raise_exception_if_none: Exception = ...,
+    ) -> User: ...
 
     async def get(
         self,

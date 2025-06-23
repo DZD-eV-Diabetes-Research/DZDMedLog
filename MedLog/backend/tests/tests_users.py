@@ -11,6 +11,9 @@ from utils import (
     dict_must_contain,
     list_contains_dict_that_must_contain,
     find_first_dict_in_list,
+    create_test_user,
+    dictyfy,
+    authorize,
 )
 from statics import ADMIN_USER_EMAIL, ADMIN_USER_NAME, TEST_USER_NAME, TEST_USER_PW
 
@@ -90,13 +93,32 @@ def test_user_list_with_active_only():
 
 
 def test_set_other_user_password_as_admin():
-    from medlogserver.api.routes.routes_user import set_user_password
+    from medlogserver.model.user import UserCreate, User
+    from medlogserver.api.routes.routes_user import create_user
 
-    res = req(
-        f"api/user/{Helper.get_user_id_by_username(TEST_USER_NAME)['id']}/password",
-        method="put",
-        f={"new_password": TEST_USER_PW, "new_password_repeated": TEST_USER_PW},
+    user_name = "test_set_other_user_password_as_admin"
+    password = "rwes79i3qwehkfbdsjh"
+    user_create = UserCreate(
+        user_name=user_name, email="test_set_other_user_password_as_admin@t.com"
     )
+    user_raw = req(
+        "api/user",
+        method="post",
+        b=dictyfy(user_create),
+    )
+
+    user = User.model_validate(user_raw)
+    # set user password
+    req(
+        f"/api/user/{user.id}/password",
+        method="put",
+        b={"new_password": password, "new_password_repeated": password},
+    )
+    access_token = authorize(user_name, pw=password, set_as_global_default_login=False)
+    print("access_token", access_token)
+    assert access_token != ""
+    assert access_token is not None
+    assert " " not in access_token
 
 
 # def run_all_tests_users():

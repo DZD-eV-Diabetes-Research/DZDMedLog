@@ -1,5 +1,5 @@
 # Basics
-from typing import AsyncGenerator, List, Optional, Literal, Sequence
+from typing import AsyncGenerator, List, Optional, Literal, Sequence, overload
 
 # Libs
 import enum
@@ -120,14 +120,26 @@ class UserAuthCRUD(
             raise raise_exception_if_none
         return user_auth
 
+    @overload
     async def get_local_auth_source_by_user_name(
-        self, user_name: str, raise_exception_if_none: Exception = None
-    ) -> UserAuth | None:
+        self, user_name: str, raise_exception_if_none: None = None
+    ) -> Optional[UserAuth]: ...
+
+    @overload
+    async def get_local_auth_source_by_user_name(
+        self, user_name: str, raise_exception_if_none: Exception = ...
+    ) -> UserAuth: ...
+
+    async def get_local_auth_source_by_user_name(
+        self, user_name: str, raise_exception_if_none: Optional[Exception] = None
+    ) -> Optional[UserAuth]:
         query = select(User).where(User.user_name == user_name)
         results = await self.session.exec(statement=query)
         user: User | None = results.one_or_none()
-        if not user and raise_exception_if_none:
-            raise raise_exception_if_none
+        if user is None:
+            if raise_exception_if_none:
+                raise raise_exception_if_none
+            return None
         return await self.get_local_auth_source_by_user_id(user.id)
 
     async def create(
