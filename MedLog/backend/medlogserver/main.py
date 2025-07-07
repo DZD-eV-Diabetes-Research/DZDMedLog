@@ -103,6 +103,9 @@ def start():
     event_loop = asyncio.get_event_loop()
     from medlogserver.app import fast_api_app_container
 
+    fast_api_app_container.dump_open_api_specification(
+        Path(Path(__file__).parent, "../../openapi.json")
+    )
     uvicorn_config = uvicorn.Config(
         app=fast_api_app_container.app,
         host=config.SERVER_LISTENING_HOST,
