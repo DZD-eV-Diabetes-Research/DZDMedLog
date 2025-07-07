@@ -14,6 +14,7 @@ export default defineNuxtConfig({
     "@nuxt/ui",
     "dayjs-nuxt",
     "@nuxt/test-utils/module"
+    "nuxt-open-fetch"
   ],
 
   piniaPersistedstate: {
@@ -46,9 +47,40 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       baseURL: process.env.BASE_URL || '/api/',
+      openFetch: {
+        checkapi: {
+          schema: "../openapi.json",
+          baseURL: "/api",
+        },
+      },
     },
   },
-
+  openFetch: {
+    disableNuxtPlugin: true,
+    clients: {
+      checkapi: {
+        schema: "../openapi.json",
+        baseURL: "/api",
+      },
+    },
+  },
+  nitro: {
+    devProxy: {
+      "/api": {
+        target: "http://localhost:8888/api",
+        changeOrigin: true,
+        headers: {
+          Host: "localhost:3000",
+        },
+      },
+      "/docs": {
+        target: "http://localhost:8888/docs",
+      },
+      "/openapi.json": {
+        target: "http://localhost:8888/openapi.json",
+      },
+    },
+  },
     ssr: false,
     compatibilityDate: '2024-08-29',
   })
