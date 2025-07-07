@@ -1,4 +1,7 @@
+//Store to handle the Tokens and the login-logic both via password and openIDConnect
+
 import { defineStore } from 'pinia'
+import { useUserStore } from './userStore' 
 
 interface TokenState {
   access_token: string
@@ -11,7 +14,6 @@ interface TokenState {
 }
 
 export const useTokenStore = defineStore('TokenStore', {
-  id: "token-store",
   state: (): TokenState => ({
 
     access_token: "",
@@ -24,7 +26,7 @@ export const useTokenStore = defineStore('TokenStore', {
   }),
   actions: {
 
-    async login(username, password, event: FormSubmitEvent<Schema>) {
+    async login(username, password) {
       const { $api } = useNuxtApp();
       const userStore = useUserStore();
       const body = new FormData()

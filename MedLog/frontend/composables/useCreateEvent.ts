@@ -1,3 +1,5 @@
+// Simple function to createa an event
+
 export async function useCreateEvent(name: string, study_id:string): Promise<void>{
     const tokenStore = useTokenStore()
     const { $api } = useNuxtApp();
@@ -8,7 +10,7 @@ export async function useCreateEvent(name: string, study_id:string): Promise<voi
     
     try {        
         const runtimeConfig = useRuntimeConfig()
-        const data = await $api(runtimeConfig.public.baseURL + "study/" + study_id + "/event", {
+        await $api(runtimeConfig.public.baseURL + "study/" + study_id + "/event", {
             method: "POST",
             body,
         })      

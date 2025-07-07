@@ -26,8 +26,4 @@ async function showStudies() {
     router.push({ path: "/studies" })
 }
 
-// async function searchMedicaments(url:string) {
-//     router.push({path: "/search"})
-// }
-
 </script>

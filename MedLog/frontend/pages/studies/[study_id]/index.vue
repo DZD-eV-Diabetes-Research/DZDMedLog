@@ -43,8 +43,7 @@
 
 <script setup lang="ts">
 
-import { boolean, number, object, string, type InferType } from "yup";
-import { computed } from "vue";
+import {  object, string } from "yup";
 
 const enabled = ref(false);
 const dragging = ref(false);
@@ -52,7 +51,6 @@ const { $api } = useNuxtApp();
 
 
 const studyStore = useStudyStore();
-const tokenStore = useTokenStore();
 const userStore = useUserStore();
 const runtimeConfig = useRuntimeConfig();
 const route = useRoute();
@@ -124,7 +122,6 @@ async function createEvent() {
       }
     );
     showEventModal.value = false;
-    // refresh()
     getEvents()
   } catch (error) {    
     errorMessage.value = error.response._data.detail;

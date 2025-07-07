@@ -1,3 +1,6 @@
+<!-- This component deals with the user-management that can be found under the help button in the 
+top right corner and then the cogwheel.  -->
+
 <template>
     <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
         <template #header>
@@ -6,7 +9,6 @@
                 <h3 class="text-center text-xl">Userverwaltung</h3>
             </div>
         </template>
-
         <div v-if="mappedUsers">
             <UTable v-model:expand="expand" :rows="mappedUsers" :columns="columns">
 
@@ -58,12 +60,12 @@
 </template>
 
 <script setup lang="ts">
-const tokenStore = useTokenStore();
 const runtimeConfig = useRuntimeConfig();
 const { $api } = useNuxtApp();
 
+// Api calls
 
-const { status, data: users, refresh } = useAPI(`${runtimeConfig.public.baseURL}user`, {
+const { data: users, refresh } = useAPI(`${runtimeConfig.public.baseURL}user`, {
     method: "GET",
 })
 
@@ -71,7 +73,9 @@ const { data: roles } = useAPI(`${runtimeConfig.public.baseURL}role`, {
     method: "GET",
 })
 
+// Template preparation
 
+// Here we alter the user array to a new form (mappedUsers) to visualize them in the template
 const mappedUsers = computed(() => {
     if (!users.value) return [];
     return users.value.items.map(user => ({
@@ -100,7 +104,27 @@ const columns = [{
     key: 'actions'
 }]
 
+const expand = ref({
+    openedRows: [],
+    row: {}
+})
+
 const currentUser = ref()
+
+function isRowExpanded(row: any) {
+    return expand.value.openedRows.some((r) => r.id === row.id)
+}
+
+function handleToggle(row: any) {
+    currentUser.value = row
+    const alreadyOpen = isRowExpanded(row)
+    expand.value.openedRows = alreadyOpen ? [] : [row]
+    selectedRolesPerUser.value[row.id] = [...row.roles]
+}
+
+const selectedRolesPerUser = ref<Record<string, string[]>>({})
+
+// Update users to the backend
 
 const patchUser = async function (id: string) {
     try {
@@ -119,23 +143,4 @@ const patchUser = async function (id: string) {
 
     }
 }
-
-const expand = ref({
-    openedRows: [],
-    row: {}
-})
-
-function isRowExpanded(row: any) {
-    return expand.value.openedRows.some((r) => r.id === row.id)
-}
-
-function handleToggle(row: any) {
-    currentUser.value = row
-    const alreadyOpen = isRowExpanded(row)
-    expand.value.openedRows = alreadyOpen ? [] : [row]
-    selectedRolesPerUser.value[row.id] = [...row.roles]
-}
-
-const selectedRolesPerUser = ref<Record<string, string[]>>({})
-
 </script>

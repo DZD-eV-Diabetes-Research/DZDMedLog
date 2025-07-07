@@ -129,6 +129,8 @@ async function downloadFile(row) {
   }
 }
 
+// 1. The request is sent to the backend
+
 async function requestDownload() {
   try {
     await $api(
@@ -144,6 +146,8 @@ async function requestDownload() {
     console.log(error);
   }
 }
+
+// 2. This checks if the backend is done and while it is not it pings the backened every 5 seconds vis the listDownloads function
 
 function startDownloadCheck() {
   if (!downloadCheckInterval) {

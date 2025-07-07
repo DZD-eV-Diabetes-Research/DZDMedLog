@@ -56,6 +56,9 @@
           style="margin: 25px" />
       </div>
     </div>
+
+    <!-- MODALS -->
+    
     <UModal v-model="deleteModalVisibility">
       <div class="p-4">
         <div style="text-align: center">
@@ -64,10 +67,6 @@
           <h4>{{ drugToDelete.drug }}</h4>
           <br />
           <UForm :state="deleteState" class="space-y-4" @submit="deleteIntake">
-            <!-- <UFormGroup label="Zum löschen den Namen eintragen" name="drug">
-              <UInput v-model="deleteState.drug" color="red" :placeholder="drugToDelete.drug" />
-            </UFormGroup>
-            <br /> -->
             <UButton type="submit" color="red" variant="soft"
               class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white">
               Eintrag löschen
@@ -115,7 +114,6 @@
         </div>
       </div>
     </UModal>
-
   </Layout>
 </template>
 
@@ -200,7 +198,7 @@ async function editModalVisibilityFunction(row: object) {
 const deleteModalVisibility = ref(false);
 const drugToDelete = ref();
 
-const deleteState = reactive({
+const deleteState = reactive<{drug: string | undefined}>({
   drug: undefined,
 });
 
@@ -423,29 +421,6 @@ const resetFirstEvent = () => {
 getDosageForm();
 createIntakeList();
 
-// Buttonobserver
-
-// const topButton = ref(null);
-// const showScrollButton = ref(false);
-// let observer = null;
-
-// onMounted(() => {
-//   observer = new IntersectionObserver(
-//     ([entry]) => {
-//       showScrollButton.value = !entry.isIntersecting;
-//     },
-//     { threshold: 0 }
-//   );
-
-//   // Warte, bis `topButton.value` gesetzt ist
-//   if (topButton.value) {
-//     observer.observe(topButton.value);
-//   }
-// });
-
-// onUnmounted(() => {
-//   if (observer) observer.disconnect();
-// });
 </script>
 
 

@@ -1,9 +1,5 @@
 <template>
     <IntakeQuestion color="yellow" edit="true" custom="true" :drug="drug" />
-    <div style="text-align: center" v-if="missingDrugError">
-        <br />
-        <p style="color: red">Es muss ein Medikament ausgewählt werden</p>
-    </div>
     <UForm @submit="saveIntake()" :state="state" :schema="schema" class="space-y-4">
         <div style="padding-top: 2.5%">
             <br />
@@ -59,12 +55,9 @@
 
 import dayjs from "dayjs";
 import { object, number, date, string, type InferType, boolean } from "yup";
-import { apiGetFieldDefinitions } from '~/api/drug';
 const { $api } = useNuxtApp();
 
-
 const route = useRoute();
-const tokenStore = useTokenStore();
 const drugStore = useDrugStore();
 const initialLoad = ref(true);
 const runTimeConfig = useRuntimeConfig();
@@ -74,6 +67,8 @@ const props = defineProps<{
     label?: string;
     row?: any;
 }>();
+
+// UI / UX
 
 const buttonClass = computed(() => {
     const color = 'yellow';
@@ -140,9 +135,10 @@ const options = [
     },
 ];
 
+// Backend-Interaction
+
 const tempDose = ref();
 const tempIntervall = ref();
-const missingDrugError = ref(false)
 
 async function saveIntake() {
 
@@ -151,6 +147,7 @@ async function saveIntake() {
     tempDose.value = null;
     tempIntervall.value = null;
 
+    // Using the useDrugSourceTranslator composable to translate from English to German
     drugStore.source = useDrugSourceTranslator(null, selectedSourceItem.value);
     if (selectedFrequency.value === "nach Bedarf") {
         drugStore.frequency = "as needed";
@@ -158,6 +155,7 @@ async function saveIntake() {
         drugStore.frequency = "regular";
     }
 
+    // Manipulation the drugStore for the patchBody
     drugStore.dose = state.dose;
     tempDose.value = drugStore.dose; props
     drugStore.intervall = useIntervallDoseTranslator(null, state.intervall);
@@ -204,6 +202,10 @@ async function saveIntake() {
     drugStore.action = !drugStore.action;
 }
 
+// This watcher checks for the value of the selectedFrequency. If the value is set to "Nach Bedarf" the dose and the interval are reset to 0 and null
+// Else if there is no edit the entered values are gathered from the temp.* values meaning we have "caching"
+// If we are in the edit mode we get the values from the drugStore
+
 watch(selectedFrequency, (newValue) => {
     if (newValue === "nach Bedarf") {
         drugStore.frequency = "as needed";
@@ -222,36 +224,6 @@ watch(selectedFrequency, (newValue) => {
     }
 });
 
-// functioning
-
-if (props.edit) {
-    selectedSourceItem.value = drugStore.source;
-    selectedFrequency.value = drugStore.frequency;
-    state.dose = drugStore.dose;
-    state.intervall = drugStore.intervall;
-    state.startTime = drugStore.intake_start_time_utc;
-    state.endTime = drugStore.intake_end_time_utc;
-    state.selected = drugStore.consumed_meds_today;
-}
-
-if (props.custom && props.edit) {
-    state.name = drugStore.drugName
-    selectedDosageForm.value = { "label": drugStore.darrForm }
-}
-
-// CUSTOM DRUG
-
-interface DrugBody {
-    trade_name: string;
-    market_access_date: string | null;
-    market_exit_date: string | null;
-    custom_drug_notes: string | null;
-    attrs: Attribute[] | null;
-    attrs_ref: Attribute[] | null;
-    attrs_multi: Attribute[] | null;
-    attrs_multi_ref: Attribute[] | null;
-    codes: Attribute[] | null;
-}
 
 const closeEditModal = function () {
     drugStore.editVisibility = false
