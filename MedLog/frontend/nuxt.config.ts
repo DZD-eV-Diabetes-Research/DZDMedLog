@@ -13,7 +13,7 @@ export default defineNuxtConfig({
     '@pinia-plugin-persistedstate/nuxt',
     "@nuxt/ui",
     "dayjs-nuxt",
-    "@nuxt/test-utils/module"
+    "@nuxt/test-utils/module",
     "nuxt-open-fetch"
   ],
 
@@ -58,7 +58,7 @@ export default defineNuxtConfig({
   openFetch: {
     disableNuxtPlugin: true,
     clients: {
-      checkapi: {
+      medlogapi: {
         schema: "../openapi.json",
         baseURL: "/api",
       },
