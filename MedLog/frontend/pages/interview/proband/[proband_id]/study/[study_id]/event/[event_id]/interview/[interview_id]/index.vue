@@ -10,50 +10,52 @@
     </UIBaseCard>
     <div v-if="drugStore.intakeVisibility">
       <UIBaseCard>
-        <IntakeQuestion color="primary" />
-        <DrugForm color="primary" :edit="false" :custom="false" label="Medikament Speichern" />
+        <IntakeSeach color="primary" />
+        <IntakeForm color="primary" :edit="false" :custom="false" label="Medikament Speichern" />
         <UButton @click="openCustomModal()" label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
           style="margin-top: 2px"
           class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white" />
         <UModal v-model="drugStore.customVisibility">
           <div class="p-4">
-            <DrugForm color="yellow" label="Ungelistetes Medikament Speichern" :custom=true :edit=false />
+            <IntakeForm color="yellow" label="Ungelistetes Medikament Speichern" :custom=true :edit=false />
           </div>
         </UModal>
       </UIBaseCard>
     </div>
     <!-- TABLE -->
-    <div class="border-2 border-[#ededed] rounded-md shadow-lg">
-      <h4 style="text-align: center; padding-top: 25px">Medikationen</h4>
-      <div>
-        <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
-          <UInput v-model="q" placeholder="Tabelle Filtern" />
-        </div>
-        <UTable :rows="rows" :columns="columns" class="break-words">
-          <template v-if="userStore.isAdmin" #actions-data="{ row }">
-            <UDropdown :items="myOptions(row)">
-              <UButton color="gray" variant="ghost" icon="i-heroicons-ellipsis-horizontal-20-solid" />
-            </UDropdown>
-          </template>
-        </UTable>
-        <div v-if="
-          tableContent.length >= pageCount || filteredRows.length >= pageCount
-        " class="flex justify-center px-3 py-3.5 border-t dark:border-red-500">
-          <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
-            wrapper: 'flex items-center gap-1',
-            rounded: 'rounded-sm',
-            default: {
-              activeButton: {
-                variant: 'outline',
+    <div class="flex flex-row justify-center max-w-6xl mx-auto">
+      <div class="border-2 border-[#ededed] rounded-md shadow-lg">
+        <h4 style="text-align: center; padding-top: 25px">Medikationen</h4>
+        <div>
+          <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
+            <UInput v-model="q" placeholder="Tabelle Filtern" />
+          </div>
+          <UTable :rows="rows" :columns="columns" class="break-words">
+            <template v-if="userStore.isAdmin" #actions-data="{ row }">
+              <UDropdown :items="myOptions(row)">
+                <UButton color="gray" variant="ghost" icon="i-heroicons-ellipsis-horizontal-20-solid" />
+              </UDropdown>
+            </template>
+          </UTable>
+          <div v-if="
+            tableContent.length >= pageCount || filteredRows.length >= pageCount
+          " class="flex justify-center px-3 py-3.5 border-t dark:border-red-500">
+            <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
+              wrapper: 'flex items-center gap-1',
+              rounded: 'rounded-sm',
+              default: {
+                activeButton: {
+                  variant: 'outline',
+                },
               },
-            },
-          }" />
+            }" />
+          </div>
         </div>
-      </div>
-      <div style="text-align: center">
-        <UButton v-if="!showScrollButton" @click="saveInterview()" label="Interview Beenden" color="green"
-          variant="soft" class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-          style="margin: 25px" />
+        <div style="text-align: center">
+          <UButton v-if="!showScrollButton" @click="saveInterview()" label="Interview Beenden" color="green"
+            variant="soft" class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+            style="margin: 25px" />
+        </div>
       </div>
     </div>
 
@@ -79,9 +81,9 @@
       <div class="p-4">
         <div style="text-align: center">
           <div v-if="customDrug === 'Nein'">
-            <IntakeQuestion :drug="toEditDrug" :edit="true" :custom="customDrug === 'Nein' ? false : true"
+            <IntakeSeach :drug="toEditDrug" :edit="true" :custom="customDrug === 'Nein' ? false : true"
             :color="customDrug === 'Nein' ? 'blue' : 'yellow'" />
-          <DrugForm :color="customDrug === 'Nein' ? 'blue' : 'yellow'" :edit="true"
+          <IntakeForm :color="customDrug === 'Nein' ? 'blue' : 'yellow'" :edit="true"
             :custom="customDrug === 'Nein' ? false : true" label="Bearbeiten" />
           </div>
           <div v-else>

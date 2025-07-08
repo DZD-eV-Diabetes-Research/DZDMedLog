@@ -1,5 +1,5 @@
 <template>
-    <IntakeQuestion color="yellow" edit="true" custom="true" :drug="drug" />
+    <IntakeSeach color="yellow" edit="true" custom="true" :drug="drug" />
     <UForm @submit="saveIntake()" :state="state" :schema="schema" class="space-y-4">
         <div style="padding-top: 2.5%">
             <br />
