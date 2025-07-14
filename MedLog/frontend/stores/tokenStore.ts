@@ -5,7 +5,7 @@ interface TokenState {
   refresh_token: string
   loggedIn: boolean
   my_401: boolean
-  expiredToken:boolean
+  expiredToken: boolean
   oidcTokenURL: string
 
 }
@@ -23,20 +23,22 @@ export const useTokenStore = defineStore('TokenStore', {
 
   }),
   actions: {
-
-    async login(username, password, event: FormSubmitEvent<Schema>) {
-      const { $api } = useNuxtApp();
+    async login(username: string, password: string) {
+      const { $medlogapi } = useNuxtApp();
       const userStore = useUserStore();
       const body = new FormData()
       body.append("username", username)
       body.append("password", password)
 
-      const runtimeConfig = useRuntimeConfig()
       try {
-        const data = await $api(runtimeConfig.public.baseURL + "auth/token", {
+        const data = await $medlogapi("/api/auth/token", {
           method: "POST",
           body,
         })
+        // const data = await useMedlogapi("/api/auth/token", {
+        //   method: "POST",
+        //   body,
+        // })
 
         this.my_401 = false
         this.access_token = data.access_token
@@ -73,7 +75,7 @@ export const useTokenStore = defineStore('TokenStore', {
     set401(value: boolean) {
       this.my_401 = value;
     },
-    setOidcTokenURL(value: string){
+    setOidcTokenURL(value: string) {
       this.oidcTokenURL = value
     },
   },

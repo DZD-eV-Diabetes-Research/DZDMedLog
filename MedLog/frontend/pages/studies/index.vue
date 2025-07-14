@@ -45,6 +45,8 @@
 
 <script setup lang="ts">
 import { object, string, type InferType } from "yup";
+import { useMedlogapi } from '#imports';
+import { UButton } from '../../.nuxt/components';
 
 const runtimeConfig = useRuntimeConfig();
 const userStore = useUserStore();
@@ -53,6 +55,11 @@ const tokenStore = useTokenStore();
 const router = useRouter();
 const { $api } = useNuxtApp();
 
+// const test = await useMedlogapi("/api/auth/oidc/login/mockup-server-oidc", {
+  
+// })
+
+// const test2 = await $api(useMedlogapi("/api/auth/token"))
 
 const showModal = ref(false);
 const state = reactive({

@@ -65,10 +65,12 @@
 const runtimeConfig = useRuntimeConfig()
 const tokenStore = useTokenStore();
 tokenStore.set401(false);
+import { useMedlogapi } from '#imports';
+
 
 import { object, string, type InferType } from "yup";
 
-const { data: healthStatus, error: healthError } = await useAPI(`${runtimeConfig.public.baseURL}health`)
+const { data: healthStatus, error: healthError } = await useMedlogapi("/api/health")
 
 const schema = object({
   username: string().required("Benötigt"),
@@ -82,7 +84,7 @@ const state = reactive({
   password: "",
 });
 
-const { data } = await useAPI(`${runtimeConfig.public.baseURL}auth/schemes`)
+const { data } = await useMedlogapi("/api/auth/schemes")
 
 const login = () => {
   try {

@@ -6,11 +6,15 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
       console.log("tokenstore loggedstatus: "+ tokenStore.loggedIn); 
     }
 
+    if (to.path === '/my_test') {
+      console.log("my_test"); 
+    }
+
     else if (to.path !== '/' && !tokenStore.loggedIn) {
       return navigateTo('/')
     } 
 
     else if (to.path === '/' && tokenStore.loggedIn) {
       return navigateTo('/user')
-    }   
+    }
   })
