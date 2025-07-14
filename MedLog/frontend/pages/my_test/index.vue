@@ -16,7 +16,7 @@ const tokenStore = useTokenStore()
 
 const test = await useMedlogapi("/api/health")
 const user = await useMedlogapi("/api/user/me")
-const user = await useMedlogapi("/")
+const user2 = await useMedlogapi("/")
 
 const test3 = async () => {
   const {$medlogapi} = useNuxtApp();
