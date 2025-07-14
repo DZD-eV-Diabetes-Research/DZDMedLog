@@ -1,5 +1,5 @@
 <template>
-    <IntakeQuestion color="yellow" edit="true" custom="true" :drug="drug" />
+    <IntakeSearch color="yellow" edit="true" custom="true" :drug="drug" />
     <div style="text-align: center" v-if="missingDrugError">
         <br />
         <p style="color: red">Es muss ein Medikament ausgewählt werden</p>

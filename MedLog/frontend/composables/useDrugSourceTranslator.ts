@@ -1,3 +1,5 @@
+// Translation helper, since the backend is in English but the interface is in German
+
 export default function (eng:string|null = null, de:string|null = null) {
   let english = [
     "Study participant: verbal specification",

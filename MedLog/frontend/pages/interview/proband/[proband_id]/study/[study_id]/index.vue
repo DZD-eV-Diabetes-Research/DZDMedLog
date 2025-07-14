@@ -43,7 +43,8 @@
       </div>
     </UModal>
     <br>
-    <div class="border-2 border-[#ededed] rounded-md shadow-lg">
+    <div class="flex flex-row justify-center max-w-8xl mx-auto">
+      <div class="border-2 border-[#ededed] rounded-md shadow-lg">
       <h4 style="text-align: center; padding-top: 25px;">Medikationshistorie</h4>
       <div>
         <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
@@ -64,6 +65,7 @@
           }" />
         </div>
       </div>
+    </div>
     </div>
     <div style="text-align:center; margin-top:2%">
     </div>

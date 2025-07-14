@@ -1,3 +1,5 @@
+// Helper to create an Intake
+
 export async function useCreateIntake(study_id: string, interview_id: string, administered_by_doctor: string | "prescribed", source_of_drug_information: string, intake_start_time: string, intake_end_time: string | null = null, intake_regular_or_as_needed: string, regular_intervall_of_daily_dose: string| null | undefined, dose_unit: number, meds_today: boolean, drug_id: string | null = null): Promise<void> {
     
     const tokenStore = useTokenStore()

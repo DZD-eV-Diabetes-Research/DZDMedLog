@@ -38,6 +38,7 @@
   </div>
 
   <!-- SLIDER INFO HELP -->
+
   <USlideover v-model="openSlide">
 
     <UCard class="flex flex-col flex-1"
@@ -95,10 +96,6 @@
           <div v-else>
             {{ configError }}
           </div>
-          <!-- <div class="flex flex-row items-center space-x-2 mt-2">
-        <p>Oder besuchen Sie unsere GitHub-Seite: </p>
-        <a href="https://www.github.com" target="_blank"><img src="/icons/github-mark.svg" alt="github-icon" class="w-6" /></a>
-      </div> -->
         </div>
       </template>
     </UCard>

@@ -49,7 +49,6 @@ import { object, string, type InferType } from "yup";
 const runtimeConfig = useRuntimeConfig();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
-const tokenStore = useTokenStore();
 const router = useRouter();
 const { $api } = useNuxtApp();
 
