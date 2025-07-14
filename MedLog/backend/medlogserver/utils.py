@@ -423,3 +423,34 @@ def _extract_table_and_field_name_from_db_unqiue_constraint_error(
         return None, full_column
 
     return None, None
+
+
+class Unset:
+    pass
+
+
+def get_value_from_first_dict_with_key(
+    dict_list: List[Dict], key_name: str, default=Unset
+):
+    """Returns the value associated with the given key from the first dictionary in the list
+    that contains the key.
+
+    Args:
+        dict_list (_type_): _description_
+        key_name (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    res = next((d[key_name] for d in dict_list if key_name in d), default)
+    if res == Unset:
+        raise ValueError(f"Can not find '{key_name}' in dicts")
+    return res
+
+
+def slugify_string(s: str, spacer_string: str = "-") -> str:
+    return "".join(
+        char.lower() if char.isalnum() else spacer_string
+        for char in s
+        if char.isalnum() or char == " "
+    )

@@ -4,10 +4,11 @@ import importlib
 from pathlib import Path, PurePath
 from dataclasses import dataclass
 import yaml
+import traceback
 
 # internal imports
 from medlogserver.worker.task import TaskBase
-
+import pydantic
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
@@ -74,7 +75,7 @@ class DataProvisioner:
                     await self._get_medlog_crud_class_and_model_class(class_path)
                 )
                 await self._load_provsioning_data_item(
-                    model_class, crud_class, class_data
+                    model_class, crud_class, class_data, source_file=path
                 )
 
     async def _load_provsioning_data_item(
@@ -82,12 +83,21 @@ class DataProvisioner:
         model_cls: Type[MedLogBaseModel],
         crud_cls: Type[CRUDBase],
         class_data: List[Dict],
+        source_file: Path | None,
     ):
         log.debug(
             f"Try inserting DB provisionig data for table '{model_cls.__tablename__}' ({model_cls}). Row count: {len(class_data)}"
         )
         for item in class_data:
-            item_instance = model_cls.model_validate(item)
+            try:
+                item_instance = model_cls.model_validate(item)
+            except pydantic.ValidationError as ex:
+                log.error(traceback.format_exc())
+                log.error(
+                    f"Could not load provisioning data object of class {model_cls} from file '{source_file.absolute() if source_file is not None else ''}'\nContent: {item}\nError:\n{ex}"
+                )
+                exit(1)
+
             async with get_async_session_context() as session:
                 async with crud_cls.crud_context(session) as crud:
                     crud: CRUDBase = crud

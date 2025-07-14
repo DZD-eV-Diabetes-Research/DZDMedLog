@@ -28,27 +28,21 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
         fast_api_auth_base_router, tags=["Auth"], prefix=API_ENDPOINTS_PREFIX
     )
 
-    from medlogserver.api.auth.scheme_local import fast_api_auth_local_router
+    ### USER SELF MANAGEMENT
+    from medlogserver.api.routes.routes_user import fast_api_user_self_service_router
 
     fastapi_app.include_router(
-        fast_api_auth_local_router, tags=["Auth"], prefix=API_ENDPOINTS_PREFIX
+        fast_api_user_self_service_router, tags=["User"], prefix=API_ENDPOINTS_PREFIX
     )
-
-    from medlogserver.api.routes.routes_user import (
+    ### USER MANAGEMENT
+    from medlogserver.api.routes.routes_user_management import (
         fast_api_user_manage_router,
     )
-    from medlogserver.api.auth.scheme_oidc import (
-        generate_oidc_provider_auth_routhers,
-    )
 
-    for oidc_provider_router in generate_oidc_provider_auth_routhers():
-        fastapi_app.include_router(
-            oidc_provider_router, tags=["Auth"], prefix=API_ENDPOINTS_PREFIX
-        )
-
-    ### USER MANAGEMENT
     fastapi_app.include_router(
-        fast_api_user_manage_router, tags=["User"], prefix=API_ENDPOINTS_PREFIX
+        fast_api_user_manage_router,
+        tags=["User Admin"],
+        prefix=API_ENDPOINTS_PREFIX,
     )
 
     ### APP - Business logic

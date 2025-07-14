@@ -14,7 +14,7 @@ from pydantic import (
 from pathlib import Path, PurePath
 import socket
 from textwrap import dedent
-from medlogserver.utils import get_random_string, val_means_true
+from medlogserver.utils import get_random_string, val_means_true, slugify_string
 
 env_file_path = os.environ.get("MEDLOG_DOT_ENV_FILE", Path(__file__).parent / ".env")
 
@@ -41,8 +41,6 @@ class Config(BaseSettings):
         if val_means_true(self_data.get("DEMO_MODE", False)):
             if not self_data.get("SERVER_SESSION_SECRET", None):
                 self_data["SERVER_SESSION_SECRET"] = get_random_string(64)
-            if not self_data.get("AUTH_JWT_SECRET", None):
-                self_data["AUTH_JWT_SECRET"] = get_random_string(64)
             if not self_data.get("ADMIN_USER_PW", None):
                 self_data["ADMIN_USER_PW"] = "adminadmin"
             if not self_data.get("APP_PROVISIONING_DATA_YAML_FILES", None):
@@ -153,74 +151,40 @@ class Config(BaseSettings):
         description="If set to True; all user can access all new created studies, edit settings and create and edit interviews. This may be utile on small instances with a trusted userbase where user management is not wanted/needed.",
     )
 
-    AUTH_LOCAL_LOGIN_IS_ENABLED: bool = Field(
+    AUTH_BASIC_LOGIN_IS_ENABLED: bool = Field(
         default=True,
         description="Local DB users are enabled to login. You could disable this, when having an external OIDC provider.",
     )
-    AUTH_LOCAL_USER_DB_REGISTER_ENABLED: Literal[False] = Field(
+    AUTH_BASIC_USER_DB_REGISTER_ENABLED: Literal[False] = Field(
         default=False, description="Self registration of users is not supported yet."
     )
 
-    AUTH_JWT_SECRET: SecretStr = Field(
-        description="The secret used to sign the JWT tokens. Provide a long random string.",
-        min_length=64,
+    API_TOKEN_DEFAULT_EXPIRY_TIME_MINUTES: Optional[int] = Field(
+        default=60 * 24 * 7,  # one week
+        description="If an api access token was created (on login or in token management) they should expire after this time.",
     )
-    AUTH_JWT_ALGORITHM: Literal["HS256"] = Field(
-        default="HS256",
-        description="The algorithm used to sign the JWT tokens. Only HS256 is supported atm",
-    )
-    AUTH_ACCESS_TOKEN_EXPIRES_MINUTES: int = Field(
-        default=2,
-        description=dedent(
-            """These JWT access tokens serve two purposes: As a authorization key to access the API but also to store/cache userdata.
-            The lifespan of the client's JWT access tokens is defined in minutes and is intentionally kept short. 
-            These access tokens serve as a means to efficiently store encrypted user data, mitigating excessive database access. 
-            However, it's essential to note that these tokens also encompass critical user information, including the user's deactivated status and roles.
-            Any alterations to the deactivated status or user roles will only take effect after the access token undergoes a refresh. 
-            Therefore, the design encourages regular token refreshes to ensure that the latest user status and role changes are reflected, 
-            maintaining an optimal balance between security and responsiveness in accessing user-related information.
-            """
-        ),
-    )
-    AUTH_REFRESH_TOKEN_EXPIRES_MINUTES: int = Field(
-        default=10080,
-        description=dedent(
-            """sets the duration, in minutes, for how long refresh tokens stay valid in the REST API. 
-            Refresh tokens extend the lifespan of access tokens without making users log in again. 
-            By adjusting this setting, you can balance security and user convenience, 
-            deciding how long refresh tokens should remain active based on your application's needs."""
-        ),
-    )
+
     AUTH_MERGE_USERS_FROM_DIFFERENT_PROVIDERS: bool = Field(
-        description="If true, users from different providers with the same name are merged into one user. If false users with same name will cause an error.",
+        description="OPTION NOT IMPLEMENTED YET! If true, users from different providers with the same name are merged into one user. If false users with same name will cause an error. ",
         default=True,
-    )
-    AUTH_CHECK_REFRESH_TOKENS_FOR_REVOKATION: bool = Field(
-        description=dedent(
-            """If true, the tokens are checked against the database with every request if they are revoked.
-                If false, the tokens will just expire according to `AUTH_ACCESS_TOKEN_EXPIRES_MINUTES`.
-                Set this to True if you need a very strict access policy, where deactivated users get locked out immediately. 
-                If you want to lower database traffic and quicker requests set this to False."""
-        ),
-        default=False,
     )
 
     class OpenIDConnectProvider(BaseSettings):
-        PROVIDER_SLUG_NAME: Annotated[
-            str,
-            StringConstraints(
-                strip_whitespace=True, to_lower=True, pattern=r"^[a-zA-Z0-9-]+$"
-            ),
-        ] = Field(
-            description="The name of the OpenID Connect used in urls. Must be a unique name in all AUTH_OIDC_PROVIDERS.",
-            default="openid-connect",
-            max_length=64,
-            min_length=3,
+        ENABLED: bool = Field(default=False, description="Is the provider enabled")
+        PROVIDER_DISPLAY_NAME: str = Field(
+            description="The unique name of the OpenID Connect provider shown to the user.",
+            default="My OpenID Connect Login",
         )
 
-        PROVIDER_DISPLAY_NAME: str = Field(
-            description="The name of the OpenID Connect provider shown to the user.",
-            default="My OpenID Connect Login",
+        def get_provider_name_slug(self):
+            return slugify_string(self.PROVIDER_DISPLAY_NAME)
+
+        AUTO_LOGIN: Optional[bool] = Field(
+            default=False,
+            description="If set to true, the client will try to immediatly redirect to this provider instead of showing the login page.",
+        )
+        CONFIGURATION_ENDPOINT: str = Field(
+            description="The discovery endpoint of the OpenID Connect provider."
         )
         CLIENT_ID: str = Field(
             description="The client id of the OpenID Connect provider."
@@ -228,13 +192,14 @@ class Config(BaseSettings):
         CLIENT_SECRET: SecretStr = Field(
             description="The client secret of the OpenID Connect provider."
         )
-        DISCOVERY_ENDPOINT: str = Field(
-            description="The discovery endpoint of the OpenID Connect provider."
-        )
         SCOPES: List[str] = Field(
-            description="", default=["openid", "profile", "email", "groups"]
+            description="", default=["openid", "profile", "email"]
         )
-        USER_ID_ATTRIBUTE: str = Field(
+
+        def get_scopes_as_string(self):
+            return " ".join(self.SCOPES)
+
+        USER_NAME_ATTRIBUTE: str = Field(
             description="The attribute of the OpenID Connect provider that contains a unique id of the user.",
             default="preferred_username",
         )
@@ -246,36 +211,32 @@ class Config(BaseSettings):
             description="The attribute of the OpenID Connect provider that contains a unique id of the user.",
             default="email",
         )
-        USER_MAIL_VERIFIED_ATTRIBUTE: str = Field(
-            description="The attribute of the OpenID Connect provider that contains the info if the email adress is verified.",
-            default="email_verified",
-        )
-        USER_GROUP_ATTRIBUTE: str = Field(description="The ", default="groups")
-        ADMIN_MAPPING_GROUPS: Optional[List[str]] = Field(
-            default_factory=list,
-            description="If the user is member of this oidc group, they will get the admin role.",
-        )
+        USER_GROUPS_ATTRIBUTE: str = Field(description="", default="groups")
 
         AUTO_CREATE_AUTHORIZED_USER: bool = Field(
             default=True,
             description="If a user does not exists in the local database, create the user on first authorization via the OIDC Provider.",
         )
-        PREFIX_USER_ID_WITH_PROVIDER_NAME: bool = Field(
-            description="To prevent naming collisions, the user id is prefixed with the provider name. HINT: 'AUTH_MERGE_USERS_FROM_DIFFERENT_PROVIDERS' will not work with 'PREFIX_USER_ID_WITH_PROVIDER_NAME' set to True.",
+        PREFIX_USERNAME_WITH_PROVIDER_SLUG: bool = Field(
             default=False,
+            description="To prevent username colliction between different OIDC providers, we can prefix the usernames from the OIDC provider with it slug.",
         )
 
+    AUTH_OIDC_TOKEN_STORAGE_SECRET: Optional[str] = Field(
+        description="Random string to encrypt the oidc access and refresh token for storing it in the database.",
+        default="placeholder_until_todo_see_below",
+    )  # todo only needed if AUTH_OIDC_PROVIDERS is not empty. Create a model_validation
     AUTH_OIDC_PROVIDERS: Optional[List[OpenIDConnectProvider]] = Field(
-        description="Configure OpenID Connect (OIDC) provider settings for integrating with one or multiple external OIDC providers as the user backend.",
+        description="Configure additional/alternative OpenID Connect (OIDC) provider settings for integrating.",
         default_factory=list,
     )
 
     @field_validator("AUTH_OIDC_PROVIDERS")
     def unique_provider_names(cls, AUTH_OIDC_PROVIDERS: List[OpenIDConnectProvider]):
-        names = [prov.PROVIDER_SLUG_NAME for prov in AUTH_OIDC_PROVIDERS]
+        names = [prov.get_provider_name_slug() for prov in AUTH_OIDC_PROVIDERS]
         if len(set(names)) < len(AUTH_OIDC_PROVIDERS):
             raise ValueError(
-                "AUTH_OIDC_PROVIDERS config error. `PROVIDER_SLUG_NAME` must be unique accross all OIDC-provider entries."
+                f"AUTH_OIDC_PROVIDERS config error. `PROVIDER_DISPLAY_NAME` must result in unique slugs accross all OIDC-provider entries. OIDC Provider Slugs:  {names}"
             )
         return AUTH_OIDC_PROVIDERS
 

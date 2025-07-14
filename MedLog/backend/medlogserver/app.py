@@ -71,6 +71,8 @@ class FastApiAppContainer:
                     routes=self.app.routes,
                 ),
                 f,
+                sort_keys=False,
+                indent=2,
             )
 
     @asynccontextmanager
@@ -93,13 +95,14 @@ class FastApiAppContainer:
 
     def _apply_api_middleware(self):
         allow_origins = []
-        for oidc in config.AUTH_OIDC_PROVIDERS:
-            allow_origins.append(
-                str(oidc.DISCOVERY_ENDPOINT)
-                .replace("//", "##")
-                .split("/", 1)[0]
-                .replace("##", "//")
-            )
+        for oidc_config in config.AUTH_OIDC_PROVIDERS:
+            if oidc_config.ENABLED:
+                allow_origins.append(
+                    str(oidc_config.CONFIGURATION_ENDPOINT)
+                    .replace("//", "##")
+                    .split("/", 1)[0]
+                    .replace("##", "//")
+                )
 
         allow_origins.extend(
             [
