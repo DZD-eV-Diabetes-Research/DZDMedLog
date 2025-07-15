@@ -5007,7 +5007,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^password$"
+                "pattern": "password"
               },
               {
                 "type": "null"
