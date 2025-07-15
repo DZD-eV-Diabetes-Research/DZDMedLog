@@ -173,6 +173,7 @@ class UserAuth(_UserAuthBase, TimestampModel, table=True):
         if user_id:
             input_obj_raw = input_obj_raw | {"user_id": user_id}
         result_obj: UserAuth = UserAuth.model_validate(input_obj_raw)
+        log.debug(f"input_obj: {input_obj}")
         result_obj.update_secrets(input_obj)
         return result_obj
 
