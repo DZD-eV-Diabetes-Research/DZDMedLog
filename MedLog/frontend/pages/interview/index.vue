@@ -31,11 +31,10 @@
 </template>
 
 <script setup lang="ts">
-import { object, string, type InferType, number } from 'yup'
+import { object, string, type InferType } from 'yup'
 
 const userStore = useUserStore()
 const studyStore = useStudyStore()
-const tokenStore = useTokenStore()
 const probandStore = useProbandStore()
 const router = useRouter()
 const runtimeConfig = useRuntimeConfig()

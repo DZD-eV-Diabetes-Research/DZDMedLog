@@ -1,3 +1,5 @@
+// Store to handle to handle the current drug
+
 import { defineStore } from 'pinia'
 import piniaPluginPersistedState from 'pinia-plugin-persistedstate'
 
@@ -22,7 +24,6 @@ interface DrugState {
 }
 
 export const useDrugStore = defineStore('DrugStore',{
-    id: "drug-store",
     state: (): DrugState => ({
         custom: false,
         item: "",

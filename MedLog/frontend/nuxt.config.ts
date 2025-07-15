@@ -33,13 +33,6 @@ export default defineNuxtConfig({
 
   css: ["~/assets/main.css"],
 
-  // postcss: {
-  //   plugins: {
-  //     tailwindcss: {},
-  //     autoprefixer: {},
-  //   },
-  // },
-
   colorMode: {
     preference: 'light'
   },
@@ -48,7 +41,7 @@ export default defineNuxtConfig({
     public: {
       baseURL: process.env.BASE_URL || '/api/',
       openFetch: {
-        checkapi: {
+        medlogapi: {
           schema: "../openapi.json",
           baseURL: "/api",
         },
@@ -56,7 +49,6 @@ export default defineNuxtConfig({
     },
   },
   openFetch: {
-    disableNuxtPlugin: true,
     clients: {
       medlogapi: {
         schema: "../openapi.json",

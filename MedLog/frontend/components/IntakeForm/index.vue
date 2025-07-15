@@ -1,8 +1,13 @@
+<!-- This is the main drugform component that deals with the creation of intakes, both regular and custom as well as the editing -->
+
 <template>
   <div style="text-align: center" v-if="missingDrugError">
     <br />
     <p style="color: red">Es muss ein Medikament ausgewählt werden</p>
   </div>
+
+  <!-- Main Form -->
+
   <UForm @submit="saveIntake()" :state="state" :schema="schema" class="space-y-4">
     <div style="padding-top: 2.5%">
       <div v-if="props.custom">
@@ -12,6 +17,8 @@
             Medikamentensuche nicht gefunden wurde.
           </h4>
         </div>
+
+        <!-- Error message if no drug is selected and the field is left blank -->
         <h5 v-if="customNameError" style="color: red">
           Name wird benötigt
         </h5>
@@ -19,8 +26,19 @@
           <UInput v-model="state.customName" color="yellow" />
         </UFormGroup>
         <UAccordion :items="customDrugForm" color="yellow">
+
+          <!-- Here starts the custom form which is quite complex -->
+
           <template #custom-form>
             <div v-if="isDataLoaded" class="bg-yellow-50 outline-yellow-200 rounded-md p-2">
+
+              <!-- After the drugFieldDefinitionsObject is created we loop through each of the 4 arrays:
+              attr: A free field in case of yes and no questions, boolean
+              attr_ref: A predefined selection of options
+              attr_multi: Multiple answers possible
+              attr_multi_ref: Multiple answers of predefined selction possible
+              and created inputs for each item in this array. -->
+
               <UForm :state="attrState" class="space-y-4">
                 <UFormGroup v-for="attr in drugFieldDefinitionsObject.attrs" :label="attr[0]" :name="attr[1]"
                   :key="attr[1]">
@@ -70,6 +88,9 @@
         </UAccordion>
         <br />
       </div>
+
+      <!-- From this point on this is the part that is visibile to all drugforms -->
+
       <UFormGroup label="Quelle der Arzneimittelangabe">
         <USelect v-model="selectedSourceItem" :options="sourceItems" :color="props.color" />
       </UFormGroup>
@@ -120,14 +141,14 @@
         Darreichungsform wird benötigt
       </h5>
       <br>
+
+      <!-- Again the error message the,same from the top for better userexperience -->
       <h5 v-if="customNameError" style="color: red">
         Name wird benötigt
       </h5>
     </div>
   </UForm>
 </template>
-
-
 
 <script setup lang="ts">
 
@@ -138,7 +159,6 @@ const { $api } = useNuxtApp();
 
 
 const route = useRoute();
-const tokenStore = useTokenStore();
 const drugStore = useDrugStore();
 const initialLoad = ref(true);
 const runTimeConfig = useRuntimeConfig();
@@ -563,33 +583,6 @@ interface DrugBody {
   attrs_multi_ref: Attribute[] | null;
   codes: Attribute[] | null;
 }
-
-// async function onSubmit() {
-//   let customDrugBody: DrugBody = {
-//     trade_name: "Aspirin Supercomplex",
-//     market_access_date: null,
-//     market_exit_date: null,
-//     custom_drug_notes: null,
-//     attrs: Object.entries(attrState.value).map(([key, value]) => ({ field_name: key, value: value == null ? null : String(value) })),
-//     attrs_ref: Object.entries(attr_refState).map(([key, value]) => ({ field_name: key, value: value })),
-//     attrs_multi: Object.entries(attr_multiState).map(([key, value]) => ({ field_name: key, value: value })),
-//     attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({ field_name: key, value: value })),
-//     codes: null
-//   }
-
-//   try {
-//     const response = await $api(
-//       `${runTimeConfig.public.baseURL}drug/custom`,
-//       {
-//         method: "POST",
-//         body: customDrugBody
-//       }
-//     );
-
-//   } catch (error) {
-//     console.log(error);
-//   }
-// }
 
 const closeEditModal = function () {
   drugStore.editVisibility = false

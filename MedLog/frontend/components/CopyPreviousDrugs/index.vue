@@ -1,3 +1,5 @@
+<!-- This component serves to copy the intakes of the previous event -->
+
 <template>
     <div class="flex flex-col justify-center items-center">
         <div class="flex flex-row justify-center">
@@ -15,7 +17,7 @@
                         <h5 class="text-md font-light">Letzte Änderung: <span class="text-md font-bold">{{ lastEventDate
                         }}</span></h5>
                     </div>
-                    <UTable v-model="selecteIntakes" :columns="columns" :rows="previousIntakes"
+                    <UTable v-model="selectedIntakes" :columns="columns" :rows="previousIntakes"
                         class="border border-slate-400 rounded-md" />
                     <UButton @click="saveIntakes()" label="Medikation Übernehmen" color="green" variant="soft"
                         style="margin-right: 10px"
@@ -41,17 +43,17 @@ const props = defineProps<{ onUpdate: () => void }>();
 
 const runtimeConfig = useRuntimeConfig();
 const { $api } = useNuxtApp();
-const tokenStore = useTokenStore();
 const route = useRoute();
 
 const openCopyPreviousIntakesModal = ref(false)
 const errorMessage = ref(false)
 
 const previousIntakes = ref<any[]>([])
-const selecteIntakes = ref([])
-
+const selectedIntakes = ref([])
 const lastEventName = ref("")
 const lastEventDate = ref("")
+
+// Backend interaction
 
 async function openCopyIntakeModal() {
     openCopyPreviousIntakesModal.value = true
@@ -60,6 +62,7 @@ async function openCopyIntakeModal() {
     try {
         const intakes = await $api(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/intake/details`)
 
+
         lastEventName.value = intakes[0]?.event.name
         lastEventDate.value = new Date(intakes[0]?.interview.interview_end_time_utc).toLocaleDateString("de-DE", {
             day: "2-digit",
@@ -67,6 +70,7 @@ async function openCopyIntakeModal() {
             year: "numeric",
         });
 
+        // Transform the API response into a format suitable for both the UI and the POST request body
         previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
             Medikament: intake.drug.trade_name,
             Custom: intake.drug?.is_custom_drug ? "Ja" : "Nein",
@@ -86,11 +90,12 @@ async function openCopyIntakeModal() {
                 "as_needed_dose_unit": intake.as_needed_dose_unit,
                 "consumed_meds_today": intake.consumed_meds_today,
             },
+            // Simple css class to highlight the custom drugs yellow 
             class: intake.drug?.is_custom_drug
                 ? "bg-yellow-50"
                 : null,
         })) : []
-        selecteIntakes.value = previousIntakes.value
+        selectedIntakes.value = previousIntakes.value
 
     } catch (error) {
         console.log(error);
@@ -98,6 +103,26 @@ async function openCopyIntakeModal() {
         previousIntakes.value = []
     }
 }
+
+async function saveIntakes() {
+    for (const element of selectedIntakes.value) {
+        try {
+            await $api(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake`, {
+                method: "POST",
+                body: element.postBody
+            })
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    // Call the parent component's update handler (prop) after saving
+    props.onUpdate();
+    openCopyPreviousIntakesModal.value = false
+}
+
+
+// Template / UI Interaction
 
 const columns = [{
     key: 'Medikament',
@@ -115,20 +140,5 @@ const columns = [{
     key: 'Dosis',
     label: 'Dosis'
 },]
-
-async function saveIntakes() {
-    for (const element of selecteIntakes.value) {
-        try {
-            await $api(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake`, {
-                method: "POST",
-                body: element.postBody
-            })
-        } catch (error) {
-            console.log(error);
-        }
-    }
-    props.onUpdate();
-    openCopyPreviousIntakesModal.value = false
-}
 
 </script>

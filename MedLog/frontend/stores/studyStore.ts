@@ -1,3 +1,5 @@
+// Store to handle to current studies
+
 import { defineStore } from 'pinia'
 
 interface Study {
