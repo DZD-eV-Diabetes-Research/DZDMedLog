@@ -15,7 +15,7 @@ from medlogserver.api.paginator import (
     create_query_params_class,
     QueryParamsInterface,
 )
-
+from medlogserver.model.user_role import UserRoleApiRead
 from medlogserver.db.user import (
     User,
     UserCRUD,
@@ -204,3 +204,25 @@ async def set_user_password(
             user_auth_update=user_auth_update, id_=user_auth_pw.id
         )
     return user
+
+
+@fast_api_user_manage_router.get(
+    "/role",
+    response_model=List[UserRoleApiRead],
+    name="Get Roles",
+    description=f"List available roles",
+)
+async def create_user(
+    current_user: bool = Security(get_current_user),
+) -> List[UserRoleApiRead]:
+
+    return [
+        UserRoleApiRead(
+            role_name=config.ADMIN_ROLE_NAME,
+            description="The admin role enables the user to access and edit all studies.",
+        ),
+        UserRoleApiRead(
+            role_name=config.USERMANAGER_ROLE_NAME,
+            description="The user manager role allows a user to edit all user allocation for all studies.",
+        ),
+    ]
