@@ -60,16 +60,16 @@ top right corner and then the cogwheel.  -->
 </template>
 
 <script setup lang="ts">
-const runtimeConfig = useRuntimeConfig();
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
+import { useMedlogapi } from '#imports';
 
 // Api calls
 
-const { data: users, refresh } = useAPI(`${runtimeConfig.public.baseURL}user`, {
+const { data: users, refresh } = useMedlogapi(`/api/user`, {
     method: "GET",
 })
 
-const { data: roles } = useAPI(`${runtimeConfig.public.baseURL}role`, {
+const { data: roles } = useMedlogapi("/api/role" , {
     method: "GET",
 })
 
@@ -129,8 +129,8 @@ const selectedRolesPerUser = ref<Record<string, string[]>>({})
 const patchUser = async function (id: string) {
     try {
         const patchBody = { "roles": selectedRolesPerUser.value[id] }
-        await $api(
-            `${runtimeConfig.public.baseURL}user/${id}`,
+        await $medlogapi(
+            `/api/user/${id}`,
             {
                 method: "PATCH",
                 body: patchBody,

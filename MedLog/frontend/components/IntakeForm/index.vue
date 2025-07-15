@@ -155,7 +155,7 @@
 import dayjs from "dayjs";
 import { object, number, date, string, type InferType, boolean } from "yup";
 import { apiGetFieldDefinitions } from '~/api/drug';
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
 
 
 const route = useRoute();
@@ -287,8 +287,8 @@ async function saveIntake() {
         consumed_meds_today: drugStore.consumed_meds_today,
       };
 
-      await $api(
-        `${runTimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
+      await $medlogapi(
+        `/api/study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
         {
           method: "PATCH",
           body: patchBody,
@@ -345,8 +345,8 @@ async function saveIntake() {
           codes: null
         }
         
-        const response = await $api(
-          `${runTimeConfig.public.baseURL}drug/custom`,
+        const response = await $medlogapi(
+          `/api/drug/custom`,
           {
             method: "POST",
             body: customDrugBody
@@ -412,8 +412,8 @@ const dosageFormTable = ref();
 
 
 async function getDosageForm() {
-  const dosageForm = await $api(
-    `${runTimeConfig.public.baseURL}drug/field_def/darreichungsform/refs`);
+  const dosageForm = await $medlogapi(
+    `/api/drug/field_def/darreichungsform/refs`);
 
   dosageFormTable.value = dosageForm.items.map((item) => ({
     id: item.display + " (" + item.value + ")",
@@ -460,7 +460,7 @@ async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, m
     for (const ref of refs) {
       let item = { field_name: ref[1], options: [] };
 
-      const response = await $api(`${runTimeConfig.public.baseURL}drug/field_def/${ref[1]}/refs`);
+      const response = await $medlogapi(`/api/drug/field_def/${ref[1]}/refs`);
 
       item.options = response.items.map((element) => ({
         value: element.value,

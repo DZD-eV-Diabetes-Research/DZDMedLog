@@ -2,9 +2,9 @@
   <Layout>
     <UIBaseCard>
       <div v-if="healthStatus?.healthy" class="flex flex-col justify-center">
-        <div class="flex flex-col space-y-2" v-if="data">
-          <div v-for="loginMethod in data">
-            <div v-if="loginMethod.type === 'credentials'">
+        <div class="flex flex-col space-y-2" v-if="loginMethods">
+          <div v-for="loginMethod in loginMethods">
+            <div v-if="loginMethod.auth_type === 'basic'">
               <UForm :schema="schema" :state="state" class="space-y-4" @submit="login()">
                 <div style="text-align: center">
                   <h3 v-if="tokenStore.my_401" style="color:red">Wrong username or password</h3>
@@ -32,7 +32,7 @@
             </div>
             <div v-else>
               <UButton :class="[getRandomColorClass(), 'rounded-lg']" @click="loginOIDC(loginMethod)">
-                Login via: {{ loginMethod.name }}
+                Login via: {{ loginMethod.display_name }}
               </UButton>
             </div>
           </div>
@@ -66,9 +66,10 @@ const runtimeConfig = useRuntimeConfig()
 const tokenStore = useTokenStore();
 tokenStore.set401(false);
 
+import { useMedlogapi } from '#imports';
 import { object, string, type InferType } from "yup";
 
-const { data: healthStatus, error: healthError } = await useAPI(`${runtimeConfig.public.baseURL}health`)
+const { data: healthStatus, error: healthError } = await useMedlogapi("/api/health")
 
 const schema = object({
   username: string().required("Benötigt"),
@@ -82,7 +83,7 @@ const state = reactive({
   password: "",
 });
 
-const { data } = await useAPI(`${runtimeConfig.public.baseURL}auth/schemes`)
+const { data: loginMethods } = await useMedlogapi("/api/auth/list")
 
 const login = () => {
   try {

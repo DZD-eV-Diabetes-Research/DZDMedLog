@@ -27,17 +27,18 @@ export const useTokenStore = defineStore('TokenStore', {
   actions: {
 
     async login(username, password) {
-      const { $api } = useNuxtApp();
+      const {$medlogapi} = useNuxtApp();
       const userStore = useUserStore();
-      const body = new FormData()
-      body.append("username", username)
-      body.append("password", password)
 
-      const runtimeConfig = useRuntimeConfig()
+      const loginPayload = {
+        "username": username,
+        "password": password
+      }
+
       try {
-        const data = await $api(runtimeConfig.public.baseURL + "auth/token", {
+        const data = await $medlogapi("/api/auth/basic/login/session", {
           method: "POST",
-          body,
+          body: loginPayload,
         })
 
         this.my_401 = false
@@ -60,6 +61,7 @@ export const useTokenStore = defineStore('TokenStore', {
     },
     async loginViaOpenIDToken(token) {
       const userStore = useUserStore();
+
       this.my_401 = false
       this.access_token = token.value.access_token
       this.refresh_token = token.value.refresh_token

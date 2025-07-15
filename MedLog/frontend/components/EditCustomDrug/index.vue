@@ -59,12 +59,10 @@
 
 import dayjs from "dayjs";
 import { object, number, date, string, type InferType, boolean } from "yup";
-import { apiGetFieldDefinitions } from '~/api/drug';
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
 
 
 const route = useRoute();
-const tokenStore = useTokenStore();
 const drugStore = useDrugStore();
 const initialLoad = ref(true);
 const runTimeConfig = useRuntimeConfig();
@@ -190,8 +188,8 @@ async function saveIntake() {
             consumed_meds_today: drugStore.consumed_meds_today,
         };
 
-        await $api(
-            `${runTimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
+        await $medlogapi(
+            `/api/study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
             {
                 method: "PATCH",
                 body: patchBody,

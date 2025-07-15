@@ -29,11 +29,10 @@ export const useUserStore = defineStore('UserStore', {
     }),
     actions: {
         async userMe() {
-            const { $api } = useNuxtApp();
+            const {$medlogapi} = useNuxtApp();
 
             try {
-                const runtimeConfig = useRuntimeConfig()
-                const data = await $api(runtimeConfig.public.baseURL + "user/me")
+                const data = await $medlogapi("/api/user/me")
 
                 this.email = data.email
                 this.displayName = data.display_name

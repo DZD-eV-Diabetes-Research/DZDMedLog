@@ -3,7 +3,7 @@
 export async function useCreateIntake(study_id: string, interview_id: string, administered_by_doctor: string | "prescribed", source_of_drug_information: string, intake_start_time: string, intake_end_time: string | null = null, intake_regular_or_as_needed: string, regular_intervall_of_daily_dose: string| null | undefined, dose_unit: number, meds_today: boolean, drug_id: string | null = null): Promise<void> {
     
     const tokenStore = useTokenStore()
-    const { $api } = useNuxtApp();
+    const { $medlogapi } = useNuxtApp();
 
     tokenStore.error = ""
 
@@ -22,9 +22,9 @@ export async function useCreateIntake(study_id: string, interview_id: string, ad
 
     try {
         const runtimeConfig = useRuntimeConfig()
-        const response = await $api(runtimeConfig.public.baseURL + "study/" + study_id + "/interview/" + interview_id + "/intake", {
+        const response = await $medlogapi("/api/study/" + study_id + "/interview/" + interview_id + "/intake", {
             method: "POST",
-            body,
+            body: body,
         })    
         return response     
     }

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.8.1.dev20+g0c2f446.d20250715"
+    "version": "0.8.1.dev29+gb138ab2.d20250715"
   },
   "paths": {
     "/api/health": {
@@ -916,6 +916,37 @@
             }
           }
         }
+      }
+    },
+    "/api/role": {
+      "get": {
+        "tags": [
+          "User Admin"
+        ],
+        "summary": "Get Roles",
+        "description": "List available roles",
+        "operationId": "Get_Roles_api_role_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserRoleApiRead"
+                  },
+                  "type": "array",
+                  "title": "Response Get Roles Api Role Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/study": {
@@ -7905,6 +7936,33 @@
           "user_name"
         ],
         "title": "UserCreate"
+      },
+      "UserRoleApiRead": {
+        "properties": {
+          "role_name": {
+            "type": "string",
+            "title": "Role Name",
+            "description": "The name and identifier of the rule. It can be applied to user objects."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Description of the role.",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "role_name"
+        ],
+        "title": "UserRoleApiRead"
       },
       "UserUpdateByAdmin": {
         "properties": {
