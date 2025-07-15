@@ -95,6 +95,11 @@ class Config(BaseSettings):
         min_length=64,
     )
 
+    SET_SESSION_COOKIE_SECURE: bool = Field(
+        default=True,
+        description="if you want to run the app on a non ssl connection set this to false. e.g for local development.",
+    )
+
     def get_server_url(self) -> str:
         if self.SERVER_PROTOCOL is not None:
             proto = self.SERVER_PROTOCOL
