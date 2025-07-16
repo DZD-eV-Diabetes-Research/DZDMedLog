@@ -120,6 +120,10 @@ async def list_users(
     user_crud: UserCRUD = Depends(UserCRUD.get_crud),
     pagination: QueryParamsInterface = Depends(UserQueryParams),
 ) -> PaginatedResponse[User]:
+    if not is_user_manager:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, details="Needs usermanager role"
+        )
     users = await user_crud.list(show_deactivated=incl_deactivated)
     return PaginatedResponse(
         total_count=await user_crud.count(

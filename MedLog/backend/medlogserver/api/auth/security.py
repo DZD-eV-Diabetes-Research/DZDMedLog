@@ -162,6 +162,7 @@ async def user_is_admin(
 async def user_is_usermanager(
     user: Annotated[User, Security(get_current_user)],
 ) -> bool:
+    log.info(f"user: {user}")
     if not (
         config.USERMANAGER_ROLE_NAME in user.roles
         or config.ADMIN_ROLE_NAME in user.roles
