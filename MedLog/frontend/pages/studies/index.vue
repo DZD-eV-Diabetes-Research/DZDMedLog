@@ -46,11 +46,10 @@
 <script setup lang="ts">
 import { object, string, type InferType } from "yup";
 
-const runtimeConfig = useRuntimeConfig();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
 const router = useRouter();
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
 
 
 const showModal = ref(false);
@@ -73,7 +72,7 @@ async function openModal() {
 async function createStudy() {
   try {
     const body = { display_name: state.study_name.trim() };
-    const data = await $api(runtimeConfig.public.baseURL + "study", {
+    await $medlogapi("/api/study", {
       method: "POST",
       body,
     });

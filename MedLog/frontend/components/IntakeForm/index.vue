@@ -288,10 +288,15 @@ async function saveIntake() {
       };
 
       await $medlogapi(
-        `/api/study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
+        `/api/study/{studyId}/interview/{interviewId}/intake/{toEditDrugId}`,
         {
           method: "PATCH",
           body: patchBody,
+          path: {
+              studyId: route.params.study_id,
+              interviewId: route.params.interview_id,
+              toEditDrugId: drugStore.editId
+          }
         }
       );
     } catch (error) {
@@ -460,7 +465,11 @@ async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, m
     for (const ref of refs) {
       let item = { field_name: ref[1], options: [] };
 
-      const response = await $medlogapi(`/api/drug/field_def/${ref[1]}/refs`);
+      const response = await $medlogapi(`/api/drug/field_def/{ref}/refs`, {
+        path: {
+          ref: ref[1]
+        }
+      });
 
       item.options = response.items.map((element) => ({
         value: element.value,

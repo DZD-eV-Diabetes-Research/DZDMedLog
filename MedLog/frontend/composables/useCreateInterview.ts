@@ -12,10 +12,13 @@ export async function useCreateInterview(study_id:string, event_id:string, proba
     }    
 
     try {
-        const runtimeConfig = useRuntimeConfig()
-        const response = await $medlogapi("/api/study/" + study_id + "/event/" + event_id + "/interview", {
+        const response = await $medlogapi("/api/study/{studyId}/event/{eventId}/interview", {
             method: "POST",
             body: body,
+            path: {
+                studyId: study_id,
+                eventId: event_id
+            }
         })
         return response     
     }

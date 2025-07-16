@@ -21,10 +21,13 @@ export async function useCreateIntake(study_id: string, interview_id: string, ad
     }            
 
     try {
-        const runtimeConfig = useRuntimeConfig()
-        const response = await $medlogapi("/api/study/" + study_id + "/interview/" + interview_id + "/intake", {
+        const response = await $medlogapi("/api/study/{studyId}/interview/{interviewId}/intake", {
             method: "POST",
             body: body,
+            path: {
+                studyId: study_id,
+                interviewId: interview_id
+            }
         })    
         return response     
     }

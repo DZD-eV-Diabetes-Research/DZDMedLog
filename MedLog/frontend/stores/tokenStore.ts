@@ -4,8 +4,8 @@ import { defineStore } from 'pinia'
 import { useUserStore } from './userStore' 
 
 interface TokenState {
-  access_token: string
-  refresh_token: string
+  // access_token: string
+  // refresh_token: string
   loggedIn: boolean
   my_401: boolean
   expiredToken:boolean
@@ -16,8 +16,8 @@ interface TokenState {
 export const useTokenStore = defineStore('TokenStore', {
   state: (): TokenState => ({
 
-    access_token: "",
-    refresh_token: "",
+    // access_token: "",
+    // refresh_token: "",
     loggedIn: false,
     my_401: false,
     oidcTokenURL: "",
@@ -42,8 +42,8 @@ export const useTokenStore = defineStore('TokenStore', {
         })
 
         this.my_401 = false
-        this.access_token = data.access_token
-        this.refresh_token = data.refresh_token
+        // this.access_token = data.access_token
+        // this.refresh_token = data.refresh_token
         this.loggedIn = true
         this.expiredToken = false
 

@@ -130,10 +130,13 @@ const patchUser = async function (id: string) {
     try {
         const patchBody = { "roles": selectedRolesPerUser.value[id] }
         await $medlogapi(
-            `/api/user/${id}`,
+            `/api/user/{id}`,
             {
                 method: "PATCH",
                 body: patchBody,
+                path: {
+                    id: id
+                }
             }
         );
         await refresh()

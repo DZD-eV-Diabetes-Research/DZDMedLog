@@ -9,10 +9,12 @@ export async function useCreateEvent(name: string, study_id:string): Promise<voi
     let body = {"name": name}
     
     try {        
-        const runtimeConfig = useRuntimeConfig()
-        await $medlogapi("/api/study/" + study_id + "/event", {
+        await $medlogapi("/api/study/{studyId}/event", {
             method: "POST",
             body: body,
+            path: {
+                studyId: study_id
+            }
         })      
     }
     catch (err: any) {

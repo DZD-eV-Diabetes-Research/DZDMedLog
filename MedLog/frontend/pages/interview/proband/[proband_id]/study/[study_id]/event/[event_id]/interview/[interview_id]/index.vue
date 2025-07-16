@@ -10,7 +10,7 @@
     </UIBaseCard>
     <div v-if="drugStore.intakeVisibility">
       <UIBaseCard>
-        <IntakeSeach color="primary" />
+        <IntakeSearch color="primary" />
         <IntakeForm color="primary" :edit="false" :custom="false" label="Medikament Speichern" />
         <UButton @click="openCustomModal()" label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
           style="margin-top: 2px"
@@ -81,7 +81,7 @@
       <div class="p-4">
         <div style="text-align: center">
           <div v-if="customDrug === 'Nein'">
-            <IntakeSeach :drug="toEditDrug" :edit="true" :custom="customDrug === 'Nein' ? false : true"
+            <IntakeSearch :drug="toEditDrug" :edit="true" :custom="customDrug === 'Nein' ? false : true"
             :color="customDrug === 'Nein' ? 'blue' : 'yellow'" />
           <IntakeForm :color="customDrug === 'Nein' ? 'blue' : 'yellow'" :edit="true"
             :custom="customDrug === 'Nein' ? false : true" label="Bearbeiten" />
@@ -124,20 +124,20 @@
 
 const route = useRoute();
 const router = useRouter();
-const tokenStore = useTokenStore();
 const drugStore = useDrugStore();
 const studyStore = useStudyStore();
 const userStore = useUserStore();
-const runtimeConfig = useRuntimeConfig();
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
 
 
-const { data: latestItems, pending, error } = await useAsyncData(
+const { data: latestItems, pending } = await useAsyncData(
   'latestItems',
-  () => $api(
-    `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/intake`,
-    {
-      headers: { Authorization: "Bearer " + tokenStore.access_token }
+  () => $medlogapi(
+    `/api/study/{studyId}/proband/{probandId}/interview/last/intake`, {
+      path: {
+          studyId: route.params.study_id,
+          probandId: route.params.proband_id,
+        }
     }
   )
 );
@@ -214,10 +214,15 @@ async function deleteIntake() {
 
   try {
 
-    await $api(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.intakeId}`,
+    await $medlogapi(
+      `/api/study/{studyId}/interview/{interviewId}/intake/{drugToDelete}`,
       {
         method: "DELETE",
+        path: {
+          studyId: route.params.study_id,
+          interviewId: route.params.interview_id,
+          drugToDelete: drugToDelete.value.intakeId
+        }
       }
     );
     deleteModalVisibility.value = false;
@@ -324,8 +329,8 @@ async function openCustomModal() {
 }
 
 async function getDosageForm() {
-  const dosageForm = await $api(
-    `${runtimeConfig.public.baseURL}drug/field_def/darreichungsform/refs`);
+  const dosageForm = await $medlogapi(
+    `/api/drug/field_def/darreichungsform/refs`);
 
   dosageFormTable.value = dosageForm.items.map((item) => ({
     id: item.display + " (" + item.value + ")",
@@ -340,14 +345,19 @@ async function getDosageForm() {
 async function saveInterview() {
 
   try {
-    await $api(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${route.params.event_id}/interview/${route.params.interview_id}`,
+    await $medlogapi(
+      `/api/study/{studyId}/event/{eventId}/interview/{interviewId}`,
       {
         method: "PATCH",
         body: {
           "proband_external_id": `${route.params.proband_id}`,
           "interview_end_time_utc": new Date().toISOString(),
           "proband_has_taken_meds": true
+        },
+        path: {
+          studyId: route.params.study_id,
+          eventId: route.params.event_id,
+          interviewId: route.params.interview_id
         }
       }
     );
@@ -367,8 +377,15 @@ async function saveInterview() {
 
 async function createIntakeList() {
   try {
-    const intakes = await $api(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`);
+    const intakes = await $medlogapi(
+      `/api/study/{studyId}/proband/{probandId}/intake/details?interview_id={interviewId}`,
+    {
+      path: {
+        studyId: route.params.study_id,
+        probandId: route.params.proband_id,
+        interviewId: route.params.interview_id
+        }
+    });
 
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map((item) => ({

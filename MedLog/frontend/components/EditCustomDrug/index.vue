@@ -65,7 +65,6 @@ const { $medlogapi } = useNuxtApp();
 const route = useRoute();
 const drugStore = useDrugStore();
 const initialLoad = ref(true);
-const runTimeConfig = useRuntimeConfig();
 
 const props = defineProps<{
     drug?: string;
@@ -189,10 +188,15 @@ async function saveIntake() {
         };
 
         await $medlogapi(
-            `/api/study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
+            `/api/study/{studyId}/interview/{interviewId}/intake/{toEditDrugId}`,
             {
                 method: "PATCH",
                 body: patchBody,
+                path: {
+                        studyId: route.params.study_id,
+                        interviewId: route.params.interview_id,
+                        toEditDrugId: drugStore.editId
+                }
             }
         );
     } catch (error) {

@@ -47,12 +47,11 @@ import {  object, string } from "yup";
 
 const enabled = ref(false);
 const dragging = ref(false);
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
 
 
 const studyStore = useStudyStore();
 const userStore = useUserStore();
-const runtimeConfig = useRuntimeConfig();
 const route = useRoute();
 
 const isSorted = ref(false);
@@ -64,8 +63,12 @@ const study = await studyStore.getStudy(route.params.study_id);
 const myEvents = ref([])
 
 async function getEvents() {
-  const events = await $api(
-    `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event?hide_completed=false&offset=0&limit=100`);
+  const events = await $medlogapi(
+    `/api/study/{studyId}/event?hide_completed=false&offset=0&limit=100`, {
+      path: {
+        studyId: route.params.study_id
+      }
+    });
   myEvents.value = events.items
 }
 
@@ -86,11 +89,14 @@ async function toggleSort() {
     myEvents.value.map((element) => {
       test.value.push(element);
     });
-    await $api(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/order`,
+    await $medlogapi(
+      `/api/study/{studyId}/event/order`,
       {
         method: "POST",
         body: test.value,
+        path: {
+          studyId: route.params.study_id
+        }
       }
     );
   } else {
@@ -111,14 +117,13 @@ const errorMessage = ref();
 async function createEvent() {
   const body = { name: eventState.name };
   try {
-    await $api(
-      runtimeConfig.public.baseURL +
-      "study/" +
-      route.params.study_id +
-      "/event",
+    await $medlogapi(`/api/study/{studyId}/event`,
       {
         method: "POST",
         body,
+        path: {
+          studyId: route.params.study_id
+        }
       }
     );
     showEventModal.value = false;

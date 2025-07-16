@@ -41,7 +41,6 @@
 <script setup lang="ts">
 const props = defineProps<{ onUpdate: () => void }>();
 
-const runtimeConfig = useRuntimeConfig();
 const { $medlogapi } = useNuxtApp();
 const route = useRoute();
 
@@ -60,7 +59,12 @@ async function openCopyIntakeModal() {
     errorMessage.value = false
 
     try {
-        const intakes = await $medlogapi(`/api/study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/intake/details`)
+        const intakes = await $medlogapi(`/api/study/{studyId}/proband/{probandId}/interview/last/intake/details`,{
+            path: {
+                studyId: route.params.study_id,
+                probandId: route.params.proband_id,
+            }
+        })
 
 
         lastEventName.value = intakes[0]?.event.name
@@ -107,9 +111,13 @@ async function openCopyIntakeModal() {
 async function saveIntakes() {
     for (const element of selectedIntakes.value) {
         try {
-            await $medlogapi(`/api/study/${route.params.study_id}/interview/${route.params.interview_id}/intake`, {
+            await $medlogapi(`/api/study/{studyId}/interview/{interviewId}/intake`, {
                 method: "POST",
-                body: element.postBody
+                body: element.postBody,
+                path: {
+                    studyId: route.params.study_id,
+                    interviewId: route.params.interview_id,
+                }
             })
         } catch (error) {
             console.log(error);
