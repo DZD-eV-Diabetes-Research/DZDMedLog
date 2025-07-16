@@ -2,7 +2,7 @@
 
 export async function useCreateInterview(study_id:string, event_id:string, proband_external_id: string, proband_has_taken_meds:boolean, interview_number:number): Promise<any>{
     const tokenStore = useTokenStore()
-    const { $api } = useNuxtApp();
+    const { $medlogapi } = useNuxtApp();
 
     tokenStore.error = ""
     
@@ -12,10 +12,13 @@ export async function useCreateInterview(study_id:string, event_id:string, proba
     }    
 
     try {
-        const runtimeConfig = useRuntimeConfig()
-        const response = await $api(runtimeConfig.public.baseURL + "study/" + study_id + "/event/" + event_id + "/interview", {
+        const response = await $medlogapi("/api/study/{studyId}/event/{eventId}/interview", {
             method: "POST",
-            body,
+            body: body,
+            path: {
+                studyId: study_id,
+                eventId: event_id
+            }
         })
         return response     
     }

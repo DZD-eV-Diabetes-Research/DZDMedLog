@@ -79,11 +79,11 @@ import { object, number, date, string, type InferType } from "yup";
 // general constants
 const route = useRoute()
 const router = useRouter()
-const runtimeConfig = useRuntimeConfig()
-const tokenStore = useTokenStore()
 const userStore = useUserStore()
 const studyStore = useStudyStore()
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
+import { useMedlogapi } from '#imports';
+
 
 // table
 
@@ -173,7 +173,14 @@ async function createEvent() {
   try {
     await useCreateEvent(eventState.name.trim(), route.params.study_id);
 
-    const events = await $api(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`)
+    const events = await $medlogapi(`/api/study/{studyId}/proband/{probandId}/event`,
+      {
+        path: {
+          studyId: route.params.study_id,
+          probandId: route.params.proband_id
+        }
+      }
+    )
     incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
     incompletedItems.value = incompletedItems.value.map(event => ({
       id: event.id,
@@ -207,7 +214,12 @@ const incompletedItems = ref([]);
 
 // REST 
 
-const { data: events } = await useAPI(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`)
+const { data: events } = await useMedlogapi(`/api/study/{studyId}/proband/{probandId}/event`, {
+  path: {
+    studyId: route.params.study_id,
+    probandId: route.params.proband_id,
+  }
+})
 
 function createEventList(events) {
   if (events && events.items) {
@@ -240,7 +252,11 @@ watch(events, (newEvents) => {
 
 async function editEvent(eventId: string) {
   try {
-    const result = await $api(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${eventId}/interview`)
+    const result = await $medlogapi(`/api/study/{studyId}/event/{eventId}/interview`, {
+      path: {
+        studyId: route.params.study_id,
+        eventId: route.params.event_id,      }
+    })
 
     studyStore.event = selectedCompleteEvent.value.event.name
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + eventId + "/interview/" + result[0].id)
@@ -251,8 +267,12 @@ async function editEvent(eventId: string) {
 
 async function createIntakeList() {
   try {
-    const intakes = await $api(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`);
+    const intakes = await $medlogapi(`/api/study/{studyId}/proband/{probandId}/intake/details`, {
+      path: {
+        studyId: route.params.study_id,
+        probandId: route.params.proband_id,
+      }
+    });
 
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map((item) => ({

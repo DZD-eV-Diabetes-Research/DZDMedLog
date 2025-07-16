@@ -209,7 +209,9 @@ const openSettingModal = function () {
 
 // Version & Branch
 
-const { data: config, error: configError, status: configStatus } = await useAPI(`${runtimeConfig.public.baseURL}config/version`)
+import { useMedlogapi } from '#imports';
+
+const { data: config, error: configError, status: configStatus } = await useMedlogapi("/api/config/version")
 
 if (configError.value) {
   console.error('Fehler beim Laden der Konfiguration:', configError.value)

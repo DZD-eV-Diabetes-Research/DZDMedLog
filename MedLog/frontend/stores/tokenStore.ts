@@ -4,8 +4,8 @@ import { defineStore } from 'pinia'
 import { useUserStore } from './userStore' 
 
 interface TokenState {
-  access_token: string
-  refresh_token: string
+  // access_token: string
+  // refresh_token: string
   loggedIn: boolean
   my_401: boolean
   expiredToken:boolean
@@ -16,8 +16,8 @@ interface TokenState {
 export const useTokenStore = defineStore('TokenStore', {
   state: (): TokenState => ({
 
-    access_token: "",
-    refresh_token: "",
+    // access_token: "",
+    // refresh_token: "",
     loggedIn: false,
     my_401: false,
     oidcTokenURL: "",
@@ -27,22 +27,23 @@ export const useTokenStore = defineStore('TokenStore', {
   actions: {
 
     async login(username, password) {
-      const { $api } = useNuxtApp();
+      const {$medlogapi} = useNuxtApp();
       const userStore = useUserStore();
-      const body = new FormData()
-      body.append("username", username)
-      body.append("password", password)
 
-      const runtimeConfig = useRuntimeConfig()
+      const loginPayload = {
+        "username": username,
+        "password": password
+      }
+
       try {
-        const data = await $api(runtimeConfig.public.baseURL + "auth/token", {
+        const data = await $medlogapi("/api/auth/basic/login/session", {
           method: "POST",
-          body,
+          body: loginPayload,
         })
 
         this.my_401 = false
-        this.access_token = data.access_token
-        this.refresh_token = data.refresh_token
+        // this.access_token = data.access_token
+        // this.refresh_token = data.refresh_token
         this.loggedIn = true
         this.expiredToken = false
 
@@ -60,6 +61,7 @@ export const useTokenStore = defineStore('TokenStore', {
     },
     async loginViaOpenIDToken(token) {
       const userStore = useUserStore();
+
       this.my_401 = false
       this.access_token = token.value.access_token
       this.refresh_token = token.value.refresh_token

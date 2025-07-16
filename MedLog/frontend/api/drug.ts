@@ -10,11 +10,11 @@ export async function apiGetFieldDefinitions(type: string) {
     ///
 
     const runTimeConfig = useRuntimeConfig();
-    const { $api } = useNuxtApp();
+    const { $medlogapi } = useNuxtApp();
 
 
     try {
-        const response = await $api(`${runTimeConfig.public.baseURL}drug/field_def`);        
+        const response = await $medlogapi("/api/drug/field_def");        
         const filterFn = (item: any) => 
         type === 'search_result' ? item.show_in_search_results === true :
         type === 'dynamic_form' ? item.used_for_custom_drug === true :
@@ -42,10 +42,14 @@ export async function apiDrugSearch(drugName: string) {
     ///
 
     const runTimeConfig = useRuntimeConfig();
-    const { $api } = useNuxtApp();
+    const { $medlogapi } = useNuxtApp();
 
     try {
-        const result = await $api(`${runTimeConfig.public.baseURL}drug/search?search_term=${drugName}&only_current_medications=true&offset=0&limit=100`);
+        const result = await $medlogapi(`/api/drug/search?search_term={drug}&only_current_medications=true&offset=0&limit=100`,{
+            path: {
+                drug: drugName
+            }
+        });
         return result
 
     } catch (error) {

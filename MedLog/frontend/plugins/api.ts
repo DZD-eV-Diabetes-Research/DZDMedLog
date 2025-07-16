@@ -9,10 +9,10 @@ export default defineNuxtPlugin({
         if (!clients) return { provide: {} }
 
         const handleUnauthorized = () => {
-            // const current = router.currentRoute.value
-            // if (current.fullPath !== '/login' && !current.query.redirect) {
-            //     router.push({ path: '/login', query: { redirect: current.fullPath } })
-            // }
+            const current = router.currentRoute.value
+            if (current.fullPath !== '/' && !current.query.redirect) {
+                router.push({ path: '/', query: { redirect: current.fullPath } })
+            }
             console.log("handle unauth");
         }
 
@@ -22,27 +22,14 @@ export default defineNuxtPlugin({
                 [name]: createOpenFetch(localOptions => ({
                     ...options,
                     ...localOptions,
-                    onRequest(ctx) {
-                        // Beispiel: Auth header
-                        const tokenStore = useTokenStore()
-                        if (tokenStore.access_token) {
-                            ctx.options.headers = {
-                                ...ctx.options.headers,
-                                Authorization: `Bearer ${tokenStore.access_token}`,
-                            }
-                        }
-
-                        if (typeof localOptions?.onRequest === 'function') {
-                            localOptions.onRequest(ctx)
-                        }
-                    },
+                    onRequest: localOptions?.onRequest,
                     onResponse(ctx) {
                         if (ctx.response?.status === 401) handleUnauthorized()
-                        localOptions?.onResponse?.(ctx)
+                            ; (localOptions?.onResponse as any)?.(ctx)
                     },
                     onResponseError(ctx) {
                         if (ctx.response?.status === 401) handleUnauthorized()
-                        localOptions?.onResponseError?.(ctx)
+                            ; (localOptions?.onResponseError as any)?.(ctx)
                     }
                 }))
             }), {})

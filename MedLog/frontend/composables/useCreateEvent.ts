@@ -2,17 +2,19 @@
 
 export async function useCreateEvent(name: string, study_id:string): Promise<void>{
     const tokenStore = useTokenStore()
-    const { $api } = useNuxtApp();
+    const { $medlogapi } = useNuxtApp();
 
     tokenStore.error = ""
     
     let body = {"name": name}
     
     try {        
-        const runtimeConfig = useRuntimeConfig()
-        await $api(runtimeConfig.public.baseURL + "study/" + study_id + "/event", {
+        await $medlogapi("/api/study/{studyId}/event", {
             method: "POST",
-            body,
+            body: body,
+            path: {
+                studyId: study_id
+            }
         })      
     }
     catch (err: any) {
