@@ -55,6 +55,7 @@
         </p>
       </div>
     </UIBaseCard>
+    {{ loginMethods }}
   </Layout>
 </template>
 
@@ -62,7 +63,6 @@
 
 <script setup lang="ts">
 
-const runtimeConfig = useRuntimeConfig()
 const tokenStore = useTokenStore();
 tokenStore.set401(false);
 
@@ -96,7 +96,10 @@ const login = () => {
 const loginOIDC = async function (oidc_method) {
   try {
     tokenStore.setOidcTokenURL(oidc_method.token_endpoint)
-    window.location.href = `${runtimeConfig.public.baseURL.slice(0, -5)}${oidc_method.login_endpoint}`    
+    window.location.href = `${oidc_method.login_endpoint}?target_path=/user`    
+    console.log("HEY")
+    console.log("Tim ist ein Lügner")
+
   } catch (error) {
     console.log(error);
   }
