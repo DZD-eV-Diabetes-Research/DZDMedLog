@@ -1,6 +1,6 @@
 from typing import Optional, Union
 from pydantic import BaseModel, Field
-from fastapi import FastAPI, Request, Depends, Response, HTTPException
+from fastapi import FastAPI, Request, Depends, Response, HTTPException, status
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlmodel import SQLModel, Session, create_engine, select
 from authlib.integrations.starlette_client import OAuth
@@ -180,7 +180,11 @@ async def auth_basic_login_session_based(
         display_name=new_session_name,
     )
     user_session: UserSession = await user_session_crud.create(new_session)
-    response = RedirectResponse(url="/" if not target_path else target_path)
+    response = RedirectResponse(
+        url="/" if not target_path else target_path,
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=str(user_session.id),
