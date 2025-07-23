@@ -23,7 +23,7 @@
                 </UFormGroup>
                 <div class="flex justify-center">
                   <UButton color="green" variant="soft"
-                    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white mb-2"
+                    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
                     type="submit">
                     Einloggen
                   </UButton>
@@ -55,7 +55,6 @@
         </p>
       </div>
     </UIBaseCard>
-    {{ loginMethods }}
   </Layout>
 </template>
 
@@ -64,7 +63,6 @@
 <script setup lang="ts">
 
 const tokenStore = useTokenStore();
-tokenStore.set401(false);
 
 import { useMedlogapi } from '#imports';
 import { object, string, type InferType } from "yup";
@@ -75,8 +73,6 @@ const schema = object({
   username: string().required("Benötigt"),
   password: string().required("Benötigt"),
 });
-
-type Schema = InferType<typeof schema>;
 
 const state = reactive({
   username: "",

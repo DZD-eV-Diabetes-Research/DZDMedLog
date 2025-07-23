@@ -26,13 +26,13 @@
   </header>
 
   <div class="flex justify-between items-center px-10 py-2">
-    <button v-if="tokenStore.loggedIn"
+    <button v-if="showHeader"
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
       @click="logout()">Logout</button>
 
-    <UBreadcrumb v-if="tokenStore.loggedIn" :links="links" />
+    <UBreadcrumb v-if="showHeader" :links="links" />
 
-    <button v-if="tokenStore.loggedIn"
+    <button v-if="showHeader"
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
       @click="openSlide = true">Hilfe</button>
   </div>
@@ -111,7 +111,6 @@
 <script setup>
 import { ref, computed, watchEffect } from 'vue';
 
-const runtimeConfig = useRuntimeConfig();
 const tokenStore = useTokenStore();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
@@ -149,7 +148,11 @@ function logout() {
   studyStore.$reset();
   tokenStore.$reset();
   probandStore.$reset();
-  router.push({ path: '/' });
+    // router.push({ path: '/' });
+  const {$medlogapi} = useNuxtApp();
+  $medlogapi("/api/auth/logout", {
+    method: 'POST'
+  }) 
 }
 
 
@@ -216,5 +219,8 @@ const { data: config, error: configError, status: configStatus } = await useMedl
 if (configError.value) {
   console.error('Fehler beim Laden der Konfiguration:', configError.value)
 }
+
+// Show logout buttion breadcrumbs and help only when not on "/"
+const showHeader = computed(() => route.path !== '/')
 
 </script>
