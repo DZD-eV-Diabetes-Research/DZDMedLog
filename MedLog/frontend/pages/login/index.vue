@@ -91,7 +91,6 @@ const login = () => {
 
 const loginOIDC = async function (oidc_method) {
   try {
-    tokenStore.setOidcTokenURL(oidc_method.token_endpoint)
     window.location.href = `${oidc_method.login_endpoint}?target_path=/`    
 
   } catch (error) {
