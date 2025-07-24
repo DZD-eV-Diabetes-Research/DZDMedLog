@@ -36,7 +36,7 @@ export const useTokenStore = defineStore('TokenStore', {
       }
 
       try {
-        const data = await $medlogapi("/api/auth/basic/login/session", {
+        await $medlogapi("/api/auth/basic/login/session", {
           method: "POST",
           body: loginPayload,
         })
@@ -50,7 +50,7 @@ export const useTokenStore = defineStore('TokenStore', {
         userStore.userMe()
 
         const router = useRouter()
-        router.push({ path: "/user" })
+        router.push({ path: "/" })
 
       }
       catch (err) {

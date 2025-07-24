@@ -1,7 +1,7 @@
 export default defineNuxtRouteMiddleware(async (to, from) => {
   const userStore = useUserStore()
 
-  if (to.path !== '/'){
+  if (to.path !== '/login'){
     try {
       await userStore.userMe()
     } catch (error) {

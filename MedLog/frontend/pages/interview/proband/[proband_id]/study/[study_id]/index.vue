@@ -1,8 +1,8 @@
 <template>
   <Layout>
-    <div class="flex flex-row gap-4">
-      <div class="flex flex-1">
-        <UIBaseCard class="w-full">
+    <div class="flex flex-row gap-4 justify-center max-w-6xl m-auto">
+      <div class="w-[50%]">
+        <UIBaseCard>
           <h5>Unbearbeitete Events</h5>
           <UInputMenu v-model="selectedIncompleteEvent" :options="incompletedItems" />
           <br>
@@ -18,8 +18,8 @@
           </div>
         </UIBaseCard>
       </div>
-      <div class="flex flex-1">
-        <UIBaseCard class="w-full">
+      <div class="w-[50%]">
+        <UIBaseCard>
           <h5>Bearbeitete Events</h5>
           <UInputMenu v-model="selectedCompleteEvent" :options="completedItems" />
           <br>
@@ -255,7 +255,7 @@ async function editEvent(eventId: string) {
     const result = await $medlogapi(`/api/study/{studyId}/event/{eventId}/interview`, {
       path: {
         studyId: route.params.study_id,
-        eventId: route.params.event_id,      }
+        eventId: eventId,      }
     })
 
     studyStore.event = selectedCompleteEvent.value.event.name

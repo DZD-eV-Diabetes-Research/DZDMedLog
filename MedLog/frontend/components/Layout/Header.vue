@@ -2,7 +2,7 @@
   <header class="flex w-full  border-b-4 border-accent bg-white shadow-md py-4 px-10">
     <div class="flex w-full justify-between items-center mx-auto">
       <div>
-        <NuxtLink class="text-4xl font-bold text-gray-800 hover:border-[#ec372d] hover:border-b-2" to="/user"
+        <NuxtLink class="text-4xl font-bold text-gray-800 hover:border-[#ec372d] hover:border-b-2" to="/"
           @click="resetStore">
           DZD Medlog
         </NuxtLink>
@@ -115,7 +115,6 @@ const tokenStore = useTokenStore();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
 const probandStore = useProbandStore();
-const router = useRouter();
 const route = useRoute();
 
 const studyName = ref('');
@@ -148,11 +147,12 @@ function logout() {
   studyStore.$reset();
   tokenStore.$reset();
   probandStore.$reset();
-    // router.push({ path: '/' });
   const {$medlogapi} = useNuxtApp();
   $medlogapi("/api/auth/logout", {
     method: 'POST'
   }) 
+  const router = useRouter()
+  router.push({ path: '/login' });
 }
 
 
@@ -221,6 +221,6 @@ if (configError.value) {
 }
 
 // Show logout buttion breadcrumbs and help only when not on "/"
-const showHeader = computed(() => route.path !== '/')
+const showHeader = computed(() => route.path !== '/login')
 
 </script>
