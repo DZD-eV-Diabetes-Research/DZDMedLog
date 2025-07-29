@@ -21,10 +21,10 @@ export async function apiGetFieldDefinitions(type: string) {
         true;
 
         const categorizedList = {
-            attrs: response.attrs?.filter(filterFn).map((item:any)  => [item.field_name_display, item.field_name, item.value_type]) || [],
-            attrs_ref: response.attrs_ref?.filter(filterFn).map((item:any) => [item.field_name_display, item.field_name, item.value_type]) || [],
-            attrs_multi: response.attrs_multi?.filter(filterFn).map((item:any) => [item.field_name_display, item.field_name, item.value_type]) || [],
-            attrs_multi_ref: response.attrs_multi_ref?.filter(filterFn).map((item:any) => [item.field_name_display, item.field_name, item.value_type]) || [],
+            attrs: response.attrs?.filter(filterFn).map((item:any)  => [item.field_name_display, item.field_name, item.value_type, item.field_desc]) || [],
+            attrs_ref: response.attrs_ref?.filter(filterFn).map((item:any) => [item.field_name_display, item.field_name, item.value_type, item.field_desc]) || [],
+            attrs_multi: response.attrs_multi?.filter(filterFn).map((item:any) => [item.field_name_display, item.field_name, item.value_type, item.field_desc]) || [],
+            attrs_multi_ref: response.attrs_multi_ref?.filter(filterFn).map((item:any) => [item.field_name_display, item.field_name, item.value_type, item.field_desc]) || [],
         };
         
         return categorizedList;
