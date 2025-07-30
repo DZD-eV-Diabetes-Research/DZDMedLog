@@ -25,6 +25,7 @@ from medlogserver.model.study_permission import (
     StudyPermissionRead,
     StudyPermissonUpdate,
 )
+from medlogserver.model.study_permission_doc import StudyPermissionDesc
 from medlogserver.db.study_permission import StudyPermissonCRUD
 from medlogserver.config import Config
 from medlogserver.api.study_access import (
@@ -49,6 +50,25 @@ fast_api_permissions_router: APIRouter = APIRouter()
 StudyPermissonQueryParams: Type[QueryParamsInterface] = create_query_params_class(
     StudyPermissionRead
 )
+
+
+#############
+@fast_api_permissions_router.get(
+    "/study/permissions/available",
+    response_model=List[StudyPermissionDesc],
+    description=f"List all permissons names you can apply to a user per study.",
+)
+async def list_available_study_permissions_with_description() -> (
+    List[StudyPermissionDesc]
+):
+    docs = []
+    for name, field_info in StudyPermissonUpdate.model_fields.items():
+        docs.append(
+            StudyPermissionDesc(
+                study_permission_name=name, description=field_info.description
+            )
+        )
+    return docs
 
 
 #############
