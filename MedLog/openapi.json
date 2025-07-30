@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.8.1.dev45+g4235825.d20250730"
+    "version": "0.8.1.dev46+g4c678a7.d20250730"
   },
   "paths": {
     "/api/health": {
@@ -1229,7 +1229,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/study/{study_id}/permissions": {

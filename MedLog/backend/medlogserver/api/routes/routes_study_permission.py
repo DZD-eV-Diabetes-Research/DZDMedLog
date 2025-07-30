@@ -19,7 +19,10 @@ from typing import Annotated
 
 from fastapi import Depends, APIRouter
 
-
+from medlogserver.api.auth.security import (
+    get_current_user,
+)
+from medlogserver.model.user import User
 from medlogserver.model.study_permission import (
     StudyPermisson,
     StudyPermissionRead,
@@ -58,9 +61,9 @@ StudyPermissonQueryParams: Type[QueryParamsInterface] = create_query_params_clas
     response_model=List[StudyPermissionDesc],
     description=f"List all permissons names you can apply to a user per study.",
 )
-async def list_available_study_permissions_with_description() -> (
-    List[StudyPermissionDesc]
-):
+async def list_available_study_permissions_with_description(
+    current_user: User = Security(get_current_user),
+) -> List[StudyPermissionDesc]:
     docs = []
     for name, field_info in StudyPermissonUpdate.model_fields.items():
         docs.append(
