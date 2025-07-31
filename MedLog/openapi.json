@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.8.1.dev45+g4235825.d20250731"
+    "version": "0.8.1.dev46+g4c678a7.d20250730"
   },
   "paths": {
     "/api/health": {
@@ -1204,6 +1204,37 @@
             }
           }
         }
+      }
+    },
+    "/api/study/permissions/available": {
+      "get": {
+        "tags": [
+          "Study Permissions"
+        ],
+        "summary": "List Available Study Permissions With Description",
+        "description": "List all permissons names you can apply to a user per study.",
+        "operationId": "list_available_study_permissions_with_description_api_study_permissions_available_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StudyPermissionDesc"
+                  },
+                  "type": "array",
+                  "title": "Response List Available Study Permissions With Description Api Study Permissions Available Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/study/{study_id}/permissions": {
@@ -5038,7 +5069,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "password"
+                "pattern": "^password$"
               },
               {
                 "type": "null"
@@ -7620,6 +7651,33 @@
         },
         "type": "object",
         "title": "StudyCreateAPI"
+      },
+      "StudyPermissionDesc": {
+        "properties": {
+          "study_permission_name": {
+            "type": "string",
+            "title": "Study Permission Name",
+            "description": "The name and identifier of the study permission."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Description of the permission.",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_permission_name"
+        ],
+        "title": "StudyPermissionDesc"
       },
       "StudyPermissionRead": {
         "properties": {
