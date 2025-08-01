@@ -37,13 +37,13 @@
           class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
         <UButton type="submit" @click="gotoExport(study.id)" label="Datenexport" color="blue" variant="soft"
           class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white px-4" />
-        <UButton type="submit" @click="studyPermissionModal = true" label="Studien-Zugriffsrechte" color="violet" variant="soft"
+        <UButton type="submit" @click="openStudyPermissionModal(study.id)" label="Studien-Zugriffsrechte" color="violet" variant="soft"
           class="border border-violet-500 hover:bg-violet-300 hover:border-white hover:text-white px-4" />
       </div>
 
     </UIBaseCard>
     <UModal v-model="studyPermissionModal" :ui="{ width: 'lg:max-w-6xl' }">
-      <StudyPermissionManagement/>
+      <StudyPermissionManagement :studyId="studyId"/>
     </UModal>
   </Layout>
 </template>
@@ -101,5 +101,10 @@ async function gotoExport(study_id) {
   router.push({ path: "/studies/" + study_id + "/export" });
 }
 
+const studyId = ref("")
 const studyPermissionModal = ref(false)
+function openStudyPermissionModal(study_id: string) {
+  studyPermissionModal.value = !studyPermissionModal.value
+  studyId.value = study_id
+}
 </script>

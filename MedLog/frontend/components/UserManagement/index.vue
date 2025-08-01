@@ -128,6 +128,8 @@ const selectedRolesPerUser = ref<Record<string, string[]>>({})
 
 const patchUser = async function (id: string) {
     try {
+        console.log(selectedRolesPerUser.value[id]);
+        
         const patchBody = { "roles": selectedRolesPerUser.value[id] }
         await $medlogapi(
             `/api/user/{id}`,

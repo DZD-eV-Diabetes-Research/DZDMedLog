@@ -10,10 +10,12 @@
         </template>
         <div v-if="mappedUsers">
             <UTable v-model:expand="expand" :rows="mappedUsers" :columns="columns">
-
-                <template #roles-data="{ row }">
-                    <div v-if="row.roles.length > 0" class="space-x-2" >
-                        <UBadge class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg" v-for="role in row.roles">{{ role }}</UBadge>
+                <template #permissions-data="{ row }">
+                    <div v-if="row.permissions.length > 0" class="space-x-2">
+                        <UBadge v-for="permission in row.permissions" :key="permission"
+                            class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg">
+                            {{ permission }}
+                        </UBadge>
                     </div>
                     <div v-else>
 
@@ -22,12 +24,12 @@
 
                 <template #expand="{ row }">
                     <div class="flex flex-col p-4 bg-gray-50 rounded text-center items-center space-y-3">
-                        <p v-if="row.roles.length > 0">{{ row.user_name }} sind folgenden Rollen zugewiesen: </p>
-                        <p v-else>{{ row.user_name }} sind aktuell keinen Rollen zugewiesen</p>
+                        <p v-if="row.permissions.length > 0">{{ row.userName }} sind folgenden Zugriffsrechte
+                            zugewiesen: </p>
                         <div class="space-y-2 mb-20">
-                            <UCheckbox v-for="role in roles" :key="role.role_name"
-                                v-model="selectedRolesPerUser[row.id]" :value="role.role_name" :name="role.role_name"
-                                :label="role.role_name" />
+                            <UCheckbox v-for="permission in permissionLabels" :key="permission"
+                                v-model="selectedPermissionsPerUser[row.id]" :value="permission" :name="permission"
+                                :label="permission" />
                         </div>
                         <div class="mt-4">
                             <UButton @click="patchUser(row.id)"
@@ -50,9 +52,10 @@
         </div>
         <div class="text-center">
             <hr class="my-8 border-2">
-            <h2 class="text-3xl font-semibold mb-4">Aktuelle Rollen</h2>
-            <div class="flex flex-row justify-center mb-4" v-for="role in roles">
-                <p><span class="font-bold">{{ role.role_name }}</span>: {{ role.description }}</p>
+            <h2 class="text-3xl font-semibold mb-4">Aktuelle Zugriffsrechte</h2>
+            <div class="flex flex-row justify-center mb-4" v-for="permission in permissions">
+                <p><span class="font-bold">{{ permission.study_permission_name }}</span>: {{ permission.description }}
+                </p>
             </div>
         </div>
     </UCard>
@@ -62,47 +65,58 @@
 const { $medlogapi } = useNuxtApp();
 import { useMedlogapi } from '#imports';
 
+//props
+
+const props = defineProps<{
+    studyId: string
+}>()
+
 // Api calls
 
-import type { components } from "#open-fetch-schemas/medlogapi";
-type StudyPermissionUpdateType = components["schemas"]["StudyPermissonUpdate"]
-const StudyPermissionNames = keys<StudyPermissionUpdateType>();
-
-const { data: users, refresh } = useMedlogapi(`/api/user`, {
-    method: "GET",
+const { data: permissions } = useMedlogapi('/api/study/permissions/available', {
+    method: "GET"
 })
 
-const { data: roles } = useMedlogapi("/api/role" , {
+
+const { data: users, refresh: permissionsRefresh } = useMedlogapi('/api/study/{study_id}/permissions', {
+    path: {
+        study_id: props.studyId,
+    },
     method: "GET",
+
 })
+
 
 // Template preparation
 
-// Here we alter the user array to a new form (mappedUsers) to visualize them in the template
+// Here we alter the user array to a new form (mappedUsers2) to visualize them in the template
+
+const permissionLabels = ["Study Viewer", "Study Interviewer", "Study Admin"];
+
 const mappedUsers = computed(() => {
     if (!users.value) return [];
     return users.value.items.map(user => ({
         id: user.id,
-        user_name: user.user_name,
-        email: user.email,
-        display_name: user.display_name,
-        roles: user.roles,
+        userName: user.user_ref.user_name,
+        email: user.user_ref.email,
+        displayName: user.user_ref.display_name,
+        permissions: [user.is_study_viewer, user.is_study_interviewer, user.is_study_admin].map((value, index) => value ? permissionLabels[index] : null).filter(Boolean),
         hasExpand: true
     }))
 })
 
 const columns = [{
-    key: 'user_name',
+    key: 'userName',
     label: 'Benutzername'
 }, {
     key: 'email',
     label: 'Email'
 }, {
-    key: 'display_name',
+    key: 'displayName',
     label: 'Angezeigter Name'
 }, {
-    key: 'roles',
-    label: 'Rechte'
+    key: 'permissions',
+    label: 'Zugriffsrechte'
 }, {
     key: 'actions'
 }]
@@ -122,27 +136,33 @@ function handleToggle(row: any) {
     currentUser.value = row
     const alreadyOpen = isRowExpanded(row)
     expand.value.openedRows = alreadyOpen ? [] : [row]
-    selectedRolesPerUser.value[row.id] = [...row.roles]
+    selectedPermissionsPerUser.value[row.id] = [...row.permissions]
 }
 
-const selectedRolesPerUser = ref<Record<string, string[]>>({})
+const selectedPermissionsPerUser = ref<Record<string, string[]>>({})
 
 // Update users to the backend
 
 const patchUser = async function (id: string) {
     try {
-        const patchBody = { "roles": selectedRolesPerUser.value[id] }
+        const putBody = {
+            "is_study_viewer": selectedPermissionsPerUser.value[id].includes("Study Viewer") ? true : false,
+            "is_study_interviewer": selectedPermissionsPerUser.value[id].includes("Study Interviewer") ? true : false,
+            "is_study_admin": selectedPermissionsPerUser.value[id].includes("Study Admin") ? true : false
+        }
+
         await $medlogapi(
-            `/api/user/{id}`,
+            '/api/study/{study_id}/permissions/{user_id}',
             {
-                method: "PATCH",
-                body: patchBody,
+                method: "PUT",
+                body: putBody,
                 path: {
-                    id: id
+                    study_id: props.studyId,
+                    user_id: id
                 }
             }
         );
-        await refresh()
+        await permissionsRefresh()
         expand.value.openedRows = []
     } catch (error) {
         console.log(error);
