@@ -47,7 +47,7 @@ def test_endpoint_study_permissions_list():
 
 
 def test_endpoint_study_permissions_get():
-    """Test GET /api/study/{study_id}/permissions/{permission_id} endpoint"""
+    """Test GET /api/study/{study_id}/permissions/{user_id} endpoint"""
     study_data = create_test_study(study_name="TestGetPermissionStudy", with_events=3)
     user_password = "we9gij2409rv"
     test_user = create_test_user(
@@ -85,11 +85,22 @@ def test_endpoint_study_permissions_get():
         b=dictyfy(view_perm),
     )
     print("result_permission", result_permission)
-    assert {
-        "is_study_interviewer": False,
-        "is_study_admin": False,
-        "is_study_viewer": True,
-    } == result_permission
+    dict_must_contain(
+        d=result_permission,
+        required_keys_and_val={
+            "is_study_interviewer": False,
+            "is_study_admin": False,
+            "is_study_viewer": True,
+        },
+    )
+    permission_get = req(
+        f"/api/study/{study_data.study.id}/permissions/{test_user.id}",
+        method="get",
+    )
+    print("result_permission", result_permission)
+    print("permission_get", permission_get)
+
+    assert result_permission == permission_get
 
     events = req(
         f"/api/study/{study_data.study.id}/event",
@@ -121,11 +132,14 @@ def test_endpoint_study_permissions_get():
         method="put",
         b=dictyfy(view_perm),
     )
-    assert {
-        "is_study_interviewer": True,
-        "is_study_admin": False,
-        "is_study_viewer": True,
-    } == result_permission
+    dict_must_contain(
+        d=result_permission,
+        required_keys_and_val={
+            "is_study_interviewer": True,
+            "is_study_admin": False,
+            "is_study_viewer": True,
+        },
+    )
 
 
 def test_endpoint_study_permissions_create_or_update():
@@ -175,7 +189,7 @@ def test_endpoint_study_permissions_create_or_update():
 
 
 def test_full_permission_workflow():
-    """Test GET /api/study/{study_id}/permissions/{permission_id} endpoint"""
+
     study_data = create_test_study(
         study_name="TestStudyPermissionFullWorkflow", with_events=3
     )
@@ -217,11 +231,15 @@ def test_full_permission_workflow():
         b=dictyfy(view_perm),
     )
     print("result_permission", result_permission)
-    assert {
-        "is_study_interviewer": False,
-        "is_study_admin": False,
-        "is_study_viewer": True,
-    } == result_permission
+    dict_must_contain(
+        result_permission,
+        required_keys_and_val={
+            "is_study_interviewer": False,
+            "is_study_admin": False,
+            "is_study_viewer": True,
+        },
+        exception_dict_identifier="create permission response",
+    )
 
     events = req(
         f"/api/study/{study_data.study.id}/event",
@@ -253,11 +271,15 @@ def test_full_permission_workflow():
         method="put",
         b=dictyfy(view_perm),
     )
-    assert {
-        "is_study_interviewer": True,
-        "is_study_admin": False,
-        "is_study_viewer": True,
-    } == result_permission
+    dict_must_contain(
+        result_permission,
+        required_keys_and_val={
+            "is_study_interviewer": True,
+            "is_study_admin": False,
+            "is_study_viewer": True,
+        },
+        exception_dict_identifier="create permission response",
+    )
 
     from medlogserver.api.routes.routes_interview import create_interview
 
@@ -298,11 +320,16 @@ def test_full_permission_workflow():
         b=dictyfy(view_perm),
     )
     print("result_permission", result_permission)
-    assert {
-        "is_study_interviewer": True,
-        "is_study_admin": True,
-        "is_study_viewer": True,
-    } == result_permission
+    dict_must_contain(
+        result_permission,
+        required_keys_and_val={
+            "is_study_interviewer": True,
+            "is_study_admin": True,
+            "is_study_viewer": True,
+        },
+        exception_dict_identifier="create permission response",
+    )
+
     res = req(
         f"api/study/{study_data.study.id}/event",
         method="post",
