@@ -96,7 +96,7 @@ const permissionLabels = ["Study Viewer", "Study Interviewer", "Study Admin"];
 const mappedUsers = computed(() => {
     if (!users.value) return [];
     return users.value.items.map(user => ({
-        id: user.id,
+        id: user.user_ref.id,
         userName: user.user_ref.user_name,
         email: user.user_ref.email,
         displayName: user.user_ref.display_name,
