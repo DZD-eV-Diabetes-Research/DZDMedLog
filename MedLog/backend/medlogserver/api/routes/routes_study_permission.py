@@ -103,12 +103,12 @@ async def list_study_permissions(
 
 ############
 @fast_api_permissions_router.get(
-    "/study/{study_id}/permissions/{permission_id}",
-    response_model=StudyPermisson,
+    "/study/{study_id}/permissions/{user_id}",
+    response_model=StudyPermissionRead,
     description=f"List all medicine intakes of one probands last completed interview.",
 )
 async def get_permission_details(
-    permission_id: uuid.UUID,
+    user_id: uuid.UUID,
     study_access: UserStudyAccess = Security(user_has_study_access),
     permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
 ) -> StudyPermisson:
@@ -122,7 +122,8 @@ async def get_permission_details(
     # determined as low risk, at the moment we can assumes that registered admins are not malicious actors
     # and to obtain that other UUID its need some criminal energy :) .
     # ToDo: include a check if that permission really belongs to the study
-    return await permission_crud.get(permission_id)
+
+    return await permission_crud.get_by_user_and_study(user_id, study_access.study.id)
 
 
 @fast_api_permissions_router.put(

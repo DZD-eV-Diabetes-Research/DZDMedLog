@@ -1348,14 +1348,14 @@
         }
       }
     },
-    "/api/study/{study_id}/permissions/{permission_id}": {
+    "/api/study/{study_id}/permissions/{user_id}": {
       "get": {
         "tags": [
           "Study Permissions"
         ],
         "summary": "Get Permission Details",
         "description": "List all medicine intakes of one probands last completed interview.",
-        "operationId": "get_permission_details_api_study__study_id__permissions__permission_id__get",
+        "operationId": "get_permission_details_api_study__study_id__permissions__user_id__get",
         "security": [
           {
             "HTTPBearer": []
@@ -1363,13 +1363,13 @@
         ],
         "parameters": [
           {
-            "name": "permission_id",
+            "name": "user_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Permission Id"
+              "title": "User Id"
             }
           },
           {
@@ -1389,7 +1389,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StudyPermisson"
+                  "$ref": "#/components/schemas/StudyPermissionRead"
                 }
               }
             }
@@ -1405,9 +1405,7 @@
             }
           }
         }
-      }
-    },
-    "/api/study/{study_id}/permissions/{user_id}": {
+      },
       "put": {
         "tags": [
           "Study Permissions"
@@ -5069,7 +5067,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "password"
+                "pattern": "^password$"
               },
               {
                 "type": "null"
@@ -7730,49 +7728,6 @@
           "study_ref"
         ],
         "title": "StudyPermissionRead"
-      },
-      "StudyPermisson": {
-        "properties": {
-          "is_study_viewer": {
-            "type": "boolean",
-            "title": "Is Study Viewer",
-            "description": "This is the minimal access to a study. The user can see all data but can not alter anything",
-            "default": true
-          },
-          "is_study_interviewer": {
-            "type": "boolean",
-            "title": "Is Study Interviewer",
-            "description": "Study interviewers can create new interview entries for this study.",
-            "default": false
-          },
-          "is_study_admin": {
-            "type": "boolean",
-            "title": "Is Study Admin",
-            "description": "Study admins can give access to the study to new users.",
-            "default": false
-          },
-          "study_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Study Id"
-          },
-          "user_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "User Id"
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "study_id",
-          "user_id"
-        ],
-        "title": "StudyPermisson"
       },
       "StudyPermissonUpdate": {
         "properties": {
