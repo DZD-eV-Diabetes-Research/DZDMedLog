@@ -127,7 +127,7 @@ async def get_permission_details(
 
 @fast_api_permissions_router.put(
     "/study/{study_id}/permissions/{user_id}",
-    response_model=StudyPermissonUpdate,
+    response_model=StudyPermissionRead,
     description=f"Create or update new study permision for a user.",
 )
 async def create_or_update_permission(

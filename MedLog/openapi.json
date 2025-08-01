@@ -1458,7 +1458,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StudyPermissonUpdate"
+                  "$ref": "#/components/schemas/StudyPermissionRead"
                 }
               }
             }
