@@ -26,3 +26,7 @@ class AuthSchemeInfo(BaseModel):
     login_endpoint: str
     registration_endpoint: Optional[str] = None
     provider_slug: Optional[str] = None
+    auto_login: Optional[bool] = Field(
+        default=False,
+        description="If auth_type is `oidc` and `auto_login` is true, the client should redirect to this OIDC Provider without any further login dialog. There can only be one `oidc` with auto_login.",
+    )

@@ -134,11 +134,20 @@ class UserCreate(_UserWithName, UserUpdateByAdmin, table=False):
         user_name = oidc_userinfo.preferred_username
         if oidc_provider_config.PREFIX_USERNAME_WITH_PROVIDER_SLUG:
             user_name = f"{oidc_userinfo.provider_slug}_{user_name}"
+        roles = oidc_userinfo.groups
+        if oidc_provider_config.ROLE_MAPPING:
+            for (
+                oidc_mapping_group,
+                mapping_roles,
+            ) in oidc_provider_config.ROLE_MAPPING.items():
+                if oidc_mapping_group in oidc_userinfo.groups:
+                    roles.extend(mapping_roles)
+
         userdata = {}
         userdata["user_name"] = user_name
         userdata["display_name"] = oidc_userinfo.name
         userdata["email"] = oidc_userinfo.email
-        userdata["roles"] = oidc_userinfo.roles
+        userdata["roles"] = roles
         return cls(**userdata)
 
 
