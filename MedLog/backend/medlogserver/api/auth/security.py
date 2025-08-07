@@ -107,7 +107,9 @@ async def get_current_user_auth(
         elif user_auth.auth_source_type == AllowedAuthSchemeType.oidc:
             # we try the oidc refresh token
             session_id = request.cookies.get(SESSION_COOKIE_NAME, None)
-            user_session: UserSession = await user_session_crud.get(str(session_id))
+            user_session: UserSession = await user_session_crud.get(
+                uuid.UUID(str(session_id))
+            )
             try:
                 user_auth = await oidc_refresh_access_token(
                     oauth_client=oauth_clients[user_auth.oidc_provider_slug],
