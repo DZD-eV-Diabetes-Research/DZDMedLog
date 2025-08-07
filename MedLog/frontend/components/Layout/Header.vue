@@ -34,7 +34,7 @@
 
     <button v-if="showHeader"
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
-      @click="openSlide = true">Hilfe</button>
+      @click="openSlide = true">Mehr</button>
   </div>
 
   <!-- SLIDER INFO HELP -->
