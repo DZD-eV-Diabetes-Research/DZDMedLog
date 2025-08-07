@@ -81,7 +81,7 @@ class ExportJob(BaseModel):
         )
         if job.get_state() == WorkerJobState.SUCCESS:
             export_job.download_file_path = (
-                f"study/{job.task_params['study_id']}/export/{job.id}/download"
+                f"/api/study/{job.task_params['study_id']}/export/{job.id}/download"
             )
         return export_job
 
