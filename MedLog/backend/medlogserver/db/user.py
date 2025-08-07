@@ -204,7 +204,7 @@ class UserCRUD(
             show_deactivated=True,
         )
         for k, v in user_update.model_dump(exclude_unset=True).items():
-            if k in UserUpdate.model_fields.keys():
+            if k in user_update.__class__.model_fields.keys():
                 setattr(user_from_db, k, v)
         self.session.add(user_from_db)
         await self.session.commit()
