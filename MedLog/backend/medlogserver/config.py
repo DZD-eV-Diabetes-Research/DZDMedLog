@@ -127,7 +127,15 @@ class Config(BaseSettings):
         description="Connection URL for the database based on the RFC-1738 standard. Mind the 3 (instead of 2) leading slashes in sqlite file pathes https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#connect-strings",
     )
 
-    ADMIN_USER_NAME: str = Field(default="admin")
+    ADMIN_USER_NAME: Annotated[
+        str,
+        StringConstraints(
+            strip_whitespace=True,
+            # pattern=r"^[a-zA-Z0-9.-_@]+$",  # ToDo: evaluate this unnecessary constricing. espealy when dealing with external OIDC providers.
+            max_length=128,
+            min_length=3,
+        ),
+    ] = Field(default="admin")
     ADMIN_USER_PW: SecretStr = Field()
     ADMIN_USER_EMAIL: Optional[str] = Field(default=None)
     ADMIN_ROLE_NAME: str = Field(default="medlog-admin")
