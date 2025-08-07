@@ -82,7 +82,7 @@ class _UserWithName(UserBase, table=False):
         StringConstraints(
             strip_whitespace=True,
             to_lower=True,
-            pattern=r"^[a-zA-Z0-9.-_@]+$",  # ToDo: evaluate this unnecessary constricing. espealy when dealing with external OIDC providers.
+            # pattern=r"^[a-zA-Z0-9.-_@]+$",  # ToDo: evaluate this unnecessary constricing. espealy when dealing with external OIDC providers.
             max_length=128,
             min_length=3,
         ),
