@@ -92,6 +92,7 @@ async function listDownloads() {
       studyId: route.params.study_id,
     }
   });
+  
   console.log(data);
   
   const studyName = await studyStore.getStudy(route.params.study_id);
@@ -100,7 +101,7 @@ async function listDownloads() {
     study: studyName.display_name,
     time: parseTime(item.created_at),
     status: item.state,
-    downloadLink: `${runtimeConfig.public.baseURL}/${item.download_file_path}`,
+    downloadLink: `${item.download_file_path}`,
   }));
 
   if (!downloads.value.some(download => download.status === "queued") && downloadCheckInterval) {
@@ -111,13 +112,10 @@ async function listDownloads() {
 
 async function downloadFile(row) {
   const fileUrl = row.downloadLink;
+  console.log(fileUrl);
   try {
     const response = await fetch(fileUrl, {
       method: "GET",
-      // headers: {
-      //   Authorization: "Bearer " + tokenStore.access_token,
-      //   Accept: "*/*",
-      // },
     });
 
     if (response.ok) {
