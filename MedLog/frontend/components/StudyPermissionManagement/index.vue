@@ -26,7 +26,7 @@
                     <div class="flex flex-col p-4 bg-gray-50 rounded text-center items-center space-y-3">
                         <p v-if="row.permissions.length > 0">{{ row.userName }} sind folgenden Zugriffsrechte
                             zugewiesen: </p>
-                        <div class="space-y-2 mb-20">
+                        <div class="space-y-2">
                             <UCheckbox v-for="permission in permissionLabels" :key="permission"
                                 v-model="selectedPermissionsPerUser[row.id]" :value="permission" :name="permission"
                                 :label="permission" />
