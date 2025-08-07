@@ -10,7 +10,7 @@ from typing import (
 from pydantic import validate_email, validator, StringConstraints, model_validator
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import select, delete, func
+from sqlmodel import select, delete, func, and_, or_
 from uuid import UUID
 
 
@@ -92,9 +92,33 @@ class UserCRUD(
             raise raise_exception_if_none
         return user
 
+    async def create(
+        self,
+        obj: UserCreate,
+        exists_ok: bool = False,
+        raise_custom_exception_if_exists: Exception = None,
+    ) -> User:
+        existing_user_query = select(User).where(User.user_name == obj.user_name)
+
+        existing_user_result = await self.session.exec(statement=existing_user_query)
+        existing_user: User | None = existing_user_result.one_or_none()
+        if existing_user is not None:
+            if exists_ok:
+                return existing_user
+            elif raise_custom_exception_if_exists:
+                raise raise_custom_exception_if_exists
+            else:
+                raise ValueError("Username exists. Can not create user.")
+        user = User.model_validate(obj)
+        self.session.add(user)
+        await self.session.commit()
+        await self.session.refresh(user)
+
+        return user
+
     async def get_by_user_name(
         self,
-        user_name: UUID,
+        user_name: str,
         show_deactivated: bool = False,
         raise_exception_if_none: Exception = None,
     ) -> Optional[User]:
@@ -102,10 +126,38 @@ class UserCRUD(
             query = select(User).where(User.user_name == user_name)
         else:
             query = select(User).where(
-                User.user_name == user_name and User.deactivated == False
+                and_(User.user_name == user_name, User.deactivated == False)
             )
         results = await self.session.exec(statement=query)
         user: User | None = results.one_or_none()
+        if user is None and raise_exception_if_none:
+            raise raise_exception_if_none
+        return user
+
+    async def get_by_user_name_or_email(
+        self,
+        user_name_or_email: str,
+        include_deactivated: bool = False,
+        raise_exception_if_none: Exception = None,
+    ) -> Optional[User]:
+        log.debug(f"user_name_or_email {user_name_or_email}")
+        query = select(User)
+        if "@" in user_name_or_email:
+
+            query = query.where(
+                User.email == user_name_or_email,
+            )
+        else:
+            query = query.where(
+                User.user_name == user_name_or_email,
+            )
+
+        if include_deactivated != True:
+            query = query.where(User.deactivated == False)
+
+        results = await self.session.exec(statement=query)
+        user: User | None = results.one_or_none()
+
         if user is None and raise_exception_if_none:
             raise raise_exception_if_none
         return user
@@ -141,12 +193,6 @@ class UserCRUD(
         user_id: str | UUID = None,
         raise_exception_if_not_exists=None,
     ) -> User:
-        if not isinstance(
-            user_update, (UserUpdate, UserUpdateByUser, UserUpdateByAdmin)
-        ):
-            raise ValueError(
-                f"Expected update data of class UserUpdate | UserUpdateByUser | UserUpdateByAdmin got {user_update.__class__}"
-            )
         user_id = user_id if user_id else user_update.id
         if user_id is None:
             raise ValueError(
@@ -157,9 +203,6 @@ class UserCRUD(
             raise_exception_if_none=raise_exception_if_not_exists,
             show_deactivated=True,
         )
-        log.info(f"UPDATE USER user_update: {user_update}")
-        log.info(f"UPDATE USER user_from_db: {user_from_db}")
-
         for k, v in user_update.model_dump(exclude_unset=True).items():
             if k in user_update.__class__.model_fields.keys():
                 setattr(user_from_db, k, v)

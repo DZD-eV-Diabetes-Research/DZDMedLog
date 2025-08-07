@@ -4,8 +4,6 @@ import datetime
 
 #
 from medlogserver.worker.task import TaskBase
-from medlogserver.model.user_auth_refresh_token import UserAuthRefreshToken
-from medlogserver.db.user_auth_refresh_token import UserAuthRefreshTokenCRUD
 from medlogserver.db._session import get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
@@ -17,6 +15,10 @@ config = Config()
 
 class RefreshTokenCleaner:
     async def remove_expired_tokens(self):
+        log.debug(
+            "ToDo; Obsolete auth/token cleaning. must be adapted to new auth architecture"
+        )
+        return
         async with get_async_session_context() as session:
             async with UserAuthRefreshTokenCRUD.crud_context(
                 session

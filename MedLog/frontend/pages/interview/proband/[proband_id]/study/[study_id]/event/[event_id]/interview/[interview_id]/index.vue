@@ -10,52 +10,57 @@
     </UIBaseCard>
     <div v-if="drugStore.intakeVisibility">
       <UIBaseCard>
-        <IntakeQuestion color="primary" />
-        <DrugForm color="primary" :edit="false" :custom="false" label="Medikament Speichern" />
+        <IntakeSearch color="primary" />
+        <IntakeForm color="primary" :edit="false" :custom="false" label="Medikament Speichern" />
         <UButton @click="openCustomModal()" label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
           style="margin-top: 2px"
           class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white" />
         <UModal v-model="drugStore.customVisibility">
           <div class="p-4">
-            <DrugForm color="yellow" label="Ungelistetes Medikament Speichern" :custom=true :edit=false />
+            <IntakeForm color="yellow" label="Ungelistetes Medikament Speichern" :custom=true :edit=false />
           </div>
         </UModal>
       </UIBaseCard>
     </div>
     <!-- TABLE -->
-    <div class="border-2 border-[#ededed] rounded-md shadow-lg">
-      <h4 style="text-align: center; padding-top: 25px">Medikationen</h4>
-      <div>
-        <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
-          <UInput v-model="q" placeholder="Tabelle Filtern" />
-        </div>
-        <UTable :rows="rows" :columns="columns" class="break-words">
-          <template v-if="userStore.isAdmin" #actions-data="{ row }">
-            <UDropdown :items="myOptions(row)">
-              <UButton color="gray" variant="ghost" icon="i-heroicons-ellipsis-horizontal-20-solid" />
-            </UDropdown>
-          </template>
-        </UTable>
-        <div v-if="
-          tableContent.length >= pageCount || filteredRows.length >= pageCount
-        " class="flex justify-center px-3 py-3.5 border-t dark:border-red-500">
-          <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
-            wrapper: 'flex items-center gap-1',
-            rounded: 'rounded-sm',
-            default: {
-              activeButton: {
-                variant: 'outline',
+    <div class="flex flex-row justify-center max-w-6xl mx-auto">
+      <div class="border-2 border-[#ededed] rounded-md shadow-lg">
+        <h4 style="text-align: center; padding-top: 25px">Medikationen</h4>
+        <div>
+          <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
+            <UInput v-model="q" placeholder="Tabelle Filtern" />
+          </div>
+          <UTable :rows="rows" :columns="columns" class="break-words">
+            <template v-if="userStore.isAdmin" #actions-data="{ row }">
+              <UDropdown :items="myOptions(row)">
+                <UButton color="gray" variant="ghost" icon="i-heroicons-ellipsis-horizontal-20-solid" />
+              </UDropdown>
+            </template>
+          </UTable>
+          <div v-if="
+            tableContent.length >= pageCount || filteredRows.length >= pageCount
+          " class="flex justify-center px-3 py-3.5 border-t dark:border-red-500">
+            <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
+              wrapper: 'flex items-center gap-1',
+              rounded: 'rounded-sm',
+              default: {
+                activeButton: {
+                  variant: 'outline',
+                },
               },
-            },
-          }" />
+            }" />
+          </div>
         </div>
-      </div>
-      <div style="text-align: center">
-        <UButton v-if="!showScrollButton" @click="saveInterview()" label="Interview Beenden" color="green"
-          variant="soft" class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-          style="margin: 25px" />
+        <div style="text-align: center">
+          <UButton v-if="!showScrollButton" @click="saveInterview()" label="Interview Beenden" color="green"
+            variant="soft" class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+            style="margin: 25px" />
+        </div>
       </div>
     </div>
+
+    <!-- MODALS -->
+    
     <UModal v-model="deleteModalVisibility">
       <div class="p-4">
         <div style="text-align: center">
@@ -64,10 +69,6 @@
           <h4>{{ drugToDelete.drug }}</h4>
           <br />
           <UForm :state="deleteState" class="space-y-4" @submit="deleteIntake">
-            <!-- <UFormGroup label="Zum löschen den Namen eintragen" name="drug">
-              <UInput v-model="deleteState.drug" color="red" :placeholder="drugToDelete.drug" />
-            </UFormGroup>
-            <br /> -->
             <UButton type="submit" color="red" variant="soft"
               class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white">
               Eintrag löschen
@@ -80,9 +81,9 @@
       <div class="p-4">
         <div style="text-align: center">
           <div v-if="customDrug === 'Nein'">
-            <IntakeQuestion :drug="toEditDrug" :edit="true" :custom="customDrug === 'Nein' ? false : true"
+            <IntakeSearch :drug="toEditDrug" :edit="true" :custom="customDrug === 'Nein' ? false : true"
             :color="customDrug === 'Nein' ? 'blue' : 'yellow'" />
-          <DrugForm :color="customDrug === 'Nein' ? 'blue' : 'yellow'" :edit="true"
+          <IntakeForm :color="customDrug === 'Nein' ? 'blue' : 'yellow'" :edit="true"
             :custom="customDrug === 'Nein' ? false : true" label="Bearbeiten" />
           </div>
           <div v-else>
@@ -115,7 +116,6 @@
         </div>
       </div>
     </UModal>
-
   </Layout>
 </template>
 
@@ -124,20 +124,20 @@
 
 const route = useRoute();
 const router = useRouter();
-const tokenStore = useTokenStore();
 const drugStore = useDrugStore();
 const studyStore = useStudyStore();
 const userStore = useUserStore();
-const runtimeConfig = useRuntimeConfig();
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
 
 
-const { data: latestItems, pending, error } = await useAsyncData(
+const { data: latestItems, pending } = await useAsyncData(
   'latestItems',
-  () => $api(
-    `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/interview/last/intake`,
-    {
-      headers: { Authorization: "Bearer " + tokenStore.access_token }
+  () => $medlogapi(
+    `/api/study/{studyId}/proband/{probandId}/interview/last/intake`, {
+      path: {
+          studyId: route.params.study_id,
+          probandId: route.params.proband_id,
+        }
     }
   )
 );
@@ -200,7 +200,7 @@ async function editModalVisibilityFunction(row: object) {
 const deleteModalVisibility = ref(false);
 const drugToDelete = ref();
 
-const deleteState = reactive({
+const deleteState = reactive<{drug: string | undefined}>({
   drug: undefined,
 });
 
@@ -214,10 +214,15 @@ async function deleteIntake() {
 
   try {
 
-    await $api(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugToDelete.value.intakeId}`,
+    await $medlogapi(
+      `/api/study/{studyId}/interview/{interviewId}/intake/{drugToDelete}`,
       {
         method: "DELETE",
+        path: {
+          studyId: route.params.study_id,
+          interviewId: route.params.interview_id,
+          drugToDelete: drugToDelete.value.intakeId
+        }
       }
     );
     deleteModalVisibility.value = false;
@@ -324,8 +329,8 @@ async function openCustomModal() {
 }
 
 async function getDosageForm() {
-  const dosageForm = await $api(
-    `${runtimeConfig.public.baseURL}drug/field_def/darreichungsform/refs`);
+  const dosageForm = await $medlogapi(
+    `/api/drug/field_def/darreichungsform/refs`);
 
   dosageFormTable.value = dosageForm.items.map((item) => ({
     id: item.display + " (" + item.value + ")",
@@ -340,14 +345,19 @@ async function getDosageForm() {
 async function saveInterview() {
 
   try {
-    await $api(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${route.params.event_id}/interview/${route.params.interview_id}`,
+    await $medlogapi(
+      `/api/study/{studyId}/event/{eventId}/interview/{interviewId}`,
       {
         method: "PATCH",
         body: {
           "proband_external_id": `${route.params.proband_id}`,
           "interview_end_time_utc": new Date().toISOString(),
           "proband_has_taken_meds": true
+        },
+        path: {
+          studyId: route.params.study_id,
+          eventId: route.params.event_id,
+          interviewId: route.params.interview_id
         }
       }
     );
@@ -367,8 +377,15 @@ async function saveInterview() {
 
 async function createIntakeList() {
   try {
-    const intakes = await $api(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details?interview_id=${route.params.interview_id}`);
+    const intakes = await $medlogapi(
+      `/api/study/{studyId}/proband/{probandId}/intake/details?interview_id={interviewId}`,
+    {
+      path: {
+        studyId: route.params.study_id,
+        probandId: route.params.proband_id,
+        interviewId: route.params.interview_id
+        }
+    });
 
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map((item) => ({
@@ -423,29 +440,6 @@ const resetFirstEvent = () => {
 getDosageForm();
 createIntakeList();
 
-// Buttonobserver
-
-// const topButton = ref(null);
-// const showScrollButton = ref(false);
-// let observer = null;
-
-// onMounted(() => {
-//   observer = new IntersectionObserver(
-//     ([entry]) => {
-//       showScrollButton.value = !entry.isIntersecting;
-//     },
-//     { threshold: 0 }
-//   );
-
-//   // Warte, bis `topButton.value` gesetzt ist
-//   if (topButton.value) {
-//     observer.observe(topButton.value);
-//   }
-// });
-
-// onUnmounted(() => {
-//   if (observer) observer.disconnect();
-// });
 </script>
 
 

@@ -44,10 +44,9 @@
 
 <script setup lang="ts">
 const route = useRoute();
-const tokenStore = useTokenStore();
 const runtimeConfig = useRuntimeConfig();
 const studyStore = useStudyStore();
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
 
 
 const columns = [
@@ -88,15 +87,21 @@ function parseTime(time: string) {
 
 
 async function listDownloads() {
-  const data = await $api(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/export`);
-
+  const data = await $medlogapi(`/api/study/{studyId}/export`, {
+    path: {
+      studyId: route.params.study_id,
+    }
+  });
+  
+  console.log(data);
+  
   const studyName = await studyStore.getStudy(route.params.study_id);
 
   downloads.value = data.items.map((item) => ({
     study: studyName.display_name,
     time: parseTime(item.created_at),
     status: item.state,
-    downloadLink: `${runtimeConfig.public.baseURL}${item.download_file_path}`,
+    downloadLink: `${item.download_file_path}`,
   }));
 
   if (!downloads.value.some(download => download.status === "queued") && downloadCheckInterval) {
@@ -107,13 +112,10 @@ async function listDownloads() {
 
 async function downloadFile(row) {
   const fileUrl = row.downloadLink;
+  console.log(fileUrl);
   try {
     const response = await fetch(fileUrl, {
       method: "GET",
-      headers: {
-        Authorization: "Bearer " + tokenStore.access_token,
-        Accept: "*/*",
-      },
     });
 
     if (response.ok) {
@@ -129,12 +131,17 @@ async function downloadFile(row) {
   }
 }
 
+// 1. The request is sent to the backend
+
 async function requestDownload() {
   try {
-    await $api(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/export?format=csv`,
+    await $medlogapi(
+      `/api/study/{studyId}/export?format=csv`,
       {
         method: "POST",
+        path: {
+          studyId: route.params.study_id
+        }
       }
     );
     listDownloads();
@@ -144,6 +151,8 @@ async function requestDownload() {
     console.log(error);
   }
 }
+
+// 2. This checks if the backend is done and while it is not it pings the backened every 5 seconds vis the listDownloads function
 
 function startDownloadCheck() {
   if (!downloadCheckInterval) {

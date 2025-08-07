@@ -26,11 +26,7 @@ from medlogserver.model.study_permission import (
     StudyPermissonUpdate,
 )
 from medlogserver.model.study import Study, StudyCreate, StudyUpdate, StudyExport
-from medlogserver.model.user_auth_refresh_token import (
-    UserAuthRefreshToken,
-    UserAuthRefreshTokenCreate,
-    UserAuthRefreshTokenUpdate,
-)
+
 from medlogserver.model.user_auth import UserAuth, UserAuthCreate, UserAuthUpdate
 from medlogserver.model.user import (
     User,

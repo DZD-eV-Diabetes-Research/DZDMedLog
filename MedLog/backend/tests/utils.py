@@ -37,17 +37,11 @@ def get_medlogserver_base_url():
 
 
 def authorize(username, pw, set_as_global_default_login: bool = False) -> str:
-    response = req("api/auth/token", "post", f={"username": username, "password": pw})
+    response = req(
+        "api/auth/basic/login/token", "post", f={"username": username, "password": pw}
+    )
     """response example:
-    {
-    "token_type": "Bearer",
-    "expires_in": 59999,
-    "expires_at": 1722483261,
-    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0OTViMjgxNy00ODE3LTRjM2UtOTA5My03OGI3ZjFkNDI4NjgiLCJleHAiOjE3MjMwMjgwNjEsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODg4OC8iLCJpc3MiOiJsb2NhbGhvc3Q6ODg4OCIsImlkIjoiNWYwMTgxZTgtNzMyNy00MzgzLWE1ZDUtYzZhN2ExNDc2NDAxIiwiaWF0IjoxNzIyNDIzMjYxLjMzMDU5NH0.CwHThLnhFDiHUpqzn7e5A0zRP_0ndOsGWGEH6es3byE",
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0OTViMjgxNy00ODE3LTRjM2UtOTA5My03OGI3ZjFkNDI4NjgiLCJleHAiOjE3MjI0ODMyNjEsImlhdCI6MTcyMjQyMzI2MSwiYXVkIjoibG9jYWxob3N0IiwiaXNzIjoibG9jYWxob3N0Ojg4ODgiLCJ1c2VyIjoie1wiZGlzcGxheV9uYW1lXCI6bnVsbCxcImNyZWF0ZWRfYXRcIjpcIjIwMjQtMDctMzBUMTM6MjE6MjIuMjMyNzM0XCIsXCJyb2xlc1wiOltcIm1lZGxvZy1hZG1pblwiXSxcInVzZXJfbmFtZVwiOlwiYWRtaW5cIixcImVtYWlsXCI6XCJ1c2VyQHRlc3QuZGVcIixcImlkXCI6XCI0OTViMjgxNy00ODE3LTRjM2UtOTA5My03OGI3ZjFkNDI4NjhcIixcImRlYWN0aXZhdGVkXCI6ZmFsc2UsXCJpc19lbWFpbF92ZXJpZmllZFwiOmZhbHNlfSIsImlkIjoiMGUyYzMwYzctNjgwZS00ZGYxLWJjZWQtYjFkZWYxNmJiOTVmIiwicmVmcl9pZCI6IjVmMDE4MWU4LTczMjctNDM4My1hNWQ1LWM2YTdhMTQ3NjQwMSJ9.vuz_jadz2moBxnKK1uju8cEtXoDLed8nK-4cNxBDWn4",
-    "refresh_token_expires_in": 604799,
-    "refresh_token_expires_at": 1723028061
-    }
+    {'access_token': 'zNqECl6eBVUhM6ph.wVemwOQFdl4-WIBrc83nl8BaArfHWPoNV35NaW8hUSVgZ0829_qpOA', 'token_type': 'Bearer'}
     """
     if set_as_global_default_login:
         os.environ[MEDLOG_ACCESS_TOKEN_ENV_NAME] = response["access_token"]
@@ -328,7 +322,7 @@ if TYPE_CHECKING:
 
 def create_test_user(user_name: str, password: str, email: str) -> "User":
     from medlogserver.model.user import UserCreate, User
-    from medlogserver.api.routes.routes_user import create_user
+    from medlogserver.api.routes.routes_user_management import create_user
 
     user_create = UserCreate(user_name=user_name, email=email)
     user_raw = req(
@@ -341,7 +335,7 @@ def create_test_user(user_name: str, password: str, email: str) -> "User":
     req(
         f"/api/user/{user.id}/password",
         method="put",
-        b={"new_password": password, "new_password_repeated": password},
+        f={"new_password": password, "new_password_repeated": password},
     )
     # enable user
     req(

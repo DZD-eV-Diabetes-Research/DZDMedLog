@@ -1,16 +1,12 @@
 export default defineNuxtRouteMiddleware(async (to, from) => {
+  const userStore = useUserStore()
 
-    const tokenStore = useTokenStore()
-
-    if (to.path === '/login/oidc') {
-      console.log("tokenstore loggedstatus: "+ tokenStore.loggedIn); 
+  if (to.path !== '/login'){
+    try {
+      await userStore.userMe()
+    } catch (error) {
+      console.log(error);
+      // no need to redirect, logic is handled by api
     }
-
-    else if (to.path !== '/' && !tokenStore.loggedIn) {
-      return navigateTo('/')
-    } 
-
-    else if (to.path === '/' && tokenStore.loggedIn) {
-      return navigateTo('/user')
-    }   
-  })
+  }
+})

@@ -1,8 +1,13 @@
+<!-- This is the main drugform component that deals with the creation of intakes, both regular and custom as well as the editing -->
+
 <template>
   <div style="text-align: center" v-if="missingDrugError">
     <br />
     <p style="color: red">Es muss ein Medikament ausgewählt werden</p>
   </div>
+
+  <!-- Main Form -->
+
   <UForm @submit="saveIntake()" :state="state" :schema="schema" class="space-y-4">
     <div style="padding-top: 2.5%">
       <div v-if="props.custom">
@@ -12,6 +17,8 @@
             Medikamentensuche nicht gefunden wurde.
           </h4>
         </div>
+
+        <!-- Error message if no drug is selected and the field is left blank -->
         <h5 v-if="customNameError" style="color: red">
           Name wird benötigt
         </h5>
@@ -19,36 +26,85 @@
           <UInput v-model="state.customName" color="yellow" />
         </UFormGroup>
         <UAccordion :items="customDrugForm" color="yellow">
+
+          <!-- Here starts the custom form which is quite complex -->
+
           <template #custom-form>
             <div v-if="isDataLoaded" class="bg-yellow-50 outline-yellow-200 rounded-md p-2">
+
+              <!-- After the drugFieldDefinitionsObject is created we loop through each of the 4 arrays:
+              attr: A free field in case of yes and no questions, boolean
+              attr_ref: A predefined selection of options
+              attr_multi: Multiple answers possible
+              attr_multi_ref: Multiple answers of predefined selction possible
+              and created inputs for each item in this array. -->
+
               <UForm :state="attrState" class="space-y-4">
-                <UFormGroup v-for="attr in drugFieldDefinitionsObject.attrs" :label="attr[0]" :name="attr[1]"
-                  :key="attr[1]">
-                  <UInput v-if="getFormInputType(attr[2]) !== 'checkbox'" v-model="attrState[attr[1]]" color="yellow"
-                    :type="getFormInputType(attr[2])" />
-                  <UCheckbox v-else v-model="attrState[attr[1]]" color="yellow" :name="attrState[attr[0]]" />
+                <UFormGroup v-for="attr in drugFieldDefinitionsObject.attrs" :key="attr[1]" :name="attr[1]">
+                  <!-- Label-Slot: Text + Tooltip-Icon -->
+                  <template #label>
+                    <span class="inline-flex items-center gap-1">
+                      {{ attr[0] }}
+                      <UTooltip :text="attr[3]"  :popper="{placement: 'right'}" :ui="{ width: 'max-w-4xl' }">
+                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
+                      </UTooltip>
+                    </span>
+                  </template>
+
+                  <!-- Input oder Checkbox -->
+                  <UInput v-if="getFormInputType(attr[2]) !== 'checkbox'" v-model="attrState[attr[1]]"
+                    :type="getFormInputType(attr[2])" color="yellow" />
+                  <UCheckbox v-else v-model="attrState[attr[1]]" color="yellow" :name="attr[1]" />
                 </UFormGroup>
-                <UFormGroup v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :label="attr_ref[0]"
-                  :name="attr_ref[1]" :key="attr_ref[1]">
+
+
+                <UFormGroup v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :name="attr_ref[1]"
+                  :key="attr_ref[1]">
+                  <template #label>
+                    <span class="inline-flex items-center gap-1">
+                      {{ attr_ref[0] }}
+                      <UTooltip :text="attr_ref[3]" :popper="{placement: 'right'}" :ui="{ width: 'max-w-4xl' }">
+                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
+                      </UTooltip>
+                    </span>
+                  </template>
+                  
                   <USelectMenu v-model="attr_refState[attr_ref[1]]"
                     :options="refSelectMenus.find(item => item.field_name === attr_ref[1])?.options"
-                    value-attribute="value" option-attribute="display" color="yellow" placeholder="Option auswählen"/>
+                    value-attribute="value" option-attribute="display" color="yellow" placeholder="Option auswählen" />
                 </UFormGroup>
-                <UFormGroup v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi" :label="attr_multi[0]"
-                  :name="attr_multi[1]" :key="attr_multi[1]">
+                <UFormGroup v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi" :name="attr_multi[1]"
+                  :key="attr_multi[1]">
+                  <template #label>
+                    <span class="inline-flex items-center gap-1">
+                      {{ attr_multi[0] }}
+                      <UTooltip :text="attr_multi[3]" :popper="{placement: 'right'}" :ui="{ width: 'max-w-4xl' }">
+                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
+                      </UTooltip>
+                    </span>
+                  </template>
                   <UInput placeholder="Option auswählen und Enter drücken" v-model="inputValues[attr_multi[1]]"
                     @keydown.enter.prevent="updateMultiState(attr_multi[1])" @blur="updateMultiState(attr_multi[1])"
-                    color="yellow"/>
+                    color="yellow" />
                   <UBadge v-for="(word, index) in attr_multiState[attr_multi[1]]" :key="index"
                     class="mr-2 cursor-pointer" @click="removeItem(attr_multi[1], index)" color="yellow">
                     {{ word }}
                   </UBadge>
                 </UFormGroup>
                 <UFormGroup v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref"
-                  :label="attr_multi_ref[0]" :name="attr_multi_ref[1]" :key="attr_multi_ref[1]">
+                  :name="attr_multi_ref[1]" :key="attr_multi_ref[1]">
+                  <template #label>
+                    <span class="inline-flex items-center gap-1">
+                      {{ attr_multi_ref[0] }}
+                      <UTooltip :text="attr_multi_ref[3]" :popper="{placement: 'right'}" :ui="{ width: 'max-w-4xl' }">
+                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
+                      </UTooltip>
+                    </span>
+                  </template>
                   <USelectMenu v-model="attr_multi_refState[attr_multi_ref[1]]"
                     :options="multiRefSelectMenus.find(item => item.field_name === attr_multi_ref[1])?.options"
-                    value-attribute="value" option-attribute="display" multiple searchable color="yellow" placeholder="Option auswählen">
+                    value-attribute="value" option-attribute="display" multiple searchable color="yellow"
+                    placeholder="Option auswählen">
                     <template #label>
                       <span
                         v-if="Array.isArray(attr_multi_refState[attr_multi_ref[1]]) && attr_multi_refState[attr_multi_ref[1]].length">
@@ -70,6 +126,9 @@
         </UAccordion>
         <br />
       </div>
+
+      <!-- From this point on this is the part that is visibile to all drugforms -->
+
       <UFormGroup label="Quelle der Arzneimittelangabe">
         <USelect v-model="selectedSourceItem" :options="sourceItems" :color="props.color" />
       </UFormGroup>
@@ -120,6 +179,8 @@
         Darreichungsform wird benötigt
       </h5>
       <br>
+
+      <!-- Again the error message the,same from the top for better userexperience -->
       <h5 v-if="customNameError" style="color: red">
         Name wird benötigt
       </h5>
@@ -127,18 +188,16 @@
   </UForm>
 </template>
 
-
-
 <script setup lang="ts">
 
 import dayjs from "dayjs";
+import { width } from "happy-dom/lib/PropertySymbol.js";
 import { object, number, date, string, type InferType, boolean } from "yup";
 import { apiGetFieldDefinitions } from '~/api/drug';
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
 
 
 const route = useRoute();
-const tokenStore = useTokenStore();
 const drugStore = useDrugStore();
 const initialLoad = ref(true);
 const runTimeConfig = useRuntimeConfig();
@@ -267,11 +326,16 @@ async function saveIntake() {
         consumed_meds_today: drugStore.consumed_meds_today,
       };
 
-      await $api(
-        `${runTimeConfig.public.baseURL}study/${route.params.study_id}/interview/${route.params.interview_id}/intake/${drugStore.editId}`,
+      await $medlogapi(
+        `/api/study/{studyId}/interview/{interviewId}/intake/{toEditDrugId}`,
         {
           method: "PATCH",
           body: patchBody,
+          path: {
+            studyId: route.params.study_id,
+            interviewId: route.params.interview_id,
+            toEditDrugId: drugStore.editId
+          }
         }
       );
     } catch (error) {
@@ -309,7 +373,7 @@ async function saveIntake() {
   else if (!props.edit && props.custom) {
 
     customNameError.value = !state.customName;
-    
+
 
     try {
       if (!customNameError.value) {
@@ -324,9 +388,9 @@ async function saveIntake() {
           attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({ field_name: key, values: value })),
           codes: null
         }
-        
-        const response = await $api(
-          `${runTimeConfig.public.baseURL}drug/custom`,
+
+        const response = await $medlogapi(
+          `/api/drug/custom`,
           {
             method: "POST",
             body: customDrugBody
@@ -392,8 +456,8 @@ const dosageFormTable = ref();
 
 
 async function getDosageForm() {
-  const dosageForm = await $api(
-    `${runTimeConfig.public.baseURL}drug/field_def/darreichungsform/refs`);
+  const dosageForm = await $medlogapi(
+    `/api/drug/field_def/darreichungsform/refs`);
 
   dosageFormTable.value = dosageForm.items.map((item) => ({
     id: item.display + " (" + item.value + ")",
@@ -440,7 +504,11 @@ async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, m
     for (const ref of refs) {
       let item = { field_name: ref[1], options: [] };
 
-      const response = await $api(`${runTimeConfig.public.baseURL}drug/field_def/${ref[1]}/refs`);
+      const response = await $medlogapi(`/api/drug/field_def/{ref}/refs`, {
+        path: {
+          ref: ref[1]
+        }
+      });
 
       item.options = response.items.map((element) => ({
         value: element.value,
@@ -493,7 +561,7 @@ const fetchFieldDefinitions = async () => {
 
 function generateDynamicState(fieldsObject: [[]]) {
   const dynamicState = {};
-  
+
   fieldsObject.forEach(([label, key, type]) => {
     dynamicState[key] = type === "BOOL" ? false : null;
   });
@@ -563,33 +631,6 @@ interface DrugBody {
   attrs_multi_ref: Attribute[] | null;
   codes: Attribute[] | null;
 }
-
-// async function onSubmit() {
-//   let customDrugBody: DrugBody = {
-//     trade_name: "Aspirin Supercomplex",
-//     market_access_date: null,
-//     market_exit_date: null,
-//     custom_drug_notes: null,
-//     attrs: Object.entries(attrState.value).map(([key, value]) => ({ field_name: key, value: value == null ? null : String(value) })),
-//     attrs_ref: Object.entries(attr_refState).map(([key, value]) => ({ field_name: key, value: value })),
-//     attrs_multi: Object.entries(attr_multiState).map(([key, value]) => ({ field_name: key, value: value })),
-//     attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({ field_name: key, value: value })),
-//     codes: null
-//   }
-
-//   try {
-//     const response = await $api(
-//       `${runTimeConfig.public.baseURL}drug/custom`,
-//       {
-//         method: "POST",
-//         body: customDrugBody
-//       }
-//     );
-
-//   } catch (error) {
-//     console.log(error);
-//   }
-// }
 
 const closeEditModal = function () {
   drugStore.editVisibility = false

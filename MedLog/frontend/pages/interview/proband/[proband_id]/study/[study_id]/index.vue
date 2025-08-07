@@ -1,8 +1,8 @@
 <template>
   <Layout>
-    <div class="flex flex-row gap-4">
-      <div class="flex flex-1">
-        <UIBaseCard class="w-full">
+    <div class="flex flex-row gap-4 justify-center max-w-6xl m-auto">
+      <div class="w-[50%]">
+        <UIBaseCard>
           <h5>Unbearbeitete Events</h5>
           <UInputMenu v-model="selectedIncompleteEvent" :options="incompletedItems" />
           <br>
@@ -18,8 +18,8 @@
           </div>
         </UIBaseCard>
       </div>
-      <div class="flex flex-1">
-        <UIBaseCard class="w-full">
+      <div class="w-[50%]">
+        <UIBaseCard>
           <h5>Bearbeitete Events</h5>
           <UInputMenu v-model="selectedCompleteEvent" :options="completedItems" />
           <br>
@@ -43,7 +43,8 @@
       </div>
     </UModal>
     <br>
-    <div class="border-2 border-[#ededed] rounded-md shadow-lg">
+    <div class="flex flex-row justify-center max-w-8xl mx-auto">
+      <div class="border-2 border-[#ededed] rounded-md shadow-lg">
       <h4 style="text-align: center; padding-top: 25px;">Medikationshistorie</h4>
       <div>
         <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
@@ -65,6 +66,7 @@
         </div>
       </div>
     </div>
+    </div>
     <div style="text-align:center; margin-top:2%">
     </div>
   </Layout>
@@ -77,11 +79,11 @@ import { object, number, date, string, type InferType } from "yup";
 // general constants
 const route = useRoute()
 const router = useRouter()
-const runtimeConfig = useRuntimeConfig()
-const tokenStore = useTokenStore()
 const userStore = useUserStore()
 const studyStore = useStudyStore()
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
+import { useMedlogapi } from '#imports';
+
 
 // table
 
@@ -171,7 +173,14 @@ async function createEvent() {
   try {
     await useCreateEvent(eventState.name.trim(), route.params.study_id);
 
-    const events = await $api(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`)
+    const events = await $medlogapi(`/api/study/{studyId}/proband/{probandId}/event`,
+      {
+        path: {
+          studyId: route.params.study_id,
+          probandId: route.params.proband_id
+        }
+      }
+    )
     incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
     incompletedItems.value = incompletedItems.value.map(event => ({
       id: event.id,
@@ -205,7 +214,12 @@ const incompletedItems = ref([]);
 
 // REST 
 
-const { data: events } = await useAPI(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/event`)
+const { data: events } = await useMedlogapi(`/api/study/{studyId}/proband/{probandId}/event`, {
+  path: {
+    studyId: route.params.study_id,
+    probandId: route.params.proband_id,
+  }
+})
 
 function createEventList(events) {
   if (events && events.items) {
@@ -238,7 +252,11 @@ watch(events, (newEvents) => {
 
 async function editEvent(eventId: string) {
   try {
-    const result = await $api(`${runtimeConfig.public.baseURL}study/${route.params.study_id}/event/${eventId}/interview`)
+    const result = await $medlogapi(`/api/study/{studyId}/event/{eventId}/interview`, {
+      path: {
+        studyId: route.params.study_id,
+        eventId: eventId,      }
+    })
 
     studyStore.event = selectedCompleteEvent.value.event.name
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + eventId + "/interview/" + result[0].id)
@@ -249,8 +267,12 @@ async function editEvent(eventId: string) {
 
 async function createIntakeList() {
   try {
-    const intakes = await $api(
-      `${runtimeConfig.public.baseURL}study/${route.params.study_id}/proband/${route.params.proband_id}/intake/details`);
+    const intakes = await $medlogapi(`/api/study/{studyId}/proband/{probandId}/intake/details`, {
+      path: {
+        studyId: route.params.study_id,
+        probandId: route.params.proband_id,
+      }
+    });
 
     if (intakes && intakes.items) {
       tableContent.value = intakes.items.map((item) => ({

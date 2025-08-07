@@ -1,3 +1,6 @@
+<!-- This component deals with the user-management that can be found under the help button in the 
+top right corner and then the cogwheel.  -->
+
 <template>
     <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
         <template #header>
@@ -6,7 +9,6 @@
                 <h3 class="text-center text-xl">Userverwaltung</h3>
             </div>
         </template>
-
         <div v-if="mappedUsers">
             <UTable v-model:expand="expand" :rows="mappedUsers" :columns="columns">
 
@@ -58,20 +60,22 @@
 </template>
 
 <script setup lang="ts">
-const tokenStore = useTokenStore();
-const runtimeConfig = useRuntimeConfig();
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
+import { useMedlogapi } from '#imports';
 
+// Api calls
 
-const { status, data: users, refresh } = useAPI(`${runtimeConfig.public.baseURL}user`, {
+const { data: users, refresh } = useMedlogapi(`/api/user`, {
     method: "GET",
 })
 
-const { data: roles } = useAPI(`${runtimeConfig.public.baseURL}role`, {
+const { data: roles } = useMedlogapi("/api/role" , {
     method: "GET",
 })
 
+// Template preparation
 
+// Here we alter the user array to a new form (mappedUsers) to visualize them in the template
 const mappedUsers = computed(() => {
     if (!users.value) return [];
     return users.value.items.map(user => ({
@@ -100,30 +104,12 @@ const columns = [{
     key: 'actions'
 }]
 
-const currentUser = ref()
-
-const patchUser = async function (id: string) {
-    try {
-        const patchBody = { "roles": selectedRolesPerUser.value[id] }
-        await $api(
-            `${runtimeConfig.public.baseURL}user/${id}`,
-            {
-                method: "PATCH",
-                body: patchBody,
-            }
-        );
-        await refresh()
-        expand.value.openedRows = []
-    } catch (error) {
-        console.log(error);
-
-    }
-}
-
 const expand = ref({
     openedRows: [],
     row: {}
 })
+
+const currentUser = ref()
 
 function isRowExpanded(row: any) {
     return expand.value.openedRows.some((r) => r.id === row.id)
@@ -138,4 +124,28 @@ function handleToggle(row: any) {
 
 const selectedRolesPerUser = ref<Record<string, string[]>>({})
 
+// Update users to the backend
+
+const patchUser = async function (id: string) {
+    try {
+        console.log(selectedRolesPerUser.value[id]);
+        
+        const patchBody = { "roles": selectedRolesPerUser.value[id] }
+        await $medlogapi(
+            `/api/user/{id}`,
+            {
+                method: "PATCH",
+                body: patchBody,
+                path: {
+                    id: id
+                }
+            }
+        );
+        await refresh()
+        expand.value.openedRows = []
+    } catch (error) {
+        console.log(error);
+
+    }
+}
 </script>

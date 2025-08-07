@@ -21,14 +21,11 @@ from medlogserver.db.user_auth import (
     UserAuth,
     UserAuthCreate,
     UserAuthCRUD,
+    AllowedAuthSchemeType,
 )
-from medlogserver.model.user_auth_refresh_token import UserAuthRefreshToken
+
 from medlogserver.model.interview import Interview
 from medlogserver.model.intake import Intake
-
-from medlogserver.db.user_auth_external_oidc_token import (
-    UserAuthExternalOIDCToken,
-)
 
 
 from medlogserver.model.drug_data import (
@@ -105,7 +102,8 @@ async def create_admin_if_not_exists():
                 admin_user = await user_crud.create(admin_user)
                 admin_user_auth = UserAuthCreate(
                     user_id=admin_user.id,
-                    password=config.ADMIN_USER_PW.get_secret_value(),
+                    basic_password=config.ADMIN_USER_PW.get_secret_value(),
+                    auth_source_type=AllowedAuthSchemeType.basic,
                 )
                 log.info(f"admin_user_auth {admin_user_auth}")
                 await user_auth_crud.create(admin_user_auth)

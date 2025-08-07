@@ -2,7 +2,7 @@
   <header class="flex w-full  border-b-4 border-accent bg-white shadow-md py-4 px-10">
     <div class="flex w-full justify-between items-center mx-auto">
       <div>
-        <NuxtLink class="text-4xl font-bold text-gray-800 hover:border-[#ec372d] hover:border-b-2" to="/user"
+        <NuxtLink class="text-4xl font-bold text-gray-800 hover:border-[#ec372d] hover:border-b-2" to="/"
           @click="resetStore">
           DZD Medlog
         </NuxtLink>
@@ -26,18 +26,19 @@
   </header>
 
   <div class="flex justify-between items-center px-10 py-2">
-    <button v-if="tokenStore.loggedIn"
+    <button v-if="showHeader"
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
       @click="logout()">Logout</button>
 
-    <UBreadcrumb v-if="tokenStore.loggedIn" :links="links" />
+    <UBreadcrumb v-if="showHeader" :links="links" />
 
-    <button v-if="tokenStore.loggedIn"
+    <button v-if="showHeader"
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
-      @click="openSlide = true">Hilfe</button>
+      @click="openSlide = true">Mehr</button>
   </div>
 
   <!-- SLIDER INFO HELP -->
+
   <USlideover v-model="openSlide">
 
     <UCard class="flex flex-col flex-1"
@@ -95,10 +96,6 @@
           <div v-else>
             {{ configError }}
           </div>
-          <!-- <div class="flex flex-row items-center space-x-2 mt-2">
-        <p>Oder besuchen Sie unsere GitHub-Seite: </p>
-        <a href="https://www.github.com" target="_blank"><img src="/icons/github-mark.svg" alt="github-icon" class="w-6" /></a>
-      </div> -->
         </div>
       </template>
     </UCard>
@@ -114,12 +111,10 @@
 <script setup>
 import { ref, computed, watchEffect } from 'vue';
 
-const runtimeConfig = useRuntimeConfig();
 const tokenStore = useTokenStore();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
 const probandStore = useProbandStore();
-const router = useRouter();
 const route = useRoute();
 
 const studyName = ref('');
@@ -152,7 +147,12 @@ function logout() {
   studyStore.$reset();
   tokenStore.$reset();
   probandStore.$reset();
-  router.push({ path: '/' });
+  const {$medlogapi} = useNuxtApp();
+  $medlogapi("/api/auth/logout", {
+    method: 'POST'
+  }) 
+  const router = useRouter()
+  router.push({ path: '/login' });
 }
 
 
@@ -212,10 +212,15 @@ const openSettingModal = function () {
 
 // Version & Branch
 
-const { data: config, error: configError, status: configStatus } = await useAPI(`${runtimeConfig.public.baseURL}config/version`)
+import { useMedlogapi } from '#imports';
+
+const { data: config, error: configError, status: configStatus } = await useMedlogapi("/api/config/version")
 
 if (configError.value) {
   console.error('Fehler beim Laden der Konfiguration:', configError.value)
 }
+
+// Show logout buttion breadcrumbs and help only when not on "/"
+const showHeader = computed(() => route.path !== '/login')
 
 </script>

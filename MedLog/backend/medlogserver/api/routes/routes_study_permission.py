@@ -19,12 +19,16 @@ from typing import Annotated
 
 from fastapi import Depends, APIRouter
 
-
+from medlogserver.api.auth.security import (
+    get_current_user,
+)
+from medlogserver.model.user import User
 from medlogserver.model.study_permission import (
     StudyPermisson,
     StudyPermissionRead,
     StudyPermissonUpdate,
 )
+from medlogserver.model.study_permission_doc import StudyPermissionDesc
 from medlogserver.db.study_permission import StudyPermissonCRUD
 from medlogserver.config import Config
 from medlogserver.api.study_access import (
@@ -49,6 +53,25 @@ fast_api_permissions_router: APIRouter = APIRouter()
 StudyPermissonQueryParams: Type[QueryParamsInterface] = create_query_params_class(
     StudyPermissionRead
 )
+
+
+#############
+@fast_api_permissions_router.get(
+    "/study/permissions/available",
+    response_model=List[StudyPermissionDesc],
+    description=f"List all permissons names you can apply to a user per study.",
+)
+async def list_available_study_permissions_with_description(
+    current_user: User = Security(get_current_user),
+) -> List[StudyPermissionDesc]:
+    docs = []
+    for name, field_info in StudyPermissonUpdate.model_fields.items():
+        docs.append(
+            StudyPermissionDesc(
+                study_permission_name=name, description=field_info.description
+            )
+        )
+    return docs
 
 
 #############
@@ -80,12 +103,12 @@ async def list_study_permissions(
 
 ############
 @fast_api_permissions_router.get(
-    "/study/{study_id}/permissions/{permission_id}",
-    response_model=StudyPermisson,
+    "/study/{study_id}/permissions/{user_id}",
+    response_model=StudyPermissionRead,
     description=f"List all medicine intakes of one probands last completed interview.",
 )
 async def get_permission_details(
-    permission_id: uuid.UUID,
+    user_id: uuid.UUID,
     study_access: UserStudyAccess = Security(user_has_study_access),
     permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
 ) -> StudyPermisson:
@@ -99,12 +122,13 @@ async def get_permission_details(
     # determined as low risk, at the moment we can assumes that registered admins are not malicious actors
     # and to obtain that other UUID its need some criminal energy :) .
     # ToDo: include a check if that permission really belongs to the study
-    return await permission_crud.get(permission_id)
+
+    return await permission_crud.get_by_user_and_study(user_id, study_access.study.id)
 
 
 @fast_api_permissions_router.put(
     "/study/{study_id}/permissions/{user_id}",
-    response_model=StudyPermissonUpdate,
+    response_model=StudyPermissionRead,
     description=f"Create or update new study permision for a user.",
 )
 async def create_or_update_permission(

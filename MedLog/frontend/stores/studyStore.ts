@@ -1,3 +1,5 @@
+// Store to handle to current studies
+
 import { defineStore } from 'pinia'
 
 interface Study {
@@ -23,11 +25,10 @@ export const useStudyStore = defineStore('StudyStore', {
     actions: {
         async listStudies(): Promise<void> {
             const tokenStore = useTokenStore()
-            const { $api } = useNuxtApp();
             tokenStore.error = ""
+            const {$medlogapi} = useNuxtApp();
             try {
-                const runtimeConfig = useRuntimeConfig()
-                const data = await $api(runtimeConfig.public.baseURL + "study")
+                const data = await $medlogapi("/api/study")
 
                 this.studies = data
             }

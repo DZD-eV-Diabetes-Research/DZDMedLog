@@ -13,7 +13,7 @@
       </h2>
     </UIBaseCard>
     <UIBaseCard v-if="userStore.isAdmin" :naked="true">
-      <UButton @click="openModal()" label="Studie anlegen" color="green" variant="soft"
+      <UButton @click="openStudyModal()" label="Studie anlegen" color="green" variant="soft"
         class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
       <UModal v-model="showModal" class="w-[1000px] !important">
         <div class="p-4 text-center">
@@ -37,21 +37,24 @@
           class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
         <UButton type="submit" @click="gotoExport(study.id)" label="Datenexport" color="blue" variant="soft"
           class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white px-4" />
+        <UButton type="submit" @click="openStudyPermissionModal(study.id)" label="Studien-Zugriffsrechte" color="violet" variant="soft"
+          class="border border-violet-500 hover:bg-violet-300 hover:border-white hover:text-white px-4" />
       </div>
 
     </UIBaseCard>
+    <UModal v-model="studyPermissionModal" :ui="{ width: 'lg:max-w-6xl' }">
+      <StudyPermissionManagement :studyId="studyId"/>
+    </UModal>
   </Layout>
 </template>
 
 <script setup lang="ts">
 import { object, string, type InferType } from "yup";
 
-const runtimeConfig = useRuntimeConfig();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
-const tokenStore = useTokenStore();
 const router = useRouter();
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
 
 
 const showModal = ref(false);
@@ -65,7 +68,7 @@ const schema = object({
 
 const errorMessage = ref();
 
-async function openModal() {
+async function openStudyModal() {
   state.study_name = ""
   showModal.value = !showModal.value
   errorMessage.value = ""
@@ -74,7 +77,7 @@ async function openModal() {
 async function createStudy() {
   try {
     const body = { display_name: state.study_name.trim() };
-    const data = await $api(runtimeConfig.public.baseURL + "study", {
+    await $medlogapi("/api/study", {
       method: "POST",
       body,
     });
@@ -96,5 +99,12 @@ function selectStudy(study) {
 
 async function gotoExport(study_id) {
   router.push({ path: "/studies/" + study_id + "/export" });
+}
+
+const studyId = ref("")
+const studyPermissionModal = ref(false)
+function openStudyPermissionModal(study_id: string) {
+  studyPermissionModal.value = !studyPermissionModal.value
+  studyId.value = study_id
 }
 </script>

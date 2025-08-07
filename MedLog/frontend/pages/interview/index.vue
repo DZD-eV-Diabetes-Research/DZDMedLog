@@ -31,15 +31,14 @@
 </template>
 
 <script setup lang="ts">
-import { object, string, type InferType, number } from 'yup'
+import { object, string, type InferType } from 'yup'
 
 const userStore = useUserStore()
 const studyStore = useStudyStore()
-const tokenStore = useTokenStore()
 const probandStore = useProbandStore()
 const router = useRouter()
 const runtimeConfig = useRuntimeConfig()
-const { $api } = useNuxtApp();
+const { $medlogapi } = useNuxtApp();
 
 
 const schema = object({
@@ -54,7 +53,12 @@ const state = reactive({
 
 async function pushFurther(study) {
     try {
-        const response = await $api(`${runtimeConfig.public.baseURL}study/${study.id}/proband/${state.probandID}/interview`);
+        const response = await $medlogapi(`/api/study/{studyId}/proband/{probandId}/interview`, {
+            path: {
+                studyId: study.id,
+                probandId: state.probandID,
+            }
+        });
         probandStore.interviews = response
         probandStore.probandID = state.probandID
 

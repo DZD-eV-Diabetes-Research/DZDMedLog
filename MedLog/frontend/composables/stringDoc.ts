@@ -1,3 +1,5 @@
+// Simple helper to clean up strings and return them with a capitalized first letter
+
 export const useStringDoc = (ugly_name: string): string => {
     let beautiful_name = ugly_name.replaceAll("-"," ")
     const words = beautiful_name.split(" ");

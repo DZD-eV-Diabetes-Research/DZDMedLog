@@ -1,3 +1,5 @@
+// Store to handle the User-information
+
 import { defineStore } from 'pinia'
 
 interface UserStore {
@@ -14,7 +16,6 @@ interface UserStore {
 }
 
 export const useUserStore = defineStore('UserStore', {
-    id: "user-store",
     state: (): UserStore => ({
         email: "",
         displayName: "",
@@ -28,12 +29,10 @@ export const useUserStore = defineStore('UserStore', {
     }),
     actions: {
         async userMe() {
-            const tokenStore = useTokenStore()
-            const { $api } = useNuxtApp();
+            const {$medlogapi} = useNuxtApp();
 
             try {
-                const runtimeConfig = useRuntimeConfig()
-                const data = await $api(runtimeConfig.public.baseURL + "user/me")
+                const data = await $medlogapi("/api/user/me")
 
                 this.email = data.email
                 this.displayName = data.display_name
@@ -50,23 +49,6 @@ export const useUserStore = defineStore('UserStore', {
                 console.log(err);
             }
         },
-        async toggle_profile() {
-            this.isAdmin = !this.isAdmin
-            if (this.isAdmin) {
-                this.buttonText = "Toggle to User"
-            } else {
-                this.buttonText = "Toggle to Admin"
-            }
-        },
-        // async toggle_profile() {
-        //     this.viewProfile = !this.viewProfile
-        //     if (this.viewProfile === true) {
-        //         this.buttonText = "Back"
-        //         this.userMe()
-        //     } else {
-        //         this.buttonText = "Profile"
-        //     }
-        // },
     },
     persist: {
         storage: localStorage,

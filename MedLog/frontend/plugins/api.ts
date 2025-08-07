@@ -1,30 +1,38 @@
-export default defineNuxtPlugin((nuxtApp) => {
-    const runTimeConfig = useRuntimeConfig();
-    const tokenStore = useTokenStore();
+// plugins/api.ts
+export default defineNuxtPlugin({
+    enforce: 'pre',
+    setup() {
+        const config = useRuntimeConfig()
+        const clients = config.public.openFetch
+        const router = useRouter()
 
+        if (!clients) return { provide: {} }
 
-
-    const api = $fetch.create({
-        baseURL: `${runTimeConfig.public.baseURL}`,
-        onRequest({ request, options, error }) {
-            if (tokenStore?.access_token) {
-                options.headers.set('Authorization', `Bearer ${tokenStore?.access_token}`)
+        const handleUnauthorized = () => {
+            const current = router.currentRoute.value
+            if (current.fullPath !== '/login' && !current.query.redirect) {
+                router.push({ path: '/login', query: { redirect: current.fullPath } })
             }
-        },
-        async onResponseError({ response }) {
-            if (response.status === 401) {
-                console.log("❌ Token abgelaufen");
-                tokenStore.loggedIn = false
-                tokenStore.expiredToken = true
-                await nuxtApp.runWithContext(() => navigateTo('/'))
-            }
+            console.log("handle unauth");
         }
-    })
 
-    // Expose to useNuxtApp().$api
-    return {
-        provide: {
-            api
+        return {
+            provide: Object.entries(clients).reduce((acc, [name, options]) => ({
+                ...acc,
+                [name]: createOpenFetch(localOptions => ({
+                    ...options,
+                    ...localOptions,
+                    onRequest: localOptions?.onRequest,
+                    onResponse(ctx) {
+                        if (ctx.response?.status === 401) handleUnauthorized()
+                            ; (localOptions?.onResponse as any)?.(ctx)
+                    },
+                    onResponseError(ctx) {
+                        if (ctx.response?.status === 401) handleUnauthorized()
+                            ; (localOptions?.onResponseError as any)?.(ctx)
+                    }
+                }))
+            }), {})
         }
     }
 })

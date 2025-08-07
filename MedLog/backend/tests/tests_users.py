@@ -42,7 +42,7 @@ def test_user_create_with_no_password(tolerate_existing: bool = True):
     # we need to tolerate existing users, because we do not delete users for now.
     # to be able to rerun tests without reseting the db we just tolerate existing users
     tolerated_error = {"detail": "User allready exists"} if tolerate_existing else None
-    from medlogserver.api.routes.routes_user import create_user
+    from medlogserver.api.routes.routes_user_management import create_user
 
     user_init_data = {
         "email": "test_user_wo_pw@test.com",
@@ -94,7 +94,7 @@ def test_user_list_with_active_only():
 
 def test_set_other_user_password_as_admin():
     from medlogserver.model.user import UserCreate, User
-    from medlogserver.api.routes.routes_user import create_user
+    from medlogserver.api.routes.routes_user_management import create_user
 
     user_name = "test_set_other_user_password_as_admin"
     password = "rwes79i3qwehkfbdsjh"
@@ -106,14 +106,18 @@ def test_set_other_user_password_as_admin():
         method="post",
         b=dictyfy(user_create),
     )
+    print("user_raw", user_raw)
 
     user = User.model_validate(user_raw)
     # set user password
-    req(
+    from medlogserver.api.routes.routes_user_management import set_user_password
+
+    user_res = req(
         f"/api/user/{user.id}/password",
         method="put",
-        b={"new_password": password, "new_password_repeated": password},
+        f={"new_password": password, "new_password_repeated": password},
     )
+    print("user_res", user_res)
     access_token = authorize(user_name, pw=password, set_as_global_default_login=False)
     print("access_token", access_token)
     assert access_token != ""
