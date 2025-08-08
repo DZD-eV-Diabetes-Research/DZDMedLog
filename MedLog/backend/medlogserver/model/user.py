@@ -134,7 +134,8 @@ class UserCreate(_UserWithName, UserUpdateByAdmin, table=False):
         user_name = oidc_userinfo.preferred_username
         if oidc_provider_config.PREFIX_USERNAME_WITH_PROVIDER_SLUG:
             user_name = f"{oidc_userinfo.provider_slug}_{user_name}"
-        roles = oidc_userinfo.groups
+        available_medlog_roles = [config.ADMIN_ROLE_NAME, config.USERMANAGER_ROLE_NAME]
+        roles = [r for r in oidc_userinfo.groups if r in available_medlog_roles]
         if oidc_provider_config.ROLE_MAPPING:
             for (
                 oidc_mapping_group,
