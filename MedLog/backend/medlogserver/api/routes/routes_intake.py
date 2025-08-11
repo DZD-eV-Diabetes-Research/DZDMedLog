@@ -139,7 +139,7 @@ async def update_intake(
 ############
 @fast_api_intake_router.delete(
     "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
-    description=f"Update intake record. user must have at least 'interviewer'-permissions on study.",
+    description=f"Delete intake record. user must have at least 'interviewer'-permissions on study.",
 )
 async def delete_intake(
     intake_id: uuid.UUID,

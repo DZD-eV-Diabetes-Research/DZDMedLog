@@ -188,6 +188,71 @@ def test_endpoint_study_permissions_create_or_update():
     )
 
 
+def test_endpoint_study_permissions_delete():
+    """Test DELETE /api/study/{study_id}/permissions/{user_id} endpoint"""
+    study_data = create_test_study(
+        study_name="TestDeletePermissionStudy", with_events=1
+    )
+
+    # Create a test user ID (you would normally get this from a real user)
+    test_user = create_test_user(
+        user_name="user_test_endpoint_study_permissions_delete",
+        password="we4r03rredf8",
+        email="f@f2.de",
+    )
+    test_user_access_token = authorize(
+        username=test_user.user_name,
+        pw="we4r03rredf8",
+        set_as_global_default_login=False,
+    )
+
+    # Create permission data
+    permission_data = {"is_study_admin": True, "is_study_interviewer": True}
+
+    # Create new permission
+    new_permission = req(
+        f"api/study/{study_data.study.id}/permissions/{test_user.id}",
+        method="put",
+        b=permission_data,
+    )
+
+    dict_must_contain(
+        new_permission,
+        required_keys_and_val={"is_study_admin": True, "is_study_interviewer": True},
+        exception_dict_identifier="create permission response",
+    )
+
+    events = req(
+        f"/api/study/{study_data.study.id}/event",
+        method="get",
+        access_token=test_user_access_token,
+    )
+    # user is now alloweed to see events
+    print("events", events)
+    assert len(events["items"]) == 1
+
+    # Delete existing permission
+    delete_response = req(
+        f"api/study/{study_data.study.id}/permissions/{test_user.id}",
+        method="delete",
+        expected_http_code=204,
+    )
+
+    # Test if permission is not existent now
+    req(
+        f"api/study/{study_data.study.id}/permissions/{test_user.id}",
+        method="get",
+        expected_http_code=404,
+    )
+    # user should now not see the study at all
+    events = req(
+        f"/api/study/{study_data.study.id}/event",
+        method="get",
+        access_token=test_user_access_token,
+        expected_http_code=404,
+    )
+
+
 def test_full_permission_workflow():
 
     study_data = create_test_study(

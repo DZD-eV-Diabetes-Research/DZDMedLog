@@ -86,7 +86,7 @@ async def list_study_permissions(
     pagination: QueryParamsInterface = Depends(StudyPermissonQueryParams),
 ) -> PaginatedResponse[StudyPermissionRead]:
     if not study_access.user_can_manage_study_permissions():
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not allowed to manage study permissions",
         )
@@ -105,7 +105,7 @@ async def list_study_permissions(
 @fast_api_permissions_router.get(
     "/study/{study_id}/permissions/{user_id}",
     response_model=StudyPermissionRead,
-    description=f"List all medicine intakes of one probands last completed interview.",
+    description=f"Get the permission details for this user for a certain study.",
 )
 async def get_permission_details(
     user_id: uuid.UUID,
@@ -113,7 +113,7 @@ async def get_permission_details(
     permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
 ) -> StudyPermisson:
     if not study_access.user_can_manage_study_permissions():
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not allowed to manage study permissions",
         )
@@ -123,7 +123,14 @@ async def get_permission_details(
     # and to obtain that other UUID its need some criminal energy :) .
     # ToDo: include a check if that permission really belongs to the study
 
-    return await permission_crud.get_by_user_and_study(user_id, study_access.study.id)
+    return await permission_crud.get_by_user_and_study(
+        user_id,
+        study_access.study.id,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="This user has not permission defined for this study",
+        ),
+    )
 
 
 @fast_api_permissions_router.put(
@@ -138,7 +145,7 @@ async def create_or_update_permission(
     permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
 ) -> StudyPermisson:
     if not study_access.user_can_manage_study_permissions():
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not allowed to manage study permissions",
         )
@@ -146,3 +153,30 @@ async def create_or_update_permission(
     return await permission_crud.update_or_create_if_not_exists(
         user_id=user_id, study_id=study_access.study.id, study_permission=study_perm
     )
+
+
+@fast_api_permissions_router.delete(
+    "/study/{study_id}/permissions/{user_id}",
+    description=f"Delete study permission for user. This removes all permission the user has for this study (But the user still can have access through global admin role.)",
+    response_class=Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"model": None},
+    },
+)
+async def delete_study_permission(
+    user_id: uuid.UUID,
+    study_access: UserStudyAccess = Security(user_has_study_access),
+    permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
+):
+    if not study_access.user_can_manage_study_permissions():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not allowed to manage study permissions",
+        )
+    permission = await permission_crud.get_by_user_and_study(
+        user_id, study_access.study.id
+    )
+    log.info(f"Delete permission for user {user_id} on study {study_access.study.id}")
+    await permission_crud.delete(id_=permission.id)
