@@ -92,6 +92,7 @@ async def oidc_refresh_access_token(
     # sanity check
     assert user_session.user_auth_id == user_auth.id
     old_token = user_auth.get_decrypted_oidc_token()
+    log.debug(f"old_token: {old_token}")
     try:
         oidc_server_metadata = await oauth_client.client.load_server_metadata()
         token_endpoint = oidc_server_metadata.get("token_endpoint", None)
@@ -104,7 +105,7 @@ async def oidc_refresh_access_token(
         )
         user_auth.update_oidc_access_token(new_access_token)
     except Exception as e:
-        log.debug(f"REFRESH OIDC TOKEN FAILED. Error: {e}")
+        log.debug(f"REFRESH OIDC TOKEN FAILED. Error: {e}", exc_info=True)
         # log.error(e)
         if raise_custom_expection_if_fails:
             raise raise_custom_expection_if_fails
