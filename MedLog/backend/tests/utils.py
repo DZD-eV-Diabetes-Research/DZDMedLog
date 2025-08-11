@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, TYPE_CHECKING
+from typing import Dict, List, Literal, Any, TYPE_CHECKING
 import os
 import requests
 import json
@@ -127,8 +127,9 @@ def req(
     except requests.exceptions.JSONDecodeError:
         return r.content
 
-
-def get_dot_env_file_variable(filepath: str, key: str) -> str | None:
+class Unset:
+    pass
+def get_dot_env_file_variable(filepath: str, key: str, default:Any=Unset) -> str | None:
     """
     Extracts the value of a specific environment variable from a .env file.
 
@@ -139,17 +140,19 @@ def get_dot_env_file_variable(filepath: str, key: str) -> str | None:
     Returns:
         str | None: The value of the environment variable, or None if it's not found or empty.
     """
-    if not os.path.exists(filepath):
+    result = None
+    if os.path.exists(filepath):
+        with open(filepath) as file:
+            for line in file:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    var_key, var_value = map(str.strip, line.split("=", 1))
+                    if var_key == key:
+                        result = var_value or None
+    if default == Unset:
         return None
-
-    with open(filepath) as file:
-        for line in file:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                var_key, var_value = map(str.strip, line.split("=", 1))
-                if var_key == key:
-                    return var_value or None
-    return None
+    else:
+        return default
 
 
 def dict_must_contain(
