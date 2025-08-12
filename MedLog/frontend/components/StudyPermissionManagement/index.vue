@@ -193,13 +193,9 @@ const selectedPermissionsPerUser = ref<Record<string, string[]>>({})
 
 const patchUser = async function (id: string, permission_list?: Array<string>) {
     try {
-        console.log(permission_list);
-
         const list = permission_list !== undefined
             ? permission_list
             : selectedPermissionsPerUser.value[id];
-
-        console.log(list);
 
         const putBody = {
             is_study_viewer: list.includes("Study Viewer"),
