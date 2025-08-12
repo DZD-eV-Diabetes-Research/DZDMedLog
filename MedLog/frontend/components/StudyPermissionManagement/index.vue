@@ -119,11 +119,11 @@ const no_permission_user_list = computed(() =>
     all_users.value?.items.filter(item => !permission_id_list.value.includes(item.id)) ?? []
 )
 
-const no_permission_user_id = ref()
+const no_permission_user_id = ref(no_permission_user_list.value[0]?.id ?? null)
 
-watchEffect(() => {
-    if (no_permission_user_list.length > 0) {
-        no_permission_user_id.value = no_permission_user_list[0].id
+watch(no_permission_user_list, (newList) => {
+    if (newList.length > 0) {
+        no_permission_user_id.value = newList[0].id
     }
 })
 
@@ -164,7 +164,7 @@ const columns = [{
 }, {
     key: 'actions'
 }, {
-    key: 'delete', label: ''
+    key: 'delete'
 }]
 
 const expand = ref({
@@ -187,13 +187,19 @@ function handleToggle(row: any) {
 
 const selectedPermissionsPerUser = ref<Record<string, string[]>>({})
 
+// error messag if no permission is selected
+
 // Update current_users to the backend
 
-const patchUser = async function (id: string, permission_list: Array<string> = []) {
+const patchUser = async function (id: string, permission_list?: Array<string>) {
     try {
-        const list = permission_list.length > 0
+        console.log(permission_list);
+
+        const list = permission_list !== undefined
             ? permission_list
             : selectedPermissionsPerUser.value[id];
+
+        console.log(list);
 
         const putBody = {
             is_study_viewer: list.includes("Study Viewer"),
@@ -215,6 +221,7 @@ const patchUser = async function (id: string, permission_list: Array<string> = [
         );
         await permissionsRefresh()
         await allUserRefresh()
+        new_user_permissions.value = []
         expand.value.openedRows = []
     } catch (error) {
         console.log(error);
@@ -226,8 +233,7 @@ const deletePermissions = async function (id: string) {
     await $medlogapi(
         '/api/study/{study_id}/permissions/{user_id}',
         {
-            method: "PUT",
-            body: putBody,
+            method: "DELETE",
             path: {
                 study_id: props.studyId,
                 user_id: id
