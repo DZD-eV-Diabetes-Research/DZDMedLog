@@ -205,7 +205,7 @@ class Config(BaseSettings):
             description="The client secret of the OpenID Connect provider."
         )
         SCOPES: List[str] = Field(
-            description="", default=["openid", "profile", "email"]
+            description="", default=["openid", "profile", "email", "offline_access"]
         )
 
         def get_scopes_as_string(self):
