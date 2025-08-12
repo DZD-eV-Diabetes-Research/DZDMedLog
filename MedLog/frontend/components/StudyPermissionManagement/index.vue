@@ -45,7 +45,28 @@
                         {{ isExpanded ? 'Zuklappen' : 'Bearbeiten' }}
                     </UButton>
                 </template>
+
+                <template #delete-data="{ row }">
+                    <UButton icon="i-heroicons-trash"
+                        class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white"
+                        @click="deletePermissions(row.id)" />
+                </template>
             </UTable>
+            <div v-if="no_permission_user_list.length > 0">
+                <hr class="my-6 border-1">
+                <div class="flex flex-col justify-center space-y-4">
+                    <h3 class="text-center text-xl">Zugriffsrechte hinzufügen</h3>
+                    <USelect v-model="no_permission_user_id" :options="no_permission_user_list"
+                        option-attribute="user_name" value-attribute="id" class="mx-auto" />
+                    <div class="flex flex-row items-center justify-center space-x-4">
+                        <UCheckbox v-for="permission in permissionLabels" :key="permission"
+                            v-model="new_user_permissions" :value="permission" :name="permission" :label="permission" />
+                    </div>
+                    <UButton type="submit" @click="patchUser(no_permission_user_id, new_user_permissions)"
+                        label="Zugriffsrechte hinzufügen" color="violet" variant="soft"
+                        class="border border-violet-500 hover:bg-violet-300 hover:border-white hover:text-white px-4 mx-auto" />
+                </div>
+            </div>
         </div>
         <div v-else>
             Loading
@@ -78,13 +99,36 @@ const { data: permissions } = useMedlogapi('/api/study/permissions/available', {
 })
 
 
-const { data: users, refresh: permissionsRefresh } = useMedlogapi('/api/study/{study_id}/permissions', {
+const { data: current_users, refresh: permissionsRefresh } = await useMedlogapi('/api/study/{study_id}/permissions', {
     path: {
         study_id: props.studyId,
     },
     method: "GET",
 
 })
+
+const { data: all_users, refresh: allUserRefresh } = await useMedlogapi('/api/user', {
+    method: "GET",
+})
+
+const permission_id_list = computed(() =>
+    current_users.value?.items.map((item) => item.user_id) ?? []
+)
+
+const no_permission_user_list = computed(() =>
+    all_users.value?.items.filter(item => !permission_id_list.value.includes(item.id)) ?? []
+)
+
+const no_permission_user_id = ref()
+
+watchEffect(() => {
+    if (no_permission_user_list.length > 0) {
+        no_permission_user_id.value = no_permission_user_list[0].id
+    }
+})
+
+
+const new_user_permissions = ref([])
 
 
 // Template preparation
@@ -94,8 +138,8 @@ const { data: users, refresh: permissionsRefresh } = useMedlogapi('/api/study/{s
 const permissionLabels = ["Study Viewer", "Study Interviewer", "Study Admin"];
 
 const mappedUsers = computed(() => {
-    if (!users.value) return [];
-    return users.value.items.map(user => ({
+    if (!current_users.value) return [];
+    return current_users.value.items.map(user => ({
         id: user.user_ref.id,
         userName: user.user_ref.user_name,
         email: user.user_ref.email,
@@ -119,6 +163,8 @@ const columns = [{
     label: 'Zugriffsrechte'
 }, {
     key: 'actions'
+}, {
+    key: 'delete', label: ''
 }]
 
 const expand = ref({
@@ -141,15 +187,20 @@ function handleToggle(row: any) {
 
 const selectedPermissionsPerUser = ref<Record<string, string[]>>({})
 
-// Update users to the backend
+// Update current_users to the backend
 
-const patchUser = async function (id: string) {
+const patchUser = async function (id: string, permission_list: Array<string> = []) {
     try {
+        const list = permission_list.length > 0
+            ? permission_list
+            : selectedPermissionsPerUser.value[id];
+
         const putBody = {
-            "is_study_viewer": selectedPermissionsPerUser.value[id].includes("Study Viewer") ? true : false,
-            "is_study_interviewer": selectedPermissionsPerUser.value[id].includes("Study Interviewer") ? true : false,
-            "is_study_admin": selectedPermissionsPerUser.value[id].includes("Study Admin") ? true : false
-        }
+            is_study_viewer: list.includes("Study Viewer"),
+            is_study_interviewer: list.includes("Study Interviewer"),
+            is_study_admin: list.includes("Study Admin")
+        };
+
 
         await $medlogapi(
             '/api/study/{study_id}/permissions/{user_id}',
@@ -163,10 +214,28 @@ const patchUser = async function (id: string) {
             }
         );
         await permissionsRefresh()
+        await allUserRefresh()
         expand.value.openedRows = []
     } catch (error) {
         console.log(error);
 
     }
 }
+
+const deletePermissions = async function (id: string) {
+    await $medlogapi(
+        '/api/study/{study_id}/permissions/{user_id}',
+        {
+            method: "PUT",
+            body: putBody,
+            path: {
+                study_id: props.studyId,
+                user_id: id
+            }
+        }
+    );
+    await permissionsRefresh()
+    await allUserRefresh()
+}
+
 </script>
