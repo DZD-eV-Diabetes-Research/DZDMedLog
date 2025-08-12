@@ -1354,7 +1354,7 @@
           "Study Permissions"
         ],
         "summary": "Get Permission Details",
-        "description": "List all medicine intakes of one probands last completed interview.",
+        "description": "Get the permission details for this user for a certain study.",
         "operationId": "get_permission_details_api_study__study_id__permissions__user_id__get",
         "security": [
           {
@@ -1460,6 +1460,59 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Study Permissions"
+        ],
+        "summary": "Delete Study Permission",
+        "description": "Delete study permission for user. This removes all permission the user has for this study (But the user still can have access through global admin role.)",
+        "operationId": "delete_study_permission_api_study__study_id__permissions__user_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "422": {
             "description": "Validation Error",
@@ -2749,7 +2802,7 @@
           "Intake"
         ],
         "summary": "Delete Intake",
-        "description": "Update intake record. user must have at least 'interviewer'-permissions on study.",
+        "description": "Delete intake record. user must have at least 'interviewer'-permissions on study.",
         "operationId": "delete_intake_api_study__study_id__interview__interview_id__intake__intake_id__delete",
         "security": [
           {
