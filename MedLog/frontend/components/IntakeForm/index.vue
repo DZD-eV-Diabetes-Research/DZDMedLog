@@ -485,8 +485,6 @@ if (props.custom && props.edit) {
   selectedDosageForm.value = { "label": drugStore.darrForm }
 }
 
-getDosageForm();
-
 // CUSTOM DRUG
 
 const isDataLoaded = ref(false);
@@ -505,7 +503,8 @@ async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, m
     for (const ref of refs) {
       let item = { field_name: ref[1], options: [] };
 
-      const response = await $medlogapi(`/api/drug/field_def/{ref}/refs`, {
+      //DIRTY FIX FOR COMPLETE REFS (?limit=9999)
+      const response = await $medlogapi(`/api/drug/field_def/{ref}/refs?limit=9999`, {
         path: {
           ref: ref[1]
         }
@@ -638,6 +637,11 @@ const closeEditModal = function () {
   drugStore.item = null
 }
 
-onMounted(fetchFieldDefinitions);
-
+onMounted(() => {
+  if (props.custom) {
+    // nur für das Custom-Form laden
+    getDosageForm()
+    fetchFieldDefinitions()
+  }
+})
 </script>

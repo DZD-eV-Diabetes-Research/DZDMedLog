@@ -38,15 +38,15 @@
           </div>
         </div>
         <div class="mt-4">
-        <p>
-          Kein Account?
-          <a href="https://auth.dzd-ev.org/" target="_blank"
-            class="hover:border-[#ec372d] hover:border-b-2">Registrieren Sie sich hier.</a>
-        </p>
-        <div v-if="tokenStore.expiredToken" class="my-6">
-          <h3 class="text-4xl text-red-500">Ihre Session ist abgelaufen, bitte loggen Sie sich erneut ein</h3>
+          <p>
+            Kein Account?
+            <a href="https://auth.dzd-ev.org/" target="_blank"
+              class="hover:border-[#ec372d] hover:border-b-2">Registrieren Sie sich hier.</a>
+          </p>
+          <div v-if="tokenStore.expiredToken" class="my-6">
+            <h3 class="text-4xl text-red-500">Ihre Session ist abgelaufen, bitte loggen Sie sich erneut ein</h3>
+          </div>
         </div>
-      </div>
       </div>
       <div v-else class="flex flex-col space-y-8 text-center">
         <h3 class="text-4xl text-red-500">Der Backendstatus ist "not healthy"</h3>
@@ -93,7 +93,12 @@ const login = () => {
 
 const loginOIDC = async function (oidc_method) {
   try {
-    window.location.href = `${oidc_method.login_endpoint}?target_path=${route.query.target_path}`    
+
+    if (route.query.target_path === undefined) {
+      window.location.href = `${oidc_method.login_endpoint}?target_path=/`
+    } else {
+      window.location.href = `${oidc_method.login_endpoint}?target_path=${route.query.target_path}`
+    }
 
   } catch (error) {
     console.log(error);

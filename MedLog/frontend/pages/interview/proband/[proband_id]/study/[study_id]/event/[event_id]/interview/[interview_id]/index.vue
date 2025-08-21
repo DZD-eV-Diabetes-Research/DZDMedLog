@@ -16,7 +16,7 @@
           class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white" />
         <UModal v-model="drugStore.customVisibility">
           <div class="p-4">
-            <IntakeForm color="yellow" label="Ungelistetes Medikament Speichern" :custom=true :edit=false />
+            <IntakeForm v-if="drugStore.customVisibility" color="yellow" label="Ungelistetes Medikament Speichern" :custom=true :edit=false />
           </div>
         </UModal>
       </UIBaseCard>
