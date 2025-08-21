@@ -72,6 +72,7 @@ class MmiPiDrugAttrRefFieldLovImportDefinition:
     display_value_col_name: Optional[str] = "NAME"
     filter_col: Optional[str] = "CATALOGID"
     filter_val: Optional[str] = None
+    sort_attr: Optional[Literal["field_name", "value", "display"]] = None
 
 
 @dataclass
@@ -494,7 +495,7 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.darreichungsform"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
-                filter_val="109",
+                filter_val="109", sort_attr="display"
             ),
         ),
         DrugAttrFieldDefinitionContainer(
@@ -1554,5 +1555,8 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     importer_name=importername,
                 )
                 lov_items.append(li)
-
+        if lov_definition.sort_attr is not None:
+            lov_items.sort(key=lambda obj: getattr(obj, lov_definition.sort_attr))
+            for new_index, obj in enumerate(lov_items):
+                obj.sort_order = new_index
         return lov_items
