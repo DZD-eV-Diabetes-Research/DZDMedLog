@@ -11,7 +11,7 @@ export default defineNuxtPlugin({
         const handleUnauthorized = () => {
             const current = router.currentRoute.value
             if (current.fullPath !== '/login' && !current.query.redirect) {
-                router.push({ path: '/login', query: { redirect: current.fullPath } })
+                router.push({ path: '/login', query: { target_path: current.fullPath } })
             }
             console.log("handle unauth");
         }

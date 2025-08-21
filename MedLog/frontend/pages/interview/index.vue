@@ -37,7 +37,6 @@ const userStore = useUserStore()
 const studyStore = useStudyStore()
 const probandStore = useProbandStore()
 const router = useRouter()
-const runtimeConfig = useRuntimeConfig()
 const { $medlogapi } = useNuxtApp();
 
 

@@ -12,9 +12,15 @@
         Admin
       </h2>
     </UIBaseCard>
-    <UIBaseCard v-if="userStore.isAdmin" :naked="true">
-      <UButton @click="openStudyModal()" label="Studie anlegen" color="green" variant="soft"
-        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+    <UIBaseCard :naked="true">
+      <UTooltip>
+        <template #text >
+          <span v-show="!userStore.isAdmin" class="italic">Hello World!</span>
+        </template>
+        <UButton @click="openStudyModal()" label="Studie anlegen" color="green" variant="soft"
+          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+          :disabled="!userStore.isAdmin" />
+      </UTooltip>
       <UModal v-model="showModal" class="w-[1000px] !important">
         <div class="p-4 text-center">
           <UForm :schema="schema" :state="state" class="space-y-4" @submit="createStudy">
@@ -37,13 +43,14 @@
           class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
         <UButton type="submit" @click="gotoExport(study.id)" label="Datenexport" color="blue" variant="soft"
           class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white px-4" />
-        <UButton type="submit" @click="openStudyPermissionModal(study.id)" label="Studien-Zugriffsrechte" color="violet" variant="soft"
+        <UButton type="submit" @click="openStudyPermissionModal(study.id)" label="Studien-Zugriffsrechte" color="violet"
+          variant="soft"
           class="border border-violet-500 hover:bg-violet-300 hover:border-white hover:text-white px-4" />
       </div>
 
     </UIBaseCard>
     <UModal v-model="studyPermissionModal" :ui="{ width: 'lg:max-w-6xl' }">
-      <StudyPermissionManagement :studyId="studyId"/>
+      <StudyPermissionManagement :studyId="studyId" />
     </UModal>
   </Layout>
 </template>

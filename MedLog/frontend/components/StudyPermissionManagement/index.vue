@@ -49,22 +49,39 @@
                 <template #delete-data="{ row }">
                     <UButton icon="i-heroicons-trash"
                         class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white"
-                        @click="deletePermissions(row.id)" />
+                        @click="deleteModal(row.id)" />
                 </template>
             </UTable>
-            <div v-if="no_permission_user_list.length > 0">
+            <UModal v-model="openDeleteModal">
+                <div class="p-4">
+                    <h3 class="text-lg text-red-500">
+                        Möchten Sie {{ }} wirklich löschen?
+                    </h3>
+                    <div class="flex justify-end space-x-2 mt-4">
+                        <UButton color="gray" variant="soft" @click="openDeleteModal = false">Abbrechen</UButton>
+                        <UButton color="red" @click="">Löschen</UButton>
+                    </div>
+                </div>
+            </UModal>
+            <div>
                 <hr class="my-6 border-1">
                 <div class="flex flex-col justify-center space-y-4">
                     <h3 class="text-center text-xl">Zugriffsrechte hinzufügen</h3>
-                    <USelect v-model="no_permission_user_id" :options="no_permission_user_list"
-                        option-attribute="user_name" value-attribute="id" class="mx-auto" />
-                    <div class="flex flex-row items-center justify-center space-x-4">
-                        <UCheckbox v-for="permission in permissionLabels" :key="permission"
-                            v-model="new_user_permissions" :value="permission" :name="permission" :label="permission" />
+                    <div v-if="no_permission_user_list.length > 0" class="flex flex-col justify-center space-y-4">
+                        <USelect v-model="no_permission_user_id" :options="no_permission_user_list"
+                            option-attribute="user_name" value-attribute="id" class="mx-auto" />
+                        <div class="flex flex-row items-center justify-center space-x-4">
+                            <UCheckbox v-for="permission in permissionLabels" :key="permission"
+                                v-model="new_user_permissions" :value="permission" :name="permission"
+                                :label="permission" />
+                        </div>
+                        <UButton type="submit" @click="patchUser(no_permission_user_id, new_user_permissions)"
+                            label="Zugriffsrechte hinzufügen" color="violet" variant="soft"
+                            class="border border-violet-500 hover:bg-violet-300 hover:border-white hover:text-white px-4 mx-auto" />
                     </div>
-                    <UButton type="submit" @click="patchUser(no_permission_user_id, new_user_permissions)"
-                        label="Zugriffsrechte hinzufügen" color="violet" variant="soft"
-                        class="border border-violet-500 hover:bg-violet-300 hover:border-white hover:text-white px-4 mx-auto" />
+                    <div v-else>
+                        <h3 class="text-center text-lg">Es gibt aktuell keine Nutzer ohne Zugriffsrechte</h3>
+                    </div>
                 </div>
             </div>
         </div>
@@ -223,6 +240,12 @@ const patchUser = async function (id: string, permission_list?: Array<string>) {
         console.log(error);
 
     }
+}
+
+const openDeleteModal = ref(false)
+const deleteModal = async function (row: any) {
+    openDeleteModal.value = true
+
 }
 
 const deletePermissions = async function (id: string) {

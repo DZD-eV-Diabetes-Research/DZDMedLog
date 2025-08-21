@@ -171,7 +171,7 @@
         </UButton>
       </div>
       <div v-else>
-        <UButton type="submit" :label="props.label" :color="props.color" variant="soft" :class="buttonClass" />
+        <UButton type="submit" :label="props.label" :color="props.color" class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" variant="soft" :class="buttonClass" />
       </div>
     </div>
     <div class="flex flex-col justify-center items-center">
@@ -191,7 +191,6 @@
 <script setup lang="ts">
 
 import dayjs from "dayjs";
-import { width } from "happy-dom/lib/PropertySymbol.js";
 import { object, number, date, string, type InferType, boolean } from "yup";
 import { apiGetFieldDefinitions } from '~/api/drug';
 const { $medlogapi } = useNuxtApp();
@@ -200,7 +199,6 @@ const { $medlogapi } = useNuxtApp();
 const route = useRoute();
 const drugStore = useDrugStore();
 const initialLoad = ref(true);
-const runTimeConfig = useRuntimeConfig();
 
 const props = defineProps<{
   color?: string;
@@ -212,6 +210,9 @@ const props = defineProps<{
 
 const buttonClass = computed(() => {
   const color = props.color;
+  if (color === "primary"){
+    return `border border-green-500 hover:bg-green-300 hover:border-white hover:text-white`;
+  }
   return `border border-${color}-500 hover:bg-${color}-300 hover:border-white hover:text-white`;
 });
 

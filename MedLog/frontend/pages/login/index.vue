@@ -62,10 +62,12 @@
 
 <script setup lang="ts">
 
+import { object, string } from "yup";
+
 const tokenStore = useTokenStore();
+const route = useRoute()
 
 import { useMedlogapi } from '#imports';
-import { object, string, type InferType } from "yup";
 
 const { data: healthStatus, error: healthError } = await useMedlogapi("/api/health")
 
@@ -91,7 +93,7 @@ const login = () => {
 
 const loginOIDC = async function (oidc_method) {
   try {
-    window.location.href = `${oidc_method.login_endpoint}?target_path=/`    
+    window.location.href = `${oidc_method.login_endpoint}?target_path=${route.query.target_path}`    
 
   } catch (error) {
     console.log(error);

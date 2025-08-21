@@ -256,7 +256,7 @@ async function editEvent(eventId: string) {
       path: {
         studyId: route.params.study_id,
         eventId: eventId,      }
-    })
+    })    
 
     studyStore.event = selectedCompleteEvent.value.event.name
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + eventId + "/interview/" + result[0].id)

@@ -3,7 +3,7 @@
         <Layout>
             <UIBaseCard>
                 <div class="prose" style="text-align: center;">
-                    <template v-if="error.statusCode === 404">
+                    <template v-if="error === 404">
                         <h1>404!</h1>
                         <p>Sorry, that page doesn't exist.</p>
                     </template>
@@ -17,7 +17,7 @@
                     </template>
                     <p>
                         Return to the
-                        <NuxtLink to="/"> startpage.</NuxtLink>
+                        <NuxtLink to="/login"> startpage.</NuxtLink>
                     </p>
                 </div>
             </UIBaseCard>
