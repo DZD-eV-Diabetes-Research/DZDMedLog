@@ -325,7 +325,12 @@ async def auth_oidc_callback(
     user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
 ):
     # Retrieve the original path from session
-    target_path = request.session.pop("target_path", "/")
+    target_path: str = request.session.pop("target_path", "/")
+    # target_path sanity check. must be a local root path ("/thing/bla..."). Not an external ("http://..."" or an relativ "path/blaa/..")
+    if target_path and not target_path.startswith("/"):
+        log.warning(f"Weird auth_oidc_callback target path: '{target_path}'")
+        target_path = "/"
+
     login_type: Literal["token", "session"] = request.session.pop("login_type", "token")
     oauth_client = oauth_clients[provider_slug].client
     oauth_config = oauth_clients[provider_slug].config
