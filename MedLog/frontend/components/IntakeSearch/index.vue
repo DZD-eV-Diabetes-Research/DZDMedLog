@@ -132,7 +132,7 @@ const fetchDrugs = async () => {
         state.currentPage = 1;
       } catch (error: any) {
         console.error("Error fetching drugs:", error);
-        fetchError.value = error?.detail || error?.message || "Unbekannter Fehler beim Laden, bitte wenden Sie sich an Ihren Admin"
+        fetchError.value = error?.data?.detail || error?.message || "Unbekannter Fehler beim Laden, bitte wenden Sie sich an Ihren Admin"
         drugList.items = [];
         drugList.count = 0;
       }
@@ -159,7 +159,9 @@ const fetchDrugs = async () => {
         state.currentPage = 1;
       } catch (error: any) {
         console.error("Error fetching drugs:", error);
-        fetchError.value = error?.detail || "Unbekannter Fehler beim Laden, bitte wenden Sie sich an Ihren Admin"
+        console.log(error.detail);
+        
+        fetchError.value = error?.data?.detail || "Unbekannter Fehler beim Laden, bitte wenden Sie sich an Ihren Admin"
         drugList.items = [];
         drugList.count = 0;
       }
