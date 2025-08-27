@@ -161,7 +161,7 @@ const fetchDrugs = async () => {
         console.error("Error fetching drugs:", error);
         console.log(error.detail);
         
-        fetchError.value = error?.data?.detail || "Unbekannter Fehler beim Laden, bitte wenden Sie sich an Ihren Admin"
+        fetchError.value = error?.data?.detail || error?.message || "Unbekannter Fehler beim Laden, bitte wenden Sie sich an Ihren Admin"
         drugList.items = [];
         drugList.count = 0;
       }
