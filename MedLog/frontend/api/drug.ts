@@ -45,7 +45,8 @@ export async function apiDrugSearch(drugName: string) {
     const { $medlogapi } = useNuxtApp();
 
     try {
-        const result = await $medlogapi(`/api/drug/search?search_term={drug}&only_current_medications=true&offset=0&limit=100`,{
+        //    /api/drug/search?search_term={drug}&only_current_medications=true&offset=0&limit=100
+        const result = await $medlogapi(`/api/drugs/search?search_term={drug}&only_current_medications=true&offset=0&limit=100`,{
             path: {
                 drug: drugName
             }
