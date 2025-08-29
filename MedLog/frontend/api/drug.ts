@@ -9,7 +9,6 @@ export async function apiGetFieldDefinitions(type: string) {
     // to use in other parts of the app
     ///
 
-    const runTimeConfig = useRuntimeConfig();
     const { $medlogapi } = useNuxtApp();
 
 

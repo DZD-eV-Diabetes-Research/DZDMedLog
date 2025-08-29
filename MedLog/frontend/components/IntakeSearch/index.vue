@@ -1,4 +1,5 @@
 <template>
+  {{ drugFieldDefinitionsObject }}
   <UIBaseCard :naked="true">
     <UFormGroup label="Medikament" name="drug" required>
       <UInput v-model="state.drug" placeholder="Medikament/PZN oder ATC-Code eingeben"

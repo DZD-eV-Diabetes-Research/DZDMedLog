@@ -49,17 +49,17 @@
                 <template #delete-data="{ row }">
                     <UButton icon="i-heroicons-trash"
                         class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white"
-                        @click="deleteModal(row.id)" />
+                        @click="deleteModal(row)" />
                 </template>
             </UTable>
             <UModal v-model="openDeleteModal">
-                <div class="p-4">
+                <div class="p-4 text-center">
                     <h3 class="text-lg text-red-500">
-                        Möchten Sie {{ }} wirklich löschen?
+                        Möchten Sie {{ currentUser.userName || "" }} wirklich löschen?
                     </h3>
-                    <div class="flex justify-end space-x-2 mt-4">
+                    <div class="flex justify-center space-x-2 mt-4">
                         <UButton color="gray" variant="soft" @click="openDeleteModal = false">Abbrechen</UButton>
-                        <UButton color="red" @click="">Löschen</UButton>
+                        <UButton color="red" @click="deletePermissions(currentUser.id)">Löschen</UButton>
                     </div>
                 </div>
             </UModal>
@@ -244,8 +244,8 @@ const patchUser = async function (id: string, permission_list?: Array<string>) {
 
 const openDeleteModal = ref(false)
 const deleteModal = async function (row: any) {
+    currentUser.value = row
     openDeleteModal.value = true
-
 }
 
 const deletePermissions = async function (id: string) {
