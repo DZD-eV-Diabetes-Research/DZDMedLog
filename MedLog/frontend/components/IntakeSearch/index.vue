@@ -1,5 +1,4 @@
 <template>
-  {{ drugFieldDefinitionsObject }}
   <UIBaseCard :naked="true">
     <UFormGroup label="Medikament" name="drug" required>
       <UInput v-model="state.drug" placeholder="Medikament/PZN oder ATC-Code eingeben"
@@ -20,12 +19,23 @@
             @mouseleave="hoveredItem = null" style="position: relative">
             <div>
               <strong>Name: {{ item.drug.trade_name }} </strong><br />
-              PZN: {{ item.drug.codes.PZN }} <br />
+              <div v-for="system in drugCodeSystems">
+                {{ system.id }}: {{ item.drug.codes?.[system.id] }}
+                <UTooltip v-if="system.desc" :text="system.desc" :popper="{ placement: 'right' }">
+                  <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-black cursor-pointer" />
+                </UTooltip>
+              </div>
               <div v-for="attr in drugFieldDefinitionsObject.attrs" :key="attr[1]">
                 {{ attr[0] }}: {{ item.drug?.attrs?.[attr[1]] }}
+                <UTooltip v-if="attr[3]" :text="attr[3]" :popper="{ placement: 'right' }">
+                  <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-black cursor-pointer" />
+                </UTooltip>
               </div>
               <div v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :key="attr_ref[1]">
                 {{ attr_ref[0] }}: {{ item.drug?.attrs_ref?.[attr_ref[1]]?.display }}
+                <UTooltip v-if="attr_ref[3]" :text="attr_ref[3]" :popper="{ placement: 'right' }">
+                  <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-black cursor-pointer" />
+                </UTooltip>
               </div>
             </div>
             <div
@@ -85,6 +95,10 @@
 <script setup lang="ts">
 import { ref, watch, reactive } from "vue";
 import { apiGetFieldDefinitions, apiDrugSearch } from '~/api/drug';
+import { useMedlogapi } from '#imports';
+
+const { data: codeSystems } = await useMedlogapi("/api/drug/code_def")
+const drugCodeSystems = codeSystems.value.filter((item) => item.client_visible === true)
 
 let drugFieldDefinitionsObject = await apiGetFieldDefinitions("search_result")
 
@@ -161,7 +175,7 @@ const fetchDrugs = async () => {
       } catch (error: any) {
         console.error("Error fetching drugs:", error);
         console.log(error.detail);
-        
+
         fetchError.value = error?.data?.detail || error?.message || "Unbekannter Fehler beim Laden, bitte wenden Sie sich an Ihren Admin"
         drugList.items = [];
         drugList.count = 0;
