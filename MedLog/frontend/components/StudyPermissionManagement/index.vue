@@ -261,6 +261,7 @@ const deletePermissions = async function (id: string) {
     );
     await permissionsRefresh()
     await allUserRefresh()
+    openDeleteModal.value = false
 }
 
 </script>
