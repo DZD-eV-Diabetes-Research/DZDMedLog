@@ -224,9 +224,13 @@ async def create_user(
         UserRoleApiRead(
             role_name=config.ADMIN_ROLE_NAME,
             description="The admin role enables the user to access and edit all studies.",
+            has_admin_permissions=True,
+            has_usermanager_permissions=True,
         ),
         UserRoleApiRead(
             role_name=config.USERMANAGER_ROLE_NAME,
             description="The user manager role allows a user to edit all user allocation for all studies.",
+            has_admin_permissions=False,
+            has_usermanager_permissions=True,
         ),
     ]
