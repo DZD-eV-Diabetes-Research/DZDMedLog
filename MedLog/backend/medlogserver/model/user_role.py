@@ -19,3 +19,11 @@ class UserRoleApiRead(BaseModel):
     description: Optional[str] = Field(
         default="", description="Description of the role."
     )
+    has_admin_permissions: bool = Field(
+        default=False,
+        description="Does this role has admin permissions. The admin can access/read/write everything.",
+    )
+    has_usermanager_permissions: bool = Field(
+        default=False,
+        description="Does this role has user manager permissions. The user manager can apply access to any study to any user but is not allowed to see all studies.",
+    )
