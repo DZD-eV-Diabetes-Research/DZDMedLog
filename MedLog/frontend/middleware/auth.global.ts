@@ -6,7 +6,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
       await userStore.userMe()
     } catch (error) {
       console.log(error);
-      // no need to redirect, logic is handled by api
+      // no need to redirect, logic is handled by plugins/api
     }
   }
 })
