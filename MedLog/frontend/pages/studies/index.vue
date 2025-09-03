@@ -13,13 +13,11 @@
       </h2>
     </UIBaseCard>
     <UIBaseCard :naked="true">
-      <UTooltip>
-        <template #text >
-          <span v-show="!userStore.isAdmin" class="italic">Hello World!</span>
-        </template>
-        <UButton @click="openStudyModal()" label="Studie anlegen" color="green" variant="soft"
-          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-          :disabled="!userStore.isAdmin" />
+      <UButton v-if="userStore.isAdmin" @click="openStudyModal()" label="Studie anlegen" color="green" variant="soft"
+        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+      <UTooltip v-if="!userStore.isAdmin" text="Sie haben keine Adminrechte">
+        <UButton v-if="!userStore.isAdmin" label="Studie anlegen" color="green" variant="soft"
+          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" :disabled="true" />
       </UTooltip>
       <UModal v-model="showModal" class="w-[1000px] !important">
         <div class="p-4 text-center">

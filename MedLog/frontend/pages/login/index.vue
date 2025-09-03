@@ -83,6 +83,7 @@ const state = reactive({
 
 const { data: loginMethods } = await useMedlogapi("/api/auth/list")
 
+
 const login = () => {
   try {
     tokenStore.login(state.username, state.password)
@@ -102,6 +103,14 @@ const loginOIDC = async function (oidc_method) {
 
   } catch (error) {
     console.log(error);
+  }
+}
+
+// Auto-login check
+if (loginMethods && loginMethods.length > 0) {
+  const autoLoginMethod = loginMethods.find(method => method.auto_login)
+  if (autoLoginMethod) {
+    loginOIDC(autoLoginMethod)
   }
 }
 

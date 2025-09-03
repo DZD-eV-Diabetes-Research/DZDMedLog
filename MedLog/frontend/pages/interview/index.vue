@@ -3,7 +3,7 @@
         <div class="flex justify-center">
             <h1 class="text-4xl font-normal">Neue Interviews Starten</h1>
         </div>
-        <UIBaseCard v-if="studyStore.studies?.count === 0 || !studyStore.studies">
+        <UIBaseCard v-if="studyStore.studies?.length === 0 || !studyStore.studies">
             <div v-if="userStore.isAdmin" class="space-y-4">
                 <h2 class="text-2xl">Aktuell sind keine Studien aufgelistet bitte, legen Sie eine Studie an</h2>
                 <UButton color="green" variant="soft"
