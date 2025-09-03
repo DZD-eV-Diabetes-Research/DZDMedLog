@@ -91,6 +91,10 @@ class DrugAttrFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIReadBase, table=F
         default=True,
         description="When creating a custom drug, should this field be used for the form in the UI. Atm this field is only an instruction field for the UI and is not validated.",
     )
+    is_large_reference_list: bool = Field(
+        default=False,
+        description="Just an Info for the client that this list contains many items. The client could use that to lazy laod or/and offer a search-select field.",
+    )
 
 
 class DrugAttrRefFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=False):
