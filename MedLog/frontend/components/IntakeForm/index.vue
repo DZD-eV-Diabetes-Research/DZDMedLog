@@ -45,7 +45,7 @@
                   <template #label>
                     <span class="inline-flex items-center gap-1">
                       {{ attr[0] }}
-                      <UTooltip :text="attr[3]"  :popper="{placement: 'right'}" :ui="{ width: 'max-w-4xl' }">
+                      <UTooltip :text="attr[3]" :popper="{ placement: 'right' }" :ui="{ width: 'max-w-4xl' }">
                         <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
                       </UTooltip>
                     </span>
@@ -63,22 +63,22 @@
                   <template #label>
                     <span class="inline-flex items-center gap-1">
                       {{ attr_ref[0] }}
-                      <UTooltip :text="attr_ref[3]" :popper="{placement: 'right'}" :ui="{ width: 'max-w-4xl' }">
+                      <UTooltip :text="attr_ref[3]" :popper="{ placement: 'right' }" :ui="{ width: 'max-w-4xl' }">
                         <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
                       </UTooltip>
                     </span>
                   </template>
-                  
                   <USelectMenu v-model="attr_refState[attr_ref[1]]"
                     :options="refSelectMenus.find(item => item.field_name === attr_ref[1])?.options"
-                    value-attribute="value" option-attribute="display" color="yellow" placeholder="Option auswählen" />
+                    value-attribute="value" option-attribute="display" color="yellow" placeholder="Option auswählen"
+                    :searchable="!!attr_ref[4]" v-model:query="queries[attr_ref[1]]" />
                 </UFormGroup>
                 <UFormGroup v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi" :name="attr_multi[1]"
                   :key="attr_multi[1]">
                   <template #label>
                     <span class="inline-flex items-center gap-1">
                       {{ attr_multi[0] }}
-                      <UTooltip :text="attr_multi[3]" :popper="{placement: 'right'}" :ui="{ width: 'max-w-4xl' }">
+                      <UTooltip :text="attr_multi[3]" :popper="{ placement: 'right' }" :ui="{ width: 'max-w-4xl' }">
                         <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
                       </UTooltip>
                     </span>
@@ -96,7 +96,7 @@
                   <template #label>
                     <span class="inline-flex items-center gap-1">
                       {{ attr_multi_ref[0] }}
-                      <UTooltip :text="attr_multi_ref[3]" :popper="{placement: 'right'}" :ui="{ width: 'max-w-4xl' }">
+                      <UTooltip :text="attr_multi_ref[3]" :popper="{ placement: 'right' }" :ui="{ width: 'max-w-4xl' }">
                         <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
                       </UTooltip>
                     </span>
@@ -171,7 +171,9 @@
         </UButton>
       </div>
       <div v-else>
-        <UButton type="submit" :label="props.label" :color="props.color" class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" variant="soft" :class="buttonClass" />
+        <UButton type="submit" :label="props.label" :color="props.color"
+          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" variant="soft"
+          :class="buttonClass" />
       </div>
     </div>
     <div class="flex flex-col justify-center items-center">
@@ -210,7 +212,7 @@ const props = defineProps<{
 
 const buttonClass = computed(() => {
   const color = props.color;
-  if (color === "primary"){
+  if (color === "primary") {
     return `border border-green-500 hover:bg-green-300 hover:border-white hover:text-white`;
   }
   return `border border-${color}-500 hover:bg-${color}-300 hover:border-white hover:text-white`;
@@ -500,25 +502,27 @@ const inputValues = reactive({});
 
 async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, multiple = false) {
   try {
-    console.log("refs: " + refs);
-    console.log("state: " + state.value);
-    console.log("selectMenus: " + selectMenus.value);
-    console.log("multiple: " + multiple);
-    
     for (const ref of refs) {
+
       let item = { field_name: ref[1], options: [] };
+      let response = null
 
-      //DIRTY FIX FOR COMPLETE REFS (?limit=99999)
-      
+      // this leads back to the /api/drug.ts file the ref[4] is the boolean if the field_def is: 'is_large_reference_list' 
+      if (ref[4]) {
+        response = await $medlogapi(`/api/drug/field_def/{ref}/refs?limit=10`, {
+          path: {
+            ref: ref[1]
+          }
+        });
+      } else {
+        response = await $medlogapi(`/api/drug/field_def/{ref}/refs`, {
+          path: {
+            ref: ref[1]
+          }
+        });
 
-      const response = await $medlogapi(`/api/drug/field_def/{ref}/refs?limit=99999`, {
-        path: {
-          ref: ref[1]
-        }
-      });
+      }
 
-      console.log(response);
-      
       item.options = response.items.map((element) => ({
         value: element.value,
         display: element.display,
@@ -531,6 +535,42 @@ async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, m
     console.error("Create refSelectMenus Error:", error);
   }
 }
+
+//Logic for the searchfield and function
+
+const queries = reactive<Record<string, string>>({});
+
+watch(
+  () => ({ ...queries }),
+  (newQueries) => {
+    for (const [field, q] of Object.entries(newQueries)) {
+      if (q && q.length >= 2) {
+        onSearchRef(field, q);
+      }
+    }
+  },
+  { deep: true }
+);
+
+async function onSearchRef(fieldName: string, query: string) {
+  try {
+    const response = await $medlogapi(`/api/drug/field_def/{ref}/refs?search_term=${query}&limit=10`, {
+      path: { ref: fieldName }
+    });
+
+    const menu = refSelectMenus.value.find(item => item.field_name === fieldName);
+    if (menu) {
+      menu.options = response.items.map((el: any) => ({
+        value: el.value,
+        display: el.display,
+      }));
+    }
+  } catch (err) {
+    console.error("Search error:", err);
+  }
+}
+
+// end of search logic
 
 async function createMultiState() {
   drugFieldDefinitionsObject.attrs_multi.forEach(element => {

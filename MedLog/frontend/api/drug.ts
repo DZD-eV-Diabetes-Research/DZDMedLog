@@ -13,6 +13,9 @@ export async function apiGetFieldDefinitions(type: string) {
 
 
     try {
+        //
+        /// Utter chaos, why I chose to transform everything into an array and not an object is, not fathomable to me at this moment, mea culpa
+        //
         const response = await $medlogapi("/api/drug/field_def");        
         const filterFn = (item: any) => 
         type === 'search_result' ? item.show_in_search_results === true :
@@ -20,10 +23,10 @@ export async function apiGetFieldDefinitions(type: string) {
         true;
 
         const categorizedList = {
-            attrs: response.attrs?.filter(filterFn).map((item:any)  => [item.field_name_display, item.field_name, item.value_type, item.field_desc]) || [],
-            attrs_ref: response.attrs_ref?.filter(filterFn).map((item:any) => [item.field_name_display, item.field_name, item.value_type, item.field_desc]) || [],
-            attrs_multi: response.attrs_multi?.filter(filterFn).map((item:any) => [item.field_name_display, item.field_name, item.value_type, item.field_desc]) || [],
-            attrs_multi_ref: response.attrs_multi_ref?.filter(filterFn).map((item:any) => [item.field_name_display, item.field_name, item.value_type, item.field_desc]) || [],
+            attrs: response.attrs?.filter(filterFn).map((item:any)  => [item.field_name_display, item.field_name, item.value_type, item.field_desc, item.is_large_reference_list]) || [],
+            attrs_ref: response.attrs_ref?.filter(filterFn).map((item:any) => [item.field_name_display, item.field_name, item.value_type, item.field_desc, item.is_large_reference_list]) || [],
+            attrs_multi: response.attrs_multi?.filter(filterFn).map((item:any) => [item.field_name_display, item.field_name, item.value_type, item.field_desc, item.is_large_reference_list]) || [],
+            attrs_multi_ref: response.attrs_multi_ref?.filter(filterFn).map((item:any) => [item.field_name_display, item.field_name, item.value_type, item.field_desc, item.is_large_reference_list]) || [],
         };
         
         return categorizedList;
@@ -40,7 +43,6 @@ export async function apiDrugSearch(drugName: string) {
     // This is function uses the /drug/search endpoint to serach for the drugs
     ///
 
-    const runTimeConfig = useRuntimeConfig();
     const { $medlogapi } = useNuxtApp();
 
     try {
