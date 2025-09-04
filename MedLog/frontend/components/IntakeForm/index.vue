@@ -1,5 +1,4 @@
 <!-- This is the main drugform component that deals with the creation of intakes, both regular and custom as well as the editing -->
-
 <template>
   <div style="text-align: center" v-if="missingDrugError">
     <br />
@@ -38,6 +37,24 @@
               attr_multi: Multiple answers possible
               attr_multi_ref: Multiple answers of predefined selction possible
               and created inputs for each item in this array. -->
+
+              <UForm v-if="drugCodeState" :state="drugCodeState" class="space-y-4 mb-4">
+                <UFormGroup v-for="code in codeSystems" :key="code.id">
+                  <template #label>
+                    <span class="inline-flex items-center gap-1">
+                      {{ code.name }}
+                      <UTooltip :text="code.desc || 'Keine Beschreibung'" :popper="{ placement: 'right' }"
+                        :ui="{ width: 'max-w-4xl' }">
+                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
+                      </UTooltip>
+                    </span>
+                  </template>
+
+                  <!-- Input oder Checkbox -->
+                  <UInput v-model="drugCodeState[code.id]" color="yellow" />
+                </UFormGroup>
+              </UForm>
+
 
               <UForm :state="attrState" class="space-y-4">
                 <UFormGroup v-for="attr in drugFieldDefinitionsObject.attrs" :key="attr[1]" :name="attr[1]">
@@ -195,12 +212,14 @@
 import dayjs from "dayjs";
 import { object, number, date, string, type InferType, boolean } from "yup";
 import { apiGetFieldDefinitions } from '~/api/drug';
+
+
 const { $medlogapi } = useNuxtApp();
-
-
 const route = useRoute();
 const drugStore = useDrugStore();
 const initialLoad = ref(true);
+
+const { data: codeSystems } = await useMedlogapi("/api/drug/code_def")
 
 const props = defineProps<{
   color?: string;
@@ -376,8 +395,11 @@ async function saveIntake() {
   else if (!props.edit && props.custom) {
 
     customNameError.value = !state.customName;
-
-
+    const drugCodeBody =  Object.entries(drugCodeState).map(([key, value]) => ({
+      code_system_id: key,
+      code: value,
+    }));
+    
     try {
       if (!customNameError.value) {
         let customDrugBody: DrugBody = {
@@ -389,7 +411,7 @@ async function saveIntake() {
           attrs_ref: Object.entries(attr_refState).map(([key, value]) => ({ field_name: key, value: value })),
           attrs_multi: Object.entries(attr_multiState).map(([key, value]) => ({ field_name: key, values: value })),
           attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({ field_name: key, values: value })),
-          codes: null
+          codes: drugCodeBody
         }
 
         const response = await $medlogapi(
@@ -491,6 +513,14 @@ if (props.custom && props.edit) {
 
 const isDataLoaded = ref(false);
 let drugFieldDefinitionsObject: any = null;
+
+const drugCodeState = reactive<Record<string, string>>({});
+
+onMounted(() => {
+  codeSystems.value?.forEach(code => {
+    drugCodeState[code.id] = "";
+  });
+});
 
 const attrState = ref(null);
 const attr_refState = reactive<Record<string, string | number | boolean>>({});
