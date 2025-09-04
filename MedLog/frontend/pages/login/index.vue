@@ -107,9 +107,9 @@ const loginOIDC = async function (oidc_method) {
 }
 
 // Auto-login check
-if (loginMethods && loginMethods.length > 0) {
-  const autoLoginMethod = loginMethods.find(method => method.auto_login)
-  if (autoLoginMethod) {
+if (loginMethods && loginMethods.value.length > 0) {
+  const autoLoginMethod = loginMethods.value.find(method => method.auto_login)
+  if (autoLoginMethod) {    
     loginOIDC(autoLoginMethod)
   }
 }

@@ -500,16 +500,25 @@ const inputValues = reactive({});
 
 async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, multiple = false) {
   try {
+    console.log("refs: " + refs);
+    console.log("state: " + state.value);
+    console.log("selectMenus: " + selectMenus.value);
+    console.log("multiple: " + multiple);
+    
     for (const ref of refs) {
       let item = { field_name: ref[1], options: [] };
 
       //DIRTY FIX FOR COMPLETE REFS (?limit=99999)
+      
+
       const response = await $medlogapi(`/api/drug/field_def/{ref}/refs?limit=99999`, {
         path: {
           ref: ref[1]
         }
       });
 
+      console.log(response);
+      
       item.options = response.items.map((element) => ({
         value: element.value,
         display: element.display,
