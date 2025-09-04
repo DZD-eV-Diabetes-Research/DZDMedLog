@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.10.1.dev14+ge354276.d20250904"
+    "version": "0.10.1.dev12+g3596b1f.d20250903"
   },
   "paths": {
     "/api/health": {
@@ -5133,7 +5133,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "password"
+                "pattern": "^password$"
               },
               {
                 "type": "null"
@@ -5307,6 +5307,12 @@
             "title": "Used For Custom Drug",
             "description": "When creating a custom drug, should this field be used for the form in the UI. Atm this field is only an instruction field for the UI and is not validated.",
             "default": true
+          },
+          "is_large_reference_list": {
+            "type": "boolean",
+            "title": "Is Large Reference List",
+            "description": "Just an Info for the client that this list contains many items. The client could use that to lazy laod or/and offer a search-select field.",
+            "default": false
           }
         },
         "type": "object",
@@ -5466,6 +5472,12 @@
             "title": "Used For Custom Drug",
             "description": "When creating a custom drug, should this field be used for the form in the UI. Atm this field is only an instruction field for the UI and is not validated.",
             "default": true
+          },
+          "is_large_reference_list": {
+            "type": "boolean",
+            "title": "Is Large Reference List",
+            "description": "Just an Info for the client that this list contains many items. The client could use that to lazy laod or/and offer a search-select field.",
+            "default": false
           }
         },
         "type": "object",
@@ -5551,6 +5563,12 @@
             "title": "Used For Custom Drug",
             "description": "When creating a custom drug, should this field be used for the form in the UI. Atm this field is only an instruction field for the UI and is not validated.",
             "default": true
+          },
+          "is_large_reference_list": {
+            "type": "boolean",
+            "title": "Is Large Reference List",
+            "description": "Just an Info for the client that this list contains many items. The client could use that to lazy laod or/and offer a search-select field.",
+            "default": false
           },
           "ref_list": {
             "type": "string",
@@ -5641,6 +5659,12 @@
             "title": "Used For Custom Drug",
             "description": "When creating a custom drug, should this field be used for the form in the UI. Atm this field is only an instruction field for the UI and is not validated.",
             "default": true
+          },
+          "is_large_reference_list": {
+            "type": "boolean",
+            "title": "Is Large Reference List",
+            "description": "Just an Info for the client that this list contains many items. The client could use that to lazy laod or/and offer a search-select field.",
+            "default": false
           },
           "ref_list": {
             "type": "string",

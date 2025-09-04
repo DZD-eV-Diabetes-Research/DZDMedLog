@@ -603,6 +603,7 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 # default=False,
                 is_reference_list_field=True,
                 is_multi_val_field=False,
+                is_large_reference_list=True,
                 examples=["13819", "15777", "12"],
                 importer_name=importername,
                 searchable=False,
