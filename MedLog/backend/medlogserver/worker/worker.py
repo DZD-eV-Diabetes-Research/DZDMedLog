@@ -4,7 +4,7 @@ import multiprocessing
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from apscheduler.triggers.interval import IntervalTrigger
-
+from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db.worker_job import WorkerJobCRUD
@@ -33,7 +33,12 @@ async def _inital_setup_scheduled_background_tasks() -> AsyncIOScheduler:
     except Exception as e:
         log.info(f"Querying Background Jobs for inital setup failed {e}")
         raise e
-    scheduler = AsyncIOScheduler()
+    scheduler = AsyncIOScheduler(
+        executors={
+            "default": ThreadPoolExecutor(max_workers=1),
+        },
+        job_defaults={"coalesce": False, "max_instances": 1},
+    )
     log.debug(f"Register background job: {background_jobs}")
     for b_job in background_jobs:
         task_class = import_task_class(Tasks[b_job.task_name].value)

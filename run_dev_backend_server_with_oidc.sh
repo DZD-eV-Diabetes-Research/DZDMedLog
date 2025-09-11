@@ -9,7 +9,7 @@ PIDS=()
 
 PYTHON_BIN=$(which python)
 echo "Python: $PYTHON_BIN"
-RUN_BACKGROUND_WORKER_IN_EXTRA_JOB=False
+RUN_BACKGROUND_WORKER_IN_EXTRA_JOB=True
 # Function to handle script termination
 cleanup() {
     echo "Stopping all processes..."

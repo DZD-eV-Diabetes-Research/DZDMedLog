@@ -55,7 +55,7 @@ visit http://localhost:8888
 Requirements:
 
 - bun or npm
-- python 3.11
+- python 3.11 with PDM (https://pdm-project.org/en/latest/#installation)
 
 Install Server dependencies
 

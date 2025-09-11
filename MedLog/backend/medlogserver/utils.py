@@ -325,12 +325,74 @@ class PathContentHasher:
         return str(cls._md5_update_from_dir(directory, hashlib.md5()).hexdigest())
 
 
+import concurrent.futures
+
+
+# Option 3: One-liner with lambda (if you're feeling fancy)
 def run_async_sync(awaitable) -> Any:
+    print(
+        f"run_async_sync - RUN run_async_sync '{awaitable}' SYNC->threading.active_count():{threading.active_count()}"
+    )
+    result = None
     try:
+        asyncio.get_running_loop()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as e:
+            result = e.submit(asyncio.run, awaitable).result()
+    except RuntimeError:
+        result = asyncio.run(awaitable)
+    print(
+        f"AFTER ync_sync - RUN run_async_sync '{awaitable}' SYNC->threading.active_count():{threading.active_count()}"
+    )
+    return result
+
+
+def run_async_sync_try2(awaitable) -> Any:
+    print(
+        f"run_async_sync - RUN run_async_sync '{awaitable}' SYNC->threading.active_count():{threading.active_count()}"
+    )
+    try:
+        # If we're already inside an event loop, schedule task
         loop = asyncio.get_running_loop()
     except RuntimeError:
-        # No loop running, use asyncio.run
+        # No loop running → safe to just run
         return asyncio.run(awaitable)
+    else:
+        # Running inside a loop → run in thread-safe way
+        return asyncio.run_coroutine_threadsafe(awaitable, loop).result()
+
+
+def run_async_sync_try1(awaitable) -> Any:
+    """
+    Simplest possible solution - ThreadPoolExecutor handles all cleanup
+    Works in any context, no need to check for existing loops
+    """
+    print(
+        f"run_async_sync - RUN run_async_sync {awaitable} SYNC->threading.active_count():{threading.active_count()}"
+    )
+    result = None
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        result = executor.submit(asyncio.run, awaitable).result()
+    return result
+
+
+def run_async_sync_old(awaitable) -> Any:
+    print(
+        f"run_async_sync - RUN run_async_sync SYNC->threading.active_count():{threading.active_count()}"
+    )
+    try:
+        loop = asyncio.get_running_loop()
+        print("# run_async_sync 1. ME HAVE A LOOP. ME HAPPY")
+    except RuntimeError:
+        # No loop running, use asyncio.run
+        print("# run_async_sync 2. ME RUN ASYNCO. ME SEMI HAPPY")
+        return asyncio.run(awaitable)
+        """
+        try:
+            return asyncio.run(awaitable)
+        except RuntimeError:
+            # lets try run in a thread
+            pass
+        """
 
     # Already in a running loop — must run in a thread
     result_container = {}
@@ -345,12 +407,16 @@ def run_async_sync(awaitable) -> Any:
         finally:
             done.set()
 
+    print("# run_async_sync 3. ME RUN EXTRA EXTRA THREAD. IT OK BUT SAD")
     thread = threading.Thread(target=run)
     thread.start()
     done.wait()
-
+    print("# run_async_sync end thread")
+    thread.join()
+    print("# run_async_sync thread is end")
     if "exception" in result_container:
         raise result_container["exception"]
+
     return result_container["result"]
 
 

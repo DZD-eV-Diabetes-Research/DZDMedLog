@@ -52,12 +52,16 @@ class WorkerAdHocJobRunner:
     async def _get_jobs(
         self, filter_job_state: Optional[WorkerJobState]
     ) -> List[WorkerJob]:
+        jobs: List[WorkerJob] = []
         async with get_async_session_context() as session:
             async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
                 worker_job_crud: WorkerJobCRUD = worker_job_crud
-                return await worker_job_crud.list(
-                    filter_job_state=filter_job_state, filter_intervalled_job=False
+                jobs = list(
+                    await worker_job_crud.list(
+                        filter_job_state=filter_job_state, filter_intervalled_job=False
+                    )
                 )
+        return jobs
 
     async def _pick_up_queued_jobs(self) -> List[WorkerJob]:
         return await self._get_jobs(filter_job_state=WorkerJobState.QUEUED)
