@@ -12,7 +12,7 @@ import pydantic
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.utils import to_path
+from medlogserver.utils import to_path, get_default_file_data
 from medlogserver.db._session import get_async_session_context
 from medlogserver.model import MedLogBaseModel
 from medlogserver.db._base_crud import CRUDBase
@@ -54,19 +54,9 @@ class DataProvisioner:
         await self._parse_provisioning_file(self.data_file)
 
     async def _parse_provisioning_file(self, path: Path):
-        file_content: Dict = None
-        with open(path) as file_obj:
-            try:
-                file_content = yaml.safe_load(file_obj)
-            except:
-                log.error(
-                    "Failed parsing provisioning data file at '{path}'. Data provisioning will be canceled."
-                )
-                raise
-        if not "items" in file_content:
-            raise ValueError(
-                "Unexpected format in provisioning data file at '{path}'. Data provisioning will be canceled."
-            )
+        file_content: Dict = get_default_file_data(
+            config.APP_PROVISIONING_DEFAULT_DATA_YAML_FILE
+        )
         if "items" in file_content and file_content["items"] is None:
             return
         for data_item in file_content["items"]:

@@ -72,9 +72,7 @@ class WorkerAdHocJobRunner:
             # Type[TaskBase]
             log.info(f"Run adhoc job {job.task_name}...")
             job_task_class = import_task_class(Tasks[job.task_name].value)
-            job_task = job_task_class(
-                job=job, task_params=job.task_params, instant_run=False
-            )
+            job_task = job_task_class(job=job, task_params=job.task_params)
             await job_task.job_start()
             log.info(f"Adhoc Job {job.task_name} done.")
         return finished_jobs
@@ -99,7 +97,7 @@ class WorkerAdHocJobRunner:
                     log.debug(f"Remove obsolete job {job}")
                     job_task_class = import_task_class(Tasks[job.task_name].value)
                     await job_task_class(
-                        job=job, task_params=job.task_params, instant_run=False
+                        job=job, task_params=job.task_params
                     ).clean_up()
                     await self._delete_job(job)
 

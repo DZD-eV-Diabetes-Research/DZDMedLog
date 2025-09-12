@@ -1,27 +1,61 @@
-from typing import AsyncGenerator, List
-
-
-from sqlmodel import SQLModel
-from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.orm import sessionmaker
+import os
+from typing import AsyncGenerator
 import contextlib
-from medlogserver.config import Config
 
-# from medlogserver.db._engine import db_engine
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
+
+from medlogserver.config import Config
 
 config = Config()
 
+# Global state
+_db_engine: AsyncEngine | None = None
+_async_session_factory: sessionmaker | None = None
+_engine_pid: int | None = None
 
+
+def _get_engine() -> AsyncEngine:
+    global _db_engine, _engine_pid
+
+    current_pid = os.getpid()
+    if _db_engine is None or _engine_pid != current_pid:
+        # We are in a new process or first initialization
+        _db_engine = create_async_engine(
+            config.SQL_DATABASE_URL,
+            echo=config.DEBUG_SQL,
+            future=True,
+        )
+        _engine_pid = current_pid
+    return _db_engine
+
+
+def _get_session_factory() -> sessionmaker:
+    global _async_session_factory
+
+    if _async_session_factory is None or _engine_pid != os.getpid():
+        _async_session_factory = sessionmaker(
+            _get_engine(),
+            class_=AsyncSession,
+            expire_on_commit=False,
+            autoflush=False,
+        )
+    return _async_session_factory
+
+
+# FastAPI dependency
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    db_engine = create_async_engine(
-        config.SQL_DATABASE_URL, echo=config.DEBUG_SQL, future=True
-    )
-    async_session = sessionmaker(
-        db_engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
-    )
-    async with async_session() as session:
+    session_factory = _get_session_factory()
+    async with session_factory() as session:
         yield session
 
 
-get_async_session_context = contextlib.asynccontextmanager(get_async_session)
+# Context manager for workers / scripts
+@contextlib.asynccontextmanager
+async def get_async_session_context() -> AsyncGenerator[AsyncSession, None]:
+    session_factory = _get_session_factory()
+    async with session_factory() as session:
+        yield session
+        await session.close()

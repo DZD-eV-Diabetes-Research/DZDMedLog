@@ -1,7 +1,8 @@
-from typing import Dict, List
+from typing import Dict, List, Type
 import asyncio
 import datetime
 import traceback
+import threading
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db.worker_job import WorkerJobCRUD
 from medlogserver.model.worker_job import WorkerJob, WorkerJobUpdate
@@ -18,25 +19,9 @@ class TaskBase:
         self,
         job: WorkerJob = None,
         task_params: Dict = None,
-        instant_run: bool = False,
     ):
         self.job = job
         self.task_params = task_params if task_params is not None else {}
-        if instant_run:
-            # event_loop = asyncio.get_event_loop() # -> RuntimeError There is no current event loop in thread 'asyncio_0'
-            run_async_sync(self.job_start())
-            return
-            try:
-                event_loop = asyncio.get_event_loop()
-                event_loop.create_task(self.job_start())
-            except RuntimeError as e:
-                log.debug(("RuntimeError Exception:", type(e), e))
-                event_loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(event_loop)
-                event_loop.run_until_complete(self.job_start())
-            except Exception as e:
-                log.debug(("Exception:", type(e), e))
-                raise e
 
     async def job_start(self):
         if self.job is None:
@@ -44,6 +29,9 @@ class TaskBase:
                 f"Task '{self.__class__.__name__}' must run in context of a worker job ({WorkerJob.__class__}), no parent job was given on initilization."
             )
         log.debug(f"Run job: {self.job.task_name}")
+        print(
+            f"job_start - RUN job_start SYNC->threading.active_count():{threading.active_count()} Todo: Remove this when resolution for issue #129 not under observation anymore"
+        )
         self.job.run_started_at = datetime.datetime.now(tz=datetime.UTC).replace(
             tzinfo=None
         )
@@ -83,3 +71,14 @@ class TaskBase:
         """Will be called when the job gets tied up (Removed from the database after running and 'config.BACKGROUND_WORKER_TIDY_UP_FINISHED_JOBS_AFTER_N_MIN' has passed)
         Can be used to remove files from the db"""
         pass
+
+
+async def task_runner(
+    task_class: Type[TaskBase],
+    job: WorkerJob = None,
+    task_params: Dict = None,
+    instant_run: bool = False,
+):
+    task = task_class(job=job, task_params=task_params)
+    if instant_run:
+        await task.job_start()

@@ -33,10 +33,11 @@ import asyncio
 import threading
 import csv
 import io
-
+import yaml
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 import re
+import concurrent.futures
 
 
 def to_path(
@@ -325,13 +326,9 @@ class PathContentHasher:
         return str(cls._md5_update_from_dir(directory, hashlib.md5()).hexdigest())
 
 
-import concurrent.futures
-
-
-# Option 3: One-liner with lambda (if you're feeling fancy)
 def run_async_sync(awaitable) -> Any:
     print(
-        f"run_async_sync - RUN run_async_sync '{awaitable}' SYNC->threading.active_count():{threading.active_count()}"
+        f"run_async_sync - RUN run_async_sync '{awaitable}' SYNC->threading.active_count():{threading.active_count()}.Todo: Remove this when resolution for issue #129 not under observation anymore"
     )
     result = None
     try:
@@ -344,85 +341,6 @@ def run_async_sync(awaitable) -> Any:
         f"AFTER ync_sync - RUN run_async_sync '{awaitable}' SYNC->threading.active_count():{threading.active_count()}"
     )
     return result
-
-
-def run_async_sync_try2(awaitable) -> Any:
-    print(
-        f"run_async_sync - RUN run_async_sync '{awaitable}' SYNC->threading.active_count():{threading.active_count()}"
-    )
-    try:
-        # If we're already inside an event loop, schedule task
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        # No loop running → safe to just run
-        return asyncio.run(awaitable)
-    else:
-        # Running inside a loop → run in thread-safe way
-        return asyncio.run_coroutine_threadsafe(awaitable, loop).result()
-
-
-def run_async_sync_try1(awaitable) -> Any:
-    """
-    Simplest possible solution - ThreadPoolExecutor handles all cleanup
-    Works in any context, no need to check for existing loops
-    """
-    print(
-        f"run_async_sync - RUN run_async_sync {awaitable} SYNC->threading.active_count():{threading.active_count()}"
-    )
-    result = None
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        result = executor.submit(asyncio.run, awaitable).result()
-    return result
-
-
-def run_async_sync_old(awaitable) -> Any:
-    print(
-        f"run_async_sync - RUN run_async_sync SYNC->threading.active_count():{threading.active_count()}"
-    )
-    try:
-        loop = asyncio.get_running_loop()
-        print("# run_async_sync 1. ME HAVE A LOOP. ME HAPPY")
-    except RuntimeError:
-        # No loop running, use asyncio.run
-        print("# run_async_sync 2. ME RUN ASYNCO. ME SEMI HAPPY")
-        return asyncio.run(awaitable)
-        """
-        try:
-            return asyncio.run(awaitable)
-        except RuntimeError:
-            # lets try run in a thread
-            pass
-        """
-
-    # Already in a running loop — must run in a thread
-    result_container = {}
-    done = threading.Event()
-
-    def run():
-        try:
-            coro_result = asyncio.run(awaitable)
-            result_container["result"] = coro_result
-        except Exception as e:
-            result_container["exception"] = e
-        finally:
-            done.set()
-
-    print("# run_async_sync 3. ME RUN EXTRA EXTRA THREAD. IT OK BUT SAD")
-    thread = threading.Thread(target=run)
-    thread.start()
-    done.wait()
-    print("# run_async_sync end thread")
-    thread.join()
-    print("# run_async_sync thread is end")
-    if "exception" in result_container:
-        raise result_container["exception"]
-
-    return result_container["result"]
-
-
-from fastapi import HTTPException
-from sqlalchemy.exc import IntegrityError
-import re
 
 
 def handle_integrity_error(e: Exception, reraise_others: bool = True) -> None:
@@ -520,3 +438,22 @@ def slugify_string(s: str, spacer_string: str = "-") -> str:
         for char in s
         if char.isalnum() or char == " "
     )
+
+
+def get_default_file_data(
+    config_APP_PROVISIONING_DEFAULT_DATA_YAML_FILE, raise_error=None
+) -> dict:
+    import __main__
+
+    root_path = Path(__main__.__file__).parent
+    default_data_yaml_path = Path(
+        PurePath(root_path, Path(config_APP_PROVISIONING_DEFAULT_DATA_YAML_FILE))
+    )
+    file_content: Dict = None
+    with open(default_data_yaml_path) as file_obj:
+        file_content = yaml.safe_load(file_obj)
+    if not "items" in file_content:
+        raise ValueError(
+            f"Unexpected format in provisioning data file at '{default_data_yaml_path}'."
+        )
+    return file_content
