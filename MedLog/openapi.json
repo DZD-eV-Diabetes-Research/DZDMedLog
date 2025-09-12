@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.1.dev0+d20250911"
+    "version": "0.10.1.dev22+g8c14d8a.d20250912"
   },
   "paths": {
     "/api/health": {
@@ -5147,7 +5147,6 @@
           },
           "password": {
             "type": "string",
-            "format": "password",
             "title": "Password"
           },
           "scope": {
@@ -5175,7 +5174,6 @@
                 "type": "null"
               }
             ],
-            "format": "password",
             "title": "Client Secret"
           }
         },
