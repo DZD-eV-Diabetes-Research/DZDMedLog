@@ -22,7 +22,6 @@ import datetime
 
 
 def test_last_interview_intakes():
-
     noise_study_data: TestDataContainerStudy = create_test_study(
         study_name="TextLastIntakesStudy",
         with_events=1,
@@ -32,7 +31,7 @@ def test_last_interview_intakes():
     study_data: TestDataContainerStudy = create_test_study(
         study_name="TextLastIntakesStudy2",
         with_events=2,
-        with_interviews_per_event_per_proband=2,
+        with_interviews_per_event_per_proband=1,
         with_intakes=1,
         proband_count=1,
         deterministic=True,

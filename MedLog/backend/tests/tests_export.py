@@ -57,7 +57,7 @@ def test_export_contains_drug_ids():
     study2_data: TestDataContainerStudy = create_test_study(
         study_name="TextExportStudy2",
         with_events=2,
-        with_interviews_per_event_per_proband=2,
+        with_interviews_per_event_per_proband=1,
         with_intakes=2,
         proband_count=2,
     )
@@ -85,7 +85,7 @@ def test_export_contains_drug_ids():
         f"api/study/{study2_data.study.id}/export/{res['export_id']}/download",
         method="get",
     )
-    assert is_valid_csv_with_rows(export_download.decode(), expected_row_count=16)
+    assert is_valid_csv_with_rows(export_download.decode(), expected_row_count=8)
     print(
         f"api/study/{study2_data.study.id}/export/{res['export_id']}/download:\n",
         str(export_download.decode()),

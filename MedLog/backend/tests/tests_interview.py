@@ -17,9 +17,9 @@ from utils import (
 def test_endpoint_study_event_interview_list():
     """Test GET /api/study/{study_id}/event/{event_id}/interview endpoint"""
     study_data: TestDataContainerStudy = create_test_study(
-        study_name="TestListInterviewsStudy",
+        study_name="TestListMultiInterviewsStudy",
         with_events=1,
-        with_interviews_per_event_per_proband=2,
+        with_interviews_per_event_per_proband=1,
         proband_count=2,
     )
 
@@ -28,19 +28,40 @@ def test_endpoint_study_event_interview_list():
 
     # List interviews
     interviews = req(
-        f"api/study/{study_id}/event/{event.event.id}/interview", method="get"
+        f"api/study/{study_id}/event/{event.event.id}/interview",
+        method="get",
     )
     print("interviews", interviews)
     from medlogserver.model.interview import Interview
 
     interview_attributes = list(Interview.model_fields.keys())
-    assert len(interviews) == 4  # 2 probands * 2 interviews each
+    assert len(interviews) == 2  # 2 probands * 1 interviews each
     for interview in interviews:
         dict_must_contain(
             interview,
             required_keys=interview_attributes,
             exception_dict_identifier="list interviews response item",
         )
+
+
+def test_endpoint_study_event_multi_interview():
+    """see https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/127
+    and https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/130
+    For now we only allow one interview per event per proband
+    """
+    from requests.exceptions import HTTPError
+
+    try:
+        study_data: TestDataContainerStudy = create_test_study(
+            study_name="TestListInterviewsStudy",
+            with_events=1,
+            with_interviews_per_event_per_proband=2,
+            proband_count=2,
+        )
+    except HTTPError as e:
+        if e.response.status_code != 409:
+            raise e
+        # else all is fine. we expect the server to prevent us from creating more than one interview per event and probant.
 
 
 def test_endpoint_study_event_interview_create():

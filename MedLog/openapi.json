@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.10.1.dev22+g8c14d8a.d20250912"
+    "version": "0.11.1.dev1+g5d2bc36.d20250916"
   },
   "paths": {
     "/api/health": {
@@ -2162,7 +2162,7 @@
           "Interview"
         ],
         "summary": "Create Interview",
-        "description": "Create new interview",
+        "description": "Create new interview. At the moment there is artificial restriction that only allows for one interview per proband per event. See https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/127 and https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/130",
         "operationId": "create_interview_api_study__study_id__event__event_id__interview_post",
         "security": [
           {
