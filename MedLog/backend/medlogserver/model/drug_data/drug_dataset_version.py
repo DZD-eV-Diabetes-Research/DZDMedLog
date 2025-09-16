@@ -35,7 +35,7 @@ class DrugDataSetVersion(DrugModelTableBase, table=True):
     import_file_path: Optional[str] = Field(
         default=None, description="The source file for the drug data import."
     )
-    import_status: Literal["queued", "running", "failed" "done"] = Field(
+    import_status: Literal["queued", "running", "failed", "done"] = Field(
         default="queued",
         description="Is the data for this drug data set allready imported.",
         sa_column=Column(
@@ -53,4 +53,16 @@ class DrugDataSetVersion(DrugModelTableBase, table=True):
     import_end_datetime_utc: Optional[datetime.datetime] = Field(
         default=None,
         description="Datetime when the imported for this drug dataset was started",
+    )
+    activated_date_datetime_utc: Optional[datetime.datetime] = Field(
+        default=None,
+        description="Datetime when the dataset was set to `current_active`=`True`",
+    )
+    disabled_date_datetime_utc: Optional[datetime.datetime] = Field(
+        default=None,
+        description="Datetime when the dataset was set from `current_active`=`True` to `current_active`=`False`",
+    )
+    cleaned_date_datetime_utc: Optional[datetime.datetime] = Field(
+        default=None,
+        description="Datetime when the dataset was cleaned of unused drug data after being disabled.",
     )

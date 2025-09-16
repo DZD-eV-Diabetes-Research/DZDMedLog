@@ -44,7 +44,6 @@ class DrugDataSetVersionCRUD(
         update_model=DrugDataSetVersion,
     )
 ):
-
     def _get_current_dataset_name(self) -> str:
         drug_importer_class: DrugDataSetImporterBase = DRUG_IMPORTERS[
             config.DRUG_IMPORTER_PLUGIN
@@ -111,28 +110,3 @@ class DrugDataSetVersionCRUD(
         res = results.one_or_none()
         log.debug(f"DrugDataSetVersion get_custom {res}")
         return res
-
-        # old code can be removed
-        current_drug_dataset = await self.get_current()
-        if current_drug_dataset is None:
-            return None
-        custom_drug_dataset_query = select(DrugDataSetVersion).where(
-            DrugDataSetVersion.is_custom_drugs_collection == True
-            and DrugDataSetVersion.dataset_source_name
-            == current_drug_dataset.dataset_source_name
-        )
-        result = await self.session.exec(custom_drug_dataset_query)
-        custom_drug_dataset = result.one_or_none()
-        if custom_drug_dataset:
-            return custom_drug_dataset
-        custom_drug_dataset = DrugDataSetVersion(
-            is_custom_drugs_collection=True,
-            dataset_version="CUSTOM",
-            dataset_source_name=current_drug_dataset.dataset_source_name,
-            import_status="Done",
-            import_start_datetime_utc=datetime.datetime.now(tz=datetime.UTC),
-        )
-        self.session.add(custom_drug_dataset)
-        await self.session.commit()
-        await self.session.refresh(custom_drug_dataset)
-        return custom_drug_dataset

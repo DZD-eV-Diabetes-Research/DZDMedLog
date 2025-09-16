@@ -31,7 +31,6 @@ config = Config()
 
 
 class HealthcheckRead(DatabaseInteractionBase):
-
     def __init__(self, session: AsyncSession):
         self.session = session
 

@@ -113,7 +113,6 @@ class DrugDataSetImporterBase:
         raise NotImplementedError()
 
     async def _run_import(self, source_dir: Path):
-
         self.source_dir = source_dir
         self.version = await self.get_drug_dataset_version()
         dataset_with_same_version_imported = await self.was_dataset_version_imported()
@@ -201,9 +200,7 @@ class DrugDataSetImporterBase:
             if drug_dataset is None:
                 log.info("[DRUG DATA IMPORT] Create dataset version entry...")
                 drug_dataset = await self.generate_drug_data_set_definition()
-                drug_dataset.import_start_datetime_utc = datetime.datetime.now(
-                    tz=datetime.timezone.utc
-                ).replace(tzinfo=None)
+
                 drug_dataset.import_file_path = str(Path(source_dir).resolve())
                 async with get_async_session_context() as session:
                     session.add(drug_dataset)
@@ -239,13 +236,21 @@ class DrugDataSetImporterBase:
         return custom_drug_dataset
 
     async def _set_dataset_version_status(
-        self, status: Literal["queued", "running", "failed" "done"], error: str = None
+        self, status: Literal["queued", "running", "failed", "done"], error: str = None
     ) -> DrugDataSetVersion:
         dataset_version: DrugDataSetVersion = await self._ensure_drug_dataset_version()
         if dataset_version.import_status == status and error is None:
             return dataset_version
         dataset_version.import_status = status
         dataset_version.import_error = error
+        if status in ["done", "failed"]:
+            dataset_version.import_end_datetime_utc = datetime.datetime.now(
+                tz=datetime.timezone.utc
+            ).replace(tzinfo=None)
+        elif status == "running":
+            dataset_version.import_start_datetime_utc = datetime.datetime.now(
+                tz=datetime.timezone.utc
+            ).replace(tzinfo=None)
         async with get_async_session_context() as session:
             session.add(dataset_version)
             await session.commit()
