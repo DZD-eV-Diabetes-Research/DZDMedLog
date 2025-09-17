@@ -8,7 +8,7 @@ from medlogserver.db.worker_job import WorkerJobCRUD
 from medlogserver.model.worker_job import WorkerJob, WorkerJobUpdate
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.utils import run_async_sync
+from medlogserver.utils import get_now_datetime
 
 log = get_logger()
 config = Config()
@@ -32,9 +32,7 @@ class TaskBase:
         print(
             f"job_start - RUN job_start SYNC->threading.active_count():{threading.active_count()} Todo: Remove this when resolution for issue #129 not under observation anymore"
         )
-        self.job.run_started_at = datetime.datetime.now(tz=datetime.UTC).replace(
-            tzinfo=None
-        )
+        self.job.run_started_at = get_now_datetime()
         self.job = await self._update_job(self.job)
         error = None
         result = None
@@ -54,7 +52,7 @@ class TaskBase:
     async def job_finish(self, result: str = None, error: str = None):
         job_update = WorkerJobUpdate(
             id=self.job.id,
-            run_finished_at=datetime.datetime.now(tz=datetime.UTC).replace(tzinfo=None),
+            run_finished_at=get_now_datetime(),
             last_result=result,
             last_error=error,
         )

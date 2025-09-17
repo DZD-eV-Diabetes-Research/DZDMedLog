@@ -51,7 +51,7 @@ RUN rm -r $BASEDIR/.git
 
 #Copy default app data provisioning files
 COPY MedLog/backend/provisioning_data $BASEDIR/provisioning/database
-RUN mv $BASEDIR/provisioning/database/dummy_drugset/20241126/* /data/provisioning/arzneimittelindex/demo/
+RUN mv $BASEDIR/provisioning/database/dummy_drugset/20251228/* /data/provisioning/arzneimittelindex/demo/
 
 
 # set base config

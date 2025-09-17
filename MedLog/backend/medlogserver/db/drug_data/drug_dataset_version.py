@@ -50,16 +50,20 @@ class DrugDataSetVersionCRUD(
         ]()
         return drug_importer_class.dataset_name
 
-    async def list(self) -> List[DrugDataSetVersion]:
-        query = (
-            select(DrugDataSetVersion)
-            .where(
-                DrugDataSetVersion.dataset_source_name
-                == self._get_current_dataset_name()
-            )
-            .order_by(DrugDataSetVersion.dataset_version)
+    async def list(
+        self,
+        filter_import_status: Literal["queued", "running", "failed", "done"] = None,
+        pagination: QueryParamsInterface = None,
+    ) -> List[DrugDataSetVersion]:
+        query = select(DrugDataSetVersion).where(
+            DrugDataSetVersion.dataset_source_name == self._get_current_dataset_name(),
         )
-
+        if filter_import_status:
+            query.where(DrugDataSetVersion.import_status == filter_import_status)
+        if pagination:
+            query = pagination.append_to_query(query)
+        if pagination is None or pagination.order_by is None:
+            query = query.order_by(DrugDataSetVersion.dataset_version)
         results = await self.session.exec(statement=query)
         return results.all()
 

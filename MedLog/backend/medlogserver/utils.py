@@ -38,6 +38,7 @@ from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 import re
 import concurrent.futures
+import datetime
 
 
 def to_path(
@@ -177,7 +178,6 @@ def set_version_file(base_dir=Path("./")) -> Path:
 
 
 def get_version_git_branch_name() -> str:
-
     from medlogserver import __version_git_branch__
 
     return __version_git_branch__
@@ -457,3 +457,22 @@ def get_default_file_data(
             f"Unexpected format in provisioning data file at '{default_data_yaml_path}'."
         )
     return file_content
+
+
+def get_now_datetime(
+    timezone: datetime.timezone = datetime.timezone.utc,
+    strip_timezone_from_result: bool = True,
+) -> datetime.datetime:
+    """_summary_
+
+    Args:
+        timezone (datetime.timezone, optional): _description_. Defaults to datetime.timezone.utc.
+        strip_timezone_from_result (bool, optional): Remove datetime information from datetime. this is needed for sqlite compatibility. Defaults to True.
+
+    Returns:
+        datetime.datetime: _description_
+    """
+    now = datetime.datetime.now(tz=timezone)
+    if strip_timezone_from_result:
+        now.replace(tzinfo=None)
+    return now

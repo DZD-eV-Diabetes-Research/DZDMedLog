@@ -4,6 +4,7 @@ from pathlib import Path
 import datetime
 import time
 from sqlmodel import select, and_
+from sqlalchemy.sql.operators import is_
 from medlogserver.db._session import get_async_session_context
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data._base import DrugModelTableBase
@@ -13,7 +14,7 @@ from medlogserver.model.drug_data.drug_attr_field_definition import (
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef
 from medlogserver.model.drug_data.drug import DrugData
-from medlogserver.utils import PathContentHasher
+from medlogserver.utils import PathContentHasher, get_now_datetime
 from medlogserver.model.drug_data.drug import DrugAttrTypeName
 from medlogserver.log import get_logger
 
@@ -30,6 +31,7 @@ class DrugDataSetImporterBase:
         self.api_name = "baseexample"
         self.source_dir: Path = None
         self.version: str = None
+        self._ensured_dataset_version: DrugDataSetVersion = None
 
     async def generate_drug_data_set_definition(self) -> DrugDataSetVersion:
         return DrugDataSetVersion(
@@ -149,6 +151,33 @@ class DrugDataSetImporterBase:
 
     async def _finish_import(self):
         await self._set_dataset_version_status("done")
+        await self.activate_dataset()
+
+    async def activate_dataset(self) -> DrugDataSetVersion:
+        dataset_version: DrugDataSetVersion = await self._ensure_drug_dataset_version()
+        query_other_active_dataset_versions = select(DrugDataSetVersion).where(
+            and_(
+                DrugDataSetVersion.id != dataset_version.id,
+                is_(DrugDataSetVersion.is_custom_drugs_collection, False),
+                is_(DrugDataSetVersion.current_active, True),
+            )
+        )
+        async with get_async_session_context() as session:
+            result_other_active_dataset_versions = await session.exec(
+                query_other_active_dataset_versions
+            )
+            other_dataset_versionss = result_other_active_dataset_versions.all()
+            # in theory there should always be just one active drug dataset.
+            # but for good measrue we assume there could be more than one because of a mistake
+            for other_dataset in other_dataset_versionss:
+                other_dataset.current_active = False
+                other_dataset.disabled_date_datetime_utc = get_now_datetime()
+                session.add(other_dataset)
+            dataset_version.current_active = True
+            dataset_version.activated_date_datetime_utc = get_now_datetime()
+            session.add(dataset_version)
+            await session.commit()
+        return dataset_version
 
     async def get_already_imported_datasets(self) -> List[DrugDataSetVersion]:
         async with get_async_session_context() as session:
@@ -175,6 +204,8 @@ class DrugDataSetImporterBase:
         Returns:
             DrugDataSetVersion: _description_
         """
+        if self._ensured_dataset_version is not None:
+            return self._ensured_dataset_version
 
         source_dir = self.source_dir
         if source_dir is None:
@@ -205,6 +236,7 @@ class DrugDataSetImporterBase:
                 async with get_async_session_context() as session:
                     session.add(drug_dataset)
                     await session.commit()
+            self._ensured_dataset_version = drug_dataset
         return drug_dataset
 
     async def _ensure_custom_drug_dataset_version(
@@ -226,9 +258,7 @@ class DrugDataSetImporterBase:
             custom_drug_dataset = custom_drug_dataset_res.one_or_none()
             if custom_drug_dataset is None:
                 custom_drug_dataset = await self.generate_custom_drug_set_definition()
-                custom_drug_dataset.import_start_datetime_utc = datetime.datetime.now(
-                    tz=datetime.timezone.utc
-                ).replace(tzinfo=None)
+                custom_drug_dataset.import_start_datetime_utc = get_now_datetime()
                 custom_drug_dataset.import_status = "done"
                 async with get_async_session_context() as session:
                     session.add(custom_drug_dataset)
@@ -244,13 +274,9 @@ class DrugDataSetImporterBase:
         dataset_version.import_status = status
         dataset_version.import_error = error
         if status in ["done", "failed"]:
-            dataset_version.import_end_datetime_utc = datetime.datetime.now(
-                tz=datetime.timezone.utc
-            ).replace(tzinfo=None)
+            dataset_version.import_end_datetime_utc = get_now_datetime()
         elif status == "running":
-            dataset_version.import_start_datetime_utc = datetime.datetime.now(
-                tz=datetime.timezone.utc
-            ).replace(tzinfo=None)
+            dataset_version.import_start_datetime_utc = get_now_datetime()
         async with get_async_session_context() as session:
             session.add(dataset_version)
             await session.commit()

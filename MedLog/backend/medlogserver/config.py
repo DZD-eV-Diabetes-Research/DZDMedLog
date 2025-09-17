@@ -283,7 +283,7 @@ class Config(BaseSettings):
         description="If MedLog is booted with an empty drug database, it will check if a source data set of the GKV Arzneimittel Index is located in this dir",
         default=str(
             Path(
-                Path(__file__).parent.parent, "provisioning_data/dummy_drugset/20241126"
+                Path(__file__).parent.parent, "provisioning_data/dummy_drugset/20251228"
             ).absolute()
         ),
     )

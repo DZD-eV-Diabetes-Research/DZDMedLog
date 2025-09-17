@@ -42,8 +42,6 @@ class PaginatedResponse(BaseModel, Generic[GenericMedLogModel]):
 class QueryParamsInterface:
     """Placeholder class for a the dynamic generated class from create_query_params_class()
 
-    Raises:
-        NotImplementedError: _description_
 
     Returns:
         _type_: _description_
@@ -55,10 +53,14 @@ class QueryParamsInterface:
     order_desc: bool = False
     non_sortable_attributes: List[str] = ["ai_dataversion_id"]
 
-    def __init__(offset: Optional[int], limit: int, order_by: str, order_desc: bool):
-        raise NotImplementedError(
-            "This is just a placeholder class to make code completion work. check 'create_query_params_class' for the actuall class."
-        )
+    def __init__(
+        self, offset: Optional[int], limit: int, order_by: str, order_desc: bool
+    ):
+        # This is just a placeholder class to make code completion work. check 'create_query_params_class' for the actuall class generation.
+        self.offset = offset
+        self.limit = limit
+        self.order_by = order_by
+        self.order_desc = order_desc
 
     def order(self, items: List, reverse: bool = False) -> List:
         if self.order_by:
@@ -140,6 +142,8 @@ def create_query_params_class(
             self.offset = offset
             self.limit = limit
 
+        # Tim Todo: I can not remember if and why this extra lampda wrapper is needed. check and replace by only the "def" function.
+        # (same in "else" branch)
         init_func: Callable = lambda self, offset, limit: __init__func_wrapper(
             self, offset, limit
         )

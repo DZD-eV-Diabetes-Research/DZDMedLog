@@ -21,7 +21,7 @@ from pydantic import field_validator
 
 from sqlalchemy.orm import selectinload
 from sqlalchemy import case, func
-from medlogserver.utils import get_db_type
+from medlogserver.utils import get_db_type, get_now_datetime
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db.drug_data.drug_search._base import (
     MedLogDrugSearchEngineBase,
@@ -88,9 +88,7 @@ class GenericSQLDrugSearchCache(SQLModel, table=True):
 
 
 class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
-    description: str = (
-        "'Build-in' search engine. Works with every SQL Database. Does not need any additional setup. Maybe perfoms poor concerning speed and result quality."
-    )
+    description: str = "'Build-in' search engine. Works with every SQL Database. Does not need any additional setup. Maybe perfoms poor concerning speed and result quality."
 
     def __init__(
         self,
@@ -182,9 +180,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             raise err
         state = await self._get_state()
         state.index_build_up_in_process = False
-        state.last_index_build_at = datetime.datetime.now(
-            tz=datetime.timezone.utc
-        ).replace(tzinfo=None)
+        state.last_index_build_at = get_now_datetime()
         state.last_index_build_based_on_drug_datasetversion_id = (
             target_drug_dataset_version.id
         )

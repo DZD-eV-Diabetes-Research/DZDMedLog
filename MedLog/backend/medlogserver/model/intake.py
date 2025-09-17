@@ -26,7 +26,6 @@ from medlogserver.log import get_logger
 from medlogserver.model._base_model import (
     MedLogBaseModel,
     BaseTable,
-    ExportBaseModel,
     TimestampModel,
 )
 
