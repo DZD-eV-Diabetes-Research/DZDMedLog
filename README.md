@@ -29,7 +29,7 @@ A Webapplication to log medication history of study participants.
 # Run
 
 > [!IMPORTANT]  
-> these examples set DZDMedLog into demo mode. This sidesteps the need to create a config file first.
+> these examples set DZDMedLog into `demo mode`. This sidesteps the need to create a config file first.
 > For a more elaborate config see the chapter [Config](#config)
 
 ## Option 1: Run prebuild container from docker hub
@@ -40,12 +40,14 @@ Requirements:
 
 Get or Update the container IMAGE
 
-`docker pull dzdde/dzdmedlog`
-
+```bash
+docker pull dzdde/dzdmedlog
+```
 Run the container
 
-`docker run -v ./database:/opt/medlog/data -p 8888:8888 -e DEMO_MODE=true dzdde/dzdmedlog`
-
+```bash
+docker run -v ./database:/opt/medlog/data -p 8888:8888 -e DEMO_MODE=true dzdde/dzdmedlog
+```
 
 visit http://localhost:8888
 
@@ -58,9 +60,13 @@ Requirements:
 
 - docker runable as non root (If you use `sudo docker` have a look into `build_docker.sh` and adapt the command)
 
-`make container`
+```bash
+make container
+```
 
-`docker run -v ./database:/opt/medlog/data -p 8888:8888 -e DEMO_MODE=true dzdmedlog`
+```bash
+docker run -v ./database:/opt/medlog/data -p 8888:8888 -e DEMO_MODE=true dzdmedlog
+```
 
 visit http://localhost:8888
 
@@ -76,17 +82,25 @@ Requirements:
 
 Install Server dependencies
 
-`pip install -U -r MedLog/backend/requirements.txt`
+```bash
+pip install -U -r MedLog/backend/requirements.txt
+```
 
 Build frontend
 
-`bun install && bunx nuxi generate` or `npm install && npx nuxi generate`
+```bash
+bun install && bunx nuxi generate` or `npm install && npx nuxi generate
+```
 
 Run the app:
 
-`export DEMO_MODE=true`
+```bash
+export DEMO_MODE=true
+```
 
-`python MedLog/backend/medlogserver/main.py`
+```bash
+python MedLog/backend/medlogserver/main.py
+```
 
 visit http://localhost:8888
 
@@ -100,8 +114,8 @@ visit http://localhost:8888
 
 We have to primary branches in this Repo
 
-[`dev`](https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/tree/dev) - This branch is always the most recent running version. On every commit there will be a new container image build automaticly. The container image will have with the tags `dev` and a version string (e.g. `0.11.1.dev2_g0e169a8e3.d20250916`)
-[`main`](https://github.com/DZD-eV-Diabetes-Research/DZDMedLog) - This is the "production grade" branch building the source of new [releases](https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/releases). When we are happy with the state of dev we merge `dev` into  `main` and create a new release.
+* [`dev`](https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/tree/dev) - This branch is always the most recent running version. On every commit there will be a new container image build automaticly. The container image will have with the tags `dev` and a version string (e.g. `0.11.1.dev2_g0e169a8e3.d20250916`)
+* [`main`](https://github.com/DZD-eV-Diabetes-Research/DZDMedLog) - This is the "production grade" branch building the source of new [releases](https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/releases). When we are happy with the state of dev we merge `dev` into  `main` and create a new release.
 
 > [!NOTE]  
 > There maybe a third primarty test/staging branch at a later stage when DZDMedLog enters into maintenance phase.
