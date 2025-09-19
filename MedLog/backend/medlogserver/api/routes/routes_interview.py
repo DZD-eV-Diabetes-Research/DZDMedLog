@@ -186,7 +186,7 @@ async def get_last_non_completed_interview(
 @fast_api_interview_router.post(
     "/study/{study_id}/event/{event_id}/interview",
     response_model=Interview,
-    description=f"Create new interview",
+    description=f"Create new interview. At the moment there is artificial restriction that only allows for one interview per proband per event. See https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/127 and https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/130",
 )
 async def create_interview(
     interview: Annotated[InterviewCreateAPI, Body()],
@@ -208,6 +208,21 @@ async def create_interview(
             detail=f"No event found with id '{event_id}'",
         ),
     )
+
+    # https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/127
+    # We want to prevent having more than one interview per event for now as the webclient does not support it
+    # this can be removed once https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/130 is closed
+    existing_interview = await interview_crud.list(
+        filter_event_id=event_id,
+        filter_proband_external_id=interview.proband_external_id,
+    )
+    if len(existing_interview) != 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only one interview per event per proband allowed at the moment. See https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/127",
+        )
+    # /127
+
     interview_create = InterviewCreate(
         event_id=event.id,
         interviewer_user_id=user.id,

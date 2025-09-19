@@ -14,7 +14,7 @@
             <h2 v-if="!userStore.isAdmin" class="text-2xl">Aktuell sind keine Studien aufgelistet bitte, wenden Sie sich
                 an einen Admin</h2>
         </UIBaseCard>
-        <UIBaseCard class="active" v-for="study in studyStore.studies.items" :key="study.id" style="text-align: center">
+        <UIBaseCard class="active" v-for="study in studyStore.studies" :key="study.id" style="text-align: center">
             <h3 class="text-2xl font-light">Studie: {{ study.display_name }}</h3>
             <UForm :schema="schema" :state="state" class="space-y-4" @submit="pushFurther(study)">
                 <UFormGroup label="ProbandenID" name="probandID">

@@ -30,7 +30,7 @@ export const useStudyStore = defineStore('StudyStore', {
             try {
                 const data = await $medlogapi("/api/study")
 
-                this.studies = data
+                this.studies = data.items
             }
             catch (err: any) {
                 tokenStore.error = err?.response.data.detail
@@ -41,7 +41,7 @@ export const useStudyStore = defineStore('StudyStore', {
             if (this.studies.length === 0) {
             }
             else {
-                const foundItem = this.studies.items.find(item => item.id === id)
+                const foundItem = this.studies.find(item => item.id === id)
                 return foundItem
             }
         },

@@ -33,7 +33,7 @@
         </div>
       </UModal>
     </UIBaseCard>
-    <UIBaseCard v-for="study in studyStore.studies.items" :key="study.id" style="text-align: center">
+    <UIBaseCard v-for="study in studyStore.studies" :key="study.id" style="text-align: center">
       <h3 class="text-2xl font-medium my-4">Studie: {{ study.display_name }}</h3>
 
       <div class="flex flex-row justify-center space-x-4">

@@ -116,7 +116,7 @@ def test_last_interview_intakes():
     study_data: TestDataContainerStudy = create_test_study(
         study_name="TestLastIntakesStudy",
         with_events=2,
-        with_interviews_per_event_per_proband=2,
+        with_interviews_per_event_per_proband=1,
         with_intakes=1,
         proband_count=1,
         deterministic=True,
