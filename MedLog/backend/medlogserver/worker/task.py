@@ -30,7 +30,7 @@ class TaskBase:
             )
         log.debug(f"Run job: {self.job.task_name}")
         print(
-            f"job_start - RUN job_start SYNC->threading.active_count():{threading.active_count()} Todo: Remove this when resolution for issue #129 not under observation anymore"
+            f"job_start - RUN job_start SYNC->threading.active_count():{threading.active_count()} Todo: Remove this when solution for issue #129 not under observation anymore"
         )
         self.job.run_started_at = get_now_datetime()
         self.job = await self._update_job(self.job)

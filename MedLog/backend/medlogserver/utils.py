@@ -328,7 +328,7 @@ class PathContentHasher:
 
 def run_async_sync(awaitable) -> Any:
     print(
-        f"run_async_sync - RUN run_async_sync '{awaitable}' SYNC->threading.active_count():{threading.active_count()}.Todo: Remove this when resolution for issue #129 not under observation anymore"
+        f"run_async_sync - RUN run_async_sync '{awaitable}' SYNC->threading.active_count():{threading.active_count()}.Todo: Remove this when solution for issue #129 not under observation anymore"
     )
     result = None
     try:
