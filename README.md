@@ -185,9 +185,13 @@ If you want to start with a fresh backend instance just stop the server, delete 
 
 Now we can start the nuxt dev server
 
-`cd MedLog/frontend`
+```bash
+cd MedLog/frontend
+```
 
-`bun run dev`
+```bash
+bun run dev
+```
 
 visit http://localhost:3000 for the client
 
