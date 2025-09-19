@@ -5,15 +5,57 @@
 # Exit on error
 set -e
 
+
+# Control background worker spawning
+RUN_BACKGROUND_WORKER_IN_EXTRA_JOB=True
+
+#######################################
+# MedLog Server Configuration
+#######################################
+
+# To overwrite this values just create `.env` in your local `MedLog/backend/medlogserver` dir and set the environment variables o you liking
+# e.g.
+# ```MedLog/backend/medlogserver/.env
+# LOG_LEVEL=INFO
+# DEBUG_SQL=True
+# ```
+
+export LOG_LEVEL=DEBUG
+export DEBUG_SQL=False
+export SERVER_SESSION_SECRET=IAMASTUPIDDUMMYANDTHATSOKSDEALWITHITINEEDTOBE64CHARSLONGTHATWHYIKEEPTALKING
+export SERVER_LISTENING_PORT=8888
+export ADMIN_USER_PW=password123
+export ADMIN_USER_EMAIL=user@test.de
+export SERVER_HOSTNAME=localhost
+
+#######################################
+# OIDC Configuration
+#######################################
+export AUTH_OIDC_TOKEN_STORAGE_SECRET=qi3we7gaukb
+
+PROVIDER_DISPLAY_NAME="LocalDevLogin"
+CONFIGURATION_ENDPOINT=http://localhost:8884/.well-known/openid-configuration
+CLIENT_ID=devdummyid1345
+CLIENT_SECRET=devdummysecrect1345
+USER_NAME_ATTRIBUTE=name
+USER_DISPLAY_NAME_ATTRIBUTE=given_name
+USER_MAIL_ATTRIBUTE=email
+USER_GROUPS_ATTRIBUTE=groups
+TOKEN_STORAGE_SECRET=asuizfqwhj
+
+# Using EOF/heredoc to avoid excessive escaping
+export AUTH_OIDC_PROVIDERS=$(cat <<EOF
+[{"AUTO_LOGIN": true, "PROVIDER_DISPLAY_NAME": "${PROVIDER_DISPLAY_NAME}","CONFIGURATION_ENDPOINT":"${CONFIGURATION_ENDPOINT}","CLIENT_ID":"${CLIENT_ID}","CLIENT_SECRET":"${CLIENT_SECRET}","USER_NAME_ATTRIBUTE":"${USER_NAME_ATTRIBUTE}","USER_DISPLAY_NAME_ATTRIBUTE":"${USER_DISPLAY_NAME_ATTRIBUTE}","USER_MAIL_ATTRIBUTE":"${USER_MAIL_ATTRIBUTE}","USER_GROUPS_ATTRIBUTE": "${USER_GROUPS_ATTRIBUTE}"}, 
+{"PROVIDER_DISPLAY_NAME": "${PROVIDER_DISPLAY_NAME} Nr 2","CONFIGURATION_ENDPOINT":"${CONFIGURATION_ENDPOINT}","CLIENT_ID":"${CLIENT_ID}","CLIENT_SECRET":"${CLIENT_SECRET}","USER_NAME_ATTRIBUTE":"${USER_NAME_ATTRIBUTE}","USER_DISPLAY_NAME_ATTRIBUTE":"${USER_DISPLAY_NAME_ATTRIBUTE}","USER_MAIL_ATTRIBUTE":"${USER_MAIL_ATTRIBUTE}","USER_GROUPS_ATTRIBUTE": "${USER_GROUPS_ATTRIBUTE}"}]
+EOF
+)
+
 # Store process IDs
 PIDS=()
 
 # Detect Python binary
 PYTHON_BIN=$(which python)
 echo "Python: $PYTHON_BIN"
-
-# Control background worker spawning
-RUN_BACKGROUND_WORKER_IN_EXTRA_JOB=True
 
 
 #######################################
@@ -58,37 +100,7 @@ trap cleanup SIGINT SIGTERM
 
 
 
-#######################################
-# MedLog Server Configuration
-#######################################
 
-export SERVER_SESSION_SECRET=IAMASTUPIDDUMMYANDTHATSOKSDEALWITHITINEEDTOBE64CHARSLONGTHATWHYIKEEPTALKING
-export SERVER_LISTENING_PORT=8888
-export ADMIN_USER_PW=password123
-export ADMIN_USER_EMAIL=user@test.de
-export SERVER_HOSTNAME=localhost
-
-#######################################
-# OIDC Configuration
-#######################################
-export AUTH_OIDC_TOKEN_STORAGE_SECRET=qi3we7gaukb
-
-PROVIDER_DISPLAY_NAME="LocalDevLogin"
-CONFIGURATION_ENDPOINT=http://localhost:8884/.well-known/openid-configuration
-CLIENT_ID=devdummyid1345
-CLIENT_SECRET=devdummysecrect1345
-USER_NAME_ATTRIBUTE=name
-USER_DISPLAY_NAME_ATTRIBUTE=given_name
-USER_MAIL_ATTRIBUTE=email
-USER_GROUPS_ATTRIBUTE=groups
-TOKEN_STORAGE_SECRET=asuizfqwhj
-
-# Using EOF/heredoc to avoid excessive escaping
-export AUTH_OIDC_PROVIDERS=$(cat <<EOF
-[{"AUTO_LOGIN": true, "PROVIDER_DISPLAY_NAME": "${PROVIDER_DISPLAY_NAME}","CONFIGURATION_ENDPOINT":"${CONFIGURATION_ENDPOINT}","CLIENT_ID":"${CLIENT_ID}","CLIENT_SECRET":"${CLIENT_SECRET}","USER_NAME_ATTRIBUTE":"${USER_NAME_ATTRIBUTE}","USER_DISPLAY_NAME_ATTRIBUTE":"${USER_DISPLAY_NAME_ATTRIBUTE}","USER_MAIL_ATTRIBUTE":"${USER_MAIL_ATTRIBUTE}","USER_GROUPS_ATTRIBUTE": "${USER_GROUPS_ATTRIBUTE}"}, 
-{"PROVIDER_DISPLAY_NAME": "${PROVIDER_DISPLAY_NAME} Nr 2","CONFIGURATION_ENDPOINT":"${CONFIGURATION_ENDPOINT}","CLIENT_ID":"${CLIENT_ID}","CLIENT_SECRET":"${CLIENT_SECRET}","USER_NAME_ATTRIBUTE":"${USER_NAME_ATTRIBUTE}","USER_DISPLAY_NAME_ATTRIBUTE":"${USER_DISPLAY_NAME_ATTRIBUTE}","USER_MAIL_ATTRIBUTE":"${USER_MAIL_ATTRIBUTE}","USER_GROUPS_ATTRIBUTE": "${USER_GROUPS_ATTRIBUTE}"}]
-EOF
-)
 
 
 # Override background worker behaviour if enabled
