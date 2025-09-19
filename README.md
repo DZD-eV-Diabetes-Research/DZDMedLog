@@ -16,11 +16,14 @@ A Webapplication to log medication history of study participants.
   - [Option 2: Run from local build Container](#option-2-run-from-local-build-container)
   - [Option 3: Run from Local Source](#option-3-run-from-local-source)
 - [Development](#development)
-  - [1. Setup Server/Backend Dev Environment](#1-setup-serverbackend-dev-environment)
-  - [2. Setup Client/Frontend Environment](#2-setup-clientfrontend-environment)
-  - [3. Start the DZDMedlog backend server with a OIDC dummy server](#3-start-the-dzdmedlog-backend-server-with-a-oidc-dummy-server)
-    - [3b. Reset the backend](#3b-reset-the-backend)
-  - [4.](#4)
+  - [Branches](#branches)
+    - [Subbranches](#subbranches)
+  - [Start local developing](#start-local-developing)
+    - [1. Setup Server/Backend Dev Environment](#1-setup-serverbackend-dev-environment)
+    - [2. Setup Client/Frontend Environment](#2-setup-clientfrontend-environment)
+    - [3. Start the DZDMedlog backend server with a OIDC dummy server](#3-start-the-dzdmedlog-backend-server-with-a-oidc-dummy-server)
+      - [3b. Reset the backend](#3b-reset-the-backend)
+    - [4.](#4)
 - [Config](#config)
 
 # Run
@@ -35,7 +38,7 @@ Requirements:
 
 - docker
 
-Get or Update the container image
+Get or Update the container IMAGE
 
 `docker pull dzdde/dzdmedlog`
 
@@ -93,7 +96,35 @@ visit http://localhost:8888
 > [!IMPORTANT]  
 > We assume you develope under Linux. If you run a different OS you may need to adapt this instructions at some points.
 
-## 1. Setup Server/Backend Dev Environment
+## Branches
+
+We have to primary branches in this Repo
+
+[`dev`](https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/tree/dev) - This branch is always the most recent running version. On every commit there will be a new container image build automaticly. The container image will have with the tags `dev` and a version string (e.g. `0.11.1.dev2_g0e169a8e3.d20250916`)
+[`main`](https://github.com/DZD-eV-Diabetes-Research/DZDMedLog) - This is the "production grade" branch building the source of new [releases](https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/releases). When we are happy with the state of dev we merge `dev` into  `main` and create a new release.
+
+> [!NOTE]  
+> There maybe a third primarty test/staging branch at a later stage when DZDMedLog enters into maintenance phase.
+
+
+### Subbranches
+
+For active developlemt we use temporary subbranches. These are seperated into 4 sub pathes according to their nature:
+
+* `refactor/*` 
+* `feature/*` 
+* `fix/*` 
+* `experiment/*`
+
+The branch path name-part should begin with `issue-XX` acording to the issue it related to and short human readable identifier.
+
+e.g. `refactor/issue-41-new-auth-mech` or `fix/issue-129-fix-worker-crash`
+
+When a subbranch development is finished it get merged into dev to build a new container image for testing.
+
+## Start local developing
+
+### 1. Setup Server/Backend Dev Environment
 
 We need to ensure the right python version and all python modules we need are installed to run and work on the server.  
 The most convienient way to prepare the server environment is to use our script for that.  
@@ -107,7 +138,7 @@ build_server_dev_env.sh
 > This will install [`uv`](https://docs.astral.sh/uv/) on your system to manage python versions and the python virtual env.
 > If you dont want that have a look at the chapter [Run.Local Source](#local-source) on how to install the python modules yourself.
 
-## 2. Setup Client/Frontend Environment
+### 2. Setup Client/Frontend Environment
 
 We need to ensure the a usable Java-/TypeScript runtime, toolkit, package manager,... is available.
 If you are happy with bun you can just use our bash script to prepar the development environment for the client
@@ -121,7 +152,7 @@ build_client_dev_env.sh
 > This will install [`bun`](https://docs.astral.sh/uv/) on your system to manage Nuxt and other ts/js modules.
 > You also can choose another manager tool. You just need to run a `<youToolOfChoice> install` in `MedLog/frontend`
 
-## 3. Start the DZDMedlog backend server with a OIDC dummy server
+### 3. Start the DZDMedlog backend server with a OIDC dummy server
 
 To start the backend server with a OIDC Mockup server as authentication source use the bash script:
 
@@ -131,12 +162,12 @@ run_dev_backend_server_with_oidc.sh
 
 This way you can start developing without the need for any configuration
 
-### 3b. Reset the backend
+#### 3b. Reset the backend
 
 If you want to start with a fresh backend instance just stop the server, delete `local.sqlite` and run `run_dev_backend_server_with_oidc.sh` again.
 
 
-## 4. 
+### 4. 
 
 Now we can start the nuxt dev server
 
