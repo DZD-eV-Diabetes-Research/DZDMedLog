@@ -138,6 +138,14 @@ When a subbranch development is finished it get merged into dev to build a new c
 
 ## Start local developing
 
+Change into the `dev` branch 
+
+```bash
+git checkout dev
+```
+
+Create a new subbranch if you need to. see chapter [Development.Branches.Subbranches](#subbranches) for more info.
+
 ### 1. Setup Server/Backend Dev Environment
 
 We need to ensure the right python version and all python modules we need are installed to run and work on the server.  
