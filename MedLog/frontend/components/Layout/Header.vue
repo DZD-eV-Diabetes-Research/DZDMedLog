@@ -46,8 +46,9 @@
       <template #header>
         <div class="flex flex-row justify-around items-center">
           <h5 class="text-center text-2xl font-medium">How to use DZD-Medlog</h5>
-          <UButton @click="openSettingModal()" v-if="userStore.isAdmin"
-            class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300">
+          <UButton v-if="userStore.isAdmin"
+            class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
+            @click="openSettingModal()">
             <UIcon name="i-heroicons-cog-6-tooth" class="w-5 h-5" />
           </UButton>
         </div>

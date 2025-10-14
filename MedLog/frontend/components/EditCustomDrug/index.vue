@@ -1,10 +1,10 @@
 <template>
     <IntakeSearch color="yellow" edit="true" custom="true" :drug="drug" />
-    <div style="text-align: center" v-if="missingDrugError">
+    <div v-if="missingDrugError" style="text-align: center">
         <br />
         <p style="color: red">Es muss ein Medikament ausgewählt werden</p>
     </div>
-    <UForm @submit="saveIntake()" :state="state" :schema="schema" class="space-y-4">
+    <UForm :state="state" :schema="schema" class="space-y-4" @submit="saveIntake()">
         <div style="padding-top: 2.5%">
             <br />
             <UFormGroup label="Quelle der Arzneimittelangabe">
@@ -17,7 +17,7 @@
         <div class="flex flex-row space-x-4">
             <div class="flex-1">
                 <UFormGroup label="Dosis pro Einnahme" style="border-color: red" name="dose">
-                    <UInput type="number" v-model="state.dose" :disabled="selectedFrequency !== 'regelmäßig'"
+                    <UInput v-model="state.dose" type="number" :disabled="selectedFrequency !== 'regelmäßig'"
                         :color="selectedFrequency !== 'regelmäßig' ? 'gray' : 'yellow'" />
                 </UFormGroup>
             </div>
@@ -32,12 +32,12 @@
         <div class="flex flex-row space-x-4">
             <div class="flex-1">
                 <UFormGroup label="Einnahme Beginn (Datum)" name="startTime">
-                    <UInput type="date" v-model="state.startTime" color="yellow" />
+                    <UInput v-model="state.startTime" type="date" color="yellow" />
                 </UFormGroup>
             </div>
             <div class="flex-1">
                 <UFormGroup label="Einnahme Ende (Datum)" name="endTime">
-                    <UInput type="date" v-model="state.endTime" color="yellow" />
+                    <UInput v-model="state.endTime" type="date" color="yellow" />
                 </UFormGroup>
             </div>
         </div>

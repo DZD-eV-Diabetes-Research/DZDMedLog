@@ -3,9 +3,9 @@
 <template>
     <div class="flex flex-col justify-center items-center">
         <div class="flex flex-row justify-center">
-            <UButton @click="openCopyIntakeModal()" color="green" variant="soft" label="Medikationsübernahme"
-                style="margin-right: 10px"
-                class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+            <UButton color="green" variant="soft" label="Medikationsübernahme" style="margin-right: 10px"
+                class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+                @click="openCopyIntakeModal()" />
         </div>
         <UModal v-model="openCopyPreviousIntakesModal" :ui="{ width: 'lg:max-w-6xl' }">
             <div class="p-10 text-center">
@@ -19,9 +19,9 @@
                     </div>
                     <UTable v-model="selectedIntakes" :columns="columns" :rows="previousIntakes"
                         class="border border-slate-400 rounded-md" />
-                    <UButton @click="saveIntakes()" label="Medikation Übernehmen" color="green" variant="soft"
-                        style="margin-right: 10px"
-                        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white  mt-8" />
+                    <UButton label="Medikation Übernehmen" color="green" variant="soft" style="margin-right: 10px"
+                        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white  mt-8"
+                        @click="saveIntakes()" />
                 </div>
                 <div v-if="previousIntakes.length === 0">
                     <h3>Es gibt keine Einträge im letzten Event</h3>

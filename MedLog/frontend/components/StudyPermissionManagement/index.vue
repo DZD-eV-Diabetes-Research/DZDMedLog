@@ -32,16 +32,16 @@
                                 :label="permission" />
                         </div>
                         <div class="mt-4">
-                            <UButton @click="patchUser(row.id)"
-                                class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white">
+                            <UButton class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white"
+                                @click="patchUser(row.id)">
                                 Speichern</UButton>
                         </div>
                     </div>
                 </template>
 
                 <template #expand-action="{ row }">
-                    <UButton v-if="row.hasExpand" @click="handleToggle(row)"
-                        class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white">
+                    <UButton v-if="row.hasExpand" class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white"
+                        @click="handleToggle(row)">
                         {{ isExpanded ? 'Zuklappen' : 'Bearbeiten' }}
                     </UButton>
                 </template>
@@ -75,9 +75,9 @@
                                 v-model="new_user_permissions" :value="permission" :name="permission"
                                 :label="permission" />
                         </div>
-                        <UButton type="submit" @click="patchUser(no_permission_user_id, new_user_permissions)"
-                            label="Zugriffsrechte hinzufügen" color="violet" variant="soft"
-                            class="border border-violet-500 hover:bg-violet-300 hover:border-white hover:text-white px-4 mx-auto" />
+                        <UButton type="submit" label="Zugriffsrechte hinzufügen" color="violet" variant="soft"
+                            class="border border-violet-500 hover:bg-violet-300 hover:border-white hover:text-white px-4 mx-auto"
+                            @click="patchUser(no_permission_user_id, new_user_permissions)" />
                     </div>
                     <div v-else>
                         <h3 class="text-center text-lg">Es gibt aktuell keine Nutzer ohne Zugriffsrechte</h3>
@@ -91,7 +91,7 @@
         <div class="text-center">
             <hr class="my-8 border-2">
             <h2 class="text-3xl font-semibold mb-4">Aktuelle Zugriffsrechte</h2>
-            <div class="flex flex-row justify-center mb-4" v-for="permission in permissions">
+            <div v-for="permission in permissions" class="flex flex-row justify-center mb-4">
                 <p><span class="font-bold">{{ permission.study_permission_name }}</span>: {{ permission.description }}
                 </p>
             </div>

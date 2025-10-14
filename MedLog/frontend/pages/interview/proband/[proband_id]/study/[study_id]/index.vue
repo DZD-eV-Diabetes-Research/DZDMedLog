@@ -7,12 +7,12 @@
           <UInputMenu v-model="selectedIncompleteEvent" :options="incompletedItems" />
           <br>
           <div class="flex justify-evenly">
-            <UButton @click="createInterview()" color="green" variant="soft"
-              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
+            <UButton color="green" variant="soft" class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+              @click="createInterview()">
               Interview Durchführen
             </UButton>
-            <UButton v-if="userStore.isAdmin" @click="openEventModal()" color="green" variant="soft"
-              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
+            <UButton v-if="userStore.isAdmin" color="green" variant="soft" class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+              @click="openEventModal()">
               Neues Event anlegen
             </UButton>
           </div>
@@ -23,8 +23,8 @@
           <h5>Bearbeitete Events</h5>
           <UInputMenu v-model="selectedCompleteEvent" :options="completedItems" />
           <br>
-          <UButton @click="editEvent(selectedCompleteEvent.id)" color="blue" variant="soft"
-            class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white">
+          <UButton color="blue" variant="soft" class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"
+            @click="editEvent(selectedCompleteEvent.id)">
             Interview Bearbeiten
           </UButton>
         </UIBaseCard>

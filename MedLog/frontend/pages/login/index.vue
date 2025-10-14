@@ -2,7 +2,7 @@
   <Layout>
     <UIBaseCard>
       <div v-if="healthStatus?.healthy" class="flex flex-col justify-center">
-        <div class="flex flex-col space-y-2" v-if="loginMethods">
+        <div v-if="loginMethods" class="flex flex-col space-y-2">
           <div v-for="loginMethod in loginMethods">
             <div v-if="loginMethod.auth_type === 'basic'">
               <UForm :schema="schema" :state="state" class="space-y-4" @submit="login()">

@@ -13,10 +13,10 @@
     <div>
       <div v-if="drugList.items.length > 0">
         <ul>
-          <li @click="printMedication(item)"
+          <li v-for="item in paginatedItems" :key="item.drug.id"
             class="relative border border-[#ededed] my-1 py-2 rounded-md hover:bg-[#ededed] hover:cursor-pointer"
-            v-for="item in paginatedItems" :key="item.drug.id" @mouseover="hoveredItem = item"
-            @mouseleave="hoveredItem = null" style="position: relative">
+            style="position: relative"
+            @click="printMedication(item)" @mouseover="hoveredItem = item" @mouseleave="hoveredItem = null">
             <div>
               <strong>Name: {{ item.drug.trade_name }} </strong><br />
               <div v-for="system in drugCodeSystems">
@@ -39,8 +39,8 @@
               </div>
             </div>
             <div
-              class="absolute top-1/2 -translate-y-1/2 right-full w-1/2 mx-10 bg-[#f9f9f9] border border-[#ededed] rounded-md py-2 px-4"
-              v-if="hoveredItem === item">
+              v-if="hoveredItem === item"
+              class="absolute top-1/2 -translate-y-1/2 right-full w-1/2 mx-10 bg-[#f9f9f9] border border-[#ededed] rounded-md py-2 px-4">
               <div v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref" :key="attr_multi_ref[1]">
                 <span class="text-sm font-bold">{{ attr_multi_ref[0] }}:</span> <span class="text-sm">{{
                   item.drug?.attrs_multi_ref?.[attr_multi_ref[1]][0]?.display }}</span>
@@ -48,13 +48,13 @@
             </div>
           </li>
         </ul>
-        <div class="pagination" v-if="drugList.count >= 6">
+        <div v-if="drugList.count >= 6" class="pagination">
           <div class="flex flex-row justify-center space-x-2">
-            <button @click="state.currentPage > 1 ? state.currentPage-- : 0"
-              class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100">
+            <button class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100"
+              @click="state.currentPage > 1 ? state.currentPage-- : 0">
               < </button>
-                <button @click="state.currentPage < totalPages ? state.currentPage++ : 0"
-                  class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100 mx-10">
+                <button class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100 mx-10"
+                  @click="state.currentPage < totalPages ? state.currentPage++ : 0">
                   >
                 </button>
           </div>

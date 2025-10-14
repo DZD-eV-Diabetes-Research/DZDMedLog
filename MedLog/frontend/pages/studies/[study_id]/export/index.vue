@@ -4,8 +4,9 @@
       <h2 class="text-4xl font-normal mb-4">Datenexport</h2>
     </div>
     <div style="text-align: center">
-      <UButton type="button" label="Download anfragen" color="blue" variant="soft" @click="requestDownload()"
-        class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" />
+      <UButton type="button" label="Download anfragen" color="blue" variant="soft"
+        class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"
+        @click="requestDownload()" />
     </div>
     <div class="my-card">
       <UTable :rows="downloads" :columns="columns">

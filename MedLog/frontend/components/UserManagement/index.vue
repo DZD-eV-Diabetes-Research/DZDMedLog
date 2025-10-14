@@ -14,7 +14,7 @@ top right corner and then the cogwheel.  -->
 
                 <template #roles-data="{ row }">
                     <div v-if="row.roles.length > 0" class="space-x-2" >
-                        <UBadge class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg" v-for="role in row.roles">{{ role }}</UBadge>
+                        <UBadge v-for="role in row.roles" class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg">{{ role }}</UBadge>
                     </div>
                     <div v-else>
 
@@ -31,16 +31,17 @@ top right corner and then the cogwheel.  -->
                                 :label="role.role_name" />
                         </div>
                         <div class="mt-4">
-                            <UButton @click="patchUser(row.id)"
-                                class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white">
+                            <UButton class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white"
+                                @click="patchUser(row.id)">
                                 Speichern</UButton>
                         </div>
                     </div>
                 </template>
 
                 <template #expand-action="{ row }">
-                    <UButton v-if="row.hasExpand" @click="handleToggle(row)"
-                        class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white">
+                    <UButton v-if="row.hasExpand"
+                        class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white"
+                        @click="handleToggle(row)">
                         {{ isExpanded ? 'Zuklappen' : 'Bearbeiten' }}
                     </UButton>
                 </template>
@@ -52,7 +53,7 @@ top right corner and then the cogwheel.  -->
         <div class="text-center">
             <hr class="my-8 border-2">
             <h2 class="text-3xl font-semibold mb-4">Aktuelle Rollen</h2>
-            <div class="flex flex-row justify-center mb-4" v-for="role in roles">
+            <div v-for="role in roles" class="flex flex-row justify-center mb-4">
                 <p><span class="font-bold">{{ role.role_name }}</span>: {{ role.description }}</p>
             </div>
         </div>

@@ -1,16 +1,16 @@
 <!-- This is the main drugform component that deals with the creation of intakes, both regular and custom as well as the editing -->
 <template>
-  <div style="text-align: center" v-if="missingDrugError">
+  <div v-if="missingDrugError" style="text-align: center">
     <br />
     <p style="color: red">Es muss ein Medikament ausgewählt werden</p>
   </div>
 
   <!-- Main Form -->
 
-  <UForm @submit="saveIntake()" :state="state" :schema="schema" class="space-y-4">
+  <UForm :state="state" :schema="schema" class="space-y-4" @submit="saveIntake()">
     <div style="padding-top: 2.5%">
       <div v-if="props.custom">
-        <div class="text-center pt-4 pb-8" v-if="!props.edit">
+        <div v-if="!props.edit" class="text-center pt-4 pb-8">
           <h4 class="text-xl font-light">
             Hiermit wird einmalig ein Medikament angelegt, das in der
             Medikamentensuche nicht gefunden wurde.
@@ -75,8 +75,8 @@
                 </UFormGroup>
 
 
-                <UFormGroup v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :name="attr_ref[1]"
-                  :key="attr_ref[1]">
+                <UFormGroup v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :key="attr_ref[1]"
+                  :name="attr_ref[1]">
                   <template #label>
                     <span class="inline-flex items-center gap-1">
                       {{ attr_ref[0] }}
@@ -86,12 +86,14 @@
                     </span>
                   </template>
                   <USelectMenu v-model="attr_refState[attr_ref[1]]"
+                    v-model:query="queries[attr_ref[1]]"
                     :options="refSelectMenus.find(item => item.field_name === attr_ref[1])?.options"
-                    value-attribute="value" option-attribute="display" color="yellow" placeholder="Option auswählen"
-                    :searchable="!!attr_ref[4]" v-model:query="queries[attr_ref[1]]" />
+                    value-attribute="value" option-attribute="display" color="yellow"
+                    placeholder="Option auswählen" :searchable="!!attr_ref[4]" />
                 </UFormGroup>
-                <UFormGroup v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi" :name="attr_multi[1]"
-                  :key="attr_multi[1]">
+                <UFormGroup
+                  v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi" :key="attr_multi[1]"
+                  :name="attr_multi[1]">
                   <template #label>
                     <span class="inline-flex items-center gap-1">
                       {{ attr_multi[0] }}
@@ -100,16 +102,16 @@
                       </UTooltip>
                     </span>
                   </template>
-                  <UInput placeholder="Option auswählen und Enter drücken" v-model="inputValues[attr_multi[1]]"
-                    @keydown.enter.prevent="updateMultiState(attr_multi[1])" @blur="updateMultiState(attr_multi[1])"
-                    color="yellow" />
+                  <UInput v-model="inputValues[attr_multi[1]]" placeholder="Option auswählen und Enter drücken"
+                    color="yellow" @keydown.enter.prevent="updateMultiState(attr_multi[1])"
+                    @blur="updateMultiState(attr_multi[1])" />
                   <UBadge v-for="(word, index) in attr_multiState[attr_multi[1]]" :key="index"
-                    class="mr-2 cursor-pointer" @click="removeItem(attr_multi[1], index)" color="yellow">
+                    class="mr-2 cursor-pointer" color="yellow" @click="removeItem(attr_multi[1], index)">
                     {{ word }}
                   </UBadge>
                 </UFormGroup>
                 <UFormGroup v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref"
-                  :name="attr_multi_ref[1]" :key="attr_multi_ref[1]">
+                  :key="attr_multi_ref[1]" :name="attr_multi_ref[1]">
                   <template #label>
                     <span class="inline-flex items-center gap-1">
                       {{ attr_multi_ref[0] }}
@@ -118,7 +120,8 @@
                       </UTooltip>
                     </span>
                   </template>
-                  <USelectMenu v-model="attr_multi_refState[attr_multi_ref[1]]"
+                  <USelectMenu
+                    v-model="attr_multi_refState[attr_multi_ref[1]]"
                     :options="multiRefSelectMenus.find(item => item.field_name === attr_multi_ref[1])?.options"
                     value-attribute="value" option-attribute="display" multiple searchable color="yellow"
                     placeholder="Option auswählen">
@@ -156,7 +159,7 @@
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
         <UFormGroup label="Dosis pro Einnahme" style="border-color: red" name="dose">
-          <UInput type="number" v-model="state.dose" :disabled="selectedFrequency !== 'regelmäßig'"
+          <UInput v-model="state.dose" type="number" :disabled="selectedFrequency !== 'regelmäßig'"
             :color="selectedFrequency !== 'regelmäßig' ? 'gray' : props.color" />
         </UFormGroup>
       </div>
@@ -170,12 +173,12 @@
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
         <UFormGroup label="Einnahme Beginn (Datum)" name="startTime">
-          <UInput type="date" v-model="state.startTime" :color="props.color" />
+          <UInput v-model="state.startTime" type="date" :color="props.color" />
         </UFormGroup>
       </div>
       <div class="flex-1">
         <UFormGroup label="Einnahme Ende (Datum)" name="endTime">
-          <UInput type="date" v-model="state.endTime" :color="props.color" />
+          <UInput v-model="state.endTime" type="date" :color="props.color" />
         </UFormGroup>
       </div>
     </div>

@@ -13,8 +13,9 @@
       </h2>
     </UIBaseCard>
     <UIBaseCard :naked="true">
-      <UButton v-if="userStore.isAdmin" @click="openStudyModal()" label="Studie anlegen" color="green" variant="soft"
-        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+      <UButton v-if="userStore.isAdmin" label="Studie anlegen" color="green" variant="soft"
+        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+        @click="openStudyModal()" />
       <UTooltip v-if="!userStore.isAdmin" text="Sie haben keine Adminrechte">
         <UButton v-if="!userStore.isAdmin" label="Studie anlegen" color="green" variant="soft"
           class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" :disabled="true" />
@@ -37,13 +38,15 @@
       <h3 class="text-2xl font-medium my-4">Studie: {{ study.display_name }}</h3>
 
       <div class="flex flex-row justify-center space-x-4">
-        <UButton type="button" @click="selectStudy(study)" label="Eventverwaltung" color="green" variant="soft"
-          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
-        <UButton type="submit" @click="gotoExport(study.id)" label="Datenexport" color="blue" variant="soft"
-          class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white px-4" />
-        <UButton type="submit" @click="openStudyPermissionModal(study.id)" label="Studien-Zugriffsrechte" color="violet"
-          variant="soft"
-          class="border border-violet-500 hover:bg-violet-300 hover:border-white hover:text-white px-4" />
+        <UButton type="button" label="Eventverwaltung" color="green" variant="soft"
+          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+          @click="selectStudy(study)" />
+        <UButton type="submit" label="Datenexport" color="blue" variant="soft"
+          class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white px-4"
+          @click="gotoExport(study.id)" />
+        <UButton type="submit" label="Studien-Zugriffsrechte" color="violet" variant="soft"
+          class="border border-violet-500 hover:bg-violet-300 hover:border-white hover:text-white px-4"
+          @click="openStudyPermissionModal(study.id)" />
       </div>
 
     </UIBaseCard>

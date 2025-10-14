@@ -2,8 +2,8 @@
   <Layout>
     <UIBaseCard :naked="true">
       <div class="flex flex-row justify-center items-center space-x-4">
-        <UButton ref="topButton" @click="saveInterview()" label="Interview Beenden" color="green" variant="soft"
-          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
+        <UButton ref="topButton" label="Interview Beenden" color="green" variant="soft"
+          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" @click="saveInterview()" />
         <CopyPreviousDrugs v-if="!pending && latestItems && route.params.interview_id !== latestItems[0]?.interview_id"
           :onUpdate="createIntakeList" />
       </div>
@@ -12,8 +12,9 @@
       <UIBaseCard>
         <IntakeSearch color="primary" />
         <IntakeForm color="primary" :edit="false" :custom="false" label="Medikament Speichern" />
-        <UButton @click="openCustomModal()" label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
-          class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white" />
+        <UButton label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
+          class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white"
+          @click="openCustomModal()" />
         <UModal v-model="drugStore.customVisibility">
           <div class="p-4">
             <IntakeForm v-if="drugStore.customVisibility" color="yellow" label="Ungelistetes Medikament Speichern" :custom=true :edit=false />
@@ -51,9 +52,9 @@
           </div>
         </div>
         <div style="text-align: center">
-          <UButton v-if="!showScrollButton" @click="saveInterview()" label="Interview Beenden" color="green"
-            variant="soft" class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-            style="margin: 25px" />
+          <UButton v-if="!showScrollButton" label="Interview Beenden" color="green" variant="soft"
+            class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" style="margin: 25px"
+            @click="saveInterview()" />
         </div>
       </div>
     </div>

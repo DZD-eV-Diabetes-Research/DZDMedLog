@@ -18,10 +18,10 @@
     </UIBaseCard>
     <UIBaseCard v-if="userStore.isAdmin" class="noHover" :naked="true">
       <div class="flex justify-center space-x-5 mx-auto">
-        <UButton @click="openEventModal()" label="Event anlegen" color="green" variant="soft"
-          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
-        <UButton @click="toggleSort()" :label="sortButton" color="blue" variant="soft"
-          class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white" />
+        <UButton label="Event anlegen" color="green" variant="soft" class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+          @click="openEventModal()" />
+        <UButton :label="sortButton" color="blue" variant="soft" class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"
+          @click="toggleSort()" />
       </div>
       <UModal v-model="showEventModal">
         <div class="p-4" style="text-align: center">
