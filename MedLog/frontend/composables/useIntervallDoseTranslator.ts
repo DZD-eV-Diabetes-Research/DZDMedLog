@@ -2,7 +2,7 @@
 
 export default function (eng:string|null = null, de:string|null = null) {
     
-    let english = [
+    const english = [
       "Unknown",
       "Daily",
       "every 2. day",
@@ -11,7 +11,7 @@ export default function (eng:string|null = null, de:string|null = null) {
       "intervals of one week or more"
     ];
   
-    let deutsch = [
+    const deutsch = [
       "unbekannt",
       "täglich",
       "jeden 2. Tag",

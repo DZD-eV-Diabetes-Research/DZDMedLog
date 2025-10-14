@@ -402,7 +402,7 @@ async function saveIntake() {
     
     try {
       if (!customNameError.value) {
-        let customDrugBody: DrugBody = {
+        const customDrugBody: DrugBody = {
           trade_name: state.customName,
           market_access_date: null,
           market_exit_date: null,
@@ -534,7 +534,7 @@ async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, m
   try {
     for (const ref of refs) {
 
-      let item = { field_name: ref[1], options: [] };
+      const item = { field_name: ref[1], options: [] };
       let response = null
 
       // this leads back to the /api/drug.ts file the ref[4] is the boolean if the field_def is: 'is_large_reference_list' 

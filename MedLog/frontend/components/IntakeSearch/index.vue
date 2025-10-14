@@ -100,7 +100,7 @@ import { useMedlogapi } from '#imports';
 const { data: codeSystems } = await useMedlogapi("/api/drug/code_def")
 const drugCodeSystems = codeSystems.value.filter((item) => item.client_visible === true)
 
-let drugFieldDefinitionsObject = await apiGetFieldDefinitions("search_result")
+const drugFieldDefinitionsObject = await apiGetFieldDefinitions("search_result")
 
 const hoveredItem = ref(null);
 const drugStore = useDrugStore();

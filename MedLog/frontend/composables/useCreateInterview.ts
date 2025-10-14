@@ -6,7 +6,7 @@ export async function useCreateInterview(study_id:string, event_id:string, proba
 
     tokenStore.error = ""
     
-    let body = {"proband_external_id": proband_external_id,
+    const body = {"proband_external_id": proband_external_id,
                 "proband_has_taken_meds": proband_has_taken_meds,
                 "interview_number": interview_number
     }    
