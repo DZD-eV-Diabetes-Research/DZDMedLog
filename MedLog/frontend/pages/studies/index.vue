@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { object, string, type InferType } from "yup";
+import { object, string } from "yup";
 
 const userStore = useUserStore();
 const studyStore = useStudyStore();

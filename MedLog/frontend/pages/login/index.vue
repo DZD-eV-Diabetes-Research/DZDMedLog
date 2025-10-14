@@ -63,11 +63,10 @@
 <script setup lang="ts">
 
 import { object, string } from "yup";
+import { useMedlogapi } from '#imports';
 
 const tokenStore = useTokenStore();
 const route = useRoute()
-
-import { useMedlogapi } from '#imports';
 
 const { data: healthStatus, error: healthError } = await useMedlogapi("/api/health")
 

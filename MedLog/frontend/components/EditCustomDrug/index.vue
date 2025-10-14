@@ -58,7 +58,7 @@
 <script setup lang="ts">
 
 import dayjs from "dayjs";
-import { object, number, date, string, type InferType, boolean } from "yup";
+import { object, number, date, string, type InferType } from "yup";
 const { $medlogapi } = useNuxtApp();
 
 

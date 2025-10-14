@@ -74,7 +74,8 @@
 
 <script setup lang="ts">
 
-import { object, number, date, string, type InferType } from "yup";
+import { object, string } from "yup";
+import { useMedlogapi } from '#imports';
 
 // general constants
 const route = useRoute()
@@ -82,7 +83,6 @@ const router = useRouter()
 const userStore = useUserStore()
 const studyStore = useStudyStore()
 const { $medlogapi } = useNuxtApp();
-import { useMedlogapi } from '#imports';
 
 
 // table

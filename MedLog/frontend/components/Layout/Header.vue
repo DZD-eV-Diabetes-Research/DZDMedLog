@@ -110,6 +110,7 @@
 
 <script setup>
 import { ref, computed, watchEffect } from 'vue';
+import { useMedlogapi } from '#imports';
 
 const tokenStore = useTokenStore();
 const userStore = useUserStore();
@@ -150,7 +151,7 @@ function logout() {
   const {$medlogapi} = useNuxtApp();
   $medlogapi("/api/auth/logout", {
     method: 'POST'
-  }) 
+  })
   const router = useRouter()
   router.push({ path: '/login' });
 }
@@ -211,8 +212,6 @@ const openSettingModal = function () {
 }
 
 // Version & Branch
-
-import { useMedlogapi } from '#imports';
 
 const { data: config, error: configError, status: configStatus } = await useMedlogapi("/api/config/version")
 

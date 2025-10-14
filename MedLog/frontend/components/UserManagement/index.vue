@@ -60,8 +60,8 @@ top right corner and then the cogwheel.  -->
 </template>
 
 <script setup lang="ts">
-const { $medlogapi } = useNuxtApp();
 import { useMedlogapi } from '#imports';
+const { $medlogapi } = useNuxtApp();
 
 // Api calls
 

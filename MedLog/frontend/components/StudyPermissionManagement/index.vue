@@ -100,8 +100,8 @@
 </template>
 
 <script setup lang="ts">
-const { $medlogapi } = useNuxtApp();
 import { useMedlogapi } from '#imports';
+const { $medlogapi } = useNuxtApp();
 
 //props
 
