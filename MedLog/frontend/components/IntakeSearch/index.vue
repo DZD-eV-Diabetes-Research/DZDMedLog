@@ -19,7 +19,7 @@
             @click="printMedication(item)" @mouseover="hoveredItem = item" @mouseleave="hoveredItem = null">
             <div>
               <strong>Name: {{ item.drug.trade_name }} </strong><br />
-              <div v-for="system in drugCodeSystems">
+              <div v-for="system in drugCodeSystems" :key="system.id">
                 {{ system.id }}: {{ item.drug.codes?.[system.id] }}
                 <UTooltip v-if="system.desc" :text="system.desc" :popper="{ placement: 'right' }">
                   <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-black cursor-pointer" />

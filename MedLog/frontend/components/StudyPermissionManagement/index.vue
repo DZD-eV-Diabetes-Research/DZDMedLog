@@ -91,7 +91,7 @@
         <div class="text-center">
             <hr class="my-8 border-2">
             <h2 class="text-3xl font-semibold mb-4">Aktuelle Zugriffsrechte</h2>
-            <div v-for="permission in permissions" class="flex flex-row justify-center mb-4">
+            <div v-for="permission in permissions" :key="permission.study_permission_name" class="flex flex-row justify-center mb-4">
                 <p><span class="font-bold">{{ permission.study_permission_name }}</span>: {{ permission.description }}
                 </p>
             </div>
