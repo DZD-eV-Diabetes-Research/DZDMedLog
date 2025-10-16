@@ -2,17 +2,20 @@
   <Layout>
     <UIBaseCard :naked="true">
       <div class="flex flex-row justify-center items-center space-x-4">
-        <UButton ref="topButton" label="Interview Beenden" color="green" variant="soft"
+        <UButton
+          ref="topButton" label="Interview Beenden" color="green" variant="soft"
           class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" @click="saveInterview()" />
-        <CopyPreviousDrugs v-if="!pending && latestItems && route.params.interview_id !== latestItems[0]?.interview_id"
-          :onUpdate="createIntakeList" />
+        <CopyPreviousDrugs
+          v-if="!pending && latestItems && route.params.interview_id !== latestItems[0]?.interview_id"
+          :on-update="createIntakeList" />
       </div>
     </UIBaseCard>
     <div v-if="drugStore.intakeVisibility">
       <UIBaseCard>
         <IntakeSearch color="primary" />
         <IntakeForm color="primary" :edit="false" :custom="false" label="Medikament Speichern" />
-        <UButton label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
+        <UButton
+          label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
           class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white"
           @click="openCustomModal()" />
         <UModal v-model="drugStore.customVisibility">
@@ -37,22 +40,25 @@
               </UDropdown>
             </template>
           </UTable>
-          <div v-if="
-            tableContent.length >= pageCount || filteredRows.length >= pageCount
-          " class="flex justify-center px-3 py-3.5 border-t dark:border-red-500">
-            <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
-              wrapper: 'flex items-center gap-1',
-              rounded: 'rounded-sm',
-              default: {
-                activeButton: {
-                  variant: 'outline',
+          <div
+            v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount"
+            class="flex justify-center px-3 py-3.5 border-t dark:border-red-500"
+          >
+            <UPagination
+              v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
+                wrapper: 'flex items-center gap-1',
+                rounded: 'rounded-sm',
+                default: {
+                  activeButton: {
+                    variant: 'outline',
+                  },
                 },
-              },
-            }" />
+              }" />
           </div>
         </div>
         <div style="text-align: center">
-          <UButton v-if="!showScrollButton" label="Interview Beenden" color="green" variant="soft"
+          <UButton
+            v-if="!showScrollButton" label="Interview Beenden" color="green" variant="soft"
             class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" style="margin: 25px"
             @click="saveInterview()" />
         </div>
@@ -65,12 +71,14 @@
       <div class="p-4">
         <div style="text-align: center">
           <h4 style="color: red">Sie löschen folgenden Eintrag:</h4>
-          <br />
+          <br>
           <h4>{{ drugToDelete.drug }}</h4>
-          <br />
+          <br>
           <UForm :state="deleteState" class="space-y-4" @submit="deleteIntake">
-            <UButton type="submit" color="red" variant="soft"
-              class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white">
+            <UButton
+              type="submit" color="red" variant="soft"
+              class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white"
+            >
               Eintrag löschen
             </UButton>
           </UForm>
@@ -81,9 +89,11 @@
       <div class="p-4">
         <div style="text-align: center">
           <div v-if="customDrug === 'Nein'">
-            <IntakeSearch :drug="toEditDrug" :edit="true" :custom="customDrug === 'Nein' ? false : true"
-            :color="customDrug === 'Nein' ? 'blue' : 'yellow'" />
-          <IntakeForm :color="customDrug === 'Nein' ? 'blue' : 'yellow'" :edit="true"
+            <IntakeSearch
+              :drug="toEditDrug" :edit="true" :custom="customDrug === 'Nein' ? false : true"
+              :color="customDrug === 'Nein' ? 'blue' : 'yellow'" />
+          <IntakeForm
+            :color="customDrug === 'Nein' ? 'blue' : 'yellow'" :edit="true"
             :custom="customDrug === 'Nein' ? false : true" label="Bearbeiten" />
           </div>
           <div v-else>

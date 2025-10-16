@@ -1,7 +1,7 @@
 <!-- This is the main drugform component that deals with the creation of intakes, both regular and custom as well as the editing -->
 <template>
   <div v-if="missingDrugError" style="text-align: center">
-    <br />
+    <br>
     <p style="color: red">Es muss ein Medikament ausgewählt werden</p>
   </div>
 
@@ -43,8 +43,11 @@
                   <template #label>
                     <span class="inline-flex items-center gap-1">
                       {{ code.name }}
-                      <UTooltip :text="code.desc || 'Keine Beschreibung'" :popper="{ placement: 'right' }"
-                        :ui="{ width: 'max-w-4xl' }">
+                      <UTooltip
+                        :text="code.desc || 'Keine Beschreibung'"
+                        :popper="{ placement: 'right' }"
+                        :ui="{ width: 'max-w-4xl' }"
+                      >
                         <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
                       </UTooltip>
                     </span>
@@ -144,7 +147,7 @@
             </div>
           </template>
         </UAccordion>
-        <br />
+        <br>
       </div>
 
       <!-- From this point on this is the part that is visibile to all drugforms -->
@@ -187,8 +190,7 @@
     <div style="text-align: center">
       <div v-if="props.edit" class="flex flex-row justify-center space-x-6">
         <UButton type="submit" label="Speichern" :color="props.color" variant="soft" :class="buttonClass" />
-        <UButton label="Abbrechen" :color="props.color" variant="soft" :class="buttonClass" @click="closeEditModal()">
-        </UButton>
+        <UButton label="Abbrechen" :color="props.color" variant="soft" :class="buttonClass" @click="closeEditModal()" />
       </div>
       <div v-else>
         <UButton type="submit" :label="props.label" :color="props.color"

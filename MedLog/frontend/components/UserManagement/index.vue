@@ -18,9 +18,7 @@ top right corner and then the cogwheel.  -->
                           {{ role }}
                         </UBadge>
                     </div>
-                    <div v-else>
-
-                    </div>
+                    <div v-else />
                 </template>
 
                 <template #expand="{ row }">

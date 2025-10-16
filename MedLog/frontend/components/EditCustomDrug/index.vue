@@ -1,12 +1,12 @@
 <template>
     <IntakeSearch color="yellow" edit="true" custom="true" :drug="drug" />
     <div v-if="missingDrugError" style="text-align: center">
-        <br />
+        <br>
         <p style="color: red">Es muss ein Medikament ausgewählt werden</p>
     </div>
     <UForm :state="state" :schema="schema" class="space-y-4" @submit="saveIntake()">
         <div style="padding-top: 2.5%">
-            <br />
+            <br>
             <UFormGroup label="Quelle der Arzneimittelangabe">
                 <USelect v-model="selectedSourceItem" :options="sourceItems" color="yellow" />
             </UFormGroup>
@@ -46,8 +46,7 @@
         <div style="text-align: center">
             <div class="flex flex-row justify-center space-x-6">
                 <UButton type="submit" label="Speichern" color="yellow" variant="soft" :class="buttonClass" />
-                <UButton label="Abbrechen" color="yellow" variant="soft" :class="buttonClass" @click="closeEditModal()">
-                </UButton>
+                <UButton label="Abbrechen" color="yellow" variant="soft" :class="buttonClass" @click="closeEditModal()" />
             </div>
         </div>
     </UForm>
@@ -156,7 +155,7 @@ async function saveIntake() {
     }
 
     drugStore.dose = state.dose;
-    tempDose.value = drugStore.dose; props
+    tempDose.value = drugStore.dose;
     drugStore.intervall = useIntervallDoseTranslator(null, state.intervall);
     tempIntervall.value = state.intervall;
     drugStore.option = state.selected;

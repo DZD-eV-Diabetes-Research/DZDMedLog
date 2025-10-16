@@ -17,9 +17,7 @@
                             {{ permission }}
                         </UBadge>
                     </div>
-                    <div v-else>
-
-                    </div>
+                    <div v-else />
                 </template>
 
                 <template #expand="{ row }">

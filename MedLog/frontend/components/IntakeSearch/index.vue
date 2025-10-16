@@ -18,7 +18,7 @@
             style="position: relative"
             @click="printMedication(item)" @mouseover="hoveredItem = item" @mouseleave="hoveredItem = null">
             <div>
-              <strong>Name: {{ item.drug.trade_name }} </strong><br />
+              <strong>Name: {{ item.drug.trade_name }} </strong><br>
               <div v-for="system in drugCodeSystems" :key="system.id">
                 {{ system.id }}: {{ item.drug.codes?.[system.id] }}
                 <UTooltip v-if="system.desc" :text="system.desc" :popper="{ placement: 'right' }">
@@ -50,13 +50,18 @@
         </ul>
         <div v-if="drugList.count >= 6" class="pagination">
           <div class="flex flex-row justify-center space-x-2">
-            <button class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100"
-              @click="state.currentPage > 1 ? state.currentPage-- : 0">
-              < </button>
-                <button class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100 mx-10"
-                  @click="state.currentPage < totalPages ? state.currentPage++ : 0">
-                  >
-                </button>
+            <button
+              class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100"
+              @click="state.currentPage > 1 ? state.currentPage-- : 0"
+            >
+              &lt;
+            </button>
+            <button
+              class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100 mx-10"
+              @click="state.currentPage < totalPages ? state.currentPage++ : 0"
+            >
+              &gt;
+            </button>
           </div>
           <p class="text-lg mt-2">Page {{ state.currentPage }} of {{ totalPages }}</p>
         </div>

@@ -4,7 +4,8 @@
       <h2 class="text-4xl font-normal mb-4">Datenexport</h2>
     </div>
     <div style="text-align: center">
-      <UButton type="button" label="Download anfragen" color="blue" variant="soft"
+      <UButton
+        type="button" label="Download anfragen" color="blue" variant="soft"
         class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"
         @click="requestDownload()" />
     </div>
@@ -13,29 +14,33 @@
         <template #status-data="{ row }">
           <div v-if="row.status === 'success'">
             <UTooltip text="Export erfolgreich" :popper="{ arrow: true }">
-            <UButton icon="i-heroicons-check" size="2xs" color="primary" variant="solid"
+            <UButton
+              icon="i-heroicons-check" size="2xs" color="primary" variant="solid"
               :ui="{ rounded: 'rounded-full' }" class="no-hover" square />
             </UTooltip>
           </div>
 
           <div v-else-if="row.status === 'failed'">
             <UTooltip text="Export fehlgeschlagen" :popper="{ arrow: true }">
-              <UButton icon="i-heroicons-x-mark" size="2xs" color="red" variant="solid"
+              <UButton
+                icon="i-heroicons-x-mark" size="2xs" color="red" variant="solid"
                 :ui="{ rounded: 'rounded-full' }" class="no-hover" square />
             </UTooltip>
           </div>
 
           <div v-else>
             <UTooltip text="Export läuft" :popper="{ arrow: true }">
-              <UButton icon="i-heroicons-arrow-path" size="2xs" color="blue" variant="outline"
-              :ui="{ rounded: 'rounded-full' }" :class="{ rotating: row.status === 'queued' }" class="no-hover"
-              square />
+              <UButton
+                icon="i-heroicons-arrow-path" size="2xs" color="blue" variant="outline"
+                :ui="{ rounded: 'rounded-full' }" :class="{ rotating: row.status === 'queued' }" class="no-hover"
+                square />
             </UTooltip>
 
           </div>
         </template>
         <template #actions-data="{ row }">
-          <UButton v-if="row.status === 'success'" color="gray" variant="ghost" icon="i-heroicons-arrow-down-tray"
+          <UButton
+            v-if="row.status === 'success'" color="gray" variant="ghost" icon="i-heroicons-arrow-down-tray"
             @click="downloadFile(row)" />
         </template>
       </UTable>
@@ -45,7 +50,7 @@
 
 <script setup lang="ts">
 const route = useRoute();
-const runtimeConfig = useRuntimeConfig();
+const _runtimeConfig = useRuntimeConfig();
 const studyStore = useStudyStore();
 const { $medlogapi } = useNuxtApp();
 

@@ -51,7 +51,7 @@
 
     </UIBaseCard>
     <UModal v-model="studyPermissionModal" :ui="{ width: 'lg:max-w-6xl' }">
-      <StudyPermissionManagement :studyId="studyId" />
+      <StudyPermissionManagement :study-id="studyId" />
     </UModal>
   </Layout>
 </template>

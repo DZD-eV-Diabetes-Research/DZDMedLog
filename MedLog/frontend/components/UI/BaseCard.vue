@@ -1,6 +1,6 @@
 <template>
     <div :class="{ 'base-card': !naked, 'naked-card': naked }">
-        <slot></slot>
+        <slot/>
     </div>
 </template>
 

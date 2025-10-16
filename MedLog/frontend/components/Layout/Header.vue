@@ -20,7 +20,7 @@
       </div>
 
       <div class="w-60">
-        <img src="/img/logos/dzd.png" alt="DZD" class="max-w-full" />
+        <img src="/img/logos/dzd.png" alt="DZD" class="max-w-full">
       </div>
     </div>
   </header>
@@ -105,7 +105,7 @@
   <!-- SETTINGS MODAL -->
 
   <UModal v-model="settingModalVisibility" :ui="{ width: 'lg:max-w-6xl' }">
-    <UserManagement></UserManagement>
+    <UserManagement/>
   </UModal>
 </template>
 
