@@ -80,7 +80,7 @@
         <br>
         <div id="zusatzinfo">
           <p>Für Admins oder Technikinteressierte finden Sie hier unser <a
-              class="text-blue-600 hover:border-b-2 hover:border-blue-600" href="https://www.github.com">Repository</a>
+              class="text-blue-600 hover:border-b-2 hover:border-blue-600" href="https://github.com/DZD-eV-Diabetes-Research/DZDMedLog">Repository</a>
           </p>
         </div>
       </div>
