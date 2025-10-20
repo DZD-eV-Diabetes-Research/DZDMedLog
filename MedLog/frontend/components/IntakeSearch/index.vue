@@ -1,7 +1,8 @@
 <template>
   <UIBaseCard :naked="true">
     <UFormGroup label="Medikament" name="drug" required>
-      <UInput v-model="state.drug" placeholder="Medikament/PZN oder ATC-Code eingeben"
+      <UInput
+        v-model="state.drug" placeholder="Medikament/PZN oder ATC-Code eingeben"
         icon="i-heroicons-magnifying-glass-20-solid" :color="props.color" />
     </UFormGroup>
     <div v-if="isLoading && props.edit && !props.custom">
@@ -13,7 +14,8 @@
     <div>
       <div v-if="drugList.items.length > 0">
         <ul>
-          <li v-for="item in paginatedItems" :key="item.drug.id"
+          <li
+            v-for="item in paginatedItems" :key="item.drug.id"
             class="relative border border-[#ededed] my-1 py-2 rounded-md hover:bg-[#ededed] hover:cursor-pointer"
             style="position: relative"
             @click="printMedication(item)" @mouseover="hoveredItem = item" @mouseleave="hoveredItem = null">

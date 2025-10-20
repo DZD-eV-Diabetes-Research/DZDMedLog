@@ -17,13 +17,15 @@
         <div class="flex flex-row space-x-4">
             <div class="flex-1">
                 <UFormGroup label="Dosis pro Einnahme" style="border-color: red" name="dose">
-                    <UInput v-model="state.dose" type="number" :disabled="selectedFrequency !== 'regelmäßig'"
+                    <UInput
+                        v-model="state.dose" type="number" :disabled="selectedFrequency !== 'regelmäßig'"
                         :color="selectedFrequency !== 'regelmäßig' ? 'gray' : 'yellow'" />
                 </UFormGroup>
             </div>
             <div class="flex-1">
                 <UFormGroup label="Intervall der Tagesdosen">
-                    <USelect v-model="state.intervall" :options="intervallOfDose"
+                    <USelect
+                        v-model="state.intervall" :options="intervallOfDose"
                         :disabled="selectedFrequency !== 'regelmäßig'"
                         :color="selectedFrequency !== 'regelmäßig' ? 'gray' : 'yellow'" />
                 </UFormGroup>
@@ -41,7 +43,8 @@
                 </UFormGroup>
             </div>
         </div>
-        <URadioGroup v-model="state.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
+        <URadioGroup
+            v-model="state.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
             :options="options" color="yellow" />
         <div style="text-align: center">
             <div class="flex flex-row justify-center space-x-6">

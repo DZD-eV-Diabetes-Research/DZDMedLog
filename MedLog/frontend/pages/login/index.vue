@@ -22,7 +22,8 @@
                   <UInput v-model="state.password" type="password" />
                 </UFormGroup>
                 <div class="flex justify-center">
-                  <UButton color="green" variant="soft"
+                  <UButton
+                    color="green" variant="soft"
                     class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
                     type="submit">
                     Einloggen
@@ -40,7 +41,8 @@
         <div class="mt-4">
           <p>
             Kein Account?
-            <a href="https://auth.dzd-ev.org/" target="_blank"
+            <a
+              href="https://auth.dzd-ev.org/" target="_blank"
               class="hover:border-[#ec372d] hover:border-b-2">Registrieren Sie sich hier.</a>
           </p>
           <div v-if="tokenStore.expiredToken" class="my-6">

@@ -72,13 +72,15 @@
                   </template>
 
                   <!-- Input oder Checkbox -->
-                  <UInput v-if="getFormInputType(attr[2]) !== 'checkbox'" v-model="attrState[attr[1]]"
+                  <UInput
+                    v-if="getFormInputType(attr[2]) !== 'checkbox'" v-model="attrState[attr[1]]"
                     :type="getFormInputType(attr[2])" color="yellow" />
                   <UCheckbox v-else v-model="attrState[attr[1]]" color="yellow" :name="attr[1]" />
                 </UFormGroup>
 
 
-                <UFormGroup v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :key="attr_ref[1]"
+                <UFormGroup
+                  v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :key="attr_ref[1]"
                   :name="attr_ref[1]">
                   <template #label>
                     <span class="inline-flex items-center gap-1">
@@ -88,7 +90,8 @@
                       </UTooltip>
                     </span>
                   </template>
-                  <USelectMenu v-model="attr_refState[attr_ref[1]]"
+                  <USelectMenu
+                    v-model="attr_refState[attr_ref[1]]"
                     v-model:query="queries[attr_ref[1]]"
                     :options="refSelectMenus.find(item => item.field_name === attr_ref[1])?.options"
                     value-attribute="value" option-attribute="display" color="yellow"
@@ -105,15 +108,18 @@
                       </UTooltip>
                     </span>
                   </template>
-                  <UInput v-model="inputValues[attr_multi[1]]" placeholder="Option auswählen und Enter drücken"
+                  <UInput
+                    v-model="inputValues[attr_multi[1]]" placeholder="Option auswählen und Enter drücken"
                     color="yellow" @keydown.enter.prevent="updateMultiState(attr_multi[1])"
                     @blur="updateMultiState(attr_multi[1])" />
-                  <UBadge v-for="(word, index) in attr_multiState[attr_multi[1]]" :key="index"
+                  <UBadge
+                    v-for="(word, index) in attr_multiState[attr_multi[1]]" :key="index"
                     class="mr-2 cursor-pointer" color="yellow" @click="removeItem(attr_multi[1], index)">
                     {{ word }}
                   </UBadge>
                 </UFormGroup>
-                <UFormGroup v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref"
+                <UFormGroup
+                  v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref"
                   :key="attr_multi_ref[1]" :name="attr_multi_ref[1]">
                   <template #label>
                     <span class="inline-flex items-center gap-1">
@@ -162,13 +168,15 @@
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
         <UFormGroup label="Dosis pro Einnahme" style="border-color: red" name="dose">
-          <UInput v-model="state.dose" type="number" :disabled="selectedFrequency !== 'regelmäßig'"
+          <UInput
+            v-model="state.dose" type="number" :disabled="selectedFrequency !== 'regelmäßig'"
             :color="selectedFrequency !== 'regelmäßig' ? 'gray' : props.color" />
         </UFormGroup>
       </div>
       <div class="flex-1">
         <UFormGroup label="Intervall der Tagesdosen">
-          <USelect v-model="state.intervall" :options="intervallOfDose" :disabled="selectedFrequency !== 'regelmäßig'"
+          <USelect
+            v-model="state.intervall" :options="intervallOfDose" :disabled="selectedFrequency !== 'regelmäßig'"
             :color="selectedFrequency !== 'regelmäßig' ? 'gray' : props.color" />
         </UFormGroup>
       </div>
@@ -185,7 +193,8 @@
         </UFormGroup>
       </div>
     </div>
-    <URadioGroup v-model="state.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
+    <URadioGroup
+      v-model="state.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
       :options="options" :color="props.color" />
     <div style="text-align: center">
       <div v-if="props.edit" class="flex flex-row justify-center space-x-6">
@@ -193,7 +202,8 @@
         <UButton label="Abbrechen" :color="props.color" variant="soft" :class="buttonClass" @click="closeEditModal()" />
       </div>
       <div v-else>
-        <UButton type="submit" :label="props.label" :color="props.color"
+        <UButton
+          type="submit" :label="props.label" :color="props.color"
           class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" variant="soft"
           :class="buttonClass" />
       </div>
