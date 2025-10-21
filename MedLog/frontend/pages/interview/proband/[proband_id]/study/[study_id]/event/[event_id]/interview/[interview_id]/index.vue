@@ -58,7 +58,7 @@
         </div>
         <div style="text-align: center">
           <UButton
-            v-if="!showScrollButton" label="Interview Beenden" color="green" variant="soft"
+            label="Interview Beenden" color="green" variant="soft"
             class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" style="margin: 25px"
             @click="saveInterview()" />
         </div>
@@ -193,7 +193,6 @@ async function editModalVisibilityFunction(row: object) {
     drugStore.intake_start_time_utc = row.startTime;
     drugStore.intake_end_time_utc = row.endTime;
     drugStore.dose = row.dose ? row.dose : 0;
-    drugStore.darrForm = row.darr ? row.darr : null
     drugStore.drugName = row.drug ? row.drug : null
     tempDose.value = row.dose;
     drugStore.editId = row.intakeId
@@ -288,11 +287,6 @@ const columns = [
     sortable: true,
   },
   {
-    key: "darr",
-    label: "Darreichung",
-    sortable: true,
-  },
-  {
     key: "actions",
   },
 ];
@@ -329,26 +323,11 @@ const filteredRows = computed(() => {
 // CustomElement Modal
 
 const customDrugModalVisibility = ref(false);
-const showDarrFormError = ref(false);
-const selectedDosageForm = ref();
-const dosageFormTable = ref();
 
 async function openCustomModal() {
   drugStore.customVisibility = !drugStore.customVisibility;
-  showDarrFormError.value = false;
 }
 
-async function getDosageForm() {
-  const dosageForm = await $medlogapi(
-    `/api/drug/field_def/darreichungsform/refs`);
-
-  dosageFormTable.value = dosageForm.items.map((item) => ({
-    id: item.display + " (" + item.value + ")",
-    label: item.display + " (" + item.value + ")",
-    bedeutung: item.display,
-    darrform: item.value,
-  }));
-}
 
 // REST
 
@@ -415,11 +394,6 @@ async function createIntakeList() {
           item.intake_end_time_utc === null
             ? item.intake_start_time_utc + " bis unbekannt"
             : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
-        darr:
-          item.drug.attrs_ref.darreichungsform.display +
-          " (" +
-          item.drug.attrs_ref.darreichungsform.value +
-          ")",
         intakeId: item.id,
         custom: item.drug?.is_custom_drug ? "Ja" : "Nein",
         class: item.drug?.is_custom_drug
@@ -447,7 +421,6 @@ const resetFirstEvent = () => {
   userStore.firstEvent = false;
 }
 
-getDosageForm();
 createIntakeList();
 
 </script>

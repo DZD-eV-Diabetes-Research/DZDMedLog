@@ -209,11 +209,6 @@
       </div>
     </div>
     <div class="flex flex-col justify-center items-center">
-      <h5 v-if="showDarrFormError" style="color: red">
-        Darreichungsform wird benötigt
-      </h5>
-      <br>
-
       <!-- Again the error message the,same from the top for better userexperience -->
       <h5 v-if="customNameError" style="color: red">
         Name wird benötigt
@@ -266,7 +261,6 @@ const schema = object({
   startTime: date().required("Required"),
   dose: number().min(0, "Required"),
   name: string(),
-  darrform: string(),
 });
 
 type Schema = InferType<typeof schema>;
@@ -491,22 +485,6 @@ const customDrugForm = [
   },
 ];
 
-const selectedDosageForm = ref();
-const dosageFormTable = ref();
-
-
-async function getDosageForm() {
-  const dosageForm = await $medlogapi(
-    `/api/drug/field_def/darreichungsform/refs`);
-
-  dosageFormTable.value = dosageForm.items.map((item) => ({
-    id: item.display + " (" + item.value + ")",
-    label: item.display + " (" + item.value + ")",
-    bedeutung: item.display,
-    darrform: item.value,
-  }));
-}
-
 // functioning
 
 if (props.edit) {
@@ -521,7 +499,6 @@ if (props.edit) {
 
 if (props.custom && props.edit) {
   state.name = drugStore.drugName
-  selectedDosageForm.value = { "label": drugStore.darrForm }
 }
 
 // CUSTOM DRUG
@@ -734,7 +711,6 @@ const closeEditModal = function () {
 onMounted(() => {
   if (props.custom) {
     // nur für das Custom-Form laden
-    getDosageForm()
     fetchFieldDefinitions()
   }
 })

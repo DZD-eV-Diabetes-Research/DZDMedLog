@@ -92,9 +92,6 @@
       <p>Medikament: {{ drugStore.item.drug.trade_name }}</p>
       <p>PZN: {{ drugStore.item.drug.codes?.PZN }}</p>
       <p>Packungsgroesse: {{ drugStore.item.drug.attrs?.amount || 'N/A' }}</p>
-      <p>
-        Darreichungsform: {{ drugStore.item.drug.attrs_ref.darreichungsform?.display || 'N/A' }}
-      </p>
     </div>
   </UIBaseCard>
 </template>

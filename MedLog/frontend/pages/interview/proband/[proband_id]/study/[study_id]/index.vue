@@ -144,11 +144,6 @@ const columns = [{
   key: "time",
   label: "Einnahme Zeitraum",
   sortable: true,
-},
-{
-  key: "darr",
-  label: "Darreichung",
-  sortable: true,
 }]
 
 
@@ -294,7 +289,6 @@ async function createIntakeList() {
         intervall: useIntervallDoseTranslator(item.regular_intervall_of_daily_dose, null),
         dose: item.dose_per_day === 0 ? "/" : item.dose_per_day,
         time: item.intake_end_time_utc === null ? item.intake_start_time_utc + " bis unbekannt" : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
-        darr: item.drug.attrs_ref.darreichungsform.display + " (" + item.drug.attrs_ref.darreichungsform.value + ")",
         id: item.id ? item.id : item.custom_drug_id,
         custom: item.drug?.is_custom_drug ? "Ja" : "Nein",
         class: item.drug?.is_custom_drug

@@ -18,7 +18,6 @@ interface DrugState {
     customVisibility: boolean
     editId: string
     drugName: string | null
-    darrForm: string | null
     lastFetchTime: number | null
 }
 
@@ -39,7 +38,6 @@ export const useDrugStore = defineStore('DrugStore',{
         customVisibility: false,
         editId : "",
         drugName: null,
-        darrForm: null,
         lastFetchTime: null
     }),
     getters: {

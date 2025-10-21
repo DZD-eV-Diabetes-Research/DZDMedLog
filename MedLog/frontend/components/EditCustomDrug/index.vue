@@ -93,7 +93,6 @@ const schema = object({
     startTime: date().required("Required"),
     dose: number().min(0, "Required"),
     name: string(),
-    darrform: string(),
 });
 
 type Schema = InferType<typeof schema>;
@@ -240,7 +239,6 @@ if (props.edit) {
 
 if (props.custom && props.edit) {
     state.name = drugStore.drugName
-    selectedDosageForm.value = { "label": drugStore.darrForm }
 }
 
 // CUSTOM DRUG
