@@ -56,9 +56,10 @@ class DrugDataLoader:
     def __init__(self):
         from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 
-        self.importer: Type[DrugDataSetImporterBase] = DRUG_IMPORTERS[
+        self.importer_class: Type[DrugDataSetImporterBase] = DRUG_IMPORTERS[
             config.DRUG_IMPORTER_PLUGIN
         ]
+        self.importer = self.importer_class()
 
     async def _get_next_queued_drug_data_set(self) -> DrugDataSetVersion | None:
         async with get_async_session_context() as session:
@@ -81,17 +82,35 @@ class DrugDataLoader:
                 first_queued_drug_data_set = queued_drug_data_sets[0]
         return first_queued_drug_data_set
 
+    async def _rebuild_drugsearch_index():
+        from medlogserver.db.drug_data.drug_search._base import (
+            MedLogDrugSearchEngineBase,
+        )
+        from medlogserver.db.drug_data.drug_search.search_module_generic_sql import (
+            GenericSQLDrugSearchEngine,
+        )
+        from medlogserver.db.drug_data.drug_search import SEARCH_ENGINES
+
+        log.info("Build drug search index if needed...")
+        search_engine_class: Type[MedLogDrugSearchEngineBase] = SEARCH_ENGINES[
+            config.DRUG_SEARCHENGINE_CLASS
+        ]
+        search_engine: GenericSQLDrugSearchEngine = search_engine_class()
+
+        await search_engine.build_index()
+
     async def load_new_drug_data_if_available(self):
         drug_dataset = await self._get_next_queued_drug_data_set()
         if drug_dataset:
             await self.importer._run_import(source_dir=drug_dataset.import_file_path)
+            await self._rebuild_drugsearch_index()
             gc.collect()
         else:
             log.info("...no new drug data available.")
 
 
 class TaskDrugDataLoading(TaskBase):
-    async def work(self):
+    async def work(self, source_dir: str = None):
         log.info("Load new drug data if available...")
         drug_data_loader = DrugDataLoader()
         await drug_data_loader.load_new_drug_data_if_available()

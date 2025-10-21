@@ -22,6 +22,7 @@ class Tasks(Enum):
         "medlogserver.worker.tasks.export_study_data.TaskExportStudyIntakeData"
     )
     RUN_ADHOC_JOBS = "medlogserver.worker.tasks.run_ad_hoc_jobs.TaskRunAdHocJobs"
+    LOAD_DRUG_DATA = "medlogserver.worker.tasks.load_drug_data.TaskDrugDataLoading"
 
 
 # hacky helper class

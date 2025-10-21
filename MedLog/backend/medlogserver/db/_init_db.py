@@ -1,5 +1,5 @@
 from typing import AsyncGenerator, List, Optional, Type
-
+import uuid
 from fastapi import Depends
 from pathlib import Path, PurePath
 from sqlmodel import SQLModel
@@ -68,6 +68,8 @@ def enable_foreign_keys_on_sqlite(dbapi_connection, connection_record):
     # this is disabled for now, as sqlite does not support nullable composite keys (SIMPLE foreign key mode as defined in SQL-92 Standard)
     # we use nullable composite keys in the drug "Stamm"-model :(
     # instead we force optionally "PRAGMA foreign_keys=ON" on a per delete call base. see MedLog/backend/medlogserver/db/_base_crud.py - CRUDBase.delete()
+
+    # Update Tim: I think this should be obsolete now as we introduced the drug data model V2. We may not have nullable composite keys now in the database. ToDo: Check that and remove this as code
     if isinstance(
         dbapi_connection,
         (
@@ -109,7 +111,10 @@ async def create_admin_if_not_exists():
                 await user_auth_crud.create(admin_user_auth)
 
 
-async def init_drugsearch():
+async def reset_stuck_drugsearchindex_build_ups():
+    # reset drug_search_generic_sql_state.index_build_up_in_process on DZDMedLog boot if we are stuck from a recent crash or ungraceful shutdown
+    # see https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/83
+
     from medlogserver.db.drug_data.drug_search._base import MedLogDrugSearchEngineBase
     from medlogserver.db.drug_data.drug_search.search_module_generic_sql import (
         GenericSQLDrugSearchEngine,
@@ -121,8 +126,6 @@ async def init_drugsearch():
     ]
     search_engine = search_engine_class()
 
-    # reset drug_search_generic_sql_state.index_build_up_in_process if we are stuck from a recent crash
-    # see https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/83
     if search_engine_class == GenericSQLDrugSearchEngine:
         search_engine: GenericSQLDrugSearchEngine = search_engine
         state = await search_engine._get_state()
@@ -134,22 +137,33 @@ async def init_drugsearch():
             state.last_index_build_based_on_drug_datasetversion_id = None
             await search_engine._save_state(state)
 
-    await search_engine.build_index()
+    return
+
+
+async def create_drug_data_loader_job_if_needed():
     """
-    current_ai_data_version = await get_current_ai_data_version()
-    if current_ai_data_version is not None:
-        from medlogserver.db.wido_gkv_arzneimittelindex.drug_search.search_module_generic_sql import (
-            GenericSQLDrugSearchEngine,
-        )
-
-        search_engine = GenericSQLDrugSearchEngine(
-            target_ai_data_version=current_ai_data_version
-        )
-        await search_engine.build_index()
+    We create a new drug data loading job on boot with the configured default/inital drug data source
+    If this default source drug data has not been loaded yet it will be with this job. otherwise the job will just do nothing.
     """
+    from medlogserver.model.worker_job import WorkerJobCreate
+    from medlogserver.worker.tasks import Tasks
 
+    from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
+    from medlogserver.db.drug_data.drug_dataset_version import DrugDataSetVersionCRUD
 
-async def provision_drug_data():
+    job_id = uuid.uuid4()
+    system_job = WorkerJobCreate(
+        id=job_id,
+        user_id=None,
+        task_name=Tasks(Tasks.LOAD_DRUG_DATA).name,
+        task_params={
+            "study_id": str(study_access.study.id),
+            "format_": format,
+        },
+        tags=["export", str(study_access.study.id)],
+    )
+    system_job = await worker_job_crud.create(system_job)
+
     from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 
     DRUG_IMPORTER = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
@@ -179,6 +193,6 @@ async def init_db():
         await conn.commit()
 
         await create_admin_if_not_exists()
-        await provision_drug_data()
-        await init_drugsearch()
+        await create_drug_data_loader_job_if_needed()
+        await reset_stuck_drugsearchindex_build_ups()
         await provision_base_data()
