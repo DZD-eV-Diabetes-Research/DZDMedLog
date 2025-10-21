@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@nuxt/kit": "3.19.3",
-    "@nuxt/ui": "npm:@nuxt/ui-edge@latest",
+    "@nuxt/ui": "2.21.1",
     "@nuxtjs/supabase": "^1.4.0",
     "@pinia/nuxt": "^0.5.4",
     "@sidebase/nuxt-auth": "^0.9.1",
