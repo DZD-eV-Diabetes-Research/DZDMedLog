@@ -45,7 +45,4 @@ export const useDrugStore = defineStore('DrugStore',{
     getters: {
         isAction: (state) => state.action,
     },
-    persist: {
-        storage: localStorage,
-    }
 }) 
