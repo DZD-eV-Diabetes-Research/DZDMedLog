@@ -46,7 +46,4 @@ export const useStudyStore = defineStore('StudyStore', {
             }
         },
     },
-    persist: {
-        storage: localStorage,
-    }
 })

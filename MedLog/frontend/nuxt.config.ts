@@ -10,19 +10,12 @@ export default defineNuxtConfig({
 
   modules: [
     '@pinia/nuxt',
-    '@pinia-plugin-persistedstate/nuxt',
     "@nuxt/eslint",
     "@nuxt/ui",
     "dayjs-nuxt",
     "@nuxt/test-utils/module",
     "nuxt-open-fetch"
   ],
-
-  piniaPersistedstate: {
-    cookieOptions: {
-      sameSite: 'strict',
-    },
-  },
 
   pinia: {
     storesDirs: ['./stores/**', './custom-folder/stores/**'],
