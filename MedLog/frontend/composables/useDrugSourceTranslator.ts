@@ -1,7 +1,7 @@
 // Translation helper, since the backend is in English but the interface is in German
 
 export default function (eng:string|null = null, de:string|null = null) {
-  let english = [
+  const english = [
     "Study participant: verbal specification",
     "Medication package: Scanned PZN",
     "Medication package: Typed in PZN",
@@ -13,7 +13,7 @@ export default function (eng:string|null = null, de:string|null = null) {
     "Follow up via phone/message: Medication name",
   ];
 
-  let deutsch = [
+  const deutsch = [
     "Probandenangabe",
     "Medikamentenpackung: PZN gescannt",
     "Medikamentenpackung: PZN getippt",

@@ -2,7 +2,8 @@
   <header class="flex w-full  border-b-4 border-accent bg-white shadow-md py-4 px-10">
     <div class="flex w-full justify-between items-center mx-auto">
       <div>
-        <NuxtLink class="text-4xl font-bold text-gray-800 hover:border-[#ec372d] hover:border-b-2" to="/"
+        <NuxtLink
+          class="text-4xl font-bold text-gray-800 hover:border-[#ec372d] hover:border-b-2" to="/"
           @click="resetStore">
           DZD Medlog
         </NuxtLink>
@@ -20,19 +21,21 @@
       </div>
 
       <div class="w-60">
-        <img src="/img/logos/dzd.png" alt="DZD" class="max-w-full" />
+        <img src="/img/logos/dzd.png" alt="DZD" class="max-w-full">
       </div>
     </div>
   </header>
 
   <div class="flex justify-between items-center px-10 py-2">
-    <button v-if="showHeader"
+    <button
+      v-if="showHeader"
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
       @click="logout()">Logout</button>
 
     <UBreadcrumb v-if="showHeader" :links="links" />
 
-    <button v-if="showHeader"
+    <button
+      v-if="showHeader"
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
       @click="openSlide = true">Mehr</button>
   </div>
@@ -41,13 +44,16 @@
 
   <USlideover v-model="openSlide">
 
-    <UCard class="flex flex-col flex-1"
+    <UCard
+      class="flex flex-col flex-1"
       :ui="{ body: { base: 'flex-1' }, ring: '', divide: 'divide-y divide-gray-400 dark:divide-gray-800' }">
       <template #header>
         <div class="flex flex-row justify-around items-center">
           <h5 class="text-center text-2xl font-medium">How to use DZD-Medlog</h5>
-          <UButton @click="openSettingModal()" v-if="userStore.isAdmin"
-            class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300">
+          <UButton
+            v-if="userStore.isAdmin"
+            class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
+            @click="openSettingModal()">
             <UIcon name="i-heroicons-cog-6-tooth" class="w-5 h-5" />
           </UButton>
         </div>
@@ -104,12 +110,13 @@
   <!-- SETTINGS MODAL -->
 
   <UModal v-model="settingModalVisibility" :ui="{ width: 'lg:max-w-6xl' }">
-    <UserManagement></UserManagement>
+    <UserManagement/>
   </UModal>
 </template>
 
 <script setup>
 import { ref, computed, watchEffect } from 'vue';
+import { useMedlogapi } from '#imports';
 
 const tokenStore = useTokenStore();
 const userStore = useUserStore();
@@ -150,7 +157,7 @@ function logout() {
   const {$medlogapi} = useNuxtApp();
   $medlogapi("/api/auth/logout", {
     method: 'POST'
-  }) 
+  })
   const router = useRouter()
   router.push({ path: '/login' });
 }
@@ -211,8 +218,6 @@ const openSettingModal = function () {
 }
 
 // Version & Branch
-
-import { useMedlogapi } from '#imports';
 
 const { data: config, error: configError, status: configStatus } = await useMedlogapi("/api/config/version")
 

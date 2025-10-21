@@ -11,6 +11,7 @@ export default defineNuxtConfig({
   modules: [
     '@pinia/nuxt',
     '@pinia-plugin-persistedstate/nuxt',
+    "@nuxt/eslint",
     "@nuxt/ui",
     "dayjs-nuxt",
     "@nuxt/test-utils/module",
@@ -35,6 +36,10 @@ export default defineNuxtConfig({
 
   colorMode: {
     preference: 'light'
+  },
+
+  eslint: {
+    // checker: true, // TODO enable this once we settled for a code style
   },
 
   runtimeConfig: {

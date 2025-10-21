@@ -6,6 +6,8 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
@@ -29,15 +31,18 @@
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610",
   "devDependencies": {
+    "@nuxt/eslint": "^1.9.0",
     "@nuxt/test-utils": "^3.19.2",
     "@pinia-plugin-persistedstate/nuxt": "^1.2.1",
     "@playwright/test": "^1.54.1",
     "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.37.0",
     "happy-dom": "^18.0.1",
     "playwright-core": "^1.54.1",
     "postcss": "^8.4.44",
     "tailwindcss": "^3.4.10",
+    "vite-plugin-eslint2": "^5.0.4",
     "vitest": "^3.2.4"
   }
 }

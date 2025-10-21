@@ -6,7 +6,8 @@
         <UIBaseCard v-if="studyStore.studies?.length === 0 || !studyStore.studies">
             <div v-if="userStore.isAdmin" class="space-y-4">
                 <h2 class="text-2xl">Aktuell sind keine Studien aufgelistet bitte, legen Sie eine Studie an</h2>
-                <UButton color="green" variant="soft"
+                <UButton
+                    color="green" variant="soft"
                     class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" @click="moveToStudies()">
                     Studienverwaltung
                 </UButton>
@@ -14,13 +15,14 @@
             <h2 v-if="!userStore.isAdmin" class="text-2xl">Aktuell sind keine Studien aufgelistet bitte, wenden Sie sich
                 an einen Admin</h2>
         </UIBaseCard>
-        <UIBaseCard class="active" v-for="study in studyStore.studies" :key="study.id" style="text-align: center">
+        <UIBaseCard v-for="study in studyStore.studies" :key="study.id" class="active" style="text-align: center">
             <h3 class="text-2xl font-light">Studie: {{ study.display_name }}</h3>
             <UForm :schema="schema" :state="state" class="space-y-4" @submit="pushFurther(study)">
                 <UFormGroup label="ProbandenID" name="probandID">
                     <UInput v-model="state.probandID" />
                 </UFormGroup>
-                <UButton color="green" variant="soft"
+                <UButton
+                    color="green" variant="soft"
                     class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
                     type="submit">
                     Proband aufrufen
