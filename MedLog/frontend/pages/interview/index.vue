@@ -37,7 +37,6 @@ import { object, string, type InferType } from 'yup'
 
 const userStore = useUserStore()
 const studyStore = useStudyStore()
-const probandStore = useProbandStore()
 const router = useRouter()
 const { $medlogapi } = useNuxtApp();
 
@@ -53,20 +52,7 @@ const state = reactive({
 })
 
 async function pushFurther(study) {
-    try {
-        const response = await $medlogapi(`/api/study/{studyId}/proband/{probandId}/interview`, {
-            path: {
-                studyId: study.id,
-                probandId: state.probandID,
-            }
-        });
-        probandStore.interviews = response
-        probandStore.probandID = state.probandID
-
-        router.push({ path: "/interview/proband/" + state.probandID + "/study/" + study.id })
-    } catch (error) {
-        console.log(error);
-    }
+    router.push({ path: "/interview/proband/" + state.probandID + "/study/" + study.id })
 }
 
 const moveToStudies = function() {

@@ -121,7 +121,6 @@ import { useMedlogapi } from '#imports';
 const tokenStore = useTokenStore();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
-const probandStore = useProbandStore();
 const route = useRoute();
 
 const studyName = ref('');
@@ -153,7 +152,6 @@ function logout() {
   userStore.$reset();
   studyStore.$reset();
   tokenStore.$reset();
-  probandStore.$reset();
   const {$medlogapi} = useNuxtApp();
   $medlogapi("/api/auth/logout", {
     method: 'POST'
@@ -164,7 +162,6 @@ function logout() {
 
 
 function resetStore() {
-  probandStore.$reset();
   studyStore.$reset();
 }
 
