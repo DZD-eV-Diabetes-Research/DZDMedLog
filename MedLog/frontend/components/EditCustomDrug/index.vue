@@ -1,12 +1,12 @@
 <template>
     <IntakeSearch color="yellow" edit="true" custom="true" :drug="drug" />
-    <div style="text-align: center" v-if="missingDrugError">
-        <br />
+    <div v-if="missingDrugError" style="text-align: center">
+        <br>
         <p style="color: red">Es muss ein Medikament ausgewählt werden</p>
     </div>
-    <UForm @submit="saveIntake()" :state="state" :schema="schema" class="space-y-4">
+    <UForm :state="state" :schema="schema" class="space-y-4" @submit="saveIntake()">
         <div style="padding-top: 2.5%">
-            <br />
+            <br>
             <UFormGroup label="Quelle der Arzneimittelangabe">
                 <USelect v-model="selectedSourceItem" :options="sourceItems" color="yellow" />
             </UFormGroup>
@@ -17,13 +17,15 @@
         <div class="flex flex-row space-x-4">
             <div class="flex-1">
                 <UFormGroup label="Dosis pro Einnahme" style="border-color: red" name="dose">
-                    <UInput type="number" v-model="state.dose" :disabled="selectedFrequency !== 'regelmäßig'"
+                    <UInput
+                        v-model="state.dose" type="number" :disabled="selectedFrequency !== 'regelmäßig'"
                         :color="selectedFrequency !== 'regelmäßig' ? 'gray' : 'yellow'" />
                 </UFormGroup>
             </div>
             <div class="flex-1">
                 <UFormGroup label="Intervall der Tagesdosen">
-                    <USelect v-model="state.intervall" :options="intervallOfDose"
+                    <USelect
+                        v-model="state.intervall" :options="intervallOfDose"
                         :disabled="selectedFrequency !== 'regelmäßig'"
                         :color="selectedFrequency !== 'regelmäßig' ? 'gray' : 'yellow'" />
                 </UFormGroup>
@@ -32,22 +34,22 @@
         <div class="flex flex-row space-x-4">
             <div class="flex-1">
                 <UFormGroup label="Einnahme Beginn (Datum)" name="startTime">
-                    <UInput type="date" v-model="state.startTime" color="yellow" />
+                    <UInput v-model="state.startTime" type="date" color="yellow" />
                 </UFormGroup>
             </div>
             <div class="flex-1">
                 <UFormGroup label="Einnahme Ende (Datum)" name="endTime">
-                    <UInput type="date" v-model="state.endTime" color="yellow" />
+                    <UInput v-model="state.endTime" type="date" color="yellow" />
                 </UFormGroup>
             </div>
         </div>
-        <URadioGroup v-model="state.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
+        <URadioGroup
+            v-model="state.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
             :options="options" color="yellow" />
         <div style="text-align: center">
             <div class="flex flex-row justify-center space-x-6">
                 <UButton type="submit" label="Speichern" color="yellow" variant="soft" :class="buttonClass" />
-                <UButton label="Abbrechen" color="yellow" variant="soft" :class="buttonClass" @click="closeEditModal()">
-                </UButton>
+                <UButton label="Abbrechen" color="yellow" variant="soft" :class="buttonClass" @click="closeEditModal()" />
             </div>
         </div>
     </UForm>
@@ -58,7 +60,7 @@
 <script setup lang="ts">
 
 import dayjs from "dayjs";
-import { object, number, date, string, type InferType, boolean } from "yup";
+import { object, number, date, string, type InferType } from "yup";
 const { $medlogapi } = useNuxtApp();
 
 
@@ -156,7 +158,7 @@ async function saveIntake() {
     }
 
     drugStore.dose = state.dose;
-    tempDose.value = drugStore.dose; props
+    tempDose.value = drugStore.dose;
     drugStore.intervall = useIntervallDoseTranslator(null, state.intervall);
     tempIntervall.value = state.intervall;
     drugStore.option = state.selected;

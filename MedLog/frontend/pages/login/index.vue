@@ -2,8 +2,8 @@
   <Layout>
     <UIBaseCard>
       <div v-if="healthStatus?.healthy" class="flex flex-col justify-center">
-        <div class="flex flex-col space-y-2" v-if="loginMethods">
-          <div v-for="loginMethod in loginMethods">
+        <div v-if="loginMethods" class="flex flex-col space-y-2">
+          <div v-for="loginMethod in loginMethods" :key="loginMethod.auth_type">
             <div v-if="loginMethod.auth_type === 'basic'">
               <UForm :schema="schema" :state="state" class="space-y-4" @submit="login()">
                 <div style="text-align: center">
@@ -22,7 +22,8 @@
                   <UInput v-model="state.password" type="password" />
                 </UFormGroup>
                 <div class="flex justify-center">
-                  <UButton color="green" variant="soft"
+                  <UButton
+                    color="green" variant="soft"
                     class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
                     type="submit">
                     Einloggen
@@ -40,7 +41,8 @@
         <div class="mt-4">
           <p>
             Kein Account?
-            <a href="https://auth.dzd-ev.org/" target="_blank"
+            <a
+              href="https://auth.dzd-ev.org/" target="_blank"
               class="hover:border-[#ec372d] hover:border-b-2">Registrieren Sie sich hier.</a>
           </p>
           <div v-if="tokenStore.expiredToken" class="my-6">
@@ -63,11 +65,10 @@
 <script setup lang="ts">
 
 import { object, string } from "yup";
+import { useMedlogapi } from '#imports';
 
 const tokenStore = useTokenStore();
 const route = useRoute()
-
-import { useMedlogapi } from '#imports';
 
 const { data: healthStatus, error: healthError } = await useMedlogapi("/api/health")
 

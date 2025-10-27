@@ -15,6 +15,7 @@ logs
 
 # Misc
 .DS_Store
+.eslintcache
 .fleet
 .idea
 

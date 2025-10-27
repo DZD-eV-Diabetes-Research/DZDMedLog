@@ -6,18 +6,13 @@ export async function useCreateEvent(name: string, study_id:string): Promise<voi
 
     tokenStore.error = ""
     
-    let body = {"name": name}
-    
-    try {        
-        await $medlogapi("/api/study/{studyId}/event", {
-            method: "POST",
-            body: body,
-            path: {
-                studyId: study_id
-            }
-        })      
-    }
-    catch (err: any) {
-        throw err
-    }
+    const body = {"name": name}
+
+    await $medlogapi("/api/study/{studyId}/event", {
+        method: "POST",
+        body: body,
+        path: {
+            studyId: study_id
+        }
+    })
 }

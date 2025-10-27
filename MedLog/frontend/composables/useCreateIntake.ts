@@ -7,7 +7,7 @@ export async function useCreateIntake(study_id: string, interview_id: string, ad
 
     tokenStore.error = ""
 
-    let body = {
+    const body = {
         "drug_id": drug_id,
         "source_of_drug_information": source_of_drug_information,
         "intake_start_time_utc": intake_start_time,

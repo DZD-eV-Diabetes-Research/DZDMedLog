@@ -12,14 +12,13 @@
             <UTable v-model:expand="expand" :rows="mappedUsers" :columns="columns">
                 <template #permissions-data="{ row }">
                     <div v-if="row.permissions.length > 0" class="space-x-2">
-                        <UBadge v-for="permission in row.permissions" :key="permission"
+                        <UBadge
+                            v-for="permission in row.permissions" :key="permission"
                             class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg">
                             {{ permission }}
                         </UBadge>
                     </div>
-                    <div v-else>
-
-                    </div>
+                    <div v-else />
                 </template>
 
                 <template #expand="{ row }">
@@ -27,27 +26,31 @@
                         <p v-if="row.permissions.length > 0">{{ row.userName }} sind folgenden Zugriffsrechte
                             zugewiesen: </p>
                         <div class="space-y-2">
-                            <UCheckbox v-for="permission in permissionLabels" :key="permission"
+                            <UCheckbox
+                                v-for="permission in permissionLabels" :key="permission"
                                 v-model="selectedPermissionsPerUser[row.id]" :value="permission" :name="permission"
                                 :label="permission" />
                         </div>
                         <div class="mt-4">
-                            <UButton @click="patchUser(row.id)"
-                                class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white">
+                            <UButton
+                                class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white"
+                                @click="patchUser(row.id)">
                                 Speichern</UButton>
                         </div>
                     </div>
                 </template>
 
                 <template #expand-action="{ row }">
-                    <UButton v-if="row.hasExpand" @click="handleToggle(row)"
-                        class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white">
+                    <UButton
+                        v-if="row.hasExpand" class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white"
+                        @click="handleToggle(row)">
                         {{ isExpanded ? 'Zuklappen' : 'Bearbeiten' }}
                     </UButton>
                 </template>
 
                 <template #delete-data="{ row }">
-                    <UButton icon="i-heroicons-trash"
+                    <UButton
+                        icon="i-heroicons-trash"
                         class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg hover:bg-slate-500 hover:text-white"
                         @click="deleteModal(row)" />
                 </template>
@@ -68,16 +71,19 @@
                 <div class="flex flex-col justify-center space-y-4">
                     <h3 class="text-center text-xl">Zugriffsrechte hinzufügen</h3>
                     <div v-if="no_permission_user_list.length > 0" class="flex flex-col justify-center space-y-4">
-                        <USelect v-model="no_permission_user_id" :options="no_permission_user_list"
+                        <USelect
+                            v-model="no_permission_user_id" :options="no_permission_user_list"
                             option-attribute="user_name" value-attribute="id" class="mx-auto" />
                         <div class="flex flex-row items-center justify-center space-x-4">
-                            <UCheckbox v-for="permission in permissionLabels" :key="permission"
+                            <UCheckbox
+                                v-for="permission in permissionLabels" :key="permission"
                                 v-model="new_user_permissions" :value="permission" :name="permission"
                                 :label="permission" />
                         </div>
-                        <UButton type="submit" @click="patchUser(no_permission_user_id, new_user_permissions)"
-                            label="Zugriffsrechte hinzufügen" color="violet" variant="soft"
-                            class="border border-violet-500 hover:bg-violet-300 hover:border-white hover:text-white px-4 mx-auto" />
+                        <UButton
+                            type="submit" label="Zugriffsrechte hinzufügen" color="violet" variant="soft"
+                            class="border border-violet-500 hover:bg-violet-300 hover:border-white hover:text-white px-4 mx-auto"
+                            @click="patchUser(no_permission_user_id, new_user_permissions)" />
                     </div>
                     <div v-else>
                         <h3 class="text-center text-lg">Es gibt aktuell keine Nutzer ohne Zugriffsrechte</h3>
@@ -91,7 +97,7 @@
         <div class="text-center">
             <hr class="my-8 border-2">
             <h2 class="text-3xl font-semibold mb-4">Aktuelle Zugriffsrechte</h2>
-            <div class="flex flex-row justify-center mb-4" v-for="permission in permissions">
+            <div v-for="permission in permissions" :key="permission.study_permission_name" class="flex flex-row justify-center mb-4">
                 <p><span class="font-bold">{{ permission.study_permission_name }}</span>: {{ permission.description }}
                 </p>
             </div>
@@ -100,8 +106,8 @@
 </template>
 
 <script setup lang="ts">
-const { $medlogapi } = useNuxtApp();
 import { useMedlogapi } from '#imports';
+const { $medlogapi } = useNuxtApp();
 
 //props
 

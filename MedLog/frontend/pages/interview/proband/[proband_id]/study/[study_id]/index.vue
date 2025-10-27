@@ -7,12 +7,18 @@
           <UInputMenu v-model="selectedIncompleteEvent" :options="incompletedItems" />
           <br>
           <div class="flex justify-evenly">
-            <UButton @click="createInterview()" color="green" variant="soft"
-              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
+            <UButton
+              color="green"
+              variant="soft"
+              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+              @click="createInterview()"
+            >
               Interview Durchführen
             </UButton>
-            <UButton v-if="userStore.isAdmin" @click="openEventModal()" color="green" variant="soft"
-              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white">
+            <UButton
+              v-if="userStore.isAdmin" color="green" variant="soft"
+              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
+              @click="openEventModal()">
               Neues Event anlegen
             </UButton>
           </div>
@@ -23,8 +29,11 @@
           <h5>Bearbeitete Events</h5>
           <UInputMenu v-model="selectedCompleteEvent" :options="completedItems" />
           <br>
-          <UButton @click="editEvent(selectedCompleteEvent.id)" color="blue" variant="soft"
-            class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white">
+          <UButton
+            color="blue" variant="soft"
+            class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"
+            @click="editEvent(selectedCompleteEvent.id)"
+          >
             Interview Bearbeiten
           </UButton>
         </UIBaseCard>
@@ -37,7 +46,8 @@
             <UInput v-model="eventState.name" required placeholder="Interview Campaign Year Quarter" />
           </UFormGroup>
           <h3 v-if="eventError" style="color: red;">{{ eventError }}</h3>
-          <UButton type="submit" label="Event anlegen" color="green" variant="soft"
+          <UButton
+            type="submit" label="Event anlegen" color="green" variant="soft"
             class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
         </UForm>
       </div>
@@ -50,31 +60,33 @@
         <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
           <UInput v-model="q" placeholder="Tabelle Filtern" />
         </div>
-        <UTable :rows="rows" :columns="columns">
-        </UTable>
-        <div v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount" class="flex justify-center px-3 py-3.5 border-t 
-        dark:border-green-700">
-          <UPagination v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
-            wrapper: 'flex items-center gap-1',
-            rounded: 'rounded-sm',
-            default: {
-              activeButton: {
-                variant: 'outline',
+        <UTable :rows="rows" :columns="columns" />
+        <div
+          v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount"
+          class="flex justify-center px-3 py-3.5 border-t dark:border-green-700"
+        >
+          <UPagination
+            v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
+              wrapper: 'flex items-center gap-1',
+              rounded: 'rounded-sm',
+              default: {
+                activeButton: {
+                  variant: 'outline',
+                }
               }
-            }
-          }" />
+            }" />
         </div>
       </div>
     </div>
     </div>
-    <div style="text-align:center; margin-top:2%">
-    </div>
+    <div style="text-align:center; margin-top:2%" />
   </Layout>
 </template>
 
 <script setup lang="ts">
 
-import { object, number, date, string, type InferType } from "yup";
+import { object, string } from "yup";
+import { useMedlogapi } from '#imports';
 
 // general constants
 const route = useRoute()
@@ -82,7 +94,6 @@ const router = useRouter()
 const userStore = useUserStore()
 const studyStore = useStudyStore()
 const { $medlogapi } = useNuxtApp();
-import { useMedlogapi } from '#imports';
 
 
 // table
