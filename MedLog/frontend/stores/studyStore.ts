@@ -24,8 +24,6 @@ export const useStudyStore = defineStore('StudyStore', {
     }),
     actions: {
         async listStudies(): Promise<void> {
-            const tokenStore = useTokenStore()
-            tokenStore.error = ""
             const {$medlogapi} = useNuxtApp();
             try {
                 const data = await $medlogapi("/api/study")
@@ -33,7 +31,8 @@ export const useStudyStore = defineStore('StudyStore', {
                 this.studies = data.items
             }
             catch (err: any) {
-                tokenStore.error = err?.response.data.detail
+                console.error(err?.response.data.detail)
+                // TODO surface the error
             }
         },
 

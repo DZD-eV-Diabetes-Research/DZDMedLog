@@ -118,7 +118,6 @@
 import { ref, computed, watchEffect } from 'vue';
 import { useMedlogapi } from '#imports';
 
-const tokenStore = useTokenStore();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
 const route = useRoute();
@@ -151,7 +150,6 @@ watchEffect(async () => {
 function logout() {
   userStore.$reset();
   studyStore.$reset();
-  tokenStore.$reset();
   const {$medlogapi} = useNuxtApp();
   $medlogapi("/api/auth/logout", {
     method: 'POST'

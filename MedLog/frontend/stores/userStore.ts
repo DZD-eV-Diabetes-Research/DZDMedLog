@@ -28,12 +28,12 @@ export const useUserStore = defineStore('UserStore', {
         firstEvent: false,
     }),
     actions: {
-        async userMe() {
+        async setUserInfo() {
             const {$medlogapi} = useNuxtApp();
 
-            const roles = await $medlogapi("/api/role")  
+            const roles = await $medlogapi("/api/role")
             const adminRoles = roles.filter((role) => role.has_admin_permissions).map(role => role.role_name)
-            
+
             try {
                 const data = await $medlogapi("/api/user/me")
 
@@ -42,14 +42,14 @@ export const useUserStore = defineStore('UserStore', {
                 this.roles = data.roles
                 this.userName = data.user_name
                 this.userID = data.id
-                
+
                 if (data.roles.some(role => adminRoles.includes(role))) {
                     this.isAdmin = true
-                };
+                }
 
             } catch (err) {
                 console.log(err);
             }
-        },
+        }
     },
 }) 

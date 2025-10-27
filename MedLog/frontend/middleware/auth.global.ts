@@ -3,7 +3,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   if (to.path !== '/login'){
     try {
-      await userStore.userMe()
+      await userStore.setUserInfo()
     } catch (error) {
       console.log(error);
       // no need to redirect, logic is handled by plugins/api
