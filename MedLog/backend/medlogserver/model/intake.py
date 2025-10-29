@@ -53,12 +53,14 @@ class IntakeRegularOrAsNeededAnswers(str, enum.Enum):
 
 
 class IntervalOfDailyDoseAnswers(str, enum.Enum):
-    UNKNOWN = "Unkown"
+    UNKNOWN = "Unknown"
     DAILY = "Daily"
     EVERY_SECOND_DAY = "every 2. day"
     EVERY_THIRD_DAY = "every 3. day"
     EVERY_FOURTH_DAY = "every 4. day / twice a week"
     ONE_WEEK_OR_MORE = "intervals of one week or more"
+    ONE_MONTH_OR_MORE = "intervals of one month or more"
+    ONE_YEAR_OR_MORE = "intervals of one year or more"
 
 
 class ConsumedMedsTodayAnswers(str, enum.Enum):
