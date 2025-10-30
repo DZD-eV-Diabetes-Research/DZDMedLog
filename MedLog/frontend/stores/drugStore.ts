@@ -15,7 +15,6 @@ interface DrugState {
     action: boolean
     intakeVisibility: boolean
     editVisibility: boolean
-    customVisibility: boolean
     editId: string
     drugName: string | null
     lastFetchTime: number | null
@@ -35,7 +34,6 @@ export const useDrugStore = defineStore('DrugStore',{
         action: false,
         intakeVisibility : true,
         editVisibility: false,
-        customVisibility: false,
         editId : "",
         drugName: null,
         lastFetchTime: null

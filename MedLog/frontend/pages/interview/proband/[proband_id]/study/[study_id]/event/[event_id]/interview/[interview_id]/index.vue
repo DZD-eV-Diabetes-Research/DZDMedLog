@@ -10,18 +10,34 @@
           :on-update="createIntakeList" />
       </div>
     </UIBaseCard>
-    <div v-if="drugStore.intakeVisibility">
+    <div>
       <UIBaseCard>
         <IntakeSearch color="primary" />
-        <IntakeForm color="primary" :edit="false" :custom="false" label="Medikament Speichern" />
+        <IntakeForm color="primary" :edit="false" label="Medikament Speichern" />
         <UButton
           label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
           class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white"
           @click="openCustomModal()" />
-        <UModal v-model="drugStore.customVisibility">
-          <div class="p-4">
-            <IntakeForm v-if="drugStore.customVisibility" color="yellow" label="Ungelistetes Medikament Speichern" :custom=true :edit=false />
-          </div>
+        <UModal v-model="customDrugModalVisibility">
+          <UCard>
+            <template #header>
+              Medikament anlegen
+            </template>
+
+            <UAlert
+                icon="i-heroicons-information-circle"
+                color="sky"
+                variant="subtle"
+                description="Legen Sie hier ein Medikament an, das nicht in der Medikamentendatenbank enthalten ist.
+                Es kann danach über die Suche gefunden werden."
+            />
+            <CustomDrugForm
+                class="mt-5"
+                :error="createCustomDrugError"
+                @save="saveCustomDrug"
+                @cancel="customDrugModalVisibility = false"
+            />
+          </UCard>
         </UModal>
       </UIBaseCard>
     </div>
@@ -90,11 +106,11 @@
         <div style="text-align: center">
           <div v-if="customDrug === 'Nein'">
             <IntakeSearch
-              :drug="toEditDrug" :edit="true" :custom="customDrug === 'Nein' ? false : true"
+              :drug="toEditDrug" :edit="true"
               :color="customDrug === 'Nein' ? 'blue' : 'yellow'" />
           <IntakeForm
             :color="customDrug === 'Nein' ? 'blue' : 'yellow'" :edit="true"
-            :custom="customDrug === 'Nein' ? false : true" label="Bearbeiten" />
+            label="Bearbeiten" />
           </div>
           <div v-else>
             <EditCustomDrug :drug="toEditDrug"/>
@@ -132,6 +148,9 @@
 <script setup lang="ts">
 // general constants
 
+import type {DrugBody} from "~/components/CustomDrugForm.vue";
+import {useMedlogapi} from "#imports";
+
 const route = useRoute();
 const router = useRouter();
 const drugStore = useDrugStore();
@@ -139,6 +158,7 @@ const studyStore = useStudyStore();
 const userStore = useUserStore();
 const { $medlogapi } = useNuxtApp();
 
+const createCustomDrugError = ref("");
 
 const { data: latestItems, pending } = await useAsyncData(
   'latestItems',
@@ -153,10 +173,6 @@ const { data: latestItems, pending } = await useAsyncData(
 );
 
 drugStore.item = null;
-
-// custom drug modal
-
-drugStore.customVisibility = false
 
 // Editform Modal
 
@@ -325,7 +341,27 @@ const filteredRows = computed(() => {
 const customDrugModalVisibility = ref(false);
 
 async function openCustomModal() {
-  drugStore.customVisibility = !drugStore.customVisibility;
+  customDrugModalVisibility.value = true
+}
+
+async function saveCustomDrug(customDrugBody: DrugBody) {
+  createCustomDrugError.value = "";
+  const { error } = await useMedlogapi(
+      `/api/drug/custom`,
+      {
+        method: "POST",
+        body: customDrugBody
+      }
+  );
+
+  if (error.value) {
+    createCustomDrugError.value = error.value;
+    return;
+  }
+
+  // TODO select newly created drug in the form
+
+  customDrugModalVisibility.value = false;
 }
 
 
