@@ -1,9 +1,9 @@
 <template>
   <UIBaseCard :naked="true">
-    <UFormGroup label="Medikament" name="drug" required>
+    <UFormGroup label="Medikament" name="drug">
       <UInput
-        v-model="state.drug" placeholder="Medikament/PZN oder ATC-Code eingeben"
-        icon="i-heroicons-magnifying-glass-20-solid" :color="props.color" />
+          v-model="state.searchTerm" placeholder="Medikament/PZN oder ATC-Code eingeben"
+          icon="i-heroicons-magnifying-glass-20-solid" :color="props.color" />
     </UFormGroup>
     <div v-if="isLoading && props.edit && !props.custom">
       <UProgress animation="elastic" color="blue" class="my-6" />
@@ -15,10 +15,10 @@
       <div v-if="drugList.items.length > 0">
         <ul>
           <li
-            v-for="item in paginatedItems" :key="item.drug.id"
-            class="relative border border-[#ededed] my-1 py-2 rounded-md hover:bg-[#ededed] hover:cursor-pointer"
-            style="position: relative"
-            @click="printMedication(item)" @mouseover="hoveredItem = item" @mouseleave="hoveredItem = null">
+              v-for="item in paginatedItems" :key="item.drug.id"
+              class="relative border border-[#ededed] my-1 py-2 rounded-md hover:bg-[#ededed] hover:cursor-pointer"
+              style="position: relative"
+              @click="selectDrug(item)" @mouseover="hoveredItem = item" @mouseleave="hoveredItem = null">
             <div>
               <strong>Name: {{ item.drug.trade_name }} </strong><br>
               <div v-for="system in drugCodeSystems" :key="system.id">
@@ -68,11 +68,11 @@
           <p class="text-lg mt-2">Page {{ state.currentPage }} of {{ totalPages }}</p>
         </div>
       </div>
-      <div v-if="drugList.count == 0 && state.drug.length >= 3 && showMissingDrugOnLoad" class="text-center my-6">
+      <div v-if="drugList.count == 0 && state.searchTerm.length >= 3 && showMissingDrugOnLoad" class="text-center my-6">
         <h4>
           Es konnte kein Medikament zu folgender Eingabe gefunden werden:
         </h4>
-        <h3 class="text-2xl my-2">{{ state.drug }}</h3>
+        <h3 class="text-2xl my-2">{{ state.searchTerm }}</h3>
       </div>
 
       <div v-if="fetchError" class="text-center my-6">
@@ -83,15 +83,6 @@
           {{ fetchError }}
         </h4>
       </div>
-
-      <div v-if="props.custom && !drugStore.item">
-        <h3>{{ customDrug }}</h3>
-      </div>
-    </div>
-    <div v-if="drugStore.item" class="my-8">
-      <p>Medikament: {{ drugStore.item.drug.trade_name }}</p>
-      <p>PZN: {{ drugStore.item.drug.codes?.PZN }}</p>
-      <p>Packungsgroesse: {{ drugStore.item.drug.attrs?.amount || 'N/A' }}</p>
     </div>
   </UIBaseCard>
 </template>
@@ -101,16 +92,24 @@ import { ref, watch, reactive } from "vue";
 import { apiGetFieldDefinitions, apiDrugSearch } from '~/api/drug';
 import { useMedlogapi } from '#imports';
 
+const props = defineProps<{
+  drug?: string;
+  edit?: boolean;
+  custom?: boolean;
+  color?: string;
+}>();
+
+const emit = defineEmits(['drug-selected'])
+
 const { data: codeSystems } = await useMedlogapi("/api/drug/code_def")
 const drugCodeSystems = codeSystems.value.filter((item) => item.client_visible === true)
 
 const drugFieldDefinitionsObject = await apiGetFieldDefinitions("search_result")
 
 const hoveredItem = ref(null);
-const drugStore = useDrugStore();
 
 const state = reactive({
-  drug: "",
+  searchTerm: "",
   currentPage: 1,
   itemsPerPage: 5,
 });
@@ -128,20 +127,20 @@ const fetchError = ref("")
 
 const fetchDrugs = async () => {
   if (props.custom && initialLoad.value) {
-    customDrug.value = state.drug;
+    customDrug.value = state.searchTerm;
     fetchError.value = ""
-    if (state.drug.length >= 3) {
+    if (state.searchTerm.length >= 3) {
       try {
         showMissingDrugOnLoad.value = false
-        const response = await apiDrugSearch(state.drug)
+        const response = await apiDrugSearch(state.searchTerm)
 
         if (response.items == 0) {
           showMissingDrugOnLoad.value = true
         }
 
         if (props.edit && initialLoad.value) {
-          printMedication(response.items.at(-1));
-          state.drug = ""
+          selectDrug(response.items.at(-1));
+          state.searchTerm = ""
           initialLoad.value = false;
           isLoading.value = false;
           return;
@@ -157,18 +156,18 @@ const fetchDrugs = async () => {
       }
     }
   } else {
-    if (state.drug.length >= 3) {
+    if (state.searchTerm.length >= 3) {
       try {
         showMissingDrugOnLoad.value = false
-        const response = await apiDrugSearch(state.drug)
+        const response = await apiDrugSearch(state.searchTerm)
 
         if (response.items == 0) {
           showMissingDrugOnLoad.value = true
         }
 
         if (props.edit && initialLoad.value) {
-          printMedication(response.items[0]);
-          state.drug = ""
+          selectDrug(response.items[0]);
+          state.searchTerm = ""
           initialLoad.value = false;
           isLoading.value = false;
           return;
@@ -192,7 +191,7 @@ const fetchDrugs = async () => {
 };
 
 watch(
-  () => state.drug,
+  () => state.searchTerm,
   (newValue) => {
     fetchDrugs(newValue);
   },
@@ -209,23 +208,16 @@ const totalPages = computed(() => {
   return Math.ceil(drugList.count / state.itemsPerPage);
 });
 
-function printMedication(item) {
-  drugStore.item = item;
-  state.drug = "";
+function selectDrug(item) {
+  state.searchTerm = "";
+  emit('drug-selected', item.drug_id);
 }
-
-const props = defineProps<{
-  drug?: string;
-  edit?: boolean;
-  custom?: boolean;
-  color?: string;
-}>();
 
 watch(
   () => props.drug,
   (newDrug) => {
     if (newDrug) {
-      state.drug = newDrug;
+      state.searchTerm = newDrug;
       if (!initialLoad.value) {
         fetchDrugs();
       }

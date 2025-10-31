@@ -284,7 +284,7 @@ async function createIntakeList() {
       tableContent.value = intakes.items.map((item) => ({
         event: item.event.name,
         pzn: item.drug.codes.PZN,
-        source: useDrugSourceTranslator(item.source_of_drug_information, null),
+        source: item.source_of_drug_information,
         drug: item.drug.trade_name,
         intervall: useIntervallDoseTranslator(item.regular_intervall_of_daily_dose, null),
         dose: item.dose_per_day === 0 ? "/" : item.dose_per_day,

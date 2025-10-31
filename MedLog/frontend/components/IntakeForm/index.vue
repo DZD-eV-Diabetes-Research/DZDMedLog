@@ -1,34 +1,31 @@
-<!-- This is the main drug intake form component that deals with the creation of intakes, both regular and custom as well as the editing -->
+<!-- This is the main drug intake form component that is used to create or edit intakes -->
 <template>
-  <div v-if="missingDrugError" style="text-align: center">
-    <br>
-    <p style="color: red">Es muss ein Medikament ausgewählt werden</p>
-  </div>
+  <UForm ref="intakeForm" :state="state" :schema="schema" class="space-y-4" @submit="onSubmit">
+    <UFormGroup label="Medikament" name="drugId" required>
+      <p>{{ state.drugId }}</p>
+    </UFormGroup>
 
-  <!-- Main Form -->
-
-  <UForm :state="state" :schema="schema" class="space-y-4" @submit="saveIntake()">
     <div style="padding-top: 2.5%">
       <UFormGroup label="Quelle der Arzneimittelangabe">
-        <USelect v-model="selectedSourceItem" :options="sourceItems" :color="props.color" />
+        <USelect v-model="state.drugSource" :options="drugSourceOptions" :color="props.color" />
       </UFormGroup>
     </div>
     <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?">
-      <USelect v-model="selectedFrequency" :options="frequency" :color="props.color" />
+      <USelect v-model="state.frequency" :options="frequencyOptions" :color="props.color" />
     </UFormGroup>
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
         <UFormGroup label="Dosis pro Einnahme" style="border-color: red" name="dose">
           <UInput
-            v-model="state.dose" type="number" :disabled="selectedFrequency !== 'regelmäßig'"
-            :color="selectedFrequency !== 'regelmäßig' ? 'gray' : props.color" />
+            v-model="state.dose" type="number" min="0" :disabled="state.frequency !== 'regular'"
+            :color="state.frequency !== 'regular' ? 'gray' : props.color" />
         </UFormGroup>
       </div>
       <div class="flex-1">
         <UFormGroup label="Intervall der Tagesdosen">
           <USelect
-            v-model="state.intervall" :options="intervallOfDose" :disabled="selectedFrequency !== 'regelmäßig'"
-            :color="selectedFrequency !== 'regelmäßig' ? 'gray' : props.color" />
+            v-model="state.intervall" :options="doseIntervalOptions" :disabled="state.frequency !== 'regular'"
+            :color="state.frequency !== 'regular' ? 'gray' : props.color" />
         </UFormGroup>
       </div>
     </div>
@@ -45,19 +42,12 @@
       </div>
     </div>
     <URadioGroup
-      v-model="state.selected" legend="Wurden heute Medikamente eingenommen?" name="selected"
-      :options="options" :color="props.color" />
-    <div style="text-align: center">
-      <div v-if="props.edit" class="flex flex-row justify-center space-x-6">
-        <UButton type="submit" label="Speichern" :color="props.color" variant="soft" :class="buttonClass" />
-        <UButton label="Abbrechen" :color="props.color" variant="soft" :class="buttonClass" @click="closeEditModal()" />
-      </div>
-      <div v-else>
-        <UButton
-          type="submit" :label="props.label" :color="props.color"
-          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" variant="soft"
-          :class="buttonClass" />
-      </div>
+        v-model="state.medsTakenToday" legend="Wurden heute Medikamente eingenommen?" name="medsTakenToday"
+        :options="medsTakenTodayOptions" :color="props.color" />
+    <hr>
+    <div class="flex justify-between">
+      <UButton type="cancel" label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
+      <UButton type="submit" label="Speichern" />
     </div>
   </UForm>
 </template>
@@ -66,72 +56,67 @@
 
 import dayjs from "dayjs";
 import { object, number, date, string, type InferType } from "yup";
-
-
-const { $medlogapi } = useNuxtApp();
-const route = useRoute();
-const drugStore = useDrugStore();
-const initialLoad = ref(true);
+import type { FormSubmitEvent } from "#ui/types";
 
 const props = defineProps<{
   color?: string;
-  edit?: boolean;
-  label?: string;
-  row?: any;
+  drugId?: string;
+  initialState?: any;
 }>();
 
-const buttonClass = computed(() => {
-  const color = props.color;
-  if (color === "primary") {
-    return `border border-green-500 hover:bg-green-300 hover:border-white hover:text-white`;
-  }
-  return `border border-${color}-500 hover:bg-${color}-300 hover:border-white hover:text-white`;
-});
+const emit = defineEmits(['cancel', 'save'])
 
-const state = reactive({
-  selected: "Yes",
-  startTime: dayjs(Date()).format("YYYY-MM-DD"),
-  endTime: null,
-  dose: 0,
-  intervall: null,
-});
+/**
+ * TODO Switch to useTemplateRef() when updating to Vue 3.5
+ * See https://vuejs.org/guide/essentials/template-refs.html#accessing-the-refs
+ */
+const intakeForm = ref(null)
 
-const schema = object({
-  selected: string().required("Required"),
-  startTime: date().required("Required"),
-  dose: number().min(0, "Required"),
-  name: string(),
-});
-
-type Schema = InferType<typeof schema>;
-
-const sourceItems = [
-  "Probandenangabe",
-  "Medikamentenpackung: PZN gescannt",
-  "Medikamentenpackung: PZN getippt",
-  "Medikamentenpackung: Arzneimittelname",
-  "Beipackzettel",
-  "Medikamentenplan",
-  "Rezept",
-  "Nacherhebung: Tastatureingabe der PZN",
-  "Nacherhebung: Arzneimittelname",
+const drugSourceOptions = [
+  { value: "Study participant: verbal specification", label: "Probandenangabe" },
+  { value: "Medication package: Scanned PZN", label: "Medikamentenpackung: PZN gescannt" },
+  { value: "Medication package: Typed in PZN", label: "Medikamentenpackung: PZN getippt" },
+  { value: "Medication package: Drug name", label: "Medikamentenpackung: Arzneimittelname" },
+  { value: "Medication leaflet", label: "Beipackzettel" },
+  { value: "Study participant: medication plan", label: "Medikamentenplan" },
+  { value: "Study participant: Medication prescription", label: "Rezept" },
+  { value: "Follow up via phone/message: Typed in PZN", label: "Nacherhebung: Tastatureingabe der PZN" },
+  { value: "Follow up via phone/message: Medication name", label: "Nacherhebung: Arzneimittelname" },
 ];
-const selectedSourceItem = ref(sourceItems[0]);
 
-const frequency = ["nach Bedarf", "regelmäßig"];
-const selectedFrequency = ref(frequency[0]);
-
-const intervallOfDose = [
-  "unbekannt",
-  "täglich",
-  "jeden 2. Tag",
-  "jeden 3. Tag",
-  "jeden 4. Tag = 2x pro Woche",
-  "Im Abstand von 1 Woche und mehr",
+const frequencyOptions = [
+  { value: "as needed", label: "nach Bedarf" },
+  { value: "regular", label: "regelmäßig" },
 ];
-const selectedInterval = ref(intervallOfDose[0]);
 
-const options = [
+const doseIntervalOptions = [
+  {
+    value: "Unknown",
+    label: "unbekannt"
+  },
+  {
+    value: "Daily",
+    label: "täglich"
+  },
+  {
+    value: "every 2. day",
+    label: "jeden 2. Tag"
+  },
+  {
+    value: "every 3. day",
+    label: "jeden 3. Tag"
+  },
+  {
+    value: "every 4. day / twice a week",
+    label: "jeden 4. Tag = 2x pro Woche"
+  },
+  {
+    value: "intervals of one week or more",
+    label: "Im Abstand von 1 Woche und mehr"
+  },
+];
+
+const medsTakenTodayOptions = [
   {
     value: "Yes",
     label: "Ja",
@@ -146,136 +131,47 @@ const options = [
   },
 ];
 
-const tempDose = ref();
-const tempIntervall = ref();
-const missingDrugError = ref(false)
-
-async function saveIntake() {
-
-  drugStore.action = false;
-  initialLoad.value = false;
-  tempDose.value = null;
-  tempIntervall.value = null;
-
-  drugStore.source = useDrugSourceTranslator(null, selectedSourceItem.value);
-  if (selectedFrequency.value === "nach Bedarf") {
-    drugStore.frequency = "as needed";
-  } else {
-    drugStore.frequency = "regular";
-  }
-  drugStore.dose = state.dose;
-  tempDose.value = drugStore.dose;
-  drugStore.intervall = useIntervallDoseTranslator(null, state.intervall);
-  tempIntervall.value = state.intervall;
-  drugStore.option = state.selected;
-  drugStore.intake_start_time_utc = state.startTime;
-  drugStore.intake_end_time_utc = state.endTime;
-  drugStore.consumed_meds_today = state.selected;
-
-  if (props.edit) {
-    try {
-      drugStore.editVisibility = false;
-      const frequency = ref();
-
-      if (drugStore.frequency === "nach Bedarf") {
-        frequency.value = "as needed";
-      } else {
-        frequency.value = "regular";
-      }
-
-      const patchBody = {
-        drug_id: drugStore.item.drug_id,
-        source_of_drug_information: drugStore.source,
-        intake_start_time_utc: drugStore.intake_start_time_utc,
-        intake_end_time_utc: drugStore.intake_end_time_utc,
-        administered_by_doctor: "prescribed",
-        intake_regular_or_as_needed: frequency.value,
-        dose_per_day: drugStore.dose,
-        regular_intervall_of_daily_dose: drugStore.intervall,
-        as_needed_dose_unit: null,
-        consumed_meds_today: drugStore.consumed_meds_today,
-      };
-
-      await $medlogapi(
-        `/api/study/{studyId}/interview/{interviewId}/intake/{toEditDrugId}`,
-        {
-          method: "PATCH",
-          body: patchBody,
-          path: {
-            studyId: route.params.study_id,
-            interviewId: route.params.interview_id,
-            toEditDrugId: drugStore.editId
-          }
-        }
-      );
-    } catch (error) {
-      console.log(error);
-    }
-  } else if (!props.edit) {
-
-    try {
-      await useCreateIntake(
-        route.params.study_id,
-        route.params.interview_id,
-        drugStore.administered_by_doctor,
-        drugStore.source,
-        drugStore.intake_start_time_utc,
-        drugStore.intake_end_time_utc,
-        drugStore.frequency,
-        drugStore.intervall,
-        drugStore.dose,
-        drugStore.consumed_meds_today,
-        drugStore.item?.drug_id
-      );
-      missingDrugError.value = false
-      selectedSourceItem.value = sourceItems[0]
-      selectedFrequency.value = frequency[0]
-      selectedInterval.value = intervallOfDose[0]
-      state.dose = 0
-      state.endTime = null
-      state.selected = "Yes"
-    } catch (error) {
-      missingDrugError.value = true
-      console.log(error);
-    }
-  }
-
-  drugStore.action = !drugStore.action;
-}
-
-watch(selectedFrequency, (newValue) => {
-  if (newValue === "nach Bedarf") {
-    drugStore.frequency = "as needed";
-    tempDose.value = state.dose;
-    state.dose = 0;
-    tempIntervall.value = state.intervall;
-    state.intervall = null;
-    selectedInterval.value = null;
-  } else if (!props.edit) {
-    drugStore.frequency = "regular";
-    state.dose = tempDose.value ? tempDose.value : 1;
-    state.intervall = tempIntervall.value ? tempIntervall.value : "unbekannt";
-  } else {
-    state.dose = drugStore.dose;
-    state.intervall = drugStore.intervall;
-  }
+const state = reactive({
+  dose: 0,
+  drugId: "",
+  drugSource: drugSourceOptions[0].value,
+  endTime: null,
+  frequency: frequencyOptions[0].value,
+  intervall: doseIntervalOptions[0].value,
+  medsTakenToday: medsTakenTodayOptions[0].value,
+  startTime: dayjs(Date()).format("YYYY-MM-DD")
 });
 
-// functioning
+const schema = object({
+  dose: number().min(0, "Required"),
+  drugId: string().required("Kein Medikament ausgewählt"),
+  drugSource: string().oneOf(drugSourceOptions.map(item => item.value)).required("Required"),
+  endTime: date().optional().nullable(),
+  frequency: string().oneOf(frequencyOptions.map(item => item.value)).required("Required"),
+  intervall: string().oneOf(doseIntervalOptions.map(item => item.value)),
+  medsTakenToday: string().oneOf(medsTakenTodayOptions.map(item => item.value)).required("Required"),
+  startTime: date().required("Required"),
+});
 
-if (props.edit) {
-  selectedSourceItem.value = drugStore.source;
-  selectedFrequency.value = drugStore.frequency;
-  state.dose = drugStore.dose;
-  state.intervall = drugStore.intervall;
-  state.startTime = drugStore.intake_start_time_utc;
-  state.endTime = drugStore.intake_end_time_utc;
-  state.selected = drugStore.consumed_meds_today;
+export type IntakeFormSchema = InferType<typeof schema>;
+
+async function onSubmit(event: FormSubmitEvent<IntakeFormSchema>) {
+  emit('save', event.data);
 }
 
+watch(() => props.drugId, (newDrugId: string) => {
+  state.drugId = newDrugId;
+  intakeForm.value.validate();
+})
 
-const closeEditModal = function () {
-  drugStore.editVisibility = false
-  drugStore.item = null
-}
+onMounted(async () => {
+  if (props.initialState) {
+    for (const key of Object.keys(state)) {
+      if (props.initialState[key]) {
+        state[key] = props.initialState[key];
+      }
+    }
+    intakeForm.value.validate();
+  }
+})
 </script>

@@ -129,7 +129,7 @@
 
         <hr>
         <div class="flex justify-between">
-          <UButton label="Abbrechen" variant="outline" @click="$emit('cancel')" />
+          <UButton type="cancel" label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
           <UButton type="submit" label="Speichern" />
         </div>
       </UForm>
