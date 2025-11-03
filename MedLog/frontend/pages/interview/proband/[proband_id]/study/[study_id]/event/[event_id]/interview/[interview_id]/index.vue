@@ -10,53 +10,17 @@
           :on-update="loadIntakeList" />
       </div>
     </UIBaseCard>
-    <div>
-      <UIBaseCard>
-        <IntakeSearch color="primary" @drug-selected="drugId => drugForIntake = drugId" />
-        <UButton
-            label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
-            class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white mt-4"
-            @click="openCustomModal()"
-        />
-      </UIBaseCard>
-      <UIBaseCard>
-        <IntakeForm
-            color="primary"
-            :drug-id="drugForIntake"
-            :edit="false"
-            @save="saveIntake"
-            @cancel="console.log('CANCELLED!!!!!!')"
-        />
-      </UIBaseCard>
-      <UModal v-model="customDrugModalVisibility">
-        <UCard>
-          <template #header>
-            Medikament anlegen
-          </template>
-
-          <UAlert
-              icon="i-heroicons-information-circle"
-              color="sky"
-              variant="subtle"
-              description="Legen Sie hier ein Medikament an, das nicht in der Medikamentendatenbank enthalten ist.
-                Es kann danach über die Suche gefunden werden."
-          />
-          <CustomDrugForm
-              class="mt-5"
-              :error="createCustomDrugError"
-              @save="saveCustomDrug"
-              @cancel="customDrugModalVisibility = false"
-          />
-        </UCard>
-      </UModal>
-    </div>
     <!-- TABLE -->
     <div class="flex flex-row justify-center max-w-6xl mx-auto">
       <div class="border-2 border-[#ededed] rounded-md shadow-lg">
         <h4 style="text-align: center; padding-top: 25px">Medikationen</h4>
         <div>
-          <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex justify-between px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
             <UInput v-model="q" placeholder="Tabelle Filtern" />
+            <UButton
+                label="Präparat erfassen"
+                @click="openCreateIntakeModal"
+            />
           </div>
           <UTable :rows="rows" :columns="columns" class="break-words">
             <template v-if="userStore.isAdmin" #actions-data="{ row }">
@@ -110,24 +74,20 @@
         </div>
       </div>
     </UModal>
-    <UModal v-model="editModalVisible">
-      <div class="p-4">
-        <div style="text-align: center">
-          <div>
-            <IntakeSearch
-              @drug-selected="drugId => toEditDrug = drugId"
-            />
-            <IntakeForm
-              :edit="true"
-              :drug-id="toEditDrug"
-              :initial-state="intakeToEdit"
-              @save="saveEditIntake"
-              @cancel="() => { editModalVisible = false }"
-            />
-          </div>
-        </div>
-      </div>
-    </UModal>
+    <IntakeModal
+        v-if="createIntakeModalVisible"
+        v-model="createIntakeModalVisible"
+        @save="saveIntake"
+        @cancel="() => { createIntakeModalVisible = false }"
+    />
+    <IntakeModal
+        v-if="editModalVisible"
+        v-model="editModalVisible"
+        :initial-state="intakeToEdit"
+        :is-drug-editable="false"
+        @save="saveEditIntake"
+        @cancel="() => { editModalVisible = false }"
+    />
     <UModal v-model="userStore.firstEvent" @close="resetFirstEvent()">
       <div class="p-4">
         <div style="text-align: center">
@@ -158,8 +118,7 @@
 <script setup lang="ts">
 // general constants
 
-import type {DrugBody} from "~/components/CustomDrugForm.vue";
-import type {IntakeFormSchema} from "~/components/IntakeForm/index.vue";
+import type { IntakeFormSchema } from "~/components/Intake/Form.vue";
 import dayjs from "dayjs";
 
 const route = useRoute();
@@ -167,8 +126,6 @@ const router = useRouter();
 const studyStore = useStudyStore();
 const userStore = useUserStore();
 const { $medlogapi } = useNuxtApp();
-
-const createCustomDrugError = ref("");
 
 const { data: latestItems, pending } = await useAsyncData(
   'latestItems',
@@ -182,7 +139,11 @@ const { data: latestItems, pending } = await useAsyncData(
   )
 );
 
-const drugForIntake = ref(undefined);
+const createIntakeModalVisible = ref(false);
+
+function openCreateIntakeModal() {
+  createIntakeModalVisible.value = true;
+}
 
 async function saveIntake(data: IntakeFormSchema) {
   const body = {
@@ -214,15 +175,16 @@ async function saveIntake(data: IntakeFormSchema) {
 
   if (error.value) {
     console.error(error.value);
+    return;
   }
 
+  createIntakeModalVisible.value = false;
   await loadIntakeList();
 }
 
 // Editform Modal
 
 const editModalVisible = ref(false);
-const toEditDrug = ref();
 const intakeToEdit = ref<IntakeFormSchema>();
 const intakeIdToEdit = ref();
 
@@ -255,7 +217,6 @@ async function openEditModal(row: object) {
     startTime: data.value.intake_start_time_utc,
   }
 
-  toEditDrug.value = intakeToEdit.value.drugId;
   editModalVisible.value = true
 }
 
@@ -414,35 +375,6 @@ const filteredRows = computed(() => {
     });
   });
 });
-
-// CustomElement Modal
-
-const customDrugModalVisibility = ref(false);
-
-async function openCustomModal() {
-  customDrugModalVisibility.value = true
-}
-
-async function saveCustomDrug(customDrugBody: DrugBody) {
-  createCustomDrugError.value = "";
-  const { error } = await useMedlogapi(
-      `/api/drug/custom`,
-      {
-        method: "POST",
-        body: customDrugBody
-      }
-  );
-
-  if (error.value) {
-    createCustomDrugError.value = error.value;
-    return;
-  }
-
-  // TODO select newly created drug in the form
-
-  customDrugModalVisibility.value = false;
-}
-
 
 // REST
 

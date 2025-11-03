@@ -1,10 +1,6 @@
 <!-- This is the main drug intake form component that is used to create or edit intakes -->
 <template>
   <UForm ref="intakeForm" :state="state" :schema="schema" class="space-y-4" @submit="onSubmit">
-    <UFormGroup label="Medikament" name="drugId" required>
-      <p>{{ state.drugId }}</p>
-    </UFormGroup>
-
     <div style="padding-top: 2.5%">
       <UFormGroup label="Quelle der Arzneimittelangabe">
         <USelect v-model="state.drugSource" :options="drugSourceOptions" :color="props.color" />
@@ -47,7 +43,7 @@
     <hr>
     <div class="flex justify-between">
       <UButton type="cancel" label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
-      <UButton type="submit" label="Speichern" />
+      <UButton type="submit" label="Speichern" :disabled="!state.drugId" />
     </div>
   </UForm>
 </template>
@@ -159,19 +155,29 @@ async function onSubmit(event: FormSubmitEvent<IntakeFormSchema>) {
   emit('save', event.data);
 }
 
-watch(() => props.drugId, (newDrugId: string) => {
+watch(() => props.drugId, async (newDrugId: string) => {
   state.drugId = newDrugId;
-  intakeForm.value.validate();
+  try {
+    await intakeForm.value.validate();
+  } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
+    // Swallow error, the result is shown directly in the form
+  }
 })
 
 onMounted(async () => {
   if (props.initialState) {
+    // Populate form state with given state
     for (const key of Object.keys(state)) {
       if (props.initialState[key]) {
         state[key] = props.initialState[key];
       }
     }
-    intakeForm.value.validate();
+
+    try {
+      await intakeForm.value.validate();
+    } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
+      // Swallow error, the result is shown directly in the form
+    }
   }
 })
 </script>
