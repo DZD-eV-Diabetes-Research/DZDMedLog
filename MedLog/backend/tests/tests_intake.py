@@ -293,10 +293,14 @@ def test_get_intake():
         f"api/study/{study_id}/interview/{interview.interview.id}/intake/{intake.intake.id}",
         method="get",
     )
-    print("intake", intake)
 
+    # quick sanity check. Could be improved
     dict_must_contain(
         intake,
-        required_keys=["administered_by_doctor"],
+        required_keys=[
+            "intake_start_time_utc",
+            "administered_by_doctor",
+            "source_of_drug_information",
+        ],
         exception_dict_identifier="get intake response",
     )

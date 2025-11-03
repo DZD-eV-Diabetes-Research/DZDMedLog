@@ -70,7 +70,7 @@ async def get_intake(
         interview_id=interview_id,
     )
     return await intake_crud.get(
-        intake_id=intake_id,
+        id_=intake_id,
         study_id=study_access.study.id,
         raise_exception_if_none=HTTPException(status_code=status.HTTP_404_NOT_FOUND),
     )
@@ -401,7 +401,6 @@ async def list_all_intakes_of_interview(
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Intake]:
-
     return await intake_crud.list(
         filter_interview_id=interview_id, filter_study_id=study_access.study.id
     )
