@@ -260,3 +260,43 @@ def test_update_intake():
         },
         exception_dict_identifier="update intake response",
     )
+
+
+def test_get_intake():
+    """Test updating an existing intake"""
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestGetIntakeStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        with_intakes=1,
+        proband_count=1,
+    )
+
+    study_id = study_data.study.id
+    event = study_data.events[0]
+    interview = event.interviews[0]
+    intake = interview.intakes[0]
+
+    # Update the intake
+    from medlogserver.model.intake import (
+        IntakeCreateAPI,
+        IntakeUpdate,
+        SourceOfDrugInformationAnwers,
+        AdministeredByDoctorAnswers,
+        IntakeRegularOrAsNeededAnswers,
+        ConsumedMedsTodayAnswers,
+    )
+
+    # test from medlogserver.api.routes.routes_intake import get_intake
+
+    intake = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake/{intake.intake.id}",
+        method="get",
+    )
+    print("intake", intake)
+
+    dict_must_contain(
+        intake,
+        required_keys=["administered_by_doctor"],
+        exception_dict_identifier="get intake response",
+    )
