@@ -77,6 +77,7 @@
     <IntakeModal
         v-if="createIntakeModalVisible"
         v-model="createIntakeModalVisible"
+        prevent-close
         @save="saveIntake"
         @cancel="() => { createIntakeModalVisible = false }"
     />
@@ -85,6 +86,7 @@
         v-model="editModalVisible"
         :initial-state="intakeToEdit"
         :is-drug-editable="false"
+        prevent-close
         @save="saveEditIntake"
         @cancel="() => { editModalVisible = false }"
     />

@@ -18,7 +18,7 @@
       attr_multi_ref: Multiple answers of predefined selction possible
       and created inputs for each item in this array. -->
 
-      <UForm :state="state" :validate="validate" class="space-y-4" @submit="onSubmit">
+      <UForm :state="state" :validate="validate" class="space-y-4" @submit.prevent="onSubmit">
         <UFormGroup label="Name" name="customName" required class="mb-6">
           <UInput v-model="state.customName" color="yellow" />
         </UFormGroup>
@@ -129,7 +129,7 @@
 
         <hr>
         <div class="flex justify-between">
-          <UButton type="cancel" label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
+          <UButton label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
           <UButton type="submit" label="Speichern" />
         </div>
       </UForm>

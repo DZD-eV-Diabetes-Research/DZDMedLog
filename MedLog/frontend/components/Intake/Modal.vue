@@ -1,39 +1,55 @@
 <template>
   <UModal>
-    <div v-if="!intakeDrugId" class="p-4">
-      <DrugSearch
-          @drug-selected="drugId => intakeDrugId = drugId"
-      />
-      <UButton
-          label="Ungelistetes Medikament aufnehmen" color="yellow" variant="soft"
-          class="border border-yellow-500 hover:bg-yellow-300 hover:border-white hover:text-white mt-4"
-          @click="openCustomModal()"
-      />
-    </div>
-    <div v-else class="p-4">
-      <DrugSummaryCard v-model="intakeDrugId" :readonly="!isDrugEditable" />
-    </div>
-    <hr>
-    <div class="p-4">
-      <IntakeForm
-          :drug-id="intakeDrugId"
-          :initial-state="props.initialState"
-          @cancel="$emit('cancel')"
-          @save="data => $emit('save', data)"
-      />
-    </div>
-    <UModal v-model="customDrugModalVisibility">
+    <UCard>
+      <template #header>
+        <div class="flex items-center justify-between">
+          <span class="text-lg">Präparat erfassen</span>
+          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="$emit('cancel')" />
+        </div>
+      </template>
+
+      <div v-if="!intakeDrugId">
+        <p class="text-base mb-2">
+          Präparat aus der Datenbank auswählen
+        </p>
+        <DrugSearch :autofocus-input="true" @drug-selected="onDrugSelected" />
+
+        <UDivider label="oder" class="my-4" />
+
+        <p>
+          Falls ein Präparat nicht in der Datenbank enthalten ist, kann es hier hinzugefügt werden.
+          Danach ist es über die Suche auffindbar.
+        </p>
+        <div class="flex justify-end">
+          <UButton
+              label="Ungelistetes Medikament aufnehmen" color="yellow" variant="outline"
+              @click="openCustomModal()"
+          />
+        </div>
+      </div>
+
+      <div v-else>
+        <DrugSummaryCard v-model="intakeDrugId" :readonly="!isDrugEditable" class="mb-4" />
+        <IntakeForm
+            :drug-id="intakeDrugId"
+            :initial-state="props.initialState"
+            @cancel="$emit('cancel')"
+            @save="data => $emit('save', data)"
+        />
+      </div>
+    </UCard>
+
+    <UModal v-model="customDrugModalVisibility" prevent-close>
       <UCard>
         <template #header>
-          Medikament anlegen
+          Präparat anlegen
         </template>
 
         <UAlert
             icon="i-heroicons-information-circle"
             color="sky"
             variant="subtle"
-            description="Legen Sie hier ein Medikament an, das nicht in der Medikamentendatenbank enthalten ist.
-                Es kann danach über die Suche gefunden werden."
+            description="Der Name des Präparats ist das einzige Pflichtfeld. Sollten Codes (z.B. PZN) bekannt sein, können diese bei einer späteren Datenharmonisierung helfen."
         />
         <CustomDrugForm
             class="mt-5"
@@ -56,10 +72,13 @@ const props = defineProps({
 
 defineEmits(['cancel', 'save'])
 
-const intakeDrugId = ref<string>('');
-
 const createCustomDrugError = ref("");
 const customDrugModalVisibility = ref(false);
+const intakeDrugId = ref<string>('');
+
+function onDrugSelected(newDrugId) {
+  intakeDrugId.value = newDrugId;
+}
 
 async function openCustomModal() {
   customDrugModalVisibility.value = true
@@ -67,7 +86,7 @@ async function openCustomModal() {
 
 async function saveCustomDrug(customDrugBody: DrugBody) {
   createCustomDrugError.value = "";
-  const { error } = await useMedlogapi(
+  const { data, error } = await useMedlogapi(
       `/api/drug/custom`,
       {
         method: "POST",
@@ -76,11 +95,13 @@ async function saveCustomDrug(customDrugBody: DrugBody) {
   );
 
   if (error.value) {
-    createCustomDrugError.value = error.value;
+    createCustomDrugError.value = error.value.detail ?? error.value.toString() ?? "Unbekannter Fehler";
     return;
   }
 
-  // TODO select newly created drug in the form
+  if (data.value?.id) {
+    intakeDrugId.value = data.value?.id;
+  }
 
   customDrugModalVisibility.value = false;
 }

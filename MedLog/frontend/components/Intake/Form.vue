@@ -42,7 +42,7 @@
         :options="medsTakenTodayOptions" :color="props.color" />
     <hr>
     <div class="flex justify-between">
-      <UButton type="cancel" label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
+      <UButton label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
       <UButton type="submit" label="Speichern" :disabled="!state.drugId" />
     </div>
   </UForm>
@@ -162,7 +162,7 @@ watch(() => props.drugId, async (newDrugId: string) => {
   } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
     // Swallow error, the result is shown directly in the form
   }
-})
+}, { immediate: true });
 
 onMounted(async () => {
   if (props.initialState) {
