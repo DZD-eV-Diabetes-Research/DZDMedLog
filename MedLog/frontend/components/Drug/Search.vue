@@ -28,22 +28,23 @@
             style="position: relative"
             @click="selectDrug(item)" @mouseover="hoveredItem = item" @mouseleave="hoveredItem = null">
           <div>
-            <strong>Name: {{ item.drug.trade_name }} </strong><br>
-            <div v-for="system in drugCodeSystems" :key="system.id">
-              {{ system.id }}: {{ item.drug.codes?.[system.id] }}
-              <UTooltip v-if="system.desc" :text="system.desc" :popper="{ placement: 'right' }">
+            <strong>{{ item.drug.trade_name }}</strong><br>
+            <DrugCodePill
+                v-for="drugCodeSystem in drugCodeSystems"
+                :key="drugCodeSystem.id"
+                :code-system="drugCodeSystem.id"
+                :code-value="item.drug.codes?.[drugCodeSystem.id]"
+                class="mr-2"
+            />
+            <div v-for="attr in drugFieldsStore.fieldsForSearchResults.attrs" :key="attr.field_name">
+              {{ attr.field_name_display }}: {{ item.drug?.attrs?.[attr.field_name] }}
+              <UTooltip v-if="attr.field_desc" :text="attr.field_desc" :popper="{ placement: 'right' }">
                 <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-black cursor-pointer" />
               </UTooltip>
             </div>
-            <div v-for="attr in drugFieldDefinitionsObject.attrs" :key="attr[1]">
-              {{ attr[0] }}: {{ item.drug?.attrs?.[attr[1]] }}
-              <UTooltip v-if="attr[3]" :text="attr[3]" :popper="{ placement: 'right' }">
-                <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-black cursor-pointer" />
-              </UTooltip>
-            </div>
-            <div v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :key="attr_ref[1]">
-              {{ attr_ref[0] }}: {{ item.drug?.attrs_ref?.[attr_ref[1]]?.display }}
-              <UTooltip v-if="attr_ref[3]" :text="attr_ref[3]" :popper="{ placement: 'right' }">
+            <div v-for="attr_ref in drugFieldsStore.fieldsForSearchResults.attrs_ref" :key="attr_ref.field_name">
+              {{ attr_ref.field_name_display }}: {{ item.drug?.attrs_ref?.[attr_ref.field_name]?.display }}
+              <UTooltip v-if="attr_ref.field_desc" :text="attr_ref.field_desc" :popper="{ placement: 'right' }">
                 <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-black cursor-pointer" />
               </UTooltip>
             </div>
@@ -51,9 +52,9 @@
           <div
               v-if="hoveredItem === item"
               class="absolute top-1/2 -translate-y-1/2 right-full w-1/2 mx-10 bg-[#f9f9f9] border border-[#ededed] rounded-md py-2 px-4">
-            <div v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref" :key="attr_multi_ref[1]">
-              <span class="text-sm font-bold">{{ attr_multi_ref[0] }}:</span> <span class="text-sm">{{
-                item.drug?.attrs_multi_ref?.[attr_multi_ref[1]][0]?.display }}</span>
+            <div v-for="attr_multi_ref in drugFieldsStore.fieldsForSearchResults.attrs_multi_ref" :key="attr_multi_ref[1]">
+              <span class="text-sm font-bold">{{ attr_multi_ref.field_name_display }}:</span> <span class="text-sm">{{
+                item.drug?.attrs_multi_ref?.[attr_multi_ref.field_name][0]?.display }}</span>
             </div>
           </div>
         </li>
@@ -81,7 +82,7 @@
 
 <script setup lang="ts">
 import { ref, watch, reactive } from "vue";
-import { apiGetFieldDefinitions, apiDrugSearch } from '~/api/drug';
+import { apiDrugSearch } from '~/api/drug';
 import { useMedlogapi } from '#imports';
 
 defineProps({
@@ -90,10 +91,10 @@ defineProps({
 
 const emit = defineEmits(['drug-selected'])
 
+const drugFieldsStore = useDrugFields();
+
 const { data: codeSystems } = await useMedlogapi("/api/drug/code_def")
 const drugCodeSystems = codeSystems.value.filter((item) => item.client_visible === true)
-
-const drugFieldDefinitionsObject = await apiGetFieldDefinitions("search_result")
 
 const hoveredItem = ref(null);
 
@@ -144,6 +145,7 @@ watch(
     if (newValue && newValue.length >= 3) {
       fetchDrugs(newValue);
     } else if (newValue === "") {
+      errorMessage.value = "";
       warningMessage.value = "";
     }
   },

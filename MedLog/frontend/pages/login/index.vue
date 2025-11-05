@@ -78,8 +78,10 @@ const login = async (endpoint: string, username: string, password: string) => {
 const loginOIDC = async function (oidc_method) {
   try {
 
+    console.log('target path is', route.query.target_path)
     if (route.query.target_path === undefined) {
       window.location.href = `${oidc_method.login_endpoint}?target_path=/`
+      // navigateTo(`${oidc_method.login_endpoint}?target_path=/`, { external: true })
     } else {
       window.location.href = `${oidc_method.login_endpoint}?target_path=${route.query.target_path}`
     }

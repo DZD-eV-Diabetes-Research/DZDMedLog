@@ -52,4 +52,9 @@ export const useUserStore = defineStore('UserStore', {
             }
         }
     },
+    getters: {
+        isLoggedIn: state => {
+            return state.userID !== ''
+        }
+    },
 }) 

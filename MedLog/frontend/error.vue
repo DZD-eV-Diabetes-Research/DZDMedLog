@@ -3,7 +3,7 @@
         <Layout>
             <UIBaseCard>
                 <div class="prose" style="text-align: center;">
-                    <template v-if="error === 404">
+                    <template v-if="error.statusCode === 404">
                         <h1>404!</h1>
                         <p>Sorry, that page doesn't exist.</p>
                     </template>
@@ -14,6 +14,10 @@
                         </p>
                         <p>It looks like something broke.</p>
                         <p>Sorry about that.</p>
+                        <details v-if="error.cause">
+                          <summary>Fehlerdetails</summary>
+                          {{ error.cause }}
+                        </details>
                     </template>
                     <p>
                         Return to the
@@ -26,6 +30,13 @@
 </template>
 
 <script setup lang="ts">
-const error = useError();
+import type { NuxtError } from '#app';
+
+defineProps({
+  error: {
+    type: Object as () => NuxtError,
+    required: true,
+  },
+})
 
 </script>

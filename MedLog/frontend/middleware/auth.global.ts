@@ -1,6 +1,8 @@
 export default defineNuxtRouteMiddleware(async (to) => {
   const userStore = useUserStore()
 
+  console.log('path', to.path)
+
   if (to.path !== '/login'){
     try {
       await userStore.setUserInfo()
