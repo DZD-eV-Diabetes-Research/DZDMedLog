@@ -208,15 +208,13 @@ async def search_drugs(
             **filter_params.model_dump(),
         )
     except SearchEngineNotReadyException as e:
-
         raise HTTPException(
-            status=status.HTTP_425_TOO_EARLY,
+            status_code=status.HTTP_425_TOO_EARLY,
             details="The search index is not ready yet. Please try it later",
         )
     except SearchEngineNotConfiguredException:
-
         raise HTTPException(
-            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             details="The search index is not configured. Please contact the admin.",
         )
 
@@ -288,7 +286,6 @@ async def list_field_definitions(
     )
 
     for drug_attr_type_name, drug_attr_defs in drug_field_definitions.items():
-
         for field_def in drug_attr_defs:
             field_def_read_vals = {}
             for k, v in field_def.model_dump(exclude_unset=True).items():

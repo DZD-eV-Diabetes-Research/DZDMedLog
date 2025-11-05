@@ -123,12 +123,12 @@ async def auth_basic_register(
         or not config.AUTH_BASIC_USER_DB_REGISTER_ENABLED
     ):
         raise HTTPException(
-            status=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Basic password login is disabled or registration is disabled.",
         )
     if password != password_repeat:
         HTTPException(
-            status=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Passwords do not match.",
         )
     user = await user_crud.create(

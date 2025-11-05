@@ -262,10 +262,12 @@ async function editEvent(eventId: string) {
       path: {
         studyId: route.params.study_id,
         eventId: eventId,      }
-    })    
+    })
+
+    const interview = result.find(item => item.proband_external_id == route.params.proband_id);
 
     studyStore.event = selectedCompleteEvent.value.event.name
-    router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + eventId + "/interview/" + result[0].id)
+    router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + eventId + "/interview/" + interview.id)
   } catch (error) {
     console.log(error);
   }

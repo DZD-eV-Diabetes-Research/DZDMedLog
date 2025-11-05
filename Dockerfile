@@ -29,7 +29,7 @@ COPY --from=medlog-frontend-build /frontend_build/.output/public $BASEDIR/medlog
 # Install Server
 WORKDIR $BASEDIR
 
-RUN python3 -m pip install --upgrade pip
+# RUN python3 -m pip install --upgrade pip # comment: removed due to https://github.com/jazzband/pip-tools/issues/2252 which broke the build process
 RUN pip install -U pip-tools
 
 # Generate requirements.txt based on depenencies defined in pyproject.toml
