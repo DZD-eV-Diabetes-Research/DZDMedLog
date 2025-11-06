@@ -22,42 +22,12 @@
 
     <div v-if="drugList.items.length > 0">
       <ul>
-        <li
-            v-for="item in paginatedItems" :key="item.drug.id"
-            class="relative border border-[#ededed] my-1 py-2 rounded-md hover:bg-[#ededed] hover:cursor-pointer"
-            style="position: relative"
-            @click="selectDrug(item)" @mouseover="hoveredItem = item" @mouseleave="hoveredItem = null">
-          <div>
-            <strong>{{ item.drug.trade_name }}</strong><br>
-            <DrugCodePill
-                v-for="drugCodeSystem in drugCodeSystems"
-                :key="drugCodeSystem.id"
-                :code-system="drugCodeSystem.id"
-                :code-value="item.drug.codes?.[drugCodeSystem.id]"
-                class="mr-2"
-            />
-            <div v-for="attr in drugFieldsStore.fieldsForSearchResults.attrs" :key="attr.field_name">
-              {{ attr.field_name_display }}: {{ item.drug?.attrs?.[attr.field_name] }}
-              <UTooltip v-if="attr.field_desc" :text="attr.field_desc" :popper="{ placement: 'right' }">
-                <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-black cursor-pointer" />
-              </UTooltip>
-            </div>
-            <div v-for="attr_ref in drugFieldsStore.fieldsForSearchResults.attrs_ref" :key="attr_ref.field_name">
-              {{ attr_ref.field_name_display }}: {{ item.drug?.attrs_ref?.[attr_ref.field_name]?.display }}
-              <UTooltip v-if="attr_ref.field_desc" :text="attr_ref.field_desc" :popper="{ placement: 'right' }">
-                <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-black cursor-pointer" />
-              </UTooltip>
-            </div>
-          </div>
-          <div
-              v-if="hoveredItem === item"
-              class="absolute top-1/2 -translate-y-1/2 right-full w-1/2 mx-10 bg-[#f9f9f9] border border-[#ededed] rounded-md py-2 px-4">
-            <div v-for="attr_multi_ref in drugFieldsStore.fieldsForSearchResults.attrs_multi_ref" :key="attr_multi_ref[1]">
-              <span class="text-sm font-bold">{{ attr_multi_ref.field_name_display }}:</span> <span class="text-sm">{{
-                item.drug?.attrs_multi_ref?.[attr_multi_ref.field_name][0]?.display }}</span>
-            </div>
-          </div>
-        </li>
+        <DrugResultCard
+            v-for="item in paginatedItems"
+            :key="item.drug.id"
+            :drug="item.drug"
+            @drug-selected="selectDrug(item)"
+        />
       </ul>
       <div v-if="drugList.count >= 6" class="pagination">
         <div class="flex flex-row justify-center space-x-2">
@@ -83,20 +53,12 @@
 <script setup lang="ts">
 import { ref, watch, reactive } from "vue";
 import { apiDrugSearch } from '~/api/drug';
-import { useMedlogapi } from '#imports';
 
 defineProps({
   autofocusInput: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['drug-selected'])
-
-const drugFieldsStore = useDrugFields();
-
-const { data: codeSystems } = await useMedlogapi("/api/drug/code_def")
-const drugCodeSystems = codeSystems.value.filter((item) => item.client_visible === true)
-
-const hoveredItem = ref(null);
 
 const state = reactive({
   searchTerm: "",
