@@ -27,7 +27,7 @@ const patchUser = async function (id: string, roles: string[]) {
 </script>
 
 <template>
-  <section class="container w-4/12 mx-auto">
+  <section class="container w-4/12 mx-auto mt-8">
     <h1 class="text-4xl font-normal text-center mb-4">Kontoverwaltung</h1>
 
     <UserManagementTable v-if="users" :roles="roles" :users="users.items ?? []" @patch-user="patchUser" />

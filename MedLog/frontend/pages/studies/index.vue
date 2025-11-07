@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="mt-8">
     <div class="flex flex-row justify-center mb-6">
       <h1 class="text-4xl font-medium">Studienverwaltung</h1>
     </div>

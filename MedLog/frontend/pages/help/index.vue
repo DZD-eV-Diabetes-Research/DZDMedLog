@@ -9,7 +9,7 @@ if (configError.value) {
 </script>
 
 <template>
-  <section class="container w-4/12 mx-auto">
+  <section class="container w-4/12 mx-auto mt-8">
     <h1 class="text-4xl font-normal text-center mb-4">Hilfe zu DZDMedLog</h1>
 
     <p>DZDMedLog besteht im Kern aus 3 Komponenten:</p>

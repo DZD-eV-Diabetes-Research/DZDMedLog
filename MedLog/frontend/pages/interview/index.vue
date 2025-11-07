@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="mt-8">
         <h1 class="text-4xl font-normal text-center">Neue Interviews Starten</h1>
         <UIBaseCard v-if="studyStore.studies?.length === 0 || !studyStore.studies">
             <div v-if="userStore.isAdmin" class="space-y-4">

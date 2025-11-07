@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="mt-8">
     <div style="text-align: center">
       <h2 class="text-4xl font-normal mb-4">Datenexport</h2>
     </div>
