@@ -58,52 +58,6 @@
           </UButton>
         </div>
       </template>
-      <div>
-        <h4 class="text-xl text-center">DZD-Medlog besteht im Kern aus 3 Komponenten</h4>
-        <br>
-        <p class="font-semibold">Teil 1: Studien und Interviews erstellen bzw. verwalten</p>
-        <p class="font-semibold">Teil 2: Medikamente zu einem Interview hinzufügen</p>
-        <p class="font-semibold">Teil 3: Daten einer Studie exportieren</p>
-        <br>
-        <p>Teil 1 finden Sie mittels des Buttons "Studienverwaltung" auf der Landingpage. Diese können Sie von überall
-          erreichen, indem Sie auf den DZD-Medlog-Schriftzug in der oberen linken Ecke klicken.
-          Bitte beachten Sie, dass nur Benutzer mit Admin-Rechten neue Studien und Interviews anlegen können.</p>
-        <br>
-        <p>Teil 2 wird über den Button "Interview durchführen" erreicht. Hier wird eine von Ihnen gewählte
-          Probanden-ID verlangt. Nun sehen Sie eine Medikationsübersicht des Patienten über die gesamte Studie.
-          Hier haben Sie die Möglichkeit, ein Interview durchzuführen oder zu bearbeiten.</p>
-        <br>
-        <p>Sie haben die Möglichkeit, über den Button
-          "Medikationsübernahme"
-          die Medikamente <strong>des letzten abgeschlossenen Events</strong> zu übernehmen.</p>
-        <br>
-        <p>Teil 3, den <strong>Datenexport</strong>, erreichen Sie, wie die Verwaltung der Studien, über den Button
-          "Studienverwaltung" von
-          der Landingpage aus.</p>
-        <p>Des weiteren können Sie sich über die Breadcrumbs, am oberen Bildschirmrand, zu den jeweiligen vorher
-          besuchten
-          Seiten klicken</p>
-        <br>
-        <div id="zusatzinfo">
-          <p>Für Admins oder Technikinteressierte finden Sie hier unser <a
-              class="text-blue-600 hover:border-b-2 hover:border-blue-600" href="https://github.com/DZD-eV-Diabetes-Research/DZDMedLog">Repository</a>
-          </p>
-        </div>
-      </div>
-      <template #footer>
-        <div class="flex flex-col text-left text-sm space-y-1">
-          <p>Wenn Sie Fragen oder Feedback haben, melden Sie sich gerne.</p>
-          <p class="text-center">someEmail@someHost.com</p>
-          <hr>
-          <div v-if="configStatus !== 'error'" class="text-center font-extralight">
-            <p>Version: {{ config.version }}</p>
-            <p>Branch: {{ config.branch }}</p>
-          </div>
-          <div v-else>
-            {{ configError }}
-          </div>
-        </div>
-      </template>
     </UCard>
   </USlideover>
 
@@ -116,7 +70,6 @@
 
 <script setup>
 import { ref, computed, watchEffect } from 'vue';
-import { useMedlogapi } from '#imports';
 
 const userStore = useUserStore();
 const studyStore = useStudyStore();
@@ -210,14 +163,6 @@ const settingModalVisibility = ref(false)
 const openSettingModal = function () {
   openSlide.value = false
   settingModalVisibility.value = true
-}
-
-// Version & Branch
-
-const { data: config, error: configError, status: configStatus } = await useMedlogapi("/api/config/version")
-
-if (configError.value) {
-  console.error('Fehler beim Laden der Konfiguration:', configError.value)
 }
 
 // Show logout buttion breadcrumbs and help only when not on "/"
