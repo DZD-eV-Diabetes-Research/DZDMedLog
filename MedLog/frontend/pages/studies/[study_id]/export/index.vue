@@ -1,5 +1,5 @@
 <template>
-  <Layout>
+  <div>
     <div style="text-align: center">
       <h2 class="text-4xl font-normal mb-4">Datenexport</h2>
     </div>
@@ -45,7 +45,7 @@
         </template>
       </UTable>
     </div>
-  </Layout>
+  </div>
 </template>
 
 <script setup lang="ts">

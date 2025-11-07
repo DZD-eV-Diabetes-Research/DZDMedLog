@@ -1,7 +1,7 @@
 <template>
-  <NuxtLayout>
-    <NuxtPage />
-  </NuxtLayout>
+  <LayoutHeader />
+  <NuxtPage />
+  <LayoutFooter />
 </template>
 
 <script setup lang="ts">

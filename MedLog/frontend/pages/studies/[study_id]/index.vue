@@ -1,5 +1,5 @@
 <template>
-  <Layout>
+  <div>
     <div class="flex justify-center">
       <h3 class="text-4xl font-medium my-4">{{ study.display_name }}</h3>
     </div>
@@ -45,7 +45,7 @@
       </UModal>
       
     </UIBaseCard>
-  </Layout>
+  </div>
 </template>
 
 <script setup lang="ts">

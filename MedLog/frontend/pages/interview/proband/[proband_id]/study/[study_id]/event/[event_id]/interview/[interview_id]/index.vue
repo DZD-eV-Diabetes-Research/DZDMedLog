@@ -1,5 +1,5 @@
 <template>
-  <Layout>
+  <div>
     <UIBaseCard :naked="true">
       <div class="flex flex-row justify-center items-center space-x-4">
         <UButton
@@ -114,7 +114,7 @@
         </div>
       </div>
     </UModal>
-  </Layout>
+  </div>
 </template>
 
 <script setup lang="ts">

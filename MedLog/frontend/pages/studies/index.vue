@@ -1,5 +1,5 @@
 <template>
-  <Layout>
+  <div>
     <div class="flex flex-row justify-center mb-6">
       <h1 class="text-4xl font-medium">Studienverwaltung</h1>
     </div>
@@ -59,7 +59,7 @@
     <UModal v-model="studyPermissionModal" :ui="{ width: 'lg:max-w-6xl' }">
       <StudyPermissionManagement :study-id="studyId" />
     </UModal>
-  </Layout>
+  </div>
 </template>
 
 <script setup lang="ts">

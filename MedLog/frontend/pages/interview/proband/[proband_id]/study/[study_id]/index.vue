@@ -1,5 +1,5 @@
 <template>
-  <Layout>
+  <div>
     <div class="flex flex-row gap-4 justify-center max-w-6xl m-auto">
       <div class="w-[50%]">
         <UIBaseCard>
@@ -80,7 +80,7 @@
     </div>
     </div>
     <div style="text-align:center; margin-top:2%" />
-  </Layout>
+  </div>
 </template>
 
 <script setup lang="ts">

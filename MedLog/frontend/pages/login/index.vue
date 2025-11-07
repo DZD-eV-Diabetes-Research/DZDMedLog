@@ -1,5 +1,5 @@
 <template>
-  <Layout>
+  <div>
     <UIBaseCard>
       <div v-if="healthStatus?.healthy" class="flex flex-col justify-center">
         <div v-if="loginMethods" class="flex flex-col space-y-2">
@@ -38,7 +38,7 @@
         </p>
       </div>
     </UIBaseCard>
-  </Layout>
+  </div>
 </template>
 
 
