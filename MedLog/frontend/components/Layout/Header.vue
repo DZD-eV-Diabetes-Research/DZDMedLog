@@ -1,5 +1,5 @@
 <template>
-  <header class="flex w-full  border-b-4 border-accent bg-white shadow-md py-4 px-10">
+  <header class="flex w-full bg-white py-4 px-10">
     <div class="flex w-full justify-between items-center mx-auto">
       <div>
         <NuxtLink
@@ -37,35 +37,8 @@
     <button
       v-if="showHeader"
       class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
-      @click="openSlide = true">Mehr</button>
+      @click="navigateTo('manage/users')">Kontoverwaltung</button>
   </div>
-
-  <!-- SLIDER INFO HELP -->
-
-  <USlideover v-model="openSlide">
-
-    <UCard
-      class="flex flex-col flex-1"
-      :ui="{ body: { base: 'flex-1' }, ring: '', divide: 'divide-y divide-gray-400 dark:divide-gray-800' }">
-      <template #header>
-        <div class="flex flex-row justify-around items-center">
-          <h5 class="text-center text-2xl font-medium">How to use DZD-Medlog</h5>
-          <UButton
-            v-if="userStore.isAdmin"
-            class="bg-white text-black border-2 border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white hover:transition hover:duration-300"
-            @click="openSettingModal()">
-            <UIcon name="i-heroicons-cog-6-tooth" class="w-5 h-5" />
-          </UButton>
-        </div>
-      </template>
-    </UCard>
-  </USlideover>
-
-  <!-- SETTINGS MODAL -->
-
-  <UModal v-model="settingModalVisibility" :ui="{ width: 'lg:max-w-6xl' }">
-    <UserManagement/>
-  </UModal>
 </template>
 
 <script setup>
@@ -116,8 +89,6 @@ function resetStore() {
   studyStore.$reset();
 }
 
-const openSlide = ref(false)
-
 const pathSegments = route.path.split('/').filter(Boolean);
 
 const studyLabelEventVerwaltung = computed(() => `${studyName.value} Eventverwaltung`);
@@ -158,14 +129,13 @@ if (pathSegments.includes('studies')) {
   }
 }
 
-const settingModalVisibility = ref(false)
-
-const openSettingModal = function () {
-  openSlide.value = false
-  settingModalVisibility.value = true
-}
-
 // Show logout buttion breadcrumbs and help only when not on "/"
 const showHeader = computed(() => route.path !== '/login')
 
 </script>
+
+<style scoped>
+header {
+  box-shadow: inset 0 -0.3rem 0 #DA281C
+}
+</style>
