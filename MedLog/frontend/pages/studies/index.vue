@@ -95,7 +95,7 @@ async function createStudy() {
       method: "POST",
       body,
     });
-    studyStore.listStudies();
+    await studyStore.getAvailableStudies();
     showModal.value = false;
   } catch (error) {
     if (error.response && error.response._data) {

@@ -14,6 +14,7 @@ useHead({
 
 const drugFieldsStore = useDrugFields();
 const healthCheckStore = useHealthCheck();
+const studyStore = useStudyStore();
 const userStore = useUserStore();
 
 // Check health of the backend
@@ -32,10 +33,11 @@ if (userStore.isLoggedIn) {
 
   // Set up basic global data
   try {
+    await studyStore.getAvailableStudies();
     await drugFieldsStore.fetchFields();
   } catch (error) {
     throw createError({
-      message: 'Konnte die Felddefinitionen für die Medikamente nicht abrufen',
+      message: 'Konnte elementare Daten nicht abrufen',
       cause: error,
       fatal: true,
     })

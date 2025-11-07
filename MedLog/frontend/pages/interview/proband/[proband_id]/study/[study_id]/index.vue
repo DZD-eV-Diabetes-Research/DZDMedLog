@@ -15,12 +15,6 @@
             >
               Interview Durchführen
             </UButton>
-            <UButton
-              v-if="userStore.isAdmin" color="green" variant="soft"
-              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-              @click="openEventModal()">
-              Neues Event anlegen
-            </UButton>
           </div>
         </UIBaseCard>
       </div>
@@ -86,7 +80,7 @@
 <script setup lang="ts">
 
 import { object, string } from "yup";
-import { useMedlogapi } from '#imports';
+import { useMedlogapi } from '#open-fetch';
 
 // general constants
 const route = useRoute()
@@ -179,7 +173,7 @@ async function createEvent() {
   try {
     await useCreateEvent(eventState.name.trim(), route.params.study_id);
 
-    const events = await $medlogapi(`/api/study/{studyId}/proband/{probandId}/event`,
+    const events = await $medlogapi('/api/study/{studyId}/proband/{probandId}/event',
       {
         path: {
           studyId: route.params.study_id,
@@ -220,7 +214,7 @@ const incompletedItems = ref([]);
 
 // REST 
 
-const { data: events } = await useMedlogapi(`/api/study/{studyId}/proband/{probandId}/event`, {
+const { data: events } = await useMedlogapi('/api/study/{studyId}/proband/{probandId}/event', {
   path: {
     studyId: route.params.study_id,
     probandId: route.params.proband_id,
@@ -257,25 +251,26 @@ watch(events, (newEvents) => {
 }, { immediate: true })
 
 async function editEvent(eventId: string) {
-  try {
-    const result = await $medlogapi(`/api/study/{studyId}/event/{eventId}/interview`, {
-      path: {
-        studyId: route.params.study_id,
-        eventId: eventId,      }
-    })
+  const { data: result, error } = await useMedlogapi('/api/study/{study_id}/event/{event_id}/interview', {
+    path: {
+      study_id: route.params.study_id,
+      event_id: eventId,      }
+  })
 
-    const interview = result.find(item => item.proband_external_id == route.params.proband_id);
-
-    studyStore.event = selectedCompleteEvent.value.event.name
-    router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + eventId + "/interview/" + interview.id)
-  } catch (error) {
-    console.log(error);
+  if (error.value) {
+    console.error(error);
+    return;
   }
+
+  const interview = result.value.find(item => item.proband_external_id == route.params.proband_id);
+
+  studyStore.event = selectedCompleteEvent.value.event.name;
+  await navigateTo(`/interview/proband/${route.params.proband_id}/study/${route.params.study_id}/event/${eventId}/interview/${interview.id}`);
 }
 
 async function createIntakeList() {
   try {
-    const intakes = await $medlogapi(`/api/study/{studyId}/proband/{probandId}/intake/details`, {
+    const intakes = await $medlogapi('/api/study/{studyId}/proband/{probandId}/intake/details', {
       path: {
         studyId: route.params.study_id,
         probandId: route.params.proband_id,
@@ -301,13 +296,6 @@ async function createIntakeList() {
   } catch (error) {
     console.log(error);
   }
-}
-
-//eventmodal logic
-
-const openEventModal = () => {
-  showEventModal.value = true;
-  eventError.value = "";
 }
 
 createIntakeList()

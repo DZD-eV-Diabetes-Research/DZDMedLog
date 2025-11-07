@@ -11,17 +11,13 @@
 <script setup lang="ts">
 
 const userStore = useUserStore()
-const studyStore = useStudyStore();
-const router = useRouter()
 
 async function conductInterview() {
-    studyStore.listStudies()
-    router.push({ path: "/interview" })
+    await navigateTo("/interview");
 }
 
 async function showStudies() {
-    studyStore.listStudies()
-    router.push({ path: "/studies" })
+    await navigateTo("/studies");
 }
 
 </script>

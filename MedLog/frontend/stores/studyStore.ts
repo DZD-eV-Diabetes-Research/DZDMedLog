@@ -1,18 +1,12 @@
 // Store to handle to current studies
 
+import { type MedlogapiResponse, useMedlogapi } from "#open-fetch";
 import { defineStore } from 'pinia'
 
-interface Study {
-    deactivated: boolean;
-    id: string;
-    display_name: string;
-    created_at: string;
-    no_permissions: boolean;
-    name: string;
-}
+type Studies = MedlogapiResponse<'list_studies_api_study_get'>['items']
 
 interface StudyState {
-    studies: Study[],
+    studies: Studies,
     event: string,
 }
 
@@ -23,26 +17,17 @@ export const useStudyStore = defineStore('StudyStore', {
         event: "",
     }),
     actions: {
-        async listStudies(): Promise<void> {
-            const {$medlogapi} = useNuxtApp();
-            try {
-                const data = await $medlogapi("/api/study")
+        async getAvailableStudies() {
+            const { data, error } = await useMedlogapi("/api/study")
+            if (error.value) {
+                throw error.value;
+            }
 
-                this.studies = data.items
-            }
-            catch (err: any) {
-                console.error(err?.response.data.detail)
-                // TODO surface the error
-            }
+            this.studies = data.value?.items ?? [];
         },
 
         async getStudy(id: string) {
-            if (this.studies.length === 0) {
-            }
-            else {
-                const foundItem = this.studies.find(item => item.id === id)
-                return foundItem
-            }
+            return this.studies.find(item => item.id === id)
         },
     },
 })
