@@ -61,6 +61,31 @@ class DrugDataLoader:
         ]
         self.importer = self.importer_class()
 
+    async def _create_inital_drugdataset_entry_if_needed(self):
+        if not config.DRUG_TABLE_PROVISIONING_SOURCE_DIR:
+            return
+
+        async with get_async_session_context() as session:
+            async with DrugDataSetVersionCRUD.crud_context(
+                session
+            ) as drugdataset_version_crud:
+                drugdataset_version_crud: DrugDataSetVersionCRUD = (
+                    drugdataset_version_crud
+                )
+                drugdataset_count = await drugdataset_version_crud.count()
+                log.debug(
+                    f"Check if inital dataset needs to be created. count: {drugdataset_count}"
+                )
+                if drugdataset_count == 0:
+                    self.importer.source_dir = config.DRUG_TABLE_PROVISIONING_SOURCE_DIR
+                    self.importer.version = (
+                        await self.importer.get_drug_dataset_version()
+                    )
+                    initial_dataset = (
+                        await self.importer.generate_drug_data_set_definition()
+                    )
+                    await drugdataset_version_crud.create(initial_dataset)
+
     async def _get_next_queued_drug_data_set(self) -> DrugDataSetVersion | None:
         async with get_async_session_context() as session:
             async with DrugDataSetVersionCRUD.crud_context(
@@ -82,7 +107,7 @@ class DrugDataLoader:
                 first_queued_drug_data_set = queued_drug_data_sets[0]
         return first_queued_drug_data_set
 
-    async def _rebuild_drugsearch_index():
+    async def _rebuild_drugsearch_index(self):
         from medlogserver.db.drug_data.drug_search._base import (
             MedLogDrugSearchEngineBase,
         )
@@ -100,8 +125,10 @@ class DrugDataLoader:
         await search_engine.build_index()
 
     async def load_new_drug_data_if_available(self):
+        await self._create_inital_drugdataset_entry_if_needed()
         drug_dataset = await self._get_next_queued_drug_data_set()
         if drug_dataset:
+            log.debug(f"Import drug dataset: {drug_dataset}")
             await self.importer._run_import(source_dir=drug_dataset.import_file_path)
             await self._rebuild_drugsearch_index()
             gc.collect()
@@ -113,4 +140,5 @@ class TaskDrugDataLoading(TaskBase):
     async def work(self, source_dir: str = None):
         log.info("Load new drug data if available...")
         drug_data_loader = DrugDataLoader()
+
         await drug_data_loader.load_new_drug_data_if_available()

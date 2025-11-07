@@ -35,7 +35,6 @@ class WorkerJobCRUD(
         update_model=WorkerJobUpdate,
     )
 ):
-
     async def list(
         self,
         filter_user_id: Optional[UUID] = None,
@@ -147,7 +146,6 @@ class WorkerJobCRUD(
         query = select(tbl)
 
         for attr, val in obj.model_dump().items():
-
             if isinstance(val, (dict, list)):
                 # json value. Postgres seems to not support json comparison atm?!?!
                 # https://github.com/sqlalchemy/sqlalchemy/issues/5575#issuecomment-691121030

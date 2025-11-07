@@ -38,7 +38,7 @@ from medlogserver.model.drug_data import (
     DrugData,
 )
 from medlogserver.db.drug_data.drug_search import SEARCH_ENGINES
-from medlogserver.db.worker_job import WorkerJob
+from medlogserver.db.worker_job import WorkerJob, WorkerJobCRUD, WorkerJobCreate
 from medlogserver.log import get_logger
 from medlogserver.config import Config
 from sqlalchemy.dialects.sqlite.aiosqlite import AsyncAdapt_aiosqlite_connection
@@ -140,36 +140,31 @@ async def reset_stuck_drugsearchindex_build_ups():
     return
 
 
-async def create_drug_data_loader_job_if_needed():
+async def create_inital_drug_data_loader_job():
     """
     We create a new drug data loading job on boot with the configured default/inital drug data source
     If this default source drug data has not been loaded yet it will be with this job. otherwise the job will just do nothing.
     """
-    from medlogserver.model.worker_job import WorkerJobCreate
+
     from medlogserver.worker.tasks import Tasks
+    from medlogserver.worker.tasks.load_drug_data import TaskDrugDataLoading
 
-    from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
-    from medlogserver.db.drug_data.drug_dataset_version import DrugDataSetVersionCRUD
+    async with get_async_session_context() as session:
+        async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
+            worker_job_crud: WorkerJobCRUD = worker_job_crud
 
-    job_id = uuid.uuid4()
-    system_job = WorkerJobCreate(
-        id=job_id,
-        user_id=None,
-        task_name=Tasks(Tasks.LOAD_DRUG_DATA).name,
-        task_params={
-            "study_id": str(study_access.study.id),
-            "format_": format,
-        },
-        tags=["export", str(study_access.study.id)],
-    )
-    system_job = await worker_job_crud.create(system_job)
-
-    from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
-
-    DRUG_IMPORTER = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
-    im = DRUG_IMPORTER()
-    await im._run_import(source_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR)
-    gc.collect()
+            job_id = uuid.uuid4()
+            system_job = WorkerJobCreate(
+                id=job_id,
+                user_id=None,
+                task_name=Tasks(Tasks.LOAD_DRUG_DATA).name,
+                task_params={
+                    "source_dir": config.DRUG_TABLE_PROVISIONING_SOURCE_DIR,
+                },
+                tags=["initalDrugLoading"],
+            )
+            log.debug(f"Create inital TaskDrugDataLoading Job {system_job}")
+            system_job = await worker_job_crud.create(system_job)
 
 
 async def provision_base_data():
@@ -193,6 +188,6 @@ async def init_db():
         await conn.commit()
 
         await create_admin_if_not_exists()
-        await create_drug_data_loader_job_if_needed()
+        await create_inital_drug_data_loader_job()
         await reset_stuck_drugsearchindex_build_ups()
         await provision_base_data()

@@ -46,7 +46,7 @@ class DrugDataSetVersion(DrugModelTableBase, table=True):
         default=None,
         description="If the drug data import failes, the error stacktrace will be logged here.",
     )
-    import_start_datetime_utc: datetime.datetime = Field(
+    import_start_datetime_utc: Optional[datetime.datetime] = Field(
         description="Datetime when the imported for this drug dataset was started"
     )
 

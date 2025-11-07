@@ -70,8 +70,13 @@ class DrugDataSetVersionCRUD(
     async def count(
         self,
     ) -> int:
-        query = select(DrugDataSetVersion).where(
-            DrugDataSetVersion.dataset_source_name == self._get_current_dataset_name()
+        query = (
+            select(func.count())
+            .select_from(DrugDataSetVersion)
+            .where(
+                DrugDataSetVersion.dataset_source_name
+                == self._get_current_dataset_name()
+            )
         )
         results = await self.session.exec(statement=query)
         return results.first()

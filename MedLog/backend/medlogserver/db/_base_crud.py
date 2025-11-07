@@ -324,7 +324,6 @@ class CRUDBase(
         await self.session.commit()
 
 
-# Keep your original factory function for backward compatibility
 def create_crud_base(
     table_model: Type[BaseTable],
     read_model: Type[MedLogBaseModel],
@@ -333,7 +332,9 @@ def create_crud_base(
 ) -> Type[CRUDBase]:
     """Factory function to create a CRUD base class with proper generics"""
 
-    class _CRUDBase(CRUDBase[table_model, read_model, create_model, update_model]):
+    class _CRUDClassInstance(
+        CRUDBase[table_model, read_model, create_model, update_model]
+    ):
         pass
 
-    return _CRUDBase
+    return _CRUDClassInstance
