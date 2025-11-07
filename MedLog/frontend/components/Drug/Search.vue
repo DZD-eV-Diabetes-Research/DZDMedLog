@@ -2,57 +2,70 @@
   <div>
     <UFormGroup name="drug" class="mb-4">
       <UInput
-          v-model="state.searchTerm"
+          v-model="searchTerm"
           :autofocus="autofocusInput"
           placeholder="Medikament/PZN oder ATC-Code eingeben"
           icon="i-heroicons-magnifying-glass-20-solid"
+          :ui="{ icon: { trailing: { pointer: '' } } }"
       >
         <template #trailing>
-          <UIcon
-              v-show="isLoading"
-              name="i-heroicons-x-mark-20-solid"
+          <UButton
+              v-show="searchTerm !== ''"
+              color="gray"
+              variant="link"
+              icon="i-heroicons-x-mark-20-solid"
+              :padded="false"
+              @click="searchTerm = ''"
           />
         </template>
       </UInput>
     </UFormGroup>
 
+    <div class="h-6 flex flex-col">
+      <UProgress v-if="isLoading" animation="carousel" />
+      <p v-else class="text-sm self-end">{{ resultsText }}</p>
+    </div>
+
     <UAlert v-if="errorMessage" color="red" title="Fehler bei der Medikamentensuche" :description="errorMessage" />
 
     <UAlert v-else-if="warningMessage" color="amber" variant="subtle" :title="warningMessage" />
 
-    <div v-if="drugList.items.length > 0">
-      <ul>
-        <DrugResultCard
-            v-for="item in paginatedItems"
-            :key="item.drug.id"
-            :drug="item.drug"
-            @drug-selected="selectDrug(item)"
-        />
-      </ul>
-      <div v-if="drugList.count >= 6" class="pagination">
-        <div class="flex flex-row justify-center space-x-2">
-          <button
-              class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100"
-              @click="state.currentPage > 1 ? state.currentPage-- : 0"
-          >
-            &lt;
-          </button>
-          <button
-              class="border border-black py-1 px-2 rounded-lg hover:bg-slate-100 mx-10"
-              @click="state.currentPage < totalPages ? state.currentPage++ : 0"
-          >
-            &gt;
-          </button>
-        </div>
-        <p class="text-lg mt-2">Page {{ state.currentPage }} of {{ totalPages }}</p>
+    <div v-if="searchResults.length > 0" class="flex flex-col gap-2">
+
+      <UPagination
+          v-if="searchResults.length > itemsPerPage"
+          v-model="currentPage"
+          :page-count="itemsPerPage"
+          :total="searchResults.length"
+          class="self-center"
+      />
+      <div :style="searchResults.length > itemsPerPage ? 'min-height: 30rem;' : ''">
+        <ul>
+          <DrugResultCard
+              v-for="item in paginatedItems"
+              :key="item.drug.id"
+              :drug="item.drug"
+              @drug-selected="selectDrug(item)"
+          />
+        </ul>
       </div>
+      <UPagination
+          v-if="searchResults.length > 5"
+          v-model="currentPage"
+          :page-count="itemsPerPage"
+          :total="searchResults.length"
+          class="self-center"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, reactive } from "vue";
+import { ref, watch } from "vue";
 import { apiDrugSearch } from '~/api/drug';
+
+const itemsPerPage = 5;
+const searchItemLimit = 100;
 
 defineProps({
   autofocusInput: { type: Boolean, default: false },
@@ -60,19 +73,12 @@ defineProps({
 
 const emit = defineEmits(['drug-selected'])
 
-const state = reactive({
-  searchTerm: "",
-  currentPage: 1,
-  itemsPerPage: 5,
-});
-
-const drugList = reactive({
-  items: [],
-  count: 0,
-});
-
+const currentPage = ref(1);
 const errorMessage = ref("");
 const isLoading = ref(false);
+const searchResults = ref([]);
+const searchTerm = ref("");
+const totalCount = ref(0);
 const warningMessage = ref("");
 
 const fetchDrugs = async (searchTerm) => {
@@ -80,29 +86,28 @@ const fetchDrugs = async (searchTerm) => {
   isLoading.value = true;
   try {
     warningMessage.value = ''
-    const response = await apiDrugSearch(searchTerm)
+    const response = await apiDrugSearch(searchTerm, searchItemLimit)
 
     if (response.total_count === 0) {
       warningMessage.value = `Kein Medikament zur Eingabe "${searchTerm}" gefunden`
     }
 
-    drugList.items = response.items || [];
-    drugList.count = response.count || 0;
-    state.currentPage = 1;
+    searchResults.value = response.items ?? [];
+    totalCount.value = response.total_count;
+    currentPage.value = 1;
   } catch (error: any) {
     console.error("Error fetching drugs:", error);
     console.log(error.detail);
 
     errorMessage.value = error?.data?.detail || error?.message || "Unbekannter Fehler beim Laden, bitte wenden Sie sich an Ihren Admin"
-    drugList.items = [];
-    drugList.count = 0;
+    searchResults.value = [];
   } finally {
     isLoading.value = false;
   }
 };
 
 watch(
-  () => state.searchTerm,
+  () => searchTerm.value,
   (newValue) => {
     if (newValue && newValue.length >= 3) {
       fetchDrugs(newValue);
@@ -114,19 +119,22 @@ watch(
   { immediate: false }
 );
 
-const paginatedItems = computed(() => {
-  const startIndex = (state.currentPage - 1) * state.itemsPerPage;
-  const endIndex = startIndex + state.itemsPerPage;
-  return drugList.items.slice(startIndex, endIndex);
+const resultsText = computed(() => {
+  if (totalCount.value > searchItemLimit) {
+    return `Zeige ${ searchResults.value.length } Ergebnisse von insgesamt ${ totalCount.value }`;
+  } else {
+    return `${ searchResults.value.length } ${ searchResults.value.length == 1 ? 'Ergebnis' : 'Ergebnisse' }`;
+  }
 });
 
-const totalPages = computed(() => {
-  return Math.ceil(drugList.count / state.itemsPerPage);
+const paginatedItems = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  return searchResults.value.slice(startIndex, endIndex);
 });
 
 function selectDrug(item) {
-  state.searchTerm = "";
-  console.log('drug selected', item.drug_id);
+  searchTerm.value = "";
   emit('drug-selected', item.drug_id);
 }
 </script>

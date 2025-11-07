@@ -33,7 +33,7 @@ export async function apiGetFieldDefinitions(type: string) {
     };
 }
 
-export async function apiDrugSearch(drugName: string) {
+export async function apiDrugSearch(searchTerm: string, limit = 100) {
     
     ///
     // This is function uses the /drug/search endpoint to search for the drugs
@@ -43,8 +43,8 @@ export async function apiDrugSearch(drugName: string) {
         query: {
             only_current_medications: true, // FIXME market_accessable seems to be the correct/current parameter here
             offset: 0,
-            limit: 100,
-            search_term: drugName
+            limit: limit,
+            search_term: searchTerm,
         }
     }); 
 
