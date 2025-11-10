@@ -23,7 +23,6 @@ class WorkerAdHocJobRunner:
     def __init__(
         self, delete_finished_jobs_after_n_minutes: Optional[int] = 60 * 24 * 7
     ):
-
         self.delete_finished_jobs_after_n_minutes = delete_finished_jobs_after_n_minutes
 
     async def run(self) -> List[WorkerJob]:
@@ -40,7 +39,6 @@ class WorkerAdHocJobRunner:
             await self._tidy_up_old_jobs()
             # log.debug("...finished background adhoc job runner.")
             if finished_jobs:
-
                 return f"Jobs that did run {finished_jobs}"
             else:
                 return None
@@ -94,7 +92,7 @@ class WorkerAdHocJobRunner:
                     datetime.datetime.now(tz=datetime.UTC) - job.run_finished_at
                 )
                 if job_age.total_seconds() > max_age_sec:
-                    log.debug(f"Remove obsolete job {job}")
+                    log.debug(f"Remove obsolete job {job!r}")
                     job_task_class = import_task_class(Tasks[job.task_name].value)
                     await job_task_class(
                         job=job, task_params=job.task_params

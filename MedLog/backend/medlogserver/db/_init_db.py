@@ -152,7 +152,6 @@ async def create_inital_drug_data_loader_job():
     async with get_async_session_context() as session:
         async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
             worker_job_crud: WorkerJobCRUD = worker_job_crud
-
             job_id = uuid.uuid4()
             system_job = WorkerJobCreate(
                 id=job_id,
@@ -161,7 +160,7 @@ async def create_inital_drug_data_loader_job():
                 task_params={
                     "source_dir": config.DRUG_TABLE_PROVISIONING_SOURCE_DIR,
                 },
-                tags=["initalDrugLoading"],
+                tags=["init-job", "drug-loading"],
             )
             log.debug(f"Create inital TaskDrugDataLoading Job {system_job}")
             system_job = await worker_job_crud.create(system_job)

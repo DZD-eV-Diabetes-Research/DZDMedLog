@@ -7,8 +7,13 @@
 A Webapplication to log medication history of study participants.
 
 > [!IMPORTANT]  
-> MedLog requires you to bring your own drug database. As these are always licensed, we can not include a drug database in MedLog.
+> DZDMedLog requires you to bring your own drug database. As these are always licensed, we can not include a drug database in MedLog.
 > (But there is a small dummy database integrated by default for developement or demos)
+
+
+> [!IMPORTANT]  
+> DZDMedLog suports PostgreSQL DB only. SQLite does work, but is only intended for development and testing purposes.
+
 
 - [DZDMedLog](#dzdmedlog)
 - [Run](#run)

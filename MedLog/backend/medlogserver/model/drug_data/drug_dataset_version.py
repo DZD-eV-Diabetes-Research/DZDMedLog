@@ -32,8 +32,9 @@ class DrugDataSetVersion(DrugModelTableBase, table=True):
     current_active: Optional[bool] = Field(
         description="States if this dataset used in the backend or just archived. Only one dataset is allowed to be active."
     )
-    import_file_path: Optional[str] = Field(
-        default=None, description="The source file for the drug data import."
+    import_path: Optional[str] = Field(
+        default=None,
+        description="The source file or directory for the drug data import.",
     )
     import_status: Literal["queued", "running", "failed", "done"] = Field(
         default="queued",

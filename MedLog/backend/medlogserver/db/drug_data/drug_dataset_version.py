@@ -4,6 +4,7 @@ from pydantic_core import PydanticCustomError
 from fastapi import Depends
 import contextlib
 from typing import Optional
+
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import (
     Field,
@@ -17,6 +18,8 @@ from sqlmodel import (
     desc,
     and_,
 )
+from sqlalchemy.sql.operators import is_not, is_
+
 from sqlmodel.sql import expression as sqlEpression
 import uuid
 from uuid import UUID
@@ -53,13 +56,23 @@ class DrugDataSetVersionCRUD(
     async def list(
         self,
         filter_import_status: Literal["queued", "running", "failed", "done"] = None,
+        filter_is_custom_drug_collection: bool = None,
         pagination: QueryParamsInterface = None,
     ) -> List[DrugDataSetVersion]:
         query = select(DrugDataSetVersion).where(
             DrugDataSetVersion.dataset_source_name == self._get_current_dataset_name(),
         )
         if filter_import_status:
-            query.where(DrugDataSetVersion.import_status == filter_import_status)
+            query = query.where(
+                DrugDataSetVersion.import_status == filter_import_status
+            )
+        if filter_is_custom_drug_collection is not None:
+            query = query.where(
+                is_(
+                    DrugDataSetVersion.is_custom_drugs_collection,
+                    filter_is_custom_drug_collection,
+                )
+            )
         if pagination:
             query = pagination.append_to_query(query)
         if pagination is None or pagination.order_by is None:

@@ -125,6 +125,10 @@ class Config(BaseSettings):
     SQL_DATABASE_URL: str = Field(
         default="sqlite+aiosqlite:///./local.sqlite",
         description="Connection URL for the database based on the RFC-1738 standard. Mind the 3 (instead of 2) leading slashes in sqlite file pathes https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#connect-strings",
+        examples=[
+            "postgresql+psycopg://myusername:mypassword@localhost/myDBName",
+            "sqlite+aiosqlite:///./local.sqlite",
+        ],
     )
 
     ADMIN_USER_NAME: Annotated[

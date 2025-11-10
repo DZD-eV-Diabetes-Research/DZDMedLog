@@ -703,12 +703,12 @@ class CsvFileContentViewCache:
 
 class MmmiPharmaindex1_32(DrugDataSetImporterBase):
     def __init__(self):
-
         self.dataset_name = "MMI Pharmindex"
         self.api_name = "mmipharmindex"
         self.dataset_link = "https://www.MmiPi.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/"
         self.source_dir = None
         self.version = None
+        self._ensured_dataset_version: DrugDataSetVersion = None
         self.batch_size = config.DRUG_IMPORTER_BATCH_SIZE
         self._attr_definitions = None
         self._attr_ref_definitions = None
@@ -865,7 +865,6 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             async for i, drug_obj in async_enumerate(
                 self._parse_drug_data(drug_dataset)
             ):
-
                 for table_type, data in drug_obj.items():
                     if table_type not in drug_data_objs:
                         drug_data_objs[table_type] = []
@@ -880,7 +879,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             # write everything to database
             await self.commit()
 
-    async def _disect_drug_data(self, drug_data: DrugData) -> AsyncGenerator[
+    async def _disect_drug_data(
+        self, drug_data: DrugData
+    ) -> AsyncGenerator[
         DrugData | DrugVal | DrugValRef | DrugCode | DrugValMulti | DrugValMultiRef,
         None,
     ]:
@@ -900,7 +901,6 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
     async def _parse_drug_data(
         self, drug_dataset_version: DrugDataSetVersion
     ) -> AsyncGenerator[Dict[type, List[Dict]], None]:
-
         log.info("[DRUG DATA IMPORT] Parse drug data...")
         package_csv_path = Path(self.source_dir, "PACKAGE.CSV")
 
@@ -952,7 +952,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         f"[DRUG DATA IMPORT] Time needed: {total_time_sec} secs. for {row_count_processing_max} drug entries."
                     )
                     log.info(
-                        f"[DRUG DATA IMPORT] Estimated time for full drug data import ({row_count_total} rows): {((total_time_sec/row_count_processing_max)*row_count_total)/60} minutes"
+                        f"[DRUG DATA IMPORT] Estimated time for full drug data import ({row_count_total} rows): {((total_time_sec / row_count_processing_max) * row_count_total) / 60} minutes"
                     )
                     return
         debug_perf_end = time.time()
@@ -1300,13 +1300,14 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     bridge_col_name = extract_bracket_values(current_path_segment, 1)[0]
                     bridge_col_index = row_headers.index(bridge_col_name)
                     bridge_col_val = row[bridge_col_index]
-                    next_row_headers, next_rows = (
-                        await self._get_filtered_rows_with_header_from_csv_file(
-                            file_path=next_file_path,
-                            filter_col_name=next_file_col_name,
-                            filter_value=bridge_col_val,
-                            max_number_rows=1 if singular_val else None,
-                        )
+                    (
+                        next_row_headers,
+                        next_rows,
+                    ) = await self._get_filtered_rows_with_header_from_csv_file(
+                        file_path=next_file_path,
+                        filter_col_name=next_file_col_name,
+                        filter_value=bridge_col_val,
+                        max_number_rows=1 if singular_val else None,
                     )
                 else:
                     # e.g. path[1] -> "ITEM.CSV[PRODUCTID]>[ID]" or "ATC.CSV[PRODUCTID]"
@@ -1315,13 +1316,14 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     bridge_col_name = extract_bracket_values(current_path_segment, 2)[1]
                     bridge_col_index = row_headers.index(bridge_col_name)
                     bridge_col_val = row[bridge_col_index]
-                    next_row_headers, next_rows = (
-                        await self._get_filtered_rows_with_header_from_csv_file(
-                            file_path=next_file_path,
-                            filter_col_name=next_file_col_name,
-                            filter_value=bridge_col_val,
-                            max_number_rows=1 if singular_val else None,
-                        )
+                    (
+                        next_row_headers,
+                        next_rows,
+                    ) = await self._get_filtered_rows_with_header_from_csv_file(
+                        file_path=next_file_path,
+                        filter_col_name=next_file_col_name,
+                        filter_value=bridge_col_val,
+                        max_number_rows=1 if singular_val else None,
                     )
                 result_values.extend(
                     await self._follow_source_mapping_path_to_target_vals(
@@ -1432,9 +1434,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             result = csv_content_view.data[_filter_value_casted]
             if max_number_rows:
                 result = result[:max_number_rows]
-            self._cache_csv_lookups[csv_lookup_filter_call_signature][
-                filter_value
-            ] = result
+            self._cache_csv_lookups[csv_lookup_filter_call_signature][filter_value] = (
+                result
+            )
 
             self._debug_stats_csv_lookup = (
                 self._debug_stats_csv_lookup[0],
@@ -1465,7 +1467,6 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             objs.clear()
         if table_data:
             async with session.begin() as transaction:
-
                 for table_type, data in table_data.items():
                     if len(data) == 0:
                         continue
@@ -1533,7 +1534,6 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             headers: List[str] = next(csvreader)
 
             for index, row in enumerate(csvreader):
-
                 value = row[get_header_index(lov_definition.values_col_name, headers)]
                 display_value = row[
                     get_header_index(lov_definition.display_value_col_name, headers)

@@ -84,6 +84,7 @@ class DrugDataLoader:
                     initial_dataset = (
                         await self.importer.generate_drug_data_set_definition()
                     )
+                    initial_dataset.import_path = self.importer.source_dir
                     await drugdataset_version_crud.create(initial_dataset)
 
     async def _get_next_queued_drug_data_set(self) -> DrugDataSetVersion | None:
@@ -100,11 +101,17 @@ class DrugDataLoader:
 
                 queued_drug_data_sets = await drugdataset_version_crud.list(
                     filter_import_status="queued",
+                    filter_is_custom_drug_collection=False,
                     pagination=DrugDataSetVersionQueryParams(
                         order_by="dataset_version", order_desc=True
                     ),
                 )
-                first_queued_drug_data_set = queued_drug_data_sets[0]
+                log.debug(
+                    f"_get_next_queued_drug_data_set result. {queued_drug_data_sets}"
+                )
+                first_queued_drug_data_set = None
+                if queued_drug_data_sets:
+                    first_queued_drug_data_set = queued_drug_data_sets[0]
         return first_queued_drug_data_set
 
     async def _rebuild_drugsearch_index(self):
@@ -129,7 +136,7 @@ class DrugDataLoader:
         drug_dataset = await self._get_next_queued_drug_data_set()
         if drug_dataset:
             log.debug(f"Import drug dataset: {drug_dataset}")
-            await self.importer._run_import(source_dir=drug_dataset.import_file_path)
+            await self.importer._run_import(source_dir=drug_dataset.import_path)
             await self._rebuild_drugsearch_index()
             gc.collect()
         else:

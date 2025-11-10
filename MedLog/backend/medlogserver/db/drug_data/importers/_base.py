@@ -67,7 +67,10 @@ class DrugDataSetImporterBase:
             imported_epoch_time, imported_source_dir_hash = (
                 imported_dataset.dataset_version.split("_")
             )
-            if source_dir_hash == imported_source_dir_hash:
+            if (
+                source_dir_hash == imported_source_dir_hash
+                and imported_dataset.import_status in ["running", "done"]
+            ):
                 return imported_dataset
         return None
 
@@ -232,7 +235,7 @@ class DrugDataSetImporterBase:
                 log.info("[DRUG DATA IMPORT] Create dataset version entry...")
                 drug_dataset = await self.generate_drug_data_set_definition()
 
-                drug_dataset.import_file_path = str(Path(source_dir).resolve())
+                drug_dataset.import_path = str(Path(source_dir).resolve())
                 async with get_async_session_context() as session:
                     session.add(drug_dataset)
                     await session.commit()

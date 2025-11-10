@@ -231,8 +231,21 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         log.debug(
             f"INDEX BUILD UP custom_drugs_dataset: {custom_drugs_dataset.id} {type(custom_drugs_dataset.id)}"
         )
+        # get total drug count
+        drug_count_query = (
+            select(func.count())
+            .select_from(DrugData)
+            .where(
+                or_(
+                    DrugData.source_dataset_id == target_drug_dataset_version.id,
+                    DrugData.source_dataset_id == custom_drugs_dataset.id,
+                )
+            )
+        )
 
-        # Build the base query to fetch drugs
+        results = await session.exec(statement=drug_count_query)
+        total_drug_count = results.first()
+        # Build the base query to fetch all drugs
         query = (
             select(DrugData)
             .where(
@@ -256,7 +269,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         # Process in batches using offset and limit
         offset = 0
         total_processed = 0
-
+        log.info(
+            f"[INDEX BUILD UP] Start building index for {total_drug_count} drug db entries."
+        )
         while True:
             # Fetch batch of drugs
             log.debug(
@@ -296,8 +311,8 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             total_processed += batch_count
             offset += batch_count
 
-            log.debug(
-                f"[INDEX BUILD UP] Processed batch of {batch_count} drugs, total processed: {total_processed}"
+            log.info(
+                f"[INDEX BUILD UP] Processed batch of {batch_count} drugs, total processed: {total_processed}/{total_drug_count}"
             )
 
     async def _drug_to_cache_obj(self, drug: DrugData) -> GenericSQLDrugSearchCache:

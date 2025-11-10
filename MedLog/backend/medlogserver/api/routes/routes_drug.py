@@ -210,12 +210,12 @@ async def search_drugs(
     except SearchEngineNotReadyException as e:
         raise HTTPException(
             status_code=status.HTTP_425_TOO_EARLY,
-            details="The search index is not ready yet. Please try it later",
+            detail="The search index is not ready yet. Please try it later",
         )
     except SearchEngineNotConfiguredException:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            details="The search index is not configured. Please contact the admin.",
+            detail="The search index is not configured. Please contact the admin.",
         )
 
     return search_results
