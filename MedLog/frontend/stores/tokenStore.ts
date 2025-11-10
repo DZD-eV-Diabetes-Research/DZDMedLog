@@ -74,8 +74,5 @@ export const useTokenStore = defineStore('TokenStore', {
       router.push({ path: "/" })
 
     },
-  },
-  persist: {
-    storage: localStorage,
   }
 }) 

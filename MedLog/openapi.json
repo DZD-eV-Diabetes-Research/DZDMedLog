@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.11.1.dev14+g2ffef6499.d20251020"
+    "version": "0.11.1.dev21+gb4e38d5e1.d20251029"
   },
   "paths": {
     "/api/health": {
@@ -6743,12 +6743,14 @@
       "IntervalOfDailyDoseAnswers": {
         "type": "string",
         "enum": [
-          "Unkown",
+          "Unknown",
           "Daily",
           "every 2. day",
           "every 3. day",
           "every 4. day / twice a week",
-          "intervals of one week or more"
+          "intervals of one week or more",
+          "intervals of one month or more",
+          "intervals of one year or more"
         ],
         "title": "IntervalOfDailyDoseAnswers"
       },

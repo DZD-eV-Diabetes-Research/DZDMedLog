@@ -78,7 +78,7 @@ def to_path(
 
 
 def get_db_type(
-    db_url: str, raise_if_unkown: Exception = None
+    db_url: str, raise_if_unknown: Exception = None
 ) -> Literal["sqlite", "postgres", "sqlite-memory"] | None:
     parsed_db_url = urlparse(db_url)
     if "sqlite" in parsed_db_url.scheme:
@@ -87,8 +87,8 @@ def get_db_type(
         return "sqlite"
     if "postgres" in parsed_db_url.scheme:
         return "postgres"
-    if raise_if_unkown:
-        raise raise_if_unkown
+    if raise_if_unknown:
+        raise raise_if_unknown
     return None
 
 

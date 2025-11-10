@@ -410,10 +410,11 @@ async function saveIntake() {
   else if (!props.edit && props.custom) {
 
     customNameError.value = !state.customName;
-    const drugCodeBody =  Object.entries(drugCodeState).map(([key, value]) => ({
-      code_system_id: key,
-      code: value,
-    }));
+    const drugCodeBody =  Object.entries(drugCodeState)
+        .map(([key, value]) => ({
+          code_system_id: key,
+          code: value,
+        })).filter(item => item.code !== '');
     
     try {
       if (!customNameError.value) {
