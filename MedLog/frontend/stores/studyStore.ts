@@ -7,14 +7,12 @@ type Studies = MedlogapiResponse<'list_studies_api_study_get'>['items']
 
 interface StudyState {
     studies: Studies,
-    event: string,
 }
 
 export const useStudyStore = defineStore('StudyStore', {
 
     state: (): StudyState => ({
         studies: [],
-        event: "",
     }),
     actions: {
         async getAvailableStudies() {
@@ -29,5 +27,14 @@ export const useStudyStore = defineStore('StudyStore', {
         async getStudy(id: string) {
             return this.studies.find(item => item.id === id)
         },
+    },
+    getters: {
+        nameForStudy(state: StudyState) {
+            return (studyId: string) => {
+                const study = state.studies.find(item => item.id === studyId);
+
+                return study ? study.display_name : undefined;
+            };
+        }
     },
 })

@@ -1,27 +1,63 @@
 <template>
-  <div>
-    <UIBaseCard :naked="true">
-      <div class="flex flex-row justify-center items-center space-x-4">
-        <UButton
-          ref="topButton" label="Interview Beenden" color="green" variant="soft"
-          class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" @click="saveInterview()" />
-        <CopyPreviousDrugs
-          v-if="!pending && latestItems && route.params.interview_id !== latestItems[0]?.interview_id"
-          :on-update="loadIntakeList" />
-      </div>
-    </UIBaseCard>
-    <!-- TABLE -->
-    <div class="flex flex-row justify-center max-w-6xl mx-auto">
-      <div class="border-2 border-[#ededed] rounded-md shadow-lg">
-        <h4 style="text-align: center; padding-top: 25px">Medikationen</h4>
-        <div>
-          <div class="flex justify-between px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
-            <UInput v-model="q" placeholder="Tabelle Filtern" />
+  <div class="mt-4 max-w-6xl mx-auto">
+    <div v-if="loading">
+      <UProgress animation="carousel" />
+    </div>
+
+    <UAlert v-else-if="errorMessage" color="red" title="Fehler" :description="errorMessage" />
+
+    <div v-else class="flex flex-col self-center justify-center gap-4 mt-4 max-w-6xl mx-auto">
+      <UCard>
+        <div class="flex flex-row justify-between items-center space-x-4">
+          <div class="w-1/4">
+            <span class="text-lg">{{ studyStore.nameForStudy(studyId) || 'N/A' }}</span>
+          </div>
+
+          <div class="w-1/4 text-center">
+            <span class="text-lg">{{ eventStore.nameForEvent(eventId) || 'N/A' }}</span>
+          </div>
+
+          <div class="w-1/4 text-center">
+            <ULink :to="`/interview/proband/${probandId}/study/${studyId}`" inactive-class="text-red-800">
+              <span class="text-lg">Proband <span class="font-mono">#{{ probandId || '???' }}</span></span>
+            </ULink>
+          </div>
+
+          <div class="w-1/4 text-end">
+          <span v-if="interview.interview_end_time_utc">
+            Interview abgeschlossen am {{ formatDate(interview.interview_end_time_utc) }}
+          </span>
             <UButton
-                label="Präparat erfassen"
-                @click="openCreateIntakeModal"
+                v-else
+                label="Interview Beenden"
+                color="red"
+                variant="outline"
+                icon="i-heroicons-arrow-right-on-rectangle"
+                @click="endInterview()"
             />
           </div>
+        </div>
+      </UCard>
+
+      <UCard :ui="{ body: { padding: 'py-4 sm:px-0' } }">
+        <template #header>
+          <div class="flex flex-col">
+            <h2 class="text-lg self-center">Medikationen</h2>
+            <div class="flex flex-row justify-between">
+              <UInput v-model="q" placeholder="Tabelle Filtern" />
+              <CopyPreviousDrugs
+                  v-if="!pending && latestItems && interviewId !== latestItems[0]?.interview_id"
+                  :on-update="loadIntakeList" />
+              <UButton
+                  class="self-end"
+                  label="Präparat erfassen"
+                  @click="openCreateIntakeModal"
+              />
+            </div>
+          </div>
+        </template>
+
+        <div class="flex flex-col gap-4">
           <UTable :rows="rows" :columns="columns" class="break-words">
             <template v-if="userStore.isAdmin" #actions-data="{ row }">
               <UDropdown :items="myOptions(row)">
@@ -29,113 +65,108 @@
               </UDropdown>
             </template>
           </UTable>
-          <div
-            v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount"
-            class="flex justify-center px-3 py-3.5 border-t dark:border-red-500"
-          >
-            <UPagination
-              v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
-                wrapper: 'flex items-center gap-1',
-                rounded: 'rounded-sm',
-                default: {
-                  activeButton: {
-                    variant: 'outline',
-                  },
-                },
-              }" />
+
+          <UPagination
+              v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount"
+              v-model="page"
+              :page-count="pageCount"
+              :total="filteredRows.length"
+              class="self-center"
+          />
+        </div>
+      </UCard>
+
+      <!-- MODALS -->
+
+      <UModal v-model="deleteModalVisibility">
+        <div class="p-4">
+          <div style="text-align: center">
+            <h4 style="color: red">Sie löschen folgenden Eintrag:</h4>
+            <br>
+            <h4>{{ drugToDelete.drug }}</h4>
+            <br>
+            <UForm :state="deleteState" class="space-y-4" @submit="deleteIntake">
+              <UButton
+                  type="submit" color="red" variant="soft"
+                  class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white"
+              >
+                Eintrag löschen
+              </UButton>
+            </UForm>
           </div>
         </div>
-        <div style="text-align: center">
-          <UButton
-            label="Interview Beenden" color="green" variant="soft"
-            class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" style="margin: 25px"
-            @click="saveInterview()" />
-        </div>
-      </div>
-    </div>
-
-    <!-- MODALS -->
-    
-    <UModal v-model="deleteModalVisibility">
-      <div class="p-4">
-        <div style="text-align: center">
-          <h4 style="color: red">Sie löschen folgenden Eintrag:</h4>
-          <br>
-          <h4>{{ drugToDelete.drug }}</h4>
-          <br>
-          <UForm :state="deleteState" class="space-y-4" @submit="deleteIntake">
-            <UButton
-              type="submit" color="red" variant="soft"
-              class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white"
-            >
-              Eintrag löschen
-            </UButton>
-          </UForm>
-        </div>
-      </div>
-    </UModal>
-    <IntakeModal
-        v-if="createIntakeModalVisible"
-        v-model="createIntakeModalVisible"
-        prevent-close
-        @save="saveIntake"
-        @cancel="() => { createIntakeModalVisible = false }"
-    />
-    <IntakeModal
-        v-if="editModalVisible"
-        v-model="editModalVisible"
-        :initial-state="intakeToEdit"
-        :is-drug-editable="false"
-        prevent-close
-        @save="saveEditIntake"
-        @cancel="() => { editModalVisible = false }"
-    />
-    <UModal v-model="userStore.firstEvent" @close="resetFirstEvent()">
-      <div class="p-4">
-        <div style="text-align: center">
-          <h3>Eingangsfrage</h3>
-          <p>Wir möchten Ihre Einnahme von Diabetes-Medikamenten in den vergangegen 12 Monaten erfassen. Dazu gehören
-            sowohl
-            Tabletten als auch Insulinpräparate.</p>
-          <br>
-          <p>Außerdem bitten wir Sie um Angabe, welche anderen Medikamente Sie innerhalb der letzten 7 Tage eingenommen
-            haben. Bitte denken Sie auch an Schmerzmittel und vom Arzt erhaltene Spritzen. Geben Sie Depotmittel an,
-            auch
-            wenn Sie diese zuletzt vor mehr als 7 Tagen eingenommen oder bekommen haben.</p>
-          <br>
-          <p><strong>Nur bei Frauen</strong></p>
-          <p>Denken Sie bitte auch an Medikamente wie die Pille, Hormonersatzpräparate, Depotmittel oder die Spirale,
-            auch
-            wenn Sie diese zuletzt vor mehr als 7 Tagen eingenommen oder bekommen haben.</p>
-          <br>
-          <p><strong>Haben Sie Diabetes-Medikamente in den vergangenen 12 Monaten bzw. andere Medikamente in den letzten
+      </UModal>
+      <IntakeModal
+          v-if="createIntakeModalVisible"
+          v-model="createIntakeModalVisible"
+          prevent-close
+          @save="saveIntake"
+          @cancel="() => { createIntakeModalVisible = false }"
+      />
+      <IntakeModal
+          v-if="editModalVisible"
+          v-model="editModalVisible"
+          :initial-state="intakeToEdit"
+          :is-drug-editable="false"
+          prevent-close
+          @save="saveEditIntake"
+          @cancel="() => { editModalVisible = false }"
+      />
+      <UModal v-model="userStore.firstEvent" @close="resetFirstEvent()">
+        <div class="p-4">
+          <div style="text-align: center">
+            <h3>Eingangsfrage</h3>
+            <p>Wir möchten Ihre Einnahme von Diabetes-Medikamenten in den vergangegen 12 Monaten erfassen. Dazu gehören
+              sowohl
+              Tabletten als auch Insulinpräparate.</p>
+            <br>
+            <p>Außerdem bitten wir Sie um Angabe, welche anderen Medikamente Sie innerhalb der letzten 7 Tage eingenommen
+              haben. Bitte denken Sie auch an Schmerzmittel und vom Arzt erhaltene Spritzen. Geben Sie Depotmittel an,
+              auch
+              wenn Sie diese zuletzt vor mehr als 7 Tagen eingenommen oder bekommen haben.</p>
+            <br>
+            <p><strong>Nur bei Frauen</strong></p>
+            <p>Denken Sie bitte auch an Medikamente wie die Pille, Hormonersatzpräparate, Depotmittel oder die Spirale,
+              auch
+              wenn Sie diese zuletzt vor mehr als 7 Tagen eingenommen oder bekommen haben.</p>
+            <br>
+            <p><strong>Haben Sie Diabetes-Medikamente in den vergangenen 12 Monaten bzw. andere Medikamente in den letzten
               7
               Tagen eingenommen?</strong></p>
+          </div>
         </div>
-      </div>
-    </UModal>
+      </UModal>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// general constants
-
 import type { IntakeFormSchema } from "~/components/Intake/Form.vue";
 import dayjs from "dayjs";
+import type { Interview } from "~/stores/interviewStore";
 
 const route = useRoute();
-const router = useRouter();
+const eventStore = useEventStore();
 const studyStore = useStudyStore();
 const userStore = useUserStore();
 const { $medlogapi } = useNuxtApp();
+
+const interviewId = computed(() => route.params.interview_id);
+const probandId = computed(() => route.params.proband_id);
+const studyId = computed(() => route.params.study_id);
+
+const errorMessage = ref('');
+const eventId = ref('');
+const interview = ref<Interview | null>();
+const loading = ref(true);
 
 const { data: latestItems, pending } = await useAsyncData(
   'latestItems',
   () => $medlogapi(
     `/api/study/{studyId}/proband/{probandId}/interview/last/intake`, {
       path: {
-          studyId: route.params.study_id,
-          probandId: route.params.proband_id,
+          studyId: studyId.value,
+          probandId: probandId.value,
         }
     }
   )
@@ -170,8 +201,8 @@ async function saveIntake(data: IntakeFormSchema) {
     method: "POST",
     body: body,
     path: {
-      study_id: route.params.study_id,
-      interview_id: route.params.interview_id
+      study_id: studyId.value,
+      interview_id: interviewId.value
     }
   });
 
@@ -197,8 +228,8 @@ async function openEditModal(row: object) {
   const { data, error } = await useMedlogapi('/api/study/{study_id}/interview/{interview_id}/intake/{intake_id}', {
     method: "GET",
     path: {
-      study_id: route.params.study_id,
-      interview_id: route.params.interview_id,
+      study_id: studyId.value,
+      interview_id: interviewId.value,
       intake_id: intakeIdToEdit.value,
     }
   });
@@ -246,8 +277,8 @@ async function saveEditIntake(data: IntakeFormSchema) {
         method: "PATCH",
         body: body,
         path: {
-          study_id: route.params.study_id,
-          interview_id: route.params.interview_id,
+          study_id: studyId.value,
+          interview_id: interviewId.value,
           intake_id: intakeIdToEdit.value,
         }
       }
@@ -286,8 +317,8 @@ async function deleteIntake() {
       {
         method: "DELETE",
         path: {
-          studyId: route.params.study_id,
-          interviewId: route.params.interview_id,
+          studyId: studyId.value,
+          interviewId: interviewId.value,
           drugToDelete: drugToDelete.value.intakeId
         }
       }
@@ -380,37 +411,12 @@ const filteredRows = computed(() => {
 
 // REST
 
-async function saveInterview() {
-
-  try {
-    await $medlogapi(
-      `/api/study/{studyId}/event/{eventId}/interview/{interviewId}`,
-      {
-        method: "PATCH",
-        body: {
-          "proband_external_id": `${route.params.proband_id}`,
-          "interview_end_time_utc": new Date().toISOString(),
-          "proband_has_taken_meds": true
-        },
-        path: {
-          studyId: route.params.study_id,
-          eventId: route.params.event_id,
-          interviewId: route.params.interview_id
-        }
-      }
-    );
-  } catch (error) {
-    console.log(error);
-  }
-
-  studyStore.event = "";
-  router.push({
-    path:
-      "/interview/proband/" +
-      route.params.proband_id +
-      "/study/" +
-      route.params.study_id,
+async function endInterview() {
+  await usePatchInterview(studyId.value, eventId.value, interviewId.value, {
+    interview_end_time_utc: new Date().toISOString()
   });
+
+  await navigateTo(`/interview/proband/${probandId.value}/study/${studyId.value}`);
 }
 
 async function loadIntakeList() {
@@ -419,9 +425,9 @@ async function loadIntakeList() {
       `/api/study/{studyId}/proband/{probandId}/intake/details?interview_id={interviewId}`,
     {
       path: {
-        studyId: route.params.study_id,
-        probandId: route.params.proband_id,
-        interviewId: route.params.interview_id
+        studyId: studyId.value,
+        probandId: probandId.value,
+        interviewId: interviewId.value,
         }
     });
 
@@ -459,7 +465,27 @@ const resetFirstEvent = () => {
   userStore.firstEvent = false;
 }
 
-loadIntakeList();
+onMounted(async () => {
+  loading.value = true;
+  try {
+    await eventStore.loadAllEventsForStudy(studyId.value);
+    const interviewsForProband = await useGetInterviewsByStudyAndProband(studyId.value, probandId.value);
+    const foundInterview = interviewsForProband.find(item => item.id === interviewId.value);
+    console.log(foundInterview);
+    if (!foundInterview) {
+      errorMessage.value = 'Interview nicht gefunden';
+      return;
+    }
+    eventId.value = foundInterview.event_id;
+    interview.value = await useGetInterview(studyId.value, eventId.value, interviewId.value);
+    console.log(interview.value);
+    await loadIntakeList();
+  } catch (error) {
+    errorMessage.value = error.message ?? error;
+  } finally {
+    loading.value = false;
+  }
+})
 
 </script>
 

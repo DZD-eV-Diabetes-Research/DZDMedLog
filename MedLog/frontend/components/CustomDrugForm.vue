@@ -325,7 +325,7 @@ const fetchFieldDefinitions = async () => {
 function generateDynamicState(fieldsObject: [[]]) {
   const dynamicState = {};
 
-  fieldsObject.forEach(([label, key, type]) => {
+  fieldsObject.forEach(([, key, type]) => {
     dynamicState[key] = type === "BOOL" ? false : null;
   });
   return dynamicState;

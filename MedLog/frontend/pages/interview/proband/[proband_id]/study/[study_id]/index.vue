@@ -86,7 +86,6 @@ import { useMedlogapi } from '#open-fetch';
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
-const studyStore = useStudyStore()
 const { $medlogapi } = useNuxtApp();
 
 
@@ -198,7 +197,6 @@ async function createEvent() {
 async function createInterview() {
   try {
     const interview = await useCreateInterview(route.params.study_id, selectedIncompleteEvent.value.id, route.params.proband_id, true, userStore.userID)
-    studyStore.event = selectedIncompleteEvent.value.event.name
     userStore.firstEvent = true;
     router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + selectedIncompleteEvent.value.id + "/interview/" + interview.id)
   }
@@ -264,7 +262,6 @@ async function editEvent(eventId: string) {
 
   const interview = result.value.find(item => item.proband_external_id == route.params.proband_id);
 
-  studyStore.event = selectedCompleteEvent.value.event.name;
   await navigateTo(`/interview/proband/${route.params.proband_id}/study/${route.params.study_id}/event/${eventId}/interview/${interview.id}`);
 }
 
