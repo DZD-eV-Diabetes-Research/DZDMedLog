@@ -188,7 +188,7 @@ function openCreateIntakeModal() {
 
 async function saveIntake(data: IntakeFormSchema) {
   const body = {
-    administered_by_doctor: null, // TODO set dynamically
+    administered_by_doctor: data.administeredByDoctor,
     as_needed_dose_unit: null,
     consumed_meds_today: data.medsTakenToday,
     dose_per_day: data.dose,
@@ -248,6 +248,7 @@ async function openEditModal(row: object) {
   }
 
   intakeToEdit.value = {
+    administeredByDoctor: data.value.administered_by_doctor,
     dose: data.value.dose_per_day,
     drugId: data.value.drug_id,
     drugSource: data.value.source_of_drug_information,
@@ -263,7 +264,7 @@ async function openEditModal(row: object) {
 
 async function saveEditIntake(data: IntakeFormSchema) {
   const body = {
-    administered_by_doctor: null, // TODO set dynamically
+    administered_by_doctor: data.administeredByDoctor,
     as_needed_dose_unit: null,
     consumed_meds_today: data.medsTakenToday,
     dose_per_day: data.dose,

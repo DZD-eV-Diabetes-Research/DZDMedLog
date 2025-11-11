@@ -2,11 +2,14 @@
 <template>
   <UForm ref="intakeForm" :state="state" :schema="schema" class="space-y-4" @submit="onSubmit">
     <div style="padding-top: 2.5%">
-      <UFormGroup label="Quelle der Arzneimittelangabe">
+      <UFormGroup label="Quelle der Arzneimittelangabe" name="drugSource">
         <USelect v-model="state.drugSource" :options="drugSourceOptions" :color="props.color" />
       </UFormGroup>
     </div>
-    <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?">
+    <UFormGroup label="Vom Arzt verordnet?" name="administeredByDoctor">
+      <USelect v-model="state.administeredByDoctor" :options="administeredByDoctorOptions" :color="props.color" />
+    </UFormGroup>
+    <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?" name="frequency">
       <USelect v-model="state.frequency" :options="frequencyOptions" :color="props.color" />
     </UFormGroup>
     <div class="flex flex-row space-x-4">
@@ -18,7 +21,7 @@
         </UFormGroup>
       </div>
       <div class="flex-1">
-        <UFormGroup label="Intervall der Tagesdosen">
+        <UFormGroup label="Intervall der Tagesdosen" name="intervall">
           <USelect
             v-model="state.intervall" :options="doseIntervalOptions" :disabled="state.frequency !== 'regular'"
             :color="state.frequency !== 'regular' ? 'gray' : props.color" />
@@ -80,6 +83,13 @@ const drugSourceOptions = [
   { value: "Follow up via phone/message: Medication name", label: "Nacherhebung: Arzneimittelname" },
 ];
 
+const administeredByDoctorOptions = [
+  { value: 'prescribed', label: 'ja, auf Rezept' },
+  { value: 'recommended', label: 'vom Arzt empfohlen' },
+  { value: 'no', label: 'nein' },
+  { value: 'unknown', label: 'unbekannt' },
+];
+
 const frequencyOptions = [
   { value: "as needed", label: "nach Bedarf" },
   { value: "regular", label: "regelmäßig" },
@@ -128,6 +138,7 @@ const medsTakenTodayOptions = [
 ];
 
 const state = reactive({
+  administeredByDoctor: administeredByDoctorOptions[0].value,
   dose: 0,
   drugId: "",
   drugSource: drugSourceOptions[0].value,
@@ -139,6 +150,7 @@ const state = reactive({
 });
 
 const schema = object({
+  administeredByDoctor: string().oneOf(administeredByDoctorOptions.map(item => item.value)),
   dose: number().min(0, "Required"),
   drugId: string().required("Kein Medikament ausgewählt"),
   drugSource: string().oneOf(drugSourceOptions.map(item => item.value)).required("Required"),
