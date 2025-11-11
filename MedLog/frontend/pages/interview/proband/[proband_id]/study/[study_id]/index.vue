@@ -54,9 +54,9 @@
         <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
           <UInput v-model="q" placeholder="Tabelle Filtern" />
         </div>
-        <UTable :rows="rows" :columns="columns" />
+        <IntakeTable :intakes="rows" :show-event="true" />
         <div
-          v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount"
+          v-if="intakes.length >= pageCount || filteredRows.length >= pageCount"
           class="flex justify-center px-3 py-3.5 border-t dark:border-green-700"
         >
           <UPagination
@@ -88,66 +88,29 @@ const router = useRouter()
 const userStore = useUserStore()
 const { $medlogapi } = useNuxtApp();
 
+const probandId = computed(() => route.params.proband_id);
+const studyId = computed(() => route.params.study_id);
 
 // table
 
 const page = ref(1)
 const pageCount = 10
 
-const tableContent = ref([])
+const intakes = ref([])
 
 const rows = computed(() => {
-  const data = q.value ? filteredRows.value : tableContent.value;
+  const data = q.value ? filteredRows.value : intakes.value;
   return data.slice((page.value - 1) * pageCount, page.value * pageCount);
 })
-
-const columns = [{
-  key: 'event',
-  label: 'Event',
-  sortable: true
-}, {
-  key: "pzn",
-  label: "PZN",
-},
-{
-  key: "custom",
-  label: "Custom"
-},
-{
-  key: "drug",
-  label: "Medikament",
-  sortable: true,
-},
-{
-  key: "source",
-  label: "Quelle der Angabe",
-  sortable: true,
-},
-{
-  key: "dose",
-  label: "Dosis",
-  sortable: true,
-},
-{
-  key: "intervall",
-  label: "Intervall",
-  sortable: true,
-},
-{
-  key: "time",
-  label: "Einnahme Zeitraum",
-  sortable: true,
-}]
-
 
 const q = ref('')
 
 const filteredRows = computed(() => {
   if (!q.value) {
-    return tableContent.value
+    return intakes.value
   }
 
-  return tableContent.value.filter((tableContent) => {
+  return intakes.value.filter((tableContent) => {
     return Object.values(tableContent).some((value) => {
       return String(value).toLowerCase().includes(q.value.toLowerCase())
     })
@@ -170,13 +133,13 @@ const eventError = ref("")
 
 async function createEvent() {
   try {
-    await useCreateEvent(eventState.name.trim(), route.params.study_id);
+    await useCreateEvent(eventState.name.trim(), studyId.value);
 
     const events = await $medlogapi('/api/study/{studyId}/proband/{probandId}/event',
       {
         path: {
-          studyId: route.params.study_id,
-          probandId: route.params.proband_id
+          studyId: studyId.value,
+          probandId: probandId.value
         }
       }
     )
@@ -196,9 +159,9 @@ async function createEvent() {
 
 async function createInterview() {
   try {
-    const interview = await useCreateInterview(route.params.study_id, selectedIncompleteEvent.value.id, route.params.proband_id, true, userStore.userID)
+    const interview = await useCreateInterview(studyId.value, selectedIncompleteEvent.value.id, probandId.value, true, userStore.userID)
     userStore.firstEvent = true;
-    router.push("/interview/proband/" + route.params.proband_id + "/study/" + route.params.study_id + "/event/" + selectedIncompleteEvent.value.id + "/interview/" + interview.id)
+    router.push("/interview/proband/" + probandId.value + "/study/" + studyId.value + "/event/" + selectedIncompleteEvent.value.id + "/interview/" + interview.id)
   }
   catch (error) {
     console.log(error);
@@ -214,8 +177,8 @@ const incompletedItems = ref([]);
 
 const { data: events } = await useMedlogapi('/api/study/{studyId}/proband/{probandId}/event', {
   path: {
-    studyId: route.params.study_id,
-    probandId: route.params.proband_id,
+    studyId: studyId.value,
+    probandId: probandId.value,
   }
 })
 
@@ -251,7 +214,7 @@ watch(events, (newEvents) => {
 async function editEvent(eventId: string) {
   const { data: result, error } = await useMedlogapi('/api/study/{study_id}/event/{event_id}/interview', {
     path: {
-      study_id: route.params.study_id,
+      study_id: studyId.value,
       event_id: eventId,      }
   })
 
@@ -260,36 +223,14 @@ async function editEvent(eventId: string) {
     return;
   }
 
-  const interview = result.value.find(item => item.proband_external_id == route.params.proband_id);
+  const interview = result.value.find(item => item.proband_external_id == probandId.value);
 
-  await navigateTo(`/interview/proband/${route.params.proband_id}/study/${route.params.study_id}/event/${eventId}/interview/${interview.id}`);
+  await navigateTo(`/interview/proband/${probandId.value}/study/${studyId.value}/event/${eventId}/interview/${interview.id}`);
 }
 
 async function createIntakeList() {
   try {
-    const intakes = await $medlogapi('/api/study/{studyId}/proband/{probandId}/intake/details', {
-      path: {
-        studyId: route.params.study_id,
-        probandId: route.params.proband_id,
-      }
-    });
-
-    if (intakes && intakes.items) {
-      tableContent.value = intakes.items.map((item) => ({
-        event: item.event.name,
-        pzn: item.drug.codes.PZN,
-        source: item.source_of_drug_information,
-        drug: item.drug.trade_name,
-        intervall: useIntervallDoseTranslator(item.regular_intervall_of_daily_dose, null),
-        dose: item.dose_per_day === 0 ? "/" : item.dose_per_day,
-        time: item.intake_end_time_utc === null ? item.intake_start_time_utc + " bis unbekannt" : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
-        id: item.id ? item.id : item.custom_drug_id,
-        custom: item.drug?.is_custom_drug ? "Ja" : "Nein",
-        class: item.drug?.is_custom_drug
-          ? "bg-yellow-50"
-          : null,
-      }));
-    }
+    intakes.value = await useGetIntakesByStudyAndProband(studyId.value, probandId.value) ?? [];
   } catch (error) {
     console.log(error);
   }
@@ -300,8 +241,5 @@ createIntakeList()
 </script>
 
 <style scoped>
-:deep(td) {
-  white-space: normal !important;
-  word-break: break-word !important;
-}
+
 </style>

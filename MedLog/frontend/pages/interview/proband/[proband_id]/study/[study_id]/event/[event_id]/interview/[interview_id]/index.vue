@@ -58,13 +58,13 @@
         </template>
 
         <div class="flex flex-col gap-4">
-          <UTable :rows="rows" :columns="columns" class="break-words">
-            <template v-if="userStore.isAdmin" #actions-data="{ row }">
-              <UDropdown :items="myOptions(row)">
-                <UButton color="gray" variant="ghost" icon="i-heroicons-ellipsis-horizontal-20-solid" />
-              </UDropdown>
-            </template>
-          </UTable>
+          <IntakeTable
+              :intakes="rows"
+              :can-edit="userStore.isAdmin"
+              :can-delete="userStore.isAdmin"
+              @edit="row => openEditModal(row)"
+              @delete="row => openDeleteModal(row)"
+          />
 
           <UPagination
               v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount"
@@ -78,7 +78,7 @@
 
       <!-- MODALS -->
 
-      <UModal v-model="deleteModalVisibility">
+      <UModal v-model="deleteModalVisibility" prevent-close>
         <div class="p-4">
           <div style="text-align: center">
             <h4 style="color: red">Sie löschen folgenden Eintrag:</h4>
@@ -86,6 +86,13 @@
             <h4>{{ drugToDelete.drug }}</h4>
             <br>
             <UForm :state="deleteState" class="space-y-4" @submit="deleteIntake">
+              <UButton
+                  label="Abbrechen"
+                  variant="outline"
+                  color="gray"
+                  class="mr-4"
+                  @click="deleteModalVisibility = false"
+              />
               <UButton
                   type="submit" color="red" variant="soft"
                   class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white"
@@ -141,6 +148,7 @@
 </template>
 
 <script setup lang="ts">
+import { useMedlogapi } from '#open-fetch'
 import type { IntakeFormSchema } from "~/components/Intake/Form.vue";
 import dayjs from "dayjs";
 import type { Interview } from "~/stores/interviewStore";
@@ -309,20 +317,8 @@ async function openDeleteModal(row: object) {
 }
 
 async function deleteIntake() {
-
   try {
-
-    await $medlogapi(
-      `/api/study/{studyId}/interview/{interviewId}/intake/{drugToDelete}`,
-      {
-        method: "DELETE",
-        path: {
-          studyId: studyId.value,
-          interviewId: interviewId.value,
-          drugToDelete: drugToDelete.value.intakeId
-        }
-      }
-    );
+    await useDeleteIntake(studyId.value, interviewId.value, drugToDelete.value.intakeId)
     deleteModalVisibility.value = false;
     await loadIntakeList();
   } catch (error) {
@@ -339,61 +335,6 @@ const rows = computed(() => {
   const data = q.value ? filteredRows.value : tableContent.value;
   return data.slice((page.value - 1) * pageCount, page.value * pageCount);
 });
-
-const columns = [
-  {
-    key: "pzn",
-    label: "Medikament PZN",
-  },
-  {
-    key: "custom",
-    label: "Custom",
-    sortable: true,
-  },
-  {
-    key: "drug",
-    label: "Medikament",
-    sortable: true,
-  },
-  {
-    key: "source",
-    label: "Quelle der Angabe",
-    sortable: true,
-  },
-  {
-    key: "dose",
-    label: "Dosis",
-    sortable: true,
-  },
-  {
-    key: "intervall",
-    label: "Intervall",
-    sortable: true,
-  },
-  {
-    key: "time",
-    label: "Einnahme Zeitraum",
-    sortable: true,
-  },
-  {
-    key: "actions",
-  },
-];
-
-const myOptions = (row) => [
-  [
-    {
-      label: "Bearbeiten",
-      icon: "i-heroicons-pencil-square-20-solid",
-      click: () => openEditModal(row),
-    },
-    {
-      label: "Löschen",
-      icon: "i-heroicons-trash-20-solid",
-      click: () => openDeleteModal(row),
-    },
-  ],
-];
 
 const q = ref("");
 
@@ -421,41 +362,7 @@ async function endInterview() {
 
 async function loadIntakeList() {
   try {
-    const intakes = await $medlogapi(
-      `/api/study/{studyId}/proband/{probandId}/intake/details?interview_id={interviewId}`,
-    {
-      path: {
-        studyId: studyId.value,
-        probandId: probandId.value,
-        interviewId: interviewId.value,
-        }
-    });
-
-    if (intakes && intakes.items) {
-      tableContent.value = intakes.items.map((item) => ({
-        pzn: item.drug.codes?.PZN,
-        source: item.source_of_drug_information,
-        drug: item.drug.trade_name,
-        dose: item.dose_per_day === 0 ? "" : item.dose_per_day,
-        intervall: useIntervallDoseTranslator(
-          item.regular_intervall_of_daily_dose,
-          null
-        ),
-        consumed_meds_today: item.consumed_meds_today,
-        option: item.intake_regular_or_as_needed,
-        startTime: item.intake_start_time_utc,
-        endTime: item.intake_end_time_utc,
-        time:
-          item.intake_end_time_utc === null
-            ? item.intake_start_time_utc + " bis unbekannt"
-            : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
-        intakeId: item.id,
-        custom: item.drug?.is_custom_drug ? "Ja" : "Nein",
-        class: item.drug?.is_custom_drug
-          ? "bg-yellow-50"
-          : null,
-      }));
-    }
+    tableContent.value = await useGetIntakesByStudyAndProband(studyId.value, probandId.value, interviewId.value) ?? [];
   } catch (error) {
     console.log(error);
   }
@@ -491,9 +398,5 @@ onMounted(async () => {
 
 
 <style scoped>
-/* I don't like that this is here but I can't get the wordbreak otherwise */
-:deep(td) {
-  white-space: normal !important;
-  word-break: break-word !important;
-}
+
 </style>
