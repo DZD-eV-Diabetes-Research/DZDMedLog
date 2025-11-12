@@ -13,6 +13,7 @@ from sqlalchemy.sql.operators import (
     icontains_op,
     contains_op,
     istartswith_op,
+    startswith_op,
     op,
     or_,
     and_,
@@ -428,7 +429,14 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         # if it also matches the case it adds 1.0 to the score
         score_cases = case(
             (
-                istartswith_op(
+                startswith_op(  # starts with non-case-sensitive
+                    GenericSQLDrugSearchCache.search_index_content,
+                    search_term.replace('"', ""),
+                ),
+                1.3,
+            ),
+            (
+                istartswith_op(  # starts with non-case-sensitive
                     GenericSQLDrugSearchCache.search_index_content,
                     search_term.replace('"', ""),
                 ),
@@ -454,6 +462,8 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         for search_token in search_term_tokens:
             # if a drug contains one search token is add 0.1 to the score
             # if matches the case it add 0.2 to the score
+            if search_term == search_token:
+                continue
             score_cases = score_cases.op("+")(
                 case(
                     (
@@ -506,6 +516,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             )
         query = query.order_by(GenericSQLDrugSearchCache.is_custom_drug)
         query = query.order_by(desc("score"))
+        query = query.order_by(GenericSQLDrugSearchCache.search_index_content)
 
         # log.debug(f"DRUG SEARCH QUERY: {query}")
         async with get_async_session_context() as session:
