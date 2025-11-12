@@ -48,10 +48,6 @@ CRUD_classes: List[CRUDBase] = [
 ]
 
 
-# Tim you are here: Now we only need to add a "queded" job into  WorkerJob/worker_job to be picked up by the worker
-# params should be the source dir.
-
-
 class DrugDataLoader:
     def __init__(self):
         from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
