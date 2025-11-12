@@ -33,7 +33,7 @@ const menuItems = computed(() => {
 
   const rightSideLinks = [];
 
-  if (userStore.isLoggedIn && userStore.isAdmin) {
+  if (userStore.isLoggedIn && userStore.isUserAdmin) {
     rightSideLinks.push({
       label: 'Kontoverwaltung',
       icon: 'i-heroicons-users',

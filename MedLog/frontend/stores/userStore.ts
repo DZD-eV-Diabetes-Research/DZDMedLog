@@ -7,7 +7,6 @@ interface UserStore {
     displayName: string,
     roles: string[],
     userName: string,
-    isAdmin: boolean,
     viewProfile: boolean,
     buttonText: string,
     userID: string,
@@ -21,7 +20,6 @@ export const useUserStore = defineStore('UserStore', {
         displayName: "",
         roles: [],
         userName: "",
-        isAdmin: false,
         viewProfile: false,
         buttonText: "Toggle to User",
         userID: "",
@@ -31,9 +29,6 @@ export const useUserStore = defineStore('UserStore', {
         async setUserInfo() {
             const {$medlogapi} = useNuxtApp();
 
-            const roles = await $medlogapi("/api/role")
-            const adminRoles = roles.filter((role) => role.has_admin_permissions).map(role => role.role_name)
-
             try {
                 const data = await $medlogapi("/api/user/me")
 
@@ -42,11 +37,6 @@ export const useUserStore = defineStore('UserStore', {
                 this.roles = data.roles
                 this.userName = data.user_name
                 this.userID = data.id
-
-                if (data.roles.some(role => adminRoles.includes(role))) {
-                    this.isAdmin = true
-                }
-
             } catch (err) {
                 console.log(err);
             }
@@ -55,6 +45,14 @@ export const useUserStore = defineStore('UserStore', {
     getters: {
         isLoggedIn: state => {
             return state.userID !== ''
-        }
+        },
+        isAdmin: state => {
+            const roleStore = useRoleStore()
+            return state.roles.some(role => roleStore.isAdminRole(role));
+        },
+        isUserAdmin: state => {
+            const roleStore = useRoleStore()
+            return state.roles.some(role => roleStore.isUserManagerRole(role));
+        },
     },
 }) 

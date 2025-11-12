@@ -1,10 +1,12 @@
 export default defineNuxtRouteMiddleware(async (to) => {
-  const userStore = useUserStore()
+  const roleStore = useRoleStore();
+  const userStore = useUserStore();
 
   console.log('path', to.path)
 
   if (to.path !== '/login'){
     try {
+      await roleStore.loadRoles()
       await userStore.setUserInfo()
     } catch (error) {
       console.log(error);

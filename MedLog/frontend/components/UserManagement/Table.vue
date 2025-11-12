@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Roles } from '~/stores/roleStore'
+
 const columns = [{
   key: 'user_name',
   label: 'Benutzername'
@@ -16,7 +18,7 @@ const columns = [{
 }]
 
 const props = defineProps({
-  roles: { type: Array, default: () => [] },
+  roles: { type: Array as () => Roles, default: () => [] },
   users: { type: Array, default: () => [] },
 });
 
