@@ -31,19 +31,16 @@
 </template>
 
 <script setup lang="ts">
-import { object, string, type InferType } from 'yup'
+import { object, string } from 'yup'
 
 const userStore = useUserStore()
 const studyStore = useStudyStore()
 const router = useRouter()
-const { $medlogapi } = useNuxtApp();
 
 
 const schema = object({
     probandID: string().required('Required'),
 })
-
-type Schema = InferType<typeof schema>
 
 const state = reactive({
     probandID: undefined,

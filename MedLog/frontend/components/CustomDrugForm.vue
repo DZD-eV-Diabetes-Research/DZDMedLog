@@ -141,7 +141,6 @@
 </template>
 
 <script setup lang="ts">
-import {boolean, date, number, string} from "yup";
 import {apiGetFieldDefinitions} from "~/api/drug";
 import type {FormError} from "#ui/types";
 const { $medlogapi } = useNuxtApp();
@@ -329,35 +328,6 @@ function generateDynamicState(fieldsObject: [[]]) {
     dynamicState[key] = type === "BOOL" ? false : null;
   });
   return dynamicState;
-}
-
-// function generateDynamicSchema(fieldsObject) {
-//   const dynamicSchema = {};
-//   Object.values(fieldsObject).forEach((fieldGroup) => {
-//     fieldGroup.forEach(([label, key, type]) => {
-//       dynamicSchema[key] = getSchemaForType(type);
-//     });
-//   });
-//   return dynamicSchema;
-// }
-
-function getSchemaForType(type: any) {
-  switch (type) {
-    case "STR":
-      return string();
-    case "INT":
-      return number().integer();
-    case "FLOAT":
-      return number();
-    case "BOOL":
-      return boolean();
-    case "DATETIME":
-      return date();
-    case "DATE":
-      return date();
-    default:
-      return string();
-  }
 }
 
 function getFormInputType(type: any) {
