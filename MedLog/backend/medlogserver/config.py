@@ -273,6 +273,10 @@ class Config(BaseSettings):
         default="DummyDrugImporterV1",
         description="Depending on the drug database that is used, we can define an importer.",
     )
+    DRUG_IMPORTER_AUTO_UPDATE_DRUG_DB: bool = Field(
+        default=False,
+        description="If the drug importer plugin, does support it, the drug DB will be updated automaticly. Otherwise it must be manually triggered via endpoint ...TODO",
+    )
 
     DRUG_IMPORTER_BATCH_SIZE: int = Field(
         default=200000,
