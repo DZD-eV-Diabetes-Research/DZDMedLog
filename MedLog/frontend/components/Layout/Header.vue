@@ -33,6 +33,14 @@ const menuItems = computed(() => {
 
   const rightSideLinks = [];
 
+  if (userStore.isLoggedIn && userStore.isAdmin) {
+    rightSideLinks.push({
+      label: 'Studienverwaltung',
+      icon: 'i-heroicons-clipboard-document-list',
+      to: '/studies'
+    });
+  }
+
   if (userStore.isLoggedIn && userStore.isUserAdmin) {
     rightSideLinks.push({
       label: 'Kontoverwaltung',
