@@ -1,5 +1,5 @@
 <template>
-  <div class="mt-8 max-w-6xl mx-auto">
+  <div class="mt-8 w-11/12 lg:w-8/12 xl:w-6/12 mx-auto">
     <h1 class="text-4xl font-normal text-center">Übersicht</h1>
 
     <ul v-if="studyStore.studies" class="mt-4">
