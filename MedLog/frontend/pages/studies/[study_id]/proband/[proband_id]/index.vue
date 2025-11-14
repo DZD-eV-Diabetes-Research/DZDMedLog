@@ -76,7 +76,7 @@
         variant="solid"
       >
         <template #past-interviews>
-          <InterviewTable :interviews="interviewsForProband" :study-id="studyId" class="" />
+          <InterviewTable :interviews="completedInterviews" :study-id="studyId" class="" />
         </template>
       </UAccordion>
 
