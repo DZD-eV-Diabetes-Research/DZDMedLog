@@ -1,49 +1,41 @@
 // Store to handle to current studies
 
+import { type MedlogapiResponse, useMedlogapi } from "#open-fetch";
 import { defineStore } from 'pinia'
 
-interface Study {
-    deactivated: boolean;
-    id: string;
-    display_name: string;
-    created_at: string;
-    no_permissions: boolean;
-    name: string;
-}
+type Studies = MedlogapiResponse<'list_studies_api_study_get'>['items']
+export type Study = MedlogapiResponse<'create_study_api_study_post'>
 
 interface StudyState {
-    studies: Study[],
-    event: string,
+    studies: Studies,
 }
 
 export const useStudyStore = defineStore('StudyStore', {
 
     state: (): StudyState => ({
         studies: [],
-        event: "",
     }),
     actions: {
-        async listStudies(): Promise<void> {
-            const tokenStore = useTokenStore()
-            tokenStore.error = ""
-            const {$medlogapi} = useNuxtApp();
-            try {
-                const data = await $medlogapi("/api/study")
+        async getAvailableStudies() {
+            const { data, error } = await useMedlogapi("/api/study")
+            if (error.value) {
+                throw error.value;
+            }
 
-                this.studies = data.items
-            }
-            catch (err: any) {
-                tokenStore.error = err?.response.data.detail
-            }
+            this.studies = data.value?.items ?? [];
         },
 
         async getStudy(id: string) {
-            if (this.studies.length === 0) {
-            }
-            else {
-                const foundItem = this.studies.find(item => item.id === id)
-                return foundItem
-            }
+            return this.studies.find(item => item.id === id)
         },
+    },
+    getters: {
+        nameForStudy(state: StudyState) {
+            return (studyId: string) => {
+                const study = state.studies.find(item => item.id === studyId);
+
+                return study ? study.display_name : undefined;
+            };
+        }
     },
 })

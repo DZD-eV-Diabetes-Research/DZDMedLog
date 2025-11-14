@@ -1,28 +1,26 @@
 // Helper to create Interview
+import { useMedlogapi, type MedlogapiResponse } from "#open-fetch";
 
-export async function useCreateInterview(study_id:string, event_id:string, proband_external_id: string, proband_has_taken_meds:boolean, interview_number:number): Promise<any>{
-    const tokenStore = useTokenStore()
-    const { $medlogapi } = useNuxtApp();
+type Interview = MedlogapiResponse<'create_interview_api_study__study_id__event__event_id__interview_post'>
 
-    tokenStore.error = ""
-    
-    const body = {"proband_external_id": proband_external_id,
-                "proband_has_taken_meds": proband_has_taken_meds,
-                "interview_number": interview_number
-    }    
-
-    try {
-        const response = await $medlogapi("/api/study/{studyId}/event/{eventId}/interview", {
-            method: "POST",
-            body: body,
-            path: {
-                studyId: study_id,
-                eventId: event_id
-            }
-        })
-        return response     
+export async function useCreateInterview(studyId:string, eventId:string, probandExternalId: string, probandHasTakenMeds:boolean): Promise<Interview | null>{
+    const body = {
+        "proband_external_id": probandExternalId,
+        "proband_has_taken_meds": probandHasTakenMeds,
     }
-    catch (err: any) {
-        tokenStore.error = err.response.data.detail
+
+    const { data, error } = await useMedlogapi("/api/study/{study_id}/event/{event_id}/interview", {
+        method: "POST",
+        body: body,
+        path: {
+            study_id: studyId,
+            event_id: eventId
+        }
+    })
+
+    if (error.value) {
+        throw error.value;
     }
+
+    return data.value;
 }

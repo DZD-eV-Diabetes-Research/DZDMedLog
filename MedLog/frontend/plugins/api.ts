@@ -8,10 +8,10 @@ export default defineNuxtPlugin({
 
         if (!clients) return { provide: {} }
 
-        const handleUnauthorized = () => {
+        const handleUnauthorized = async () => {
             const current = router.currentRoute.value
             if (current.fullPath !== '/login' && !current.query.redirect) {
-                router.push({ path: '/login', query: { target_path: current.fullPath } })
+                await router.push({ path: '/login', query: { target_path: current.fullPath } })
             }
             console.log("handle unauth");
         }
@@ -19,19 +19,25 @@ export default defineNuxtPlugin({
         return {
             provide: Object.entries(clients).reduce((acc, [name, options]) => ({
                 ...acc,
-                [name]: createOpenFetch(localOptions => ({
-                    ...options,
-                    ...localOptions,
-                    onRequest: localOptions?.onRequest,
-                    onResponse(ctx) {
-                        if (ctx.response?.status === 401) handleUnauthorized()
-                            ; (localOptions?.onResponse as any)?.(ctx)
-                    },
-                    onResponseError(ctx) {
-                        if (ctx.response?.status === 401) handleUnauthorized()
-                            ; (localOptions?.onResponseError as any)?.(ctx)
-                    }
-                }))
+                [name]: createOpenFetch(localOptions => {
+                    return {
+                        ...options,
+                        ...localOptions,
+                        onRequest: localOptions?.onRequest,
+                        async onResponse(ctx) {
+                            if (ctx.response?.status === 401) {
+                                await handleUnauthorized()
+                            }
+                            (localOptions?.onResponse as any)?.(ctx)
+                        },
+                        async onResponseError(ctx) {
+                            if (ctx.response?.status === 401) {
+                                await handleUnauthorized()
+                            }
+                            (localOptions?.onResponseError as any)?.(ctx)
+                        }
+                    };
+                })
             }), {})
         }
     }
