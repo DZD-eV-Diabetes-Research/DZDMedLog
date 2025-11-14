@@ -57,7 +57,7 @@
             <span>Interview starten</span>
             <div class="flex flex-row gap-2">
               <UInputMenu v-model="eventToStart" :options="eventsToStartOptions" />
-              <UButton color="green" @click="startInterview()">
+              <UButton color="green" :disabled="!eventToStart" @click="introModalVisible = true">
                 Interview starten
               </UButton>
             </div>
@@ -103,6 +103,7 @@
         </div>
       </UCard>
     </div>
+    <InterviewIntroModal v-model="introModalVisible" @start="startInterview" @cancel="introModalVisible = false" />
   </section>
 </template>
 
@@ -113,13 +114,13 @@ import type { Interview } from "~/stores/interviewStore";
 const route = useRoute()
 const eventStore = useEventStore()
 const interviewStore = useInterviewStore()
-const userStore = useUserStore()
 
 const currentInterview = ref<Interview>();
 const errorMessage = ref('');
 const eventsForProband = ref<Events>([]);
 const eventToStart = ref();
 const interviewsForProband = ref<Interview[]>([]);
+const introModalVisible = ref(false);
 const lastInterview = ref<Interview>();
 const loading = ref(true);
 
@@ -162,12 +163,10 @@ const filteredRows = computed(() => {
   })
 })
 
-// Completed Events
-
-async function startInterview() {
+async function startInterview(hasTakenMeds: boolean) {
   try {
-    const interview = await useCreateInterview(studyId.value, eventToStart.value.id, probandId.value, false)
-    userStore.firstEvent = true;
+    const interview = await useCreateInterview(studyId.value, eventToStart.value.id, probandId.value, hasTakenMeds)
+
     await navigateTo(`/studies/${studyId.value}/proband/${probandId.value}/interview/${interview.id}`)
   }
   catch (error) {

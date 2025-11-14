@@ -10,8 +10,6 @@ interface UserStore {
     viewProfile: boolean,
     buttonText: string,
     userID: string,
-    firstEvent: boolean
-
 }
 
 export const useUserStore = defineStore('UserStore', {
@@ -23,7 +21,6 @@ export const useUserStore = defineStore('UserStore', {
         viewProfile: false,
         buttonText: "Toggle to User",
         userID: "",
-        firstEvent: false,
     }),
     actions: {
         async setUserInfo() {

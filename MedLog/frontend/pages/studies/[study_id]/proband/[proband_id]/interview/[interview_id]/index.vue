@@ -124,30 +124,6 @@
           @save="saveEditIntake"
           @cancel="() => { editModalVisible = false }"
       />
-      <UModal v-model="userStore.firstEvent" @close="resetFirstEvent()">
-        <div class="p-4">
-          <div style="text-align: center">
-            <h3>Eingangsfrage</h3>
-            <p>Wir möchten Ihre Einnahme von Diabetes-Medikamenten in den vergangegen 12 Monaten erfassen. Dazu gehören
-              sowohl
-              Tabletten als auch Insulinpräparate.</p>
-            <br>
-            <p>Außerdem bitten wir Sie um Angabe, welche anderen Medikamente Sie innerhalb der letzten 7 Tage eingenommen
-              haben. Bitte denken Sie auch an Schmerzmittel und vom Arzt erhaltene Spritzen. Geben Sie Depotmittel an,
-              auch
-              wenn Sie diese zuletzt vor mehr als 7 Tagen eingenommen oder bekommen haben.</p>
-            <br>
-            <p><strong>Nur bei Frauen</strong></p>
-            <p>Denken Sie bitte auch an Medikamente wie die Pille, Hormonersatzpräparate, Depotmittel oder die Spirale,
-              auch
-              wenn Sie diese zuletzt vor mehr als 7 Tagen eingenommen oder bekommen haben.</p>
-            <br>
-            <p><strong>Haben Sie Diabetes-Medikamente in den vergangenen 12 Monaten bzw. andere Medikamente in den letzten
-              7
-              Tagen eingenommen?</strong></p>
-          </div>
-        </div>
-      </UModal>
     </div>
   </div>
 </template>
@@ -370,10 +346,6 @@ async function loadIntakeList() {
   } catch (error) {
     console.log(error);
   }
-}
-
-const resetFirstEvent = () => {
-  userStore.firstEvent = false;
 }
 
 onMounted(async () => {
