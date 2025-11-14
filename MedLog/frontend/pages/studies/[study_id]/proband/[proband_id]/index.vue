@@ -66,9 +66,9 @@
       </UCard>
 
       <UAccordion
-        v-if="interviewsForProband.length"
+        v-if="completedInterviews.length"
         :items="[{
-          label: `Abgeschlossene Interviews (${interviewsForProband.length})`,
+          label: `Abgeschlossene Interviews (${completedInterviews.length})`,
           icon: 'i-heroicons-clipboard-document-check',
           slot: 'past-interviews',
         }]"
@@ -134,6 +134,9 @@ const eventsToStartOptions = computed(() => {
     order: event.order_position
   })).sort((a, b) => a.order - b.order)
 });
+const completedInterviews = computed(() => {
+  return interviewsForProband.value.filter(interview => interview.interview_end_time_utc !== null);
+});
 
 // table
 
@@ -176,6 +179,7 @@ async function endInterview(eventId, interviewId) {
   try {
     loading.value = true;
     await interviewStore.endInterview(studyId.value, eventId, interviewId);
+    interviewsForProband.value = await useGetInterviewsByStudyAndProband(studyId.value, probandId.value);
     currentInterview.value = await useGetCurrentInterviewByStudyAndProband(studyId.value, probandId.value);
     lastInterview.value = await useGetLastInterviewByStudyAndProband(studyId.value, probandId.value);
   } catch (error) {

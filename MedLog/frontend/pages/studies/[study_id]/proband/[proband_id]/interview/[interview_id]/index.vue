@@ -51,7 +51,7 @@
             <div class="flex flex-row justify-between">
               <UInput v-model="q" placeholder="Tabelle filtern" />
               <CopyPreviousDrugs
-                  v-if="!pending && latestItems.length && !interview.interview_end_time_utc"
+                  v-if="!pending && latestItems?.length && !interview.interview_end_time_utc"
                   :on-update="loadIntakeList" />
               <UButton
                   class="self-end"
