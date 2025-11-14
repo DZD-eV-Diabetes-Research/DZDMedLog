@@ -1,242 +1,206 @@
 <template>
-  <div>
-    <div class="flex flex-row gap-4 justify-center max-w-6xl m-auto">
-      <div class="w-[50%]">
-        <UIBaseCard>
-          <h5>Unbearbeitete Events</h5>
-          <UInputMenu v-model="selectedIncompleteEvent" :options="incompletedItems" />
-          <br>
-          <div class="flex justify-evenly">
-            <UButton
-              color="green"
-              variant="soft"
-              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-              @click="createInterview()"
-            >
-              Interview Durchführen
-            </UButton>
+  <section class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
+    <h1 class="text-4xl font-normal text-center mb-4">Proband #{{ probandId }}</h1>
+
+    <div v-if="loading">
+      <UProgress animation="carousel" />
+    </div>
+
+    <UAlert v-else-if="errorMessage" color="red" title="Fehler" :description="errorMessage" />
+
+    <div v-else class="flex flex-col self-center justify-center gap-4 mt-4 max-w-6xl mx-auto">
+      <UAlert
+          v-if="currentInterview"
+          color="amber"
+          title="Laufendes Interview"
+          :description="`Das Interview für Event '${ eventStore.nameForEvent(currentInterview.event_id) }' wurde noch nicht abgeschlossen.`"
+          :actions="[
+            {
+              label: 'Interview abschließen',
+              variant: 'outline',
+              color: 'gray',
+              click: () => endInterview(currentInterview.event_id, currentInterview.id),
+            },
+            {
+              label: 'Interview fortsetzen',
+              variant: 'outline',
+              color: 'gray',
+              click: () => navigateTo(`/interview/proband/${probandId}/study/${studyId}/event/${currentInterview.event_id}/interview/${currentInterview.id}`),
+            },
+        ]"
+      />
+
+      <UCard>
+        <div class="flex flex-row justify-between items-center space-x-4">
+          <div class="w-1/2 flex flex-col gap-4 items-center">
+            <span>Letztes abgeschlossenes Interview</span>
+            <div v-if="lastInterview" class="text-center">
+              <UButton
+                  :to="`/interview/proband/${probandId}/study/${studyId}/event/${lastInterview.event_id}/interview/${lastInterview.id}`"
+                  :label="eventStore.nameForEvent(lastInterview.event_id)"
+                  class="text-lg"
+                  variant="link"
+                  icon="i-heroicons-arrow-right-circle"
+                  trailing
+              />
+              <br>
+              <span class="text-base">
+                {{ formatDate(lastInterview.interview_start_time_utc) }}
+              </span>
+            </div>
+            <span v-else class="text-lg">
+              Keines
+            </span>
           </div>
-        </UIBaseCard>
-      </div>
-      <div class="w-[50%]">
-        <UIBaseCard>
-          <h5>Bearbeitete Events</h5>
-          <UInputMenu v-model="selectedCompleteEvent" :options="completedItems" />
-          <br>
-          <UButton
-            color="blue" variant="soft"
-            class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"
-            @click="editEvent(selectedCompleteEvent.id)"
-          >
-            Interview Bearbeiten
-          </UButton>
-        </UIBaseCard>
-      </div>
-    </div>
-    <UModal v-model="showEventModal">
-      <div class="p-4" style="text-align: center">
-        <UForm :schema="eventSchema" :state="eventState" class="space-y-4" @submit="createEvent">
-          <UFormGroup label="Event Name" name="name">
-            <UInput v-model="eventState.name" required placeholder="Interview Campaign Year Quarter" />
-          </UFormGroup>
-          <h3 v-if="eventError" style="color: red;">{{ eventError }}</h3>
-          <UButton
-            type="submit" label="Event anlegen" color="green" variant="soft"
-            class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
-        </UForm>
-      </div>
-    </UModal>
-    <br>
-    <div class="flex flex-row justify-center max-w-8xl mx-auto">
-      <div class="border-2 border-[#ededed] rounded-md shadow-lg">
-      <h4 style="text-align: center; padding-top: 25px;">Medikationshistorie</h4>
-      <div>
-        <div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
-          <UInput v-model="q" placeholder="Tabelle Filtern" />
+
+          <div class="w-1/2 flex flex-col gap-4 items-center">
+            <span>Interview starten</span>
+            <div class="flex flex-row gap-2">
+              <UInputMenu v-model="eventToStart" :options="eventsToStartOptions" />
+              <UButton color="green" @click="startInterview()">
+                Interview starten
+              </UButton>
+            </div>
+          </div>
         </div>
-        <IntakeTable :intakes="rows" :show-event="true" />
-        <div
-          v-if="intakes.length >= pageCount || filteredRows.length >= pageCount"
-          class="flex justify-center px-3 py-3.5 border-t dark:border-green-700"
-        >
+      </UCard>
+
+      <UAccordion
+        v-if="interviewsForProband.length"
+        :items="[{
+          label: `Abgeschlossene Interviews (${interviewsForProband.length})`,
+          icon: 'i-heroicons-clipboard-document-check',
+          slot: 'past-interviews',
+        }]"
+        color="emerald"
+        variant="solid"
+      >
+        <template #past-interviews>
+          <InterviewTable :interviews="interviewsForProband" :study-id="studyId" class="" />
+        </template>
+      </UAccordion>
+
+      <UCard :ui="{ body: { padding: 'py-4 sm:px-0' } }">
+        <template #header>
+          <div class="flex flex-col">
+            <h2 class="text-lg self-center">Medikationshistorie</h2>
+            <div class="flex flex-row justify-between">
+              <UInput v-model="tableFilterString" placeholder="Tabelle filtern" />
+            </div>
+          </div>
+        </template>
+
+        <div class="flex flex-col gap-4">
+          <IntakeTable :intakes="rows" :show-event="true" />
+
           <UPagination
-            v-model="page" :page-count="pageCount" :total="filteredRows.length" :ui="{
-              wrapper: 'flex items-center gap-1',
-              rounded: 'rounded-sm',
-              default: {
-                activeButton: {
-                  variant: 'outline',
-                }
-              }
-            }" />
+              v-if="intakes.length >= itemsPerPage || filteredRows.length >= itemsPerPage"
+              v-model="page"
+              :page-count="itemsPerPage"
+              :total="filteredRows.length"
+              class="self-center"
+          />
         </div>
-      </div>
+      </UCard>
     </div>
-    </div>
-    <div style="text-align:center; margin-top:2%" />
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
+import type { Events } from "~/stores/eventStore";
+import type { Interview } from "~/stores/interviewStore";
 
-import { object, string } from "yup";
-import { useMedlogapi } from '#open-fetch';
-
-// general constants
 const route = useRoute()
-const router = useRouter()
+const eventStore = useEventStore()
+const interviewStore = useInterviewStore()
 const userStore = useUserStore()
-const { $medlogapi } = useNuxtApp();
+
+const currentInterview = ref<Interview>();
+const errorMessage = ref('');
+const eventsForProband = ref<Events>([]);
+const eventToStart = ref();
+const interviewsForProband = ref<Interview[]>([]);
+const lastInterview = ref<Interview>();
+const loading = ref(true);
 
 const probandId = computed(() => route.params.proband_id);
 const studyId = computed(() => route.params.study_id);
+const eventsToStartOptions = computed(() => {
+  const untouchedEvents = eventsForProband.value.filter(item => item.proband_interview_count === 0);;
+  return untouchedEvents.map(event => ({
+    id: event.id,
+    event: event,
+    label: event.name,
+    order: event.order_position
+  })).sort((a, b) => a.order - b.order)
+});
 
 // table
 
 const page = ref(1)
-const pageCount = 10
-
+const itemsPerPage = 10
 const intakes = ref([])
+const tableFilterString = ref('')
 
 const rows = computed(() => {
-  const data = q.value ? filteredRows.value : intakes.value;
-  return data.slice((page.value - 1) * pageCount, page.value * pageCount);
+  const data = tableFilterString.value ? filteredRows.value : intakes.value;
+  return data.slice((page.value - 1) * itemsPerPage, page.value * itemsPerPage);
 })
 
-const q = ref('')
-
 const filteredRows = computed(() => {
-  if (!q.value) {
+  if (!tableFilterString.value) {
     return intakes.value
   }
 
   return intakes.value.filter((tableContent) => {
     return Object.values(tableContent).some((value) => {
-      return String(value).toLowerCase().includes(q.value.toLowerCase())
+      return String(value).toLowerCase().includes(tableFilterString.value.toLowerCase())
     })
   })
 })
 
 // Completed Events
 
-const selectedCompleteEvent = ref()
-const completedItems = ref([]);
-
-// Create new events
-
-const showEventModal = ref(false)
-const eventState = reactive({ name: "" });
-const eventSchema = object({
-  name: string().required("Required"),
-});
-const eventError = ref("")
-
-async function createEvent() {
+async function startInterview() {
   try {
-    await useCreateEvent(eventState.name.trim(), studyId.value);
-
-    const events = await $medlogapi('/api/study/{studyId}/proband/{probandId}/event',
-      {
-        path: {
-          studyId: studyId.value,
-          probandId: probandId.value
-        }
-      }
-    )
-    incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
-    incompletedItems.value = incompletedItems.value.map(event => ({
-      id: event.id,
-      event: event,
-      label: event.name
-    }))
-    selectedIncompleteEvent.value = incompletedItems.value[0];
-    showEventModal.value = !showEventModal.value
-  } catch (error) {
-    eventError.value = error.response._data.detail
-    console.error("Failed to create event: ", error.response._data.detail);
-  }
-}
-
-async function createInterview() {
-  try {
-    const interview = await useCreateInterview(studyId.value, selectedIncompleteEvent.value.id, probandId.value, true, userStore.userID)
+    const interview = await useCreateInterview(studyId.value, eventToStart.value.id, probandId.value, false)
     userStore.firstEvent = true;
-    router.push("/interview/proband/" + probandId.value + "/study/" + studyId.value + "/event/" + selectedIncompleteEvent.value.id + "/interview/" + interview.id)
+    await navigateTo(`/interview/proband/${probandId.value}/study/${studyId.value}/event/${eventToStart.value.id}/interview/${interview.id}`)
   }
   catch (error) {
     console.log(error);
   }
 }
 
-// Incompleted Events
-
-const selectedIncompleteEvent = ref()
-const incompletedItems = ref([]);
-
-// REST 
-
-const { data: events } = await useMedlogapi('/api/study/{studyId}/proband/{probandId}/event', {
-  path: {
-    studyId: studyId.value,
-    probandId: probandId.value,
-  }
-})
-
-function createEventList(events) {
-  if (events && events.items) {
-    completedItems.value = events.items.filter(item => item.proband_interview_count > 0);
-    completedItems.value = completedItems.value.map(event => ({
-      id: event.id,
-      event: event,
-      label: event.name,
-      order: event.order_position
-    })).sort((a, b) => b.order - a.order)
-
-    incompletedItems.value = events.items.filter(item => item.proband_interview_count === 0);
-    incompletedItems.value = incompletedItems.value.map(event => ({
-      id: event.id,
-      event: event,
-      label: event.name,
-      order: event.order_position
-    })).sort((a, b) => a.order - b.order)
-  }
-
-  selectedCompleteEvent.value = completedItems.value[0]
-  selectedIncompleteEvent.value = incompletedItems.value[0]
-}
-
-watch(events, (newEvents) => {
-  if (newEvents) {
-    createEventList(newEvents)
-  }
-}, { immediate: true })
-
-async function editEvent(eventId: string) {
-  const { data: result, error } = await useMedlogapi('/api/study/{study_id}/event/{event_id}/interview', {
-    path: {
-      study_id: studyId.value,
-      event_id: eventId,      }
-  })
-
-  if (error.value) {
-    console.error(error);
-    return;
-  }
-
-  const interview = result.value.find(item => item.proband_external_id == probandId.value);
-
-  await navigateTo(`/interview/proband/${probandId.value}/study/${studyId.value}/event/${eventId}/interview/${interview.id}`);
-}
-
-async function createIntakeList() {
+async function endInterview(eventId, interviewId) {
   try {
-    intakes.value = await useGetIntakesByStudyAndProband(studyId.value, probandId.value) ?? [];
+    loading.value = true;
+    await interviewStore.endInterview(studyId.value, eventId, interviewId);
+    currentInterview.value = await useGetCurrentInterviewByStudyAndProband(studyId.value, probandId.value);
+    lastInterview.value = await useGetLastInterviewByStudyAndProband(studyId.value, probandId.value);
   } catch (error) {
     console.log(error);
+    errorMessage.value = error.message ?? error;
+  } finally {
+    loading.value = false;
   }
 }
 
-createIntakeList()
+onMounted(async () => {
+  try {
+    loading.value = true;
+    await eventStore.loadAllEventsForStudy(studyId.value);
+    eventsForProband.value = await useGetEventsByStudyAndProband(studyId.value, probandId.value);
+    interviewsForProband.value = await useGetInterviewsByStudyAndProband(studyId.value, probandId.value);
+    currentInterview.value = await useGetCurrentInterviewByStudyAndProband(studyId.value, probandId.value);
+    lastInterview.value = await useGetLastInterviewByStudyAndProband(studyId.value, probandId.value);
+    intakes.value = await useGetIntakesByStudyAndProband(studyId.value, probandId.value) ?? [];
+  } catch (error) {
+    errorMessage.value = error.message ?? error;
+  } finally {
+    loading.value = false;
+  }
+})
 
 </script>
 

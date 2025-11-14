@@ -18,9 +18,14 @@
           </div>
 
           <div class="w-1/4 text-center">
-            <ULink :to="`/interview/proband/${probandId}/study/${studyId}`" inactive-class="text-red-800">
-              <span class="text-lg">Proband <span class="font-mono">#{{ probandId || '???' }}</span></span>
-            </ULink>
+            <UButton
+                :to="`/interview/proband/${probandId}/study/${studyId}`"
+                :label="`Proband #${probandId ?? '???'}`"
+                class="text-lg"
+                variant="link"
+                icon="i-heroicons-arrow-right-circle"
+                trailing
+            />
           </div>
 
           <div class="w-1/4 text-end">
@@ -44,9 +49,9 @@
           <div class="flex flex-col">
             <h2 class="text-lg self-center">Medikationen</h2>
             <div class="flex flex-row justify-between">
-              <UInput v-model="q" placeholder="Tabelle Filtern" />
+              <UInput v-model="q" placeholder="Tabelle filtern" />
               <CopyPreviousDrugs
-                  v-if="!pending && latestItems && interviewId !== latestItems[0]?.interview_id"
+                  v-if="!pending && latestItems.length && !interview.interview_end_time_utc"
                   :on-update="loadIntakeList" />
               <UButton
                   class="self-end"
@@ -155,6 +160,7 @@ import type { Interview } from "~/stores/interviewStore";
 
 const route = useRoute();
 const eventStore = useEventStore();
+const interviewStore = useInterviewStore();
 const studyStore = useStudyStore();
 const userStore = useUserStore();
 const { $medlogapi } = useNuxtApp();
@@ -354,10 +360,7 @@ const filteredRows = computed(() => {
 // REST
 
 async function endInterview() {
-  await usePatchInterview(studyId.value, eventId.value, interviewId.value, {
-    interview_end_time_utc: new Date().toISOString()
-  });
-
+  await interviewStore.endInterview(studyId.value, eventId.value, interviewId.value);
   await navigateTo(`/interview/proband/${probandId.value}/study/${studyId.value}`);
 }
 
@@ -379,14 +382,12 @@ onMounted(async () => {
     await eventStore.loadAllEventsForStudy(studyId.value);
     const interviewsForProband = await useGetInterviewsByStudyAndProband(studyId.value, probandId.value);
     const foundInterview = interviewsForProband.find(item => item.id === interviewId.value);
-    console.log(foundInterview);
     if (!foundInterview) {
       errorMessage.value = 'Interview nicht gefunden';
       return;
     }
     eventId.value = foundInterview.event_id;
     interview.value = await useGetInterview(studyId.value, eventId.value, interviewId.value);
-    console.log(interview.value);
     await loadIntakeList();
   } catch (error) {
     errorMessage.value = error.message ?? error;
