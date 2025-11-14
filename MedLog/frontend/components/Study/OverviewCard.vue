@@ -18,7 +18,7 @@ const schema = object({
 type Schema = InferType<typeof schema>
 
 function onSubmit(event: FormSubmitEvent<Schema>) {
-  navigateTo(`/interview/proband/${event.data.probandId}/study/${props.study.id}`)
+  navigateTo(`/studies/${props.study.id}/proband/${event.data.probandId}`)
 }
 </script>
 

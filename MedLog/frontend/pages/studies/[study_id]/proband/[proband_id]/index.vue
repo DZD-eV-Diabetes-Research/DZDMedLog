@@ -25,7 +25,7 @@
               label: 'Interview fortsetzen',
               variant: 'outline',
               color: 'gray',
-              click: () => navigateTo(`/interview/proband/${probandId}/study/${studyId}/event/${currentInterview.event_id}/interview/${currentInterview.id}`),
+              click: () => navigateTo(`/studies/${studyId}/proband/${probandId}/interview/${currentInterview.id}`),
             },
         ]"
       />
@@ -36,7 +36,7 @@
             <span>Letztes abgeschlossenes Interview</span>
             <div v-if="lastInterview" class="text-center">
               <UButton
-                  :to="`/interview/proband/${probandId}/study/${studyId}/event/${lastInterview.event_id}/interview/${lastInterview.id}`"
+                  :to="`/studies/${studyId}/proband/${probandId}/interview/${lastInterview.id}`"
                   :label="eventStore.nameForEvent(lastInterview.event_id)"
                   class="text-lg"
                   variant="link"
@@ -165,7 +165,7 @@ async function startInterview() {
   try {
     const interview = await useCreateInterview(studyId.value, eventToStart.value.id, probandId.value, false)
     userStore.firstEvent = true;
-    await navigateTo(`/interview/proband/${probandId.value}/study/${studyId.value}/event/${eventToStart.value.id}/interview/${interview.id}`)
+    await navigateTo(`/studies/${studyId.value}/proband/${probandId.value}/interview/${interview.id}`)
   }
   catch (error) {
     console.log(error);

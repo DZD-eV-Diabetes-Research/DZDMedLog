@@ -39,7 +39,7 @@ const rows = computed(() => {
     <template #actions-data="{ row }">
       <div class="flex flex-row justify-end">
         <UButton
-            :to="`/interview/proband/${row.probandId}/study/${studyId}/event/${row.eventId}/interview/${row.interviewId}`"
+            :to="`/studies/${studyId}/proband/${row.probandId}/interview/${row.interviewId}`"
             label="Zum Interview"
             variant="link"
             icon="i-heroicons-arrow-right-circle"

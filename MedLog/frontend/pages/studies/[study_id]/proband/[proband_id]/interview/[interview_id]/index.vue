@@ -19,7 +19,7 @@
 
           <div class="w-1/4 text-center">
             <UButton
-                :to="`/interview/proband/${probandId}/study/${studyId}`"
+                :to="`/studies/${studyId}/proband/${probandId}`"
                 :label="`Proband #${probandId ?? '???'}`"
                 class="text-lg"
                 variant="link"
@@ -361,7 +361,7 @@ const filteredRows = computed(() => {
 
 async function endInterview() {
   await interviewStore.endInterview(studyId.value, eventId.value, interviewId.value);
-  await navigateTo(`/interview/proband/${probandId.value}/study/${studyId.value}`);
+  await navigateTo(`/studies/${studyId.value}/proband/${probandId.value}`);
 }
 
 async function loadIntakeList() {
