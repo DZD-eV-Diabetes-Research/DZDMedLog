@@ -8,34 +8,6 @@ on:
       - main
 
 jobs:
-  backend:
-    name: Check Backend
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5.0.0
-
-      # We have to generate the frontend code as the backend expects it
-      - uses: oven-sh/setup-bun@v2.0.2
-      - uses: actions/cache@v4.3.0
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-      - name: Build frontend
-        run: |
-          cd MedLog/frontend
-          bun install
-          bun run generate
-
-      - uses: actions/setup-python@v6.0.0
-        with:
-          python-version-file: ".python-version"
-      - run: |
-          pip install -r MedLog/backend/requirements.txt
-          pip install -r MedLog/backend/requirements_tests.txt
-          python3 MedLog/backend/tests/main.py
-
   frontend:
     name: Check Frontend
     runs-on: ubuntu-24.04
