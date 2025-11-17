@@ -115,6 +115,10 @@ class Config(BaseSettings):
         default=None,
         description="The URL where the client is hosted. Usualy it comes with the server",
     )
+    BRANDING_SUPPORT_EMAIL_ADDRESS: Optional[str] = Field(
+        default=None,
+        description="The email address the webclient will show in the help text to point to user support.",
+    )
 
     @model_validator(mode="after")
     def set_empty_client_url(self: Self):

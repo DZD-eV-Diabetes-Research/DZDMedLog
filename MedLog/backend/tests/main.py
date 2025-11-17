@@ -9,7 +9,6 @@ from pathlib import Path
 import sys, os
 
 if __name__ == "__main__":
-
     MODULE_DIR = Path(__file__).parent
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
     sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
@@ -30,9 +29,11 @@ def set_config_for_test_env():
     os.environ["ADMIN_USER_NAME"] = ADMIN_USER_NAME
     os.environ["ADMIN_USER_PW"] = ADMIN_USER_PW
     os.environ["ADMIN_USER_EMAIL"] = ADMIN_USER_EMAIL
-    os.environ["SERVER_SESSION_SECRET"] = "asdöghjsekrhsergl669823jsakdgl!32kgsadefghs5gakljghlkej5h30985zu0awgh0j34g093a4jgh09ajg09j340tgjhj45po"
+    os.environ["SERVER_SESSION_SECRET"] = (
+        "asdöghjsekrhsergl669823jsakdgl!32kgsadefghs5gakljghlkej5h30985zu0awgh0j34g093a4jgh09ajg09j340tgjhj45po"
+    )
     os.environ["CLIENT_URL"] = "https://localhost:8888"
-    
+    os.environ["BRANDING_SUPPORT_EMAIL_ADDRESS"] = "mytest@test.de"
 
 
 set_config_for_test_env()
@@ -48,7 +49,9 @@ from utils import (
 
 RESET_DB = os.getenv(
     "MEDLOG_TESTS_RESET_DB",
-    get_dot_env_file_variable(DOT_ENV_FILE_PATH, "MEDLOG_TESTS_RESET_DB",default="True"),
+    get_dot_env_file_variable(
+        DOT_ENV_FILE_PATH, "MEDLOG_TESTS_RESET_DB", default="True"
+    ),
 ).lower() in (
     "true",
     "1",
