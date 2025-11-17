@@ -4,7 +4,6 @@ API_ENDPOINTS_PREFIX = "/api"
 
 
 def mount_fast_api_routers(fastapi_app: FastAPI):
-
     ### Health
     from medlogserver.api.routes.routes_healthcheck import fast_api_healthcheck_router
 
@@ -94,6 +93,17 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
 
     fastapi_app.include_router(
         fast_api_drug_router, tags=["Drug"], prefix=API_ENDPOINTS_PREFIX
+    )
+
+    ### Drug updater status
+    from medlogserver.api.routes.routes_drug_db_updater import (
+        fast_api_drug_db_updater_router,
+    )
+
+    fastapi_app.include_router(
+        fast_api_drug_db_updater_router,
+        tags=["Drug DB Updater"],
+        prefix=API_ENDPOINTS_PREFIX,
     )
 
     # export

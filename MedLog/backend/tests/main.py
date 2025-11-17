@@ -9,7 +9,6 @@ from pathlib import Path
 import sys, os
 
 if __name__ == "__main__":
-
     MODULE_DIR = Path(__file__).parent
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
     sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
@@ -30,9 +29,10 @@ def set_config_for_test_env():
     os.environ["ADMIN_USER_NAME"] = ADMIN_USER_NAME
     os.environ["ADMIN_USER_PW"] = ADMIN_USER_PW
     os.environ["ADMIN_USER_EMAIL"] = ADMIN_USER_EMAIL
-    os.environ["SERVER_SESSION_SECRET"] = "asdöghjsekrhsergl669823jsakdgl!32kgsadefghs5gakljghlkej5h30985zu0awgh0j34g093a4jgh09ajg09j340tgjhj45po"
+    os.environ["SERVER_SESSION_SECRET"] = (
+        "asdöghjsekrhsergl669823jsakdgl!32kgsadefghs5gakljghlkej5h30985zu0awgh0j34g093a4jgh09ajg09j340tgjhj45po"
+    )
     os.environ["CLIENT_URL"] = "https://localhost:8888"
-    
 
 
 set_config_for_test_env()
@@ -48,7 +48,9 @@ from utils import (
 
 RESET_DB = os.getenv(
     "MEDLOG_TESTS_RESET_DB",
-    get_dot_env_file_variable(DOT_ENV_FILE_PATH, "MEDLOG_TESTS_RESET_DB",default="True"),
+    get_dot_env_file_variable(
+        DOT_ENV_FILE_PATH, "MEDLOG_TESTS_RESET_DB", default="True"
+    ),
 ).lower() in (
     "true",
     "1",
@@ -84,6 +86,8 @@ medlogserver_base_url = get_medlogserver_base_url()
 
 
 def wait_for_medlogserver_up_and_healthy(timeout_sec=120):
+    from utils import req, dict_must_contain
+
     medlogserver_not_available = True
     while medlogserver_not_available:
         try:
@@ -97,7 +101,26 @@ def wait_for_medlogserver_up_and_healthy(timeout_sec=120):
             urllib3.exceptions.MaxRetryError,
         ):
             time.sleep(1)
-    print(f"SERVER UP FOR TESTING: {r.status_code}")
+    print(f"SERVER UP FOR LISTENING: {r.status_code}")
+    medlogserver_not_initialized = True
+    access_token = authorize(
+        username=ADMIN_USER_NAME,
+        pw=ADMIN_USER_PW,
+        set_as_global_default_login=False,
+    )
+    while medlogserver_not_initialized:
+        from medlogserver.api.routes.routes_healthcheck import HealthCheckReport
+
+        r = req(f"api/health/report", access_token=access_token)
+        if (
+            r["drugs_imported"]
+            and r["last_worker_run_succesfull"]
+            and r["drug_search_index_working"]
+        ):
+            medlogserver_not_initialized = False
+
+        time.sleep(1)
+    print(f"SERVER READY FOR TESTING: {r.status_code}")
 
 
 def shutdown_medlogserver_and_backgroundworker():

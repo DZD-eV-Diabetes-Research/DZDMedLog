@@ -48,7 +48,7 @@ fast_api_healthcheck_router: APIRouter = APIRouter()
 @fast_api_healthcheck_router.get(
     "/health",
     response_model=HealthCheck,
-    description=f"Get the basic health state of the system.",
+    description=f"Quick check if the DZDMedLog webserver is running and can connect to the DB. This does not neccessarily mean that the whole system works. Check the `/health/report`-endpoint for a full check.",
 )
 async def get_health_status(
     health_read: HealthcheckRead = Depends(HealthcheckRead.get_crud),

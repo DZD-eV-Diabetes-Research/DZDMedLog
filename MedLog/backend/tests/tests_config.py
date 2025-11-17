@@ -22,9 +22,9 @@ def test_endpoint_config_version_get():
     assert isinstance(response["version"], str)
     version_parts = response["version"].split(".")
     print("version_parts", version_parts)
-    assert (
-        len(version_parts) >= 3
-    ), "Version should have at least major.minor.patch format"
+    assert len(version_parts) >= 3, (
+        "Version should have at least major.minor.patch format"
+    )
 
     # Verify branch name
     assert isinstance(response["branch"], str)

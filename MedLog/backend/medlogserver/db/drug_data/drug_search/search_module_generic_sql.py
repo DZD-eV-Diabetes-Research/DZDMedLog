@@ -118,7 +118,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                     drug_dataset_crud: DrugDataSetVersionCRUD = (
                         drug_dataset_crud  # typing hint help
                     )
-                    self.current_dataset_version = await drug_dataset_crud.get_current()
+                    self.current_dataset_version = (
+                        await drug_dataset_crud.get_current_active()
+                    )
         return self.current_dataset_version
 
     async def _get_custom_drugs_dataset_version(self):

@@ -94,7 +94,26 @@ class DrugDataSetVersionCRUD(
         results = await self.session.exec(statement=query)
         return results.first()
 
-    async def get_current(self) -> DrugDataSetVersion | None:
+    async def get_latest(self) -> DrugDataSetVersion | None:
+        query = (
+            select(DrugDataSetVersion)
+            .where(
+                and_(
+                    DrugDataSetVersion.dataset_source_name
+                    == self._get_current_dataset_name(),
+                    DrugDataSetVersion.is_custom_drugs_collection == False,
+                )
+            )
+            .order_by(desc(DrugDataSetVersion.dataset_version))
+            .limit(1)
+        )
+        results = await self.session.exec(statement=query)
+        res = results.one_or_none()
+        log.debug(f"DrugDataSetVersion get_latest {res}")
+        return res
+        return results.one_or_none()
+
+    async def get_current_active(self) -> DrugDataSetVersion | None:
         query = (
             select(DrugDataSetVersion)
             .where(
@@ -110,7 +129,7 @@ class DrugDataSetVersionCRUD(
         )
         results = await self.session.exec(statement=query)
         res = results.one_or_none()
-        log.debug(f"DrugDataSetVersion get_current {res}")
+        log.debug(f"DrugDataSetVersion get_current_active {res}")
         return res
         return results.one_or_none()
 
