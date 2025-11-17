@@ -12,6 +12,7 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     "@nuxt/eslint",
     "@nuxt/ui",
+    "@nuxt/icon",
     "dayjs-nuxt",
     "@nuxt/test-utils/module",
     "nuxt-open-fetch"
@@ -33,6 +34,12 @@ export default defineNuxtConfig({
 
   eslint: {
     // checker: true, // TODO enable this once we settled for a code style
+  },
+  icon: {
+      provider: 'none',
+      clientBundle: {
+          scan: true,
+      },
   },
 
   runtimeConfig: {
