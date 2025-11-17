@@ -38,9 +38,9 @@ const configStore = useConfigStore();
       Für Admins oder Technikinteressierte finden Sie hier unser <NuxtLink to="https://github.com/DZD-eV-Diabetes-Research/DZDMedLog" :external="true" target="_blank">Repository</NuxtLink>
     </p>
 
-    <UAlert v-if="configStore.branding.supportEmail" color="sky" variant="outline" icon="i-heroicons-envelope" class="mt-4">
+    <UAlert v-if="configStore.branding.supportEmail" color="sky" icon="i-heroicons-envelope" class="mt-4">
       <template #description>
-        <p>
+        <p class="text-base">
           Wenn Sie Fragen oder Feedback haben, melden Sie sich gerne:
           <NuxtLink :to="`mailto:${configStore.branding.supportEmail}`" :external="true">
             {{ configStore.branding.supportEmail }}
