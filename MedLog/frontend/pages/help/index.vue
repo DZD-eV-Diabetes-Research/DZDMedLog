@@ -1,11 +1,5 @@
 <script setup lang="ts">
-import {useMedlogapi} from "#imports";
-
-const { data: config, error: configError, status: configStatus } = await useMedlogapi("/api/config/version")
-
-if (configError.value) {
-  console.error('Fehler beim Laden der Konfiguration:', configError.value)
-}
+const configStore = useConfigStore();
 </script>
 
 <template>
@@ -44,19 +38,25 @@ if (configError.value) {
       Für Admins oder Technikinteressierte finden Sie hier unser <NuxtLink to="https://github.com/DZD-eV-Diabetes-Research/DZDMedLog" :external="true" target="_blank">Repository</NuxtLink>
     </p>
 
-    <div class="flex flex-col text-left space-y-1 mt-4">
-      <p class="mb-4">
-        Wenn Sie Fragen oder Feedback haben, melden Sie sich gerne:
-        <NuxtLink to="mailto:someEmail@someHost.com">someEmail@someHost.com</NuxtLink>
-      </p>
-      <hr>
-      <div v-if="configStatus !== 'error'" class="text-center font-extralight">
-        <p>Version: {{ config.version }}</p>
-        <p>Branch: {{ config.branch }}</p>
-      </div>
-      <div v-else>
-        {{ configError }}
-      </div>
+    <UAlert v-if="configStore.branding.supportEmail" color="sky" variant="outline" icon="i-heroicons-envelope" class="mt-4">
+      <template #description>
+        <p>
+          Wenn Sie Fragen oder Feedback haben, melden Sie sich gerne:
+          <NuxtLink :to="`mailto:${configStore.branding.supportEmail}`" :external="true">
+            {{ configStore.branding.supportEmail }}
+          </NuxtLink>
+        </p>
+        <p>
+          Bei Fehlerberichten bitte die untenstehenden Versionsangaben einschließen.
+        </p>
+      </template>
+    </UAlert>
+
+    <hr>
+
+    <div class="text-center font-extralight">
+      <p>Version: {{ configStore.versionInfo.version ?? 'Unbekannt' }}</p>
+      <p>Branch: {{ configStore.versionInfo.branch ?? 'Unbekannt' }}</p>
     </div>
   </section>
 </template>
@@ -64,5 +64,9 @@ if (configError.value) {
 <style scoped>
 p ~ p {
   margin-top: 0.6rem;
+}
+
+hr {
+  margin: 1rem 0;
 }
 </style>

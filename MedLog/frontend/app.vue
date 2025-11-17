@@ -12,6 +12,7 @@ useHead({
   ],
 })
 
+const configStore = useConfigStore();
 const drugFieldsStore = useDrugFields();
 const healthCheckStore = useHealthCheck();
 const studyStore = useStudyStore();
@@ -33,6 +34,7 @@ if (userStore.isLoggedIn) {
 
   // Set up basic global data
   try {
+    await configStore.fetchAllConfigs();
     await studyStore.getAvailableStudies();
     await drugFieldsStore.fetchFields();
   } catch (error) {
