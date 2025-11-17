@@ -22,7 +22,8 @@ jobs:
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
-      - run: |
+      - name: Build frontend
+        run: |
           cd MedLog/frontend
           bun install
           bun run generate
@@ -32,8 +33,8 @@ jobs:
           python-version-file: ".python-version"
       - uses: astral-sh/setup-uv@v7.1.3
       - run: |
-          uv pip install -r requirements.txt
-          uv pip install -r requirements_tests.txt
+          uv pip install -r MedLog/backend/requirements.txt
+          uv pip install -r MedLog/backend/requirements_tests.txt
           python3 MedLog/backend/tests/main.py
 
   frontend:
