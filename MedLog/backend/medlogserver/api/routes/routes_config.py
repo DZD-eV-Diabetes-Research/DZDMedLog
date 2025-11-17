@@ -35,6 +35,8 @@ from medlogserver.api.paginator import (
     QueryParamsInterface,
 )
 
+from medlogserver.model.branding_data import BrandingData
+
 config = Config()
 
 from medlogserver.log import get_logger
@@ -52,3 +54,12 @@ fast_api_config_router: APIRouter = APIRouter()
 )
 async def get_version() -> AppVersion:
     return AppVersion(version=get_app_version(), branch=get_version_git_branch_name())
+
+
+@fast_api_config_router.get(
+    "/config/branding",
+    response_model=BrandingData,
+    description=f"Provides some branding data like support email address.",
+)
+async def get_branding_data() -> BrandingData:
+    return BrandingData(support_email=config.BRANDING_SUPPORT_EMAIL_ADDRESS)
