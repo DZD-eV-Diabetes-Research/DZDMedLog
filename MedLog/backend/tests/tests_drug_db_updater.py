@@ -15,8 +15,15 @@ def test_endpoint_drug_update_status():
 
     response = req("api/drug/db/update", method="get")
     print(f"test_endpoint_drug_update_status response: {response}")
+
     dict_must_contain(
         response,
-        required_keys=["version", "branch"],
+        required_keys_and_val={
+            "update_available": False,
+            "update_running": False,
+            "last_update_run_error": None,
+            "current_drug_data_ready_to_use": True,
+        },
+        required_keys=["last_update_run_datetime_utc", "current_drug_data_version"],
         exception_dict_identifier="version response",
     )

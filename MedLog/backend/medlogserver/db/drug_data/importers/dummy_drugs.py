@@ -351,7 +351,6 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
 
 class DummyDrugImporterV1(DrugDataSetImporterBase):
     def __init__(self):
-
         self.dataset_name = "DummyDrugs"
         self.api_name = "dummydrugs"
         self.dataset_link = ""
@@ -361,6 +360,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
         self._attr_ref_definitions = None
         self._code_definitions = None
         self._lov_values: Dict[str, List[DrugAttrFieldLovItem]] = {}
+        self._ensured_dataset_version = None
 
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None
@@ -452,7 +452,6 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
     ) -> List[
         DrugData | DrugVal | DrugValRef | DrugCode | DrugValMulti | DrugValMultiRef
     ]:
-
         log.info("[DRUG DATA IMPORT] Parse drug data...")
         drug_data_objs: List[DrugData] = []
 
@@ -625,7 +624,6 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
 
     async def commit(self, objs):
         async with get_async_session_context() as session:
-
             for obj in objs:
                 # log.info(("obj", obj))
                 try:
@@ -663,7 +661,6 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             headers: List[str] = next(csvreader)
 
             for index, row in enumerate(csvreader):
-
                 value = row[get_header_index(lov_definition.values_col_name, headers)]
                 display_value = row[
                     get_header_index(lov_definition.display_value_col_name, headers)

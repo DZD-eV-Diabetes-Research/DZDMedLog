@@ -111,7 +111,7 @@ def wait_for_medlogserver_up_and_healthy(timeout_sec=120):
     while medlogserver_not_initialized:
         from medlogserver.api.routes.routes_healthcheck import HealthCheckReport
 
-        r = req(f"api/health/report", access_token=access_token)
+        r = req("api/health/report", access_token=access_token)
         if (
             r["drugs_imported"]
             and r["last_worker_run_succesfull"]
@@ -119,8 +119,8 @@ def wait_for_medlogserver_up_and_healthy(timeout_sec=120):
         ):
             medlogserver_not_initialized = False
 
-        time.sleep(1)
-    print(f"SERVER READY FOR TESTING: {r.status_code}")
+        time.sleep(2)
+    print(f"SERVER READY FOR TESTING: {r}")
 
 
 def shutdown_medlogserver_and_backgroundworker():
