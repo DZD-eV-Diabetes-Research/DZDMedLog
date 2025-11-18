@@ -19,6 +19,9 @@ class DrugUpdaterStatus(MedLogBaseModel):
     update_available: bool = Field(
         description="Is a new dataset for the drug database available"
     )
+    update_available_version: Optional[str] = Field(
+        description="If update available this show the version string"
+    )
     update_running: bool = Field(
         description="Is an update of the drug database currently running"
     )

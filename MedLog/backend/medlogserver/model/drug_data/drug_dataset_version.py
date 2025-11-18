@@ -36,9 +36,9 @@ class DrugDataSetVersion(DrugModelTableBase, table=True):
         default=None,
         description="The source file or directory for the drug data import.",
     )
-    import_status: Literal["queued", "running", "failed", "done"] = Field(
+    import_status: Literal["init", "queued", "running", "failed", "done"] = Field(
         default="queued",
-        description="Is the data for this drug data set allready imported.",
+        description="Is the data for this drug data set allready imported or queued for importing.",
         sa_column=Column(
             String
         ),  # , sa_column=Column(String) -> https://github.com/fastapi/sqlmodel/issues/57 + https://github.com/fastapi/sqlmodel/issues/67

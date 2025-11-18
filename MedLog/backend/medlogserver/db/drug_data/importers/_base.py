@@ -1,4 +1,4 @@
-from typing import Dict, List, AsyncIterator, Literal, Optional
+from typing import Dict, List, AsyncIterator, Literal, Optional, Self
 import traceback
 from pathlib import Path
 import datetime
@@ -32,6 +32,34 @@ class DrugDataSetImporterBase:
         self.source_dir: Path = None
         self.version: str = None
         self._ensured_dataset_version: DrugDataSetVersion = None
+
+    @classmethod
+    async def check_for_remote_dataset_update_available(cls) -> str | None:
+        """Returns a version string if new version available
+
+        Raises:
+            NotImplementedError: _description_
+
+        Returns:
+            str: _description_
+        """
+        raise NotImplementedError(
+            "This drug module does not support remote dataset updating"
+        )
+
+    @classmethod
+    async def download_remote_dataset_update(cls) -> Self | None:
+        """Download (and maybe extract) remote dataset (if available)
+
+        Raises:
+            NotImplementedError: _description_
+
+        Returns:
+            DrugDataSetVersion: _description_
+        """
+        raise NotImplementedError(
+            "This drug module does not support remote dataset updating"
+        )
 
     async def generate_drug_data_set_definition(self) -> DrugDataSetVersion:
         return DrugDataSetVersion(

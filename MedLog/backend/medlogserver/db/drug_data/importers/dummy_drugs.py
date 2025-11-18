@@ -10,6 +10,7 @@ from typing import (
     Literal,
     Type,
     Union,
+    Self,
 )
 from pathlib import Path
 import datetime
@@ -361,6 +362,63 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
         self._code_definitions = None
         self._lov_values: Dict[str, List[DrugAttrFieldLovItem]] = {}
         self._ensured_dataset_version = None
+
+    @classmethod
+    def get_dummy_dataset_base_path(self) -> Path:
+        Path(
+            Path(__file__).parent.parent.parent.parent,
+            "tests/provisioning_data/dummy_drugset",
+        ).absolute()
+
+    @classmethod
+    async def check_for_remote_dataset_update_available(cls) -> str | None:
+        dummy_datasets_base_dir = cls.get_dummy_dataset_base_path()
+
+        # MedLog/backend/medlogserver/db/drug_data/importers/dummy_drugs.py
+        # MedLog/backend/tests/provisioning_data
+        imported_datasets = await cls.get_already_imported_datasets()
+        for dummy_dataset_dir in dummy_datasets_base_dir.iterdir():
+            version_string = dummy_dataset_dir.name
+            if version_string not in [ds.dataset_version for ds in imported_datasets]:
+                return version_string
+        return None
+
+    @classmethod
+    async def download_remote_dataset_update(cls) -> Self | None:
+        """This dummy function checks if the second dummy set was allready imported and if not return a new dataloader with thew path.
+        This way we can simulate an update one time.
+
+        Raises:
+            NotImplementedError: _description_
+
+        Returns:
+            DrugDataSetVersion: _description_
+        """
+        dummy_datasets_base_dir = cls.get_dummy_dataset_base_path()
+        new_version_string = await cls.check_for_remote_dataset_update_available()
+        if not new_version_string:
+            return None
+        dummy_dataset_dir = Path(dummy_datasets_base_dir, new_version_string)
+        dataloader = cls()
+
+        dataloader.source_dir = dummy_dataset_dir
+        dataloader.version = new_version_string
+
+    async def get_drug_dataset_version(self) -> str:
+        if self.version is None:
+            source_dir_name = Path(self.source_dir).parent.name
+            self.version = source_dir_name
+        return self.version
+
+    async def was_dataset_version_imported(self) -> DrugDataSetVersion | None:
+        imported_datasets = await self.get_already_imported_datasets()
+        for imported_dataset in imported_datasets:
+            if (
+                imported_dataset.dataset_version == self.version
+                and imported_dataset.import_status in ["running", "done"]
+            ):
+                return imported_dataset
+        return None
 
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None

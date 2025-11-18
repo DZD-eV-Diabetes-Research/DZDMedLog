@@ -147,7 +147,7 @@ async def create_inital_drug_data_loader_job():
     """
 
     from medlogserver.worker.tasks import Tasks
-    from medlogserver.worker.tasks.load_drug_data import TaskDrugDataLoading
+    from medlogserver.worker.tasks.drug_data_load import TaskDrugDataLoading
 
     async with get_async_session_context() as session:
         async with WorkerJobCRUD.crud_context(session) as worker_job_crud:

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.11.3.dev14+gc46a73863.d20251117"
+    "version": "0.11.3.dev16+g1ea021b16.d20251118"
   },
   "paths": {
     "/api/health": {
@@ -4188,6 +4188,31 @@
             "HTTPBearer": []
           }
         ]
+      },
+      "put": {
+        "tags": [
+          "Drug DB Updater"
+        ],
+        "summary": "Trigger Drug Update Active",
+        "description": "Trigger a new update of the drug database if one is available",
+        "operationId": "trigger_drug_update_active_api_drug_db_update_put",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DrugUpdaterStatus"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/study/{study_id}/export": {
@@ -5538,6 +5563,18 @@
             "title": "Update Available",
             "description": "Is a new dataset for the drug database available"
           },
+          "update_available_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Update Available Version",
+            "description": "If update available this show the version string"
+          },
           "update_running": {
             "type": "boolean",
             "title": "Update Running",
@@ -5589,6 +5626,7 @@
         "type": "object",
         "required": [
           "update_available",
+          "update_available_version",
           "update_running",
           "last_update_run_datetime_utc",
           "last_update_run_error",
