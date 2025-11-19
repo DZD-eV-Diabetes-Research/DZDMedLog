@@ -43,7 +43,8 @@
                 :ui="{ actions: 'flex flex-row justify-between mt-4' }"
             >
               <template #description>
-                Das Interview für Event <span class="font-semibold font-mono">{{ eventStore.nameForEvent(currentInterview.event_id) || 'N/A' }}</span> wurde noch nicht abgeschlossen.
+                Das Interview für das Event <span class="font-semibold font-mono">{{ eventStore.nameForEvent(currentInterview.event_id) || 'N/A' }}</span> wurde noch nicht abgeschlossen.
+                Vor dem Start eines neuen Interviews muss das laufende Interview beendet sein.
               </template>
               <template #actions>
                 <UButton
