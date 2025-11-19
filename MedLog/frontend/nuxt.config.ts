@@ -36,9 +36,18 @@ export default defineNuxtConfig({
     // checker: true, // TODO enable this once we settled for a code style
   },
   icon: {
-      provider: 'none',
+      provider: 'none', // Prevents the dynamic fetching of icons from a CDN
       clientBundle: {
-          scan: true,
+          icons: [
+              // Apparently the scan option below does not include icons of stock components.
+              // Icons reported as missing can be included here.
+              'heroicons:arrows-up-down-20-solid',
+              'heroicons:chevron-down-20-solid',
+              'heroicons:chevron-left-20-solid',
+              'heroicons:chevron-right-20-solid',
+              'heroicons:circle-stack-20-solid',
+          ],
+          scan: true, // Only include used icons in the client bundle to keep the file small
       },
   },
 
