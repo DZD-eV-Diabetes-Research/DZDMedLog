@@ -408,7 +408,15 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             .replace("“", '"')
             .replace("‘", '"')
         )
-        search_term_tokens = shlex.split(search_term)
+        try:
+            search_term_tokens = shlex.split(search_term)
+        except ValueError:
+            # Unbalanced quotes, fixing
+            # ValueError("No closing quotation")
+            # auto-close the last quote type being used
+            if search_term.count('"') % 2 != 0:
+                search_term += '"'
+            search_term_tokens = shlex.split(search_term)
         search_term_tokens = [token for token in search_term_tokens if len(token) > 2]
 
         # if a name starts with the exact search term we add 1.2 to the score
