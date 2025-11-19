@@ -25,7 +25,7 @@ const studyStore = useStudyStore();
 const menuItems = computed(() => {
   const links = [
     [{
-      label: 'Start',
+      label: 'Interview durchführen',
       icon: 'i-heroicons-home',
       to: '/'
     }]
