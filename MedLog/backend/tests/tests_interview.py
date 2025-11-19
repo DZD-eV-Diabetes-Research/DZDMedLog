@@ -163,3 +163,55 @@ def test_endpoint_study_event_interview_update():
         required_keys_and_val={"interview_end_time_utc": interview_end_time},
         exception_dict_identifier="update interview response",
     )
+
+
+def test_fix_for_issue_170():
+    # https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/170
+    # "/study/{study_id}/proband/{proband_id}/interview"
+
+    study1_data: TestDataContainerStudy = create_test_study(
+        study_name="Test1_issue170",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        proband_count=1,
+    )
+    # count inital interviews
+    interview_list_study1 = req(
+        f"api/study/{study1_data.study.id}/proband/{study1_data.proband_ids[0]}/interview",
+        method="get",
+    )
+    assert len(interview_list_study1) == 1
+
+    study2_data: TestDataContainerStudy = create_test_study(
+        study_name="Test2_issue170",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        proband_count=1,
+    )
+    # create interview in study 2 with same proband id from study 1
+
+    interview_data_study2 = {
+        "proband_external_id": study1_data.proband_ids[0],
+        "interview_start_time_utc": datetime.datetime.now().isoformat(),
+        "interview_end_time_utc": None,
+        "interview_type": "regular",
+        "interview_status": "in_progress",
+        "proband_has_taken_meds": True,
+    }
+
+    from medlogserver.api.routes.routes_interview import create_interview
+
+    new_interview = req(
+        f"api/study/{study2_data.study.id}/event/{study2_data.events[0].event.id}/interview",
+        method="post",
+        b=interview_data_study2,
+    )
+
+    # list interviews from study1. we do not want to see any data from study2
+
+    interview_list_study1 = req(
+        f"api/study/{study1_data.study.id}/proband/{study1_data.proband_ids[0]}/interview",
+        method="get",
+    )
+    print(f"count interview_list_study1: {len(interview_list_study1)}")
+    assert len(interview_list_study1) == 1
