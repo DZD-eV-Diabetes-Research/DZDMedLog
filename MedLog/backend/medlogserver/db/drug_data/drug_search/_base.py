@@ -21,9 +21,7 @@ class MedLogDrugSearchEngineBase:
     description: str = (
         "A short descriptionn how this search engine works and what it needs to run"
     )
-    user_hint: str = (
-        "A hint for the user like 'You can quote string to find drugs with this exact quote: `'vitamin C' aspirin'`"
-    )
+    user_hint: str = "A hint for the user like 'You can quote string to find drugs with this exact quote: `'vitamin C' aspirin'`"
 
     def __init__(self, engine_config: Dict = None):
         self.engine_config = engine_config
@@ -65,7 +63,7 @@ class MedLogDrugSearchEngineBase:
     async def search(
         self,
         search_term: str = None,
-        only_market_accessable: Optional[bool] = None,
+        market_accessable: Optional[bool] = None,
         pagination: QueryParamsInterface = None,
         **filter_ref_vals: Unpack[int | str],
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
