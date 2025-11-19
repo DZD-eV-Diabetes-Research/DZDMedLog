@@ -31,9 +31,9 @@
       />
 
       <UCard>
-        <div class="flex flex-row justify-between items-center space-x-4">
+        <div class="flex flex-row justify-between items-start space-x-4">
           <div class="w-1/2 flex flex-col gap-4 items-center">
-            <span>Letztes abgeschlossenes Interview</span>
+            <span class="font-semibold">Letztes abgeschlossenes Interview</span>
             <div v-if="lastInterview" class="text-center">
               <UButton
                   :to="`/studies/${studyId}/proband/${probandId}/interview/${lastInterview.id}`"
@@ -54,13 +54,19 @@
           </div>
 
           <div class="w-1/2 flex flex-col gap-4 items-center">
-            <span>Interview starten</span>
-            <div class="flex flex-row gap-2">
-              <UInputMenu v-model="eventToStart" :options="eventsToStartOptions" />
-              <UButton color="green" :disabled="!eventToStart" @click="introModalVisible = true">
+            <span class="font-semibold">Interview starten</span>
+            <div v-if="eventsToStartOptions.length" class="flex flex-row gap-2">
+              <USelect v-model="eventIdToStart" :options="eventsToStartOptions" />
+              <UButton color="green" :disabled="!eventIdToStart" @click="introModalVisible = true">
                 Interview starten
               </UButton>
             </div>
+            <UAlert
+                v-else
+                description="Alle Events wurden bereits bearbeitet, daher kann kein neues Interview gestartet werden."
+                color="orange"
+                variant="outline"
+            />
           </div>
         </div>
       </UCard>
@@ -118,7 +124,8 @@ const interviewStore = useInterviewStore()
 const currentInterview = ref<Interview>();
 const errorMessage = ref('');
 const eventsForProband = ref<Events>([]);
-const eventToStart = ref();
+const eventIdToStart = ref();
+const eventsToStartOptions = ref<{ label: string; value: string }[]>([]);
 const interviewsForProband = ref<Interview[]>([]);
 const introModalVisible = ref(false);
 const lastInterview = ref<Interview>();
@@ -126,15 +133,6 @@ const loading = ref(true);
 
 const probandId = computed(() => route.params.proband_id);
 const studyId = computed(() => route.params.study_id);
-const eventsToStartOptions = computed(() => {
-  const untouchedEvents = eventsForProband.value.filter(item => item.proband_interview_count === 0);;
-  return untouchedEvents.map(event => ({
-    id: event.id,
-    event: event,
-    label: event.name,
-    order: event.order_position
-  })).sort((a, b) => a.order - b.order)
-});
 const completedInterviews = computed(() => {
   return interviewsForProband.value.filter(interview => interview.interview_end_time_utc !== null);
 });
@@ -165,7 +163,7 @@ const filteredRows = computed(() => {
 
 async function startInterview(hasTakenMeds: boolean) {
   try {
-    const interview = await useCreateInterview(studyId.value, eventToStart.value.id, probandId.value, hasTakenMeds)
+    const interview = await useCreateInterview(studyId.value, eventIdToStart.value, probandId.value, hasTakenMeds)
 
     await navigateTo(`/studies/${studyId.value}/proband/${probandId.value}/interview/${interview.id}`)
   }
@@ -189,6 +187,19 @@ async function endInterview(eventId, interviewId) {
   }
 }
 
+function fillInterviewStartSelector() {
+  const untouchedEvents = eventsForProband.value.filter(item => item.proband_interview_count === 0);
+  const sortedEvents = untouchedEvents.sort((a, b) => a.order_position - b.order_position);
+  eventsToStartOptions.value = sortedEvents.map(event => ({
+    value: event.id,
+    label: event.name,
+  }));
+
+  if (eventsToStartOptions.value.length > 0) {
+    eventIdToStart.value = eventsToStartOptions.value[0].value;
+  }
+}
+
 onMounted(async () => {
   try {
     loading.value = true;
@@ -198,6 +209,8 @@ onMounted(async () => {
     currentInterview.value = await useGetCurrentInterviewByStudyAndProband(studyId.value, probandId.value);
     lastInterview.value = await useGetLastInterviewByStudyAndProband(studyId.value, probandId.value);
     intakes.value = await useGetIntakesByStudyAndProband(studyId.value, probandId.value) ?? [];
+
+    fillInterviewStartSelector();
   } catch (error) {
     errorMessage.value = error.message ?? error;
   } finally {
