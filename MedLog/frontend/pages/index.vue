@@ -1,6 +1,6 @@
 <template>
   <div class="mt-8 w-11/12 lg:w-8/12 xl:w-6/12 mx-auto">
-    <h1 class="text-4xl font-normal text-center mb-4">Übersicht</h1>
+    <h1 class="text-4xl font-normal text-center mb-4">Interview durchführen</h1>
 
     <ul v-if="studyStore.studies.length" class="mt-4">
       <StudyOverviewCard v-for="study in studyStore.studies" :key="study.id" :study="study" as="li" />
