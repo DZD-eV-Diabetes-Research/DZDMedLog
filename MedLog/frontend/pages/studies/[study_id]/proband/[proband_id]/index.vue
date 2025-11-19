@@ -9,27 +9,6 @@
     <UAlert v-else-if="errorMessage" color="red" title="Fehler" :description="errorMessage" />
 
     <div v-else class="flex flex-col self-center justify-center gap-4 mt-4 max-w-6xl mx-auto">
-      <UAlert
-          v-if="currentInterview"
-          color="amber"
-          title="Laufendes Interview"
-          :description="`Das Interview für Event '${ eventStore.nameForEvent(currentInterview.event_id) }' wurde noch nicht abgeschlossen.`"
-          :actions="[
-            {
-              label: 'Interview abschließen',
-              variant: 'outline',
-              color: 'gray',
-              click: () => endInterview(currentInterview.event_id, currentInterview.id),
-            },
-            {
-              label: 'Interview fortsetzen',
-              variant: 'outline',
-              color: 'gray',
-              click: () => navigateTo(`/studies/${studyId}/proband/${probandId}/interview/${currentInterview.id}`),
-            },
-        ]"
-      />
-
       <UCard>
         <div class="flex flex-row justify-between items-start space-x-4">
           <div class="w-1/2 flex flex-col gap-4 items-center">
@@ -55,7 +34,35 @@
 
           <div class="w-1/2 flex flex-col gap-4 items-center">
             <span class="font-semibold">Interview starten</span>
-            <div v-if="eventsToStartOptions.length" class="flex flex-row gap-2">
+            <UAlert
+                v-if="currentInterview"
+                title="Laufendes Interview"
+                color="orange"
+                variant="subtle"
+                :description="`Das Interview für Event '${ eventStore.nameForEvent(currentInterview.event_id) }' wurde noch nicht abgeschlossen.`"
+                :ui="{ actions: 'flex flex-row justify-between mt-4' }"
+            >
+              <template #description>
+                Das Interview für das Event <span class="font-semibold font-mono">{{ eventStore.nameForEvent(currentInterview.event_id) || 'N/A' }}</span> wurde noch nicht abgeschlossen.
+                Vor dem Start eines neuen Interviews muss das laufende Interview beendet sein.
+              </template>
+              <template #actions>
+                <UButton
+                    label="Interview abschließen"
+                    variant="outline"
+                    color="red"
+                    icon="i-heroicons-stop-solid"
+                    @click="endInterview(currentInterview.event_id, currentInterview.id)"
+                />
+                <UButton
+                    label="Interview fortsetzen"
+                    icon="i-heroicons-arrow-right-circle"
+                    trailing
+                    :to="`/studies/${studyId}/proband/${probandId}/interview/${currentInterview.id}`"
+                />
+              </template>
+            </UAlert>
+            <div v-else-if="eventsToStartOptions.length" class="flex flex-row gap-2">
               <USelect v-model="eventIdToStart" :options="eventsToStartOptions" />
               <UButton color="green" :disabled="!eventIdToStart" @click="introModalVisible = true">
                 Interview starten
