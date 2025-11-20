@@ -8,7 +8,7 @@
 
     <div v-else class="flex flex-col self-center justify-center gap-4 mt-4 max-w-6xl mx-auto">
       <UCard>
-        <div class="flex flex-row justify-between items-center space-x-4">
+        <div class="flex flex-row justify-between items-start space-x-4 break-words">
           <div class="w-1/4">
             <span class="text-lg">{{ studyStore.nameForStudy(studyId) || 'N/A' }}</span>
           </div>
@@ -17,7 +17,7 @@
             <span class="text-lg">{{ eventStore.nameForEvent(eventId) || 'N/A' }}</span>
           </div>
 
-          <div class="w-1/4 text-center">
+          <div class="w-1/4 text-center" style="word-break: break-word">
             <UButton
                 :to="`/studies/${studyId}/proband/${probandId}`"
                 :label="`Proband #${probandId ?? '???'}`"
