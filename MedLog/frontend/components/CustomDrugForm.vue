@@ -136,6 +136,8 @@
 import {apiGetFieldDefinitions} from "~/api/drug";
 import type {FormError} from "#ui/types";
 const { $medlogapi } = useNuxtApp();
+
+const toast = useToast();
 const drugFields = useDrugFields();
 
 interface Attribute {
@@ -273,7 +275,10 @@ async function onSearchRef(fieldName: string, query: string) {
       }));
     }
   } catch (err) {
-    console.error("Search error:", err);
+    toast.add({
+      title: "Fehler bei der Suche",
+      description: err.value.data?.detail ?? err.message ?? err,
+    });
   }
 }
 

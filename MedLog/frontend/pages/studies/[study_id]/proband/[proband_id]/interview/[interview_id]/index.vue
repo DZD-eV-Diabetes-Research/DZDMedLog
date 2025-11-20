@@ -138,6 +138,7 @@ const route = useRoute();
 const eventStore = useEventStore();
 const interviewStore = useInterviewStore();
 const studyStore = useStudyStore();
+const toast = useToast();
 const userStore = useUserStore();
 const { $medlogapi } = useNuxtApp();
 
@@ -197,7 +198,10 @@ async function saveIntake(data: IntakeFormSchema) {
   });
 
   if (error.value) {
-    console.error(error.value);
+    toast.add({
+      title: "Konnte Einnahme nicht anlegen",
+      description: error.value.data?.detail ?? error.message ?? error,
+    });
     return;
   }
 
@@ -225,7 +229,10 @@ async function openEditModal(row: object) {
   });
 
   if (error.value) {
-    console.error(error.value);
+    toast.add({
+      title: "Konnte Einnahme nicht abrufen",
+      description: error.value.data?.detail ?? error.message ?? error,
+    });
     return;
   }
 
@@ -276,7 +283,10 @@ async function saveEditIntake(data: IntakeFormSchema) {
   );
 
   if (error.value) {
-    console.error(error.value);
+    toast.add({
+      title: "Konnte Einnahme nicht speichern",
+      description: error.value.data?.detail ?? error.message ?? error,
+    });
     return;
   }
 
