@@ -2,6 +2,7 @@
   <LayoutHeader />
   <NuxtPage />
   <LayoutFooter />
+  <UNotifications />
 </template>
 
 <script setup lang="ts">

@@ -53,7 +53,7 @@ const route = useRoute();
 const _runtimeConfig = useRuntimeConfig();
 const studyStore = useStudyStore();
 const { $medlogapi } = useNuxtApp();
-
+const toast = useToast();
 
 const columns = [
   {
@@ -99,8 +99,6 @@ async function listDownloads() {
     }
   });
   
-  console.log(data);
-  
   const studyName = await studyStore.getStudy(route.params.study_id);
 
   downloads.value = data.items.map((item) => ({
@@ -130,10 +128,16 @@ async function downloadFile(row) {
       a.click();
       a.remove();
     } else {
-      console.error("Failed to download file:", response.statusText);
+      toast.add({
+        title: "Fehler beim Herunterladen",
+        description: response.statusText,
+      });
     }
   } catch (error) {
-    console.error("Failed to download file:", error.message);
+    toast.add({
+      title: "Fehler beim Herunterladen",
+      description: error.message,
+    });
   }
 }
 
