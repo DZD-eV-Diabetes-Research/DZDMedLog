@@ -1,4 +1,13 @@
-from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated, Dict
+from typing import (
+    AsyncGenerator,
+    List,
+    Optional,
+    Literal,
+    Sequence,
+    Annotated,
+    Dict,
+    TYPE_CHECKING,
+)
 import enum
 from pydantic import (
     validate_email,

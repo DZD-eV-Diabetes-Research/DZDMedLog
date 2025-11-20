@@ -16,16 +16,15 @@ from medlogserver.utils import to_path, get_default_file_data
 from medlogserver.db._session import get_async_session_context
 from medlogserver.model import MedLogBaseModel
 from medlogserver.db._base_crud import CRUDBase
-from medlogserver.db import (
-    UserCRUD,
-    UserAuthCRUD,
-    StudyCRUD,
-    StudyPermissonCRUD,
-    EventCRUD,
-    InterviewCRUD,
-    IntakeCRUD,
-    WorkerJobCRUD,
-)
+from medlogserver.db.event import EventCRUD
+from medlogserver.db.intake import IntakeCRUD
+from medlogserver.db.interview import InterviewCRUD
+from medlogserver.db.study import StudyCRUD
+from medlogserver.db.study_permission import StudyPermissonCRUD
+from medlogserver.db.user import UserCRUD
+from medlogserver.db.user_auth import UserAuthCRUD
+from medlogserver.db.worker_job import WorkerJobCRUD
+
 
 log = get_logger()
 config = Config()
