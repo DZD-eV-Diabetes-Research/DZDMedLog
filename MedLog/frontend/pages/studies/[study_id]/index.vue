@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <div class="flex justify-center">
+  <section class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
+    <div class="flex justify-center break-all">
       <h3 class="text-4xl font-medium my-4">{{ study.display_name }}</h3>
     </div>
     <Draggable
@@ -45,7 +45,7 @@
       </UModal>
       
     </UIBaseCard>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">

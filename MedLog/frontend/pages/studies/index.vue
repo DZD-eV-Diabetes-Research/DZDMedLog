@@ -38,7 +38,7 @@
       </UModal>
     </UIBaseCard>
     <UIBaseCard v-for="study in studyStore.studies" :key="study.id" style="text-align: center">
-      <h3 class="text-2xl font-medium my-4">Studie: {{ study.display_name }}</h3>
+      <h3 class="text-2xl font-medium my-4 break-words">Studie: {{ study.display_name }}</h3>
 
       <div class="flex flex-row justify-center space-x-4">
         <UButton
