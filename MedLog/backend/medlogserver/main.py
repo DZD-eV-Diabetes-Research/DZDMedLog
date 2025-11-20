@@ -27,6 +27,12 @@ arg_parser.add_argument(
     help="Set this flag to just run the background worker without the unvicorn webserver.",
     action="store_true",
 )
+arg_parser.add_argument(
+    "--setup_database_only",
+    help="Set this flag to just run the seeding or migration on the database.",
+    action="store_true",
+)
+
 
 # Setup logging
 log = logging.getLogger(__name__)
@@ -37,7 +43,6 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 # This way we address medlogserver as a module for imports without installing it first.
 # e.g. "from medlogserver import config"
 if __name__ == "__main__":
-
     MODULE_DIR = Path(__file__).parent
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
     sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
@@ -117,9 +122,9 @@ def start():
         lifespan="on",
     )
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
-    log.info("[DB MIGRATIONS] Start DB Migrations")
+
     run_db_migrations()
-    log.info("[DB MIGRATIONS] DB Migrations Completed!")
+
     event_loop.run_until_complete(init_db())
 
     if config.DEMO_MODE:
@@ -164,6 +169,7 @@ def start():
 
 if __name__ == "__main__":
     args = arg_parser.parse_args()
+
     if args.set_version_file:
         print("Write `__version__.py` file...")
         from medlogserver.utils import set_version_file
@@ -171,6 +177,12 @@ if __name__ == "__main__":
         version_file = set_version_file(MODULE_DIR)
         version = version_file.read_text()
         print(f"Wrote '{version}' into '{version_file.absolute()}'")
+        exit()
+    if args.setup_database_only:
+        print("Intitialise or migrate database only...")
+        from medlogserver.run_db_migrations import run_db_migrations
+
+        run_db_migrations()
         exit()
     if args.run_worker_only:
         print("Run only background server.")

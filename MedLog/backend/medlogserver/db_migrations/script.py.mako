@@ -48,26 +48,4 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    dialect = bind.dialect.name
-
-    if dialect == "postgresql":
-        # --- PostgreSQL-specific downgrade ---
-% if downgrades:
-% for line in downgrades.splitlines():
-        ${line}
-% endfor
-% else:
-        pass
-% endif
-    elif dialect == "sqlite":
-        # --- SQLite-specific downgrade ---
-% if downgrades:
-% for line in downgrades.splitlines():
-        ${line}
-% endfor
-% else:
-        pass
-% endif
-    else:
-        raise NotImplementedError(f"DZDMedLog only supports Postgres (and SQlite for local development). Please use another database as '{dialect}'") 
+        raise NotImplementedError(f"DZDMedLog does not support downgrading the database")

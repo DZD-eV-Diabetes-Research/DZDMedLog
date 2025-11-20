@@ -12,6 +12,7 @@ def run_db_migrations():
     import alembic.config
 
     log = get_logger()
+    log.info("[DB MIGRATIONS] Start DB Migrations")
     original_dir = os.getcwd()
     try:
         alembic_dir = Path(__file__).parent
@@ -24,4 +25,5 @@ def run_db_migrations():
         alembic.config.main(argv=alembicArgs)
 
     finally:
+        log.info("[DB MIGRATIONS] DB Migrations Completed!")
         os.chdir(original_dir)
