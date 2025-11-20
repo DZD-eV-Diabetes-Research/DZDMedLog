@@ -1,5 +1,10 @@
 <template>
-  <UAlert color="red" :title="titleString" :ui="{ description: 'mt-1 text-sm leading-4 break-words' }">
+  <UAlert
+      color="red"
+      icon="i-heroicons-exclamation-circle"
+      :title="titleString"
+      :ui="{ description: 'mt-1 text-sm leading-4 break-words' }"
+  >
     <template #description>
       <p>{{ messageString }}</p>
       <details v-if="detailsString" class="mt-3">
@@ -9,6 +14,10 @@
             {{ detailsString }}
           </code>
         </div>
+      </details>
+      <details v-if="error?.cause" class="mt-3">
+        <summary>Ursache</summary>
+        {{ error.cause }}
       </details>
     </template>
   </UAlert>

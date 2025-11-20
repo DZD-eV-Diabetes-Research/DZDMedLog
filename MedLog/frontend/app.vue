@@ -37,6 +37,7 @@ if (userStore.isLoggedIn) {
     await configStore.fetchAllConfigs();
     await studyStore.getAvailableStudies();
     await drugFieldsStore.fetchFields();
+    await drugFieldsStore.fetchCodes();
   } catch (error) {
     throw createError({
       message: 'Konnte elementare Daten nicht abrufen',

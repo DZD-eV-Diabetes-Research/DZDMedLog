@@ -12,7 +12,6 @@ export async function apiGetFieldDefinitions(type: string) {
     //
     const { data: fieldDefinitions, error } = await useMedlogapi("/api/drug/field_def");
     if (error.value) {
-        console.error("Error fetching field definitions:", error.value);
         throw error.value;
     }
 
@@ -49,7 +48,6 @@ export async function apiDrugSearch(searchTerm: string, limit = 100) {
     }); 
 
     if (error.value) {
-        console.error("Error while searching drug:", error.value);
         throw error.value;
     }
 

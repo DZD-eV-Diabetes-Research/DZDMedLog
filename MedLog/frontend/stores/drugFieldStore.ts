@@ -4,13 +4,16 @@ import { defineStore } from 'pinia'
 import { useMedlogapi, type MedlogapiResponse } from '#open-fetch';
 
 type Fields = MedlogapiResponse<'list_field_definitions_api_drug_field_def_get'>
+type Codes = MedlogapiResponse<'list_drug_code_systems_api_drug_code_def_get'>
 
 interface DrugFieldStore {
+    codes: Codes
     fields: Fields
 }
 
 export const useDrugFields = defineStore('drugFields', {
     state: (): DrugFieldStore => ({
+        codes: [],
         fields: {
             attrs: [],
             attrs_multi: [],
@@ -19,6 +22,16 @@ export const useDrugFields = defineStore('drugFields', {
         }
     }),
     actions: {
+        async fetchCodes() {
+            const { data, error } = await useMedlogapi("/api/drug/code_def");
+            if (error.value) {
+                throw error.value;
+            }
+
+            if (data.value) {
+                this.codes = data.value;
+            }
+        },
         async fetchFields() {
             const { data, error } = await useMedlogapi("/api/drug/field_def");
             if (error.value) {
@@ -28,7 +41,7 @@ export const useDrugFields = defineStore('drugFields', {
             if (data.value) {
                 this.fields = data.value;
             }
-        }
+        },
     },
     getters: {
         allFields: (state: DrugFieldStore) => {

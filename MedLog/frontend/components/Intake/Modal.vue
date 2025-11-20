@@ -53,9 +53,14 @@
         />
         <CustomDrugForm
             class="mt-5"
-            :error="createCustomDrugError"
             @save="saveCustomDrug"
             @cancel="customDrugModalVisibility = false"
+        />
+        <ErrorMessage
+            v-if="createCustomDrugError"
+            title="Konnte Präparat nicht speichern"
+            :error="createCustomDrugError"
+            class="mt-5"
         />
       </UCard>
     </UModal>
@@ -72,7 +77,7 @@ const props = defineProps({
 
 defineEmits(['cancel', 'save'])
 
-const createCustomDrugError = ref("");
+const createCustomDrugError = ref();
 const customDrugModalVisibility = ref(false);
 const intakeDrugId = ref<string>('');
 
@@ -85,7 +90,7 @@ async function openCustomModal() {
 }
 
 async function saveCustomDrug(customDrugBody: DrugBody) {
-  createCustomDrugError.value = "";
+  createCustomDrugError.value = undefined;
   const { data, error } = await useMedlogapi(
       `/api/drug/custom`,
       {
@@ -95,7 +100,7 @@ async function saveCustomDrug(customDrugBody: DrugBody) {
   );
 
   if (error.value) {
-    createCustomDrugError.value = error.value.detail ?? error.value.toString() ?? "Unbekannter Fehler";
+    createCustomDrugError.value = error.value;
     return;
   }
 
