@@ -75,12 +75,13 @@ def start():
     log.debug(yaml.dump(json.loads(config.model_dump_json()), sort_keys=False))
     log.debug("----CONFIG-END-----")
     log.info("...config ok!")
-    # test_exporter()
-    # exit()
+
     print(f"LOG_LEVEL: {config.LOG_LEVEL}")
     print(f"UVICORN_LOG_LEVEL: {get_uvicorn_loglevel()}")
+    from medlogserver.run_db_migrations import run_db_migrations
 
     from medlogserver.db._init_db import init_db
+
     import uvicorn
     from uvicorn.config import LOGGING_CONFIG
 
@@ -116,6 +117,9 @@ def start():
         lifespan="on",
     )
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
+    log.info("[DB MIGRATIONS] Start DB Migrations")
+    run_db_migrations()
+    log.info("[DB MIGRATIONS] DB Migrations Completed!")
     event_loop.run_until_complete(init_db())
 
     if config.DEMO_MODE:

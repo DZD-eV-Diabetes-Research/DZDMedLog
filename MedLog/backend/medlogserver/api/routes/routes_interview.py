@@ -112,7 +112,9 @@ async def list_interviews_of_proband(
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Interview]:
-    return await interview_crud.list(filter_proband_external_id=proband_id)
+    return await interview_crud.list(
+        filter_proband_external_id=proband_id, filter_study_id=study_access.study.id
+    )
 
 
 @fast_api_interview_router.get(

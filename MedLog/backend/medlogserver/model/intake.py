@@ -1,4 +1,13 @@
-from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated, Dict
+from typing import (
+    AsyncGenerator,
+    List,
+    Optional,
+    Literal,
+    Sequence,
+    Annotated,
+    Dict,
+    TYPE_CHECKING,
+)
 import enum
 from pydantic import (
     validate_email,
@@ -15,7 +24,7 @@ import uuid
 from uuid import UUID
 from medlogserver.model.event import Event
 from medlogserver.model.interview import Interview
-from medlogserver.model.drug_data.drug import DrugData
+
 from medlogserver.model.drug_data.api_drug_model_factory import (
     DrugAPIRead,
     CustomDrugAPIRead,

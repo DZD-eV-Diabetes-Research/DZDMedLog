@@ -39,6 +39,11 @@ from sqlalchemy.exc import IntegrityError
 import re
 import concurrent.futures
 
+import random
+import time
+from sqlalchemy.exc import OperationalError
+from sqlmodel.ext.asyncio.session import AsyncSession
+
 
 def to_path(
     *args: str | Path | PurePath | List[str | Path | PurePath],
@@ -456,3 +461,29 @@ def get_default_file_data(
             f"Unexpected format in provisioning data file at '{default_data_yaml_path}'."
         )
     return file_content
+
+
+async def commit_with_retry_when_sqlite_is_locked(
+    session: AsyncSession, retries=3, min_wait=0.5, max_wait=2.0
+):
+    """
+    Commit wrapper with retry logic for SQLite's "database is locked" error.
+    Intended only for local development using SQLite.
+    Has no effect in production environments using PostgreSQL.
+    """
+    for attempt in range(1, retries + 1):
+        try:
+            await session.commit()
+            return  # success
+        except OperationalError as exc:
+            # Only retry when it's specifically the 'database is locked' error
+            if "database is locked" not in str(exc):
+                raise
+
+            if attempt == retries:
+                # Last attempt — re-raise the exception
+                raise
+
+            # Wait a random amount before retrying
+            wait_time = random.uniform(min_wait, max_wait)
+            time.sleep(wait_time)
