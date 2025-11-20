@@ -26,17 +26,13 @@ export const useUserStore = defineStore('UserStore', {
         async setUserInfo() {
             const {$medlogapi} = useNuxtApp();
 
-            try {
-                const data = await $medlogapi("/api/user/me")
+            const data = await $medlogapi("/api/user/me")
 
-                this.email = data.email
-                this.displayName = data.display_name
-                this.roles = data.roles
-                this.userName = data.user_name
-                this.userID = data.id
-            } catch (err) {
-                console.log(err);
-            }
+            this.email = data.email
+            this.displayName = data.display_name
+            this.roles = data.roles
+            this.userName = data.user_name
+            this.userID = data.id
         }
     },
     getters: {

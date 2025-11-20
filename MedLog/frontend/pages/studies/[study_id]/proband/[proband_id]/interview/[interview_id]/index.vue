@@ -4,7 +4,7 @@
       <UProgress animation="carousel" />
     </div>
 
-    <UAlert v-else-if="errorMessage" color="red" title="Fehler" :description="errorMessage" />
+    <ErrorMessage v-else-if="error" :error="error" />
 
     <div v-else class="flex flex-col self-center justify-center gap-4 mt-4 max-w-6xl mx-auto">
       <UCard>
@@ -138,6 +138,7 @@ const route = useRoute();
 const eventStore = useEventStore();
 const interviewStore = useInterviewStore();
 const studyStore = useStudyStore();
+const toast = useToast();
 const userStore = useUserStore();
 const { $medlogapi } = useNuxtApp();
 
@@ -145,7 +146,7 @@ const interviewId = computed(() => route.params.interview_id);
 const probandId = computed(() => route.params.proband_id);
 const studyId = computed(() => route.params.study_id);
 
-const errorMessage = ref('');
+const error = ref();
 const eventId = ref('');
 const interview = ref<Interview | null>();
 const loading = ref(true);
@@ -197,7 +198,10 @@ async function saveIntake(data: IntakeFormSchema) {
   });
 
   if (error.value) {
-    console.error(error.value);
+    toast.add({
+      title: "Konnte Einnahme nicht anlegen",
+      description: error.value.data?.detail ?? error.message ?? error,
+    });
     return;
   }
 
@@ -225,7 +229,10 @@ async function openEditModal(row: object) {
   });
 
   if (error.value) {
-    console.error(error.value);
+    toast.add({
+      title: "Konnte Einnahme nicht abrufen",
+      description: error.value.data?.detail ?? error.message ?? error,
+    });
     return;
   }
 
@@ -276,7 +283,10 @@ async function saveEditIntake(data: IntakeFormSchema) {
   );
 
   if (error.value) {
-    console.error(error.value);
+    toast.add({
+      title: "Konnte Einnahme nicht speichern",
+      description: error.value.data?.detail ?? error.message ?? error,
+    });
     return;
   }
 
@@ -305,7 +315,10 @@ async function deleteIntake() {
     deleteModalVisibility.value = false;
     await loadIntakeList();
   } catch (error) {
-    console.log(error);
+    toast.add({
+      title: "Konnte Einnahme nicht löschen",
+      description: error.message ?? error,
+    });
   }
 }
 
@@ -343,8 +356,8 @@ async function endInterview() {
 async function loadIntakeList() {
   try {
     tableContent.value = await useGetIntakesByStudyAndProband(studyId.value, probandId.value, interviewId.value) ?? [];
-  } catch (error) {
-    console.log(error);
+  } catch (e) {
+    error.value = new Error("Konnte Liste der Einnahmen nicht laden", { cause: e });
   }
 }
 
@@ -355,14 +368,14 @@ onMounted(async () => {
     const interviewsForProband = await useGetInterviewsByStudyAndProband(studyId.value, probandId.value);
     const foundInterview = interviewsForProband.find(item => item.id === interviewId.value);
     if (!foundInterview) {
-      errorMessage.value = 'Interview nicht gefunden';
+      error.value = new Error('Interview nicht gefunden');
       return;
     }
     eventId.value = foundInterview.event_id;
     interview.value = await useGetInterview(studyId.value, eventId.value, interviewId.value);
     await loadIntakeList();
-  } catch (error) {
-    errorMessage.value = error.message ?? error;
+  } catch (e) {
+    error.value = e;
   } finally {
     loading.value = false;
   }

@@ -53,7 +53,7 @@ const route = useRoute();
 const _runtimeConfig = useRuntimeConfig();
 const studyStore = useStudyStore();
 const { $medlogapi } = useNuxtApp();
-
+const toast = useToast();
 
 const columns = [
   {
@@ -93,26 +93,31 @@ function parseTime(time: string) {
 
 
 async function listDownloads() {
-  const data = await $medlogapi(`/api/study/{studyId}/export`, {
-    path: {
-      studyId: route.params.study_id,
+  try {
+    const data = await $medlogapi(`/api/study/{studyId}/export`, {
+      path: {
+        studyId: route.params.study_id,
+      }
+    });
+
+    const studyName = await studyStore.getStudy(route.params.study_id);
+
+    downloads.value = data.items.map((item) => ({
+      study: studyName.display_name,
+      time: parseTime(item.created_at),
+      status: item.state,
+      downloadLink: `${item.download_file_path}`,
+    }));
+
+    if (!downloads.value.some(download => download.status === "queued") && downloadCheckInterval) {
+      clearInterval(downloadCheckInterval);
+      downloadCheckInterval = null;
     }
-  });
-  
-  console.log(data);
-  
-  const studyName = await studyStore.getStudy(route.params.study_id);
-
-  downloads.value = data.items.map((item) => ({
-    study: studyName.display_name,
-    time: parseTime(item.created_at),
-    status: item.state,
-    downloadLink: `${item.download_file_path}`,
-  }));
-
-  if (!downloads.value.some(download => download.status === "queued") && downloadCheckInterval) {
-    clearInterval(downloadCheckInterval);
-    downloadCheckInterval = null;
+  } catch (e) {
+    toast.add({
+      title: "Fehler beim Laden der Exporte",
+      description: e.message,
+    });
   }
 }
 
@@ -130,10 +135,16 @@ async function downloadFile(row) {
       a.click();
       a.remove();
     } else {
-      console.error("Failed to download file:", response.statusText);
+      toast.add({
+        title: "Fehler beim Herunterladen",
+        description: response.statusText,
+      });
     }
   } catch (error) {
-    console.error("Failed to download file:", error.message);
+    toast.add({
+      title: "Fehler beim Herunterladen",
+      description: error.message,
+    });
   }
 }
 
@@ -150,12 +161,16 @@ async function requestDownload() {
         }
       }
     );
-    listDownloads();
-    startDownloadCheck();
-
   } catch (error) {
-    console.log(error);
+    toast.add({
+      title: "Konnte Exportauftrag nicht anlegen",
+      description: error.message,
+    });
+    return;
   }
+
+  await listDownloads();
+  startDownloadCheck();
 }
 
 // 2. This checks if the backend is done and while it is not it pings the backened every 5 seconds vis the listDownloads function

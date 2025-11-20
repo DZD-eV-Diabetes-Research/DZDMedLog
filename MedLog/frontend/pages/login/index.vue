@@ -46,6 +46,7 @@
 <script setup lang="ts">
 import { useMedlogapi } from '#imports';
 
+const toast = useToast();
 const userStore = useUserStore();
 const route = useRoute()
 
@@ -87,7 +88,10 @@ const loginOIDC = async function (oidc_method) {
     }
 
   } catch (error) {
-    console.log(error);
+    toast.add({
+      title: "Fehler beim Speichern",
+      description: error.data?.detail ?? error.message ?? error,
+    });
   }
 }
 

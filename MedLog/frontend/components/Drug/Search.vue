@@ -26,7 +26,7 @@
       <p v-else class="text-sm self-end">{{ resultsText }}</p>
     </div>
 
-    <UAlert v-if="errorMessage" color="red" title="Fehler bei der Medikamentensuche" :description="errorMessage" />
+    <ErrorMessage v-if="searchError" title="Fehler bei der Medikamentensuche" :error="searchError" />
 
     <UAlert v-else-if="warningMessage" color="amber" variant="subtle" :title="warningMessage" />
 
@@ -74,15 +74,15 @@ defineProps({
 const emit = defineEmits(['drug-selected'])
 
 const currentPage = ref(1);
-const errorMessage = ref("");
 const isLoading = ref(false);
+const searchError = ref();
 const searchResults = ref([]);
 const searchTerm = ref("");
 const totalCount = ref(0);
 const warningMessage = ref("");
 
 const fetchDrugs = async (searchTerm) => {
-  errorMessage.value = ""
+  searchError.value = undefined;
   isLoading.value = true;
   try {
     warningMessage.value = ''
@@ -95,11 +95,8 @@ const fetchDrugs = async (searchTerm) => {
     searchResults.value = response.items ?? [];
     totalCount.value = response.total_count;
     currentPage.value = 1;
-  } catch (error: any) {
-    console.error("Error fetching drugs:", error);
-    console.log(error.detail);
-
-    errorMessage.value = error?.data?.detail || error?.message || "Unbekannter Fehler beim Laden, bitte wenden Sie sich an Ihren Admin"
+  } catch (error) {
+    searchError.value = error;
     searchResults.value = [];
   } finally {
     isLoading.value = false;
@@ -112,7 +109,7 @@ watch(
     if (newValue && newValue.length >= 3) {
       fetchDrugs(newValue);
     } else if (newValue === "") {
-      errorMessage.value = "";
+      searchError.value = undefined;
       warningMessage.value = "";
     }
   },

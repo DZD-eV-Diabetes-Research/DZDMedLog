@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useMedlogapi } from "#imports";
-
 const props = defineProps({
   drug: { type: Object, required: true },
 })
@@ -11,8 +9,7 @@ const showDetails = ref(false);
 
 const drugFieldsStore = useDrugFields();
 
-const { data: codeSystems } = await useMedlogapi("/api/drug/code_def")
-const drugCodeSystems = codeSystems.value.filter((item) => item.client_visible === true)
+const drugCodeSystems = drugFieldsStore.codes.filter((item) => item.client_visible === true)
 
 function getDisplayValue(attribute, attributeClass) {
   const value = props.drug?.[attributeClass]?.[attribute.field_name];
