@@ -93,24 +93,31 @@ function parseTime(time: string) {
 
 
 async function listDownloads() {
-  const data = await $medlogapi(`/api/study/{studyId}/export`, {
-    path: {
-      studyId: route.params.study_id,
+  try {
+    const data = await $medlogapi(`/api/study/{studyId}/export`, {
+      path: {
+        studyId: route.params.study_id,
+      }
+    });
+
+    const studyName = await studyStore.getStudy(route.params.study_id);
+
+    downloads.value = data.items.map((item) => ({
+      study: studyName.display_name,
+      time: parseTime(item.created_at),
+      status: item.state,
+      downloadLink: `${item.download_file_path}`,
+    }));
+
+    if (!downloads.value.some(download => download.status === "queued") && downloadCheckInterval) {
+      clearInterval(downloadCheckInterval);
+      downloadCheckInterval = null;
     }
-  });
-  
-  const studyName = await studyStore.getStudy(route.params.study_id);
-
-  downloads.value = data.items.map((item) => ({
-    study: studyName.display_name,
-    time: parseTime(item.created_at),
-    status: item.state,
-    downloadLink: `${item.download_file_path}`,
-  }));
-
-  if (!downloads.value.some(download => download.status === "queued") && downloadCheckInterval) {
-    clearInterval(downloadCheckInterval);
-    downloadCheckInterval = null;
+  } catch (e) {
+    toast.add({
+      title: "Fehler beim Laden der Exporte",
+      description: e.message,
+    });
   }
 }
 
@@ -154,12 +161,16 @@ async function requestDownload() {
         }
       }
     );
-    listDownloads();
-    startDownloadCheck();
-
   } catch (error) {
-    console.log(error);
+    toast.add({
+      title: "Konnte Exportauftrag nicht anlegen",
+      description: error.message,
+    });
+    return;
   }
+
+  await listDownloads();
+  startDownloadCheck();
 }
 
 // 2. This checks if the backend is done and while it is not it pings the backened every 5 seconds vis the listDownloads function

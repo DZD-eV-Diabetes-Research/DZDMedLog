@@ -10,6 +10,8 @@
         </div>
         <UModal v-model="openCopyPreviousIntakesModal" :ui="{ width: 'lg:max-w-6xl' }">
             <div class="p-10 text-center">
+                <ErrorMessage v-if="error" :error="error" :title="errorTitle" />
+                <UProgress v-if="loading" animation="carousel" />
                 <div v-if="previousIntakes.length > 0">
                     <div class="flex flex-col items-center space-y-2 mb-6">
                         <h3 class="text-2xl font-normal mb-2">Medikationsübernahme</h3>
@@ -29,13 +31,6 @@
                 <div v-if="previousIntakes.length === 0">
                     <h3>Es gibt keine Einträge im letzten Event</h3>
                 </div>
-                <div v-if="!previousIntakes && !errorMessage">
-                    loading
-                </div>
-                <div v-if="errorMessage">
-                    <h3 class="text-red-500">Es gab ein Problem beim Laden der Medikamente. Bitte melden Sie sich bei
-                        ihrem Admin</h3>
-                </div>
             </div>
         </UModal>
     </div>
@@ -48,7 +43,9 @@ const { $medlogapi } = useNuxtApp();
 const route = useRoute();
 
 const openCopyPreviousIntakesModal = ref(false)
-const errorMessage = ref(false)
+const error = ref();
+const errorTitle = ref("");
+const loading = ref(false);
 
 const previousIntakes = ref<any[]>([])
 const selectedIntakes = ref([])
@@ -59,7 +56,9 @@ const lastEventDate = ref("")
 
 async function openCopyIntakeModal() {
     openCopyPreviousIntakesModal.value = true
-    errorMessage.value = false
+    error.value = undefined;
+    errorTitle.value = "";
+    loading.value = true;
 
     try {
         const intakes = await $medlogapi(`/api/study/{studyId}/proband/{probandId}/interview/last/intake/details`,{
@@ -104,32 +103,41 @@ async function openCopyIntakeModal() {
         })) : []
         selectedIntakes.value = previousIntakes.value
 
-    } catch (error) {
-        console.log(error);
-        errorMessage.value = true
+    } catch (e) {
+        error.value = e;
+        errorTitle.value = "Fehler beim Abruf früherer Einnahmen";
         previousIntakes.value = []
+    } finally {
+      loading.value = false;
     }
 }
 
 async function saveIntakes() {
-    for (const element of selectedIntakes.value) {
-        try {
-            await $medlogapi(`/api/study/{studyId}/interview/{interviewId}/intake`, {
-                method: "POST",
-                body: element.postBody,
-                path: {
-                    studyId: route.params.study_id,
-                    interviewId: route.params.interview_id,
-                }
-            })
-        } catch (error) {
-            console.log(error);
-        }
-    }
+    error.value = undefined;
+    errorTitle.value = "";
+    loading.value = true;
 
-    // Call the parent component's update handler (prop) after saving
-    props.onUpdate();
-    openCopyPreviousIntakesModal.value = false
+    try {
+      for (const element of selectedIntakes.value) {
+        await $medlogapi(`/api/study/{studyId}/interview/{interviewId}/intake`, {
+          method: "POST",
+          body: element.postBody,
+          path: {
+            studyId: route.params.study_id,
+            interviewId: route.params.interview_id,
+          }
+        })
+      }
+
+      // Call the parent component's update handler (prop) after saving
+      props.onUpdate();
+      openCopyPreviousIntakesModal.value = false
+    } catch (e) {
+        error.value = e;
+        errorTitle.value = "Fehler beim Übernehmen der Einnahmen";
+    } finally {
+      loading.value = false;
+    }
 }
 
 

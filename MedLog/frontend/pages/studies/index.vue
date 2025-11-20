@@ -26,10 +26,10 @@
         <div class="p-4 text-center">
           <UForm :schema="schema" :state="state" class="space-y-4" @submit="createStudy">
             <h3 class="text-2xl font-normal">Studie anlegen</h3>
+            <ErrorMessage v-if="errorMessage" title="Konnte Studie nicht anlegen" :message="errorMessage" />
             <UFormGroup label="Studienname" name="study_name">
               <UInput v-model="state.study_name" required />
             </UFormGroup>
-            <h3 v-if="errorMessage" style="color: red">{{ errorMessage }}</h3>
             <UButton
               type="submit" label="Studie anlegen" color="green" variant="soft"
               class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
@@ -98,12 +98,7 @@ async function createStudy() {
     await studyStore.getAvailableStudies();
     showModal.value = false;
   } catch (error) {
-    if (error.response && error.response._data) {
-      errorMessage.value = error.response._data.detail;
-      console.log("Error detail:", errorMessage.value);
-    } else {
-      console.log(error);
-    }
+    errorMessage.value = error.response?._data?.detail ?? error.message ?? error;
   }
 }
 
