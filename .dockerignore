@@ -367,6 +367,12 @@ local.sqlite-journal
 export.csv
 export_cache/
 MedLog/backend/tests/testdb.sqlite
+**/*.env
 database
 **/*.sqlite
 **/*.db
+
+_MMI_Pharmindex/*
+mprofile*
+
+_tmp_debug/*
