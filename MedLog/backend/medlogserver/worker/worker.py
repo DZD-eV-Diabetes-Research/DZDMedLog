@@ -21,7 +21,7 @@ from medlogserver.utils import get_default_file_data
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
-log = get_logger()
+log = get_logger(modulename="WORKER")
 config = Config()
 
 

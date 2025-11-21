@@ -38,7 +38,7 @@ from medlogserver.db.drug_data.drug import DrugCRUD
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
-log = get_logger()
+log = get_logger(modulename="WORKER")
 config = Config()
 
 
@@ -79,7 +79,6 @@ class ExportContainer(BaseModel):
                     objs = [objs]
                 # obj_class_name = obj.__class__.__name__.lower()
                 for obj in objs:
-
                     for prop_name, prop_value in obj.model_dump(
                         exclude=[pivot_by_column]
                     ).items():
@@ -96,7 +95,6 @@ class ExportContainer(BaseModel):
 
 
 class StudyDataExporter:
-
     def __init__(
         self, study_id: uuid.UUID, format_: Literal["csv", "json"], target_file: Path
     ):
@@ -231,7 +229,6 @@ async def export_study_intake_data(
 
 
 class TaskExportStudyIntakeData(TaskBase):
-
     async def work(self, study_id: str | uuid.UUID, format_: str):
         log.info(f"Export study data (job_id: {self.job.id})...")
         if isinstance(study_id, str):

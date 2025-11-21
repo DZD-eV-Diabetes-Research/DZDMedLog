@@ -1,18 +1,18 @@
-from typing import Dict, List, Callable, Awaitable
-from contextlib import asynccontextmanager
 import getversion
 import inspect
-from fastapi import Depends
+import json
+
+from typing import Dict, List, Callable
+from contextlib import asynccontextmanager
+
+from dataclasses import dataclass
 from fastapi import FastAPI
-import getversion.plugin_setuptools_scm
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from medlogserver.api.routers_map import mount_fast_api_routers
 from pathlib import Path
-import json
-from fastapi.openapi.utils import get_openapi
 
-# from fastapi.security import
+from fastapi.openapi.utils import get_openapi
 
 import medlogserver
 from medlogserver.config import Config
@@ -21,8 +21,6 @@ from medlogserver.log import get_logger
 
 log = get_logger()
 config = Config()
-
-from dataclasses import dataclass
 
 
 @dataclass

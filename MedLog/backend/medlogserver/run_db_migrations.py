@@ -4,15 +4,15 @@ import os
 from pathlib import Path
 import sqlite3
 from urllib.parse import urlparse
+from medlogserver.log import get_logger
+import alembic.config
 
 
 def run_db_migrations():
     """Temporarily change directory, then restore the original."""
-    from medlogserver.log import get_logger
-    import alembic.config
 
-    log = get_logger()
-    log.info("[DB MIGRATIONS] Start DB Migrations")
+    log = get_logger(modulename="DB MIGRATOR")
+    log.info("Start DB Migrations")
     original_dir = os.getcwd()
     try:
         alembic_dir = Path(__file__).parent
@@ -25,5 +25,5 @@ def run_db_migrations():
         alembic.config.main(argv=alembicArgs)
 
     finally:
-        log.info("[DB MIGRATIONS] DB Migrations Completed!")
+        log.info("DB Migrations Completed!")
         os.chdir(original_dir)

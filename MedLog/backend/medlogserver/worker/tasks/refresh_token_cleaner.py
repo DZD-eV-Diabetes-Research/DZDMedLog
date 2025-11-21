@@ -9,7 +9,7 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 
 
-log = get_logger()
+log = get_logger(modulename="WORKER")
 config = Config()
 
 
