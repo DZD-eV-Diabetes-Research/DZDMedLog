@@ -41,7 +41,7 @@
       </div>
     </div>
     <URadioGroup
-        v-model="state.medsTakenToday" legend="Wurden heute Medikamente eingenommen?" name="medsTakenToday"
+        v-model="state.medsTakenToday" legend="Wurde dieses Medikament heute eingenommen?" name="medsTakenToday"
         :options="medsTakenTodayOptions" :color="props.color" />
     <hr>
     <div class="flex justify-between">
