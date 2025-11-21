@@ -9,15 +9,15 @@
     <div v-else class="flex flex-col self-center justify-center gap-4 mt-4 max-w-6xl mx-auto">
       <UCard>
         <div class="flex flex-row justify-between items-start space-x-4 break-words">
-          <div class="w-1/4">
+          <div class="py-1.5" style="max-width: 25%">
             <span class="text-lg">{{ studyStore.nameForStudy(studyId) || 'N/A' }}</span>
           </div>
 
-          <div class="w-1/4 text-center">
+          <div class="py-1.5" style="max-width: 25%">
             <span class="text-lg">{{ eventStore.nameForEvent(eventId) || 'N/A' }}</span>
           </div>
 
-          <div class="w-1/4 text-center" style="word-break: break-word">
+          <div class="text-center" style="word-break: break-word; max-width: 25%">
             <UButton
                 :to="`/studies/${studyId}/proband/${probandId}`"
                 :label="`Proband #${probandId ?? '???'}`"
@@ -28,10 +28,10 @@
             />
           </div>
 
-          <div class="w-1/4 text-end">
-          <span v-if="interview.interview_end_time_utc">
-            Interview abgeschlossen am {{ formatDate(interview.interview_end_time_utc) }}
-          </span>
+          <div class="py-1.5 text-end" style="max-width: 25%">
+            <span v-if="interview.interview_end_time_utc">
+              Interview abgeschlossen am {{ formatDate(interview.interview_end_time_utc) }}
+            </span>
             <UButton
                 v-else
                 label="Interview Beenden"

@@ -189,10 +189,11 @@ function validate(state: any): FormError[] {
 }
 
 async function onSubmit() {
-  const drugCodeBody =  Object.entries(drugCodeState).map(([key, value]) => ({
-    code_system_id: key,
-    code: value,
-  }));
+  const drugCodeBody =  Object.entries(drugCodeState)
+      .map(([key, value]) => ({
+        code_system_id: key,
+        code: value,
+      })).filter(item => item.code !== '');
 
   const customDrugBody: DrugBody = {
     trade_name: state.customName,
