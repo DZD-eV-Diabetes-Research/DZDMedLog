@@ -48,7 +48,7 @@ from medlogserver.model.unset import Unset
 from medlogserver.utils import extract_bracket_values
 
 config = Config()
-log = get_logger()
+log = get_logger(modulename="DRUGIMPORT")
 importername = "DummyDrugImporterV1"
 
 
@@ -477,7 +477,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
 
     async def run_import(self):
         # generate schema definitions; fields,lov-defintions,...
-        log.info("[DRUG DATA IMPORT] Parse metadata...")
+        log.info(" Parse metadata...")
         all_objs = []
         drug_dataset = await self._ensure_drug_dataset_version()
         # generate list of values
@@ -510,7 +510,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
     ) -> List[
         DrugData | DrugVal | DrugValRef | DrugCode | DrugValMulti | DrugValMultiRef
     ]:
-        log.info("[DRUG DATA IMPORT] Parse drug data...")
+        log.info(" Parse drug data...")
         drug_data_objs: List[DrugData] = []
 
         drugs_csv_path = Path(self.source_dir, "drugs.csv")
@@ -689,9 +689,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                 except:
                     log.error(("Failed obj", obj))
                     raise
-            log.info(
-                "[DRUG DATA IMPORT] Commit Drug data to database. This may take a while..."
-            )
+            log.info(" Commit Drug data to database. This may take a while...")
             await session.commit()
 
     async def _generate_lov_items(

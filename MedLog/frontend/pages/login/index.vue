@@ -1,36 +1,20 @@
 <template>
-  <Layout>
+  <div>
     <UIBaseCard>
       <div v-if="healthStatus?.healthy" class="flex flex-col justify-center">
         <div v-if="loginMethods" class="flex flex-col space-y-2">
+          <UAlert
+              v-if="loginError"
+              color="orange"
+              variant="subtle"
+              title="Login-Fehler"
+              :description="loginError"
+          />
           <div v-for="loginMethod in loginMethods" :key="loginMethod.auth_type">
-            <div v-if="loginMethod.auth_type === 'basic'">
-              <UForm :schema="schema" :state="state" class="space-y-4" @submit="login()">
-                <div style="text-align: center">
-                  <h3 v-if="tokenStore.my_401" style="color:red">Wrong username or password</h3>
-                </div>
-                <UFormGroup name="username">
-                  <div class="flex justify-start my-2">
-                    <h3 class="text-lg font-medium">Benutzername</h3>
-                  </div>
-                  <UInput v-model="state.username" />
-                </UFormGroup>
-                <UFormGroup name="password">
-                  <div class="flex justify-start my-2">
-                    <h3 class="text-lg font-medium">Password</h3>
-                  </div>
-                  <UInput v-model="state.password" type="password" />
-                </UFormGroup>
-                <div class="flex justify-center">
-                  <UButton
-                    color="green" variant="soft"
-                    class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-                    type="submit">
-                    Einloggen
-                  </UButton>
-                </div>
-              </UForm>
-            </div>
+            <LoginForm
+              v-if="loginMethod.auth_type === 'basic'"
+              @login="({username, password}) => login(loginMethod.login_endpoint, username, password)"
+            />
             <div v-else>
               <UButton :class="[getRandomColorClass(), 'rounded-lg']" @click="loginOIDC(loginMethod)">
                 Login via: {{ loginMethod.display_name }}
@@ -45,9 +29,6 @@
               href="https://auth.dzd-ev.org/" target="_blank"
               class="hover:border-[#ec372d] hover:border-b-2">Registrieren Sie sich hier.</a>
           </p>
-          <div v-if="tokenStore.expiredToken" class="my-6">
-            <h3 class="text-4xl text-red-500">Ihre Session ist abgelaufen, bitte loggen Sie sich erneut ein</h3>
-          </div>
         </div>
       </div>
       <div v-else class="flex flex-col space-y-8 text-center">
@@ -57,53 +38,60 @@
         </p>
       </div>
     </UIBaseCard>
-  </Layout>
+  </div>
 </template>
 
 
 
 <script setup lang="ts">
-
-import { object, string } from "yup";
 import { useMedlogapi } from '#imports';
 
-const tokenStore = useTokenStore();
+const toast = useToast();
+const userStore = useUserStore();
 const route = useRoute()
 
 const { data: healthStatus, error: healthError } = await useMedlogapi("/api/health")
 
-const schema = object({
-  username: string().required("Benötigt"),
-  password: string().required("Benötigt"),
-});
-
-const state = reactive({
-  username: "",
-  password: "",
-});
-
 const { data: loginMethods } = await useMedlogapi("/api/auth/list")
 
+const loginError = ref('');
 
-const login = () => {
-  try {
-    tokenStore.login(state.username, state.password)
-  } catch (error) {
-    console.error(error);
+const login = async (endpoint: string, username: string, password: string) => {
+  loginError.value = ""
+  const { error } = await useMedlogapi(endpoint, {
+    method: "POST",
+    body: {
+      "username": username,
+      "password": password
+    },
+  });
+
+  if (error) {
+    loginError.value = error.value.toString() ?? "Benutzername oder Passwort falsch"
+    return
   }
+
+  await userStore.setUserInfo()
+
+  await navigateTo('/')
 }
 
 const loginOIDC = async function (oidc_method) {
   try {
 
+    console.log('target path is', route.query.target_path)
     if (route.query.target_path === undefined) {
       window.location.href = `${oidc_method.login_endpoint}?target_path=/`
+      // navigateTo(`${oidc_method.login_endpoint}?target_path=/`, { external: true })
     } else {
       window.location.href = `${oidc_method.login_endpoint}?target_path=${route.query.target_path}`
     }
 
   } catch (error) {
-    console.log(error);
+    toast.add({
+      title: "Fehler beim Speichern",
+      description: error.data?.detail ?? error.message ?? error,
+    });
   }
 }
 

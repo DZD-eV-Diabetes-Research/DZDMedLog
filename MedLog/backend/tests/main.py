@@ -33,6 +33,7 @@ def set_config_for_test_env():
         "asdöghjsekrhsergl669823jsakdgl!32kgsadefghs5gakljghlkej5h30985zu0awgh0j34g093a4jgh09ajg09j340tgjhj45po"
     )
     os.environ["CLIENT_URL"] = "https://localhost:8888"
+    os.environ["BRANDING_SUPPORT_EMAIL_ADDRESS"] = "mytest@test.de"
 
 
 set_config_for_test_env()

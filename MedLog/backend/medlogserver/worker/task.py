@@ -10,7 +10,7 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.utils import get_now_datetime
 
-log = get_logger()
+log = get_logger(modulename="WORKER")
 config = Config()
 
 

@@ -10,11 +10,16 @@ from pydantic import (
     StringConstraints,
     model_validator,
 )
-
+import inspect
 from pathlib import Path, PurePath
 import socket
 from textwrap import dedent
-from medlogserver.utils import get_random_string, val_means_true, slugify_string
+from medlogserver.utils import (
+    get_random_string,
+    val_means_true,
+    slugify_string,
+    normalize_sqlite_url,
+)
 
 env_file_path = os.environ.get("MEDLOG_DOT_ENV_FILE", Path(__file__).parent / ".env")
 
@@ -31,6 +36,10 @@ class Config(BaseSettings):
     LOG_LEVEL: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"] = Field(
         default="INFO"
     )
+    LOG_DISABLE_COLORS: bool = Field(
+        description="If set to true, there will be color coding in the logs",
+        default=False,
+    )
     DEMO_MODE: bool = Field(
         default=False,
         description="If set to yes, the database will initiate with some demo data and most config mandatory config vars, like crypto secrets will be set to something random.",
@@ -44,7 +53,7 @@ class Config(BaseSettings):
             if not self_data.get("ADMIN_USER_PW", None):
                 self_data["ADMIN_USER_PW"] = "adminadmin"
             if not self_data.get("APP_PROVISIONING_DATA_YAML_FILES", None):
-                if bool(self_data["DOCKER_MODE"]):
+                if "DOCKER_MODE" in self_data and bool(self_data["DOCKER_MODE"]):
                     self_data["APP_PROVISIONING_DATA_YAML_FILES"] = [
                         str(
                             Path(
@@ -115,6 +124,10 @@ class Config(BaseSettings):
         default=None,
         description="The URL where the client is hosted. Usualy it comes with the server",
     )
+    BRANDING_SUPPORT_EMAIL_ADDRESS: Optional[str] = Field(
+        default=None,
+        description="The email address the webclient will show in the help text to point to user support.",
+    )
 
     @model_validator(mode="after")
     def set_empty_client_url(self: Self):
@@ -123,13 +136,42 @@ class Config(BaseSettings):
         return self
 
     SQL_DATABASE_URL: str = Field(
-        default="sqlite+aiosqlite:///./local.sqlite",
-        description="Connection URL for the database based on the RFC-1738 standard. Mind the 3 (instead of 2) leading slashes in sqlite file pathes https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#connect-strings",
+        default="sqlite+aiosqlite:///./../../../local.sqlite",
         examples=[
-            "postgresql+psycopg://myusername:mypassword@localhost/myDBName",
-            "sqlite+aiosqlite:///./local.sqlite",
+            "sqlite:///local.db",  # relative SQLite path -> resolved to absolute
+            "sqlite:////opt/data.db",  # absolute POSIX SQLite path -> preserved
+            "sqlite:///:memory:",  # in-memory SQLite
+            "sqlite+aiosqlite:///./local2.sqlite",  # relative async SQLite path
+            "postgresql://user:pass@localhost:5432/mydb",  # PostgreSQL
         ],
+        description=inspect.cleandoc("""
+        The database URL for the application. Only SQLite and PostgreSQL URLs are supported.
+
+        SQLite URL rules (per SQLAlchemy):
+          - Relative paths: sqlite:///relative/path.db  (three slashes '///')
+            Example: sqlite:///local.db -> resolved relative to the main script directory.
+          - Absolute POSIX paths: sqlite:////absolute/path.db  (four slashes '////')
+            Example: sqlite:////opt/data.db -> absolute path preserved.
+          - Windows absolute paths: sqlite:///C:/absolute/path.db (drive letters detected automatically).
+          - Memory databases: sqlite:///:memory: remain unchanged.
+
+        Application behavior:
+        All SQLite relative paths are automatically resolved to absolute paths
+        relative to the main script directory, in contrast to the default SQLAlchemy behavior.
+
+        PostgreSQL URLs follow the standard SQLAlchemy URI format:
+        postgresql://user:password@host:port/dbname
+
+        Other database engines are not supported.
+    """),
     )
+
+    # --- Validator to normalize SQLite paths automatically ---
+    @model_validator(mode="after")
+    def normalize_sqllite_db_url(self):
+        self.SQL_DATABASE_URL = normalize_sqlite_url(self.SQL_DATABASE_URL)
+        # self["SQL_DATABASE_URL"] = normalize_sqlite_url(self["SQL_DATABASE_URL"])
+        return self
 
     ADMIN_USER_NAME: Annotated[
         str,

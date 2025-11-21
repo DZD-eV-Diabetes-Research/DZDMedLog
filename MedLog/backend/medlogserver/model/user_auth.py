@@ -2,16 +2,18 @@
 from typing import AsyncGenerator, List, Optional, Literal, Sequence, Self, Dict
 import secrets
 from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
 import hashlib
 import json
+import bcrypt
 
 # Libs
 import enum
 import uuid
 from pydantic import SecretStr
 from sqlmodel import Field, Column, Enum, UniqueConstraint, CheckConstraint
-from passlib.context import CryptContext
 import secrets
 import datetime
 
@@ -25,11 +27,50 @@ from medlogserver.model.user import User
 log = get_logger()
 config = Config()
 
-# Passwords benefit from slow hashing algorithms like bcrypt or argon2 to resist brute-force attacks.
-crypt_context_pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# API keys, being long and random, don't need slow hashing—so faster algorithms like sha256_crypt or pbkdf2_sha256 may be sufficient and more efficient.
-crypt_context_api_token = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+# API tokens are hashed using PBKDF2HMAC from cryptography library (replaces passlib)
+def _hash_api_token(token: str, salt: bytes, iterations: int = 100000) -> str:
+    """
+    Hash an API token using PBKDF2HMAC-SHA256.
+
+    Args:
+        token (str): The API token to hash
+        salt (bytes): Salt for the hash
+        iterations (int): Number of iterations (default: 100000 for security)
+
+    Returns:
+        str: Base64-encoded hash
+    """
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=iterations,
+    )
+    hashed = kdf.derive(token.encode())
+    return base64.b64encode(hashed).decode()
+
+
+def _verify_api_token(
+    token: str, hashed: str, salt: bytes, iterations: int = 100000
+) -> bool:
+    """
+    Verify an API token against its hash using PBKDF2HMAC-SHA256.
+
+    Args:
+        token (str): The API token to verify
+        hashed (str): The stored hash (base64-encoded)
+        salt (bytes): Salt used for the hash
+        iterations (int): Number of iterations (must match hash generation)
+
+    Returns:
+        bool: True if token matches, False otherwise
+    """
+    try:
+        new_hash = _hash_api_token(token, salt, iterations)
+        return secrets.compare_digest(new_hash, hashed)
+    except Exception:
+        return False
 
 
 def _generate_fernet_key(input_str: str) -> bytes:
@@ -153,8 +194,8 @@ class UserAuth(_UserAuthBase, TimestampModel, table=True):
         default=None,
         description="The hashed api token.",
     )
-    salt: str = Field(
-        default_factory=lambda: secrets.token_hex(8),
+    salt: bytes = Field(
+        default_factory=lambda: bcrypt.gensalt(),
         description="Salt for hashing basic passwords and api tokens",
     )
     oidc_token_encrypted: Optional[str] = Field(default=None)
@@ -195,24 +236,18 @@ class UserAuth(_UserAuthBase, TimestampModel, table=True):
             unencrypted_pw = password.get_secret_value()
         if unencrypted_pw == "":
             raise ValueError("No password provided")
-        salted_unencrypted_pw = self.add_salt(
-            unencrypted_pw,
-            self.salt,
-        )
-        # log.debug(f"salted_unencrypted_pw set_password {salted_unencrypted_pw}")
-        self.basic_password_hashed = crypt_context_pwd.hash(
-            secret=salted_unencrypted_pw
-        )
+
+        self.basic_password_hashed = bcrypt.hashpw(
+            unencrypted_pw.encode("utf-8"), self.salt
+        ).decode("utf-8")
 
     def set_api_token(self, token_unencrypted: str | SecretStr):
         token = token_unencrypted
         if isinstance(token, SecretStr):
             token = token_unencrypted.get_secret_value()
-        self.api_token_hashed = crypt_context_api_token.hash(
-            self.add_salt(
-                token,
-                self.salt,
-            )
+        self.api_token_hashed = _hash_api_token(
+            token,
+            self.salt,
         )
 
     def verify_password(
@@ -221,10 +256,9 @@ class UserAuth(_UserAuthBase, TimestampModel, table=True):
         unencrypted_pw = password
         if isinstance(password, SecretStr):
             unencrypted_pw = password.get_secret_value()
-        salted_unencrypted_pw = self.add_salt(unencrypted_pw, self.salt)
-        # log.debug(f"salted_unencrypted_pw verify_password {salted_unencrypted_pw}")
-        password_correct = crypt_context_pwd.verify(
-            salted_unencrypted_pw, self.basic_password_hashed
+        password_correct = bcrypt.checkpw(
+            unencrypted_pw.encode("utf-8"),
+            self.basic_password_hashed.encode("utf-8"),
         )
         if not password_correct and raise_exception_if_wrong:
             raise raise_exception_if_wrong
@@ -244,8 +278,7 @@ class UserAuth(_UserAuthBase, TimestampModel, table=True):
         log.debug(f"TOKEN {token}")
         if "." in token:
             token = token.split(".", maxsplit=1)[1]  # remove the token id
-        token = self.add_salt(token, self.salt)
-        token_correct = crypt_context_api_token.verify(token, self.api_token_hashed)
+        token_correct = _verify_api_token(token, self.api_token_hashed, self.salt)
         if not token_correct and raise_exception_if_wrong:
             log.debug("Token verification failed")
             raise raise_exception_if_wrong
@@ -286,7 +319,3 @@ class UserAuth(_UserAuthBase, TimestampModel, table=True):
             self.expires_at_epoch_time
             < datetime.datetime.now(tz=datetime.UTC).timestamp() + leeway_sec
         )
-
-    @classmethod
-    def add_salt(cls, pw: str, salt: str):
-        return f"{pw}{salt}"

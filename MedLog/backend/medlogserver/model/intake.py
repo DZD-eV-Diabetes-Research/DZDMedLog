@@ -1,4 +1,13 @@
-from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated, Dict
+from typing import (
+    AsyncGenerator,
+    List,
+    Optional,
+    Literal,
+    Sequence,
+    Annotated,
+    Dict,
+    TYPE_CHECKING,
+)
 import enum
 from pydantic import (
     validate_email,
@@ -15,7 +24,7 @@ import uuid
 from uuid import UUID
 from medlogserver.model.event import Event
 from medlogserver.model.interview import Interview
-from medlogserver.model.drug_data.drug import DrugData
+
 from medlogserver.model.drug_data.api_drug_model_factory import (
     DrugAPIRead,
     CustomDrugAPIRead,
@@ -134,22 +143,7 @@ class IntakeCreateAPI(IntakeUpdate, table=False):
         default=None,
         foreign_key="drug.id",
     )
-    source_of_drug_information: Optional[SourceOfDrugInformationAnwers] = Field(
-        default=None,
-        description="How was the drug/medication identified.",
-    )
-    intake_start_time_utc: date = Field()
-    intake_end_time_utc: Optional[date] = Field(default=None)
-    administered_by_doctor: Optional[AdministeredByDoctorAnswers] = Field(default=None)
-    intake_regular_or_as_needed: Optional[IntakeRegularOrAsNeededAnswers] = Field(
-        default=None,
-        description="If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version",
-    )
-    dose_per_day: Optional[int] = Field(default=None)
-    regular_intervall_of_daily_dose: Optional[IntervalOfDailyDoseAnswers] = Field(
-        default=None
-    )
-    as_needed_dose_unit: Optional[int] = Field()
+
     consumed_meds_today: ConsumedMedsTodayAnswers = Field()
 
 

@@ -1,5 +1,5 @@
 <template>
-  <Layout>
+  <div class="mt-8">
     <div class="flex flex-row justify-center mb-6">
       <h1 class="text-4xl font-medium">Studienverwaltung</h1>
     </div>
@@ -26,10 +26,10 @@
         <div class="p-4 text-center">
           <UForm :schema="schema" :state="state" class="space-y-4" @submit="createStudy">
             <h3 class="text-2xl font-normal">Studie anlegen</h3>
+            <ErrorMessage v-if="errorMessage" title="Konnte Studie nicht anlegen" :message="errorMessage" />
             <UFormGroup label="Studienname" name="study_name">
               <UInput v-model="state.study_name" required />
             </UFormGroup>
-            <h3 v-if="errorMessage" style="color: red">{{ errorMessage }}</h3>
             <UButton
               type="submit" label="Studie anlegen" color="green" variant="soft"
               class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
@@ -38,7 +38,7 @@
       </UModal>
     </UIBaseCard>
     <UIBaseCard v-for="study in studyStore.studies" :key="study.id" style="text-align: center">
-      <h3 class="text-2xl font-medium my-4">Studie: {{ study.display_name }}</h3>
+      <h3 class="text-2xl font-medium my-4 break-words">Studie: {{ study.display_name }}</h3>
 
       <div class="flex flex-row justify-center space-x-4">
         <UButton
@@ -59,7 +59,7 @@
     <UModal v-model="studyPermissionModal" :ui="{ width: 'lg:max-w-6xl' }">
       <StudyPermissionManagement :study-id="studyId" />
     </UModal>
-  </Layout>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -95,15 +95,10 @@ async function createStudy() {
       method: "POST",
       body,
     });
-    studyStore.listStudies();
+    await studyStore.getAvailableStudies();
     showModal.value = false;
   } catch (error) {
-    if (error.response && error.response._data) {
-      errorMessage.value = error.response._data.detail;
-      console.log("Error detail:", errorMessage.value);
-    } else {
-      console.log(error);
-    }
+    errorMessage.value = error.response?._data?.detail ?? error.message ?? error;
   }
 }
 

@@ -30,7 +30,7 @@ from medlogserver.log import get_logger
 from medlogserver.config import Config
 
 config = Config()
-log = get_logger()
+log = get_logger(modulename="DRUGIMPORT")
 
 
 @dataclass
@@ -114,7 +114,6 @@ apopflicht_values = [
 
 class WidoAiImporter52(DrugDataSetImporterBase):
     def __init__(self):
-
         self.dataset_name = "Wido GKV Arzneimittelindex"
         self.api_name = "WidoAiDrug"
         self.dataset_link = (
@@ -201,7 +200,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
 
     async def run_import(self, source_dir: Path, version: str):
         # generate schema definitions; fields,lov-defintions,...
-        log.info("[DRUG DATA IMPORT] Parse metadata...")
+        log.info(" Parse metadata...")
         all_objs = []
         drug_dataset = await self._ensure_drug_dataset_version()
         # generate list of values
@@ -226,7 +225,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
     async def _parse_wido_stamm_data(
         self, drug_dataset_version: DrugDataSetVersion
     ) -> AsyncIterator[DrugData | DrugVal | DrugValRef | DrugCode]:
-        log.info("[DRUG DATA IMPORT] Parse drug data...")
+        log.info(" Parse drug data...")
         with open(Path(self.source_dir, "stamm.txt")) as csvfile:
             csvreader = csv.reader(csvfile, delimiter=";")
             for row_index, row in enumerate(csvreader):
@@ -291,7 +290,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
             self._db_session = await get_async_session()
 
     async def add_and_flush(self, objs):
-        log.debug(f"[DRUG DATA IMPORT] Flush next {len(objs)} Drug data to database...")
+        log.debug(f" Flush next {len(objs)} Drug data to database...")
         await self.init_session_if_needed()
         session = self._db_session
         session.add_all(objs)
@@ -305,9 +304,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
 
         for obj in objs:
             session.add(obj)
-        log.info(
-            "[DRUG DATA IMPORT] Commit Drug data to database. This may take a while..."
-        )
+        log.info(" Commit Drug data to database. This may take a while...")
         await session.commit()
         await self._db_session.close()
         self._db_session = None
@@ -484,7 +481,6 @@ class WidoAiImporter52(DrugDataSetImporterBase):
     ) -> List[DrugAttrFieldLovItem]:
         lov_items: List[DrugAttrFieldLovItem] = []
         if isinstance(lov_definition, WiDoDrugAttrFieldLovImportDefinition):
-
             with open(Path(self.source_dir, lov_definition.lov_source_file)) as csvfile:
                 csvreader = csv.reader(csvfile, delimiter=";")
                 for index, row in enumerate(csvreader):

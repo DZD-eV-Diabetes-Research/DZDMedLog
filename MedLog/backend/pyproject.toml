@@ -43,6 +43,7 @@ dependencies = [
     "websockets",
     "polars",
     "psycopg[binary]",
+    "alembic",
 ]
 
 [project.optional-dependencies]

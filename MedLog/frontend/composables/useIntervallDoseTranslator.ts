@@ -8,7 +8,9 @@ export default function (eng:string|null = null, de:string|null = null) {
       "every 2. day",
       "every 3. day",
       "every 4. day / twice a week",
-      "intervals of one week or more"
+      "intervals of one week or more",
+      "intervals of one month or more",
+      "intervals of one year or more",
     ];
   
     const deutsch = [
@@ -17,7 +19,9 @@ export default function (eng:string|null = null, de:string|null = null) {
       "jeden 2. Tag",
       "jeden 3. Tag",
       "jeden 4. Tag = 2x pro Woche",
-      "Im Abstand von 1 Woche und mehr"
+      "Im Abstand von 1 Woche und mehr",
+      "Im Abstand von 1 Monat und mehr",
+      "Im Abstand von 1 Jahr und mehr",
     ]
 
     if (eng === null && de === null) {
@@ -26,10 +30,9 @@ export default function (eng:string|null = null, de:string|null = null) {
   
     if (eng !== null){
       const index = english.indexOf(eng)
-      return deutsch[index]
+      return deutsch[index] ?? eng
     } else if (de !== null){
       const index = deutsch.indexOf(de)
-      return english[index]
-    } 
+      return english[index] ?? de
+    }
   }
-  

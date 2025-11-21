@@ -288,6 +288,7 @@ class CRUDBase(
                 setattr(obj_from_db, k, v)
 
         self.session.add(obj_from_db)
+
         await self.session.commit()
         await self.session.refresh(obj_from_db)
         return obj_from_db

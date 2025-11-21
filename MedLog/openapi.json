@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.11.3.dev16+g1ea021b16.d20251118"
+    "version": "0.11.3.dev55+g5cea831b4.d20251119"
   },
   "paths": {
     "/api/health": {
@@ -69,6 +69,28 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AppVersion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config/branding": {
+      "get": {
+        "tags": [
+          "Config"
+        ],
+        "summary": "Get Branding Data",
+        "description": "Provides some branding data like support email address.",
+        "operationId": "get_branding_data_api_config_branding_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandingData"
                 }
               }
             }
@@ -4866,6 +4888,24 @@
         ],
         "title": "Body_set_user_password_api_user__user_id__password_put"
       },
+      "BrandingData": {
+        "properties": {
+          "support_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Support Email",
+            "description": "The email address for user suport"
+          }
+        },
+        "type": "object",
+        "title": "BrandingData"
+      },
       "ConsumedMedsTodayAnswers": {
         "type": "string",
         "enum": [
@@ -6017,8 +6057,15 @@
             "description": "How was the drug/medication identified."
           },
           "intake_start_time_utc": {
-            "type": "string",
-            "format": "date",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Intake Start Time Utc"
           },
           "intake_end_time_utc": {
@@ -6108,8 +6155,6 @@
         },
         "type": "object",
         "required": [
-          "intake_start_time_utc",
-          "as_needed_dose_unit",
           "consumed_meds_today",
           "interview_id"
         ],
@@ -6129,8 +6174,15 @@
             "description": "How was the drug/medication identified."
           },
           "intake_start_time_utc": {
-            "type": "string",
-            "format": "date",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Intake Start Time Utc"
           },
           "intake_end_time_utc": {
@@ -6210,8 +6262,6 @@
         },
         "type": "object",
         "required": [
-          "intake_start_time_utc",
-          "as_needed_dose_unit",
           "consumed_meds_today"
         ],
         "title": "IntakeCreateAPI",
@@ -6231,8 +6281,15 @@
             "description": "How was the drug/medication identified."
           },
           "intake_start_time_utc": {
-            "type": "string",
-            "format": "date",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Intake Start Time Utc"
           },
           "intake_end_time_utc": {
@@ -6339,8 +6396,6 @@
         },
         "type": "object",
         "required": [
-          "intake_start_time_utc",
-          "as_needed_dose_unit",
           "consumed_meds_today",
           "interview_id",
           "interview",

@@ -12,15 +12,15 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@nuxt/kit": "^3.15.4",
-    "@nuxt/ui": "npm:@nuxt/ui-edge@latest",
+    "@nuxt/kit": "3.19.3",
+    "@nuxt/ui": "2.22.3",
     "@nuxtjs/supabase": "^1.4.0",
     "@pinia/nuxt": "^0.5.4",
     "@sidebase/nuxt-auth": "^0.9.1",
     "caniuse-lite": "^1.0.30001699",
     "dayjs-nuxt": "^2.1.11",
     "next-auth": "4.21.1",
-    "nuxt": "^3.13.0",
+    "nuxt": "3.19.3",
     "nuxt-open-fetch": "^0.12.2",
     "pinia": "^2.2.2",
     "sass": "^1.77.8",
@@ -31,6 +31,7 @@
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610",
   "devDependencies": {
+    "@iconify-json/heroicons": "^1.2.3",
     "@nuxt/eslint": "^1.9.0",
     "@nuxt/test-utils": "^3.19.2",
     "@playwright/test": "^1.54.1",

@@ -19,6 +19,7 @@ ENV FRONTEND_FILES_DIR=$BASEDIR/medlogfrontend
 RUN mkdir -p $BASEDIR/medlogserver
 RUN mkdir -p $BASEDIR/medlogfrontend
 RUN mkdir -p /data
+RUN mkdir -p /data/db
 RUN mkdir -p /data/provisioning/database
 RUN mkdir -p /data/provisioning/arzneimittelindex/demo
 
@@ -62,6 +63,6 @@ ENV APP_PROVISIONING_DATA_YAML_FILES='[]'
 ENV DRUG_TABLE_PROVISIONING_SOURCE_DIR=/data/provisioning/arzneimittelindex/demo
 ENV SERVER_HOSTNAME=localhost
 ENV EXPORT_CACHE_DIR=/data/export
-ENV SQL_DATABASE_URL="sqlite+aiosqlite:///$BASEDIR/data/db/medlog.db"
+ENV SQL_DATABASE_URL="sqlite+aiosqlite:////data/db/medlog.db"
 ENTRYPOINT ["python", "./main.py"]
 #CMD [ "python", "./main.py" ]
