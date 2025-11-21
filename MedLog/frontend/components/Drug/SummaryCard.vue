@@ -3,13 +3,15 @@
   <UAlert v-else-if="errorMessage" color="red" title="Fehler beim Laden des Medikaments" :description="errorMessage"/>
   <UAlert v-else :actions="actions" :title="title" class="bg-blue-100">
     <template #description>
-      <DrugCodePill
-          v-for="codeSystem in Object.keys(codes)"
-          :key="codeSystem"
-          :code-system="codeSystem"
-          :code-value="codes[codeSystem]"
-          class="mr-2"
-      />
+      <div v-if="keyValuePills" class="flex flex-row">
+        <DrugCodePill
+            v-for="{ label, value } in keyValuePills"
+            :key="label"
+            :code-system="label"
+            :code-value="value"
+            class="mr-2"
+        />
+      </div>
     </template>
   </UAlert>
 </template>
@@ -27,6 +29,16 @@ const actions = computed(() => {
   }
 
   return [{ label: 'Präparat ändern', variant: 'outline', color: 'gray', click: () => model.value = '' }];
+});
+const keyValuePills = computed(() =>  {
+  const pills = [];
+
+  for (const key of Object.keys(codes.value)) {
+    pills.push({ label: key, value: codes.value[key] });
+  }
+
+  // Only include entries with a value
+  return pills.filter(item => item.value);
 });
 
 const loading = ref<boolean>(false);
