@@ -120,6 +120,14 @@ const doseIntervalOptions = [
     value: "intervals of one week or more",
     label: "Im Abstand von 1 Woche und mehr"
   },
+  {
+    value: "intervals of one month or more",
+    label: "Im Abstand von 1 Monat und mehr",
+  },
+  {
+    value: "intervals of one year or more",
+    label: "Im Abstand von 1 Jahr und mehr",
+  },
 ];
 
 const medsTakenTodayOptions = [
