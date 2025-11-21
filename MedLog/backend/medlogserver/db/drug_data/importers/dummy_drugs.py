@@ -47,7 +47,7 @@ from medlogserver.model.unset import Unset
 from medlogserver.utils import extract_bracket_values
 
 config = Config()
-log = get_logger()
+log = get_logger(modulename="DRUGIMPORT")
 importername = "DummyDrugImporterV1"
 
 
@@ -351,7 +351,6 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
 
 class DummyDrugImporterV1(DrugDataSetImporterBase):
     def __init__(self):
-
         self.dataset_name = "DummyDrugs"
         self.api_name = "dummydrugs"
         self.dataset_link = ""
@@ -419,7 +418,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
 
     async def run_import(self):
         # generate schema definitions; fields,lov-defintions,...
-        log.info("[DRUG DATA IMPORT] Parse metadata...")
+        log.info(" Parse metadata...")
         all_objs = []
         drug_dataset = await self._ensure_drug_dataset_version()
         # generate list of values
@@ -452,8 +451,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
     ) -> List[
         DrugData | DrugVal | DrugValRef | DrugCode | DrugValMulti | DrugValMultiRef
     ]:
-
-        log.info("[DRUG DATA IMPORT] Parse drug data...")
+        log.info(" Parse drug data...")
         drug_data_objs: List[DrugData] = []
 
         drugs_csv_path = Path(self.source_dir, "drugs.csv")
@@ -625,7 +623,6 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
 
     async def commit(self, objs):
         async with get_async_session_context() as session:
-
             for obj in objs:
                 # log.info(("obj", obj))
                 try:
@@ -633,9 +630,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                 except:
                     log.error(("Failed obj", obj))
                     raise
-            log.info(
-                "[DRUG DATA IMPORT] Commit Drug data to database. This may take a while..."
-            )
+            log.info(" Commit Drug data to database. This may take a while...")
             await session.commit()
 
     async def _generate_lov_items(
@@ -663,7 +658,6 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             headers: List[str] = next(csvreader)
 
             for index, row in enumerate(csvreader):
-
                 value = row[get_header_index(lov_definition.values_col_name, headers)]
                 display_value = row[
                     get_header_index(lov_definition.display_value_col_name, headers)

@@ -36,6 +36,10 @@ class Config(BaseSettings):
     LOG_LEVEL: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"] = Field(
         default="INFO"
     )
+    LOG_DISABLE_COLORS: bool = Field(
+        description="If set to true, there will be color coding in the logs",
+        default=False,
+    )
     DEMO_MODE: bool = Field(
         default=False,
         description="If set to yes, the database will initiate with some demo data and most config mandatory config vars, like crypto secrets will be set to something random.",

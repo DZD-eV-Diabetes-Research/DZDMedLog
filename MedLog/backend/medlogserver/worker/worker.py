@@ -123,7 +123,7 @@ def _start_background_scheduler(event_loop=None):
         _inital_setup_scheduled_background_tasks()
     )
     try:
-        log.info("[WORKER] Start background job scheduler...")
+        log.info(" Start background job scheduler...")
         background_scheduler._eventloop = event_loop
         background_scheduler.start()
     except KeyboardInterrupt:
