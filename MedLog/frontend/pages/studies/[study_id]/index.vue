@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <div class="flex justify-center">
+  <section class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
+    <div class="flex justify-center break-all">
       <h3 class="text-4xl font-medium my-4">{{ study.display_name }}</h3>
     </div>
     <Draggable
@@ -30,10 +30,10 @@
           @click="toggleSort()" />
       </div>
       <UModal v-model="showEventModal">
-        <div class="p-4" style="text-align: center">
+        <div class="p-4">
           <UForm :schema="eventSchema" :state="eventState" class="space-y-4" @submit="createEvent">
             <h3>Event anlegen</h3>
-            <h3 v-if="errorMessage" style="color: red">{{ errorMessage }}</h3>
+            <ErrorMessage v-if="createEventError" :error="createEventError" />
             <UFormGroup label="Event Name" name="name">
               <UInput v-model="eventState.name" required placeholder="Interview Nr. 1" />
             </UFormGroup>
@@ -45,7 +45,7 @@
       </UModal>
       
     </UIBaseCard>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -61,6 +61,7 @@ const studyStore = useStudyStore();
 const userStore = useUserStore();
 const route = useRoute();
 
+const createEventError = ref();
 const isSorted = ref(false);
 const sortButton = ref("Events Sortieren");
 
@@ -116,10 +117,8 @@ async function toggleSort() {
 async function openEventModal() {
   showEventModal.value = true;
   eventState.name = "";
-  errorMessage.value = "";
+  createEventError.value = undefined;
 }
-
-const errorMessage = ref();
 
 async function createEvent() {
   const body = { name: eventState.name };
@@ -134,10 +133,9 @@ async function createEvent() {
       }
     );
     showEventModal.value = false;
-    getEvents()
-  } catch (error) {    
-    errorMessage.value = error.response._data.detail;
-    console.error("Failed to create event: ", error.response._data.detail);
+    await getEvents()
+  } catch (error) {
+    createEventError.value = error;
   }
 }
 </script>

@@ -127,6 +127,7 @@ import type { Interview } from "~/stores/interviewStore";
 const route = useRoute()
 const eventStore = useEventStore()
 const interviewStore = useInterviewStore()
+const toast = useToast();
 
 const currentInterview = ref<Interview>();
 const errorMessage = ref('');
@@ -175,7 +176,10 @@ async function startInterview(hasTakenMeds: boolean) {
     await navigateTo(`/studies/${studyId.value}/proband/${probandId.value}/interview/${interview.id}`)
   }
   catch (error) {
-    console.log(error);
+    toast.add({
+      title: "Konnte Interview nicht anlegen",
+      description: error.message ?? error,
+    });
   }
 }
 
@@ -187,7 +191,6 @@ async function endInterview(eventId, interviewId) {
     currentInterview.value = await useGetCurrentInterviewByStudyAndProband(studyId.value, probandId.value);
     lastInterview.value = await useGetLastInterviewByStudyAndProband(studyId.value, probandId.value);
   } catch (error) {
-    console.log(error);
     errorMessage.value = error.message ?? error;
   } finally {
     loading.value = false;

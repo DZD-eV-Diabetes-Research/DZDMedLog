@@ -12,9 +12,6 @@ from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
 
 
-from medlogserver.model.drug_data.drug_code import DrugCodeApi
-from medlogserver.model.drug_data.drug_attr_field_definition import ValueTypeCasting
-
 # from medlogserver.model.drug_data.drug_attr import DrugAttrApiReadBase
 from medlogserver.config import Config
 from medlogserver.model.drug_data.drug import DrugData
@@ -25,8 +22,7 @@ from medlogserver.model.drug_data.drug_attr import (
     DrugValMultiRef,
     DrugValMulti,
 )
-from medlogserver.model.drug_data.drug_code import DrugCode
-from medlogserver.model.unset import Unset
+
 from medlogserver.log import get_logger
 
 log = get_logger()
@@ -34,7 +30,6 @@ config = Config()
 
 
 class DrugApiReadClassFactory:
-
     def __init__(self, all_optional: bool = False):
         self.drug_api_read_class = None
         self.importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
@@ -350,7 +345,6 @@ CustomDrugAPIRead: Type[BaseModel] = (
 async def drug_to_drugAPI_obj(
     drug: DrugData,
 ) -> DrugAPIRead | CustomDrugAPIRead:
-
     # log.debug(f"drug_to_drugAPI_obj drug: {drug}")
     vals = {}
     for field_name, field_val in iter(drug):
@@ -368,7 +362,6 @@ async def drug_to_drugAPI_obj(
     drug_codes = {}
     codes_submodel: Type[BaseModel] = DrugAPIRead.model_fields["codes"].annotation
     for drug_code_field_name in codes_submodel.model_fields.keys():
-
         drug_codes[drug_code_field_name] = next(
             (
                 code.code
@@ -381,7 +374,6 @@ async def drug_to_drugAPI_obj(
     drug_attrs: Dict[str, List[Dict[str, str]]] = {}
     drug_attrs_submodel: Type[BaseModel] = DrugAPIRead.model_fields["attrs"].annotation
     for drug_attrs_field_name in drug_attrs_submodel.model_fields.keys():
-
         val: DrugVal = next(
             (attr for attr in drug.attrs if attr.field_name == drug_attrs_field_name),
             None,
@@ -413,7 +405,6 @@ async def drug_to_drugAPI_obj(
         "attrs_ref"
     ].annotation
     for drug_attrs_ref_field_name in drug_attrs_ref_submodel.model_fields.keys():
-
         val: DrugValRef = next(
             (
                 attr_ref
@@ -434,7 +425,6 @@ async def drug_to_drugAPI_obj(
     ].annotation
 
     for drug_attrs_multi_ref_field_name in attrs_multi_ref_submodel.model_fields.keys():
-
         multi_ref_vals: List[DrugValMultiRef] = [
             attr_m_ref
             for attr_m_ref in drug.attrs_multi_ref

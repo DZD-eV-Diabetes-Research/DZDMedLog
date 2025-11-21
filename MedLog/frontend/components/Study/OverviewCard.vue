@@ -25,7 +25,9 @@ function onSubmit(event: FormSubmitEvent<Schema>) {
 <template>
   <UCard>
     <template #header>
-      <strong>{{ study.display_name }}</strong>
+      <div class="text-lg break-words">
+        {{ study.display_name }}
+      </div>
     </template>
 
     <UForm :schema="schema" :state="state" :validate-on="['submit']" @submit="onSubmit">

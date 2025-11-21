@@ -16,18 +16,17 @@ from medlogserver.utils import to_path, get_default_file_data
 from medlogserver.db._session import get_async_session_context
 from medlogserver.model import MedLogBaseModel
 from medlogserver.db._base_crud import CRUDBase
-from medlogserver.db import (
-    UserCRUD,
-    UserAuthCRUD,
-    StudyCRUD,
-    StudyPermissonCRUD,
-    EventCRUD,
-    InterviewCRUD,
-    IntakeCRUD,
-    WorkerJobCRUD,
-)
+from medlogserver.db.event import EventCRUD
+from medlogserver.db.intake import IntakeCRUD
+from medlogserver.db.interview import InterviewCRUD
+from medlogserver.db.study import StudyCRUD
+from medlogserver.db.study_permission import StudyPermissonCRUD
+from medlogserver.db.user import UserCRUD
+from medlogserver.db.user_auth import UserAuthCRUD
+from medlogserver.db.worker_job import WorkerJobCRUD
 
-log = get_logger()
+
+log = get_logger(modulename="WORKER")
 config = Config()
 CRUD_classes: List[CRUDBase] = [
     UserCRUD,
@@ -61,9 +60,10 @@ class DataProvisioner:
             return
         for data_item in file_content["items"]:
             for class_path, class_data in data_item.items():
-                crud_class, model_class = (
-                    await self._get_medlog_crud_class_and_model_class(class_path)
-                )
+                (
+                    crud_class,
+                    model_class,
+                ) = await self._get_medlog_crud_class_and_model_class(class_path)
                 await self._load_provsioning_data_item(
                     model_class, crud_class, class_data, source_file=path
                 )

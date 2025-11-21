@@ -304,3 +304,55 @@ def test_get_intake():
         ],
         exception_dict_identifier="get intake response",
     )
+
+
+def test_create_intake_with_empty_start_date_issue_163():
+    """Test creating a new intake"""
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestCreateIntakeWithEmptyStartDateStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        with_intakes=0,
+        proband_count=1,
+    )
+
+    study_id = study_data.study.id
+    event = study_data.events[0]
+    interview = event.interviews[0]
+    from medlogserver.api.routes.routes_drug import search_drugs
+
+    drug_search_result = req("api/drug/search", q={"search_term": "Test"})
+    drug = drug_search_result["items"][0]["drug"]
+    from medlogserver.model.intake import (
+        IntakeCreateAPI,
+        SourceOfDrugInformationAnwers,
+        AdministeredByDoctorAnswers,
+        IntakeRegularOrAsNeededAnswers,
+        ConsumedMedsTodayAnswers,
+    )
+
+    # Create a test intake
+    intake_data = IntakeCreateAPI(
+        drug_id=drug["id"],
+        source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
+        intake_start_time_utc=None,
+        administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
+        intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
+        as_needed_dose_unit=1,
+        consumed_meds_today=ConsumedMedsTodayAnswers.UNKNOWN,
+    )
+    intake_data_dict = dictyfy(intake_data)
+    from medlogserver.api.routes.routes_intake import create_intake
+
+    new_intake: Dict = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake",
+        method="post",
+        b=intake_data_dict,
+    )
+
+    # Verify the created intake
+    dict_must_contain(
+        new_intake,
+        required_keys_and_val={"intake_start_time_utc": None},
+        exception_dict_identifier="create intake with empty start time response",
+    )

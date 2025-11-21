@@ -56,16 +56,15 @@ def test_pzn_cleaner():
 
         for input_value, expected_output in test_values:
             result = clean_pzn(input_value)
-            assert (
-                result == expected_output
-            ), f"Error for input '{input_value}': Expected '{expected_output}', but got '{result}'."
+            assert result == expected_output, (
+                f"Error for input '{input_value}': Expected '{expected_output}', but got '{result}'."
+            )
 
     # Run the test
     test_clean_pzn()
 
 
 def pathcombiner():
-
     from typing import List
     from pathlib import Path, PurePath
 
@@ -207,7 +206,6 @@ def dynamic_pageparam_order_by():
         )
 
     class MetaQueryParamsChangeTypeHintsForOrderBy(type):
-
         def __new__(cls, name, bases, attr):
             if attr["__orig_bases__"][0] != Generic[M]:
                 target_model_attributes = list(
@@ -297,7 +295,6 @@ def GenericTyping():
     M = TypeVar("M")
 
     class MetaQueryParamsChangeTypeHinterForOrderBy(type):
-
         def __new__(cls, name, bases, attr):
             if attr["__orig_bases__"][0] != Generic[M]:
                 event_attributes = list(
@@ -321,7 +318,6 @@ def GenericTyping():
             return super().__new__(cls, name, bases, attr)
 
     class QueryParams(Generic[M], metaclass=MetaQueryParamsChangeTypeHinterForOrderBy):
-
         def __init__(
             self,
             items: List[M],
@@ -566,7 +562,6 @@ def extract_sb_value():
     import re
 
     def extract_bracket_values(input_string, count, default=None) -> list[str]:
-
         # Find all occurrences of values inside square brackets
         matches = re.findall(r"\[([^\]]+)\]", input_string)
 
@@ -735,4 +730,99 @@ def random_past_date(
     return min_date + datetime.timedelta(days=random_days)
 
 
-print(random_past_date())
+from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
+import sys
+import __main__
+
+
+def normalize_sqlite_url(db_url: str) -> str:
+    """
+    Normalize SQLAlchemy-style sqlite URLs:
+      - sqlite:///relative -> resolves relative to __main__ dir
+      - sqlite:////absolute -> absolute POSIX
+      - sqlite:///C:/... -> absolute Windows
+    Preserves query and fragment. Leaves :memory: untouched.
+    """
+    parts = urlsplit(db_url)
+    scheme = parts.scheme or ""
+    if not scheme.lower().startswith("sqlite"):
+        return db_url
+
+    # Preserve query/fragment
+    query, fragment = parts.query, parts.fragment
+
+    # Determine raw tail after ":" up to ? or #
+    after_colon = db_url.split(":", 1)[1]
+    # cut off query/fragment from after_colon
+    for sep in ("?", "#"):
+        idx = after_colon.find(sep)
+        if idx != -1:
+            after_colon = after_colon[:idx]
+    # count leading slashes
+    leading_slashes = len(after_colon) - len(after_colon.lstrip("/"))
+    fs_part = after_colon.lstrip(
+        "/"
+    )  # filesystem-like portion (may be '', './x', 'C:/x', 'opt/x')
+
+    # special-case :memory:
+    if fs_part == ":memory:":
+        return db_url
+
+    # If fs_part is empty, nothing to do
+    if not fs_part:
+        return db_url
+
+    # Decide relative vs absolute strictly per SQLAlchemy
+    is_relative = False
+    is_absolute = False
+
+    # Windows drive detection (e.g., 'C:/path' or 'C:\\path' represented as C:/ in URL)
+    def is_windows_drive(s: str) -> bool:
+        return len(s) >= 2 and s[1] == ":" and s[0].isalpha()
+
+    if leading_slashes == 3:
+        # sqlite:/// -> relative unless it's a windows absolute like C:/...
+        if is_windows_drive(fs_part):
+            is_absolute = True
+        else:
+            is_relative = True
+    elif leading_slashes >= 4:
+        # sqlite://// -> absolute POSIX
+        is_absolute = True
+    else:
+        # Unexpected forms (e.g. fewer slashes) -> leave unchanged
+        return db_url
+
+    # Resolve accordingly
+    if is_relative:
+        # resolve relative to __main__ directory
+        try:
+            main_file = Path(
+                getattr(__main__, "__file__", sys.argv[0] or ".")
+            ).resolve()
+        except Exception:
+            main_file = Path(sys.argv[0] or ".").resolve()
+        base_dir = main_file.parent
+        resolved = (base_dir / fs_part).resolve()
+    else:
+        # absolute: Windows drive or POSIX
+        if is_windows_drive(fs_part):
+            resolved = Path(fs_part).resolve()
+        else:
+            # fs_part is like 'opt/local.db' for sqlite:////opt/local.db -> want '/opt/local.db'
+            resolved = Path("/" + fs_part).resolve()
+
+    # Rebuild SQLAlchemy-style path: three leading slashes + posix path
+    new_path = f"/{resolved.as_posix()}"
+
+    return urlunsplit((scheme, "", new_path, query, fragment))
+
+
+print(normalize_sqlite_url("sqlite+aiosqlite:///./local2.sqlite"))
+print(normalize_sqlite_url("sqlite+aiosqlite:///opt/local2.sqlite"))
+print(normalize_sqlite_url("sqlite:///./opt/local2.sqlite"))
+print(normalize_sqlite_url("sqlite:////opt/local2.sqlite"))
+print(normalize_sqlite_url("sqlite:///C:/path/db.sqlite"))
+print(normalize_sqlite_url("sqlite:///:memory:"))
+print(normalize_sqlite_url("sqlite+aiosqlite:///./local2.sqlite"))

@@ -109,6 +109,8 @@
 import { useMedlogapi } from '#imports';
 const { $medlogapi } = useNuxtApp();
 
+const toast = useToast();
+
 //props
 
 const props = defineProps<{
@@ -243,8 +245,10 @@ const patchUser = async function (id: string, permission_list?: Array<string>) {
         new_user_permissions.value = []
         expand.value.openedRows = []
     } catch (error) {
-        console.log(error);
-
+        toast.add({
+          title: "Fehler beim Speichern",
+          description: error.data?.detail ?? error.message ?? error,
+        });
     }
 }
 
@@ -255,19 +259,26 @@ const deleteModal = async function (row: any) {
 }
 
 const deletePermissions = async function (id: string) {
-    await $medlogapi(
+    try {
+      await $medlogapi(
         '/api/study/{study_id}/permissions/{user_id}',
         {
-            method: "DELETE",
-            path: {
-                study_id: props.studyId,
-                user_id: id
-            }
+          method: "DELETE",
+          path: {
+            study_id: props.studyId,
+            user_id: id
+          }
         }
-    );
-    await permissionsRefresh()
-    await allUserRefresh()
-    openDeleteModal.value = false
+      );
+      await permissionsRefresh()
+      await allUserRefresh()
+      openDeleteModal.value = false
+    } catch (e) {
+      toast.add({
+        title: "Fehler beim Entfernen",
+        description: e.data?.detail ?? e.message ?? e,
+      });
+    }
 }
 
 </script>

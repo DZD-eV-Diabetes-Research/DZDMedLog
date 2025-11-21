@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useMedlogapi } from "#imports";
-
 const props = defineProps({
   drug: { type: Object, required: true },
 })
@@ -11,8 +9,25 @@ const showDetails = ref(false);
 
 const drugFieldsStore = useDrugFields();
 
-const { data: codeSystems } = await useMedlogapi("/api/drug/code_def")
-const drugCodeSystems = codeSystems.value.filter((item) => item.client_visible === true)
+const drugCodeSystems = drugFieldsStore.codes.filter((item) => item.client_visible === true)
+
+const keyValuePills = computed(() =>  {
+  const pills = [];
+
+  if (Object.hasOwn(props.drug, 'codes')) {
+    for (const drugCodeSystem of drugCodeSystems) {
+      if (Object.hasOwn(props.drug.codes, drugCodeSystem.id)) {
+        pills.push({
+          label: drugCodeSystem.id,
+          value: props.drug.codes?.[drugCodeSystem.id]
+        });
+      }
+    }
+  }
+
+  // Only include entries with a value
+  return pills.filter(item => item.value);
+});
 
 function getDisplayValue(attribute, attributeClass) {
   const value = props.drug?.[attributeClass]?.[attribute.field_name];
@@ -36,13 +51,15 @@ function getDisplayValue(attribute, attributeClass) {
   >
     <div>
       <strong>{{ drug.trade_name }}</strong><br>
-      <DrugCodePill
-          v-for="drugCodeSystem in drugCodeSystems"
-          :key="drugCodeSystem.id"
-          :code-system="drugCodeSystem.id"
-          :code-value="drug.codes?.[drugCodeSystem.id]"
-          class="mr-2"
-      />
+      <div v-if="keyValuePills" class="flex flex-row">
+        <DrugCodePill
+            v-for="{ label, value } in keyValuePills"
+            :key="label"
+            :code-system="label"
+            :code-value="value"
+            class="mr-2"
+        />
+      </div>
       <dl v-if="showDetails">
         <template v-for="attributeClass in Object.keys(drugFieldsStore.fieldsForSearchResults)">
           <template v-for="attribute in drugFieldsStore.fieldsForSearchResults[attributeClass]" :key="attribute.field_name">

@@ -1,14 +1,6 @@
 <template>
   <div>
-    <UAlert
-        v-if="error"
-        class="mb-5"
-        icon="i-heroicons-information-circle"
-        color="red"
-        variant="subtle"
-        title="Konnte Medikament nicht speichern"
-        :description="error"
-    />
+    <ErrorMessage v-if="error" :error="error" class="mb-5" />
     <div v-if="isDataLoaded">
 
       <!-- After the drugFieldDefinitionsObject is created we loop through each of the 4 arrays:
@@ -145,6 +137,9 @@ import {apiGetFieldDefinitions} from "~/api/drug";
 import type {FormError} from "#ui/types";
 const { $medlogapi } = useNuxtApp();
 
+const toast = useToast();
+const drugFields = useDrugFields();
+
 interface Attribute {
   [key: string]: any;
 }
@@ -163,11 +158,8 @@ export interface DrugBody {
 
 const emit = defineEmits(['cancel', 'save'])
 
-defineProps<{
-  error?: string
-}>();
-
 const codeSystems = ref([])
+const error = ref();
 
 const state = reactive({
   customName: "",
@@ -197,10 +189,11 @@ function validate(state: any): FormError[] {
 }
 
 async function onSubmit() {
-  const drugCodeBody =  Object.entries(drugCodeState).map(([key, value]) => ({
-    code_system_id: key,
-    code: value,
-  }));
+  const drugCodeBody =  Object.entries(drugCodeState)
+      .map(([key, value]) => ({
+        code_system_id: key,
+        code: value,
+      })).filter(item => item.code !== '');
 
   const customDrugBody: DrugBody = {
     trade_name: state.customName,
@@ -249,7 +242,7 @@ async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, m
       state[ref[1]] = multiple ? [] : null;
     }
   } catch (error) {
-    console.error("Create refSelectMenus Error:", error);
+    throw new Error("Could not create refSelectMenus", { cause: error });
   }
 }
 
@@ -283,7 +276,10 @@ async function onSearchRef(fieldName: string, query: string) {
       }));
     }
   } catch (err) {
-    console.error("Search error:", err);
+    toast.add({
+      title: "Fehler bei der Suche",
+      description: err.value.data?.detail ?? err.message ?? err,
+    });
   }
 }
 
@@ -307,18 +303,13 @@ function updateMultiState(field) {
 }
 
 const fetchFieldDefinitions = async () => {
-  try {
-    drugFieldDefinitionsObject = await apiGetFieldDefinitions("dynamic_form");
-    attrState.value = reactive(generateDynamicState(drugFieldDefinitionsObject.attrs));
-    //schema.value = object(generateDynamicSchema(drugFieldDefinitionsObject));
-    isDataLoaded.value = true;
-    await createRefSelectMenus(drugFieldDefinitionsObject.attrs_ref, attr_refState, refSelectMenus)
-    await createRefSelectMenus(drugFieldDefinitionsObject.attrs_multi_ref, attr_multi_refState, multiRefSelectMenus, true)
-    await createMultiState()
-
-  } catch (error) {
-    console.error("Error fetching field definitions:", error);
-  }
+  drugFieldDefinitionsObject = await apiGetFieldDefinitions("dynamic_form");
+  attrState.value = reactive(generateDynamicState(drugFieldDefinitionsObject.attrs));
+  //schema.value = object(generateDynamicSchema(drugFieldDefinitionsObject));
+  isDataLoaded.value = true;
+  await createRefSelectMenus(drugFieldDefinitionsObject.attrs_ref, attr_refState, refSelectMenus)
+  await createRefSelectMenus(drugFieldDefinitionsObject.attrs_multi_ref, attr_multi_refState, multiRefSelectMenus, true)
+  await createMultiState()
 }
 
 function generateDynamicState(fieldsObject: [[]]) {
@@ -354,12 +345,15 @@ function removeItem(field, index) {
 }
 
 onMounted(async () => {
-  await fetchFieldDefinitions()
-  const { data } = await useMedlogapi("/api/drug/code_def")
-  codeSystems.value = data.value
-  codeSystems.value?.forEach(code => {
-    drugCodeState[code.id] = "";
-  });
+  try {
+    await fetchFieldDefinitions()
+    codeSystems.value = drugFields.codes
+    codeSystems.value?.forEach(code => {
+      drugCodeState[code.id] = "";
+    });
+  } catch (e) {
+    error.value = e;
+  }
 });
 
 </script>
