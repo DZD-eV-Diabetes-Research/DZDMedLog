@@ -7,5 +7,12 @@ export default defineAppConfig({
                 timeout: 10000,
             },
         },
+        table: {
+            default: {
+                emptyState: {
+                    label: 'Keine Einträge',
+                },
+            },
+        },
     },
 })
