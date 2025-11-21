@@ -15,7 +15,7 @@ from medlogserver.worker.task import TaskBase
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
-log = get_logger()
+log = get_logger(modulename="WORKER")
 config = Config()
 
 
@@ -23,7 +23,6 @@ class WorkerAdHocJobRunner:
     def __init__(
         self, delete_finished_jobs_after_n_minutes: Optional[int] = 60 * 24 * 7
     ):
-
         self.delete_finished_jobs_after_n_minutes = delete_finished_jobs_after_n_minutes
 
     async def run(self) -> List[WorkerJob]:
@@ -40,7 +39,6 @@ class WorkerAdHocJobRunner:
             await self._tidy_up_old_jobs()
             # log.debug("...finished background adhoc job runner.")
             if finished_jobs:
-
                 return f"Jobs that did run {finished_jobs}"
             else:
                 return None

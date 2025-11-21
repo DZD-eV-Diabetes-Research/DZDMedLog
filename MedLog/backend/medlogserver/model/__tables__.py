@@ -31,6 +31,7 @@ all_tables = [
     StudyPermisson,
     UserAuth,
     User,
+    UserSession,
     WorkerJob,
     DrugAttrFieldDefinition,
     DrugAttrFieldLovItem,

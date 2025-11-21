@@ -18,7 +18,7 @@ from medlogserver.model.drug_data.drug import DrugAttrTypeName
 from medlogserver.log import get_logger
 
 
-log = get_logger()
+log = get_logger(modulename="DRUGIMPORT")
 
 
 # TODO: define as  Abstract Base Classes to be more of an correct interface
@@ -113,32 +113,31 @@ class DrugDataSetImporterBase:
         raise NotImplementedError()
 
     async def _run_import(self, source_dir: Path):
-
         self.source_dir = source_dir
         self.version = await self.get_drug_dataset_version()
         dataset_with_same_version_imported = await self.was_dataset_version_imported()
         if dataset_with_same_version_imported is not None:
             if dataset_with_same_version_imported.import_status == "failed":
                 log.warning(
-                    f"[DRUG DATA IMPORT] Dataset '{self.dataset_name}' with version '{self.version}' failed last time. Error:\n {dataset_with_same_version_imported.import_error}\n!!This is warning of the error occured drug importer run and not a current error!!"
+                    f" Dataset '{self.dataset_name}' with version '{self.version}' failed last time. Error:\n {dataset_with_same_version_imported.import_error}\n!!This is warning of the error occured drug importer run and not a current error!!"
                 )
                 time.sleep(2)
             else:
                 log.info(
-                    f"[DRUG DATA IMPORT] Dataset '{self.dataset_name}' with version '{self.version}' already imported. Skip drug data import."
+                    f" Dataset '{self.dataset_name}' with version '{self.version}' already imported. Skip drug data import."
                 )
             return
         drug_dataset = await self._ensure_drug_dataset_version()
         drug_custom_dataset = await self._ensure_custom_drug_dataset_version()
 
-        log.info(f"[DRUG DATA IMPORT] Start import of '{self.source_dir}'...")
+        log.info(f" Start import of '{self.source_dir}'...")
         await self._set_dataset_version_status("running")
         try:
             await self.run_import()
         except Exception as e:
             tb = traceback.format_exc()
             log.error(
-                f"[DRUG DATA IMPORT] Import '{drug_dataset.dataset_source_name}' with version '{drug_dataset.dataset_version}' failed. Error:"
+                f" Import '{drug_dataset.dataset_source_name}' with version '{drug_dataset.dataset_version}' failed. Error:"
             )
             log.error(tb)
             await self._set_dataset_version_status(status="failed", error=tb)
@@ -199,7 +198,7 @@ class DrugDataSetImporterBase:
             drug_dataset_res = await session.exec(drug_dataset_query)
             drug_dataset = drug_dataset_res.one_or_none()
             if drug_dataset is None:
-                log.info("[DRUG DATA IMPORT] Create dataset version entry...")
+                log.info(" Create dataset version entry...")
                 drug_dataset = await self.generate_drug_data_set_definition()
                 drug_dataset.import_start_datetime_utc = datetime.datetime.now(
                     tz=datetime.timezone.utc
@@ -239,7 +238,7 @@ class DrugDataSetImporterBase:
         return custom_drug_dataset
 
     async def _set_dataset_version_status(
-        self, status: Literal["queued", "running", "failed" "done"], error: str = None
+        self, status: Literal["queued", "running", "faileddone"], error: str = None
     ) -> DrugDataSetVersion:
         dataset_version: DrugDataSetVersion = await self._ensure_drug_dataset_version()
         if dataset_version.import_status == status and error is None:

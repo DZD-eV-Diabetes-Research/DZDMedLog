@@ -27,17 +27,17 @@ arg_parser.add_argument(
     help="Set this flag to just run the background worker without the unvicorn webserver.",
     action="store_true",
 )
-
-# Setup logging
-log = logging.getLogger(__name__)
-log.addHandler(logging.StreamHandler(sys.stdout))
+arg_parser.add_argument(
+    "--setup_database_only",
+    help="Set this flag to just run the seeding or migration on the database.",
+    action="store_true",
+)
 
 
 # Add MedLogServer to global Python modules.
 # This way we address medlogserver as a module for imports without installing it first.
 # e.g. "from medlogserver import config"
 if __name__ == "__main__":
-
     MODULE_DIR = Path(__file__).parent
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
     sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
@@ -67,24 +67,27 @@ def start():
         get_uvicorn_loglevel,
         APP_LOGGER_DEFAULT_NAME,
     )
-
-    log = get_logger()
-    log.info("Parse config for completeness...")
-    config = Config()
-    log.debug("----CONFIG-----")
-    log.debug(yaml.dump(json.loads(config.model_dump_json()), sort_keys=False))
-    log.debug("----CONFIG-END-----")
-    log.info("...config ok!")
-    # test_exporter()
-    # exit()
-    print(f"LOG_LEVEL: {config.LOG_LEVEL}")
-    print(f"UVICORN_LOG_LEVEL: {get_uvicorn_loglevel()}")
+    from medlogserver.run_db_migrations import run_db_migrations
 
     from medlogserver.db._init_db import init_db
+
     import uvicorn
     from uvicorn.config import LOGGING_CONFIG
 
     from medlogserver.worker.worker import run_background_worker
+
+    config = Config()
+    log = get_logger()
+    log.info(f"LOG_LEVEL: {config.LOG_LEVEL}")
+    log.info(f"UVICORN_LOG_LEVEL: {get_uvicorn_loglevel()}")
+    log.info(f"DATABASE URL: {config.SQL_DATABASE_URL}")
+
+    log.info("Parse config for completeness...")
+    log.debug(
+        f"----CONFIG-----\n\n{yaml.dump(json.loads(config.model_dump_json()), sort_keys=False, indent=2)}\n\n----CONFIG-END-----"
+    )
+
+    log.info("...config ok!")
 
     if config.CLIENT_URL == config.get_server_url():
         if (
@@ -94,18 +97,23 @@ def start():
             raise ValueError(
                 "Can not find frontend files. Maybe you need to build the frontend first. Try to run 'make frontend'"
             )
+    event_loop = asyncio.get_event_loop()
+    run_db_migrations()
 
     uvicorn_log_config: Dict = LOGGING_CONFIG
-    uvicorn_log_config["loggers"][APP_LOGGER_DEFAULT_NAME] = {
-        "handlers": ["default"],
-        "level": get_loglevel(),
-    }
-    event_loop = asyncio.get_event_loop()
+    # uvicorn_log_config["disable_existing_loggers"] = False  # ← Add this line
+    # uvicorn_log_config["loggers"][APP_LOGGER_DEFAULT_NAME] = {
+    #    "handlers": ["default"],
+    #    "level": get_loglevel(),
+    # }
+
     from medlogserver.app import fast_api_app_container
 
     fast_api_app_container.dump_open_api_specification(
         Path(Path(__file__).parent, "../../openapi.json")
     )
+
+    log.info("Start uvicorn server...")
     uvicorn_config = uvicorn.Config(
         app=fast_api_app_container.app,
         host=config.SERVER_LISTENING_HOST,
@@ -116,6 +124,7 @@ def start():
         lifespan="on",
     )
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
+
     event_loop.run_until_complete(init_db())
 
     if config.DEMO_MODE:
@@ -160,6 +169,7 @@ def start():
 
 if __name__ == "__main__":
     args = arg_parser.parse_args()
+
     if args.set_version_file:
         print("Write `__version__.py` file...")
         from medlogserver.utils import set_version_file
@@ -167,6 +177,12 @@ if __name__ == "__main__":
         version_file = set_version_file(MODULE_DIR)
         version = version_file.read_text()
         print(f"Wrote '{version}' into '{version_file.absolute()}'")
+        exit()
+    if args.setup_database_only:
+        print("Intitialise or migrate database only...")
+        from medlogserver.run_db_migrations import run_db_migrations
+
+        run_db_migrations()
         exit()
     if args.run_worker_only:
         print("Run only background server.")

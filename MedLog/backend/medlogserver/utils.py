@@ -39,6 +39,14 @@ from sqlalchemy.exc import IntegrityError
 import re
 import concurrent.futures
 
+import random
+import time
+from sqlalchemy.exc import OperationalError
+from sqlmodel.ext.asyncio.session import AsyncSession
+from urllib.parse import urlsplit, urlunsplit
+import sys
+import __main__
+
 
 def to_path(
     *args: str | Path | PurePath | List[str | Path | PurePath],
@@ -89,6 +97,88 @@ def get_db_type(
     if raise_if_unknown:
         raise raise_if_unknown
     return None
+
+
+def normalize_sqlite_url(db_url: str) -> str:
+    """
+    Normalize SQLAlchemy-style sqlite URLs:
+      - sqlite:///relative -> resolves relative to __main__ dir
+      - sqlite:////absolute -> absolute POSIX
+      - sqlite:///C:/... -> absolute Windows
+    Preserves query and fragment. Leaves :memory: untouched.
+    """
+    parts = urlsplit(db_url)
+    scheme = parts.scheme or ""
+    if not scheme.lower().startswith("sqlite"):
+        return db_url
+
+    # Preserve query/fragment
+    query, fragment = parts.query, parts.fragment
+
+    # Determine raw tail after ":" up to ? or #
+    after_colon = db_url.split(":", 1)[1]
+    # cut off query/fragment from after_colon
+    for sep in ("?", "#"):
+        idx = after_colon.find(sep)
+        if idx != -1:
+            after_colon = after_colon[:idx]
+    # count leading slashes
+    leading_slashes = len(after_colon) - len(after_colon.lstrip("/"))
+    fs_part = after_colon.lstrip(
+        "/"
+    )  # filesystem-like portion (may be '', './x', 'C:/x', 'opt/x')
+
+    # special-case :memory:
+    if fs_part == ":memory:":
+        return db_url
+
+    # If fs_part is empty, nothing to do
+    if not fs_part:
+        return db_url
+
+    # Decide relative vs absolute strictly per SQLAlchemy
+    is_relative = False
+    is_absolute = False
+
+    # Windows drive detection (e.g., 'C:/path' or 'C:\\path' represented as C:/ in URL)
+    def is_windows_drive(s: str) -> bool:
+        return len(s) >= 2 and s[1] == ":" and s[0].isalpha()
+
+    if leading_slashes == 3:
+        # sqlite:/// -> relative unless it's a windows absolute like C:/...
+        if is_windows_drive(fs_part):
+            is_absolute = True
+        else:
+            is_relative = True
+    elif leading_slashes >= 4:
+        # sqlite://// -> absolute POSIX
+        is_absolute = True
+    else:
+        # Unexpected forms (e.g. fewer slashes) -> leave unchanged
+        return db_url
+
+    # Resolve accordingly
+    if is_relative:
+        # resolve relative to __main__ directory
+        try:
+            main_file = Path(
+                getattr(__main__, "__file__", sys.argv[0] or ".")
+            ).resolve()
+        except Exception:
+            main_file = Path(sys.argv[0] or ".").resolve()
+        base_dir = main_file.parent
+        resolved = (base_dir / fs_part).resolve()
+    else:
+        # absolute: Windows drive or POSIX
+        if is_windows_drive(fs_part):
+            resolved = Path(fs_part).resolve()
+        else:
+            # fs_part is like 'opt/local.db' for sqlite:////opt/local.db -> want '/opt/local.db'
+            resolved = Path("/" + fs_part).resolve()
+
+    # Rebuild SQLAlchemy-style path: three leading slashes + posix path
+    new_path = f"/{resolved.as_posix()}"
+    return urlunsplit((scheme, "", new_path, query, fragment))
 
 
 def prepare_sqlite_parent_path_if_needed(db_url: str) -> Path | None:
@@ -456,3 +546,29 @@ def get_default_file_data(
             f"Unexpected format in provisioning data file at '{default_data_yaml_path}'."
         )
     return file_content
+
+
+async def commit_with_retry_when_sqlite_is_locked(
+    session: AsyncSession, retries=3, min_wait=0.5, max_wait=2.0
+):
+    """
+    Commit wrapper with retry logic for SQLite's "database is locked" error.
+    Intended only for local development using SQLite.
+    Has no effect in production environments using PostgreSQL.
+    """
+    for attempt in range(1, retries + 1):
+        try:
+            await session.commit()
+            return  # success
+        except OperationalError as exc:
+            # Only retry when it's specifically the 'database is locked' error
+            if "database is locked" not in str(exc):
+                raise
+
+            if attempt == retries:
+                # Last attempt — re-raise the exception
+                raise
+
+            # Wait a random amount before retrying
+            wait_time = random.uniform(min_wait, max_wait)
+            time.sleep(wait_time)

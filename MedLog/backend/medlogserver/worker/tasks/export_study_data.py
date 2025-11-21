@@ -1,6 +1,5 @@
 from typing import Literal, Dict, List, Any
 from pathlib import Path, PurePath
-import json
 import shutil
 import csv
 import uuid
@@ -8,19 +7,14 @@ from pydantic import BaseModel
 from medlogserver.utils import path_is_parent
 from medlogserver.worker.task import TaskBase
 from medlogserver.db._session import get_async_session_context
-from medlogserver.db import (
-    UserCRUD,
-    UserAuthCRUD,
-    StudyCRUD,
-    StudyPermissonCRUD,
-    EventCRUD,
-    InterviewCRUD,
-    IntakeCRUD,
-)
-from medlogserver.api.routes.routes_drug import get_drug
+from medlogserver.db.event import EventCRUD
+from medlogserver.db.intake import IntakeCRUD
+from medlogserver.db.interview import InterviewCRUD
+from medlogserver.db.study import StudyCRUD
+
+
 from medlogserver.model import (
     IntakeExport,
-    Intake,
     EventExport,
     Event,
     StudyExport,
@@ -29,16 +23,13 @@ from medlogserver.model import (
     Interview,
 )
 from medlogserver.model.drug_data.api_drug_model_factory import (
-    DrugAPIRead,
-    CustomDrugAPIRead,
-    drug_to_drugAPI_obj,
     DrugData,
 )
 from medlogserver.db.drug_data.drug import DrugCRUD
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
-log = get_logger()
+log = get_logger(modulename="WORKER")
 config = Config()
 
 
@@ -79,7 +70,6 @@ class ExportContainer(BaseModel):
                     objs = [objs]
                 # obj_class_name = obj.__class__.__name__.lower()
                 for obj in objs:
-
                     for prop_name, prop_value in obj.model_dump(
                         exclude=[pivot_by_column]
                     ).items():
@@ -96,7 +86,6 @@ class ExportContainer(BaseModel):
 
 
 class StudyDataExporter:
-
     def __init__(
         self, study_id: uuid.UUID, format_: Literal["csv", "json"], target_file: Path
     ):
@@ -231,7 +220,6 @@ async def export_study_intake_data(
 
 
 class TaskExportStudyIntakeData(TaskBase):
-
     async def work(self, study_id: str | uuid.UUID, format_: str):
         log.info(f"Export study data (job_id: {self.job.id})...")
         if isinstance(study_id, str):

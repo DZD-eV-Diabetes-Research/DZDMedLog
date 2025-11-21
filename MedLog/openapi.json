@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.11.3.dev1+g2708b3f37.d20251117"
+    "version": "0.11.3.dev55+g5cea831b4.d20251119"
   },
   "paths": {
     "/api/health": {
@@ -5926,8 +5926,15 @@
             "description": "How was the drug/medication identified."
           },
           "intake_start_time_utc": {
-            "type": "string",
-            "format": "date",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Intake Start Time Utc"
           },
           "intake_end_time_utc": {
@@ -6017,8 +6024,6 @@
         },
         "type": "object",
         "required": [
-          "intake_start_time_utc",
-          "as_needed_dose_unit",
           "consumed_meds_today",
           "interview_id"
         ],
@@ -6038,8 +6043,15 @@
             "description": "How was the drug/medication identified."
           },
           "intake_start_time_utc": {
-            "type": "string",
-            "format": "date",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Intake Start Time Utc"
           },
           "intake_end_time_utc": {
@@ -6119,8 +6131,6 @@
         },
         "type": "object",
         "required": [
-          "intake_start_time_utc",
-          "as_needed_dose_unit",
           "consumed_meds_today"
         ],
         "title": "IntakeCreateAPI",
@@ -6140,8 +6150,15 @@
             "description": "How was the drug/medication identified."
           },
           "intake_start_time_utc": {
-            "type": "string",
-            "format": "date",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Intake Start Time Utc"
           },
           "intake_end_time_utc": {
@@ -6248,8 +6265,6 @@
         },
         "type": "object",
         "required": [
-          "intake_start_time_utc",
-          "as_needed_dose_unit",
           "consumed_meds_today",
           "interview_id",
           "interview",

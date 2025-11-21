@@ -6,6 +6,12 @@ from medlogserver.model.event import (
     EventUpdate,
     EventExport,
 )
+from medlogserver.model.interview import (
+    Interview,
+    InterviewCreate,
+    InterviewUpdate,
+    InterviewExport,
+)
 from medlogserver.model.intake import (
     Intake,
     IntakeCreate,
@@ -14,12 +20,7 @@ from medlogserver.model.intake import (
     IntervalOfDailyDoseAnswers,
     IntakeExport,
 )
-from medlogserver.model.interview import (
-    Interview,
-    InterviewCreate,
-    InterviewUpdate,
-    InterviewExport,
-)
+
 from medlogserver.model.study_permission import (
     StudyPermissionRead,
     StudyPermisson,

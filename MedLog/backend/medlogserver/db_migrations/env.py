@@ -7,20 +7,50 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
+
+##TIM: Load DB url and metadata from medlog config
+import sys
+import os
+from pathlib import Path
+
+MODULE_DIR = Path(__file__).parent.parent
+MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
+sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
+os.environ["SERVER_SESSION_SECRET"] = (
+    "PLACEHOLDER_with_64_chars08weozhfkjdshm,ujkghizutg7izulkjfjdet7g"
+)
+os.environ["ADMIN_USER_PW"] = "PLACEHOLDER"
+
+from medlogserver.config import Config as MedLogServerConfig
+
+medlogserver_config = MedLogServerConfig()
+
+
+from sqlmodel import SQLModel
+from medlogserver.model.__tables__ import all_tables
+
+
+config.set_main_option("sqlalchemy.url", str(medlogserver_config.SQL_DATABASE_URL))
+print(f"RUN MIGRATIONS ON DB: {medlogserver_config.SQL_DATABASE_URL}")
+print("SQLModel.metadata.tables", SQLModel.metadata.tables)
+target_metadata = SQLModel.metadata
+##/Tim
+
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+# if config.config_file_name is not None:
+#    fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+# target_metadata = None
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
