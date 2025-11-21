@@ -14,15 +14,12 @@ import secrets
 # Internal
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import TimestampModel
-from medlogserver.db._session import AsyncSession, get_async_session
 from medlogserver.model.user import User
 from medlogserver.model.user_auth import (
     UserAuth,
     UserAuthCreate,
     UserAuthUpdate,
     AllowedAuthSchemeType,
-    crypt_context_pwd,
 )
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
@@ -154,9 +151,7 @@ class UserAuthCRUD(
         exists_ok: bool = False,
         custom_exception_if_basic_pw_auth_exists: Exception = None,
     ) -> UserAuth:
-
         if user_auth_create.auth_source_type == AllowedAuthSchemeType.basic:
-
             existing_user_basic_pw_auth = (
                 await self.get_by_user_id_and_auth_source_and_provider_name(
                     user_id=user_auth_create.user_id,

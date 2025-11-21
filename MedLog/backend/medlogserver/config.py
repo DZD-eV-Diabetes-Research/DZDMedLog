@@ -53,7 +53,7 @@ class Config(BaseSettings):
             if not self_data.get("ADMIN_USER_PW", None):
                 self_data["ADMIN_USER_PW"] = "adminadmin"
             if not self_data.get("APP_PROVISIONING_DATA_YAML_FILES", None):
-                if bool(self_data["DOCKER_MODE"]):
+                if "DOCKER_MODE" in self_data and bool(self_data["DOCKER_MODE"]):
                     self_data["APP_PROVISIONING_DATA_YAML_FILES"] = [
                         str(
                             Path(
