@@ -176,9 +176,9 @@ async function saveIntake(data: IntakeFormSchema) {
     consumed_meds_today: data.medsTakenToday,
     dose_per_day: data.dose,
     drug_id: data.drugId,
-    intake_end_time_utc: data.endTime ? dayjs(data.endTime).format("YYYY-MM-DD") : undefined,
+    intake_end_time_utc: data.endTime ? dayjs(data.endTime).format("YYYY-MM-DD") : null,
     intake_regular_or_as_needed: data.frequency,
-    intake_start_time_utc: data.startTime ? dayjs(data.startTime).format("YYYY-MM-DD") : undefined,
+    intake_start_time_utc: data.startTime ? dayjs(data.startTime).format("YYYY-MM-DD") : null,
     regular_intervall_of_daily_dose: data.intervall,
     source_of_drug_information: data.drugSource
   };
@@ -258,9 +258,9 @@ async function saveEditIntake(data: IntakeFormSchema) {
     consumed_meds_today: data.medsTakenToday,
     dose_per_day: data.dose,
     drug_id: data.drugId,
-    intake_end_time_utc: data.endTime ? dayjs(data.endTime).format("YYYY-MM-DD") : undefined,
+    intake_end_time_utc: data.endTime ? dayjs(data.endTime).format("YYYY-MM-DD") : null,
     intake_regular_or_as_needed: data.frequency,
-    intake_start_time_utc: data.startTime ? dayjs(data.startTime).format("YYYY-MM-DD") : undefined,
+    intake_start_time_utc: data.startTime ? dayjs(data.startTime).format("YYYY-MM-DD") : null,
     regular_intervall_of_daily_dose: data.intervall,
     source_of_drug_information: data.drugSource
   };

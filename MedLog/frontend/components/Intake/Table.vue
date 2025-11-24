@@ -69,6 +69,16 @@ if (props.canEdit || props.canDelete) {
   });
 }
 
+function getIntakeDurationString(intake) {
+  if (!intake.intake_start_time_utc && !intake.intake_end_time_utc) {
+    return "unbekannt";
+  }
+
+  const startDate = intake.intake_start_time_utc === null ? 'unbekannt' : intake.intake_start_time_utc;
+  const endDate = intake.intake_end_time_utc === null ? 'unbekannt' : intake.intake_end_time_utc;
+  return `${startDate} bis ${endDate}`;
+}
+
 function myOptions(row) {
   const options = [];
 
@@ -110,10 +120,7 @@ const rows = computed(() => {
     option: item.intake_regular_or_as_needed,
     startTime: item.intake_start_time_utc,
     endTime: item.intake_end_time_utc,
-    time:
-        item.intake_end_time_utc === null
-            ? item.intake_start_time_utc + " bis unbekannt"
-            : item.intake_start_time_utc + " bis " + item.intake_end_time_utc,
+    time: getIntakeDurationString(item),
     intakeId: item.id,
     custom: item.drug?.is_custom_drug ? "Ja" : "Nein",
     class: item.drug?.is_custom_drug
