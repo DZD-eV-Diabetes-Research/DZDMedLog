@@ -9,9 +9,27 @@
       </template>
 
       <div v-if="!intakeDrugId">
-        <p class="text-base mb-2">
-          Präparat aus der Datenbank auswählen
-        </p>
+        <div class="flex flex-row justify-between">
+          <p class="text-base mb-2">
+            Präparat aus der Datenbank auswählen
+          </p>
+          <UPopover mode="hover">
+            <UIcon name="i-heroicons-question-mark-circle" />
+
+            <template #panel>
+              <div class="p-4 max-w-xl bg-sky-100">
+                <h3 class="font-semibold">Tipps zur Suche</h3>
+
+                <ul class="list-disc my-2 list-inside">
+                  <li>Wörter mit weniger als drei Zeichen werden ignoriert</li>
+                  <li>Zusammenhängende Zeichenketten können mit Anführungszeichen gesucht werden (z.B. <span class="font-mono bg-gray-300 p-0.5">Metoprolol "10 mg"</span>)</li>
+                  <li>Wörter, die am Anfang des Namens stehen, erhöhen die Relevanz</li>
+                  <li>Treffende Groß-/Kleinschreibung erhöht die Relevanz</li>
+                </ul>
+              </div>
+            </template>
+          </UPopover>
+        </div>
         <DrugSearch :autofocus-input="true" @drug-selected="onDrugSelected" />
 
         <UDivider label="oder" class="my-4" />
