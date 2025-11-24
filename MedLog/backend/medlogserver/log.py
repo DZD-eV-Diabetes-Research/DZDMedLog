@@ -3,7 +3,8 @@ import sys
 import os
 import hashlib
 from typing import Optional
-
+import inspect
+from pathlib import Path
 from medlogserver.config import Config
 
 config = Config()
@@ -116,7 +117,8 @@ def get_logger(
     global active_loggers_store
     if active_loggers_store is None:
         active_loggers_store = {}
-
+    if not modulename:
+        modulename = Path(inspect.stack()[1].filename).name
     store_name = f"{name}{modulename}"
     module = ""
     module_color_code = ""
