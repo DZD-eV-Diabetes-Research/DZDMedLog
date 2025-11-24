@@ -19,9 +19,11 @@ def test_endpoint_drug_update_status():
     dict_must_contain(
         response,
         required_keys_and_val={
-            "update_available": False,
-            "update_running": False,
+            "update_available": True,
+            "update_available_version": "20241126",
+            "update_running": True,
             "last_update_run_error": None,
+            "current_drug_data_version": "20241126",
             "current_drug_data_ready_to_use": True,
         },
         required_keys=["last_update_run_datetime_utc", "current_drug_data_version"],

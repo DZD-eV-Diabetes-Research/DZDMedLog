@@ -18,16 +18,15 @@ from medlogserver.utils import to_path, get_default_file_data
 from medlogserver.db._session import get_async_session_context
 from medlogserver.model import MedLogBaseModel
 from medlogserver.db._base_crud import CRUDBase
-from medlogserver.db import (
-    UserCRUD,
-    UserAuthCRUD,
-    StudyCRUD,
-    StudyPermissonCRUD,
-    EventCRUD,
-    InterviewCRUD,
-    IntakeCRUD,
-    WorkerJobCRUD,
-)
+from medlogserver.db.event import EventCRUD
+from medlogserver.db.intake import IntakeCRUD
+from medlogserver.db.interview import InterviewCRUD
+from medlogserver.db.study import StudyCRUD
+from medlogserver.db.study_permission import StudyPermissonCRUD
+from medlogserver.db.user import UserCRUD
+from medlogserver.db.user_auth import UserAuthCRUD
+from medlogserver.db.worker_job import WorkerJobCRUD
+
 from medlogserver.db.drug_data.drug_dataset_version import (
     DrugDataSetVersionCRUD,
     DrugDataSetVersion,
@@ -65,22 +64,21 @@ class DrugDataLoader:
             async with DrugDataSetVersionCRUD.crud_context(
                 session
             ) as drugdataset_version_crud:
-                drugdataset_version_crud: DrugDataSetVersionCRUD = (
-                    drugdataset_version_crud
-                )
                 drugdataset_count = await drugdataset_version_crud.count()
                 log.debug(
                     f"Check if inital dataset needs to be created. count: {drugdataset_count}"
                 )
                 if drugdataset_count == 0:
-                    self.importer.source_dir = config.DRUG_TABLE_PROVISIONING_SOURCE_DIR
+                    self.importer.source_dir = Path(
+                        config.DRUG_TABLE_PROVISIONING_SOURCE_DIR
+                    )
                     self.importer.version = (
                         await self.importer.get_drug_dataset_version()
                     )
                     initial_dataset = (
                         await self.importer.generate_drug_data_set_definition()
                     )
-                    initial_dataset.import_path = self.importer.source_dir
+                    initial_dataset.import_path = str(self.importer.source_dir)
                     await drugdataset_version_crud.create(initial_dataset)
 
     async def _get_next_queued_drug_data_set(self) -> DrugDataSetVersion | None:

@@ -1,31 +1,14 @@
-from datetime import datetime, timedelta, timezone
-from typing import Annotated, Sequence, List, NoReturn, Type, Optional
-import uuid
 from fastapi import (
     Depends,
     Security,
-    FastAPI,
-    HTTPException,
-    status,
-    Query,
-    Body,
-    Form,
-    Path,
-    Response,
-    status,
 )
-from itertools import chain
-import asyncio
-from pydantic import BaseModel, Field, create_model
-from typing import Annotated
 
-from fastapi import Depends, APIRouter
+
+from fastapi import APIRouter
 
 from medlogserver.db.user import User
-from medlogserver.utils import run_async_sync
 from medlogserver.api.auth.security import (
     user_is_admin,
-    user_is_usermanager,
     get_current_user,
 )
 from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
@@ -33,7 +16,7 @@ from medlogserver.api.routes.routes_auth import NEEDS_ADMIN_API_INFO
 from medlogserver.api.study_access import (
     get_current_user,
 )
-from medlogserver.model.unset import Unset
+
 from medlogserver.model.worker_job import WorkerJobCreate, WorkerJob, WorkerJobState
 from medlogserver.db.worker_job import WorkerJobCRUD
 
@@ -69,10 +52,10 @@ async def _get_drug_update_status(
 ) -> DrugUpdaterStatus:
     current_drug_dataset = await drug_dataset_version_crud.get_current_active()
     latest_drug_dataset = await drug_dataset_version_crud.get_latest()
-    download_jobs_queued = worker_job_crud.list(
+    download_jobs_queued = await worker_job_crud.list(
         filter_job_state=WorkerJobState.QUEUED, filter_tags=["drug-data-download"]
     )
-    download_jobs_running = worker_job_crud.list(
+    download_jobs_running = await worker_job_crud.list(
         filter_job_state=WorkerJobState.RUNNING, filter_tags=["drug-data-download"]
     )
     last_update_run_error = None
@@ -91,7 +74,7 @@ async def _get_drug_update_status(
     if current_drug_dataset and current_drug_dataset.import_status == "done":
         current_drug_data_ready_to_use = True
     update_version = (
-        await drug_importer_class.check_for_remote_dataset_update_available()
+        await drug_importer_class().check_for_remote_dataset_update_available()
     )
     return DrugUpdaterStatus(
         update_available=True

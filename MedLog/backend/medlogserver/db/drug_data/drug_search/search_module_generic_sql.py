@@ -46,7 +46,7 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model.drug_data.drug import DrugAttrTypeName
 
-log = get_logger()
+log = get_logger(modulename="DRUG_SEARCH_INDEX")
 config = Config()
 MAX_INDEXABLE_LENGTH = 4096
 if get_db_type(config.SQL_DATABASE_URL) == "postgres":

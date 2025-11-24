@@ -1,6 +1,7 @@
-from typing import Dict, List, AsyncIterator, Literal, Optional, Self
+from typing import Dict, List, AsyncIterator, Literal, Optional, Self, Type
 import traceback
 from pathlib import Path
+from dataclasses import dataclass
 import datetime
 import time
 from sqlmodel import select, and_
@@ -22,19 +23,32 @@ from medlogserver.log import get_logger
 log = get_logger(modulename="DRUGIMPORT")
 
 
+@dataclass
+class DrugDataSetImporterCapabilities:
+    can_check_for_remote_updates: bool = False
+    can_download_remote_updates: bool = False
+    can_be_triggered_for_manual_update: bool = False
+
+
 # TODO: define as  Abstract Base Classes to be more of an correct interface
 # at the moment its a "stub"-class (for lack of a better word)
 class DrugDataSetImporterBase:
     def __init__(self):
-        self.dataset_name = "Base Example"
-        self.dataset_link = "Base Example"
-        self.api_name = "baseexample"
-        self.source_dir: Path = None
-        self.version: str = None
-        self._ensured_dataset_version: DrugDataSetVersion = None
+        self.dataset_name: str = "Base Example"
+        self.dataset_link: Optional[str] = None
+        self.api_name: str = "baseexample"
+        self.source_dir: Optional[Path] = None
+        self.version: str | None = None
+        self.capabilities: DrugDataSetImporterCapabilities = (
+            DrugDataSetImporterCapabilities(
+                can_check_for_remote_updates=False,
+                can_be_triggered_for_manual_update=False,
+                can_download_remote_updates=False,
+            )
+        )
+        self._ensured_dataset_version: DrugDataSetVersion | None = None
 
-    @classmethod
-    async def check_for_remote_dataset_update_available(cls) -> str | None:
+    async def check_for_remote_dataset_update_available(self) -> str | None:
         """Returns a version string if new version available
 
         Raises:
@@ -47,8 +61,7 @@ class DrugDataSetImporterBase:
             "This drug module does not support remote dataset updating"
         )
 
-    @classmethod
-    async def download_remote_dataset_update(cls) -> Self | None:
+    async def download_remote_dataset_update(self) -> Self | None:
         """Download (and maybe extract) remote dataset (if available)
 
         Raises:
@@ -210,7 +223,11 @@ class DrugDataSetImporterBase:
             await session.commit()
         return dataset_version
 
-    async def get_already_imported_datasets(self) -> List[DrugDataSetVersion]:
+    async def get_already_imported_datasets(
+        self,
+    ) -> List[DrugDataSetVersion]:
+        print("DummyDrugs", self.dataset_name)
+        all_rows = []
         async with get_async_session_context() as session:
             query = (
                 select(DrugDataSetVersion)
@@ -223,7 +240,9 @@ class DrugDataSetImporterBase:
                 .order_by(DrugDataSetVersion.dataset_version)
             )
             result = await session.exec(query)
-            return result.all()
+            all_rows = result.all()
+        print("all_rows", all_rows)
+        return all_rows
 
     async def _ensure_drug_dataset_version(self) -> DrugDataSetVersion:
         """Return a DrugDataSetVersion for this drug dataset. Will be created if not allready existent

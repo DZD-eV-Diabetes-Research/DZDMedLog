@@ -1,4 +1,13 @@
-from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated, Tuple
+from typing import (
+    AsyncGenerator,
+    List,
+    Optional,
+    Literal,
+    Sequence,
+    Annotated,
+    Tuple,
+    Type,
+)
 from pydantic import validate_email, validator, StringConstraints
 from pydantic_core import PydanticCustomError
 from fastapi import Depends
@@ -48,7 +57,7 @@ class DrugDataSetVersionCRUD(
     )
 ):
     def _get_current_dataset_name(self) -> str:
-        drug_importer_class: DrugDataSetImporterBase = DRUG_IMPORTERS[
+        drug_importer_class: Type[DrugDataSetImporterBase] = DRUG_IMPORTERS[
             config.DRUG_IMPORTER_PLUGIN
         ]()
         return drug_importer_class.dataset_name

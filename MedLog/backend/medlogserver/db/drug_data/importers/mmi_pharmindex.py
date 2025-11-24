@@ -49,7 +49,10 @@ from medlogserver.model.drug_data.drug_attr_field_lov_item import (
     DrugAttrFieldLovItemCREATE,
 )
 
-from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
+from medlogserver.db.drug_data.importers._base import (
+    DrugDataSetImporterBase,
+    DrugDataSetImporterCapabilities,
+)
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.drug_code import DrugCode
@@ -708,6 +711,13 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self.dataset_link = "https://www.MmiPi.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/"
         self.source_dir = None
         self.version = None
+        self.capabilities: DrugDataSetImporterCapabilities = (
+            DrugDataSetImporterCapabilities(
+                can_check_for_remote_updates=True,
+                can_be_triggered_for_manual_update=True,
+                can_download_remote_updates=True,
+            )
+        )
         self._ensured_dataset_version: DrugDataSetVersion = None
         self.batch_size = config.DRUG_IMPORTER_BATCH_SIZE
         self._attr_definitions = None

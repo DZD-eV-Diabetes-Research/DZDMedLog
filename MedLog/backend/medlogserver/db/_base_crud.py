@@ -42,10 +42,10 @@ class CRUDBaseMetaClass(type):
         # We need to check this after CRUDBase is defined, so we'll do it in __init_subclass__
         return cls
 
-    @property
-    def crud_context(cls):
-        """Async context manager for CRUD operations"""
-        return contextlib.asynccontextmanager(cls.get_crud)
+    # @property
+    # def crud_context(cls):
+    #    """Async context manager for CRUD operations"""
+    #    return contextlib.asynccontextmanager(cls.get_crud)
 
 
 class DatabaseInteractionBase(metaclass=CRUDBaseMetaClass):
@@ -57,6 +57,15 @@ class DatabaseInteractionBase(metaclass=CRUDBaseMetaClass):
         cls,
         session: AsyncSession = Depends(get_async_session),
     ) -> AsyncGenerator[Self, None]:
+        yield cls(session=session)
+
+    @classmethod
+    @contextlib.asynccontextmanager
+    async def crud_context(
+        cls,
+        session: AsyncSession,
+    ) -> AsyncGenerator[Self, None]:
+        """Async context manager for CRUD operations with proper type hints"""
         yield cls(session=session)
 
 
@@ -326,11 +335,18 @@ class CRUDBase(
 
 
 def create_crud_base(
-    table_model: Type[BaseTable],
-    read_model: Type[MedLogBaseModel],
-    create_model: Type[MedLogBaseModel],
-    update_model: Type[MedLogBaseModel],
-) -> Type[CRUDBase]:
+    table_model: Type[GenericCRUDTableType],
+    read_model: Type[GenericCRUDReadType],
+    create_model: Type[GenericCRUDCreateType],
+    update_model: Type[GenericCRUDUpdateType],
+) -> Type[
+    CRUDBase[
+        GenericCRUDTableType,
+        GenericCRUDReadType,
+        GenericCRUDCreateType,
+        GenericCRUDUpdateType,
+    ]
+]:
     """Factory function to create a CRUD base class with proper generics"""
 
     class _CRUDClassInstance(

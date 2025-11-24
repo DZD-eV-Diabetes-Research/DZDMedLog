@@ -319,6 +319,10 @@ class Config(BaseSettings):
         default=False,
         description="If the drug importer plugin, does support it, the drug DB will be updated automaticly. Otherwise it must be manually triggered via endpoint ...TODO",
     )
+    DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB: bool = Field(
+        default=False,
+        description="If the drug importer plugin, does support it, does the REST-API/WebClient allow the usage of the endpoint PUT-`/drug/db/update` to force an update of the drug data",
+    )
 
     DRUG_IMPORTER_BATCH_SIZE: int = Field(
         default=200000,
@@ -333,7 +337,7 @@ class Config(BaseSettings):
         description="If MedLog is booted with an empty drug database, it will check if a source data set of the GKV Arzneimittel Index is located in this dir",
         default=str(
             Path(
-                Path(__file__).parent.parent, "provisioning_data/dummy_drugset/20251228"
+                Path(__file__).parent.parent, "provisioning_data/dummy_drugset/20241126"
             ).absolute()
         ),
     )

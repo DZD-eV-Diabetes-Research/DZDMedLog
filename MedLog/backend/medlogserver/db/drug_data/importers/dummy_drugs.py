@@ -38,7 +38,10 @@ from medlogserver.model.drug_data.drug_attr_field_lov_item import (
     DrugAttrFieldLovItemCREATE,
 )
 
-from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
+from medlogserver.db.drug_data.importers._base import (
+    DrugDataSetImporterBase,
+    DrugDataSetImporterCapabilities,
+)
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.drug_code import DrugCode
@@ -357,34 +360,41 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
         self.dataset_link = ""
         self.source_dir = None
         self.version = None
+        self.capabilities: DrugDataSetImporterCapabilities = (
+            DrugDataSetImporterCapabilities(
+                can_check_for_remote_updates=True,
+                can_be_triggered_for_manual_update=True,
+                can_download_remote_updates=True,
+            )
+        )
         self._attr_definitions = None
         self._attr_ref_definitions = None
         self._code_definitions = None
         self._lov_values: Dict[str, List[DrugAttrFieldLovItem]] = {}
-        self._ensured_dataset_version = None
+        self._ensured_dataset_version: DrugDataSetVersion | None = None
 
     @classmethod
-    def get_dummy_dataset_base_path(self) -> Path:
-        Path(
-            Path(__file__).parent.parent.parent.parent,
-            "tests/provisioning_data/dummy_drugset",
+    def get_dummy_dataset_base_path(cls) -> Path:
+        return Path(
+            Path(__file__).parent.parent.parent.parent.parent,
+            "provisioning_data/dummy_drugset",
         ).absolute()
 
-    @classmethod
-    async def check_for_remote_dataset_update_available(cls) -> str | None:
-        dummy_datasets_base_dir = cls.get_dummy_dataset_base_path()
-
+    async def check_for_remote_dataset_update_available(self) -> str | None:
+        dummy_datasets_base_dir = self.get_dummy_dataset_base_path()
+        print("dummy_datasets_base_dir", dummy_datasets_base_dir)
         # MedLog/backend/medlogserver/db/drug_data/importers/dummy_drugs.py
         # MedLog/backend/tests/provisioning_data
-        imported_datasets = await cls.get_already_imported_datasets()
+        imported_datasets = await self.get_already_imported_datasets()
         for dummy_dataset_dir in dummy_datasets_base_dir.iterdir():
             version_string = dummy_dataset_dir.name
+            print("####dummy_datasets_base_dir version_string", version_string)
+            print(imported_datasets)
             if version_string not in [ds.dataset_version for ds in imported_datasets]:
                 return version_string
         return None
 
-    @classmethod
-    async def download_remote_dataset_update(cls) -> Self | None:
+    async def download_remote_dataset_update(self) -> Self | None:
         """This dummy function checks if the second dummy set was allready imported and if not return a new dataloader with thew path.
         This way we can simulate an update one time.
 
@@ -394,19 +404,19 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
         Returns:
             DrugDataSetVersion: _description_
         """
-        dummy_datasets_base_dir = cls.get_dummy_dataset_base_path()
-        new_version_string = await cls.check_for_remote_dataset_update_available()
+        dummy_datasets_base_dir = self.get_dummy_dataset_base_path()
+        new_version_string = await self.check_for_remote_dataset_update_available()
         if not new_version_string:
             return None
         dummy_dataset_dir = Path(dummy_datasets_base_dir, new_version_string)
-        dataloader = cls()
 
-        dataloader.source_dir = dummy_dataset_dir
-        dataloader.version = new_version_string
+        self.source_dir = dummy_dataset_dir
+        self.version = new_version_string
+        return self
 
     async def get_drug_dataset_version(self) -> str:
         if self.version is None:
-            source_dir_name = Path(self.source_dir).parent.name
+            source_dir_name = Path(self.source_dir).name
             self.version = source_dir_name
         return self.version
 
@@ -427,7 +437,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             return [
                 attr_def.field
                 for attr_def in attr_definitions
-                if attr_def.field.field_name == by_name
+                if isinstance(attr_def.field, DrugAttrFieldDefinition)
+                and attr_def.field.field_name == by_name
             ]
         return [attr_def.field for attr_def in attr_definitions]
 
@@ -438,7 +449,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             return [
                 attr_def.field
                 for attr_def in attr_ref_definitions
-                if attr_def.field.field_name == by_name
+                if isinstance(attr_def.field, DrugAttrFieldDefinition)
+                and attr_def.field.field_name == by_name
             ]
         return [field_def.field for field_def in attr_ref_definitions]
 
@@ -449,7 +461,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             return [
                 attr_def.field
                 for attr_def in attr_multi_definitions
-                if attr_def.field.field_name == by_name
+                if isinstance(attr_def.field, DrugAttrFieldDefinition)
+                and attr_def.field.field_name == by_name
             ]
         return [field_def.field for field_def in attr_multi_definitions]
 
@@ -458,9 +471,10 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
     ) -> List[DrugAttrFieldDefinition]:
         if by_name:
             return [
-                field_def.field
-                for field_def in attr_multi_ref_definitions
-                if field_def.field.field_name == by_name
+                attr_def.field
+                for attr_def in attr_multi_ref_definitions
+                if isinstance(attr_def.field, DrugAttrFieldDefinition)
+                and attr_def.field.field_name == by_name
             ]
         return [field_def.field for field_def in attr_multi_ref_definitions]
 
