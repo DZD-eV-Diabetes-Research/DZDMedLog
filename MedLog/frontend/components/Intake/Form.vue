@@ -53,9 +53,9 @@
 
 <script setup lang="ts">
 
-import dayjs from "dayjs";
 import { object, number, date, string, type InferType } from "yup";
 import type { FormSubmitEvent } from "#ui/types";
+import {watch} from "vue";
 
 const props = defineProps<{
   color?: string;
@@ -154,7 +154,7 @@ const state = reactive({
   frequency: frequencyOptions[0].value,
   intervall: doseIntervalOptions[0].value,
   medsTakenToday: medsTakenTodayOptions[0].value,
-  startTime: dayjs(Date()).format("YYYY-MM-DD")
+  startTime: null,
 });
 
 const schema = object({
@@ -166,7 +166,7 @@ const schema = object({
   frequency: string().oneOf(frequencyOptions.map(item => item.value)).required("Required"),
   intervall: string().oneOf(doseIntervalOptions.map(item => item.value)),
   medsTakenToday: string().oneOf(medsTakenTodayOptions.map(item => item.value)).required("Required"),
-  startTime: date().required("Required"),
+  startTime: date().optional().nullable(),
 });
 
 export type IntakeFormSchema = InferType<typeof schema>;
@@ -174,6 +174,18 @@ export type IntakeFormSchema = InferType<typeof schema>;
 async function onSubmit(event: FormSubmitEvent<IntakeFormSchema>) {
   emit('save', event.data);
 }
+
+// Explicitly reset dates to null, to prevent a validation error
+watch(() => state.startTime, (newValue) => {
+  if (newValue === "") {
+    state.startTime = null;
+  }
+})
+watch(() => state.endTime, (newValue) => {
+  if (newValue === "") {
+    state.endTime = null;
+  }
+})
 
 watch(() => props.drugId, async (newDrugId: string) => {
   state.drugId = newDrugId;
