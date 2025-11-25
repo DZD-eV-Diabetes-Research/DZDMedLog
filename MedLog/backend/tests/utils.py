@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, Any, TYPE_CHECKING
+from typing import Dict, List, Literal, Any, TYPE_CHECKING, overload
 import os
 import requests
 import json
@@ -58,7 +58,7 @@ def req(
     tolerated_error_codes: List[int] = None,
     tolerated_error_body: List[Dict | str] = None,
     access_token: str = None,
-) -> Dict | str:
+) -> Dict[str, Any] | str:
     if tolerated_error_codes is None:
         tolerated_error_codes = []
     if tolerated_error_body is None:

@@ -31,8 +31,8 @@ class WorkerJobState(str, enum.Enum):
 
 class WorkerJobCreate(MedLogBaseModel, table=False):
     id: Optional[uuid.UUID] = Field(
-        description="The job id will be automaticly generated, on the backend. If there is a need to know it inbefore it can be provied here. Otherwise just leave it as `None`.",
-        default=None,
+        description="The job id will be automaticly generated. If there is a reason to need it to know inbefore a uuid4 can be provied here.",
+        default_factory=uuid.uuid4,
     )
     task_name: str = Field(description="Class that will executed as task.")
     task_params: Optional[Dict] = Field(

@@ -119,7 +119,7 @@ async def trigger_drug_update_active(
     ),
     worker_job_crud: WorkerJobCRUD = Depends(WorkerJobCRUD.get_crud),
 ) -> DrugUpdaterStatus:
-    update_version = drug_importer_class.check_for_remote_dataset_update_available()
+    update_version = drug_importer_class().check_for_remote_dataset_update_available()
     if update_version:
         data_download_job = WorkerJobCreate(
             task_name=Tasks(Tasks.DRUG_DATA_UPDATE_DOWNLOAD).name,

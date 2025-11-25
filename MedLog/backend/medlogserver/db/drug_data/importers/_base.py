@@ -242,7 +242,7 @@ class DrugDataSetImporterBase:
             result = await session.exec(query)
             all_rows = result.all()
         print("all_rows", all_rows)
-        return all_rows
+        return list(all_rows)
 
     async def _ensure_drug_dataset_version(self) -> DrugDataSetVersion:
         """Return a DrugDataSetVersion for this drug dataset. Will be created if not allready existent
