@@ -1,6 +1,6 @@
 from typing import List, Dict, Type, Callable, Optional, Tuple
 import importlib
-
+import uuid
 from pathlib import Path, PurePath
 from dataclasses import dataclass
 import yaml
@@ -31,6 +31,10 @@ from medlogserver.db.drug_data.drug_dataset_version import (
     DrugDataSetVersionCRUD,
     DrugDataSetVersion,
 )
+from medlogserver.model.worker_job import WorkerJobCreate, WorkerJob, WorkerJobState
+from medlogserver.db.worker_job import WorkerJobCRUD
+from medlogserver.worker.tasks import Tasks
+
 from medlogserver.api.paginator import QueryParamsInterface, create_query_params_class
 
 log = get_logger(modulename="WorkerTaskDrugDataLoader")
@@ -58,7 +62,7 @@ class DrugDataUpdateDownloader:
 
     async def download_new_drug_data_update_if_available(self):
         log.info("[DRUG DATA DOWNLOADER]: Check for new updates of drug data...")
-        if self.importer().check_for_remote_dataset_update_available() is None:
+        if await self.importer.check_for_remote_dataset_update_available() is None:
             log.info(
                 "[DRUG DATA DOWNLOADER]: No update for drug data available. Do nothing."
             )
@@ -75,10 +79,29 @@ class DrugDataUpdateDownloader:
             "[DRUG DATA DOWNLOADER]: New drug dataset downloaded and registered. Waiting for ingesting worker..."
         )
 
+    async def create_follow_up_job_drug_data_loader(self, user_id: uuid.UUID | None):
+        data_loader_job = WorkerJobCreate(
+            task_name=Tasks(Tasks.LOAD_DRUG_DATA).name,
+            task_params=None,
+            tags=[
+                "drug-loading",
+                "triggeredBy:drug-data-download/version:20251228",
+                f"version:{self.importer.version}",
+            ],
+            user_id=user_id,
+        )
+
+        async with get_async_session_context() as session:
+            async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
+                log.debug(f"Create inital TaskDrugDataLoading Job {data_loader_job}")
+                systemdata_loader_job_job = await worker_job_crud.create(
+                    data_loader_job
+                )
+
 
 class TaskDrugDataUpdateDownload(TaskBase):
     async def work(self, source_dir: str = None):
         log.info("Load new drug data if available...")
         drug_data_loader = DrugDataUpdateDownloader()
-
         await drug_data_loader.download_new_drug_data_update_if_available()
+        await drug_data_loader.create_follow_up_job_drug_data_loader(self.job.user_id)

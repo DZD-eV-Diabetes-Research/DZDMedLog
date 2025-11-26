@@ -141,7 +141,6 @@ class IntakeCRUD(
         raise_exception_if_no_last_interview: Exception = None,
         pagination: QueryParamsInterface = None,
     ) -> List[Intake]:
-
         last_interview_query = (
             select(Interview)
             .join(Event)

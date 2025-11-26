@@ -88,3 +88,4 @@ class WorkerJob(
             return WorkerJobState.RUNNING
         elif self.run_started_at is not None and self.run_finished_at is not None:
             return WorkerJobState.SUCCESS
+        raise ValueError(f"Job has unknown state. Something is wrong. {self}")

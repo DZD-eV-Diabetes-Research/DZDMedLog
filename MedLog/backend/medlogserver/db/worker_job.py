@@ -20,6 +20,7 @@ from medlogserver.model.worker_job import (
     WorkerJobUpdate,
     WorkerJobState,
 )
+from medlogserver.worker.tasks import Tasks
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
@@ -41,6 +42,7 @@ class WorkerJobCRUD(
         filter_job_state: Optional[WorkerJobState] = None,
         filter_tags: Optional[List[str]] = None,
         filter_intervalled_job: Optional[bool] = None,
+        filter_task: Optional[Tasks | str] = None,
         hide_user_jobs: bool = False,
         pagination: QueryParamsInterface = None,
     ) -> Sequence[WorkerJob]:
@@ -59,12 +61,18 @@ class WorkerJobCRUD(
             query = query.where(is_(WorkerJob.user_id, None))
         if pagination:
             query = pagination.append_to_query(query)
+        if filter_task:
+            if isinstance(filter_task, Tasks):
+                filter_task = filter_task.name
+            query = query.where(WorkerJob.task_name == filter_task)
         results = await self.session.exec(statement=query)
         all_jobs = results.all()
         # json quering is very finicky on certain databases. lets do filtering on python side
 
         if filter_tags:
-            all_jobs = [j for j in all_jobs if bool(set(j.tags) == set(filter_tags))]
+            all_jobs = [
+                j for j in all_jobs if bool(set(filter_tags).issubset(set(j.tags)))
+            ]
 
         if filter_intervalled_job is not None:
             all_jobs = [
@@ -77,41 +85,6 @@ class WorkerJobCRUD(
             all_jobs = [o for o in all_jobs if o.get_state() == filter_job_state]
         return all_jobs
 
-        ### old code with json querying on db side. Can be removed on next review
-
-        for f_tag in filter_tags:
-            query = query.filter(col(WorkerJob.tags).contains(f_tag))
-
-        if filter_intervalled_job is not None:
-            if filter_intervalled_job == True:
-                query = query.where(
-                    is_not(WorkerJob.interval_params, None),
-                    # and_(
-                    #    is_not(WorkerJob.interval_params, None),
-                    #    is_not(WorkerJob.interval_params, {}),
-                    # )
-                )
-            elif filter_intervalled_job == False:
-                query = query.where(
-                    is_(WorkerJob.interval_params, None),
-                    # or_(
-                    #    is_(WorkerJob.interval_params, None),
-                    #    is_(WorkerJob.interval_params, {}),
-                    # )
-                )
-        log.info(f"DO STUFF 1: {query}")
-        results = await self.session.exec(statement=query)
-        log.info("DO STUFF 2")
-
-        if filter_job_state is not None:
-            result_objs = [
-                o for o in results.all() if o.get_state() == filter_job_state
-            ]
-        else:
-            result_objs = results.all()
-        log.info("DO STUFF 3")
-        return result_objs
-
     async def count(
         self,
         filter_user_id: Optional[UUID] = None,
@@ -119,7 +92,7 @@ class WorkerJobCRUD(
         filter_tags: Optional[List[str]] = None,
         filter_intervalled_job: Optional[bool] = None,
         hide_user_jobs: bool = False,
-    ) -> Sequence[WorkerJob]:
+    ) -> int:
         return len(
             await self.list(
                 filter_user_id=filter_user_id,

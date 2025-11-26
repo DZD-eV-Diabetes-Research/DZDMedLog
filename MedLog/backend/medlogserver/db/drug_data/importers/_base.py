@@ -11,6 +11,7 @@ from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data._base import DrugModelTableBase
 from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
+    DrugAttrMultiRefFieldDefinitionAPIRead,
 )
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef
@@ -241,7 +242,6 @@ class DrugDataSetImporterBase:
             )
             result = await session.exec(query)
             all_rows = result.all()
-        print("all_rows", all_rows)
         return list(all_rows)
 
     async def _ensure_drug_dataset_version(self) -> DrugDataSetVersion:
@@ -314,6 +314,29 @@ class DrugDataSetImporterBase:
                     session.add(custom_drug_dataset)
                     await session.commit()
         return custom_drug_dataset
+
+    async def _ensure_field_defintions(self):
+        all_attr_defs_by_type = await self.get_all_attr_field_definitions()
+        all_attr_defs_flat = []
+        for attrdefs in all_attr_defs_by_type.values():
+            for attrdef in attrdefs:
+                all_attr_defs_flat.append(attrdef)
+        "codes": await self.get_code_definitions(),
+        "attrs": await self.get_attr_field_definitions(),
+        "attrs_ref": await self.get_attr_ref_field_definitions(),
+        "attrs_multi": await self.get_attr_multi_field_definitions(),
+        "attrs_multi_ref": await self.get_attr_multi_ref_field_definitions(),
+        async with get_async_session_context() as session:
+            select(DrugAttrFieldDefinition)
+            for obj in objs:
+                # log.info(("obj", obj))
+                try:
+                    session.add(obj)
+                except:
+                    log.error(("Failed obj", obj))
+                    raise
+            log.info(" Commit Drug data to database. This may take a while...")
+            await session.commit()
 
     async def _set_dataset_version_status(
         self, status: Literal["queued", "running", "failed", "done"], error: str = None

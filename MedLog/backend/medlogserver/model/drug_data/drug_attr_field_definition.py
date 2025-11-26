@@ -197,13 +197,3 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
     examples: List[str] = Field(
         default_factory=list, sa_column=Column(SqlStringListAny)
     )
-    """
-    list_of_values: List["DrugAttrFieldLovItem"] = Relationship(
-        sa_relationship=RelationshipProperty(
-            "DrugAttrFieldLovItem",
-            back_populates="field_definition",
-            foreign_keys="[DrugAttrFieldLovItem.importer_name,DrugAttrFieldLovItem.field_name]",
-            primaryjoin="and_(DrugAttrFieldLovItem.importer_name==DrugAttrFieldDefinition.importer_name, DrugAttrFieldLovItem.field_name==DrugAttrFieldDefinition.field_name)",
-        )
-    )
-    """

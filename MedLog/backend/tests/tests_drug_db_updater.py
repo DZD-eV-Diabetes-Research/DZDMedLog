@@ -53,6 +53,8 @@ def test_endpoint_drug_update_trigger():
         update_running = response_status["update_running"]
         print("WAIT FOR UPDATE update_running:", update_running)
         time.sleep(2)
+    response: Dict[str, Any] = req("api/drug/db/update", method="get")
+    print("response", response)
     dict_must_contain(
         response,
         required_keys_and_val={
