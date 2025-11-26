@@ -155,9 +155,7 @@ def test_create_duplicate_study_name():
 
 def test_endpoint_study_issue_190():
     """Test DELETE /api/study/{study_id}/permissions/{user_id} endpoint"""
-    study_data = create_test_study(
-        study_name="TestDeletePermissionStudy", with_events=1
-    )
+    study_data = create_test_study(study_name="TestIssue190", with_events=1)
 
     # Create a test user ID (you would normally get this from a real user)
     test_user = create_test_user(
@@ -172,4 +170,8 @@ def test_endpoint_study_issue_190():
     )
 
     study_list = req("api/study", method="get", access_token=test_user_access_token)
-    print("study_list", study_list)
+    dict_must_contain(
+        study_list,
+        required_keys_and_val={"total_count": 0, "offset": 0, "count": 0, "items": []},
+        exception_dict_identifier="test_endpoint_study_issue_190",
+    )
