@@ -39,7 +39,7 @@ const menuItems = computed(() => {
       label: 'Studienverwaltung',
       labelClass: 'text-base',
       icon: 'i-heroicons-clipboard-document-list',
-      to: '/studies'
+      to: '/manage/studies'
     });
   }
 
