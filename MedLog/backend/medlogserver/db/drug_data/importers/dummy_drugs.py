@@ -203,6 +203,7 @@ code_attr_definitions = [
             desc="The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties.",
             optional=True,
             unique=False,
+            importer_name=importername,
         ),
         source_mapping=drugs_csv_2_attr_mappings["codes.ATC"],
     ),
@@ -213,6 +214,7 @@ code_attr_definitions = [
             country="Germany",
             optional=False,
             unique=True,
+            importer_name=importername,
         ),
         source_mapping=drugs_csv_2_attr_mappings["codes.PZN"],
     ),
@@ -484,8 +486,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
         if by_id:
             return [
                 field_def.field
-                for field_def in attr_multi_ref_definitions
-                if field_def.field.field_name == by_id
+                for field_def in code_attr_definitions
+                if field_def.field.name == by_id
             ]
         return [field_def.field for field_def in code_attr_definitions]
 
@@ -505,7 +507,9 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
         for ref_lov_field_obj in attr_ref_definitions + attr_multi_ref_definitions:
             all_objs.append(ref_lov_field_obj.field)
             lov_item_objs = await self._generate_lov_items(
-                ref_lov_field_obj.field, lov_definition=ref_lov_field_obj.lov
+                ref_lov_field_obj.field,
+                lov_definition=ref_lov_field_obj.lov,
+                drug_dataset_version=drug_dataset,
             )
             self._lov_values[ref_lov_field_obj.field.field_name] = lov_item_objs
 
@@ -710,6 +714,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
         self,
         paren_field: DrugValRef,
         lov_definition: DrugAttrRefFieldLovImportDefinition,
+        drug_dataset_version: DrugDataSetVersion,
     ) -> List[DrugAttrFieldLovItem]:
         lov_items: List[DrugAttrFieldLovItem] = []
         source_file = Path(self.source_dir, lov_definition.lov_source_file)
@@ -742,6 +747,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                     display=display_value,
                     sort_order=index,
                     importer_name=importername,
+                    drug_dataset_version_fk=drug_dataset_version.id,
                 )
                 lov_items.append(li)
 

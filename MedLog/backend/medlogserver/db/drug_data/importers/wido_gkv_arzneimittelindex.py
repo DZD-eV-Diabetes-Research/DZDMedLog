@@ -208,7 +208,9 @@ class WidoAiImporter52(DrugDataSetImporterBase):
         for field_name, lov_field_obj in lov_field_objects.items():
             all_objs.extend(
                 await self._generate_lov_items(
-                    lov_field_obj.field, lov_definition=lov_field_obj.lov
+                    lov_field_obj.field,
+                    lov_definition=lov_field_obj.lov,
+                    drug_dataset_version=drug_dataset,
                 )
             )
         # read all drugs with attributes
@@ -478,6 +480,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
         lov_definition: (
             WiDoDrugAttrFieldLovImportDefinition | List[DrugAttrFieldLovItemCREATE]
         ),
+        drug_dataset_version: DrugDataSetVersion,
     ) -> List[DrugAttrFieldLovItem]:
         lov_items: List[DrugAttrFieldLovItem] = []
         if isinstance(lov_definition, WiDoDrugAttrFieldLovImportDefinition):
@@ -500,6 +503,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                         display=display_value,
                         sort_order=index,
                         importer_name=self.__class__.__name__,
+                        drug_dataset_version_fk=drug_dataset_version.id,
                     )
                     lov_items.append(li)
         elif isinstance(lov_definition, list):

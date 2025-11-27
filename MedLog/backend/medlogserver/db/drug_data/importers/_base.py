@@ -6,6 +6,7 @@ import datetime
 import time
 from sqlmodel import select, and_
 from sqlalchemy.sql.operators import is_
+
 from medlogserver.db._session import get_async_session_context
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data._base import DrugModelTableBase
@@ -16,7 +17,11 @@ from medlogserver.model.drug_data.drug_attr_field_definition import (
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef
 from medlogserver.model.drug_data.drug import DrugData
-from medlogserver.utils import PathContentHasher, get_now_datetime
+from medlogserver.utils import (
+    PathContentHasher,
+    get_now_datetime,
+    sqlmodel_apply_updates,
+)
 from medlogserver.model.drug_data.drug import DrugAttrTypeName
 from medlogserver.log import get_logger
 
@@ -120,7 +125,7 @@ class DrugDataSetImporterBase:
         self,
     ) -> Dict[
         DrugAttrTypeName,
-        List[DrugAttrFieldDefinition],
+        List[DrugAttrFieldDefinition] | List[DrugCodeSystem],
     ]:
         return {
             "codes": await self.get_code_definitions(),
@@ -176,7 +181,7 @@ class DrugDataSetImporterBase:
             return
         drug_dataset = await self._ensure_drug_dataset_version()
         drug_custom_dataset = await self._ensure_custom_drug_dataset_version()
-
+        await self._ensure_field_definitions_in_database()
         log.info(f" Start import of '{self.source_dir}'...")
         await self._set_dataset_version_status("running")
         try:
@@ -315,27 +320,64 @@ class DrugDataSetImporterBase:
                     await session.commit()
         return custom_drug_dataset
 
-    async def _ensure_field_defintions(self):
+    async def _ensure_field_definitions_in_database(self):
         all_attr_defs_by_type = await self.get_all_attr_field_definitions()
-        all_attr_defs_flat = []
-        for attrdefs in all_attr_defs_by_type.values():
-            for attrdef in attrdefs:
-                all_attr_defs_flat.append(attrdef)
-        "codes": await self.get_code_definitions(),
-        "attrs": await self.get_attr_field_definitions(),
-        "attrs_ref": await self.get_attr_ref_field_definitions(),
-        "attrs_multi": await self.get_attr_multi_field_definitions(),
-        "attrs_multi_ref": await self.get_attr_multi_ref_field_definitions(),
+
+        # Separate definitions by type
+        attr_defs = [
+            d
+            for defs in all_attr_defs_by_type.values()
+            for d in defs
+            if isinstance(d, DrugAttrFieldDefinition)
+        ]
+        code_defs = [
+            d
+            for defs in all_attr_defs_by_type.values()
+            for d in defs
+            if isinstance(d, DrugCodeSystem)
+        ]
+
         async with get_async_session_context() as session:
-            select(DrugAttrFieldDefinition)
-            for obj in objs:
-                # log.info(("obj", obj))
-                try:
-                    session.add(obj)
-                except:
-                    log.error(("Failed obj", obj))
-                    raise
-            log.info(" Commit Drug data to database. This may take a while...")
+            update_defs: List[DrugAttrFieldDefinition | DrugCodeSystem] = []
+            insert_defs: List[DrugAttrFieldDefinition | DrugCodeSystem] = []
+
+            # Process attribute definitions
+            query = select(DrugAttrFieldDefinition).where(
+                DrugAttrFieldDefinition.importer_name == self.dataset_name
+            )
+            old_attr_defs = (await session.exec(query)).all()
+            for current_def in attr_defs:
+                old_def = next(
+                    (
+                        d
+                        for d in old_attr_defs
+                        if d.field_name == current_def.field_name
+                    ),
+                    None,
+                )
+                if old_def is None:
+                    insert_defs.append(current_def)
+                else:
+                    sqlmodel_apply_updates(old_def, current_def)
+                    update_defs.append(old_def)
+
+            # Process code definitions
+            query = select(DrugCodeSystem).where(
+                DrugCodeSystem.importer_name == self.dataset_name
+            )
+            old_code_defs = (await session.exec(query)).all()
+            for current_def in code_defs:
+                old_def = next(
+                    (d for d in old_code_defs if d.name == current_def.name),
+                    None,
+                )
+                if old_def is None:
+                    insert_defs.append(current_def)
+                else:
+                    sqlmodel_apply_updates(old_def, current_def)
+                    update_defs.append(old_def)
+
+            session.add_all(update_defs + insert_defs)
             await session.commit()
 
     async def _set_dataset_version_status(

@@ -11,6 +11,7 @@ from typing import (
     Any,
     Type,
 )
+from sqlmodel import SQLModel
 
 if TYPE_CHECKING:
     from hashlib import _Hash as Hash  # https://github.com/python/typeshed/issues/2928
@@ -592,3 +593,10 @@ async def commit_with_retry_when_sqlite_is_locked(
             # Wait a random amount before retrying
             wait_time = random.uniform(min_wait, max_wait)
             time.sleep(wait_time)
+
+
+def sqlmodel_apply_updates(existing: SQLModel, incoming: SQLModel):
+    """Copy non-None fields from `incoming` to `existing`."""
+    for field, value in incoming.model_dump(exclude_unset=True).items():
+        setattr(existing, field, value)
+    return existing

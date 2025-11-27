@@ -858,7 +858,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             ):
                 # drug_schema_objects.append(ref_lov_field_obj.field)
                 lov_item_objs = await self._generate_lov_items(
-                    ref_lov_field_obj.field, lov_definition=ref_lov_field_obj.lov
+                    ref_lov_field_obj.field,
+                    lov_definition=ref_lov_field_obj.lov,
+                    drug_dataset_version=drug_dataset,
                 )
                 # only needed for debugin validation
                 # self._lov_values[ref_lov_field_obj.field.field_name] = lov_item_objs
@@ -1519,6 +1521,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self,
         paren_field: DrugValRef,
         lov_definition: MmiPiDrugAttrRefFieldLovImportDefinition,
+        drug_dataset_version: DrugDataSetVersion,
     ) -> List[DrugAttrFieldLovItem]:
         lov_items: List[DrugAttrFieldLovItem] = []
         source_file = Path(self.source_dir, lov_definition.lov_source_file)
@@ -1560,6 +1563,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     display=display_value,
                     sort_order=index,
                     importer_name=importername,
+                    drug_dataset_version_fk=drug_dataset_version.id,
                 )
                 lov_items.append(li)
         if lov_definition.sort_attr is not None:
