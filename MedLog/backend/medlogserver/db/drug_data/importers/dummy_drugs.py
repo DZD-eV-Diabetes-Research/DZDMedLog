@@ -203,7 +203,7 @@ code_attr_definitions = [
             desc="The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties.",
             optional=True,
             unique=False,
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
         ),
         source_mapping=drugs_csv_2_attr_mappings["codes.ATC"],
     ),
@@ -214,7 +214,7 @@ code_attr_definitions = [
             country="Germany",
             optional=False,
             unique=True,
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
         ),
         source_mapping=drugs_csv_2_attr_mappings["codes.PZN"],
     ),
@@ -232,7 +232,7 @@ attr_definitions = [
             is_reference_list_field=False,
             is_multi_val_field=False,
             examples=["10", "5.5", "80"],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
             searchable=True,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs.amount"],
@@ -248,7 +248,7 @@ attr_definitions = [
             is_reference_list_field=False,
             is_multi_val_field=False,
             examples=["PharamGigant", "MoneyMaker"],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs.manufacturer"],
     ),
@@ -263,7 +263,7 @@ attr_definitions = [
             is_reference_list_field=False,
             is_multi_val_field=False,
             examples=["Spray", "Needle"],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs.deliverysystem"],
     ),
@@ -278,7 +278,7 @@ attr_definitions = [
             is_reference_list_field=False,
             is_multi_val_field=False,
             examples=["oral", "intravenous"],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs.routeofadministration"],
     ),
@@ -297,7 +297,7 @@ attr_multi_definitions: List[DrugAttrFieldDefinitionContainer] = [
             is_reference_list_field=False,
             is_multi_val_field=True,
             examples=["autoimmune", "suppress"],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
             searchable=True,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs_multi.keywords"],
@@ -317,7 +317,7 @@ attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             is_reference_list_field=True,
             is_multi_val_field=False,
             examples=[1, 2],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
             searchable=True,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs_ref.dispensingtype"],
@@ -342,7 +342,7 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             is_reference_list_field=True,
             is_multi_val_field=True,
             examples=["DE", "UK"],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
             searchable=True,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs_multi_ref.producing_country"],
@@ -358,7 +358,7 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
 class DummyDrugImporterV1(DrugDataSetImporterBase):
     def __init__(self):
         self.dataset_name = "DummyDrugs"
-        self.api_name = "dummydrugs"
+        self.api_name = importername
         self.dataset_link = ""
         self.source_dir = None
         self.version = None
@@ -503,15 +503,16 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             for attrdef in attrdefs:
                 all_attr_defs_flat.append(attrdef)
 
-        all_objs.extend(all_attr_defs_flat)
+        # all_objs.extend(all_attr_defs_flat)
         for ref_lov_field_obj in attr_ref_definitions + attr_multi_ref_definitions:
-            all_objs.append(ref_lov_field_obj.field)
+            # all_objs.append(ref_lov_field_obj.field)
+            field: DrugAttrFieldDefinition = ref_lov_field_obj.field
             lov_item_objs = await self._generate_lov_items(
-                ref_lov_field_obj.field,
+                field,
                 lov_definition=ref_lov_field_obj.lov,
                 drug_dataset_version=drug_dataset,
             )
-            self._lov_values[ref_lov_field_obj.field.field_name] = lov_item_objs
+            self._lov_values[field.field_name] = lov_item_objs
 
             all_objs.extend(lov_item_objs)
 
@@ -589,7 +590,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                 DrugVal(
                     field_name=attr_data.field.field_name,
                     value=drug_attr_value,
-                    importer_name=importername,
+                    importer_name=config.DRUG_IMPORTER_PLUGIN,
                 )
             )
         # drug ref attr
@@ -608,7 +609,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                 DrugValRef(
                     field_name=attr_ref_data.field.field_name,
                     value=drug_attr_value,
-                    importer_name=importername,
+                    importer_name=config.DRUG_IMPORTER_PLUGIN,
+                    drug_dataset_version_fk=drug_dataset_version.id,
                 )
             )
         # drug multi attrs
@@ -628,7 +630,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                         field_name=attr_multi_data.field.field_name,
                         value=drug_attr_val,
                         value_index=index,
-                        importer_name=importername,
+                        importer_name=config.DRUG_IMPORTER_PLUGIN,
                     )
                 )
         # drug multi ref attrs
@@ -648,7 +650,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                         field_name=attr_multi_ref_data.field.field_name,
                         value=drug_attr_val,
                         value_index=index,
-                        importer_name=importername,
+                        importer_name=config.DRUG_IMPORTER_PLUGIN,
+                        drug_dataset_version_fk=drug_dataset_version.id,
                     )
                 )
         return result_drug_data
@@ -698,7 +701,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                 f"Could not cast raw value '{value}' to type {target_attr_def.value_type.value.python_type} as defined in {target_attr_def}. "
             )
 
-    async def commit(self, objs):
+    async def commit(self, objs: SQLModel):
         async with get_async_session_context() as session:
             for obj in objs:
                 # log.info(("obj", obj))
@@ -712,7 +715,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
 
     async def _generate_lov_items(
         self,
-        paren_field: DrugValRef,
+        paren_field: DrugAttrFieldDefinition,
         lov_definition: DrugAttrRefFieldLovImportDefinition,
         drug_dataset_version: DrugDataSetVersion,
     ) -> List[DrugAttrFieldLovItem]:
@@ -746,7 +749,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                     value=value,
                     display=display_value,
                     sort_order=index,
-                    importer_name=importername,
+                    importer_name=config.DRUG_IMPORTER_PLUGIN,
                     drug_dataset_version_fk=drug_dataset_version.id,
                 )
                 lov_items.append(li)

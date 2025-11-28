@@ -15,6 +15,11 @@ class DrugCodeSystem(DrugModelTableBase, table=True):
             "importer_name",
             name="uq_code_system_field_definition__field__importer",
         ),
+        UniqueConstraint(
+            "id",
+            "importer_name",
+            name="uq_code_system_field_definition_id__field__importer",
+        ),
         {
             "comment": "Definition of dataset specific fields and lookup fields. this is a read only table. The attribute field definitons are defined in code. Any changes on the SQL table rows/values will be overwriten."
         },

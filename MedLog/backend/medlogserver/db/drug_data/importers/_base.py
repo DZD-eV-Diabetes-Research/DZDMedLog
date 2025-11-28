@@ -203,6 +203,13 @@ class DrugDataSetImporterBase:
         await self._set_dataset_version_status("done")
         await self.activate_dataset()
 
+    async def get_currently_activated_dataset(self) -> DrugDataSetVersion | None:
+        datasets = await self.get_already_imported_datasets()
+        for dataset in datasets:
+            if dataset.current_active:
+                return dataset
+        return None
+
     async def activate_dataset(self) -> DrugDataSetVersion:
         dataset_version: DrugDataSetVersion = await self._ensure_drug_dataset_version()
         query_other_active_dataset_versions = select(DrugDataSetVersion).where(
@@ -343,9 +350,12 @@ class DrugDataSetImporterBase:
 
             # Process attribute definitions
             query = select(DrugAttrFieldDefinition).where(
-                DrugAttrFieldDefinition.importer_name == self.dataset_name
+                DrugAttrFieldDefinition.importer_name == self.api_name
             )
             old_attr_defs = (await session.exec(query)).all()
+            log.debug(
+                f"_ensure_field_definitions_in_database old_attr_defs {old_attr_defs}"
+            )
             for current_def in attr_defs:
                 old_def = next(
                     (
@@ -363,21 +373,28 @@ class DrugDataSetImporterBase:
 
             # Process code definitions
             query = select(DrugCodeSystem).where(
-                DrugCodeSystem.importer_name == self.dataset_name
+                DrugCodeSystem.importer_name == self.api_name
             )
             old_code_defs = (await session.exec(query)).all()
             for current_def in code_defs:
                 old_def = next(
-                    (d for d in old_code_defs if d.name == current_def.name),
+                    (d for d in old_code_defs if d.id == current_def.id),
                     None,
                 )
                 if old_def is None:
                     insert_defs.append(current_def)
                 else:
-                    sqlmodel_apply_updates(old_def, current_def)
-                    update_defs.append(old_def)
+                    field_updated: bool = sqlmodel_apply_updates(old_def, current_def)
+                    if field_updated:
+                        update_defs.append(old_def)
 
-            session.add_all(update_defs + insert_defs)
+            session.add_all(insert_defs)
+            log.debug(
+                f"_ensure_field_definitions_in_database update_defs {update_defs}"
+            )
+            log.debug(
+                f"_ensure_field_definitions_in_database insert_defs {insert_defs}"
+            )
             await session.commit()
 
     async def _set_dataset_version_status(

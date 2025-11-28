@@ -8,6 +8,7 @@ from typing import (
     Tuple,
     Callable,
 )
+from xml.dom import NotFoundErr
 from pydantic import validate_email, validator, StringConstraints
 from pydantic_core import PydanticCustomError
 from fastapi import Depends
@@ -209,7 +210,11 @@ class DrugCRUD(
     ) -> DrugData:
         drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
         drug_importer = drug_importer_class()
-
+        current_dataset = await drug_importer.get_currently_activated_dataset()
+        if current_dataset is None:
+            raise NotFoundErr(
+                "No Drug Dataset loaded yet or at the moment. Can not create custom drug."
+            )
         new_objects = []
         new_drug_id = uuid.uuid4()
 
@@ -244,7 +249,6 @@ class DrugCRUD(
         async def find_lov_item(
             attr_type: AttrNamesType, field_name: str, val: str
         ) -> DrugAttrFieldLovItem:
-
             if val is None:
                 attr_def: DrugAttrFieldDefinition = find_attr_def(attr_type, field_name)
                 if not attr_def.has_default:
@@ -255,6 +259,7 @@ class DrugCRUD(
                 and_(
                     DrugAttrFieldLovItem.field_name == field_name,
                     DrugAttrFieldLovItem.value == val,
+                    DrugAttrFieldLovItem.drug_dataset_version_fk == current_dataset.id,
                 )
             )
 
@@ -288,6 +293,7 @@ class DrugCRUD(
                     value=attr_ref_create.value,
                     # lov_item=lov_item,
                     importer_name=config.DRUG_IMPORTER_PLUGIN,
+                    drug_dataset_version_fk=current_dataset.id,
                 )
             )
         # attrs_multi
@@ -321,14 +327,13 @@ class DrugCRUD(
                         field_name=attr_multi_ref_def.field_name,
                         value=multi_val,
                         importer_name=config.DRUG_IMPORTER_PLUGIN,
-                        # lov_item=lov_item,
+                        drug_dataset_version_fk=current_dataset.id,
                     )
                 )
 
         # codes - drug code attr (e.g. atc code,pzn,...)
         code_defs = await drug_importer.get_code_definitions()
         if drug_create.codes is not None:
-
             for code_create in drug_create.codes:
                 code_create: DrugCodeApi = code_create
                 code_system: DrugCodeSystem = next(

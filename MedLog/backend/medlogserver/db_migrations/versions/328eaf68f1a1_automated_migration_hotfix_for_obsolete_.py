@@ -34,6 +34,7 @@ def upgrade():
             existing_type=sa.VARCHAR(),
             type_=sa.LargeBinary(),
             existing_nullable=False,
+            postgresql_using="encode(salt::bytea, 'escape')::bytea",
         )
         # ### end Alembic commands ###
     elif dialect == "sqlite":

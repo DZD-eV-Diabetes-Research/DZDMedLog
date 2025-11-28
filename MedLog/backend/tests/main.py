@@ -24,8 +24,15 @@ from statics import (
 
 def set_config_for_test_env():
     os.environ["MEDLOG_DOT_ENV_FILE"] = DOT_ENV_FILE_PATH
-    print(f"set SQL_DATABASE_URL to {DB_PATH}")
-    os.environ["SQL_DATABASE_URL"] = f"sqlite+aiosqlite:///{DB_PATH}"
+
+    SQL_DATABASE_URL = os.getenv("SQL_DATABASE_URL", default=None)
+
+    os.environ["SQL_DATABASE_URL"] = (
+        SQL_DATABASE_URL
+        if SQL_DATABASE_URL is not None
+        else f"sqlite+aiosqlite:///{DB_PATH}"
+    )
+    print(f"set SQL_DATABASE_URL to {os.environ['SQL_DATABASE_URL']}")
     os.environ["ADMIN_USER_NAME"] = ADMIN_USER_NAME
     os.environ["ADMIN_USER_PW"] = ADMIN_USER_PW
     os.environ["ADMIN_USER_EMAIL"] = ADMIN_USER_EMAIL
@@ -64,7 +71,13 @@ if RESET_DB:
     print(
         f"!!RESET DB AT {DB_PATH}. If you want to have a persisting test db, change the value for env var `MEDLOG_TESTS_RESET_DB` to false or remove it."
     )
-    Path(DB_PATH).unlink(missing_ok=True)
+    SQL_DATABASE_URL: str = os.getenv("SQL_DATABASE_URL", default=None)
+    if SQL_DATABASE_URL.startswith("sqlite"):
+        Path(DB_PATH).unlink(missing_ok=True)
+    else:
+        print(
+            "WARNING: RESET_DB is enabled but SQL_DATABASE_URL is set to an external database. Can not reset the DB. This must be done externaly."
+        )
 
 
 from medlogserver.main import start as medlogserver_start
