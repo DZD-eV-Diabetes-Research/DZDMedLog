@@ -42,6 +42,9 @@ export const useStudyStore = defineStore('StudyStore', {
         },
     },
     getters: {
+        activeStudies(state: StudyState) {
+            return state.studies.filter(study => study.deactivated === false);
+        },
         nameForStudy(state: StudyState) {
             return (studyId: string) => {
                 const study = state.studies.find(item => item.id === studyId);
