@@ -54,6 +54,7 @@ const sort = ref({
           variant="outline"
           color="gray"
           class="mr-2"
+          :disabled="row.deactivated"
       />
       <UButton
           :to="`/studies/${row.id}`"
@@ -62,6 +63,7 @@ const sort = ref({
           variant="outline"
           color="gray"
           class="mr-2"
+          :disabled="row.deactivated"
       />
       <UButton
           label="Zugriff bearbeiten"
@@ -69,6 +71,7 @@ const sort = ref({
           variant="outline"
           color="gray"
           class="mr-2"
+          :disabled="row.deactivated"
           @click="$emit('edit-permissions', row.id)"
       />
       <UButton
@@ -77,6 +80,7 @@ const sort = ref({
           icon="i-heroicons-cloud-arrow-down"
           variant="outline"
           color="gray"
+          :disabled="row.deactivated"
       />
     </template>
   </UTable>

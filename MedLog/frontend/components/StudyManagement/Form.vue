@@ -55,11 +55,20 @@ onMounted(async () => {
     <UFormGroup
         label="Vereinfachtes Rechtekonzept"
         name="no_permissions"
-        description="Eingeloggte Nutzende benötigen keine gesonderte Freigabe für die Studie, um Interviews zu führen. Adminrechte müssen weiterhin explizit vergeben werden.">
+        description="Eingeloggte Nutzende benötigen keine gesonderte Freigabe für die Studie, um Interviews zu führen. Adminrechte müssen weiterhin explizit vergeben werden."
+    >
       <UToggle v-model="state.no_permissions" />
     </UFormGroup>
 
-    <UFormGroup label="Deaktiviert" name="deactivated" description="Versteckt die Studie außerhalb der Studienverwaltung">
+    <UFormGroup
+        label="Deaktiviert"
+        name="deactivated"
+    >
+      <template #description>
+        Versteckt die Studie außerhalb der Studienverwaltung.
+        <span class="text-red-500">Kann derzeit nicht rückgängig gemacht werden!</span>
+      </template>
+
       <UToggle v-model="state.deactivated" />
     </UFormGroup>
     <hr>
