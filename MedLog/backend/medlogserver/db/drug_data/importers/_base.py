@@ -195,7 +195,6 @@ class DrugDataSetImporterBase:
             await self._set_dataset_version_status(status="failed", error=tb)
             log.info("")
             raise e
-            return
 
         await self._finish_import()
 

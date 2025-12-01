@@ -40,6 +40,19 @@ def test_endpoint_drug_update_trigger():
     from medlogserver.model.drug_updater_status import DrugUpdaterStatus
 
     response: Dict[str, Any] = req("api/drug/db/update", method="put")
+    dict_must_contain(
+        response,
+        required_keys_and_val={
+            "update_available": True,
+            "update_available_version": "20251228",
+            "update_running": True,
+            "last_update_run_error": None,
+            "current_drug_data_version": "20241126",
+            "current_drug_data_ready_to_use": True,
+        },
+        required_keys=["last_update_run_datetime_utc"],
+        exception_dict_identifier="test_endpoint_drug_update_trigger response",
+    )
     update_running = True
     while update_running:
         response_status: Dict[str, Any] = req("api/drug/db/update", method="get")
@@ -58,11 +71,11 @@ def test_endpoint_drug_update_trigger():
     dict_must_contain(
         response,
         required_keys_and_val={
-            "update_available": True,
-            "update_available_version": "20251228",
+            "update_available": False,
+            "update_available_version": None,
             "update_running": False,
             "last_update_run_error": None,
-            "current_drug_data_version": "20241126",
+            "current_drug_data_version": "20251228",
             "current_drug_data_ready_to_use": True,
         },
         required_keys=["last_update_run_datetime_utc", "current_drug_data_version"],

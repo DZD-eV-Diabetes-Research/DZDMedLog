@@ -470,7 +470,7 @@ def create_test_study(
                         column_name="NAME",
                         random_gen=random_gen,
                     )
-                    # this is borkt atm with the new 2 versioned dummy drug database
+                    # this is borkt atm with the new 2 versioned dummy drug database. We just use a known fixed drug for now
                     random_drug_name = "Test2Drug"
                     print("random_drug_name", random_drug_name)
                     drug_search_result = req(
