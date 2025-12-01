@@ -100,7 +100,7 @@ async function listDownloads() {
       }
     });
 
-    const studyName = await studyStore.getStudy(route.params.study_id);
+    const studyName = studyStore.getStudy(route.params.study_id);
 
     downloads.value = data.items.map((item) => ({
       study: studyName.display_name,

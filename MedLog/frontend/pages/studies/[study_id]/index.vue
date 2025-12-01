@@ -66,7 +66,7 @@ const isSorted = ref(false);
 const sortButton = ref("Events Sortieren");
 
 const showEventModal = ref(false);
-const study = await studyStore.getStudy(route.params.study_id);
+const study = studyStore.getStudy(route.params.study_id);
 
 const myEvents = ref([])
 

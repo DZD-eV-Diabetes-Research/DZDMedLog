@@ -7,7 +7,11 @@
     </p>
 
     <div class="flex flex-row justify-end">
-      <UButton label="Studie anlegen" :disabled="!userStore.isAdmin" @click="openStudyModal()" />
+      <UButton
+          label="Studie anlegen"
+          icon="i-heroicons-plus"
+          :disabled="!userStore.isAdmin"
+          @click="openStudyModal()" />
     </div>
 
     <StudyManagementTable
@@ -73,7 +77,7 @@ async function createStudy() {
       method: "POST",
       body,
     });
-    await studyStore.getAvailableStudies();
+    await studyStore.loadAvailableStudies();
     showModal.value = false;
   } catch (error) {
     errorMessage.value = error.response?._data?.detail ?? error.message ?? error;
@@ -86,4 +90,8 @@ function openStudyPermissionModal(study_id: string) {
   studyPermissionModal.value = !studyPermissionModal.value
   studyId.value = study_id
 }
+
+onMounted(() => {
+  studyStore.loadAvailableStudies();
+});
 </script>

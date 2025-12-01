@@ -48,6 +48,14 @@ const sort = ref({
 
     <template #actions-data="{ row }">
       <UButton
+          :to="`/manage/studies/${row.id}`"
+          label="Bearbeiten"
+          icon="i-heroicons-pencil"
+          variant="outline"
+          color="gray"
+          class="mr-2"
+      />
+      <UButton
           :to="`/studies/${row.id}`"
           label="Events verwalten"
           icon="i-heroicons-calendar-days"
