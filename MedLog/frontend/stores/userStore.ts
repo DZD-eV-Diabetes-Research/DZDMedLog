@@ -61,5 +61,12 @@ export const useUserStore = defineStore('UserStore', {
             const roleStore = useRoleStore()
             return this.currentUser.roles.some(role => roleStore.isUserManagerRole(role));
         },
+        nameForUser(state: UserStore) {
+            return (userId: string) => {
+                const user = state.users.find(item => item.id === userId);
+
+                return user ? (user.display_name ?? user.user_name) : undefined;
+            };
+        }
     },
 }) 

@@ -21,8 +21,6 @@ defineProps({
   studies: { type: Array as () => SchemaStudy[], default: () => [] },
 });
 
-defineEmits(['edit-permissions']);
-
 const sort = ref({
   column: 'display_name',
   direction: 'asc'
@@ -67,13 +65,13 @@ const sort = ref({
           :disabled="row.deactivated"
       />
       <UButton
+          :to="`/manage/studies/${row.id}/access`"
           label="Zugriff bearbeiten"
           icon="i-heroicons-key-solid"
           variant="outline"
           color="gray"
           class="mr-2"
           :disabled="row.deactivated"
-          @click="$emit('edit-permissions', row.id)"
       />
       <UButton
           :to="`/studies/${row.id}/export`"

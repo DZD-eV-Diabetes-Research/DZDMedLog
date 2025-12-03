@@ -14,10 +14,7 @@
           @click="openStudyModal()" />
     </div>
 
-    <StudyManagementTable
-        :studies="studyStore.studies"
-        @edit-permissions="(studyId) => openStudyPermissionModal(studyId)"
-    />
+    <StudyManagementTable :studies="studyStore.studies"/>
 
     <UModal v-model="showModal" class="w-[1000px] !important">
       <div class="p-4 text-center">
@@ -32,9 +29,6 @@
               class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
         </UForm>
       </div>
-    </UModal>
-    <UModal v-model="studyPermissionModal" :ui="{ width: 'lg:max-w-6xl' }">
-      <StudyPermissionManagement :study-id="studyId" />
     </UModal>
   </section>
   <section v-else class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
@@ -82,13 +76,6 @@ async function createStudy() {
   } catch (error) {
     errorMessage.value = error.response?._data?.detail ?? error.message ?? error;
   }
-}
-
-const studyId = ref("")
-const studyPermissionModal = ref(false)
-function openStudyPermissionModal(study_id: string) {
-  studyPermissionModal.value = !studyPermissionModal.value
-  studyId.value = study_id
 }
 
 onMounted(() => {
