@@ -41,6 +41,7 @@ export default defineNuxtConfig({
           icons: [
               // Apparently the scan option below does not include icons of stock components.
               // Icons reported as missing can be included here.
+              'heroicons:arrow-path-20-solid',
               'heroicons:arrows-up-down-20-solid',
               'heroicons:bars-arrow-down-20-solid',
               'heroicons:bars-arrow-up-20-solid',
@@ -71,6 +72,9 @@ export default defineNuxtConfig({
         schema: "../openapi.json",
         baseURL: "/api",
       },
+    },
+    openAPITS: {
+        rootTypes: true,
     },
   },
   nitro: {

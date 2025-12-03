@@ -36,7 +36,7 @@ if (userStore.isLoggedIn) {
   // Set up basic global data
   try {
     await configStore.fetchAllConfigs();
-    await studyStore.getAvailableStudies();
+    await studyStore.loadAvailableStudies();
     await drugFieldsStore.fetchFields();
     await drugFieldsStore.fetchCodes();
   } catch (error) {

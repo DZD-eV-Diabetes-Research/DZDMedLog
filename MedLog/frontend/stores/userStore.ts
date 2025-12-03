@@ -1,51 +1,72 @@
 // Store to handle the User-information
 
-import { defineStore } from 'pinia'
+import {defineStore} from 'pinia'
+import type {SchemaUser} from '#open-fetch-schemas/medlogapi'
 
 interface UserStore {
-    email: string,
-    displayName: string,
-    roles: string[],
-    userName: string,
-    viewProfile: boolean,
-    buttonText: string,
-    userID: string,
+    currentUserId?: string
+    users: SchemaUser[]
 }
 
 export const useUserStore = defineStore('UserStore', {
     state: (): UserStore => ({
-        email: "",
-        displayName: "",
-        roles: [],
-        userName: "",
-        viewProfile: false,
-        buttonText: "Toggle to User",
-        userID: "",
+        currentUserId: undefined,
+        users: [],
     }),
     actions: {
         async setUserInfo() {
-            const {$medlogapi} = useNuxtApp();
-
-            const data = await $medlogapi("/api/user/me")
-
-            this.email = data.email
-            this.displayName = data.display_name
-            this.roles = data.roles
-            this.userName = data.user_name
-            this.userID = data.id
-        }
+            const me = await useGetUserMe();
+            this.upsertUser(me);
+            this.currentUserId = me.id;
+        },
+        async loadUsers() {
+            const users = await useGetUsers(true);
+            for (const user of users) {
+                this.upsertUser(user);
+            }
+        },
+        upsertUser(userToUpsert: SchemaUser) {
+            const indexOfExistingUser = this.users.findIndex(user => user.id === userToUpsert.id);
+            if (indexOfExistingUser !== -1) {
+                this.users[indexOfExistingUser] = userToUpsert;
+            } else {
+                this.users.push(userToUpsert);
+            }
+        },
     },
     getters: {
-        isLoggedIn: state => {
-            return state.userID !== ''
+        allUsers: (state): SchemaUser[] => {
+            return state.users
         },
-        isAdmin: state => {
+        currentUser: (state): SchemaUser | null => {
+            const foundUser = state.users.find(user => user.id === state.currentUserId);
+            return foundUser ? foundUser : null;
+        },
+        isLoggedIn(): boolean{
+            return this.currentUser !== null
+        },
+        isAdmin(): boolean {
+            if (!this.currentUser) {
+                return false;
+            }
+
             const roleStore = useRoleStore()
-            return state.roles.some(role => roleStore.isAdminRole(role));
+            return this.currentUser.roles.some(role => roleStore.isAdminRole(role));
         },
-        isUserAdmin: state => {
+        isUserAdmin(): boolean {
+            if (!this.currentUser) {
+                return false;
+            }
+
             const roleStore = useRoleStore()
-            return state.roles.some(role => roleStore.isUserManagerRole(role));
+            return this.currentUser.roles.some(role => roleStore.isUserManagerRole(role));
         },
+        nameForUser(state: UserStore) {
+            return (userId: string) => {
+                const user = state.users.find(item => item.id === userId);
+
+                return user ? (user.display_name ?? user.user_name) : undefined;
+            };
+        }
     },
 }) 

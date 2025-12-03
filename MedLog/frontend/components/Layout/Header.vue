@@ -26,6 +26,7 @@ const menuItems = computed(() => {
   const links = [
     [{
       label: 'Interview durchführen',
+      labelClass: 'text-base',
       icon: 'i-heroicons-home',
       to: '/'
     }]
@@ -36,14 +37,16 @@ const menuItems = computed(() => {
   if (userStore.isLoggedIn && userStore.isAdmin) {
     rightSideLinks.push({
       label: 'Studienverwaltung',
+      labelClass: 'text-base',
       icon: 'i-heroicons-clipboard-document-list',
-      to: '/studies'
+      to: '/manage/studies'
     });
   }
 
   if (userStore.isLoggedIn && userStore.isUserAdmin) {
     rightSideLinks.push({
       label: 'Kontoverwaltung',
+      labelClass: 'text-base',
       icon: 'i-heroicons-users',
       to: '/manage/users'
     });
@@ -51,6 +54,7 @@ const menuItems = computed(() => {
 
   rightSideLinks.push({
     label: 'Hilfe',
+    labelClass: 'text-base',
     icon: 'i-heroicons-question-mark-circle',
     to: '/help',
   });
@@ -58,12 +62,14 @@ const menuItems = computed(() => {
   if (userStore.isLoggedIn) {
     rightSideLinks.push({
       label: 'Logout',
+      labelClass: 'text-base',
       icon: 'i-heroicons-power',
       click: logout
     });
   } else {
     rightSideLinks.push({
       label: 'Login',
+      labelClass: 'text-base',
       icon: 'i-heroicons-arrow-right-end-on-rectangle',
       to: '/login',
     });

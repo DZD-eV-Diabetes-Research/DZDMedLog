@@ -1,64 +1,75 @@
 <template>
-  <div class="mt-8">
-    <div style="text-align: center">
-      <h2 class="text-4xl font-normal mb-4">Datenexport</h2>
+  <section v-if="isAllowedToExport" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
+    <div class="flex justify-center break-all">
+      <h1 class="text-4xl font-normal text-center mb-4">Datenexport &ndash; {{ studyStore.nameForStudy(studyId) }}</h1>
     </div>
-    <div style="text-align: center">
-      <UButton
-        type="button" label="Download anfragen" color="blue" variant="soft"
-        class="border border-blue-500 hover:bg-blue-300 hover:border-white hover:text-white"
-        @click="requestDownload()" />
-    </div>
-    <div class="my-card">
-      <UTable :rows="downloads" :columns="columns">
-        <template #status-data="{ row }">
-          <div v-if="row.status === 'success'">
-            <UTooltip text="Export erfolgreich" :popper="{ arrow: true }">
-            <UButton
-              icon="i-heroicons-check" size="2xs" color="primary" variant="solid"
-              :ui="{ rounded: 'rounded-full' }" class="no-hover" square />
-            </UTooltip>
-          </div>
 
-          <div v-else-if="row.status === 'failed'">
-            <UTooltip text="Export fehlgeschlagen" :popper="{ arrow: true }">
-              <UButton
+    <div class="flex flex-row justify-end">
+      <UButton
+        label="Export generieren"
+        icon="i-heroicons-archive-box"
+        variant="solid"
+        @click="requestDownload()"
+      />
+    </div>
+    <UTable :rows="downloads" :columns="columns">
+      <template #status-data="{ row }">
+        <div v-if="row.status === 'success'">
+          <UTooltip text="Export erfolgreich" :popper="{ arrow: true }">
+            <UButton
+                icon="i-heroicons-check" size="2xs" color="primary" variant="solid"
+                :ui="{ rounded: 'rounded-full' }" class="no-hover" square />
+          </UTooltip>
+        </div>
+
+        <div v-else-if="row.status === 'failed'">
+          <UTooltip text="Export fehlgeschlagen" :popper="{ arrow: true }">
+            <UButton
                 icon="i-heroicons-x-mark" size="2xs" color="red" variant="solid"
                 :ui="{ rounded: 'rounded-full' }" class="no-hover" square />
-            </UTooltip>
-          </div>
+          </UTooltip>
+        </div>
 
-          <div v-else>
-            <UTooltip text="Export läuft" :popper="{ arrow: true }">
-              <UButton
+        <div v-else>
+          <UTooltip text="Export läuft" :popper="{ arrow: true }">
+            <UButton
                 icon="i-heroicons-arrow-path" size="2xs" color="blue" variant="outline"
                 :ui="{ rounded: 'rounded-full' }" :class="{ rotating: row.status === 'queued' }" class="no-hover"
                 square />
-            </UTooltip>
-
-          </div>
-        </template>
-        <template #actions-data="{ row }">
-          <UButton
-            v-if="row.status === 'success'" color="gray" variant="ghost" icon="i-heroicons-arrow-down-tray"
+          </UTooltip>
+        </div>
+      </template>
+      <template #actions-data="{ row }">
+        <UButton
+            v-if="row.status === 'success'"
+            label="Herunterladen"
+            color="gray"
+            variant="outline"
+            icon="i-heroicons-arrow-down-tray"
             @click="downloadFile(row)" />
-        </template>
-      </UTable>
-    </div>
-  </div>
+      </template>
+    </UTable>
+  </section>
+  <section v-else class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
+    <ErrorMessage
+        title="Keine Berechtigung"
+        message="Ihnen fehlt die Berechtigung für diese Seite"
+    />
+  </section>
 </template>
 
 <script setup lang="ts">
 const route = useRoute();
-const _runtimeConfig = useRuntimeConfig();
 const studyStore = useStudyStore();
 const { $medlogapi } = useNuxtApp();
 const toast = useToast();
+const userStore = useUserStore();
 
 const columns = [
   {
     key: "study",
     label: "Studie",
+    rowClass: 'max-w-64 break-all',
   },
   {
     key: "time",
@@ -77,9 +88,18 @@ const columns = [
 const downloads = ref([]);
 let downloadCheckInterval: NodeJS.Timeout | null = null;
 
+const isAllowedToExport = computed(() => {
+  // TODO check for study-specific rights
+  return userStore.isAdmin;
+});
+
+const studyId = computed(() => {
+  return route.params.study_id;
+});
+
 function parseTime(time: string) {
   const date = new Date(time);
-  const options = {
+  return date.toLocaleString('de-DE', {
     weekday: 'short',
     year: 'numeric',
     month: 'short',
@@ -87,8 +107,7 @@ function parseTime(time: string) {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
-  };
-  return date.toLocaleString('de-DE', options).replace(',', '');
+  }).replace(',', '');
 }
 
 
@@ -96,11 +115,11 @@ async function listDownloads() {
   try {
     const data = await $medlogapi(`/api/study/{studyId}/export`, {
       path: {
-        studyId: route.params.study_id,
+        studyId: studyId.value,
       }
     });
 
-    const studyName = await studyStore.getStudy(route.params.study_id);
+    const studyName = studyStore.getStudy(studyId.value);
 
     downloads.value = data.items.map((item) => ({
       study: studyName.display_name,
@@ -157,7 +176,7 @@ async function requestDownload() {
       {
         method: "POST",
         path: {
-          studyId: route.params.study_id
+          studyId: studyId.value
         }
       }
     );
@@ -221,5 +240,10 @@ onBeforeUnmount(() => {
   background-color: transparent;
   border-color: inherit;
   color: inherit;
+}
+
+:deep(td:first-child) {
+  /* Override the white-space breaking for the first column  */
+  white-space: unset;
 }
 </style>
