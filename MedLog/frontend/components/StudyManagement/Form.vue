@@ -17,7 +17,7 @@ const state = reactive({
 });
 
 const schema = object({
-  display_name: string().required("Ein Name ist erforderlich"),
+  display_name: string().max(128).required("Ein Name ist erforderlich"),
   no_permissions: boolean().required(),
   deactivated: boolean().required(),
 });

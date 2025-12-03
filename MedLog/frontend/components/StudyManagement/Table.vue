@@ -5,6 +5,7 @@ const columns = [{
   key: 'display_name',
   label: 'Name',
   sortable: true,
+  rowClass: 'max-w-64 break-all',
 }, {
   key: 'active',
   label: 'Aktiv'
@@ -87,5 +88,8 @@ const sort = ref({
 </template>
 
 <style scoped>
-
+:deep(td:first-child) {
+  /* Override the white-space breaking for the first column  */
+  white-space: unset;
+}
 </style>

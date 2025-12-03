@@ -1,6 +1,8 @@
 <template>
   <section v-if="isAllowedToExport" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
-    <h1 class="text-4xl font-normal text-center mb-4">Datenexport &ndash; {{ studyStore.nameForStudy(studyId) }}</h1>
+    <div class="flex justify-center break-all">
+      <h1 class="text-4xl font-normal text-center mb-4">Datenexport &ndash; {{ studyStore.nameForStudy(studyId) }}</h1>
+    </div>
 
     <div class="flex flex-row justify-end">
       <UButton
@@ -67,6 +69,7 @@ const columns = [
   {
     key: "study",
     label: "Studie",
+    rowClass: 'max-w-64 break-all',
   },
   {
     key: "time",
@@ -237,5 +240,10 @@ onBeforeUnmount(() => {
   background-color: transparent;
   border-color: inherit;
   color: inherit;
+}
+
+:deep(td:first-child) {
+  /* Override the white-space breaking for the first column  */
+  white-space: unset;
 }
 </style>

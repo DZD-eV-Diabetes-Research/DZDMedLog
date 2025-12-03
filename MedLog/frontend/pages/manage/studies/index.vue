@@ -59,7 +59,7 @@ const state = reactive({
 });
 
 const schema = object({
-  study_name: string().required("Required"),
+  study_name: string().max(128).required("Required"),
 });
 
 const errorMessage = ref();
