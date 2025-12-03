@@ -115,7 +115,6 @@ def test_endpoint_study_delete():
 
 
 def test_create_duplicate_study_name():
-
     from medlogserver.model.study import StudyCreateAPI, Study, StudyUpdate
     from medlogserver.api.routes.routes_study import create_study
 
