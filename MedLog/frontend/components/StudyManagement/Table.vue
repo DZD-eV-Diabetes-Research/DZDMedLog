@@ -57,7 +57,7 @@ const sort = ref({
           :disabled="row.deactivated"
       />
       <UButton
-          :to="`/studies/${row.id}`"
+          :to="`/manage/studies/${row.id}/events`"
           label="Events verwalten"
           icon="i-heroicons-calendar-days"
           variant="outline"
