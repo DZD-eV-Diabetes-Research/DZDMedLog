@@ -2,11 +2,18 @@ from typing import Any, List, Dict
 import json
 from _single_test_file_runner import run_all_tests_if_test_file_called
 import time
+import datetime
 
 if __name__ == "__main__":
     run_all_tests_if_test_file_called()
 
-from utils import req, dict_must_contain
+from utils import (
+    req,
+    dict_must_contain,
+    dictyfy,
+    create_test_study,
+    TestDataContainerStudy,
+)
 
 
 def test_endpoint_drug_update_status():
@@ -32,12 +39,83 @@ def test_endpoint_drug_update_status():
     )
 
 
-def test_endpoint_drug_update_trigger():
-    """Test GET /api/drug/db/update endpoint"""
+def test_endpoint_drug_update_workflow():
+    """This tests a complete workflow. updating the drugdatabase and validate everything for sanity
+    This must be done in large test as we have a lot of state handling/validation during this process
+    """
     from medlogserver.api.routes.routes_drug_db_updater import (
         trigger_drug_update_active,
     )
     from medlogserver.model.drug_updater_status import DrugUpdaterStatus
+
+    #####
+    # PREPS
+    ####
+
+    # get and store drugs from current dataset currents to validate change later
+    # DrugToProveIntialDataset1
+    # DrugToProveIntialDatasetCleaned2
+    drug_search_response: Dict[str, Any] = req(
+        "api/drug/search", method="get", q={"search_term": "DrugToProveIntialDataset1"}
+    )
+    drug_to_prove_inital_dataset = drug_search_response["items"][0]["drug"]
+    from medlogserver.api.routes.routes_drug import DrugAPIRead
+
+    assert drug_to_prove_inital_dataset["trade_name"] == "DrugToProveIntialDataset1"
+    drug_search_response: Dict[str, Any] = req(
+        "api/drug/search",
+        method="get",
+        q={"search_term": "DrugToProveIntialDatasetCleaned2"},
+    )
+    drug_to_prove_inital_dataset_was_cleaned = drug_search_response["items"][0]["drug"]
+    assert (
+        drug_to_prove_inital_dataset_was_cleaned["trade_name"]
+        == "DrugToProveIntialDatasetCleaned2"
+    )
+
+    #####
+    # Use one drug of current dataset
+    #####
+
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="test_endpoint_drug_update_workflow_study",
+        with_events=1,
+        with_interviews_per_event_per_proband=0,
+        proband_count=1,
+    )
+    study_id = study_data.study.id
+    event = study_data.events[0]
+    interview = event.interviews[0]
+
+    from medlogserver.model.intake import (
+        IntakeCreateAPI,
+        SourceOfDrugInformationAnwers,
+        AdministeredByDoctorAnswers,
+        IntakeRegularOrAsNeededAnswers,
+        ConsumedMedsTodayAnswers,
+    )
+
+    # Create a test intake
+    intake_data = IntakeCreateAPI(
+        drug_id=drug_to_prove_inital_dataset_was_cleaned["id"],
+        source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
+        intake_start_time_utc=datetime.date.today().isoformat(),
+        administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
+        intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
+        as_needed_dose_unit=1,
+        consumed_meds_today=ConsumedMedsTodayAnswers.UNKNOWN,
+    )
+    intake_data_dict = dictyfy(intake_data)
+    from medlogserver.api.routes.routes_intake import create_intake
+
+    new_intake = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake",
+        method="post",
+        b=intake_data_dict,
+    )
+    #####
+    # Trigger the update
+    #####
 
     response: Dict[str, Any] = req("api/drug/db/update", method="put")
     dict_must_contain(
@@ -53,6 +131,11 @@ def test_endpoint_drug_update_trigger():
         required_keys=["last_update_run_datetime_utc"],
         exception_dict_identifier="test_endpoint_drug_update_trigger response",
     )
+
+    #####
+    # Wait for the update to be finished
+    #####
+
     update_running = True
     while update_running:
         response_status: Dict[str, Any] = req("api/drug/db/update", method="get")
@@ -66,6 +149,11 @@ def test_endpoint_drug_update_trigger():
         update_running = response_status["update_running"]
         print("WAIT FOR UPDATE update_running:", update_running)
         time.sleep(2)
+
+    #####
+    # Validate update status
+    #####
+
     response: Dict[str, Any] = req("api/drug/db/update", method="get")
     print("response", response)
     dict_must_contain(

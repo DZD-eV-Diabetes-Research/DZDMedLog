@@ -2,10 +2,11 @@ NAME;MARKET_ACCESS_DATE;MARKET_EXIT_DATE;DISPENSINGTYPE_CODE;PZN;ATC;COMPANY;DEL
 Athermax;2021-03-15;2022-06-30;0;12345678;C01AA05;PharmaNova;tablet;oral;heart,hypertension;30;pills;DE,UK
 BronchoClear;2020-11-01;2023-03-20;2;22334455;R03DA04;MediSolutions;aerosol;inhalation;cough,asthma;1;spray;DE,UK,US
 Cerebex;2019-09-10;;0;99887766;N06DA02;NeuroPharm;capsule;oral;cognition,memory;60;capsules;DE,UK,US
-TestDrug;2023-04-16;;0;22334461;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
-Test1Drug;2023-04-17;;0;22334462;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
-Test2Drug;2023-04-18;;0;22334463;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
-Test3Drug;2023-04-19;;0;22334464;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
-Test4Drug;2023-04-20;;0;22334465;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
-Test5Drug;2023-04-21;;0;22334466;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
-DrugToProveIntialDataset;2023-04-22;;0;22334468;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+TestDrug;2023-04-16;;0;22334461;N02BA53;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test1Drug;2023-04-17;;0;22334462;N02BA54;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test2Drug;2023-04-18;;0;22334463;N02BA55;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test3Drug;2023-04-19;;0;22334464;N02BA56;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test4Drug;2023-04-20;;0;22334465;N02BA57;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test5Drug;2023-04-21;;0;22334466;N02BA58;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+DrugToProveIntialDataset1;2023-04-22;;0;22334468;N02BA58;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+DrugToProveIntialDatasetCleaned2;2023-04-22;;0;22334469;N02BA50;SkunkWorks ADP.;Anything;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
