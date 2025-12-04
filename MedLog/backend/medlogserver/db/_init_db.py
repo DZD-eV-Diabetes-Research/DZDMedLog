@@ -156,7 +156,7 @@ async def create_inital_drug_data_loader_job():
             system_job = WorkerJobCreate(
                 id=job_id,
                 user_id=None,
-                task_name=Tasks(Tasks.LOAD_DRUG_DATA).name,
+                task_name=Tasks(Tasks.DRUG_DATA_LOAD).name,
                 task_params={
                     "source_dir": config.DRUG_TABLE_PROVISIONING_SOURCE_DIR,
                 },

@@ -53,24 +53,82 @@ fast_api_drug_db_updater_router: APIRouter = APIRouter()
 async def _get_drug_update_status(
     drug_dataset_version_crud: DrugDataSetVersionCRUD, worker_job_crud: WorkerJobCRUD
 ) -> DrugUpdaterStatus:
+    # Obtain System Data
     current_drug_dataset = await drug_dataset_version_crud.get_current_active()
     latest_drug_dataset = await drug_dataset_version_crud.get_latest()
-    update_version = (
+    available_update_version = (
         await drug_importer_class().check_for_remote_dataset_update_available()
     )
-    download_jobs_queued = await worker_job_crud.list(
-        filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
-        filter_job_state=WorkerJobState.QUEUED,
-    )
-    download_jobs_running = await worker_job_crud.list(
-        filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
-        filter_job_state=WorkerJobState.RUNNING,
-    )
+
+    download_jobs_queued = []
+    download_jobs_running = []
+    download_jobs_failed = []
+    loading_jobs_queued = []
+    loading_jobs_running = []
+    loading_jobs_failed = []
+    if available_update_version:
+        download_jobs_queued = await worker_job_crud.list(
+            filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
+            filter_job_state=WorkerJobState.QUEUED,
+            filter_tags=[
+                f"version:{available_update_version}",
+            ],
+        )
+        download_jobs_running = await worker_job_crud.list(
+            filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
+            filter_job_state=WorkerJobState.RUNNING,
+            filter_tags=[
+                f"version:{available_update_version}",
+            ],
+        )
+        download_jobs_failed = await worker_job_crud.list(
+            filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
+            filter_job_state=WorkerJobState.FAILED,
+            filter_tags=[
+                f"version:{available_update_version}",
+            ],
+        )
+        loading_jobs_queued = await worker_job_crud.list(
+            filter_task=Tasks.DRUG_DATA_LOAD,
+            filter_job_state=WorkerJobState.QUEUED,
+            filter_tags=[
+                f"version:{available_update_version}",
+            ],
+        )
+        loading_jobs_running = await worker_job_crud.list(
+            filter_task=Tasks.DRUG_DATA_LOAD,
+            filter_job_state=WorkerJobState.RUNNING,
+            filter_tags=[
+                f"version:{available_update_version}",
+            ],
+        )
+        loading_jobs_failed = await worker_job_crud.list(
+            filter_task=Tasks.DRUG_DATA_LOAD,
+            filter_job_state=WorkerJobState.FAILED,
+            filter_tags=[
+                f"version:{available_update_version}",
+            ],
+        )
+
+    # generate DrugUpdaterStatus
+    if available_update_version:
+        return DrugUpdaterStatus(
+            update_available=True,
+            update_available_version=available_update_version,
+            update_running=update_running,
+            update_running_version=update_running_version,
+            last_update_run_datetime_utc=last_update_run_datetime_utc,
+            last_update_run_error=last_update_run_error,
+            current_drug_data_version=(
+                current_drug_dataset.dataset_version if current_drug_dataset else None
+            ),
+            current_drug_data_ready_to_use=current_drug_data_ready_to_use,
+        )
 
     last_update_run_error = None
     last_update_run_datetime_utc = None
     update_running = False
-    update_running_version = update_version
+    update_running_version = available_update_version
     if latest_drug_dataset:
         log.debug(
             f"_get_drug_update_status version:{latest_drug_dataset.dataset_version}"
@@ -79,7 +137,7 @@ async def _get_drug_update_status(
             filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
             filter_job_state=WorkerJobState.FAILED,
             filter_tags=[
-                f"version:{update_version}",
+                f"version:{available_update_version}",
             ],
         )
         log.debug(
@@ -99,29 +157,29 @@ async def _get_drug_update_status(
 
     if update_running is False:
         loading_jobs_queued = await worker_job_crud.list(
-            filter_task=Tasks.LOAD_DRUG_DATA,
+            filter_task=Tasks.DRUG_DATA_LOAD,
             filter_job_state=WorkerJobState.QUEUED,
             filter_tags=[
-                f"version:{update_version}",
+                f"version:{available_update_version}",
             ],
         )
         if loading_jobs_queued:
             update_running = True
     if update_running is False:
         loading_jobs_running = await worker_job_crud.list(
-            filter_task=Tasks.LOAD_DRUG_DATA,
+            filter_task=Tasks.DRUG_DATA_LOAD,
             filter_job_state=WorkerJobState.RUNNING,
             filter_tags=[
-                f"version:{update_version}",
+                f"version:{available_update_version}",
             ],
         )
         if loading_jobs_running:
             update_running = True
     loading_jobs_failed = await worker_job_crud.list(
-        filter_task=Tasks.LOAD_DRUG_DATA,
+        filter_task=Tasks.DRUG_DATA_LOAD,
         filter_job_state=WorkerJobState.FAILED,
         filter_tags=[
-            f"version:{update_version}",
+            f"version:{available_update_version}",
         ],
     )
     if loading_jobs_failed:
@@ -133,9 +191,9 @@ async def _get_drug_update_status(
 
     return DrugUpdaterStatus(
         update_available=(
-            True if update_version else False
+            True if available_update_version else False
         ),  # Todo: Query the drug db module for available updates
-        update_available_version=update_version,
+        update_available_version=available_update_version,
         update_running=update_running,
         update_running_version=update_running_version,
         last_update_run_datetime_utc=last_update_run_datetime_utc,

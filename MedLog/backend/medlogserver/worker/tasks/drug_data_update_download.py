@@ -73,7 +73,7 @@ class DrugDataUpdateDownloader:
         self, user_id: uuid.UUID | None, parent_job_id: uuid.UUID
     ):
         data_loader_job = WorkerJobCreate(
-            task_name=Tasks(Tasks.LOAD_DRUG_DATA).name,
+            task_name=Tasks(Tasks.DRUG_DATA_LOAD).name,
             task_params=None,
             tags=[
                 "drug-loading",

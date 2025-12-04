@@ -207,3 +207,26 @@ def test_endpoint_drug_update_workflow():
     if response_cleaner_job[0]["last_error"] is not None:
         print(response_cleaner_job[0]["last_error"])
         raise ValueError("Obsolete Drugdata set cleaning Job failed")
+
+    #####
+    # Validate Cleaner
+    #####
+    # we expect the drug from the replaced dataset that was connected to an intake to be still existent but the un-used drug to re wiped
+    from medlogserver.api.routes.routes_drug import get_drug
+
+    response_post_cleaner_drug_to_prove_inital_dataset: Dict[str, Any] = cast(
+        Dict[str, Any],
+        req(
+            f"/api/drug/id/{drug_to_prove_inital_dataset['id']}",
+            method="get",
+        ),
+    )
+    response_post_cleaner_drug_to_prove_inital_dataset_was_cleaned: Dict[str, Any] = (
+        cast(
+            Dict[str, Any],
+            req(
+                f"/api/drug/id/{drug_to_prove_inital_dataset_was_cleaned['id']}",
+                method="get",
+            ),
+        )
+    )

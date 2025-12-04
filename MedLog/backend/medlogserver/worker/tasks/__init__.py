@@ -17,7 +17,7 @@ class Tasks(Enum):
         "medlogserver.worker.tasks.export_study_data.TaskExportStudyIntakeData"
     )
     RUN_ADHOC_JOBS = "medlogserver.worker.tasks.run_ad_hoc_jobs.TaskRunAdHocJobs"
-    LOAD_DRUG_DATA = "medlogserver.worker.tasks.drug_data_load.TaskDrugDataLoading"
+    DRUG_DATA_LOAD = "medlogserver.worker.tasks.drug_data_load.TaskDrugDataLoading"
     DRUG_DATA_UPDATE_DOWNLOAD = (
         "medlogserver.worker.tasks.drug_data_update_download.TaskDrugDataUpdateDownload"
     )
