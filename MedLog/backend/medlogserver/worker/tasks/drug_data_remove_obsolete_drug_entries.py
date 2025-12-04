@@ -1,8 +1,9 @@
 from typing import List
 import datetime
 
-from sqlmodel import select, or_, and_, delete, column
+from sqlmodel import select, or_, and_, delete, col
 from sqlalchemy.sql.operators import is_
+
 
 #
 from medlogserver.utils import get_now_datetime
@@ -13,12 +14,12 @@ from medlogserver.log import get_logger
 from medlogserver.model.drug_data import DrugData, DrugDataSetVersion
 from medlogserver.model.intake import Intake
 
-log = get_logger()
+log = get_logger(modulename="Job:DrugDataSetCleaner")
 config = Config()
 
 
-class RemoveObsoleteDrugDataEntries:
-    async def remove_obsolete_drug_entries(self):
+class DrugDataRemoveObsoleteDrugDataEntries:
+    async def drug_data_remove_obsolete_drug_entries(self):
         async with get_async_session_context() as session:
             # find all drug that are not connected to any interview-intake and are stored in old/non-active drug datasets
             query_data_set_versions_disabled_and_non_cleaned_drug = select(
@@ -48,12 +49,19 @@ class RemoveObsoleteDrugDataEntries:
                     .where(is_(Intake.id, None))
                 )
                 result_obsolete_drugs = await session.exec(query_obsolete_drugs)
+
                 obsolete_drugs = result_obsolete_drugs.all()
+                log.info(
+                    f"Delete {len(obsolete_drugs)} obsolete drug entries for drug dataset {drugdataset.dataset_source_name} in version {drugdataset.dataset_version}."
+                )
                 obsolete_drugs_ids = [d.id for d in obsolete_drugs]
                 delete_statement = delete(DrugData).where(
-                    column(DrugData.id)._in(obsolete_drugs_ids)
+                    col(DrugData.id).in_(obsolete_drugs_ids)
                 )
                 await session.exec(delete_statement)
+                log.info(
+                    f"Delete {len(obsolete_drugs)} obsolete drug entries for drug dataset {drugdataset.dataset_source_name} in version {drugdataset.dataset_version}."
+                )
                 DrugDataSetVersion.cleaned_date_datetime_utc = get_now_datetime()
             await session.commit()
 
@@ -63,7 +71,7 @@ class TaskRemoveOnbsoleteDrugDataEntries(TaskBase):
         log.debug(
             "Run Background Task: Remove obsolete unused drug database entries..."
         )
-        await RemoveObsoleteDrugDataEntries().remove_obsolete_drug_entries()
+        await DrugDataRemoveObsoleteDrugDataEntries().drug_data_remove_obsolete_drug_entries()
         log.debug(
             "Done Background Task: Remove obsolete unused drug database entries..."
         )

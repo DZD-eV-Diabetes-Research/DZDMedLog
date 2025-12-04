@@ -1,6 +1,6 @@
 from typing import List, Dict, Type, Callable, Optional, Tuple
 import importlib
-
+import uuid
 from pathlib import Path, PurePath
 from dataclasses import dataclass
 import yaml
@@ -27,24 +27,18 @@ from medlogserver.db.user import UserCRUD
 from medlogserver.db.user_auth import UserAuthCRUD
 from medlogserver.db.worker_job import WorkerJobCRUD
 
+from medlogserver.model.worker_job import WorkerJobCreate, WorkerJob, WorkerJobState
+from medlogserver.db.worker_job import WorkerJobCRUD
+from medlogserver.worker.tasks import Tasks
+
 from medlogserver.db.drug_data.drug_dataset_version import (
     DrugDataSetVersionCRUD,
     DrugDataSetVersion,
 )
 from medlogserver.api.paginator import QueryParamsInterface, create_query_params_class
 
-log = get_logger()
+log = get_logger(modulename="Job:DrugDataLoader")
 config = Config()
-CRUD_classes: List[CRUDBase] = [
-    UserCRUD,
-    UserAuthCRUD,
-    StudyCRUD,
-    StudyPermissonCRUD,
-    EventCRUD,
-    InterviewCRUD,
-    IntakeCRUD,
-    WorkerJobCRUD,
-]
 
 
 class DrugDataLoader:
@@ -136,6 +130,28 @@ class DrugDataLoader:
         else:
             log.info("...no new drug data available.")
 
+    async def create_follow_up_job_drug_data_cleaning(
+        self, user_id: uuid.UUID | None, parent_job_id: uuid.UUID
+    ):
+        data_loader_job = WorkerJobCreate(
+            task_name=Tasks(Tasks.DRUG_DATA_CLEANING).name,
+            task_params=None,
+            tags=[
+                "drug-loading",
+                f"triggeredBy:drug-data-loader/version:{self.importer.version}",
+                f"triggeredByJobID:{parent_job_id}",
+                f"version:{self.importer.version}",
+            ],
+            user_id=user_id,
+        )
+
+        async with get_async_session_context() as session:
+            async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
+                log.debug(f"Create Task DrugDataCleaning Job {data_loader_job}")
+                systemdata_loader_job_job = await worker_job_crud.create(
+                    data_loader_job
+                )
+
 
 class TaskDrugDataLoading(TaskBase):
     async def work(self, source_dir: str = None):
@@ -143,3 +159,6 @@ class TaskDrugDataLoading(TaskBase):
         drug_data_loader = DrugDataLoader()
 
         await drug_data_loader.load_new_drug_data_if_available()
+        await drug_data_loader.create_follow_up_job_drug_data_cleaning(
+            self.job.user_id, self.job.id
+        )

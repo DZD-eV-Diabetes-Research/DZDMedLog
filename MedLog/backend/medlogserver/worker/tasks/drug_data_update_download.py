@@ -37,18 +37,8 @@ from medlogserver.worker.tasks import Tasks
 
 from medlogserver.api.paginator import QueryParamsInterface, create_query_params_class
 
-log = get_logger(modulename="WorkerTaskDrugDataLoader")
+log = get_logger(modulename="Job:DrugDataDownloader")
 config = Config()
-CRUD_classes: List[CRUDBase] = [
-    UserCRUD,
-    UserAuthCRUD,
-    StudyCRUD,
-    StudyPermissonCRUD,
-    EventCRUD,
-    InterviewCRUD,
-    IntakeCRUD,
-    WorkerJobCRUD,
-]
 
 
 class DrugDataUpdateDownloader:
@@ -79,13 +69,16 @@ class DrugDataUpdateDownloader:
             "[DRUG DATA DOWNLOADER]: New drug dataset downloaded and registered. Waiting for ingesting worker..."
         )
 
-    async def create_follow_up_job_drug_data_loader(self, user_id: uuid.UUID | None):
+    async def create_follow_up_job_drug_data_loader(
+        self, user_id: uuid.UUID | None, parent_job_id: uuid.UUID
+    ):
         data_loader_job = WorkerJobCreate(
             task_name=Tasks(Tasks.LOAD_DRUG_DATA).name,
             task_params=None,
             tags=[
                 "drug-loading",
-                "triggeredBy:drug-data-download/version:20251228",
+                f"triggeredBy:drug-data-downloader/version:{self.importer.version}",
+                f"triggeredByJobID:{parent_job_id}",
                 f"version:{self.importer.version}",
             ],
             user_id=user_id,
@@ -104,4 +97,6 @@ class TaskDrugDataUpdateDownload(TaskBase):
         log.info("Load new drug data if available...")
         drug_data_loader = DrugDataUpdateDownloader()
         await drug_data_loader.download_new_drug_data_update_if_available()
-        await drug_data_loader.create_follow_up_job_drug_data_loader(self.job.user_id)
+        await drug_data_loader.create_follow_up_job_drug_data_loader(
+            self.job.user_id, self.job.id
+        )

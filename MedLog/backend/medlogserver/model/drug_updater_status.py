@@ -25,6 +25,10 @@ class DrugUpdaterStatus(MedLogBaseModel):
     update_running: bool = Field(
         description="Is an update of the drug database currently running"
     )
+    update_running_version: Optional[str] = Field(
+        description="If an update is running, which drug dataset version is it.",
+        default=None,
+    )
     last_update_run_datetime_utc: Optional[datetime] = Field(
         description="When did the last drug database update end."
     )

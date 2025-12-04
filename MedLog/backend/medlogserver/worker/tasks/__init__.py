@@ -13,7 +13,6 @@ class Tasks(Enum):
         "medlogserver.worker.tasks.provisioning_data_loader.TaskLoadProvisioningData"
     )
     CLEAN_TOKENS = "medlogserver.worker.tasks.refresh_token_cleaner.TaskCleanTokens"
-    IMPORT_WIDO_GKV_ARZNEIMITTELINDEX_DATA = "medlogserver.worker.tasks.wido_gkv_arzneimittelindex_importer.TaskImportGKVArnzeimittelIndexData"
     EXPORT_STUDY_INTAKES = (
         "medlogserver.worker.tasks.export_study_data.TaskExportStudyIntakeData"
     )
@@ -22,6 +21,7 @@ class Tasks(Enum):
     DRUG_DATA_UPDATE_DOWNLOAD = (
         "medlogserver.worker.tasks.drug_data_update_download.TaskDrugDataUpdateDownload"
     )
+    DRUG_DATA_CLEANING = "medlogserver.worker.tasks.drug_data_remove_obsolete_drug_entries.TaskRemoveOnbsoleteDrugDataEntries"
 
 
 def import_task_class(class_path: str) -> Type["TaskBase"]:

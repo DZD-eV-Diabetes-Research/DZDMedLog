@@ -36,8 +36,11 @@ from medlogserver.db.drug_data.drug_dataset_version import DrugDataSetVersionCRU
 
 
 from medlogserver.config import Config
+from medlogserver.log import get_logger
 
+log = get_logger(modulename="ROUTER:DRUG_UPDATER")
 config = Config()
+
 
 drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
 
@@ -67,8 +70,11 @@ async def _get_drug_update_status(
     last_update_run_error = None
     last_update_run_datetime_utc = None
     update_running = False
+    update_running_version = update_version
     if latest_drug_dataset:
-        print(f"version:{latest_drug_dataset.dataset_version}")
+        log.debug(
+            f"_get_drug_update_status version:{latest_drug_dataset.dataset_version}"
+        )
         download_jobs_failed = await worker_job_crud.list(
             filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
             filter_job_state=WorkerJobState.FAILED,
@@ -76,7 +82,9 @@ async def _get_drug_update_status(
                 f"version:{update_version}",
             ],
         )
-        print("download_jobs_failed:", download_jobs_failed)
+        log.debug(
+            ("_get_drug_update_status download_jobs_failed:", download_jobs_failed)
+        )
         if download_jobs_failed:
             last_update_run_error = download_jobs_failed[0].last_error
         last_update_run_datetime_utc = latest_drug_dataset.import_end_datetime_utc
@@ -85,6 +93,7 @@ async def _get_drug_update_status(
 
         if latest_drug_dataset.import_status in ["queued", "running"]:
             update_running = True
+            update_running_version = latest_drug_dataset.dataset_version
     if download_jobs_queued or download_jobs_running:
         update_running = True
 
@@ -123,16 +132,17 @@ async def _get_drug_update_status(
         current_drug_data_ready_to_use = True
 
     return DrugUpdaterStatus(
-        update_available=True
-        if update_version
-        else False,  # Todo: Query the drug db module for available updates
+        update_available=(
+            True if update_version else False
+        ),  # Todo: Query the drug db module for available updates
         update_available_version=update_version,
         update_running=update_running,
+        update_running_version=update_running_version,
         last_update_run_datetime_utc=last_update_run_datetime_utc,
         last_update_run_error=last_update_run_error,
-        current_drug_data_version=current_drug_dataset.dataset_version
-        if current_drug_dataset
-        else None,
+        current_drug_data_version=(
+            current_drug_dataset.dataset_version if current_drug_dataset else None
+        ),
         current_drug_data_ready_to_use=current_drug_data_ready_to_use,
     )
 

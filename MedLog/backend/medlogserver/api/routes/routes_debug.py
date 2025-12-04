@@ -1,4 +1,4 @@
-from typing import Annotated, Sequence, List, Type
+from typing import Annotated, Sequence, List, Type, Optional
 from datetime import datetime, timedelta, timezone
 
 from uuid import UUID
@@ -56,10 +56,11 @@ fast_api_debug_router: APIRouter = APIRouter()
     description="List all background worker jobs that are registered in the database. DZDMedLog server must be set to `LOG_LEVEL=DEBUG` for this endpoint to work. Also user must be admin.",
 )
 async def list_all_worker_jobs(
-    filter_user_id: UUID | None = None,
-    filter_intervalled_job: bool | None = None,
-    filter_job_state: WorkerJobState | None = None,
-    filter_task: Tasks | None = None,
+    filter_user_id: Optional[UUID] = None,
+    filter_job_state: Optional[WorkerJobState] = None,
+    filter_tags: Optional[List[str]] = None,
+    filter_intervalled_job: Optional[bool] = None,
+    filter_task: Optional[Tasks | str] = None,
     is_admin: User = Security(user_is_admin),
     drug_dataset_version_crud: WorkerJobCRUD = Depends(WorkerJobCRUD.get_crud),
 ) -> List[WorkerJob]:
@@ -72,6 +73,7 @@ async def list_all_worker_jobs(
         await drug_dataset_version_crud.list(
             filter_user_id=filter_user_id,
             filter_intervalled_job=filter_intervalled_job,
+            filter_tags=filter_tags,
             filter_job_state=filter_job_state,
             filter_task=filter_task,
         )

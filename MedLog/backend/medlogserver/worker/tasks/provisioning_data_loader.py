@@ -26,7 +26,7 @@ from medlogserver.db.user_auth import UserAuthCRUD
 from medlogserver.db.worker_job import WorkerJobCRUD
 
 
-log = get_logger(modulename="WORKER")
+log = get_logger(modulename="Job:Provisioning")
 config = Config()
 CRUD_classes: List[CRUDBase] = [
     UserCRUD,

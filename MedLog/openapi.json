@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.11.3.dev119+g8daf72f0a.d20251201"
+    "version": "0.1.dev0+d20251204"
   },
   "paths": {
     "/api/health": {
@@ -3809,7 +3809,7 @@
                       "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__1"
                     },
                     {
-                      "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
+                      "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__2"
                     }
                   ],
                   "title": "Response Get Drug Api Drug Id  Drug Id  Get"
@@ -4184,7 +4184,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
+                  "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__2"
                 }
               }
             }
@@ -4499,7 +4499,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/medlogserver__utils__Error"
+                  "$ref": "#/components/schemas/medlogserver__utils__Error__1"
                 }
               }
             }
@@ -4567,6 +4567,137 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/medlogserver__utils__Error__3"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/debug/worker/job": {
+      "get": {
+        "tags": [
+          "Debug"
+        ],
+        "summary": "List All Worker Jobs",
+        "description": "List all background worker jobs that are registered in the database. DZDMedLog server must be set to `LOG_LEVEL=DEBUG` for this endpoint to work. Also user must be admin.",
+        "operationId": "list_all_worker_jobs_api_debug_worker_job_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "filter_user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filter User Id"
+            }
+          },
+          {
+            "name": "filter_job_state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/WorkerJobState"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filter Job State"
+            }
+          },
+          {
+            "name": "filter_intervalled_job",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filter Intervalled Job"
+            }
+          },
+          {
+            "name": "filter_task",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Tasks"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filter Task"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Filter Tags"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkerJob"
+                  },
+                  "title": "Response List All Worker Jobs Api Debug Worker Job Get"
                 }
               }
             }
@@ -5684,6 +5815,18 @@
             "title": "Update Running",
             "description": "Is an update of the drug database currently running"
           },
+          "update_running_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Update Running Version",
+            "description": "If an update is running, which drug dataset version is it."
+          },
           "last_update_run_datetime_utc": {
             "anyOf": [
               {
@@ -6452,7 +6595,7 @@
                 "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__1"
               },
               {
-                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__2"
               }
             ],
             "title": "Drug"
@@ -6755,7 +6898,7 @@
                 "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__1"
               },
               {
-                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__2"
               }
             ],
             "title": "Drug"
@@ -6768,6 +6911,63 @@
           "drug"
         ],
         "title": "MedLogSearchEngineResult"
+      },
+      "MultiAttrRefValProducing_country": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display"
+          },
+          "ref_list": {
+            "type": "string",
+            "const": "/api/drug/field_def/producing_country/refs",
+            "title": "Ref List",
+            "description": "The API path to the list this value references",
+            "default": "/api/drug/field_def/producing_country/refs"
+          }
+        },
+        "type": "object",
+        "title": "MultiAttrRefValProducing_country"
+      },
+      "MultiAttrRefs": {
+        "properties": {
+          "producing_country": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MultiAttrRefValProducing_country"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Producing Country",
+            "description": "Country in which the manufacturer produces this drug",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "MultiAttrRefs"
       },
       "PaginatedResponse_DrugAttrFieldLovItemAPIRead_": {
         "properties": {
@@ -7561,6 +7761,19 @@
         "type": "object",
         "title": "StudyUpdate"
       },
+      "Tasks": {
+        "type": "string",
+        "enum": [
+          "medlogserver.worker.tasks.provisioning_data_loader.TaskLoadProvisioningData",
+          "medlogserver.worker.tasks.refresh_token_cleaner.TaskCleanTokens",
+          "medlogserver.worker.tasks.export_study_data.TaskExportStudyIntakeData",
+          "medlogserver.worker.tasks.run_ad_hoc_jobs.TaskRunAdHocJobs",
+          "medlogserver.worker.tasks.drug_data_load.TaskDrugDataLoading",
+          "medlogserver.worker.tasks.drug_data_update_download.TaskDrugDataUpdateDownload",
+          "medlogserver.worker.tasks.drug_data_remove_obsolete_drug_entries.TaskRemoveOnbsoleteDrugDataEntries"
+        ],
+        "title": "Tasks"
+      },
       "User": {
         "properties": {
           "created_at": {
@@ -7903,6 +8116,124 @@
         ],
         "title": "ValidationError"
       },
+      "WorkerJob": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "run_started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Started At"
+          },
+          "run_finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Finished At"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_result": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Result"
+          },
+          "task_name": {
+            "type": "string",
+            "title": "Task Name",
+            "description": "Class that will executed as task."
+          },
+          "task_params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Params"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "If Job was triggered by a certain user this should contain the users id, otherwise its a system job."
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "A list of strings, can help to categorize, filter and/or find specific jobs or job categories."
+          },
+          "interval_params": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval Params",
+            "description": "If the task needs to rerun in an interval define dictonary of apscheduler params as strings (https://apscheduler.readthedocs.io/en/3.x/modules/triggers/interval.html#module-apscheduler.triggers.interval). If nothing is set the task will runce once and the job will be cleaned up."
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_name"
+        ],
+        "title": "WorkerJob"
+      },
       "WorkerJobState": {
         "type": "string",
         "enum": [
@@ -7913,7 +8244,7 @@
         ],
         "title": "WorkerJobState"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype": {
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype__1": {
         "properties": {
           "value": {
             "type": "integer",
@@ -7976,7 +8307,20 @@
         "type": "object",
         "title": "AttrRefValDispensingtype"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs": {
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__1": {
+        "properties": {
+          "dispensingtype": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype__1",
+            "description": "How are the drugs made available."
+          }
+        },
+        "type": "object",
+        "required": [
+          "dispensingtype"
+        ],
+        "title": "AttrRefs"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__2": {
         "properties": {
           "dispensingtype": {
             "anyOf": [
@@ -7994,91 +8338,7 @@
         "type": "object",
         "title": "AttrRefs"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__1": {
-        "properties": {
-          "dispensingtype": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype",
-            "description": "How are the drugs made available."
-          }
-        },
-        "type": "object",
-        "required": [
-          "dispensingtype"
-        ],
-        "title": "AttrRefs"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__Attrs": {
-        "properties": {
-          "amount": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Amount",
-            "description": "Amount in package",
-            "examples": [
-              10.0,
-              5.5,
-              80.0
-            ]
-          },
-          "manufacturer": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Manufacturer",
-            "description": "Manufacturing company of the drug",
-            "examples": [
-              "PharamGigant",
-              "MoneyMaker"
-            ]
-          },
-          "deliverysystem": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Deliverysystem",
-            "description": "Drug delivery refers to approaches, formulations, manufacturing techniques, storage systems, and technologies involved in transporting a pharmaceutical compound to its target site to achieve a desired therapeutic effect.",
-            "examples": [
-              "Spray",
-              "Needle"
-            ]
-          },
-          "routeofadministration": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Routeofadministration",
-            "description": "route of administration is the way by which a drug, fluid, poison, or other substance is taken into the body.",
-            "examples": [
-              "oral",
-              "intravenous"
-            ]
-          }
-        },
-        "type": "object",
-        "title": "Attrs"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti": {
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__1": {
         "properties": {
           "keywords": {
             "items": {
@@ -8182,7 +8442,78 @@
         ],
         "title": "Attrs"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__Codes": {
+      "medlogserver__model__drug_data__api_drug_model_factory__Attrs__2": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount",
+            "description": "Amount in package",
+            "examples": [
+              10.0,
+              5.5,
+              80.0
+            ]
+          },
+          "manufacturer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manufacturer",
+            "description": "Manufacturing company of the drug",
+            "examples": [
+              "PharamGigant",
+              "MoneyMaker"
+            ]
+          },
+          "deliverysystem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliverysystem",
+            "description": "Drug delivery refers to approaches, formulations, manufacturing techniques, storage systems, and technologies involved in transporting a pharmaceutical compound to its target site to achieve a desired therapeutic effect.",
+            "examples": [
+              "Spray",
+              "Needle"
+            ]
+          },
+          "routeofadministration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routeofadministration",
+            "description": "route of administration is the way by which a drug, fluid, poison, or other substance is taken into the body.",
+            "examples": [
+              "oral",
+              "intravenous"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "Attrs"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__Codes__1": {
         "properties": {
           "ATC": {
             "anyOf": [
@@ -8236,7 +8567,100 @@
         "type": "object",
         "title": "Codes"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__Drug": {
+      "medlogserver__model__drug_data__api_drug_model_factory__Drug__1": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "trade_name": {
+            "type": "string",
+            "title": "Trade Name"
+          },
+          "market_access_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Access Date"
+          },
+          "market_exit_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Exit Date"
+          },
+          "is_custom_drug": {
+            "type": "boolean",
+            "title": "Is Custom Drug",
+            "description": "User can create placeholder drugs, if the drug they try to document is not listed yet.",
+            "default": false
+          },
+          "custom_drug_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Drug Notes",
+            "description": "If custom drug is defined the user can enter some notes here."
+          },
+          "custom_created_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Created By",
+            "description": "If Drug is created by user as a custom drug the user id will be saved here."
+          },
+          "codes": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes__1"
+          },
+          "attrs": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs__1",
+            "description": "Scalar Drug attributes. One value only per drug attribute."
+          },
+          "attrs_multi": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__1",
+            "description": "All Drug attributes that can have multiple values. e.g. something like 'Keywords'. Will always be a list."
+          },
+          "attrs_ref": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__1",
+            "description": "All Drug attributes reference an existing list (value + display Value. Aka SelectList)."
+          },
+          "attrs_multi_ref": {
+            "$ref": "#/components/schemas/MultiAttrRefs",
+            "description": "All Drug attributes that can have a list of values. These values must reference an existing list."
+          }
+        },
+        "type": "object",
+        "required": [
+          "trade_name",
+          "custom_drug_notes"
+        ],
+        "title": "Drug"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__Drug__2": {
         "properties": {
           "id": {
             "type": "string",
@@ -8306,7 +8730,7 @@
             "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes__2"
           },
           "attrs": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs__2",
             "description": "Scalar Drug attributes. One value only per drug attribute."
           },
           "attrs_multi": {
@@ -8314,11 +8738,11 @@
             "description": "All Drug attributes that can have multiple values. e.g. something like 'Keywords'. Will always be a list."
           },
           "attrs_ref": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__2",
             "description": "All Drug attributes reference an existing list (value + display Value. Aka SelectList)."
           },
           "attrs_multi_ref": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefs",
+            "$ref": "#/components/schemas/MultiAttrRefs",
             "description": "All Drug attributes that can have a list of values. These values must reference an existing list."
           }
         },
@@ -8329,157 +8753,7 @@
         ],
         "title": "Drug"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__Drug__1": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "trade_name": {
-            "type": "string",
-            "title": "Trade Name"
-          },
-          "market_access_date": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Market Access Date"
-          },
-          "market_exit_date": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Market Exit Date"
-          },
-          "is_custom_drug": {
-            "type": "boolean",
-            "title": "Is Custom Drug",
-            "description": "User can create placeholder drugs, if the drug they try to document is not listed yet.",
-            "default": false
-          },
-          "custom_drug_notes": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Custom Drug Notes",
-            "description": "If custom drug is defined the user can enter some notes here."
-          },
-          "custom_created_by": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Custom Created By",
-            "description": "If Drug is created by user as a custom drug the user id will be saved here."
-          },
-          "codes": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes"
-          },
-          "attrs": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs__1",
-            "description": "Scalar Drug attributes. One value only per drug attribute."
-          },
-          "attrs_multi": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti",
-            "description": "All Drug attributes that can have multiple values. e.g. something like 'Keywords'. Will always be a list."
-          },
-          "attrs_ref": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__1",
-            "description": "All Drug attributes reference an existing list (value + display Value. Aka SelectList)."
-          },
-          "attrs_multi_ref": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefs",
-            "description": "All Drug attributes that can have a list of values. These values must reference an existing list."
-          }
-        },
-        "type": "object",
-        "required": [
-          "trade_name",
-          "custom_drug_notes"
-        ],
-        "title": "Drug"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefValProducing_country": {
-        "properties": {
-          "value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          },
-          "display": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display"
-          },
-          "ref_list": {
-            "type": "string",
-            "const": "/api/drug/field_def/producing_country/refs",
-            "title": "Ref List",
-            "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/producing_country/refs"
-          }
-        },
-        "type": "object",
-        "title": "MultiAttrRefValProducing_country"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefs": {
-        "properties": {
-          "producing_country": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefValProducing_country"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Producing Country",
-            "description": "Country in which the manufacturer produces this drug",
-            "default": []
-          }
-        },
-        "type": "object",
-        "title": "MultiAttrRefs"
-      },
-      "medlogserver__utils__Error": {
+      "medlogserver__utils__Error__1": {
         "properties": {
           "detail": {
             "additionalProperties": {

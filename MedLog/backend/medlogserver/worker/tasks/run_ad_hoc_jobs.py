@@ -15,7 +15,7 @@ from medlogserver.worker.task import TaskBase
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
-log = get_logger(modulename="WORKER")
+log = get_logger(modulename="Job:AdHocJobRunner")
 config = Config()
 
 

@@ -1,4 +1,4 @@
-from typing import Any, List, Dict
+from typing import Any, List, Dict, cast
 import json
 from _single_test_file_runner import run_all_tests_if_test_file_called
 import time
@@ -118,13 +118,17 @@ def test_endpoint_drug_update_workflow():
     #####
     # Trigger the update
     #####
+    from medlogserver.api.routes.routes_drug_db_updater import (
+        trigger_drug_update_active,
+    )
 
     response: Dict[str, Any] = req("api/drug/db/update", method="put")
+    print("api/drug/db/update response:", response)
     dict_must_contain(
         response,
         required_keys_and_val={
-            "update_available": True,
-            "update_available_version": "20251228",
+            "update_available": False,
+            "update_available_version": None,
             "update_running": True,
             "last_update_run_error": None,
             "current_drug_data_version": "20241126",
@@ -171,3 +175,35 @@ def test_endpoint_drug_update_workflow():
         required_keys=["last_update_run_datetime_utc", "current_drug_data_version"],
         exception_dict_identifier="test_endpoint_drug_update_trigger response",
     )
+
+    #####
+    # Wait for cleaner job done
+    #####
+    response_cleaner_job = None
+    cleaning_running = True
+    while cleaning_running:
+        from medlogserver.api.routes.routes_debug import list_all_worker_jobs
+
+        response_cleaner_job: List[Dict] = cast(
+            List[Dict],
+            req(
+                "api/debug/worker/job",
+                method="get",
+                q={"filter_tags": '["triggeredBy:drug-data-loader/version:20251228"]'},
+            ),
+        )
+        print(
+            f"test_endpoint_drug_update_trigger response_status: {response_cleaner_job}"
+        )
+        if len(response_cleaner_job) == 0:
+            continue
+        from medlogserver.api.routes.routes_debug import WorkerJob
+
+        if response_cleaner_job[0]["run_finished_at"] is not None:
+            cleaning_running = False
+        print("WAIT FOR CLEANING JOB cleaning_running:", cleaning_running)
+        time.sleep(2)
+
+    if response_cleaner_job[0]["last_error"] is not None:
+        print(response_cleaner_job[0]["last_error"])
+        raise ValueError("Obsolete Drugdata set cleaning Job failed")
