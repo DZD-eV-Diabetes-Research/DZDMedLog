@@ -66,7 +66,7 @@ class DrugDataSetVersionCRUD(
         self,
         filter_import_status: Literal["queued", "running", "failed", "done"] = None,
         filter_is_custom_drug_collection: bool = None,
-        pagination: QueryParamsInterface = None,
+        pagination: Optional[QueryParamsInterface] = None,
     ) -> List[DrugDataSetVersion]:
         query = select(DrugDataSetVersion).where(
             DrugDataSetVersion.dataset_source_name == self._get_current_dataset_name(),

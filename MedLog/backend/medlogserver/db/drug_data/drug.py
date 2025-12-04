@@ -126,9 +126,9 @@ class DrugCRUD(
     async def list(
         self,
         filter_study_id: UUID = None,
-        pagination: QueryParamsInterface = None,
+        pagination: Optional[QueryParamsInterface] = None,
         include_relations: bool = False,
-    ) -> Sequence[DrugData]:
+    ) -> List[DrugData]:
         if isinstance(filter_study_id, str):
             filter_study_id: UUID = UUID(filter_study_id)
         # log.info(f"Event.Config.order_by {Event.Config.order_by}")
@@ -180,9 +180,9 @@ class DrugCRUD(
     async def get_multiple(
         self,
         ids: List[str],
-        pagination: QueryParamsInterface = None,
+        pagination: Optional[QueryParamsInterface] = None,
         keep_result_in_ids_order: bool = True,
-    ) -> Sequence[DrugData]:
+    ) -> List[DrugData]:
         query = select(DrugData).where(col(DrugData.id).in_(ids))
         query = await self.append_current_and_custom_drugs_dataset_version_where_clause(
             query

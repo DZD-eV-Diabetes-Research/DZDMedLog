@@ -50,8 +50,10 @@ class UserCRUD(
         return results.first()
 
     async def list(
-        self, show_deactivated: bool = False, pagination: QueryParamsInterface = None
-    ) -> Sequence[User]:
+        self,
+        show_deactivated: bool = False,
+        pagination: Optional[QueryParamsInterface] = None,
+    ) -> List[User]:
         query = select(User)
         if not show_deactivated:
             query = query.where(User.deactivated == False)
@@ -143,7 +145,6 @@ class UserCRUD(
         log.debug(f"user_name_or_email {user_name_or_email}")
         query = select(User)
         if "@" in user_name_or_email:
-
             query = query.where(
                 User.email == user_name_or_email,
             )

@@ -64,7 +64,7 @@ class MedLogDrugSearchEngineBase:
         self,
         search_term: str = None,
         market_accessable: Optional[bool] = None,
-        pagination: QueryParamsInterface = None,
+        pagination: Optional[QueryParamsInterface] = None,
         **filter_ref_vals: Unpack[int | str],
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
         raise NotImplementedError()

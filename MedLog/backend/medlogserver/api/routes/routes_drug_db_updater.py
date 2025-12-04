@@ -1,8 +1,9 @@
+from typing import List
 from fastapi import (
     Depends,
     Security,
 )
-
+from itertools import chain
 
 from fastapi import APIRouter
 
@@ -50,6 +51,87 @@ fast_api_drug_router: APIRouter = APIRouter()
 fast_api_drug_db_updater_router: APIRouter = APIRouter()
 
 
+async def _get_drug_loading_worker_jobs(
+    worker_job_crud: WorkerJobCRUD,
+    filter_drug_dataset_version_str: str | None = None,
+    filter_failed_jobs: bool | None = None,
+) -> List[WorkerJob]:
+    download_jobs_queued: List[WorkerJob] = []
+    download_jobs_running: List[WorkerJob] = []
+    download_jobs_failed: List[WorkerJob] = []
+
+    loading_jobs_queued: List[WorkerJob] = []
+    loading_jobs_running: List[WorkerJob] = []
+    loading_jobs_failed: List[WorkerJob] = []
+
+    if filter_failed_jobs != True:
+        download_jobs_queued = await worker_job_crud.list(
+            filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
+            filter_job_state=WorkerJobState.QUEUED,
+            filter_tags=[
+                f"version:{filter_drug_dataset_version_str}",
+            ],
+        )
+
+        download_jobs_running = list(
+            await worker_job_crud.list(
+                filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
+                filter_job_state=WorkerJobState.RUNNING,
+                filter_tags=[
+                    f"version:{filter_drug_dataset_version_str}",
+                ],
+            )
+        )
+        loading_jobs_queued = list(
+            await worker_job_crud.list(
+                filter_task=Tasks.DRUG_DATA_LOAD,
+                filter_job_state=WorkerJobState.QUEUED,
+                filter_tags=[
+                    f"version:{filter_drug_dataset_version_str}",
+                ],
+            )
+        )
+        loading_jobs_running = list(
+            await worker_job_crud.list(
+                filter_task=Tasks.DRUG_DATA_LOAD,
+                filter_job_state=WorkerJobState.RUNNING,
+                filter_tags=[
+                    f"version:{filter_drug_dataset_version_str}",
+                ],
+            )
+        )
+
+    if filter_failed_jobs != False:
+        download_jobs_failed = list(
+            await worker_job_crud.list(
+                filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
+                filter_job_state=WorkerJobState.FAILED,
+                filter_tags=[
+                    f"version:{filter_drug_dataset_version_str}",
+                ],
+            )
+        )
+
+        loading_jobs_failed = list(
+            await worker_job_crud.list(
+                filter_task=Tasks.DRUG_DATA_LOAD,
+                filter_job_state=WorkerJobState.FAILED,
+                filter_tags=[
+                    f"version:{filter_drug_dataset_version_str}",
+                ],
+            )
+        )
+
+    return (
+        download_jobs_queued
+        + download_jobs_running
+        + download_jobs_failed
+        + loading_jobs_queued
+        + loading_jobs_running
+        + loading_jobs_failed
+    )
+
+
 async def _get_drug_update_status(
     drug_dataset_version_crud: DrugDataSetVersionCRUD, worker_job_crud: WorkerJobCRUD
 ) -> DrugUpdaterStatus:
@@ -59,150 +141,62 @@ async def _get_drug_update_status(
     available_update_version = (
         await drug_importer_class().check_for_remote_dataset_update_available()
     )
-
-    download_jobs_queued = []
-    download_jobs_running = []
-    download_jobs_failed = []
-    loading_jobs_queued = []
-    loading_jobs_running = []
-    loading_jobs_failed = []
-    if available_update_version:
-        download_jobs_queued = await worker_job_crud.list(
-            filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
-            filter_job_state=WorkerJobState.QUEUED,
-            filter_tags=[
-                f"version:{available_update_version}",
-            ],
-        )
-        download_jobs_running = await worker_job_crud.list(
-            filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
-            filter_job_state=WorkerJobState.RUNNING,
-            filter_tags=[
-                f"version:{available_update_version}",
-            ],
-        )
-        download_jobs_failed = await worker_job_crud.list(
-            filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
-            filter_job_state=WorkerJobState.FAILED,
-            filter_tags=[
-                f"version:{available_update_version}",
-            ],
-        )
-        loading_jobs_queued = await worker_job_crud.list(
-            filter_task=Tasks.DRUG_DATA_LOAD,
-            filter_job_state=WorkerJobState.QUEUED,
-            filter_tags=[
-                f"version:{available_update_version}",
-            ],
-        )
-        loading_jobs_running = await worker_job_crud.list(
-            filter_task=Tasks.DRUG_DATA_LOAD,
-            filter_job_state=WorkerJobState.RUNNING,
-            filter_tags=[
-                f"version:{available_update_version}",
-            ],
-        )
-        loading_jobs_failed = await worker_job_crud.list(
-            filter_task=Tasks.DRUG_DATA_LOAD,
-            filter_job_state=WorkerJobState.FAILED,
-            filter_tags=[
-                f"version:{available_update_version}",
-            ],
-        )
-
-    # generate DrugUpdaterStatus
-    if available_update_version:
-        return DrugUpdaterStatus(
-            update_available=True,
-            update_available_version=available_update_version,
-            update_running=update_running,
-            update_running_version=update_running_version,
-            last_update_run_datetime_utc=last_update_run_datetime_utc,
-            last_update_run_error=last_update_run_error,
-            current_drug_data_version=(
-                current_drug_dataset.dataset_version if current_drug_dataset else None
-            ),
-            current_drug_data_ready_to_use=current_drug_data_ready_to_use,
-        )
-
-    last_update_run_error = None
-    last_update_run_datetime_utc = None
-    update_running = False
-    update_running_version = available_update_version
-    if latest_drug_dataset:
-        log.debug(
-            f"_get_drug_update_status version:{latest_drug_dataset.dataset_version}"
-        )
-        download_jobs_failed = await worker_job_crud.list(
-            filter_task=Tasks.DRUG_DATA_UPDATE_DOWNLOAD,
-            filter_job_state=WorkerJobState.FAILED,
-            filter_tags=[
-                f"version:{available_update_version}",
-            ],
-        )
-        log.debug(
-            ("_get_drug_update_status download_jobs_failed:", download_jobs_failed)
-        )
-        if download_jobs_failed:
-            last_update_run_error = download_jobs_failed[0].last_error
-        last_update_run_datetime_utc = latest_drug_dataset.import_end_datetime_utc
-        if latest_drug_dataset.import_error:
-            last_update_run_error = latest_drug_dataset.import_error
-
-        if latest_drug_dataset.import_status in ["queued", "running"]:
-            update_running = True
-            update_running_version = latest_drug_dataset.dataset_version
-    if download_jobs_queued or download_jobs_running:
-        update_running = True
-
-    if update_running is False:
-        loading_jobs_queued = await worker_job_crud.list(
-            filter_task=Tasks.DRUG_DATA_LOAD,
-            filter_job_state=WorkerJobState.QUEUED,
-            filter_tags=[
-                f"version:{available_update_version}",
-            ],
-        )
-        if loading_jobs_queued:
-            update_running = True
-    if update_running is False:
-        loading_jobs_running = await worker_job_crud.list(
-            filter_task=Tasks.DRUG_DATA_LOAD,
-            filter_job_state=WorkerJobState.RUNNING,
-            filter_tags=[
-                f"version:{available_update_version}",
-            ],
-        )
-        if loading_jobs_running:
-            update_running = True
-    loading_jobs_failed = await worker_job_crud.list(
-        filter_task=Tasks.DRUG_DATA_LOAD,
-        filter_job_state=WorkerJobState.FAILED,
-        filter_tags=[
-            f"version:{available_update_version}",
-        ],
-    )
-    if loading_jobs_failed:
-        last_update_run_error = loading_jobs_failed[0].last_error
-
     current_drug_data_ready_to_use = False
     if current_drug_dataset and current_drug_dataset.import_status == "done":
         current_drug_data_ready_to_use = True
 
-    return DrugUpdaterStatus(
-        update_available=(
-            True if available_update_version else False
-        ),  # Todo: Query the drug db module for available updates
-        update_available_version=available_update_version,
-        update_running=update_running,
-        update_running_version=update_running_version,
-        last_update_run_datetime_utc=last_update_run_datetime_utc,
-        last_update_run_error=last_update_run_error,
-        current_drug_data_version=(
-            current_drug_dataset.dataset_version if current_drug_dataset else None
-        ),
-        current_drug_data_ready_to_use=current_drug_data_ready_to_use,
-    )
+    # generate DrugUpdaterStatus
+    if available_update_version:
+        active_loading_jobs: List[WorkerJob] = await _get_drug_loading_worker_jobs(
+            worker_job_crud,
+            filter_drug_dataset_version_str=available_update_version,
+            filter_failed_jobs=False,
+        )
+        failed_loading_jobs: List[WorkerJob] = await _get_drug_loading_worker_jobs(
+            worker_job_crud,
+            filter_drug_dataset_version_str=available_update_version,
+            filter_failed_jobs=True,
+        )
+        last_error: str | None = None
+        if failed_loading_jobs:
+            last_error = (
+                failed_loading_jobs[0].last_error or failed_loading_jobs[0].last_error
+            )
+
+        update_running = True if active_loading_jobs else False
+        update_available = False if active_loading_jobs else True
+
+        return DrugUpdaterStatus(
+            update_available=update_available,
+            update_available_version=available_update_version
+            if update_available
+            else None,
+            update_running=update_running,
+            update_running_version=available_update_version if update_running else None,
+            last_update_run_datetime_utc=latest_drug_dataset.import_end_datetime_utc
+            if latest_drug_dataset
+            else None,
+            last_update_run_error=last_error,
+            current_drug_data_version=current_drug_dataset.dataset_version
+            if current_drug_dataset
+            else None,
+            current_drug_data_ready_to_use=current_drug_data_ready_to_use,
+        )
+    else:
+        return DrugUpdaterStatus(
+            update_available=False,
+            update_available_version=None,
+            update_running=False,
+            update_running_version=None,
+            last_update_run_datetime_utc=latest_drug_dataset.import_end_datetime_utc
+            if latest_drug_dataset
+            else None,
+            last_update_run_error=None,
+            current_drug_data_version=current_drug_dataset.dataset_version
+            if current_drug_dataset
+            else None,
+            current_drug_data_ready_to_use=current_drug_data_ready_to_use,
+        )
 
 
 @fast_api_drug_db_updater_router.get(

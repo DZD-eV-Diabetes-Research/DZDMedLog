@@ -1,4 +1,13 @@
-from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated, Dict
+from typing import (
+    AsyncGenerator,
+    List,
+    Optional,
+    Literal,
+    Sequence,
+    Annotated,
+    Dict,
+    Awaitable,
+)
 from pydantic import validate_email, StringConstraints, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 from fastapi import Depends
@@ -38,14 +47,14 @@ class WorkerJobCRUD(
 ):
     async def list(
         self,
+        pagination: Optional[QueryParamsInterface] = None,
         filter_user_id: Optional[UUID] = None,
         filter_job_state: Optional[WorkerJobState] = None,
         filter_tags: Optional[List[str]] = None,
         filter_intervalled_job: Optional[bool] = None,
         filter_task: Optional[Tasks | str] = None,
         hide_user_jobs: bool = False,
-        pagination: QueryParamsInterface = None,
-    ) -> Sequence[WorkerJob]:
+    ) -> List[WorkerJob]:
         # log.debug(
         #    f"filter_user_id: {filter_user_id}\nfilter_job_state: {filter_job_state}\nfilter_tags: {filter_tags}\nfilter_intervalled_job: {filter_intervalled_job}\nhide_user_jobs: {hide_user_jobs}\n"
         # )
@@ -83,7 +92,7 @@ class WorkerJobCRUD(
             ]
         if filter_job_state is not None:
             all_jobs = [o for o in all_jobs if o.get_state() == filter_job_state]
-        return all_jobs
+        return list(all_jobs)
 
     async def count(
         self,
@@ -108,7 +117,7 @@ class WorkerJobCRUD(
         obj: WorkerJob | WorkerJobUpdate | WorkerJobCreate,
         raise_exception_if_not_exists: Exception = None,
         raise_exception_if_more_than_one_result: Exception = None,
-    ) -> Sequence[WorkerJob]:
+    ) -> List[WorkerJob]:
         """Find matching objects in the database, based on the attributes in the given "obj"
 
         Args:

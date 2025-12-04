@@ -168,8 +168,8 @@ class CRUDBase(
         return results.first()
 
     async def list(
-        self, pagination: QueryParamsInterface = None
-    ) -> Sequence[GenericCRUDReadType]:
+        self, pagination: Optional[QueryParamsInterface] = None
+    ) -> List[GenericCRUDReadType]:
         query = select(self.get_table_cls())
         if pagination:
             query = pagination.append_to_query(query)
@@ -199,7 +199,7 @@ class CRUDBase(
         self,
         ids: List[UUID],
         raise_exception_if_objects_missing: Optional[Exception] = None,
-    ) -> Sequence[GenericCRUDReadType]:
+    ) -> List[GenericCRUDReadType]:
         query = select(self.get_table_cls()).where(self.get_table_cls().id.in_(ids))
         results = await self.session.exec(statement=query)
         res = results.all()
@@ -255,7 +255,7 @@ class CRUDBase(
         obj: GenericCRUDReadType | GenericCRUDUpdateType | GenericCRUDCreateType,
         raise_exception_if_not_exists: Optional[Exception] = None,
         raise_exception_if_more_than_one_result: Optional[Exception] = None,
-    ) -> Sequence[GenericCRUDReadType]:
+    ) -> List[GenericCRUDReadType]:
         """Find matching objects in the database, based on the attributes in the given "obj"""
         tbl = self.get_table_cls()
         query = select(tbl)

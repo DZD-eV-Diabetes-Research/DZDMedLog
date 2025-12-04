@@ -38,7 +38,6 @@ class DrugAttrFieldLovItemCRUD(
         update_model=DrugAttrFieldLovItem,
     )
 ):
-
     async def count(
         self,
         field_name: str,
@@ -63,8 +62,8 @@ class DrugAttrFieldLovItemCRUD(
         self,
         field_name: str,
         search_term: str = None,
-        pagination: QueryParamsInterface = None,
-    ) -> Sequence[DrugAttrFieldLovItem]:
+        pagination: Optional[QueryParamsInterface] = None,
+    ) -> List[DrugAttrFieldLovItem]:
         query = select(DrugAttrFieldLovItem).where(
             DrugAttrFieldLovItem.field_name == field_name
         )

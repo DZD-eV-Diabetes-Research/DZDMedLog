@@ -29,12 +29,11 @@ class StudyCRUD(
         update_model=StudyUpdate,
     )
 ):
-
     async def list(
         self,
         show_deactivated: bool = False,
-        pagination: QueryParamsInterface = None,
-    ) -> Sequence[Study]:
+        pagination: Optional[QueryParamsInterface] = None,
+    ) -> List[Study]:
         query = select(Study)
         if not show_deactivated:
             query = query.where(Study.deactivated == False)

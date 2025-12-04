@@ -42,8 +42,8 @@ class UserAuthCRUD(
         filter_auth_source_type: AllowedAuthSchemeType = None,
         filter_oidc_provider_name: str = None,
         raise_exception_if_none: Exception = None,
-        pagination: QueryParamsInterface = None,
-    ) -> Sequence[UserAuth]:
+        pagination: Optional[QueryParamsInterface] = None,
+    ) -> List[UserAuth]:
         query = select(UserAuth).where(UserAuth.user_id == user_id)
         if filter_auth_source_type:
             query = query.where(UserAuth.auth_source_type == filter_auth_source_type)
@@ -65,8 +65,8 @@ class UserAuthCRUD(
         filter_auth_source_type: AllowedAuthSchemeType = None,
         filter_oidc_provider_name: str = None,
         raise_exception_if_none: Exception = None,
-        pagination: QueryParamsInterface = None,
-    ) -> Sequence[UserAuth]:
+        pagination: Optional[QueryParamsInterface] = None,
+    ) -> List[UserAuth]:
         query = select(UserAuth).join(User).where(User.user_name == user_name)
         if filter_auth_source_type:
             query = query.where(UserAuth.auth_source_type == filter_auth_source_type)

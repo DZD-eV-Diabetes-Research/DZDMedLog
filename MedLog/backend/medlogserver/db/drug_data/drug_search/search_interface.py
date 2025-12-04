@@ -118,7 +118,7 @@ class DrugSearch:
         self,
         search_term: str = None,
         market_accessable: Optional[bool] = None,
-        pagination: QueryParamsInterface = None,
+        pagination: Optional[QueryParamsInterface] = None,
         **filter_ref_vals: int | str | bool,
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
         await self._preflight()
