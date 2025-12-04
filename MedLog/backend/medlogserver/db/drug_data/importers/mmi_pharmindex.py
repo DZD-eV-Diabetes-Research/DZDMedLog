@@ -313,6 +313,7 @@ def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 country="Germany",
                 optional=False,
                 unique=True,
+                importer_name=importername,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["codes.PZN"],
         ),
@@ -324,6 +325,7 @@ def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 desc="Interne 'PRODUCTID' des Vidal MMI Pharmindex",
                 optional=False,
                 unique=False,
+                importer_name=importername,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["codes.MMIP"],
         ),
@@ -891,9 +893,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             # write everything to database
             await self.commit()
 
-    async def _disect_drug_data(
-        self, drug_data: DrugData
-    ) -> AsyncGenerator[
+    async def _disect_drug_data(self, drug_data: DrugData) -> AsyncGenerator[
         DrugData | DrugVal | DrugValRef | DrugCode | DrugValMulti | DrugValMultiRef,
         None,
     ]:
@@ -1093,18 +1093,10 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     "field_name": attr_ref_def.field.field_name,
                     "value": drug_attr_value,
                     "importer_name": importername,
+                    "drug_dataset_version_fk": drug_dataset_version.id,
                 }
             )
-            """
-            result_drug_data.attrs_ref.append(
-                DrugValRef(
-                    drug_id=result_drug_data.id,
-                    field_name=attr_ref_def.field.field_name,
-                    value=drug_attr_value,
-                    importer_name=importername,
-                )
-            )
-            """
+
         # drug multi attrs
         for attr_multi_def in get_attr_multi_definitions():
             drug_attr_values = await self._resolve_source_mapping_to_value(
@@ -1130,17 +1122,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         "importer_name": importername,
                     }
                 )
-                """
-                result_drug_data.attrs_multi.append(
-                    DrugValMulti(
-                        drug_id=result_drug_data.id,
-                        field_name=attr_multi_def.field.field_name,
-                        value=drug_attr_val,
-                        value_index=index,
-                        importer_name=importername,
-                    )
-                )
-                """
+
         # drug multi ref attrs
         for attr_multi_ref_def in get_attr_multi_ref_definitions():
             drug_attr_values = await self._resolve_source_mapping_to_value(
@@ -1171,6 +1153,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         "value": drug_attr_val,
                         "value_index": index,
                         "importer_name": importername,
+                        "drug_dataset_version_fk": drug_dataset_version.id,
                     }
                 )
                 """
@@ -1444,9 +1427,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             result = csv_content_view.data[_filter_value_casted]
             if max_number_rows:
                 result = result[:max_number_rows]
-            self._cache_csv_lookups[csv_lookup_filter_call_signature][filter_value] = (
-                result
-            )
+            self._cache_csv_lookups[csv_lookup_filter_call_signature][
+                filter_value
+            ] = result
 
             self._debug_stats_csv_lookup = (
                 self._debug_stats_csv_lookup[0],
