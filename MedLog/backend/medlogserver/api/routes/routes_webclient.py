@@ -36,6 +36,7 @@ async def serve_client_root(req: Request, path_name: Optional[str] = None):
     # SPA Fallback. Let the Nuxt Client router parse URL
     headers = {}
     headers["content-type"] = "text/html; charset=UTF-8"
+    headers["cache-control"] = "no-cache"
     log.debug(
         f"Server Application '{config.FRONTEND_FILES_DIR}/index.html' (RespHeaders: {headers} ReqHeaders: {req.headers})"
     )
@@ -61,10 +62,13 @@ async def serve_frontend_files(req: Request, path_name: Optional[str] = None):
     if file is not None and Path(file).exists():
         if file.endswith(".css"):
             headers["content-type"] = "text/css; charset=UTF-8"
+            headers["cache-control"] = "public, max-age=31536000, immutable"
         elif file.endswith(".js"):
             headers["content-type"] = "application/javascript; charset=UTF-8"
+            headers["cache-control"] = "public, max-age=31536000, immutable"
         elif file.endswith(".html"):
             headers["content-type"] = "text/html; charset=UTF-8"
+            headers["cache-control"] = "no-cache"
         elif file.endswith(".json"):
             headers["content-type"] = "application/json; charset=UTF-8"
         log.debug(
@@ -78,6 +82,7 @@ async def serve_frontend_files(req: Request, path_name: Optional[str] = None):
         )
     # SPA Fallback. Let the Nuxt Client router parse URL
     headers["content-type"] = "text/html; charset=UTF-8"
+    headers["cache-control"] = "no-cache"
     log.debug(
         f"Response on path_name:'{path_name}' with default index '{config.FRONTEND_FILES_DIR}/index.html' (RespHeaders: {headers} ReqHeaders: {req.headers})"
     )
