@@ -80,7 +80,8 @@ def test_endpoint_drug_update_workflow():
     study_data: TestDataContainerStudy = create_test_study(
         study_name="test_endpoint_drug_update_workflow_study",
         with_events=1,
-        with_interviews_per_event_per_proband=0,
+        with_interviews_per_event_per_proband=1,
+        with_intakes=0,
         proband_count=1,
     )
     study_id = study_data.study.id
@@ -113,6 +114,7 @@ def test_endpoint_drug_update_workflow():
         method="post",
         b=intake_data_dict,
     )
+
     #####
     # Trigger the update
     #####

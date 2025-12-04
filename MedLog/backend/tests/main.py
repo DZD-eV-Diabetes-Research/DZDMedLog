@@ -188,11 +188,13 @@ def run_single_test_file(
                 pw=ADMIN_USER_PW,
                 set_as_global_default_login=True,
             )
+        tests_successfull: List[str] = []
         for name, test_function in get_test_functions_from_file_or_module(
             file_name_or_module
         ):
             print(f"--------------- RUN test function {name}")
             test_function()
+            tests_successfull.append(name)
     except Exception as e:
         all_function_success = False
         print("Error in tests")

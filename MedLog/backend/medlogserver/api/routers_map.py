@@ -113,6 +113,13 @@ def mount_fast_api_routers(fastapi_app: FastAPI):
         fast_api_export_router, tags=["Export"], prefix=API_ENDPOINTS_PREFIX
     )
 
+    # backend debug
+    from medlogserver.api.routes.routes_debug import fast_api_debug_router
+
+    fastapi_app.include_router(
+        fast_api_debug_router, tags=["Debug"], prefix=API_ENDPOINTS_PREFIX
+    )
+
     # webclient
     from medlogserver.api.routes.routes_webclient import fast_api_webclient_router
 

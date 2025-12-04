@@ -144,7 +144,8 @@ class Config(BaseSettings):
             "sqlite+aiosqlite:///./local2.sqlite",  # relative async SQLite path
             "postgresql+psycopg://user:pass@localhost:5432/mydb",  # PostgreSQL
         ],
-        description=inspect.cleandoc("""
+        description=inspect.cleandoc(
+            """
         The database URL for the application. Only SQLite (via `sqlite+aiosqlite`)
         and PostgreSQL (via `postgresql+psycopg`) URLs are supported.
 
@@ -169,7 +170,8 @@ class Config(BaseSettings):
         postgresql+psycopg://user:password@host:port/dbname
 
         Other database engines or drivers are not supported.
-    """),
+    """
+        ),
     )
 
     # --- Validator to normalize SQLite paths automatically ---
