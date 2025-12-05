@@ -124,7 +124,8 @@ class DrugDataLoader:
         drug_dataset = await self._get_next_queued_drug_data_set()
         if drug_dataset:
             log.debug(f"Import drug dataset: {drug_dataset}")
-            await self.importer._run_import(source_dir=drug_dataset.import_path)
+            self.importer.source_dir = Path(drug_dataset.import_path)
+            await self.importer.start_import_process()
             await self._rebuild_drugsearch_index()
             gc.collect()
         else:

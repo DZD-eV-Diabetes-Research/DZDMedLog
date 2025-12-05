@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Run the MedLog Backend Server with an OIDC Mockup server
-# Mainly intended for Development
-
-
 
 POSTGRES_CONTAINER_NAME=medlog-testing-postgres
 POSTGRES_USER=medlog

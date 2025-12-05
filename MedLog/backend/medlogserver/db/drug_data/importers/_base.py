@@ -161,11 +161,12 @@ class DrugDataSetImporterBase:
     async def get_drug_items(self) -> AsyncIterator[DrugData]:
         raise NotImplementedError()
 
-    async def run_import(self, source_dir: Path):
+    async def run_import(self):
         raise NotImplementedError()
 
-    async def _run_import(self, source_dir: Path):
-        self.source_dir = source_dir
+    async def start_import_process(self):
+        if self.source_dir is None:
+            raise ValueError("Importer has no source dir defined.")
         self.version = await self.get_drug_dataset_version()
         dataset_with_same_version_imported = await self.was_dataset_version_imported()
         if dataset_with_same_version_imported is not None:
@@ -228,9 +229,15 @@ class DrugDataSetImporterBase:
             for other_dataset in other_dataset_versionss:
                 other_dataset.current_active = False
                 other_dataset.disabled_date_datetime_utc = get_now_datetime()
+                log.debug(
+                    f"Deactivate drug dataset {other_dataset.dataset_source_name} version: {other_dataset.dataset_version}"
+                )
                 session.add(other_dataset)
             dataset_version.current_active = True
             dataset_version.activated_date_datetime_utc = get_now_datetime()
+            log.debug(
+                f"Activate drug dataset {dataset_version.dataset_source_name} version: {dataset_version.dataset_version}"
+            )
             session.add(dataset_version)
             await session.commit()
         return dataset_version
@@ -318,6 +325,9 @@ class DrugDataSetImporterBase:
             custom_drug_dataset_res = await session.exec(custom_drug_dataset_query)
             custom_drug_dataset = custom_drug_dataset_res.one_or_none()
             if custom_drug_dataset is None:
+                log.info(
+                    f"Register custom drug dataset for drug dataset '{self.dataset_name}'"
+                )
                 custom_drug_dataset = await self.generate_custom_drug_set_definition()
                 custom_drug_dataset.import_start_datetime_utc = get_now_datetime()
                 custom_drug_dataset.import_status = "done"

@@ -160,6 +160,7 @@ def test_endpoint_drug_update_workflow():
     # Validate update status
     #####
 
+    time.sleep(2)
     response: Dict[str, Any] = req("api/drug/db/update", method="get")
     print("response", response)
     dict_must_contain(

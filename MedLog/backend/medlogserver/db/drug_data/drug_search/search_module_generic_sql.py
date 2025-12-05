@@ -231,6 +231,10 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         )
 
         custom_drugs_dataset = await self._get_custom_drugs_dataset_version()
+        if custom_drugs_dataset is None:
+            raise ValueError(
+                "Something went wrong. There is no custom drug dataset registered. This should not happen."
+            )
         log.debug(
             f"INDEX BUILD UP custom_drugs_dataset: {custom_drugs_dataset.id} {type(custom_drugs_dataset.id)}"
         )
