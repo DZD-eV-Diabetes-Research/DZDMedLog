@@ -2,7 +2,7 @@ import logging
 import sys
 import os
 import hashlib
-from typing import Optional
+from typing import Optional, Dict, Tuple
 import inspect
 from pathlib import Path
 from medlogserver.config import Config
@@ -150,9 +150,9 @@ def get_logger(
     return logger_
 
 
-def get_uvicorn_loglevel():
+def get_uvicorn_loglevel() -> str:
     # uvicorn has a different log level naming system than python, we need to translate the log level setting
-    UVICORN_LOG_LEVEL_map = {
+    UVICORN_LOG_LEVEL_map: Dict[Tuple[int | str, ...], str] = {
         (logging.NOTSET, "NOTSET", "notset", "0"): "trace",
         (logging.CRITICAL, "50", "CRITICAL", "critical", "FATAL", "fatal"): "critical",
         (logging.ERROR, "40", "ERROR", "error"): "error",
@@ -162,13 +162,16 @@ def get_uvicorn_loglevel():
     }
 
     # if the uvicorn log level is not defined, it will be the same as the python log level
-    UVICORN_LOG_LEVEL = (
+    UVICORN_LOG_LEVEL: str = (
         config.SERVER_UVICORN_LOG_LEVEL
         if config.SERVER_UVICORN_LOG_LEVEL is not None
         else config.LOG_LEVEL
     )
+    uvicorn_log_level_mapped: str | None = None
     for key, val in UVICORN_LOG_LEVEL_map.items():
         if UVICORN_LOG_LEVEL in key:
-            UVICORN_LOG_LEVEL = val
+            uvicorn_log_level_mapped = val
             break
-    return UVICORN_LOG_LEVEL
+    if uvicorn_log_level_mapped is None:
+        uvicorn_log_level_mapped = "info"
+    return uvicorn_log_level_mapped

@@ -37,10 +37,20 @@ class DrugAttrFieldLovItem(DrugModelTableBase, DrugAttrFieldLovItemAPIRead, tabl
         PrimaryKeyConstraint(
             "field_name", "importer_name", "value", "drug_dataset_version_fk"
         ),
+        ForeignKeyConstraint(
+            name="composite_foreign_key_drug_attr_ref_val_field_def",
+            columns=["field_name", "importer_name"],
+            refcolumns=[
+                "drug_attr_field_definition.field_name",
+                "drug_attr_field_definition.importer_name",
+            ],
+            deferrable=True,  # Only PostgreSQL will respect this
+            initially="IMMEDIATE",
+        ),
         {"comment": "Attr fields lists of values"},
     )
-    field_name: str = Field(foreign_key="drug_attr_field_definition.field_name")
-    importer_name: str = Field()
+    field_name: str = Field(primary_key=True)
+    importer_name: str = Field(primary_key=True)
     value: str = Field()
     display: str = Field()
     sort_order: Optional[int] = Field(default=0)

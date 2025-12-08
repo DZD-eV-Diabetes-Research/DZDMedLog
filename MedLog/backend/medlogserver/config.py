@@ -136,7 +136,7 @@ class Config(BaseSettings):
         return self
 
     SQL_DATABASE_URL: str = Field(
-        default="sqlite+aiosqlite:///./../../../local.sqlite",
+        default="sqlite+aiosqlite:///./../../../medlog.sqlite",
         examples=[
             "sqlite+aiosqlite:///local.db",  # relative SQLite path -> resolved to absolute
             "sqlite+aiosqlite:////opt/data.db",  # absolute POSIX SQLite path -> preserved

@@ -44,7 +44,7 @@ class DrugDataRemoveObsoleteDrugDataEntries:
                     select(DrugData)
                     .outerjoin(Intake, DrugData.id == Intake.drug_id)
                     .where(
-                        is_(DrugData.source_dataset_id, drugdataset.id),
+                        DrugData.source_dataset_id == drugdataset.id,
                     )
                     .where(is_(Intake.id, None))
                 )

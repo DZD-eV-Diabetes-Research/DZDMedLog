@@ -50,7 +50,7 @@ def authorize(username, pw, set_as_global_default_login: bool = False) -> str:
 def req(
     endpoint: str,
     method: Literal["get", "post", "put", "patch", "delete"] = "get",
-    q: Dict = None,  # query params as dict
+    q: Dict[str, str | int | bool | List] = None,  # query params as dict
     b: Dict = None,  # json body as dict
     f: Dict = None,  # form data as dict
     expected_http_code: int = None,
@@ -67,8 +67,14 @@ def req(
     http_method_func_params = {}
     http_method_func_headers = {}
     if q:
+        if not "params" in http_method_func_params:
+            http_method_func_params["params"] = {}
         # query params
-        http_method_func_params["params"] = q
+        for qp_name, qp_val in q.items():
+            if isinstance(qp_val, list):
+                http_method_func_params["params"][qp_name] = ",".join(qp_val)
+            else:
+                http_method_func_params["params"][qp_name] = qp_val
     if b:
         # body
         http_method_func_params["json"] = b

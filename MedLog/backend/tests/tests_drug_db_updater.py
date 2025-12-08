@@ -98,7 +98,7 @@ def test_endpoint_drug_update_workflow():
 
     # Create a test intake
     intake_data = IntakeCreateAPI(
-        drug_id=drug_to_prove_inital_dataset_was_cleaned["id"],
+        drug_id=drug_to_prove_inital_dataset["id"],
         source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
         intake_start_time_utc=datetime.date.today().isoformat(),
         administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
@@ -190,7 +190,7 @@ def test_endpoint_drug_update_workflow():
             req(
                 "api/debug/worker/job",
                 method="get",
-                q={"filter_tags": '["triggeredBy:drug-data-loader/version:20251228"]'},
+                q={"filter_tags": ["triggeredBy:drug-data-loader/version:20251228"]},
             ),
         )
         print(
@@ -215,19 +215,23 @@ def test_endpoint_drug_update_workflow():
     # we expect the drug from the replaced dataset that was connected to an intake to be still existent but the un-used drug to re wiped
     from medlogserver.api.routes.routes_drug import get_drug
 
+    # this drug is from an obsolete dataset, but still must be keeped in the database because it was used in an intake
     response_post_cleaner_drug_to_prove_inital_dataset: Dict[str, Any] = cast(
         Dict[str, Any],
         req(
             f"/api/drug/id/{drug_to_prove_inital_dataset['id']}",
             method="get",
+            expected_http_code=200,
         ),
     )
+    # this drug is from an obsolete dataset and was never used. Therefore it must be deleted by the cleaning job
     response_post_cleaner_drug_to_prove_inital_dataset_was_cleaned: Dict[str, Any] = (
         cast(
             Dict[str, Any],
             req(
                 f"/api/drug/id/{drug_to_prove_inital_dataset_was_cleaned['id']}",
                 method="get",
+                expected_http_code=404,
             ),
         )
     )
