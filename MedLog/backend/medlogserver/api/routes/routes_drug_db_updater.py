@@ -83,7 +83,9 @@ async def _get_drug_loading_worker_jobs(
                 filter_job_state=WorkerJobState.RUNNING,
                 filter_tags=[
                     f"version:{filter_drug_dataset_version_str}",
-                ],
+                ]
+                if filter_drug_dataset_version_str
+                else None,
             )
         )
         loading_jobs_queued = list(
@@ -92,7 +94,9 @@ async def _get_drug_loading_worker_jobs(
                 filter_job_state=WorkerJobState.QUEUED,
                 filter_tags=[
                     f"version:{filter_drug_dataset_version_str}",
-                ],
+                ]
+                if filter_drug_dataset_version_str
+                else None,
             )
         )
         loading_jobs_running = list(
@@ -101,7 +105,9 @@ async def _get_drug_loading_worker_jobs(
                 filter_job_state=WorkerJobState.RUNNING,
                 filter_tags=[
                     f"version:{filter_drug_dataset_version_str}",
-                ],
+                ]
+                if filter_drug_dataset_version_str
+                else None,
             )
         )
 
@@ -112,7 +118,9 @@ async def _get_drug_loading_worker_jobs(
                 filter_job_state=WorkerJobState.FAILED,
                 filter_tags=[
                     f"version:{filter_drug_dataset_version_str}",
-                ],
+                ]
+                if filter_drug_dataset_version_str
+                else None,
             )
         )
 
@@ -122,7 +130,9 @@ async def _get_drug_loading_worker_jobs(
                 filter_job_state=WorkerJobState.FAILED,
                 filter_tags=[
                     f"version:{filter_drug_dataset_version_str}",
-                ],
+                ]
+                if filter_drug_dataset_version_str
+                else None,
             )
         )
 
@@ -167,6 +177,9 @@ async def _get_drug_update_status(
             failed_loading_jobs[0].last_error or failed_loading_jobs[0].last_error
         )
 
+    log.debug(
+        f"\n\n_get_drug_update_status active_loading_jobs {active_loading_jobs}\navailable_update_version: {available_update_version}\n"
+    )
     log.debug(
         f"\n\n_get_drug_update_status active_loading_jobs {active_loading_jobs}\navailable_update_version: {available_update_version}\n"
     )
