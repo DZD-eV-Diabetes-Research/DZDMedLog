@@ -33,7 +33,7 @@ function onSubmit(event: FormSubmitEvent<Schema>) {
     <UForm :schema="schema" :state="state" :validate-on="['submit']" @submit="onSubmit">
       <div class="flex flex-row gap-2">
         <UFormGroup label="Probanden-ID" name="probandId">
-          <UInput v-model.trim="state.probandId" />
+          <UInput v-model.trim="state.probandId" autocomplete="off" />
         </UFormGroup>
         <div class="content-end">
           <UButton type="submit" color="primary">

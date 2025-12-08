@@ -99,7 +99,7 @@
           <div class="flex flex-col">
             <h2 class="text-lg self-center">Medikationshistorie</h2>
             <div class="flex flex-row justify-between">
-              <UInput v-model="tableFilterString" placeholder="Tabelle filtern" />
+              <UInput v-model="tableFilterString" placeholder="Tabelle filtern" autocomplete="off" />
             </div>
           </div>
         </template>
