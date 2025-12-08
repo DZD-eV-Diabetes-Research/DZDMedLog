@@ -1,7 +1,19 @@
 <template>
   <section v-if="userStore.isAdmin" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
-    <div class="flex justify-center break-all">
-      <h1 class="text-4xl font-normal text-center mb-4">Events für {{ studyStore.nameForStudy(studyId) }}</h1>
+    <div class="flex justify-center break-all mb-4 relative items-center">
+      <div class="absolute left-0">
+        <UButton
+            to="/manage/studies"
+            label="Zurück"
+            title="Zur Studienverwaltung"
+            variant="outline"
+            color="gray"
+            icon="i-heroicons-arrow-left-circle"
+        />
+      </div>
+      <h1 class="text-4xl font-normal text-center">
+        Events für {{ studyStore.nameForStudy(studyId) }}
+      </h1>
     </div>
 
     <p class="my-4 text-center text-gray-500">
