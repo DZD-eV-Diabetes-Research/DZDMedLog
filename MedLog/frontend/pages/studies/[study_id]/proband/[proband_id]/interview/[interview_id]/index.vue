@@ -49,7 +49,7 @@
           <div class="flex flex-col">
             <h2 class="text-lg self-center">Medikationen</h2>
             <div class="flex flex-row justify-between">
-              <UInput v-model="q" placeholder="Tabelle filtern" />
+              <UInput v-model="q" placeholder="Tabelle filtern" autocomplete="off" />
               <CopyPreviousDrugs
                   v-if="!pending && latestItems?.length && !interview.interview_end_time_utc"
                   :on-update="loadIntakeList" />

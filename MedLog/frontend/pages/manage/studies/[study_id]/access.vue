@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import ConfirmationModal from "~/components/ConfirmationModal.vue";
-
 const route = useRoute();
 const studyStore = useStudyStore();
 const toast = useToast();
 const userStore = useUserStore();
 
+const currentStudy = computed(() => studyStore.getStudy(studyId.value));
 const studyId = computed(() => route.params.study_id);
 const userIdsWithAccess = computed(() => {
   return studyPermissions.value.map((value) => value.user_id);
@@ -108,11 +107,28 @@ onMounted(async () => {
 
 <template>
   <section v-if="userStore.isUserAdmin" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
-    <div class="flex justify-center break-all">
-      <h1 class="text-4xl font-normal text-center mb-4">
+    <div class="flex justify-center break-all mb-4 relative items-center">
+      <div class="absolute left-0">
+        <UButton
+            to="/manage/studies"
+            label="Zurück"
+            title="Zur Studienverwaltung"
+            variant="outline"
+            color="gray"
+            icon="i-heroicons-arrow-left-circle"
+        />
+      </div>
+      <h1 class="text-4xl font-normal text-center">
         Zugriffsrechte für {{ studyStore.nameForStudy(studyId) }}
       </h1>
     </div>
+
+    <WarningMessage
+        v-if="currentStudy.no_permissions"
+        title="Vereinfachtes Rechtemodell aktiv"
+        message="Alle Nutzer haben das Recht, für diese Studie Interviews zu führen, auch wenn sie hier nicht aufgeführt sind."
+        class="mb-4"
+    />
 
     <StudyPermissionManagementTable
         :permissions="studyPermissions"
