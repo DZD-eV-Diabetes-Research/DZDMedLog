@@ -1,11 +1,9 @@
-from typing import List
-from fastapi import (
-    Depends,
-    Security,
-)
+from typing import List, Mapping, Any
+from fastapi import Depends, HTTPException, Security, Response
 from itertools import chain
 
-from fastapi import APIRouter
+from fastapi import APIRouter, status
+
 
 from medlogserver.db.user import User
 from medlogserver.api.auth.security import (
@@ -152,9 +150,11 @@ async def _get_drug_update_status(
     # Obtain System Data
     current_drug_dataset = await drug_dataset_version_crud.get_current_active()
     latest_drug_dataset = await drug_dataset_version_crud.get_latest()
+
     available_update_version = (
         await drug_importer_class().check_for_remote_dataset_update_available()
     )
+
     current_drug_data_ready_to_use = False
     if current_drug_dataset and current_drug_dataset.import_status == "done":
         current_drug_data_ready_to_use = True
@@ -226,10 +226,22 @@ async def _get_drug_update_status(
     )
 
 
+NO_DRUG_UPDATES_IMPLEMENTED_HTTP_EXCEPTION = HTTPException(
+    status_code=status.HTTP_501_NOT_IMPLEMENTED,
+    detail=f"The current drug database module '{config.DRUG_IMPORTER_PLUGIN}' does not support updates.",
+)
+extra_responses: Mapping[int, Mapping[str, Any]] = {
+    status.HTTP_501_NOT_IMPLEMENTED: {
+        "description": "**NOT_IMPLEMENTED Error** - Response when the current drug database module - as configured in `Config`.`DRUG_IMPORTER_PLUGIN`- has the feature 'drug database update' not implemented. "
+    },
+}
+
+
 @fast_api_drug_db_updater_router.get(
     "/drug/db/update",
     response_model=DrugUpdaterStatus,
     description="Get some detail about the status of the drug db data",
+    responses=extra_responses,
 )
 async def get_drug_update_status(
     user: User = Security(get_current_user),
@@ -238,15 +250,26 @@ async def get_drug_update_status(
     ),
     worker_job_crud: WorkerJobCRUD = Depends(WorkerJobCRUD.get_crud),
 ) -> DrugUpdaterStatus:
-    return await _get_drug_update_status(drug_dataset_version_crud, worker_job_crud)
+    try:
+        return await _get_drug_update_status(drug_dataset_version_crud, worker_job_crud)
+    except NotImplementedError:
+        raise NO_DRUG_UPDATES_IMPLEMENTED_HTTP_EXCEPTION
 
 
 @fast_api_drug_db_updater_router.put(
     "/drug/db/update",
     response_model=DrugUpdaterStatus,
     description="Trigger a new update of the drug database if one is available",
+    responses=extra_responses
+    | {
+        status.HTTP_201_CREATED: {
+            "description": "**CREATED** If a new update job was actually started from this trigger call. If there is allready a running update or no update is available, we will just return a 200 status code",
+            "content": {"application/json": {"schema": DrugUpdaterStatus.schema()}},
+        },
+    },
 )
 async def trigger_drug_update_active(
+    response: Response,
     user: User = Security(get_current_user),
     is_admin: bool = Security(user_is_admin),
     drug_dataset_version_crud: DrugDataSetVersionCRUD = Depends(
@@ -254,16 +277,22 @@ async def trigger_drug_update_active(
     ),
     worker_job_crud: WorkerJobCRUD = Depends(WorkerJobCRUD.get_crud),
 ) -> DrugUpdaterStatus:
-    update_version = (
-        await drug_importer_class().check_for_remote_dataset_update_available()
-    )
-    if update_version:
-        data_download_job = WorkerJobCreate(
-            task_name=Tasks(Tasks.DRUG_DATA_UPDATE_DOWNLOAD).name,
-            task_params=None,
-            tags=["drug-data-download", f"version:{update_version}"],
-            user_id=user.id,
+    try:
+        updater_status = await _get_drug_update_status(
+            drug_dataset_version_crud, worker_job_crud
         )
-        data_download_job = await worker_job_crud.create(data_download_job)
-
-    return await _get_drug_update_status(drug_dataset_version_crud, worker_job_crud)
+        if updater_status.update_available:
+            data_download_job = WorkerJobCreate(
+                task_name=Tasks(Tasks.DRUG_DATA_UPDATE_DOWNLOAD).name,
+                task_params=None,
+                tags=[
+                    "drug-data-download",
+                    f"version:{updater_status.update_available_version}",
+                ],
+                user_id=user.id,
+            )
+            data_download_job = await worker_job_crud.create(data_download_job)
+            response.status_code = status.HTTP_201_CREATED
+        return await _get_drug_update_status(drug_dataset_version_crud, worker_job_crud)
+    except NotImplementedError:
+        raise NO_DRUG_UPDATES_IMPLEMENTED_HTTP_EXCEPTION

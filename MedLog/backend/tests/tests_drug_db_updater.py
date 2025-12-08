@@ -122,7 +122,10 @@ def test_endpoint_drug_update_workflow():
         trigger_drug_update_active,
     )
 
-    response: Dict[str, Any] = req("api/drug/db/update", method="put")
+    response: Dict[str, Any] = req(
+        "api/drug/db/update", method="put", expected_http_code=201
+    )
+
     print("api/drug/db/update response:", response)
     dict_must_contain(
         response,
@@ -136,6 +139,17 @@ def test_endpoint_drug_update_workflow():
         },
         required_keys=["last_update_run_datetime_utc"],
         exception_dict_identifier="test_endpoint_drug_update_trigger response",
+    )
+    # hammer the update-start trigger a second time to check if it does not accidentiale trigger a second overlapping update process
+    response_2: Dict[str, Any] = req(
+        "api/drug/db/update", method="put", expected_http_code=200
+    )
+    dict_must_contain(
+        response,
+        required_keys_and_val={
+            "update_running": True,
+        },
+        exception_dict_identifier="test_endpoint_drug_update_trigger second response",
     )
 
     #####

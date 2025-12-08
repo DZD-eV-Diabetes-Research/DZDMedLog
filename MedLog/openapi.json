@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.11.3.dev158+ged594cc34.d20251208"
+    "version": "0.11.3.dev159+gcf7993454.d20251208"
   },
   "paths": {
     "/api/health": {
@@ -4225,6 +4225,9 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "**NOT_IMPLEMENTED Error** - Response when the current drug database module - as configured in `Config`.`DRUG_IMPORTER_PLUGIN`- has the feature 'drug database update' not implemented. "
           }
         },
         "security": [
@@ -4247,6 +4250,107 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DrugUpdaterStatus"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "**NOT_IMPLEMENTED Error** - Response when the current drug database module - as configured in `Config`.`DRUG_IMPORTER_PLUGIN`- has the feature 'drug database update' not implemented. "
+          },
+          "201": {
+            "description": "**CREATED** If a new update job was actually started from this trigger call. If there is allready a running update or no update is available, we will just return a 200 status code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "update_available": {
+                      "type": "boolean",
+                      "title": "Update Available",
+                      "description": "Is a new dataset for the drug database available"
+                    },
+                    "update_available_version": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Update Available Version",
+                      "description": "If update available this show the version string"
+                    },
+                    "update_running": {
+                      "type": "boolean",
+                      "title": "Update Running",
+                      "description": "Is an update of the drug database currently running"
+                    },
+                    "update_running_version": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Update Running Version",
+                      "description": "If an update is running, which drug dataset version is it."
+                    },
+                    "last_update_run_datetime_utc": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Last Update Run Datetime Utc",
+                      "description": "When did the last drug database update end."
+                    },
+                    "last_update_run_error": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Last Update Run Error",
+                      "description": "If the last update failed, this is the error message"
+                    },
+                    "current_drug_data_version": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Current Drug Data Version",
+                      "description": "The version string of the current drug db dataset."
+                    },
+                    "current_drug_data_ready_to_use": {
+                      "type": "boolean",
+                      "title": "Current Drug Data Ready To Use",
+                      "description": "The version string of the current drug db dataset."
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "update_available",
+                    "update_available_version",
+                    "update_running",
+                    "last_update_run_datetime_utc",
+                    "last_update_run_error",
+                    "current_drug_data_version",
+                    "current_drug_data_ready_to_use"
+                  ],
+                  "title": "DrugUpdaterStatus"
                 }
               }
             }
@@ -4499,7 +4603,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/medlogserver__utils__Error"
+                  "$ref": "#/components/schemas/medlogserver__utils__Error__1"
                 }
               }
             }
@@ -4566,7 +4670,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/medlogserver__utils__Error__3"
+                  "$ref": "#/components/schemas/medlogserver__utils__Error"
                 }
               }
             }
@@ -8463,21 +8567,17 @@
             "description": "The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties."
           },
           "PZN": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Pzn"
           }
         },
         "type": "object",
+        "required": [
+          "PZN"
+        ],
         "title": "Codes"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__Codes__1": {
+      "medlogserver__model__drug_data__api_drug_model_factory__Codes__2": {
         "properties": {
           "ATC": {
             "anyOf": [
@@ -8492,14 +8592,18 @@
             "description": "The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties."
           },
           "PZN": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Pzn"
           }
         },
         "type": "object",
-        "required": [
-          "PZN"
-        ],
         "title": "Codes"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__Drug": {
@@ -8569,7 +8673,7 @@
             "description": "If Drug is created by user as a custom drug the user id will be saved here."
           },
           "codes": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes"
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes__2"
           },
           "attrs": {
             "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs__2",
@@ -8662,7 +8766,7 @@
             "description": "If Drug is created by user as a custom drug the user id will be saved here."
           },
           "codes": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes__1"
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes"
           },
           "attrs": {
             "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs",
@@ -8759,6 +8863,20 @@
         "type": "object",
         "title": "Error"
       },
+      "medlogserver__utils__Error__1": {
+        "properties": {
+          "detail": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Detail",
+            "default": "Export job does not exist."
+          }
+        },
+        "type": "object",
+        "title": "Error"
+      },
       "medlogserver__utils__Error__2": {
         "properties": {
           "detail": {
@@ -8768,20 +8886,6 @@
             "type": "object",
             "title": "Detail",
             "default": "Export job is not finished yet. Try again later."
-          }
-        },
-        "type": "object",
-        "title": "Error"
-      },
-      "medlogserver__utils__Error__3": {
-        "properties": {
-          "detail": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Detail",
-            "default": "Export job does not exist."
           }
         },
         "type": "object",
