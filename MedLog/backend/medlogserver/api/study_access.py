@@ -99,7 +99,7 @@ class UserStudyAccessCollection:
         else:
             studies_data = await study_crud.list(show_deactivated=True)
         if self.user.is_usermanager():
-            # lets save us permission data gathering. the user is admin. admins are all access
+            # lets save us permission data gathering. the user is admin or usermanager; can at least list all studies
             for study in studies_data:
                 if study is not None:
                     self.studies_access[study.id] = UserStudyAccess(
@@ -124,13 +124,15 @@ class UserStudyAccessCollection:
     ) -> bool:
         if self.user.is_admin():
             return True
-        self.studies_access[study_id].user_has_access(as_role=as_role)
+        if study_id not in self.studies_access:
+            return False
+        return self.studies_access[study_id].user_has_access(as_role=as_role)
 
     def user_is_interviewer(self, study_id) -> bool:
-        self.user_has_access_to(study_id=study_id, as_role="interviewer")
+        return self.user_has_access_to(study_id=study_id, as_role="interviewer")
 
     def user_is_admin(self, study_id) -> bool:
-        self.user_has_access_to(study_id=study_id, as_role="admin")
+        return self.user_has_access_to(study_id=study_id, as_role="admin")
 
 
 async def user_has_studies_access_map(

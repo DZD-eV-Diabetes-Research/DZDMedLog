@@ -10,7 +10,7 @@ interface RoleStoreState {
 export const useRoleStore = defineStore('RoleStore', {
 
     state: (): RoleStoreState => ({
-        roles: [],
+        permissions: [],
     }),
     actions: {
         async loadRoles() {

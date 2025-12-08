@@ -39,11 +39,12 @@
                 title="Laufendes Interview"
                 color="orange"
                 variant="subtle"
-                :description="`Das Interview für Event '${ eventStore.nameForEvent(currentInterview.event_id) }' wurde noch nicht abgeschlossen.`"
                 :ui="{ actions: 'flex flex-row justify-between mt-4' }"
             >
               <template #description>
                 Das Interview für das Event <span class="font-semibold font-mono">{{ eventStore.nameForEvent(currentInterview.event_id) || 'N/A' }}</span> wurde noch nicht abgeschlossen.
+                Es wurde am {{ formatDate(currentInterview.interview_start_time_utc, true) }} gestartet.
+                <br><br>
                 Vor dem Start eines neuen Interviews muss das laufende Interview beendet sein.
               </template>
               <template #actions>

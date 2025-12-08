@@ -83,13 +83,23 @@ const warningMessage = ref("");
 
 const fetchDrugs = async (searchTerm) => {
   searchError.value = undefined;
+  warningMessage.value = "";
+
+  if (searchTerm === "") {
+    searchResults.value = [];
+    return;
+  } else if (searchTerm.length < 3) {
+    searchResults.value = [];
+    warningMessage.value = "Für die Suche sind mindestens 3 Zeichen erforderlich";
+    return;
+  }
+
   isLoading.value = true;
   try {
-    warningMessage.value = ''
     const response = await apiDrugSearch(searchTerm, searchItemLimit)
 
     if (response.total_count === 0) {
-      warningMessage.value = `Kein Medikament zur Eingabe "${searchTerm}" gefunden`
+      warningMessage.value = "Die Suche ergab keine Treffer."
     }
 
     searchResults.value = response.items ?? [];
@@ -103,15 +113,24 @@ const fetchDrugs = async (searchTerm) => {
   }
 };
 
+let debounceTimeout: number | undefined = undefined;
+
 watch(
   () => searchTerm.value,
   (newValue) => {
-    if (newValue && newValue.length >= 3) {
-      fetchDrugs(newValue);
-    } else if (newValue === "") {
-      searchError.value = undefined;
-      warningMessage.value = "";
+    if (debounceTimeout !== undefined) {
+      clearTimeout(debounceTimeout);
+      debounceTimeout = undefined;
     }
+
+    // Empty search is executed immediately
+    if (newValue === "") {
+      fetchDrugs(newValue);
+      return;
+    }
+
+    // Otherwise wait a bit for more input, so we are not sending a query for every keystroke
+    debounceTimeout = setTimeout(fetchDrugs, 500, newValue);
   },
   { immediate: false }
 );

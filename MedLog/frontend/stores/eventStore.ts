@@ -18,6 +18,11 @@ export const useEventStore = defineStore('events', {
         }
     },
     getters: {
+        eventsForStudy(state: EventStore) {
+            return (studyId: string) => {
+                return state.events.filter(event => event.study_id === studyId);
+            }
+        },
         nameForEvent(state: EventStore) {
             return (eventId: string) => {
                 const event = state.events.find(item => item.id === eventId);

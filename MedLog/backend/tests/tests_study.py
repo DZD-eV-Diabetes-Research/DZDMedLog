@@ -11,6 +11,8 @@ from utils import (
     dict_must_contain,
     create_test_study,
     TestDataContainerStudy,
+    create_test_user,
+    authorize,
     dictyfy,
 )
 
@@ -148,4 +150,28 @@ def test_create_duplicate_study_name():
         method="patch",
         b=dictyfy(StudyUpdate(display_name=study_name)),
         expected_http_code=409,
+    )
+
+
+def test_endpoint_study_issue_190():
+    """Test DELETE /api/study/{study_id}/permissions/{user_id} endpoint"""
+    study_data = create_test_study(study_name="TestIssue190", with_events=1)
+
+    # Create a test user ID (you would normally get this from a real user)
+    test_user = create_test_user(
+        user_name="user_test_endpoint_study_issue_190",
+        password="we4r03rredf8",
+        email="f@f2.de",
+    )
+    test_user_access_token = authorize(
+        username=test_user.user_name,
+        pw="we4r03rredf8",
+        set_as_global_default_login=False,
+    )
+
+    study_list = req("api/study", method="get", access_token=test_user_access_token)
+    dict_must_contain(
+        study_list,
+        required_keys_and_val={"total_count": 0, "offset": 0, "count": 0, "items": []},
+        exception_dict_identifier="test_endpoint_study_issue_190",
     )
