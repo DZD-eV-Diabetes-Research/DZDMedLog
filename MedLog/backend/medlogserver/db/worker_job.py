@@ -1,4 +1,13 @@
-from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated, Dict
+from typing import (
+    AsyncGenerator,
+    List,
+    Optional,
+    Literal,
+    Sequence,
+    Annotated,
+    Dict,
+    Awaitable,
+)
 from pydantic import validate_email, StringConstraints, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 from fastapi import Depends
@@ -13,13 +22,14 @@ from uuid import UUID
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
-from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
+
 from medlogserver.model.worker_job import (
     WorkerJob,
     WorkerJobCreate,
     WorkerJobUpdate,
     WorkerJobState,
 )
+from medlogserver.worker.tasks import Tasks
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
@@ -35,16 +45,16 @@ class WorkerJobCRUD(
         update_model=WorkerJobUpdate,
     )
 ):
-
     async def list(
         self,
+        pagination: Optional[QueryParamsInterface] = None,
         filter_user_id: Optional[UUID] = None,
         filter_job_state: Optional[WorkerJobState] = None,
         filter_tags: Optional[List[str]] = None,
         filter_intervalled_job: Optional[bool] = None,
+        filter_task: Optional[Tasks | str] = None,
         hide_user_jobs: bool = False,
-        pagination: QueryParamsInterface = None,
-    ) -> Sequence[WorkerJob]:
+    ) -> List[WorkerJob]:
         # log.debug(
         #    f"filter_user_id: {filter_user_id}\nfilter_job_state: {filter_job_state}\nfilter_tags: {filter_tags}\nfilter_intervalled_job: {filter_intervalled_job}\nhide_user_jobs: {hide_user_jobs}\n"
         # )
@@ -60,12 +70,18 @@ class WorkerJobCRUD(
             query = query.where(is_(WorkerJob.user_id, None))
         if pagination:
             query = pagination.append_to_query(query)
+        if filter_task:
+            if isinstance(filter_task, Tasks):
+                filter_task = filter_task.name
+            query = query.where(WorkerJob.task_name == filter_task)
         results = await self.session.exec(statement=query)
         all_jobs = results.all()
         # json quering is very finicky on certain databases. lets do filtering on python side
 
         if filter_tags:
-            all_jobs = [j for j in all_jobs if bool(set(j.tags) == set(filter_tags))]
+            all_jobs = [
+                j for j in all_jobs if bool(set(filter_tags).issubset(set(j.tags)))
+            ]
 
         if filter_intervalled_job is not None:
             all_jobs = [
@@ -76,42 +92,7 @@ class WorkerJobCRUD(
             ]
         if filter_job_state is not None:
             all_jobs = [o for o in all_jobs if o.get_state() == filter_job_state]
-        return all_jobs
-
-        ### old code with json querying on db side. Can be removed on next review
-
-        for f_tag in filter_tags:
-            query = query.filter(col(WorkerJob.tags).contains(f_tag))
-
-        if filter_intervalled_job is not None:
-            if filter_intervalled_job == True:
-                query = query.where(
-                    is_not(WorkerJob.interval_params, None),
-                    # and_(
-                    #    is_not(WorkerJob.interval_params, None),
-                    #    is_not(WorkerJob.interval_params, {}),
-                    # )
-                )
-            elif filter_intervalled_job == False:
-                query = query.where(
-                    is_(WorkerJob.interval_params, None),
-                    # or_(
-                    #    is_(WorkerJob.interval_params, None),
-                    #    is_(WorkerJob.interval_params, {}),
-                    # )
-                )
-        log.info(f"DO STUFF 1: {query}")
-        results = await self.session.exec(statement=query)
-        log.info("DO STUFF 2")
-
-        if filter_job_state is not None:
-            result_objs = [
-                o for o in results.all() if o.get_state() == filter_job_state
-            ]
-        else:
-            result_objs = results.all()
-        log.info("DO STUFF 3")
-        return result_objs
+        return list(all_jobs)
 
     async def count(
         self,
@@ -120,7 +101,7 @@ class WorkerJobCRUD(
         filter_tags: Optional[List[str]] = None,
         filter_intervalled_job: Optional[bool] = None,
         hide_user_jobs: bool = False,
-    ) -> Sequence[WorkerJob]:
+    ) -> int:
         return len(
             await self.list(
                 filter_user_id=filter_user_id,
@@ -136,7 +117,7 @@ class WorkerJobCRUD(
         obj: WorkerJob | WorkerJobUpdate | WorkerJobCreate,
         raise_exception_if_not_exists: Exception = None,
         raise_exception_if_more_than_one_result: Exception = None,
-    ) -> Sequence[WorkerJob]:
+    ) -> List[WorkerJob]:
         """Find matching objects in the database, based on the attributes in the given "obj"
 
         Args:
@@ -147,7 +128,6 @@ class WorkerJobCRUD(
         query = select(tbl)
 
         for attr, val in obj.model_dump().items():
-
             if isinstance(val, (dict, list)):
                 # json value. Postgres seems to not support json comparison atm?!?!
                 # https://github.com/sqlalchemy/sqlalchemy/issues/5575#issuecomment-691121030

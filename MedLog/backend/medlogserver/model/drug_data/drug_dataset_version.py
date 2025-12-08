@@ -32,12 +32,13 @@ class DrugDataSetVersion(DrugModelTableBase, table=True):
     current_active: Optional[bool] = Field(
         description="States if this dataset used in the backend or just archived. Only one dataset is allowed to be active."
     )
-    import_file_path: Optional[str] = Field(
-        default=None, description="The source file for the drug data import."
+    import_path: Optional[str] = Field(
+        default=None,
+        description="The source file or directory for the drug data import.",
     )
-    import_status: Literal["queued", "running", "failed" "done"] = Field(
+    import_status: Literal["init", "queued", "running", "failed", "done"] = Field(
         default="queued",
-        description="Is the data for this drug data set allready imported.",
+        description="Is the data for this drug data set allready imported or queued for importing.",
         sa_column=Column(
             String
         ),  # , sa_column=Column(String) -> https://github.com/fastapi/sqlmodel/issues/57 + https://github.com/fastapi/sqlmodel/issues/67
@@ -46,11 +47,23 @@ class DrugDataSetVersion(DrugModelTableBase, table=True):
         default=None,
         description="If the drug data import failes, the error stacktrace will be logged here.",
     )
-    import_start_datetime_utc: datetime.datetime = Field(
+    import_start_datetime_utc: Optional[datetime.datetime] = Field(
         description="Datetime when the imported for this drug dataset was started"
     )
 
     import_end_datetime_utc: Optional[datetime.datetime] = Field(
         default=None,
         description="Datetime when the imported for this drug dataset was started",
+    )
+    activated_date_datetime_utc: Optional[datetime.datetime] = Field(
+        default=None,
+        description="Datetime when the dataset was set to `current_active`=`True`",
+    )
+    disabled_date_datetime_utc: Optional[datetime.datetime] = Field(
+        default=None,
+        description="Datetime when the dataset was set from `current_active`=`True` to `current_active`=`False`",
+    )
+    cleaned_date_datetime_utc: Optional[datetime.datetime] = Field(
+        default=None,
+        description="Datetime when the dataset was cleaned of unused drug data after being disabled.",
     )

@@ -23,7 +23,9 @@ class DrugCode(DrugModelTableBase, DrugCodeApi, table=True):
         "comment": "Tracks different version of same drug indexes that were imported"
     }
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    drug_id: uuid.UUID = Field(primary_key=True, foreign_key="drug.id")
+    drug_id: uuid.UUID = Field(
+        primary_key=True, foreign_key="drug.id", ondelete="CASCADE"
+    )
     code_system_id: str = Field(primary_key=True, foreign_key="drug_code_system.id")
     code: str = Field()
     code_system: DrugCodeSystem = Relationship()

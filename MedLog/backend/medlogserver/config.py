@@ -136,34 +136,42 @@ class Config(BaseSettings):
         return self
 
     SQL_DATABASE_URL: str = Field(
-        default="sqlite+aiosqlite:///./../../../local.sqlite",
+        default="sqlite+aiosqlite:///./../../../medlog.sqlite",
         examples=[
-            "sqlite:///local.db",  # relative SQLite path -> resolved to absolute
-            "sqlite:////opt/data.db",  # absolute POSIX SQLite path -> preserved
-            "sqlite:///:memory:",  # in-memory SQLite
+            "sqlite+aiosqlite:///local.db",  # relative SQLite path -> resolved to absolute
+            "sqlite+aiosqlite:////opt/data.db",  # absolute POSIX SQLite path -> preserved
+            "sqlite+aiosqlite:///:memory:",  # in-memory SQLite
             "sqlite+aiosqlite:///./local2.sqlite",  # relative async SQLite path
-            "postgresql://user:pass@localhost:5432/mydb",  # PostgreSQL
+            "postgresql+psycopg://user:pass@localhost:5432/mydb",  # PostgreSQL
         ],
-        description=inspect.cleandoc("""
-        The database URL for the application. Only SQLite and PostgreSQL URLs are supported.
+        description=inspect.cleandoc(
+            """
+        The database URL for the application. Only SQLite (via `sqlite+aiosqlite`)
+        and PostgreSQL (via `postgresql+psycopg`) URLs are supported.
+
+        `sqlite+aiosqlite` and `postgresql+psycopg` specify the async DB drivers used
+        by SQLAlchemy’s async engine. They are required so the application can run
+        database operations asynchronously.
 
         SQLite URL rules (per SQLAlchemy):
-          - Relative paths: sqlite:///relative/path.db  (three slashes '///')
-            Example: sqlite:///local.db -> resolved relative to the main script directory.
-          - Absolute POSIX paths: sqlite:////absolute/path.db  (four slashes '////')
-            Example: sqlite:////opt/data.db -> absolute path preserved.
-          - Windows absolute paths: sqlite:///C:/absolute/path.db (drive letters detected automatically).
-          - Memory databases: sqlite:///:memory: remain unchanged.
+        - Relative paths: sqlite+aiosqlite:///relative/path.db  (three slashes '///')
+            Example: sqlite+aiosqlite:///local.db -> resolved relative to the main script directory.
+        - Absolute POSIX paths: sqlite+aiosqlite:////absolute/path.db  (four slashes '////')
+            Example: sqlite+aiosqlite:////opt/data.db -> absolute path preserved.
+        - Windows absolute paths: sqlite+aiosqlite:///C:/absolute/path.db
+            (drive letters detected automatically).
+        - Memory databases: sqlite+aiosqlite:///:memory: remain unchanged.
 
         Application behavior:
         All SQLite relative paths are automatically resolved to absolute paths
         relative to the main script directory, in contrast to the default SQLAlchemy behavior.
 
-        PostgreSQL URLs follow the standard SQLAlchemy URI format:
-        postgresql://user:password@host:port/dbname
+        PostgreSQL URLs follow the standard async SQLAlchemy format:
+        postgresql+psycopg://user:password@host:port/dbname
 
-        Other database engines are not supported.
-    """),
+        Other database engines or drivers are not supported.
+    """
+        ),
     )
 
     # --- Validator to normalize SQLite paths automatically ---
@@ -314,6 +322,14 @@ class Config(BaseSettings):
     ] = Field(
         default="DummyDrugImporterV1",
         description="Depending on the drug database that is used, we can define an importer.",
+    )
+    DRUG_IMPORTER_AUTO_UPDATE_DRUG_DB: bool = Field(
+        default=False,
+        description="If the drug importer plugin, does support it, the drug DB will be updated automaticly. Otherwise it must be manually triggered via endpoint ...TODO",
+    )
+    DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB: bool = Field(
+        default=False,
+        description="If the drug importer plugin, does support it, does the REST-API/WebClient allow the usage of the endpoint PUT-`/drug/db/update` to force an update of the drug data",
     )
 
     DRUG_IMPORTER_BATCH_SIZE: int = Field(

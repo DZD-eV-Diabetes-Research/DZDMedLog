@@ -29,7 +29,7 @@ from medlogserver.db.drug_data.drug import DrugCRUD
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
-log = get_logger(modulename="WORKER")
+log = get_logger(modulename="Job:Export")
 config = Config()
 
 

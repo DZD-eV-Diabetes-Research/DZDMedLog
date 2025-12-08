@@ -61,7 +61,9 @@ class DrugSearch:
                 self.session
             ) as dataset_version_crud:
                 dataset_version_crud: DrugDataSetVersionCRUD = dataset_version_crud
-                self._current_dataset_version = await dataset_version_crud.get_current()
+                self._current_dataset_version = (
+                    await dataset_version_crud.get_current_active()
+                )
 
         return self._current_dataset_version
 
@@ -107,14 +109,16 @@ class DrugSearch:
                 self.session
             ) as dataset_version_crud:
                 dataset_version_crud: DrugDataSetVersionCRUD = dataset_version_crud
-                self._current_dataset_version = await dataset_version_crud.get_current()
+                self._current_dataset_version = (
+                    await dataset_version_crud.get_current_active()
+                )
         return self._current_dataset_version
 
     async def search(
         self,
         search_term: str = None,
         market_accessable: Optional[bool] = None,
-        pagination: QueryParamsInterface = None,
+        pagination: Optional[QueryParamsInterface] = None,
         **filter_ref_vals: int | str | bool,
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
         await self._preflight()
@@ -129,7 +133,6 @@ class DrugSearch:
 async def get_drug_search(
     session: AsyncSession = Depends(get_async_session),
 ) -> AsyncGenerator[DrugSearch, None]:
-
     yield DrugSearch(session=session)
 
 

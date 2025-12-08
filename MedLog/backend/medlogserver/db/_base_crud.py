@@ -42,10 +42,10 @@ class CRUDBaseMetaClass(type):
         # We need to check this after CRUDBase is defined, so we'll do it in __init_subclass__
         return cls
 
-    @property
-    def crud_context(cls):
-        """Async context manager for CRUD operations"""
-        return contextlib.asynccontextmanager(cls.get_crud)
+    # @property
+    # def crud_context(cls):
+    #    """Async context manager for CRUD operations"""
+    #    return contextlib.asynccontextmanager(cls.get_crud)
 
 
 class DatabaseInteractionBase(metaclass=CRUDBaseMetaClass):
@@ -57,6 +57,15 @@ class DatabaseInteractionBase(metaclass=CRUDBaseMetaClass):
         cls,
         session: AsyncSession = Depends(get_async_session),
     ) -> AsyncGenerator[Self, None]:
+        yield cls(session=session)
+
+    @classmethod
+    @contextlib.asynccontextmanager
+    async def crud_context(
+        cls,
+        session: AsyncSession,
+    ) -> AsyncGenerator[Self, None]:
+        """Async context manager for CRUD operations with proper type hints"""
         yield cls(session=session)
 
 
@@ -159,8 +168,8 @@ class CRUDBase(
         return results.first()
 
     async def list(
-        self, pagination: QueryParamsInterface = None
-    ) -> Sequence[GenericCRUDReadType]:
+        self, pagination: Optional[QueryParamsInterface] = None
+    ) -> List[GenericCRUDReadType]:
         query = select(self.get_table_cls())
         if pagination:
             query = pagination.append_to_query(query)
@@ -190,7 +199,7 @@ class CRUDBase(
         self,
         ids: List[UUID],
         raise_exception_if_objects_missing: Optional[Exception] = None,
-    ) -> Sequence[GenericCRUDReadType]:
+    ) -> List[GenericCRUDReadType]:
         query = select(self.get_table_cls()).where(self.get_table_cls().id.in_(ids))
         results = await self.session.exec(statement=query)
         res = results.all()
@@ -246,7 +255,7 @@ class CRUDBase(
         obj: GenericCRUDReadType | GenericCRUDUpdateType | GenericCRUDCreateType,
         raise_exception_if_not_exists: Optional[Exception] = None,
         raise_exception_if_more_than_one_result: Optional[Exception] = None,
-    ) -> Sequence[GenericCRUDReadType]:
+    ) -> List[GenericCRUDReadType]:
         """Find matching objects in the database, based on the attributes in the given "obj"""
         tbl = self.get_table_cls()
         query = select(tbl)
@@ -325,16 +334,24 @@ class CRUDBase(
         await self.session.commit()
 
 
-# Keep your original factory function for backward compatibility
 def create_crud_base(
-    table_model: Type[BaseTable],
-    read_model: Type[MedLogBaseModel],
-    create_model: Type[MedLogBaseModel],
-    update_model: Type[MedLogBaseModel],
-) -> Type[CRUDBase]:
+    table_model: Type[GenericCRUDTableType],
+    read_model: Type[GenericCRUDReadType],
+    create_model: Type[GenericCRUDCreateType],
+    update_model: Type[GenericCRUDUpdateType],
+) -> Type[
+    CRUDBase[
+        GenericCRUDTableType,
+        GenericCRUDReadType,
+        GenericCRUDCreateType,
+        GenericCRUDUpdateType,
+    ]
+]:
     """Factory function to create a CRUD base class with proper generics"""
 
-    class _CRUDBase(CRUDBase[table_model, read_model, create_model, update_model]):
+    class _CRUDClassInstance(
+        CRUDBase[table_model, read_model, create_model, update_model]
+    ):
         pass
 
-    return _CRUDBase
+    return _CRUDClassInstance

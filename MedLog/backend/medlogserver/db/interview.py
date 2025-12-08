@@ -42,8 +42,8 @@ class InterviewCRUD(
         filter_event_id: str = None,
         filter_proband_external_id: str = None,
         filter_study_id: str = None,
-        pagination: QueryParamsInterface = None,
-    ) -> Sequence[Interview]:
+        pagination: Optional[QueryParamsInterface] = None,
+    ) -> List[Interview]:
         query = select(Interview)
         if filter_study_id:
             query = query.join(Event).where(Event.study_id == filter_study_id)
@@ -65,7 +65,6 @@ class InterviewCRUD(
         completed: bool = False,
         raise_exception_if_none: Exception = None,
     ) -> Optional[Interview]:
-
         query = (
             select(Interview)
             .join(Event)

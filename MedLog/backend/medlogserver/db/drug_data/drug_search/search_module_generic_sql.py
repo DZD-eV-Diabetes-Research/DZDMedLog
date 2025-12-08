@@ -22,7 +22,7 @@ from pydantic import field_validator
 
 from sqlalchemy.orm import selectinload
 from sqlalchemy import case, func
-from medlogserver.utils import get_db_type
+from medlogserver.utils import get_db_type, get_now_datetime
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db.drug_data.drug_search._base import (
     MedLogDrugSearchEngineBase,
@@ -46,7 +46,7 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model.drug_data.drug import DrugAttrTypeName
 
-log = get_logger()
+log = get_logger(modulename="DRUG_SEARCH_INDEX")
 config = Config()
 MAX_INDEXABLE_LENGTH = 4096
 if get_db_type(config.SQL_DATABASE_URL) == "postgres":
@@ -118,7 +118,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                     drug_dataset_crud: DrugDataSetVersionCRUD = (
                         drug_dataset_crud  # typing hint help
                     )
-                    self.current_dataset_version = await drug_dataset_crud.get_current()
+                    self.current_dataset_version = (
+                        await drug_dataset_crud.get_current_active()
+                    )
         return self.current_dataset_version
 
     async def _get_custom_drugs_dataset_version(self):
@@ -181,9 +183,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             raise err
         state = await self._get_state()
         state.index_build_up_in_process = False
-        state.last_index_build_at = datetime.datetime.now(
-            tz=datetime.timezone.utc
-        ).replace(tzinfo=None)
+        state.last_index_build_at = get_now_datetime()
         state.last_index_build_based_on_drug_datasetversion_id = (
             target_drug_dataset_version.id
         )
@@ -231,11 +231,28 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         )
 
         custom_drugs_dataset = await self._get_custom_drugs_dataset_version()
+        if custom_drugs_dataset is None:
+            raise ValueError(
+                "Something went wrong. There is no custom drug dataset registered. This should not happen."
+            )
         log.debug(
             f"INDEX BUILD UP custom_drugs_dataset: {custom_drugs_dataset.id} {type(custom_drugs_dataset.id)}"
         )
+        # get total drug count
+        drug_count_query = (
+            select(func.count())
+            .select_from(DrugData)
+            .where(
+                or_(
+                    DrugData.source_dataset_id == target_drug_dataset_version.id,
+                    DrugData.source_dataset_id == custom_drugs_dataset.id,
+                )
+            )
+        )
 
-        # Build the base query to fetch drugs
+        results = await session.exec(statement=drug_count_query)
+        total_drug_count = results.first()
+        # Build the base query to fetch all drugs
         query = (
             select(DrugData)
             .where(
@@ -259,7 +276,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         # Process in batches using offset and limit
         offset = 0
         total_processed = 0
-
+        log.info(
+            f"[INDEX BUILD UP] Start building index for {total_drug_count} drug db entries."
+        )
         while True:
             # Fetch batch of drugs
             log.debug(
@@ -299,8 +318,8 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             total_processed += batch_count
             offset += batch_count
 
-            log.debug(
-                f"[INDEX BUILD UP] Processed batch of {batch_count} drugs, total processed: {total_processed}"
+            log.info(
+                f"[INDEX BUILD UP] Processed batch of {batch_count} drugs, total processed: {total_processed}/{total_drug_count}"
             )
 
     async def _drug_to_cache_obj(self, drug: DrugData) -> GenericSQLDrugSearchCache:
@@ -392,7 +411,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         self,
         search_term: str = None,
         market_accessable: Optional[bool] = None,
-        pagination: QueryParamsInterface = None,
+        pagination: Optional[QueryParamsInterface] = None,
         **filter_ref_vals: int | str | bool,
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
         # clean empty string filters

@@ -88,11 +88,12 @@ class DrugValRef(DrugModelTableBase, table=True):
     __table_args__ = (
         ForeignKeyConstraint(
             name="composite_foreign_key_drug_attr_ref_val__lov_item",
-            columns=["field_name", "value", "importer_name"],
+            columns=["field_name", "value", "importer_name", "drug_dataset_version_fk"],
             refcolumns=[
                 "drug_attr_field_lov_item.field_name",
                 "drug_attr_field_lov_item.value",
                 "drug_attr_field_lov_item.importer_name",
+                "drug_attr_field_lov_item.drug_dataset_version_fk",
             ],
             deferrable=True,  # Only PostgreSQL will respect this
             initially="IMMEDIATE",
@@ -136,6 +137,7 @@ class DrugValRef(DrugModelTableBase, table=True):
     )
 
     drug: "DrugData" = Relationship(back_populates="attrs_ref")
+    drug_dataset_version_fk: uuid.UUID = Field(foreign_key="drug_dataset_version.id")
 
 
 class DrugValMulti(DrugModelTableBase, table=True):
@@ -183,11 +185,12 @@ class DrugValMultiRef(DrugModelTableBase, table=True):
     __table_args__ = (
         ForeignKeyConstraint(
             name="composite_foreign_key_drug_attr_multi_ref_val__lov_item",
-            columns=["field_name", "value", "importer_name"],
+            columns=["field_name", "value", "importer_name", "drug_dataset_version_fk"],
             refcolumns=[
                 "drug_attr_field_lov_item.field_name",
                 "drug_attr_field_lov_item.value",
                 "drug_attr_field_lov_item.importer_name",
+                "drug_attr_field_lov_item.drug_dataset_version_fk",
             ],
             deferrable=True,  # Only PostgreSQL will respect this
             initially="IMMEDIATE",
@@ -217,6 +220,7 @@ class DrugValMultiRef(DrugModelTableBase, table=True):
         description="Generic storage of multiple reference value as list of string. Can be typed via the function in DrugAttrFieldDefinition.type",
     )
     importer_name: str = Field()
+    drug_dataset_version_fk: uuid.UUID = Field(foreign_key="drug_dataset_version.id")
     """
     field_definition: DrugAttrFieldDefinition = Relationship()
     

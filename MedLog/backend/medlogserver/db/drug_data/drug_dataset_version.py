@@ -1,9 +1,19 @@
-from typing import AsyncGenerator, List, Optional, Literal, Sequence, Annotated, Tuple
+from typing import (
+    AsyncGenerator,
+    List,
+    Optional,
+    Literal,
+    Sequence,
+    Annotated,
+    Tuple,
+    Type,
+)
 from pydantic import validate_email, validator, StringConstraints
 from pydantic_core import PydanticCustomError
 from fastapi import Depends
 import contextlib
 from typing import Optional
+
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import (
     Field,
@@ -17,6 +27,8 @@ from sqlmodel import (
     desc,
     and_,
 )
+from sqlalchemy.sql.operators import is_not, is_
+
 from sqlmodel.sql import expression as sqlEpression
 import uuid
 from uuid import UUID
@@ -44,36 +56,73 @@ class DrugDataSetVersionCRUD(
         update_model=DrugDataSetVersion,
     )
 ):
-
     def _get_current_dataset_name(self) -> str:
-        drug_importer_class: DrugDataSetImporterBase = DRUG_IMPORTERS[
+        drug_importer_class: Type[DrugDataSetImporterBase] = DRUG_IMPORTERS[
             config.DRUG_IMPORTER_PLUGIN
         ]()
         return drug_importer_class.dataset_name
 
-    async def list(self) -> List[DrugDataSetVersion]:
-        query = (
-            select(DrugDataSetVersion)
-            .where(
-                DrugDataSetVersion.dataset_source_name
-                == self._get_current_dataset_name()
-            )
-            .order_by(DrugDataSetVersion.dataset_version)
+    async def list(
+        self,
+        filter_import_status: Literal["queued", "running", "failed", "done"] = None,
+        filter_is_custom_drug_collection: bool = None,
+        pagination: Optional[QueryParamsInterface] = None,
+    ) -> List[DrugDataSetVersion]:
+        query = select(DrugDataSetVersion).where(
+            DrugDataSetVersion.dataset_source_name == self._get_current_dataset_name(),
         )
-
+        if filter_import_status:
+            query = query.where(
+                DrugDataSetVersion.import_status == filter_import_status
+            )
+        if filter_is_custom_drug_collection is not None:
+            query = query.where(
+                is_(
+                    DrugDataSetVersion.is_custom_drugs_collection,
+                    filter_is_custom_drug_collection,
+                )
+            )
+        if pagination:
+            query = pagination.append_to_query(query)
+        if pagination is None or pagination.order_by is None:
+            query = query.order_by(DrugDataSetVersion.dataset_version)
         results = await self.session.exec(statement=query)
         return results.all()
 
     async def count(
         self,
     ) -> int:
-        query = select(DrugDataSetVersion).where(
-            DrugDataSetVersion.dataset_source_name == self._get_current_dataset_name()
+        query = (
+            select(func.count())
+            .select_from(DrugDataSetVersion)
+            .where(
+                DrugDataSetVersion.dataset_source_name
+                == self._get_current_dataset_name()
+            )
         )
         results = await self.session.exec(statement=query)
         return results.first()
 
-    async def get_current(self) -> DrugDataSetVersion | None:
+    async def get_latest(self) -> DrugDataSetVersion | None:
+        query = (
+            select(DrugDataSetVersion)
+            .where(
+                and_(
+                    DrugDataSetVersion.dataset_source_name
+                    == self._get_current_dataset_name(),
+                    DrugDataSetVersion.is_custom_drugs_collection == False,
+                )
+            )
+            .order_by(desc(DrugDataSetVersion.dataset_version))
+            .limit(1)
+        )
+        results = await self.session.exec(statement=query)
+        res = results.one_or_none()
+        log.debug(f"DrugDataSetVersion get_latest {res}")
+        return res
+        return results.one_or_none()
+
+    async def get_current_active(self) -> DrugDataSetVersion | None:
         query = (
             select(DrugDataSetVersion)
             .where(
@@ -89,7 +138,7 @@ class DrugDataSetVersionCRUD(
         )
         results = await self.session.exec(statement=query)
         res = results.one_or_none()
-        log.debug(f"DrugDataSetVersion get_current {res}")
+        log.debug(f"DrugDataSetVersion get_current_active {res}")
         return res
         return results.one_or_none()
 
@@ -111,28 +160,3 @@ class DrugDataSetVersionCRUD(
         res = results.one_or_none()
         log.debug(f"DrugDataSetVersion get_custom {res}")
         return res
-
-        # old code can be removed
-        current_drug_dataset = await self.get_current()
-        if current_drug_dataset is None:
-            return None
-        custom_drug_dataset_query = select(DrugDataSetVersion).where(
-            DrugDataSetVersion.is_custom_drugs_collection == True
-            and DrugDataSetVersion.dataset_source_name
-            == current_drug_dataset.dataset_source_name
-        )
-        result = await self.session.exec(custom_drug_dataset_query)
-        custom_drug_dataset = result.one_or_none()
-        if custom_drug_dataset:
-            return custom_drug_dataset
-        custom_drug_dataset = DrugDataSetVersion(
-            is_custom_drugs_collection=True,
-            dataset_version="CUSTOM",
-            dataset_source_name=current_drug_dataset.dataset_source_name,
-            import_status="Done",
-            import_start_datetime_utc=datetime.datetime.now(tz=datetime.UTC),
-        )
-        self.session.add(custom_drug_dataset)
-        await self.session.commit()
-        await self.session.refresh(custom_drug_dataset)
-        return custom_drug_dataset

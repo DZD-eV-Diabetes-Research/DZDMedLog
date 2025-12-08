@@ -122,7 +122,7 @@ async def list_users(
 ) -> PaginatedResponse[User]:
     if not is_user_manager:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, details="Needs usermanager role"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Needs usermanager role"
         )
     users = await user_crud.list(show_deactivated=incl_deactivated)
     return PaginatedResponse(
@@ -219,7 +219,6 @@ async def set_user_password(
 async def create_user(
     current_user: bool = Security(get_current_user),
 ) -> List[UserRoleApiRead]:
-
     return [
         UserRoleApiRead(
             role_name=config.ADMIN_ROLE_NAME,

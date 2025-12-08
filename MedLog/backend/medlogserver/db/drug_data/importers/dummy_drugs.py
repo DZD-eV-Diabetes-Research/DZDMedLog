@@ -10,6 +10,7 @@ from typing import (
     Literal,
     Type,
     Union,
+    Self,
 )
 from pathlib import Path
 import datetime
@@ -37,7 +38,10 @@ from medlogserver.model.drug_data.drug_attr_field_lov_item import (
     DrugAttrFieldLovItemCREATE,
 )
 
-from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
+from medlogserver.db.drug_data.importers._base import (
+    DrugDataSetImporterBase,
+    DrugDataSetImporterCapabilities,
+)
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.drug_code import DrugCode
@@ -199,6 +203,7 @@ code_attr_definitions = [
             desc="The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties.",
             optional=True,
             unique=False,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
         ),
         source_mapping=drugs_csv_2_attr_mappings["codes.ATC"],
     ),
@@ -209,6 +214,7 @@ code_attr_definitions = [
             country="Germany",
             optional=False,
             unique=True,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
         ),
         source_mapping=drugs_csv_2_attr_mappings["codes.PZN"],
     ),
@@ -226,7 +232,7 @@ attr_definitions = [
             is_reference_list_field=False,
             is_multi_val_field=False,
             examples=["10", "5.5", "80"],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
             searchable=True,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs.amount"],
@@ -242,7 +248,7 @@ attr_definitions = [
             is_reference_list_field=False,
             is_multi_val_field=False,
             examples=["PharamGigant", "MoneyMaker"],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs.manufacturer"],
     ),
@@ -257,7 +263,7 @@ attr_definitions = [
             is_reference_list_field=False,
             is_multi_val_field=False,
             examples=["Spray", "Needle"],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs.deliverysystem"],
     ),
@@ -272,7 +278,7 @@ attr_definitions = [
             is_reference_list_field=False,
             is_multi_val_field=False,
             examples=["oral", "intravenous"],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs.routeofadministration"],
     ),
@@ -291,7 +297,7 @@ attr_multi_definitions: List[DrugAttrFieldDefinitionContainer] = [
             is_reference_list_field=False,
             is_multi_val_field=True,
             examples=["autoimmune", "suppress"],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
             searchable=True,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs_multi.keywords"],
@@ -311,7 +317,7 @@ attr_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             is_reference_list_field=True,
             is_multi_val_field=False,
             examples=[1, 2],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
             searchable=True,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs_ref.dispensingtype"],
@@ -336,7 +342,7 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
             is_reference_list_field=True,
             is_multi_val_field=True,
             examples=["DE", "UK"],
-            importer_name=importername,
+            importer_name=config.DRUG_IMPORTER_PLUGIN,
             searchable=True,
         ),
         source_mapping=drugs_csv_2_attr_mappings["attrs_multi_ref.producing_country"],
@@ -352,14 +358,79 @@ attr_multi_ref_definitions: List[DrugAttrFieldDefinitionContainer] = [
 class DummyDrugImporterV1(DrugDataSetImporterBase):
     def __init__(self):
         self.dataset_name = "DummyDrugs"
-        self.api_name = "dummydrugs"
+        self.api_name = importername
         self.dataset_link = ""
         self.source_dir = None
         self.version = None
+        self.capabilities: DrugDataSetImporterCapabilities = (
+            DrugDataSetImporterCapabilities(
+                can_check_for_remote_updates=True,
+                can_be_triggered_for_manual_update=True,
+                can_download_remote_updates=True,
+            )
+        )
         self._attr_definitions = None
         self._attr_ref_definitions = None
         self._code_definitions = None
         self._lov_values: Dict[str, List[DrugAttrFieldLovItem]] = {}
+        self._ensured_dataset_version: DrugDataSetVersion | None = None
+
+    @classmethod
+    def get_dummy_dataset_base_path(cls) -> Path:
+        return Path(
+            Path(__file__).parent.parent.parent.parent.parent,
+            "provisioning_data/dummy_drugset",
+        ).absolute()
+
+    async def check_for_remote_dataset_update_available(self) -> str | None:
+        dummy_datasets_base_dir = self.get_dummy_dataset_base_path()
+        print("dummy_datasets_base_dir", dummy_datasets_base_dir)
+        # MedLog/backend/medlogserver/db/drug_data/importers/dummy_drugs.py
+        # MedLog/backend/tests/provisioning_data
+        imported_datasets = await self.get_already_imported_datasets()
+        for dummy_dataset_dir in dummy_datasets_base_dir.iterdir():
+            version_string = dummy_dataset_dir.name
+            print("####dummy_datasets_base_dir version_string", version_string)
+            print(imported_datasets)
+            if version_string not in [ds.dataset_version for ds in imported_datasets]:
+                return version_string
+        return None
+
+    async def download_remote_dataset_update(self) -> Self | None:
+        """This dummy function checks if the second dummy set was allready imported and if not return a new dataloader with thew path.
+        This way we can simulate an update one time.
+
+        Raises:
+            NotImplementedError: _description_
+
+        Returns:
+            DrugDataSetVersion: _description_
+        """
+        dummy_datasets_base_dir = self.get_dummy_dataset_base_path()
+        new_version_string = await self.check_for_remote_dataset_update_available()
+        if not new_version_string:
+            return None
+        dummy_dataset_dir = Path(dummy_datasets_base_dir, new_version_string)
+
+        self.source_dir = dummy_dataset_dir
+        self.version = new_version_string
+        return self
+
+    async def get_drug_dataset_version(self) -> str:
+        if self.version is None:
+            source_dir_name = Path(self.source_dir).name
+            self.version = source_dir_name
+        return self.version
+
+    async def was_dataset_version_imported(self) -> DrugDataSetVersion | None:
+        imported_datasets = await self.get_already_imported_datasets()
+        for imported_dataset in imported_datasets:
+            if (
+                imported_dataset.dataset_version == self.version
+                and imported_dataset.import_status in ["running", "done"]
+            ):
+                return imported_dataset
+        return None
 
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None
@@ -368,7 +439,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             return [
                 attr_def.field
                 for attr_def in attr_definitions
-                if attr_def.field.field_name == by_name
+                if isinstance(attr_def.field, DrugAttrFieldDefinition)
+                and attr_def.field.field_name == by_name
             ]
         return [attr_def.field for attr_def in attr_definitions]
 
@@ -379,7 +451,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             return [
                 attr_def.field
                 for attr_def in attr_ref_definitions
-                if attr_def.field.field_name == by_name
+                if isinstance(attr_def.field, DrugAttrFieldDefinition)
+                and attr_def.field.field_name == by_name
             ]
         return [field_def.field for field_def in attr_ref_definitions]
 
@@ -390,7 +463,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             return [
                 attr_def.field
                 for attr_def in attr_multi_definitions
-                if attr_def.field.field_name == by_name
+                if isinstance(attr_def.field, DrugAttrFieldDefinition)
+                and attr_def.field.field_name == by_name
             ]
         return [field_def.field for field_def in attr_multi_definitions]
 
@@ -399,9 +473,10 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
     ) -> List[DrugAttrFieldDefinition]:
         if by_name:
             return [
-                field_def.field
-                for field_def in attr_multi_ref_definitions
-                if field_def.field.field_name == by_name
+                attr_def.field
+                for attr_def in attr_multi_ref_definitions
+                if isinstance(attr_def.field, DrugAttrFieldDefinition)
+                and attr_def.field.field_name == by_name
             ]
         return [field_def.field for field_def in attr_multi_ref_definitions]
 
@@ -411,8 +486,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
         if by_id:
             return [
                 field_def.field
-                for field_def in attr_multi_ref_definitions
-                if field_def.field.field_name == by_id
+                for field_def in code_attr_definitions
+                if field_def.field.name == by_id
             ]
         return [field_def.field for field_def in code_attr_definitions]
 
@@ -428,13 +503,16 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             for attrdef in attrdefs:
                 all_attr_defs_flat.append(attrdef)
 
-        all_objs.extend(all_attr_defs_flat)
+        # all_objs.extend(all_attr_defs_flat)
         for ref_lov_field_obj in attr_ref_definitions + attr_multi_ref_definitions:
-            all_objs.append(ref_lov_field_obj.field)
+            # all_objs.append(ref_lov_field_obj.field)
+            field: DrugAttrFieldDefinition = ref_lov_field_obj.field
             lov_item_objs = await self._generate_lov_items(
-                ref_lov_field_obj.field, lov_definition=ref_lov_field_obj.lov
+                field,
+                lov_definition=ref_lov_field_obj.lov,
+                drug_dataset_version=drug_dataset,
             )
-            self._lov_values[ref_lov_field_obj.field.field_name] = lov_item_objs
+            self._lov_values[field.field_name] = lov_item_objs
 
             all_objs.extend(lov_item_objs)
 
@@ -512,7 +590,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                 DrugVal(
                     field_name=attr_data.field.field_name,
                     value=drug_attr_value,
-                    importer_name=importername,
+                    importer_name=config.DRUG_IMPORTER_PLUGIN,
                 )
             )
         # drug ref attr
@@ -531,7 +609,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                 DrugValRef(
                     field_name=attr_ref_data.field.field_name,
                     value=drug_attr_value,
-                    importer_name=importername,
+                    importer_name=config.DRUG_IMPORTER_PLUGIN,
+                    drug_dataset_version_fk=drug_dataset_version.id,
                 )
             )
         # drug multi attrs
@@ -551,7 +630,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                         field_name=attr_multi_data.field.field_name,
                         value=drug_attr_val,
                         value_index=index,
-                        importer_name=importername,
+                        importer_name=config.DRUG_IMPORTER_PLUGIN,
                     )
                 )
         # drug multi ref attrs
@@ -571,7 +650,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                         field_name=attr_multi_ref_data.field.field_name,
                         value=drug_attr_val,
                         value_index=index,
-                        importer_name=importername,
+                        importer_name=config.DRUG_IMPORTER_PLUGIN,
+                        drug_dataset_version_fk=drug_dataset_version.id,
                     )
                 )
         return result_drug_data
@@ -621,7 +701,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                 f"Could not cast raw value '{value}' to type {target_attr_def.value_type.value.python_type} as defined in {target_attr_def}. "
             )
 
-    async def commit(self, objs):
+    async def commit(self, objs: SQLModel):
         async with get_async_session_context() as session:
             for obj in objs:
                 # log.info(("obj", obj))
@@ -635,8 +715,9 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
 
     async def _generate_lov_items(
         self,
-        paren_field: DrugValRef,
+        paren_field: DrugAttrFieldDefinition,
         lov_definition: DrugAttrRefFieldLovImportDefinition,
+        drug_dataset_version: DrugDataSetVersion,
     ) -> List[DrugAttrFieldLovItem]:
         lov_items: List[DrugAttrFieldLovItem] = []
         source_file = Path(self.source_dir, lov_definition.lov_source_file)
@@ -668,7 +749,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
                     value=value,
                     display=display_value,
                     sort_order=index,
-                    importer_name=importername,
+                    importer_name=config.DRUG_IMPORTER_PLUGIN,
+                    drug_dataset_version_fk=drug_dataset_version.id,
                 )
                 lov_items.append(li)
 

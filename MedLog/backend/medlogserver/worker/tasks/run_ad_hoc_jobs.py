@@ -15,7 +15,7 @@ from medlogserver.worker.task import TaskBase
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
-log = get_logger(modulename="WORKER")
+log = get_logger(modulename="Job:AdHocJobRunner")
 config = Config()
 
 
@@ -92,7 +92,7 @@ class WorkerAdHocJobRunner:
                     datetime.datetime.now(tz=datetime.UTC) - job.run_finished_at
                 )
                 if job_age.total_seconds() > max_age_sec:
-                    log.debug(f"Remove obsolete job {job}")
+                    log.debug(f"Remove obsolete job {job!r}")
                     job_task_class = import_task_class(Tasks[job.task_name].value)
                     await job_task_class(
                         job=job, task_params=job.task_params

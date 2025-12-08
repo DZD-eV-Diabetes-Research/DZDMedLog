@@ -1,6 +1,6 @@
 from typing import List, Self, Optional
 import uuid
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, UniqueConstraint
 from sqlalchemy import String, Integer, Column, SmallInteger
 
 from medlogserver.model.drug_data._base import DrugModelTableBase
@@ -8,8 +8,22 @@ from medlogserver.model.drug_data._base import DrugModelTableBase
 
 class DrugCodeSystem(DrugModelTableBase, table=True):
     __tablename__ = "drug_code_system"
-    __table_args__ = {"comment": ""}
 
+    __table_args__ = (
+        UniqueConstraint(
+            "name",
+            "importer_name",
+            name="uq_code_system_field_definition__field__importer",
+        ),
+        UniqueConstraint(
+            "id",
+            "importer_name",
+            name="uq_code_system_field_definition_id__field__importer",
+        ),
+        {
+            "comment": "Definition of dataset specific fields and lookup fields. this is a read only table. The attribute field definitons are defined in code. Any changes on the SQL table rows/values will be overwriten."
+        },
+    )
     id: str = Field(
         description="Shortname identifier for the national mmedication code system. Also the name for one code instance.",
         sa_type=String,
@@ -41,3 +55,4 @@ class DrugCodeSystem(DrugModelTableBase, table=True):
         default=True,
         description="Should the code be shown in the UI. Some IDs are internal and are not interesting for the client.",
     )
+    importer_name: str = Field()

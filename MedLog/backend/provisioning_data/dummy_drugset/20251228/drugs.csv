@@ -1,0 +1,61 @@
+NAME;MARKET_ACCESS_DATE;MARKET_EXIT_DATE;DISPENSINGTYPE_CODE;PZN;ATC;COMPANY;DELIVERYSYSTEM;ROUTEOFADMINISTRATION;KEYWORD;AMOUNT;AMOUNT_UNIT;PROD_COUNTRY_CODE
+Athermax;2021-03-15;2022-06-30;0;12345678;C01AA05;PharmaNova;tablet;oral;heart,hypertension;30;pills;DE,UK
+BronchoClear;2020-11-01;2023-03-20;2;22334455;R03DA04;MediSolutions;aerosol;inhalation;cough,asthma;1;spray;DE,UK,US
+Cerebex;2019-09-10;;0;99887766;N06DA02;NeuroPharm;capsule;oral;cognition,memory;60;capsules;DE,UK,US
+Dermolight;2022-01-05;;2;34561234;D07AC17;SkinHealth Inc.;cream;topical;eczema,skin;100;g;DE,UK,US
+EnerGel;2020-05-25;;3;65748392;A11BA03;VitaCore;gel;oral;fatigue,vitamin;12;tubes;DE,UK,US
+FluFix;2021-10-01;;0;19283746;J01FA10;HealthCo;powder;intravenous;antibiotic,flu;1;vial;DE,UK,US
+GastroEase;2018-07-14;;2;66554433;A02BC02;DigestMed;pill;oral;acid,stomach;20;pills;DE,UK,US
+HemoCare;2017-03-22;;0;44112233;B03BA03;BloodWorks Inc.;ampoule;intravenous;anemia,iron;5;vials;DE,UK,US
+Immunex;2021-05-10;;0;88223311;L04AA20;ImmunePlus;syringe;subcutaneous;autoimmune,suppress;10;syringes;DE,UK,US
+JointFlex;2019-12-15;;2;33445566;M01AE01;JointHealth Corp.;patch;topical;pain,arthritis;10;patches;DE,UK,US
+KidneyGuard;2022-02-01;;0;77665544;B03XA02;RenalCare Ltd.;capsule;oral;kidney,protection;90;capsules;DE,UK,US
+LipoStat;2020-06-15;;0;44889922;C10AA05;CholesterolMed;aerosol;oral;cholesterol,lipid;15;tubes;DE,UK
+MigraStop;2020-08-10;;0;22556677;N02CC02;PainRelief Inc.;tablet;oral;migraine,headache;30;pills;DE,UK,US
+NeuroPlus;2021-12-20;;2;88997766;N06AX01;BrainBoost;aerosol;nasal;cognition,focus;1;spray;DE,UK,US
+OsteoCare;2021-04-15;;3;55443322;M05BA03;BoneHealth;sachet;oral;calcium,osteoporosis;30;sachets;DE,UK,US
+PainAway;2019-02-01;;0;55667788;M01AB05;AnalgesicPro;syrup;oral;pain,relief;250;ml;DE,UK,US
+QuinolMed;2021-06-10;;0;99882233;J01MA12;Antibiotics Co.;capsule;oral;infection,antibiotic;14;capsules;DE,UK,US
+RheumaAid;2020-01-12;2023-07-12;2;66778899;M01AX02;ReliefTherapeutics;cream;topical;inflammation,joint;75;g;UK,DE
+SleepWell;2022-03-05;;3;11223344;N05CA01;DreamMed;pill;oral;sleep,insomnia;20;pills;DE,UK,US
+ThyroCare;2021-11-25;;0;55447733;H03AA01;EndocrineTech;tablet;oral;thyroid,hormone;100;pills;DE,UK,US
+UltraCure;2019-06-20;;0;44556677;J01CA04;Antibiotics Co.;capsule;oral;antibiotic,bacterial;28;capsules;US,DE
+VitaBoost;2020-07-01;;3;99881122;A11EA03;WellnessPharm;pill;oral;vitamins,immune;60;pills;DE,UK,US
+WoundHeal;2022-10-10;;2;77665511;D08AC01;HealFast Inc.;gel;topical;wound,healing;50;g;DE,UK,US
+XyloSpray;2021-09-30;;2;33221144;R01AA07;NasalSolutions;aerosol;nasal;congestion,allergy;15;ml;DE,UK,US
+AllerSafe;2020-02-12;;3;77889900;R06AX27;AllergyRelief;tablet;oral;allergy,antihistamine;10;pills;DE,UK,US
+BioFever;2019-04-11;;2;44332255;N02BE01;FeverShield Inc.;syrup;oral;fever,relief;200;ml;DE,UK,US
+CardioPro;2021-02-14;;0;22113344;C01AA08;HeartGuard;tablet;oral;hypertension,heart;50;pills;DE,UK,US
+DetoxiCleanse;2020-05-20;;2;55668877;A07AX03;GutWellness;sachet;oral;detox,digestion;10;sachets;DE,UK,US
+EpiControl;2022-08-01;;0;99885544;N03AX16;SeizureMed;syringe;intramuscular;epilepsy,seizures;5;syringes;DE,UK,US
+FocusAid;2019-07-20;;2;88776655;N06DA04;AttentionPlus;pill;oral;focus,attention;30;pills;DE,UK,US
+GastroRelief;2020-09-30;;3;99881155;A02BA03;StomachEase;syrup;oral;indigestion,acid;150;ml;DE,UK,US
+HeadFree;2018-01-22;;3;77882244;N02BA51;PainFree Inc.;tablet;oral;headache,relief;24;pills;DE,UK,US
+InsulinPro;2021-10-05;;0;88221199;A10AB04;DiabetesMed;syringe;subcutaneous;diabetes,glucose;6;syringes;DE,UK,US
+JointEase;2020-11-12;;2;33446688;M01AX17;JointSolutions;patch;topical;arthritis,joint;15;patches;DE,UK,US
+KidClear;2019-03-22;;0;88991122;B03XA02;KidneyLife Ltd.;capsule;oral;kidney,protection;60;capsules;DE,UK,US
+LiverGuard;2021-06-12;;0;66557788;A05BA05;LiverHealth Inc.;tablet;oral;liver,detox;40;pills;DE,UK,US
+MigraineMax;2022-03-10;;2;33228855;N02CC03;HeadRelief;pill;oral;migraine,headache;10;pills;DE,UK,US
+NeuroZen;2019-12-01;;3;44335566;N06AX11;MindWellness;aerosol;nasal;calm,stress;1;spray;DE,UK,US
+OcularEase;2020-04-01;;2;99887700;S01EB09;EyeCare;drop;ocular;dry,eye;10;ml;DE,UK,US
+PainStop;2021-01-01;;0;22557799;M01AB12;PainShield;syrup;oral;pain,relief;300;ml;DE,UK,US
+QuickRelief;2020-02-02;;2;99882244;J01XX14;InfectionShield;cream;topical;infection,relief;50;g;DE,UK,US
+RespiraEase;2022-07-25;;2;88996677;R03BB04;BreathWell;aerosol;inhalation;asthma,cough;1;spray;DE,UK,US
+SleepAid;2019-06-11;;3;11225588;N05CD05;Dreams Inc.;tablet;oral;sleep,relax;15;pills;DE,UK,US
+ThroatSooth;2021-04-25;;2;33229977;R05DA15;SoothMed;lozenge;oral;sore,throat;20;lozenges;DE,UK,US
+UrinaryEase;2020-03-18;2023-03-12;0;77665522;G04BE03;BladderMed;tablet;oral;bladder,relief;28;pills;DE,UK,US
+VitaPower;2021-08-20;;3;99884433;A11BA02;EnergyBoost;pill;oral;energy,vitamin;50;pills;DE,UK,US
+WoundCare;2022-11-10;2023-06-15;2;77663355;D08AX10;HealSolutions;patch;topical;wound,healing;8;patches;DE,UK,US
+XyloNasal;2020-12-15;;2;99886677;R01AA08;ClearNose;aerosol;nasal;allergy,congestion;10;ml;DE,UK,US
+AllerFix;2021-02-10;;3;99881133;R06AX01;AllerPro;tablet;oral;antihistamine,allergy;15;pills;DE,UK,US
+BioShield;2022-01-01;;2;44331122;N02BE02;ProtectMed;syrup;oral;immune,boost;200;ml;DE,UK,US
+CardioCare;2019-05-15;;0;22334411;C01AA06;HeartCare Ltd.;capsule;oral;hypertension,heart;30;capsules;DE,UK,US
+AspiSheen;2019-05-15;;0;22334455;N02BA51;Martin Sheen Ltd.;capsule;oral;headache,relief;30;capsules;DE,UK,US
+AntiIdiote;2019-05-16;;0;22334466;N02BA51;HeadRelief Ltd.;capsule;oral;headache,relief;30;capsules;DE
+TestDrug;2023-04-16;;0;22334461;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test1Drug;2023-04-17;;0;22334462;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test2Drug;2023-04-18;;0;22334463;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test3Drug;2023-04-19;;0;22334464;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test4Drug;2023-04-20;;0;22334465;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Test5Drug;2023-04-21;;0;22334466;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+DrugToProveUpdatedDataset;2023-04-22;;0;22334467;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK

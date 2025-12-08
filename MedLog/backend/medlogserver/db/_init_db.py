@@ -1,5 +1,5 @@
 from typing import AsyncGenerator, List, Optional, Type
-
+import uuid
 from fastapi import Depends
 from pathlib import Path, PurePath
 from sqlmodel import SQLModel
@@ -38,7 +38,7 @@ from medlogserver.model.drug_data import (
     DrugData,
 )
 from medlogserver.db.drug_data.drug_search import SEARCH_ENGINES
-from medlogserver.db.worker_job import WorkerJob
+from medlogserver.db.worker_job import WorkerJob, WorkerJobCRUD, WorkerJobCreate
 from medlogserver.log import get_logger
 from medlogserver.config import Config
 from sqlalchemy.dialects.sqlite.aiosqlite import AsyncAdapt_aiosqlite_connection
@@ -68,6 +68,8 @@ def enable_foreign_keys_on_sqlite(dbapi_connection, connection_record):
     # this is disabled for now, as sqlite does not support nullable composite keys (SIMPLE foreign key mode as defined in SQL-92 Standard)
     # we use nullable composite keys in the drug "Stamm"-model :(
     # instead we force optionally "PRAGMA foreign_keys=ON" on a per delete call base. see MedLog/backend/medlogserver/db/_base_crud.py - CRUDBase.delete()
+
+    # Update Tim: I think this should be obsolete now as we introduced the drug data model V2. We may not have nullable composite keys now in the database. ToDo: Check that and remove this as code
     if isinstance(
         dbapi_connection,
         (
@@ -109,7 +111,10 @@ async def create_admin_if_not_exists():
                 await user_auth_crud.create(admin_user_auth)
 
 
-async def init_drugsearch():
+async def reset_stuck_drugsearchindex_build_ups():
+    # reset drug_search_generic_sql_state.index_build_up_in_process on DZDMedLog boot if we are stuck from a recent crash or ungraceful shutdown
+    # see https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/83
+
     from medlogserver.db.drug_data.drug_search._base import MedLogDrugSearchEngineBase
     from medlogserver.db.drug_data.drug_search.search_module_generic_sql import (
         GenericSQLDrugSearchEngine,
@@ -121,8 +126,6 @@ async def init_drugsearch():
     ]
     search_engine = search_engine_class()
 
-    # reset drug_search_generic_sql_state.index_build_up_in_process if we are stuck from a recent crash
-    # see https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/83
     if search_engine_class == GenericSQLDrugSearchEngine:
         search_engine: GenericSQLDrugSearchEngine = search_engine
         state = await search_engine._get_state()
@@ -134,28 +137,33 @@ async def init_drugsearch():
             state.last_index_build_based_on_drug_datasetversion_id = None
             await search_engine._save_state(state)
 
-    await search_engine.build_index()
-    """
-    current_ai_data_version = await get_current_ai_data_version()
-    if current_ai_data_version is not None:
-        from medlogserver.db.wido_gkv_arzneimittelindex.drug_search.search_module_generic_sql import (
-            GenericSQLDrugSearchEngine,
-        )
+    return
 
-        search_engine = GenericSQLDrugSearchEngine(
-            target_ai_data_version=current_ai_data_version
-        )
-        await search_engine.build_index()
+
+async def create_inital_drug_data_loader_job():
+    """
+    We create a new drug data loading job on boot with the configured default/inital drug data source
+    If this default source drug data has not been loaded yet it will be with this job. otherwise the job will just do nothing.
     """
 
+    from medlogserver.worker.tasks import Tasks
+    from medlogserver.worker.tasks.drug_data_load import TaskDrugDataLoading
 
-async def provision_drug_data():
-    from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
-
-    DRUG_IMPORTER = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
-    im = DRUG_IMPORTER()
-    await im._run_import(source_dir=config.DRUG_TABLE_PROVISIONING_SOURCE_DIR)
-    gc.collect()
+    async with get_async_session_context() as session:
+        async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
+            worker_job_crud: WorkerJobCRUD = worker_job_crud
+            job_id = uuid.uuid4()
+            system_job = WorkerJobCreate(
+                id=job_id,
+                user_id=None,
+                task_name=Tasks(Tasks.DRUG_DATA_LOAD).name,
+                task_params={
+                    "source_dir": config.DRUG_TABLE_PROVISIONING_SOURCE_DIR,
+                },
+                tags=["init-job", "drug-loading"],
+            )
+            log.debug(f"Create inital TaskDrugDataLoading Job {system_job}")
+            system_job = await worker_job_crud.create(system_job)
 
 
 async def provision_base_data():
@@ -179,6 +187,6 @@ async def init_db():
         await conn.commit()
 
         await create_admin_if_not_exists()
-        await provision_drug_data()
-        await init_drugsearch()
+        await create_inital_drug_data_loader_job()
+        await reset_stuck_drugsearchindex_build_ups()
         await provision_base_data()

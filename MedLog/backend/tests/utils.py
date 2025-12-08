@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, Any, TYPE_CHECKING
+from typing import Dict, List, Literal, Any, TYPE_CHECKING, overload
 import os
 import requests
 import json
@@ -32,7 +32,6 @@ medlogserver_config = Config()
 
 
 def get_medlogserver_base_url():
-
     return f"http://{medlogserver_config.SERVER_LISTENING_HOST}:{medlogserver_config.SERVER_LISTENING_PORT}"
 
 
@@ -51,7 +50,7 @@ def authorize(username, pw, set_as_global_default_login: bool = False) -> str:
 def req(
     endpoint: str,
     method: Literal["get", "post", "put", "patch", "delete"] = "get",
-    q: Dict = None,  # query params as dict
+    q: Dict[str, str | int | bool | List] = None,  # query params as dict
     b: Dict = None,  # json body as dict
     f: Dict = None,  # form data as dict
     expected_http_code: int = None,
@@ -59,7 +58,7 @@ def req(
     tolerated_error_codes: List[int] = None,
     tolerated_error_body: List[Dict | str] = None,
     access_token: str = None,
-) -> Dict | str:
+) -> Dict[str, Any] | str:
     if tolerated_error_codes is None:
         tolerated_error_codes = []
     if tolerated_error_body is None:
@@ -68,8 +67,14 @@ def req(
     http_method_func_params = {}
     http_method_func_headers = {}
     if q:
+        if not "params" in http_method_func_params:
+            http_method_func_params["params"] = {}
         # query params
-        http_method_func_params["params"] = q
+        for qp_name, qp_val in q.items():
+            if isinstance(qp_val, list):
+                http_method_func_params["params"][qp_name] = ",".join(qp_val)
+            else:
+                http_method_func_params["params"][qp_name] = qp_val
     if b:
         # body
         http_method_func_params["json"] = b
@@ -94,7 +99,7 @@ def req(
         )
 
     # create log message that documents the whole request
-    log_msg_request = f"TEST-REQUEST:{method} - {endpoint} - PARAMS: {({k:v for k,v in http_method_func_params.items() if k != 'url'})} - HEADERS: {http_method_func_headers_print}"
+    log_msg_request = f"TEST-REQUEST:{method} - {endpoint} - PARAMS: { ({k: v for k, v in http_method_func_params.items() if k != 'url'}) } - HEADERS: {http_method_func_headers_print}"
 
     # attach headers to request params
     if http_method_func_headers:
@@ -106,9 +111,9 @@ def req(
     # fire request
     r = http_method_func(**http_method_func_params)
     if expected_http_code:
-        assert (
-            r.status_code == expected_http_code
-        ), f"Exptected http status {expected_http_code} got {r.status_code} for {log_msg_request} \n {r.content}"
+        assert r.status_code == expected_http_code, (
+            f"Exptected http status {expected_http_code} got {r.status_code} for {log_msg_request} \n {r.content}"
+        )
     else:
         try:
             r.raise_for_status()
@@ -127,9 +132,14 @@ def req(
     except requests.exceptions.JSONDecodeError:
         return r.content
 
+
 class Unset:
     pass
-def get_dot_env_file_variable(filepath: str, key: str, default:Any=Unset) -> str | None:
+
+
+def get_dot_env_file_variable(
+    filepath: str, key: str, default: Any = Unset
+) -> str | None:
     """
     Extracts the value of a specific environment variable from a .env file.
 
@@ -175,20 +185,20 @@ def dict_must_contain(
             if d[k] != v:
                 if raise_if_not_fullfilled:
                     raise ValueError(
-                        f"""Expected value following val in key '{k}' {"in dict "+exception_dict_identifier if exception_dict_identifier else ""}'\n'{v}'\n got \n'{d[k]}'"""
+                        f"""Expected value following val in key '{k}' {"in dict " + exception_dict_identifier if exception_dict_identifier else ""}'\n'{v}'\n got \n'{d[k]}'"""
                     )
                 return False
         except KeyError:
             if raise_if_not_fullfilled:
                 raise KeyError(
-                    f"""Expected value key '{k}' {"in dict "+exception_dict_identifier if exception_dict_identifier else ""}'"""
+                    f"""Expected value key '{k}' {"in dict " + exception_dict_identifier if exception_dict_identifier else ""}'"""
                 )
             return False
     for k in required_keys:
         if k not in d:
             if raise_if_not_fullfilled:
                 raise KeyError(
-                    f"""Missing expected value key '{k}' {"in dict "+exception_dict_identifier if exception_dict_identifier else ""}'"""
+                    f"""Missing expected value key '{k}' {"in dict " + exception_dict_identifier if exception_dict_identifier else ""}'"""
                 )
             return False
     return True
@@ -248,7 +258,6 @@ def get_test_functions_from_file_or_module(
     file_or_module: str | Path | types.ModuleType,
 ):
     if isinstance(file_or_module, (str, Path)):
-
         if not os.path.isfile(file_or_module):
             raise FileNotFoundError(f"No such file: {file_or_module}")
 
@@ -350,7 +359,6 @@ def create_test_user(user_name: str, password: str, email: str) -> "User":
 
 
 if TYPE_CHECKING:
-
     from medlogserver.model.study import Study
     from medlogserver.model.event import EventRead
     from medlogserver.model.interview import Interview
@@ -399,7 +407,7 @@ def create_test_study(
 
     drug_data_csv = Path(
         Path(__file__).parent.parent,
-        "provisioning_data/dummy_drugset/20241126/drugs.csv",
+        "provisioning_data/dummy_drugset/20251228/drugs.csv",
     )
     proband_ids = [str(random_gen.randint(0, 1000)) for _ in range(proband_count)]
 
@@ -423,7 +431,6 @@ def create_test_study(
     if with_events == 0:
         return test_data_container
     for event_index in range(with_events):
-
         event_data = req(
             f"api/study/{study_id}/event",
             method="post",
@@ -447,7 +454,6 @@ def create_test_study(
     for event_container in test_data_container.events:
         for interview_index in range(with_interviews_per_event_per_proband):
             for proband_id in proband_ids:
-
                 interview_data = req(
                     f"api/study/{study_id}/event/{event_container.event.id}/interview",
                     method="post",
@@ -470,6 +476,8 @@ def create_test_study(
                         column_name="NAME",
                         random_gen=random_gen,
                     )
+                    # this is borkt atm with the new 2 versioned dummy drug database. We just use a known fixed drug for now
+                    random_drug_name = "Test2Drug"
                     print("random_drug_name", random_drug_name)
                     drug_search_result = req(
                         f"/api/drug/search",

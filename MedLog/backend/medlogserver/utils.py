@@ -11,6 +11,7 @@ from typing import (
     Any,
     Type,
 )
+from sqlmodel import SQLModel
 
 if TYPE_CHECKING:
     from hashlib import _Hash as Hash  # https://github.com/python/typeshed/issues/2928
@@ -38,6 +39,7 @@ from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 import re
 import concurrent.futures
+import datetime
 
 import random
 import time
@@ -548,6 +550,25 @@ def get_default_file_data(
     return file_content
 
 
+def get_now_datetime(
+    timezone: datetime.timezone = datetime.timezone.utc,
+    strip_timezone_from_result: bool = True,
+) -> datetime.datetime:
+    """_summary_
+
+    Args:
+        timezone (datetime.timezone, optional): _description_. Defaults to datetime.timezone.utc.
+        strip_timezone_from_result (bool, optional): Remove datetime information from datetime. this is needed for sqlite compatibility. Defaults to True.
+
+    Returns:
+        datetime.datetime: _description_
+    """
+    now = datetime.datetime.now(tz=timezone)
+    if strip_timezone_from_result:
+        now.replace(tzinfo=None)
+    return now
+
+
 async def commit_with_retry_when_sqlite_is_locked(
     session: AsyncSession, retries=3, min_wait=0.5, max_wait=2.0
 ):
@@ -572,3 +593,20 @@ async def commit_with_retry_when_sqlite_is_locked(
             # Wait a random amount before retrying
             wait_time = random.uniform(min_wait, max_wait)
             time.sleep(wait_time)
+
+
+def sqlmodel_apply_updates(existing: SQLModel, incoming: SQLModel) -> bool:
+    """
+    Copy non-None fields from `incoming` to `existing`.
+    Returns True if at least one field was changed, otherwise False.
+    """
+    changed = False
+
+    for field, new_value in incoming.model_dump(exclude_unset=True).items():
+        old_value = getattr(existing, field)
+
+        if new_value != old_value:
+            setattr(existing, field, new_value)
+            changed = True
+
+    return changed

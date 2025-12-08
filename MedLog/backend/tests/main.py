@@ -1,3 +1,4 @@
+from typing import List
 import multiprocessing
 import requests
 import time
@@ -24,8 +25,15 @@ from statics import (
 
 def set_config_for_test_env():
     os.environ["MEDLOG_DOT_ENV_FILE"] = DOT_ENV_FILE_PATH
-    print(f"set SQL_DATABASE_URL to {DB_PATH}")
-    os.environ["SQL_DATABASE_URL"] = f"sqlite+aiosqlite:///{DB_PATH}"
+
+    SQL_DATABASE_URL = os.getenv("SQL_DATABASE_URL", default=None)
+
+    os.environ["SQL_DATABASE_URL"] = (
+        SQL_DATABASE_URL
+        if SQL_DATABASE_URL is not None
+        else f"sqlite+aiosqlite:///{DB_PATH}"
+    )
+    print(f"set SQL_DATABASE_URL to {os.environ['SQL_DATABASE_URL']}")
     os.environ["ADMIN_USER_NAME"] = ADMIN_USER_NAME
     os.environ["ADMIN_USER_PW"] = ADMIN_USER_PW
     os.environ["ADMIN_USER_EMAIL"] = ADMIN_USER_EMAIL
@@ -64,7 +72,13 @@ if RESET_DB:
     print(
         f"!!RESET DB AT {DB_PATH}. If you want to have a persisting test db, change the value for env var `MEDLOG_TESTS_RESET_DB` to false or remove it."
     )
-    Path(DB_PATH).unlink(missing_ok=True)
+    SQL_DATABASE_URL: str = os.getenv("SQL_DATABASE_URL", default=None)
+    if SQL_DATABASE_URL.startswith("sqlite"):
+        Path(DB_PATH).unlink(missing_ok=True)
+    else:
+        print(
+            "WARNING: RESET_DB is enabled but SQL_DATABASE_URL is set to an external database. Can not reset the DB. This must be done externaly."
+        )
 
 
 from medlogserver.main import start as medlogserver_start
@@ -87,6 +101,8 @@ medlogserver_base_url = get_medlogserver_base_url()
 
 
 def wait_for_medlogserver_up_and_healthy(timeout_sec=120):
+    from utils import req, dict_must_contain
+
     medlogserver_not_available = True
     while medlogserver_not_available:
         try:
@@ -100,7 +116,26 @@ def wait_for_medlogserver_up_and_healthy(timeout_sec=120):
             urllib3.exceptions.MaxRetryError,
         ):
             time.sleep(1)
-    print(f"SERVER UP FOR TESTING: {r.status_code}")
+    print(f"SERVER UP FOR LISTENING: {r.status_code}")
+    medlogserver_not_initialized = True
+    access_token = authorize(
+        username=ADMIN_USER_NAME,
+        pw=ADMIN_USER_PW,
+        set_as_global_default_login=False,
+    )
+    while medlogserver_not_initialized:
+        from medlogserver.api.routes.routes_healthcheck import HealthCheckReport
+
+        r = req("api/health/report", access_token=access_token)
+        if (
+            r["drugs_imported"]
+            and r["last_worker_run_succesfull"]
+            and r["drug_search_index_working"]
+        ):
+            medlogserver_not_initialized = False
+
+        time.sleep(2)
+    print(f"SERVER READY FOR TESTING: {r}")
 
 
 def shutdown_medlogserver_and_backgroundworker():
@@ -131,6 +166,8 @@ def start_medlogserver_and_backgroundworker():
 
 start_medlogserver_and_backgroundworker()
 
+successfull_test_files: List[str] = []
+
 
 def run_single_test_file(
     file_name_or_module: str | types.ModuleType,
@@ -139,6 +176,10 @@ def run_single_test_file(
     exit_on_fail: bool = True,
 ):
     all_function_success = True
+    module_human_identifier = str(file_name_or_module)
+    if isinstance(file_name_or_module, types.ModuleType):
+        module_human_identifier = str(file_name_or_module.__file__)
+
     print("file_name_or_module", file_name_or_module)
     try:
         if authorize_before:
@@ -147,19 +188,23 @@ def run_single_test_file(
                 pw=ADMIN_USER_PW,
                 set_as_global_default_login=True,
             )
+        tests_successfull: List[str] = []
         for name, test_function in get_test_functions_from_file_or_module(
             file_name_or_module
         ):
             print(f"--------------- RUN test function {name}")
             test_function()
+            tests_successfull.append(name)
     except Exception as e:
         all_function_success = False
         print("Error in tests")
         print(print(traceback.format_exc()))
         shutdown_medlogserver_and_backgroundworker()
-        print(f"🚫 TESTS {test_function.__name__} FAILED")
+        print(f"🚫 TEST MODULE '{module_human_identifier}' FAILED")
+        print(f"\t🚫 TEST '{test_function.__name__}' FAILED")
         if exit_on_fail:
             exit(1)
+    successfull_test_files.append(module_human_identifier)
     if exit_on_success:
         shutdown_medlogserver_and_backgroundworker()
         print("✅️ TESTS SUCCEDED")
@@ -167,42 +212,53 @@ def run_single_test_file(
 
 
 if __name__ == "__main__":
-    # RUN TESTS
-    import tests_config
-    import tests_health
-    import tests_event
-    import tests_users
-    import tests_export
-    import tests_study
-    import tests_study_permission
-    import tests_health
-    import tests_interview
-    import tests_drug
-    import tests_intake
-
-    import tests_last_interview_intakes
+    import os
+    import importlib
 
     authorize(
         username=ADMIN_USER_NAME, pw=ADMIN_USER_PW, set_as_global_default_login=True
     )
-    run_single_test_file(tests_config)
-    run_single_test_file(tests_health)
-    run_single_test_file(tests_users)
-    run_single_test_file(tests_study)
-    run_single_test_file(tests_event)
-    run_single_test_file(tests_interview)
-    run_single_test_file(tests_intake)
-    run_single_test_file(tests_last_interview_intakes)
-    run_single_test_file(tests_study_permission)
-    run_single_test_file(tests_export)
-    run_single_test_file(tests_drug)
+    # RUN ALL TEST SCRIPTS
+    if 1 == 1:
+        # find all files named tests_*.py in current directory
+        for filename in os.listdir(os.path.dirname(__file__)):
+            if filename.startswith("tests_") and filename.endswith(".py"):
+                module_name = filename[:-3]  # strip .py
+                module = importlib.import_module(module_name)
+                run_single_test_file(module)
 
-    # last_interview_intakes()
-    # test_do_health()
-    # run_all_tests_users()
-    # test_do_drugv2()
-    # test_do_export()
+    # RUN SPECIFIC TEST SCRIPTS
+    if 1 == 0:
+        import tests_config
+        import tests_health
+        import tests_event
+        import tests_users
+        import tests_export
+        import tests_study
+        import tests_study_permission
+        import tests_interview
+        import tests_drug
+        import tests_intake
+        import tests_drug_db_updater
+        import tests_last_interview_intakes
+
+        run_single_test_file(tests_config)
+        run_single_test_file(tests_health)
+        run_single_test_file(tests_users)
+        run_single_test_file(tests_study)
+        run_single_test_file(tests_event)
+        run_single_test_file(tests_interview)
+        run_single_test_file(tests_intake)
+        run_single_test_file(tests_last_interview_intakes)
+        run_single_test_file(tests_study_permission)
+        run_single_test_file(tests_export)
+        run_single_test_file(tests_drug)
+        run_single_test_file(tests_drug_db_updater)
 
     shutdown_medlogserver_and_backgroundworker()
+
+    for test_file in successfull_test_files:
+        print(f"\t✅️ {test_file}")
     print("✅️ TESTS SUCCEDED")
+
     exit(0)

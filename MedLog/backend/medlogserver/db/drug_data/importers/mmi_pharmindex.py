@@ -49,7 +49,10 @@ from medlogserver.model.drug_data.drug_attr_field_lov_item import (
     DrugAttrFieldLovItemCREATE,
 )
 
-from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
+from medlogserver.db.drug_data.importers._base import (
+    DrugDataSetImporterBase,
+    DrugDataSetImporterCapabilities,
+)
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.drug_code import DrugCode
@@ -310,6 +313,7 @@ def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 country="Germany",
                 optional=False,
                 unique=True,
+                importer_name=importername,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["codes.PZN"],
         ),
@@ -321,6 +325,7 @@ def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 desc="Interne 'PRODUCTID' des Vidal MMI Pharmindex",
                 optional=False,
                 unique=False,
+                importer_name=importername,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["codes.MMIP"],
         ),
@@ -708,6 +713,14 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self.dataset_link = "https://www.MmiPi.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/"
         self.source_dir = None
         self.version = None
+        self.capabilities: DrugDataSetImporterCapabilities = (
+            DrugDataSetImporterCapabilities(
+                can_check_for_remote_updates=True,
+                can_be_triggered_for_manual_update=True,
+                can_download_remote_updates=True,
+            )
+        )
+        self._ensured_dataset_version: DrugDataSetVersion = None
         self.batch_size = config.DRUG_IMPORTER_BATCH_SIZE
         self._attr_definitions = None
         self._attr_ref_definitions = None
@@ -847,7 +860,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             ):
                 # drug_schema_objects.append(ref_lov_field_obj.field)
                 lov_item_objs = await self._generate_lov_items(
-                    ref_lov_field_obj.field, lov_definition=ref_lov_field_obj.lov
+                    ref_lov_field_obj.field,
+                    lov_definition=ref_lov_field_obj.lov,
+                    drug_dataset_version=drug_dataset,
                 )
                 # only needed for debugin validation
                 # self._lov_values[ref_lov_field_obj.field.field_name] = lov_item_objs
@@ -878,9 +893,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             # write everything to database
             await self.commit()
 
-    async def _disect_drug_data(
-        self, drug_data: DrugData
-    ) -> AsyncGenerator[
+    async def _disect_drug_data(self, drug_data: DrugData) -> AsyncGenerator[
         DrugData | DrugVal | DrugValRef | DrugCode | DrugValMulti | DrugValMultiRef,
         None,
     ]:
@@ -1080,18 +1093,10 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     "field_name": attr_ref_def.field.field_name,
                     "value": drug_attr_value,
                     "importer_name": importername,
+                    "drug_dataset_version_fk": drug_dataset_version.id,
                 }
             )
-            """
-            result_drug_data.attrs_ref.append(
-                DrugValRef(
-                    drug_id=result_drug_data.id,
-                    field_name=attr_ref_def.field.field_name,
-                    value=drug_attr_value,
-                    importer_name=importername,
-                )
-            )
-            """
+
         # drug multi attrs
         for attr_multi_def in get_attr_multi_definitions():
             drug_attr_values = await self._resolve_source_mapping_to_value(
@@ -1117,17 +1122,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         "importer_name": importername,
                     }
                 )
-                """
-                result_drug_data.attrs_multi.append(
-                    DrugValMulti(
-                        drug_id=result_drug_data.id,
-                        field_name=attr_multi_def.field.field_name,
-                        value=drug_attr_val,
-                        value_index=index,
-                        importer_name=importername,
-                    )
-                )
-                """
+
         # drug multi ref attrs
         for attr_multi_ref_def in get_attr_multi_ref_definitions():
             drug_attr_values = await self._resolve_source_mapping_to_value(
@@ -1158,6 +1153,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                         "value": drug_attr_val,
                         "value_index": index,
                         "importer_name": importername,
+                        "drug_dataset_version_fk": drug_dataset_version.id,
                     }
                 )
                 """
@@ -1431,9 +1427,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             result = csv_content_view.data[_filter_value_casted]
             if max_number_rows:
                 result = result[:max_number_rows]
-            self._cache_csv_lookups[csv_lookup_filter_call_signature][filter_value] = (
-                result
-            )
+            self._cache_csv_lookups[csv_lookup_filter_call_signature][
+                filter_value
+            ] = result
 
             self._debug_stats_csv_lookup = (
                 self._debug_stats_csv_lookup[0],
@@ -1508,6 +1504,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         self,
         paren_field: DrugValRef,
         lov_definition: MmiPiDrugAttrRefFieldLovImportDefinition,
+        drug_dataset_version: DrugDataSetVersion,
     ) -> List[DrugAttrFieldLovItem]:
         lov_items: List[DrugAttrFieldLovItem] = []
         source_file = Path(self.source_dir, lov_definition.lov_source_file)
@@ -1549,6 +1546,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                     display=display_value,
                     sort_order=index,
                     importer_name=importername,
+                    drug_dataset_version_fk=drug_dataset_version.id,
                 )
                 lov_items.append(li)
         if lov_definition.sort_attr is not None:

@@ -43,8 +43,8 @@ class EventCRUD(create_crud_base(Event, EventRead, EventCreate, EventUpdate)):
     async def list(
         self,
         filter_study_id: UUID = None,
-        pagination: QueryParamsInterface = None,
-    ) -> Sequence[Event]:
+        pagination: Optional[QueryParamsInterface] = None,
+    ) -> List[Event]:
         if isinstance(filter_study_id, str):
             filter_study_id: UUID = UUID(filter_study_id)
         # log.info(f"Event.Config.order_by {Event.Config.order_by}")
@@ -62,8 +62,8 @@ class EventCRUD(create_crud_base(Event, EventRead, EventCreate, EventUpdate)):
         proband_id: str = None,
         exlude_empty_events: bool = False,
         filter_study_id: UUID = None,
-        pagination: QueryParamsInterface = None,
-    ) -> Sequence[EventReadPerProband]:
+        pagination: Optional[QueryParamsInterface] = None,
+    ) -> List[EventReadPerProband]:
         """List all events that a proband participated"""
         query = (
             select(Event, func.count(col(Interview.id)))

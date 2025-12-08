@@ -376,3 +376,4 @@ _MMI_Pharmindex/*
 mprofile*
 
 _tmp_debug/*
+MedLog/backend/tests/testdb.sqlite-journal

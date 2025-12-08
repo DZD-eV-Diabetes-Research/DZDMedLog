@@ -36,17 +36,23 @@ def test_endpoint_role_list():
 
     # Should contain at least admin and user manager roles
     role_names = [role["role_name"] for role in response]
-    assert "admin" in role_names
-    assert "usermanager" in role_names
+    print("role_names", role_names)
+    from medlogserver.config import Config
+
+    config = Config()
+    assert config.ADMIN_ROLE_NAME in role_names
+    assert config.USERMANAGER_ROLE_NAME in role_names
 
 
 def test_endpoint_user_crud():
     """Test user CRUD operations"""
     # Create test user data
+    from medlogserver.model.user import UserCreate
+
     test_user_data = {
         "email": "test.user@example.com",
+        "user_name": "user_crud_test",
         "display_name": "Test User",
-        "password": "securepassword123",
     }
 
     # Create new user
@@ -108,33 +114,21 @@ def test_endpoint_user_crud():
     assert any(u["id"] == user_id for u in users["items"])
 
     # Test user role assignment
+    from medlogserver.config import Config
+
+    config = Config()
     role_data = {
-        "role": "usermanager",
+        "roles": [config.USERMANAGER_ROLE_NAME],
     }
 
-    role_response = req(f"api/user/{user_id}/role", method="put", b=role_data)
+    role_response = req(f"api/user/{user_id}", method="patch", b=role_data)
 
     dict_must_contain(
         role_response,
         required_keys=["id", "email", "display_name", "roles"],
         required_keys_and_val={
             "id": user_id,
-            "roles": ["usermanager"],
+            "roles": [config.USERMANAGER_ROLE_NAME],
         },
         exception_dict_identifier="assign role response",
-    )
-
-    # Delete user role
-    role_delete_response = req(
-        f"api/user/{user_id}/role/{role_data['role']}", method="delete"
-    )
-
-    dict_must_contain(
-        role_delete_response,
-        required_keys=["id", "email", "display_name", "roles"],
-        required_keys_and_val={
-            "id": user_id,
-            "roles": [],
-        },
-        exception_dict_identifier="delete role response",
     )

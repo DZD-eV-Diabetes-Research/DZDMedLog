@@ -31,7 +31,6 @@ config = Config()
 
 
 class HealthcheckRead(DatabaseInteractionBase):
-
     def __init__(self, session: AsyncSession):
         self.session = session
 
@@ -66,7 +65,7 @@ class HealthcheckRead(DatabaseInteractionBase):
             self.session
         ) as dataset_version_crud:
             dataset_version_crud: DrugDataSetVersionCRUD = dataset_version_crud
-            dataset_version = await dataset_version_crud.get_current()
+            dataset_version = await dataset_version_crud.get_current_active()
             print("dataset_version", dataset_version)
             if dataset_version and dataset_version.import_status == "done":
                 healthcheck.drugs_imported = True

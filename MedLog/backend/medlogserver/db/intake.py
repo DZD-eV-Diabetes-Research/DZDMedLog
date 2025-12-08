@@ -50,8 +50,8 @@ class IntakeCRUD(
         filter_interview_id: str = None,
         filter_proband_external_id: str = None,
         filter_study_id: str = None,
-        pagination: QueryParamsInterface = None,
-    ) -> Sequence[Intake]:
+        pagination: Optional[QueryParamsInterface] = None,
+    ) -> List[Intake]:
         query = select(Intake).distinct()
         # prepare joins
         if filter_study_id:
@@ -97,8 +97,8 @@ class IntakeCRUD(
         filter_interview_id: str = None,
         filter_proband_external_id: str = None,
         filter_study_id: str = None,
-        pagination: QueryParamsInterface = None,
-    ) -> Sequence[IntakeDetailListItem]:
+        pagination: Optional[QueryParamsInterface] = None,
+    ) -> List[IntakeDetailListItem]:
         query = select(Intake, Interview, Event).select_from(Intake)
         query = query.join(Interview).join(Event)
         # prepare where filters
@@ -139,9 +139,8 @@ class IntakeCRUD(
         study_id: str | uuid.UUID,
         proband_external_id: str,
         raise_exception_if_no_last_interview: Exception = None,
-        pagination: QueryParamsInterface = None,
+        pagination: Optional[QueryParamsInterface] = None,
     ) -> List[Intake]:
-
         last_interview_query = (
             select(Interview)
             .join(Event)
