@@ -11,7 +11,7 @@
             icon="i-heroicons-arrow-left-circle"
         />
       </div>
-      <h1 class="text-4xl font-normal text-center">
+      <h1 class="text-4xl font-normal text-center w-8/12">
         Events für {{ studyStore.nameForStudy(studyId) }}
       </h1>
     </div>
