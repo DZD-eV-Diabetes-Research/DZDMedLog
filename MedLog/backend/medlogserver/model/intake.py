@@ -94,6 +94,10 @@ class IntakeUpdate(MedLogBaseModel, table=False):
         default=None,
         description="How was the drug/medication identified.",
     )
+    is_activeingredient_equivalent_choice: bool = Field(
+        default=True,
+        description="If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+    )
     intake_start_time_utc: Optional[date] = Field(
         default=None,
     )
