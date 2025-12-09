@@ -34,7 +34,8 @@ def upgrade():
                 "is_activeingredient_equivalent_choice",
                 sa.Boolean(),
                 nullable=False,
-                default=True,
+                default=False,
+                server_default="false",
             ),
         )
         # ### end Alembic commands ###
@@ -47,7 +48,8 @@ def upgrade():
                 "is_activeingredient_equivalent_choice",
                 sa.Boolean(),
                 nullable=False,
-                default=True,
+                default=False,
+                server_default="0",
             ),
         )
         # ### end Alembic commands ###
