@@ -2,7 +2,11 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
+<<<<<<< Updated upstream
     "version": "0.11.3.dev159+gcf7993454.d20251208"
+=======
+    "version": "0.12.1.dev2+g2a192f5a0.d20251209"
+>>>>>>> Stashed changes
   },
   "paths": {
     "/api/health": {
@@ -5164,6 +5168,15 @@
         ],
         "title": "ConsumedMedsTodayAnswers"
       },
+      "DisplayPriorityClass": {
+        "type": "integer",
+        "enum": [
+          1,
+          2,
+          3
+        ],
+        "title": "DisplayPriorityClass"
+      },
       "DrugAttrFieldDefinitionAPIRead": {
         "properties": {
           "field_name": {
@@ -5174,6 +5187,11 @@
             "type": "string",
             "title": "Field Name Display",
             "description": "The title of the field for displaying humans"
+          },
+          "field_display_priority_class": {
+            "$ref": "#/components/schemas/DisplayPriorityClass",
+            "description": "A hint on how important this field is for displaying the user. E.g. a class 1 field should be immediately visible to the user on drug search to help identify the drug. A class 3 field is ok to be visible after clicking on some `more info...`-button",
+            "default": 3
           },
           "field_desc": {
             "anyOf": [
@@ -5186,6 +5204,36 @@
             ],
             "title": "Field Desc",
             "description": "Helptext for users about the content of the field. For internal documenation purposes see 'desc'"
+          },
+          "field_icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Icon",
+            "description": "A unicode icon that can be shown next to the field or instead of the `field_name_display`",
+            "examples": [
+              "\ud83d\udca9",
+              "\ud83d\udd22",
+              "\ud83d\udc8a"
+            ]
+          },
+          "field_display_sort_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Display Sort Order",
+            "description": "This should define the sequence how fields are listed in the client in a particular `field_display_priority_class`. `0` should be the first field(s). The higher the number, the farther down the field should appear.",
+            "default": 0
           },
           "optional": {
             "type": "boolean",
@@ -5340,6 +5388,11 @@
             "title": "Field Name Display",
             "description": "The title of the field for displaying humans"
           },
+          "field_display_priority_class": {
+            "$ref": "#/components/schemas/DisplayPriorityClass",
+            "description": "A hint on how important this field is for displaying the user. E.g. a class 1 field should be immediately visible to the user on drug search to help identify the drug. A class 3 field is ok to be visible after clicking on some `more info...`-button",
+            "default": 3
+          },
           "field_desc": {
             "anyOf": [
               {
@@ -5351,6 +5404,36 @@
             ],
             "title": "Field Desc",
             "description": "Helptext for users about the content of the field. For internal documenation purposes see 'desc'"
+          },
+          "field_icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Icon",
+            "description": "A unicode icon that can be shown next to the field or instead of the `field_name_display`",
+            "examples": [
+              "\ud83d\udca9",
+              "\ud83d\udd22",
+              "\ud83d\udc8a"
+            ]
+          },
+          "field_display_sort_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Display Sort Order",
+            "description": "This should define the sequence how fields are listed in the client in a particular `field_display_priority_class`. `0` should be the first field(s). The higher the number, the farther down the field should appear.",
+            "default": 0
           },
           "optional": {
             "type": "boolean",
@@ -5431,6 +5514,11 @@
             "title": "Field Name Display",
             "description": "The title of the field for displaying humans"
           },
+          "field_display_priority_class": {
+            "$ref": "#/components/schemas/DisplayPriorityClass",
+            "description": "A hint on how important this field is for displaying the user. E.g. a class 1 field should be immediately visible to the user on drug search to help identify the drug. A class 3 field is ok to be visible after clicking on some `more info...`-button",
+            "default": 3
+          },
           "field_desc": {
             "anyOf": [
               {
@@ -5442,6 +5530,36 @@
             ],
             "title": "Field Desc",
             "description": "Helptext for users about the content of the field. For internal documenation purposes see 'desc'"
+          },
+          "field_icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Icon",
+            "description": "A unicode icon that can be shown next to the field or instead of the `field_name_display`",
+            "examples": [
+              "\ud83d\udca9",
+              "\ud83d\udd22",
+              "\ud83d\udc8a"
+            ]
+          },
+          "field_display_sort_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Display Sort Order",
+            "description": "This should define the sequence how fields are listed in the client in a particular `field_display_priority_class`. `0` should be the first field(s). The higher the number, the farther down the field should appear.",
+            "default": 0
           },
           "optional": {
             "type": "boolean",
@@ -5527,6 +5645,11 @@
             "title": "Field Name Display",
             "description": "The title of the field for displaying humans"
           },
+          "field_display_priority_class": {
+            "$ref": "#/components/schemas/DisplayPriorityClass",
+            "description": "A hint on how important this field is for displaying the user. E.g. a class 1 field should be immediately visible to the user on drug search to help identify the drug. A class 3 field is ok to be visible after clicking on some `more info...`-button",
+            "default": 3
+          },
           "field_desc": {
             "anyOf": [
               {
@@ -5538,6 +5661,36 @@
             ],
             "title": "Field Desc",
             "description": "Helptext for users about the content of the field. For internal documenation purposes see 'desc'"
+          },
+          "field_icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Icon",
+            "description": "A unicode icon that can be shown next to the field or instead of the `field_name_display`",
+            "examples": [
+              "\ud83d\udca9",
+              "\ud83d\udd22",
+              "\ud83d\udc8a"
+            ]
+          },
+          "field_display_sort_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Display Sort Order",
+            "description": "This should define the sequence how fields are listed in the client in a particular `field_display_priority_class`. `0` should be the first field(s). The higher the number, the farther down the field should appear.",
+            "default": 0
           },
           "optional": {
             "type": "boolean",
@@ -5682,6 +5835,36 @@
             "title": "Unique",
             "description": "Will every drug have a unique code or can multiple drug products can have the same code.",
             "default": true
+          },
+          "code_icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Icon",
+            "description": "A unicode icon that can be shown next to the code field or instead of the `name`",
+            "examples": [
+              "\ud83d\udca9",
+              "\ud83d\udd22",
+              "\ud83d\udc8a"
+            ]
+          },
+          "code_display_sort_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Display Sort Order",
+            "description": "This should define the sequence how the code fields are listed in the client `0` should be the first field(s). The higher the number, the farther down the field should appear.",
+            "default": 0
           },
           "client_visible": {
             "type": "boolean",
@@ -6359,6 +6542,15 @@
             ],
             "description": "How was the drug/medication identified."
           },
+<<<<<<< Updated upstream
+=======
+          "is_activeingredient_equivalent_choice": {
+            "type": "boolean",
+            "title": "Is Activeingredient Equivalent Choice",
+            "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+            "default": false
+          },
+>>>>>>> Stashed changes
           "intake_start_time_utc": {
             "anyOf": [
               {
@@ -6476,6 +6668,15 @@
             ],
             "description": "How was the drug/medication identified."
           },
+<<<<<<< Updated upstream
+=======
+          "is_activeingredient_equivalent_choice": {
+            "type": "boolean",
+            "title": "Is Activeingredient Equivalent Choice",
+            "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+            "default": false
+          },
+>>>>>>> Stashed changes
           "intake_start_time_utc": {
             "anyOf": [
               {
@@ -6583,6 +6784,15 @@
             ],
             "description": "How was the drug/medication identified."
           },
+<<<<<<< Updated upstream
+=======
+          "is_activeingredient_equivalent_choice": {
+            "type": "boolean",
+            "title": "Is Activeingredient Equivalent Choice",
+            "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+            "default": false
+          },
+>>>>>>> Stashed changes
           "intake_start_time_utc": {
             "anyOf": [
               {
@@ -6728,6 +6938,15 @@
             ],
             "description": "How was the drug/medication identified."
           },
+<<<<<<< Updated upstream
+=======
+          "is_activeingredient_equivalent_choice": {
+            "type": "boolean",
+            "title": "Is Activeingredient Equivalent Choice",
+            "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+            "default": false
+          },
+>>>>>>> Stashed changes
           "intake_start_time_utc": {
             "anyOf": [
               {
@@ -8341,6 +8560,16 @@
             "title": "Ref List",
             "description": "The API path to the list this value references",
             "default": "/api/drug/field_def/dispensingtype/refs"
+<<<<<<< Updated upstream
+          }
+        },
+        "type": "object",
+        "title": "AttrRefValDispensingtype"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs": {
+        "properties": {
+          "dispensingtype": {
+=======
           }
         },
         "type": "object",
@@ -8380,6 +8609,56 @@
       "medlogserver__model__drug_data__api_drug_model_factory__Attrs": {
         "properties": {
           "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount",
+            "description": "Amount in package",
+            "examples": [
+              10.0,
+              5.5,
+              80.0
+            ]
+          },
+          "manufacturer": {
+>>>>>>> Stashed changes
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype__2"
+              },
+              {
+                "type": "null"
+              }
+            ],
+<<<<<<< Updated upstream
+            "description": "How are the drugs made available.",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "AttrRefs"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__1": {
+        "properties": {
+          "dispensingtype": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype",
+            "description": "How are the drugs made available."
+          }
+        },
+        "type": "object",
+        "required": [
+          "dispensingtype"
+        ],
+        "title": "AttrRefs"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__Attrs": {
+        "properties": {
+          "amount": {
             "type": "number",
             "title": "Amount",
             "description": "Amount in package",
@@ -8391,6 +8670,8 @@
           },
           "manufacturer": {
             "type": "string",
+=======
+>>>>>>> Stashed changes
             "title": "Manufacturer",
             "description": "Manufacturing company of the drug",
             "examples": [
@@ -8432,10 +8713,13 @@
           }
         },
         "type": "object",
+<<<<<<< Updated upstream
         "required": [
           "amount",
           "manufacturer"
         ],
+=======
+>>>>>>> Stashed changes
         "title": "Attrs"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti": {
@@ -8481,6 +8765,7 @@
         "type": "object",
         "title": "AttrsMulti"
       },
+<<<<<<< Updated upstream
       "medlogserver__model__drug_data__api_drug_model_factory__Attrs__2": {
         "properties": {
           "amount": {
@@ -8492,6 +8777,12 @@
                 "type": "null"
               }
             ],
+=======
+      "medlogserver__model__drug_data__api_drug_model_factory__Attrs__1": {
+        "properties": {
+          "amount": {
+            "type": "number",
+>>>>>>> Stashed changes
             "title": "Amount",
             "description": "Amount in package",
             "examples": [
@@ -8501,6 +8792,7 @@
             ]
           },
           "manufacturer": {
+<<<<<<< Updated upstream
             "anyOf": [
               {
                 "type": "string"
@@ -8509,6 +8801,9 @@
                 "type": "null"
               }
             ],
+=======
+            "type": "string",
+>>>>>>> Stashed changes
             "title": "Manufacturer",
             "description": "Manufacturing company of the drug",
             "examples": [
@@ -8533,6 +8828,7 @@
             ]
           },
           "routeofadministration": {
+<<<<<<< Updated upstream
             "anyOf": [
               {
                 "type": "string"
@@ -8550,6 +8846,47 @@
           }
         },
         "type": "object",
+        "title": "Attrs"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__Codes": {
+        "properties": {
+          "ATC": {
+=======
+>>>>>>> Stashed changes
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+<<<<<<< Updated upstream
+            "title": "Atc",
+            "description": "The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties."
+          },
+          "PZN": {
+            "type": "string",
+            "title": "Pzn"
+=======
+            "title": "Routeofadministration",
+            "description": "route of administration is the way by which a drug, fluid, poison, or other substance is taken into the body.",
+            "examples": [
+              "oral",
+              "intravenous"
+            ]
+>>>>>>> Stashed changes
+          }
+        },
+        "type": "object",
+        "required": [
+<<<<<<< Updated upstream
+          "PZN"
+        ],
+=======
+          "amount",
+          "manufacturer"
+        ],
         "title": "Attrs"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__Codes": {
@@ -8575,6 +8912,7 @@
         "required": [
           "PZN"
         ],
+>>>>>>> Stashed changes
         "title": "Codes"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__Codes__2": {
@@ -8769,7 +9107,7 @@
             "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes"
           },
           "attrs": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs__1",
             "description": "Scalar Drug attributes. One value only per drug attribute."
           },
           "attrs_multi": {

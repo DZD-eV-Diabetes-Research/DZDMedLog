@@ -48,6 +48,12 @@ class ValueTypeCasting(enum.Enum):
     )
 
 
+class DisplayPriorityClass(enum.IntEnum):
+    CLASS1 = 1
+    CLASS2 = 2
+    CLASS3 = 3
+
+
 class CustomPreParserFunc(enum.Enum):
     # partial wrapper because plain function wont work as enum values
     # see https://stackoverflow.com/a/40339397/12438690
@@ -65,9 +71,23 @@ class DrugAttrFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIReadBase, table=F
     field_name_display: str = Field(
         description="The title of the field for displaying humans"
     )
+    field_display_priority_class: DisplayPriorityClass = Field(
+        default=DisplayPriorityClass.CLASS3,
+        description="A hint on how important this field is for displaying the user. E.g. a class 1 field should be immediately visible to the user on drug search to help identify the drug. A class 3 field is ok to be visible after clicking on some `more info...`-button",
+    )
+
     field_desc: Optional[str] = Field(
         default=None,
         description="Helptext for users about the content of the field. For internal documenation purposes see 'desc'",
+    )
+    field_icon: Optional[str] = Field(
+        default=None,
+        description="A unicode icon that can be shown next to the field or instead of the `field_name_display`",
+        schema_extra={"examples": ["💩", "🔢", "💊"]},
+    )
+    field_display_sort_order: Optional[int] = Field(
+        default=0,
+        description="This should define the sequence how fields are listed in the client in a particular `field_display_priority_class`. `0` should be the first field(s). The higher the number, the farther down the field should appear.",
     )
     optional: bool = False
     default: Optional[str] = None
