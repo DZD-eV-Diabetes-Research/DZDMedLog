@@ -2,11 +2,15 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
+<<<<<<< HEAD
 <<<<<<< Updated upstream
     "version": "0.11.3.dev159+gcf7993454.d20251208"
 =======
     "version": "0.12.1.dev2+g2a192f5a0.d20251209"
 >>>>>>> Stashed changes
+=======
+    "version": "0.12.1.dev0+gf9b698ca4.d20251209"
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
   },
   "paths": {
     "/api/health": {
@@ -3125,6 +3129,7 @@
               "enum": [
                 "created_at",
                 "source_of_drug_information",
+                "is_activeingredient_equivalent_choice",
                 "intake_start_time_utc",
                 "intake_end_time_utc",
                 "administered_by_doctor",
@@ -3265,6 +3270,7 @@
               "enum": [
                 "created_at",
                 "source_of_drug_information",
+                "is_activeingredient_equivalent_choice",
                 "intake_start_time_utc",
                 "intake_end_time_utc",
                 "administered_by_doctor",
@@ -3662,7 +3668,55 @@
             "description": "'null': List all drugs, 'true': List only drug that are currently available on the market. 'false': List only drugs that are not market accessable anymore."
           },
           {
-            "name": "filter_dispensingtype",
+            "name": "filter_darreichungsform",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filter Darreichungsform"
+            }
+          },
+          {
+            "name": "filter_vertriebsstatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filter Vertriebsstatus"
+            }
+          },
+          {
+            "name": "filter_normgroesse",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filter Normgroesse"
+            }
+          },
+          {
+            "name": "filter_abgabestatus",
             "in": "query",
             "required": false,
             "schema": {
@@ -3674,7 +3728,55 @@
                   "type": "null"
                 }
               ],
-              "title": "Filter Dispensingtype"
+              "title": "Filter Abgabestatus"
+            }
+          },
+          {
+            "name": "filter_lebensmittel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filter Lebensmittel"
+            }
+          },
+          {
+            "name": "filter_diaetetikum",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filter Diaetetikum"
+            }
+          },
+          {
+            "name": "filter_hersteller",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filter Hersteller"
             }
           },
           {
@@ -3810,10 +3912,10 @@
                 "schema": {
                   "anyOf": [
                     {
-                      "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__1"
+                      "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
                     },
                     {
-                      "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
+                      "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__2"
                     }
                   ],
                   "title": "Response Get Drug Api Drug Id  Drug Id  Get"
@@ -4188,7 +4290,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
+                  "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__2"
                 }
               }
             }
@@ -4607,7 +4709,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/medlogserver__utils__Error__1"
+                  "$ref": "#/components/schemas/medlogserver__utils__Error"
                 }
               }
             }
@@ -4674,7 +4776,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/medlogserver__utils__Error"
+                  "$ref": "#/components/schemas/medlogserver__utils__Error__3"
                 }
               }
             }
@@ -6542,15 +6644,23 @@
             ],
             "description": "How was the drug/medication identified."
           },
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
+=======
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
           "is_activeingredient_equivalent_choice": {
             "type": "boolean",
             "title": "Is Activeingredient Equivalent Choice",
             "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+<<<<<<< HEAD
             "default": false
           },
 >>>>>>> Stashed changes
+=======
+            "default": true
+          },
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
           "intake_start_time_utc": {
             "anyOf": [
               {
@@ -6668,15 +6778,23 @@
             ],
             "description": "How was the drug/medication identified."
           },
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
+=======
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
           "is_activeingredient_equivalent_choice": {
             "type": "boolean",
             "title": "Is Activeingredient Equivalent Choice",
             "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+<<<<<<< HEAD
             "default": false
           },
 >>>>>>> Stashed changes
+=======
+            "default": true
+          },
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
           "intake_start_time_utc": {
             "anyOf": [
               {
@@ -6784,15 +6902,23 @@
             ],
             "description": "How was the drug/medication identified."
           },
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
+=======
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
           "is_activeingredient_equivalent_choice": {
             "type": "boolean",
             "title": "Is Activeingredient Equivalent Choice",
             "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+<<<<<<< HEAD
             "default": false
           },
 >>>>>>> Stashed changes
+=======
+            "default": true
+          },
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
           "intake_start_time_utc": {
             "anyOf": [
               {
@@ -6898,10 +7024,10 @@
           "drug": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__1"
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
               },
               {
-                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__2"
               }
             ],
             "title": "Drug"
@@ -6938,15 +7064,23 @@
             ],
             "description": "How was the drug/medication identified."
           },
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
+=======
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
           "is_activeingredient_equivalent_choice": {
             "type": "boolean",
             "title": "Is Activeingredient Equivalent Choice",
             "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+<<<<<<< HEAD
             "default": false
           },
 >>>>>>> Stashed changes
+=======
+            "default": true
+          },
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
           "intake_start_time_utc": {
             "anyOf": [
               {
@@ -7210,10 +7344,10 @@
           "drug": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__1"
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
               },
               {
-                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__2"
               }
             ],
             "title": "Drug"
@@ -8502,35 +8636,7 @@
         ],
         "title": "WorkerJobState"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype": {
-        "properties": {
-          "value": {
-            "type": "integer",
-            "title": "Value"
-          },
-          "display": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display"
-          },
-          "ref_list": {
-            "type": "string",
-            "const": "/api/drug/field_def/dispensingtype/refs",
-            "title": "Ref List",
-            "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/dispensingtype/refs"
-          }
-        },
-        "type": "object",
-        "title": "AttrRefValDispensingtype"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype__2": {
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValAbgabestatus": {
         "properties": {
           "value": {
             "anyOf": [
@@ -8556,9 +8662,10 @@
           },
           "ref_list": {
             "type": "string",
-            "const": "/api/drug/field_def/dispensingtype/refs",
+            "const": "/api/drug/field_def/abgabestatus/refs",
             "title": "Ref List",
             "description": "The API path to the list this value references",
+<<<<<<< HEAD
             "default": "/api/drug/field_def/dispensingtype/refs"
 <<<<<<< Updated upstream
           }
@@ -8570,23 +8677,364 @@
         "properties": {
           "dispensingtype": {
 =======
+=======
+            "default": "/api/drug/field_def/abgabestatus/refs"
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
           }
         },
         "type": "object",
-        "title": "AttrRefValDispensingtype"
+        "title": "AttrRefValAbgabestatus"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs": {
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDarreichungsform": {
         "properties": {
-          "dispensingtype": {
+          "value": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype__2"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "How are the drugs made available.",
+            "title": "Value"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display"
+          },
+          "ref_list": {
+            "type": "string",
+            "const": "/api/drug/field_def/darreichungsform/refs",
+            "title": "Ref List",
+            "description": "The API path to the list this value references",
+            "default": "/api/drug/field_def/darreichungsform/refs"
+          }
+        },
+        "type": "object",
+        "title": "AttrRefValDarreichungsform"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDiaetetikum": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display"
+          },
+          "ref_list": {
+            "type": "string",
+            "const": "/api/drug/field_def/diaetetikum/refs",
+            "title": "Ref List",
+            "description": "The API path to the list this value references",
+            "default": "/api/drug/field_def/diaetetikum/refs"
+          }
+        },
+        "type": "object",
+        "title": "AttrRefValDiaetetikum"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValHersteller": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display"
+          },
+          "ref_list": {
+            "type": "string",
+            "const": "/api/drug/field_def/hersteller/refs",
+            "title": "Ref List",
+            "description": "The API path to the list this value references",
+            "default": "/api/drug/field_def/hersteller/refs"
+          }
+        },
+        "type": "object",
+        "title": "AttrRefValHersteller"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValHersteller__1": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display"
+          },
+          "ref_list": {
+            "type": "string",
+            "const": "/api/drug/field_def/hersteller/refs",
+            "title": "Ref List",
+            "description": "The API path to the list this value references",
+            "default": "/api/drug/field_def/hersteller/refs"
+          }
+        },
+        "type": "object",
+        "title": "AttrRefValHersteller"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValLebensmittel": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display"
+          },
+          "ref_list": {
+            "type": "string",
+            "const": "/api/drug/field_def/lebensmittel/refs",
+            "title": "Ref List",
+            "description": "The API path to the list this value references",
+            "default": "/api/drug/field_def/lebensmittel/refs"
+          }
+        },
+        "type": "object",
+        "title": "AttrRefValLebensmittel"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValNormgroesse": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display"
+          },
+          "ref_list": {
+            "type": "string",
+            "const": "/api/drug/field_def/normgroesse/refs",
+            "title": "Ref List",
+            "description": "The API path to the list this value references",
+            "default": "/api/drug/field_def/normgroesse/refs"
+          }
+        },
+        "type": "object",
+        "title": "AttrRefValNormgroesse"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValVertriebsstatus": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display"
+          },
+          "ref_list": {
+            "type": "string",
+            "const": "/api/drug/field_def/vertriebsstatus/refs",
+            "title": "Ref List",
+            "description": "The API path to the list this value references",
+            "default": "/api/drug/field_def/vertriebsstatus/refs"
+          }
+        },
+        "type": "object",
+        "title": "AttrRefValVertriebsstatus"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValVertriebsstatus__1": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display"
+          },
+          "ref_list": {
+            "type": "string",
+            "const": "/api/drug/field_def/vertriebsstatus/refs",
+            "title": "Ref List",
+            "description": "The API path to the list this value references",
+            "default": "/api/drug/field_def/vertriebsstatus/refs"
+          }
+        },
+        "type": "object",
+        "title": "AttrRefValVertriebsstatus"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs": {
+        "properties": {
+          "darreichungsform": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDarreichungsform"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Darreichungsform IFA",
+            "default": []
+          },
+          "vertriebsstatus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValVertriebsstatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Wird das Produkt momentan vertrieben",
+            "default": []
+          },
+          "normgroesse": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValNormgroesse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Packungsgr\u00f6\u00dfenkennzeichnung f\u00fcr Medikamente ist eine in Deutschland bestehende Normierung der in der Apotheke abzugebenden Menge",
+            "default": []
+          },
+          "abgabestatus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValAbgabestatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ob und wie das Produkt an den Patienten abgegeben werden darf",
+            "default": []
+          },
+          "lebensmittel": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValLebensmittel"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lebensmittelstatus des Produkt",
+            "default": []
+          },
+          "diaetetikum": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDiaetetikum"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Diaetetikumstatus des Produkt",
+            "default": []
+          },
+          "hersteller": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValHersteller"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Hersteller des Produkt",
             "default": []
           }
         },
@@ -8595,14 +9043,74 @@
       },
       "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__1": {
         "properties": {
-          "dispensingtype": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype",
-            "description": "How are the drugs made available."
+          "darreichungsform": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDarreichungsform"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Darreichungsform IFA"
+          },
+          "vertriebsstatus": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValVertriebsstatus__1",
+            "description": "Wird das Produkt momentan vertrieben"
+          },
+          "normgroesse": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValNormgroesse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Packungsgr\u00f6\u00dfenkennzeichnung f\u00fcr Medikamente ist eine in Deutschland bestehende Normierung der in der Apotheke abzugebenden Menge"
+          },
+          "abgabestatus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValAbgabestatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ob und wie das Produkt an den Patienten abgegeben werden darf"
+          },
+          "lebensmittel": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValLebensmittel"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lebensmittelstatus des Produkt"
+          },
+          "diaetetikum": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDiaetetikum"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Diaetetikumstatus des Produkt"
+          },
+          "hersteller": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValHersteller__1",
+            "description": "Hersteller des Produkt"
           }
         },
         "type": "object",
         "required": [
-          "dispensingtype"
+          "vertriebsstatus",
+          "hersteller"
         ],
         "title": "AttrRefs"
       },
@@ -8611,12 +9119,17 @@
           "amount": {
             "anyOf": [
               {
+<<<<<<< HEAD
                 "type": "number"
+=======
+                "type": "string"
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
               },
               {
                 "type": "null"
               }
             ],
+<<<<<<< HEAD
             "title": "Amount",
             "description": "Amount in package",
             "examples": [
@@ -8660,14 +9173,17 @@
         "properties": {
           "amount": {
             "type": "number",
+=======
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
             "title": "Amount",
-            "description": "Amount in package",
+            "description": "Menge in der Produktpackung",
             "examples": [
-              10.0,
-              5.5,
-              80.0
+              "3.5 g",
+              "2x100 ml",
+              "60 st"
             ]
           },
+<<<<<<< HEAD
           "manufacturer": {
             "type": "string",
 =======
@@ -8680,39 +9196,107 @@
             ]
           },
           "deliverysystem": {
+=======
+          "ist_verhuetungsmittel": {
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
             "anyOf": [
               {
-                "type": "string"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Deliverysystem",
-            "description": "Drug delivery refers to approaches, formulations, manufacturing techniques, storage systems, and technologies involved in transporting a pharmaceutical compound to its target site to achieve a desired therapeutic effect.",
+            "title": "Ist Verhuetungsmittel",
+            "description": "Ist das Produkt ein Verh\u00fctungsmittel",
             "examples": [
-              "Spray",
-              "Needle"
+              true,
+              false
             ]
           },
-          "routeofadministration": {
+          "ist_kosmetikum": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Routeofadministration",
-            "description": "route of administration is the way by which a drug, fluid, poison, or other substance is taken into the body.",
+            "title": "Ist Kosmetikum",
+            "description": "Ist das Produkt ein Kosmetikum",
             "examples": [
-              "oral",
-              "intravenous"
+              true,
+              false
+            ]
+          },
+          "ist_nahrungsergaenzungsmittel": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ist Nahrungsergaenzungsmittel",
+            "description": "Ist das Produkt ein Nahrungserg\u00e4nzungsmittel",
+            "examples": [
+              true,
+              false
+            ]
+          },
+          "ist_pflanzlich": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ist Pflanzlich",
+            "description": "Ist das Produkt Pflanzlich",
+            "examples": [
+              true,
+              false
+            ]
+          },
+          "ist_generikum": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ist Generikum",
+            "description": "Ist das Produkt ein Generikum",
+            "examples": [
+              true,
+              false
+            ]
+          },
+          "ist_homoeopathisch": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ist Homoeopathisch",
+            "description": "Ist das Produkt Hom\u00f6opathisch",
+            "examples": [
+              true,
+              false
             ]
           }
         },
         "type": "object",
+<<<<<<< HEAD
 <<<<<<< Updated upstream
         "required": [
           "amount",
@@ -8720,44 +9304,23 @@
         ],
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
         "title": "Attrs"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti": {
         "properties": {
-          "keywords": {
+          "ATC": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Keywords",
-            "description": "How are the drugs made available.",
+            "title": "Atc",
+            "description": "Anatomical Therapeutic Chemical code. A unique code assigned to a medicine according to the organ or system it works on and how it works. The classification system is maintained by the World Health Organization (WHO). ",
             "examples": [
               [
-                "autoimmune",
-                "suppress"
-              ]
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "keywords"
-        ],
-        "title": "AttrsMulti"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__2": {
-        "properties": {
-          "keywords": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Keywords",
-            "description": "How are the drugs made available.",
-            "examples": [
-              [
-                "autoimmune",
-                "suppress"
+                "D04AA04",
+                "V60A"
               ]
             ]
           }
@@ -8765,6 +9328,7 @@
         "type": "object",
         "title": "AttrsMulti"
       },
+<<<<<<< HEAD
 <<<<<<< Updated upstream
       "medlogserver__model__drug_data__api_drug_model_factory__Attrs__2": {
         "properties": {
@@ -8892,6 +9456,11 @@
       "medlogserver__model__drug_data__api_drug_model_factory__Codes": {
         "properties": {
           "ATC": {
+=======
+      "medlogserver__model__drug_data__api_drug_model_factory__Codes": {
+        "properties": {
+          "PZN": {
+>>>>>>> feat/issue-195-activeingredient-equivalent-field
             "anyOf": [
               {
                 "type": "string"
@@ -8900,48 +9469,42 @@
                 "type": "null"
               }
             ],
-            "title": "Atc",
-            "description": "The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties."
+            "title": "Pzn"
           },
+          "MMIP": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mmip",
+            "description": "Interne 'PRODUCTID' des Vidal MMI Pharmindex"
+          }
+        },
+        "type": "object",
+        "title": "Codes"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__Codes__1": {
+        "properties": {
           "PZN": {
             "type": "string",
             "title": "Pzn"
+          },
+          "MMIP": {
+            "type": "string",
+            "title": "Mmip",
+            "description": "Interne 'PRODUCTID' des Vidal MMI Pharmindex"
           }
         },
         "type": "object",
         "required": [
-          "PZN"
+          "PZN",
+          "MMIP"
         ],
 >>>>>>> Stashed changes
-        "title": "Codes"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__Codes__2": {
-        "properties": {
-          "ATC": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Atc",
-            "description": "The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties."
-          },
-          "PZN": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Pzn"
-          }
-        },
-        "type": "object",
         "title": "Codes"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__Drug": {
@@ -9011,18 +9574,18 @@
             "description": "If Drug is created by user as a custom drug the user id will be saved here."
           },
           "codes": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes__2"
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes__1"
           },
           "attrs": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs__2",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs",
             "description": "Scalar Drug attributes. One value only per drug attribute."
           },
           "attrs_multi": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__2",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti",
             "description": "All Drug attributes that can have multiple values. e.g. something like 'Keywords'. Will always be a list."
           },
           "attrs_ref": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__1",
             "description": "All Drug attributes reference an existing list (value + display Value. Aka SelectList)."
           },
           "attrs_multi_ref": {
@@ -9037,7 +9600,7 @@
         ],
         "title": "Drug"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__Drug__1": {
+      "medlogserver__model__drug_data__api_drug_model_factory__Drug__2": {
         "properties": {
           "id": {
             "type": "string",
@@ -9115,7 +9678,7 @@
             "description": "All Drug attributes that can have multiple values. e.g. something like 'Keywords'. Will always be a list."
           },
           "attrs_ref": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__1",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs",
             "description": "All Drug attributes reference an existing list (value + display Value. Aka SelectList)."
           },
           "attrs_multi_ref": {
@@ -9130,7 +9693,42 @@
         ],
         "title": "Drug"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefValProducing_country": {
+      "medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefValApplikationsart": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display"
+          },
+          "ref_list": {
+            "type": "string",
+            "const": "/api/drug/field_def/applikationsart/refs",
+            "title": "Ref List",
+            "description": "The API path to the list this value references",
+            "default": "/api/drug/field_def/applikationsart/refs"
+          }
+        },
+        "type": "object",
+        "title": "MultiAttrRefValApplikationsart"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefValIcd10": {
         "properties": {
           "value": {
             "anyOf": [
@@ -9156,22 +9754,57 @@
           },
           "ref_list": {
             "type": "string",
-            "const": "/api/drug/field_def/producing_country/refs",
+            "const": "/api/drug/field_def/icd10/refs",
             "title": "Ref List",
             "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/producing_country/refs"
+            "default": "/api/drug/field_def/icd10/refs"
           }
         },
         "type": "object",
-        "title": "MultiAttrRefValProducing_country"
+        "title": "MultiAttrRefValIcd10"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefValKeywords": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display"
+          },
+          "ref_list": {
+            "type": "string",
+            "const": "/api/drug/field_def/keywords/refs",
+            "title": "Ref List",
+            "description": "The API path to the list this value references",
+            "default": "/api/drug/field_def/keywords/refs"
+          }
+        },
+        "type": "object",
+        "title": "MultiAttrRefValKeywords"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefs": {
         "properties": {
-          "producing_country": {
+          "applikationsart": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefValProducing_country"
+                  "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefValApplikationsart"
                 },
                 "type": "array"
               },
@@ -9179,8 +9812,40 @@
                 "type": "null"
               }
             ],
-            "title": "Producing Country",
-            "description": "Country in which the manufacturer produces this drug",
+            "title": "Applikationsart",
+            "description": "Art und Weise wie ein Arzneimittel verabreicht wird",
+            "default": []
+          },
+          "keywords": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefValKeywords"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Keywords",
+            "description": "Stichw\u00f6rter",
+            "default": []
+          },
+          "icd10": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefValIcd10"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icd10",
+            "description": "Einordnung der Pr\u00e4parate nach ICD-10-Schl\u00fcssel",
             "default": []
           }
         },
@@ -9188,20 +9853,6 @@
         "title": "MultiAttrRefs"
       },
       "medlogserver__utils__Error": {
-        "properties": {
-          "detail": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Detail",
-            "default": "Export job does not exist."
-          }
-        },
-        "type": "object",
-        "title": "Error"
-      },
-      "medlogserver__utils__Error__1": {
         "properties": {
           "detail": {
             "additionalProperties": {
@@ -9224,6 +9875,20 @@
             "type": "object",
             "title": "Detail",
             "default": "Export job is not finished yet. Try again later."
+          }
+        },
+        "type": "object",
+        "title": "Error"
+      },
+      "medlogserver__utils__Error__3": {
+        "properties": {
+          "detail": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Detail",
+            "default": "Export job does not exist."
           }
         },
         "type": "object",
