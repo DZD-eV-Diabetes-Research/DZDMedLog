@@ -5,6 +5,10 @@ import traceback
 import datetime
 import uuid
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, delete, desc
+from sqlalchemy import case, Case, func, literal, Float
+from sqlalchemy.orm import selectinload
+from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.expression import literal_column
 from sqlalchemy.sql.operators import (
     is_not,
     is_,
@@ -18,10 +22,10 @@ from sqlalchemy.sql.operators import (
     or_,
     and_,
 )
+import re
 from pydantic import field_validator
 
-from sqlalchemy.orm import selectinload
-from sqlalchemy import case, func
+
 from medlogserver.utils import get_db_type, get_now_datetime
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db.drug_data.drug_search._base import (
@@ -214,6 +218,33 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             )
         return self._all_drug_attr_field_definitions
 
+    def remove_trademark_symbols(self, text: str) -> str:
+        """
+        Remove trademark, registered trademark, copyright, and similar symbols from text.
+
+        Args:
+            text (str): Input text containing trademark symbols
+
+        Returns:
+            str: Text with trademark symbols removed
+        """
+        # Define patterns to remove
+        symbols = [
+            "®",  # Registered trademark
+            "™",  # Trademark
+            "℠",  # Service mark
+            "©",  # Copyright
+            "℗",  # Sound recording copyright
+            "℅",  # Care of (sometimes used)
+            "№",  # Number sign (sometimes used in product names)
+        ]
+
+        # Create regex pattern from symbols
+        pattern = "|".join(re.escape(symbol) for symbol in symbols)
+
+        # Remove the symbols
+        return re.sub(pattern, "", text)
+
     async def _build_index(
         self, session: AsyncSession, skip_commit: bool = True, batch_size: int = 100000
     ):
@@ -376,7 +407,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         )
         return GenericSQLDrugSearchCache(
             id=drug.id,
-            search_index_content=field_values_aggregated,
+            search_index_content=self.remove_trademark_symbols(field_values_aggregated),
             search_cache_codes="|".join(
                 [f"{c.code_system_id}:{c.code}" for c in drug.codes]
             ),
@@ -407,6 +438,70 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         state = await self._get_state()
         return state.index_item_count
 
+    def _scoring_token_position(
+        self,
+        search_term_tokens: List[str],
+        content_column: ColumnElement,
+        max_bonus: float = 0.5,
+    ) -> ColumnElement:
+        """
+        Gives bonus points based on how early tokens appear in the result.
+
+        Uses INSTR() to find position, then applies inverse scaling:
+        - Token at position 1-10: higher bonus
+        - Token at position 50+: lower bonus
+
+        Formula: max_bonus / (1 + position/scale_factor)
+
+        Args:
+            search_term_tokens: List of search tokens
+            content_column: The database column to search in
+            max_bonus: Maximum bonus points per token (default 0.5)
+
+        Returns:
+            SQLAlchemy expression for position-based score
+        """
+        if len(search_term_tokens) == 0:
+            return literal(0)
+
+        result: ColumnElement = literal(0.0)
+        scale_factor: float = 20.0  # Adjust to control how quickly score drops off
+
+        for search_token in search_term_tokens:
+            # Find position of token (case-insensitive)
+            # INSTR returns position (1-indexed), or 0 if not found
+            position = func.instr(func.lower(content_column), search_token.lower())
+
+            # Calculate position score: max_bonus / (1 + position/scale_factor)
+            # This creates a decay curve: closer to start = higher score
+            # Position 1: max_bonus / (1 + 1/20) = max_bonus * 0.95
+            # Position 20: max_bonus / (1 + 20/20) = max_bonus * 0.5
+            # Position 100: max_bonus / (1 + 100/20) = max_bonus * 0.17
+
+            position_score = case(
+                (
+                    position > 0,
+                    literal(max_bonus)
+                    / (
+                        literal(1.0)
+                        + (
+                            func.cast(position, literal_column("FLOAT"))
+                            / literal(scale_factor)
+                        )
+                    ),
+                ),
+                else_=0.0,
+            )
+
+            result = result + position_score
+
+        return result
+
+    def _scoring_token_appearance(
+        self, search_term_token: str, content_column: ColumnElement
+    ):
+        pass
+
     async def search(
         self,
         search_term: str = None,
@@ -418,7 +513,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         filter_ref_vals = {
             k: v for k, v in filter_ref_vals.items() if v != "" and v is not None
         }
-
+        # normalize quotes
         search_term = (
             search_term.replace("'", '"')
             .replace("`", '"')
@@ -437,24 +532,24 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 search_term += '"'
             search_term_tokens = shlex.split(search_term)
         search_term_tokens = [token for token in search_term_tokens if len(token) > 2]
-
+        log.debug(f"search_term_tokens: {search_term_tokens}")
         # if a name starts with the exact search term we add 1.2 to the score
         # if the drug contains the whole search term cohesive it adds 1.1 to the search score.
         # if it also matches the case it adds 1.0 to the score
         score_cases = case(
             (
-                startswith_op(  # starts with non-case-sensitive
+                startswith_op(  # starts with case-sensitive
                     GenericSQLDrugSearchCache.search_index_content,
                     search_term.replace('"', ""),
                 ),
-                1.3,
+                2.3,
             ),
             (
                 istartswith_op(  # starts with non-case-sensitive
                     GenericSQLDrugSearchCache.search_index_content,
                     search_term.replace('"', ""),
                 ),
-                1.2,
+                2.2,
             ),
             (
                 contains_op(
@@ -473,13 +568,84 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             else_=0,
         )
 
-        for search_token in search_term_tokens:
+        # Sum all positions
+        position_sum: ColumnElement = literal(0.0)
+        matched_count: ColumnElement = literal(0)
+
+        for token_pos, search_token in enumerate(search_term_tokens):
             # if a drug contains one search token is add 0.1 to the score
             # if matches the case it add 0.2 to the score
-            if search_term == search_token:
-                continue
+            # if search_term == search_token:
+            #    continue
+            # first token (pos 0) gets the heighest weight of 1
+            token_input_position_weight = max(0.2, 1.0 - (token_pos * 0.15))
+
+            log.debug(f"token: {search_token}")
             score_cases = score_cases.op("+")(
                 case(
+                    (
+                        icontains_op(  # starts with case-sensitive
+                            GenericSQLDrugSearchCache.search_cache_codes,
+                            search_token,
+                        ),
+                        3.0,
+                    ),
+                    (
+                        startswith_op(  # starts with case-sensitive
+                            GenericSQLDrugSearchCache.search_index_content,
+                            search_token,
+                        ),
+                        1.3 * token_input_position_weight,
+                    ),
+                    (
+                        istartswith_op(  # starts with non-case-sensitive
+                            GenericSQLDrugSearchCache.search_index_content,
+                            search_token,
+                        ),
+                        1.2 * token_input_position_weight,
+                    ),
+                    (
+                        contains_op(
+                            GenericSQLDrugSearchCache.search_index_content,
+                            f" {search_token} ",
+                        ),
+                        0.6,
+                    ),
+                    (
+                        icontains_op(
+                            GenericSQLDrugSearchCache.search_index_content,
+                            f" {search_token} ",
+                        ),
+                        0.5,
+                    ),
+                    (
+                        contains_op(
+                            GenericSQLDrugSearchCache.search_index_content,
+                            f" {search_token}",
+                        ),
+                        0.4,
+                    ),
+                    (
+                        icontains_op(
+                            GenericSQLDrugSearchCache.search_index_content,
+                            f" {search_token}",
+                        ),
+                        0.3,
+                    ),
+                    (
+                        contains_op(
+                            GenericSQLDrugSearchCache.search_index_content,
+                            f"{search_token} ",
+                        ),
+                        0.4,
+                    ),
+                    (
+                        icontains_op(
+                            GenericSQLDrugSearchCache.search_index_content,
+                            f"{search_token} ",
+                        ),
+                        0.3,
+                    ),
                     (
                         contains_op(
                             GenericSQLDrugSearchCache.search_index_content, search_token
@@ -495,6 +661,31 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                     else_=0,
                 )
             )
+            # we try to score the match position in the search content. Early macthes will get a bonus
+            match_position_statement = func.instr(
+                func.lower(GenericSQLDrugSearchCache.search_index_content),
+                search_token.lower(),
+            )
+            # Adjust to control how quickly score drops off
+            match_position_scale_factor: float = 20.0
+            max_bonus = 1.0
+            score_cases = score_cases.op("+")(
+                case(
+                    (
+                        match_position_statement > 0,
+                        literal(max_bonus)
+                        / (
+                            literal(1.0)
+                            + (
+                                func.cast(match_position_statement, Float)
+                                / literal(match_position_scale_factor)
+                            )
+                        ),
+                    ),
+                    else_=0.0,
+                )
+            )
+
         query = select(
             GenericSQLDrugSearchCache.id,
             score_cases.label("score"),

@@ -59,3 +59,5 @@ Test3Drug;2023-04-19;;0;22334464;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,
 Test4Drug;2023-04-20;;0;22334465;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
 Test5Drug;2023-04-21;;0;22334466;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
 DrugToProveUpdatedDataset;2023-04-22;;0;22334467;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Search Drug with Many word;2022-03-21;;2;22334468;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
+Search drug with many other word;2022-03-21;;2;22334469;N02BA51;SkunkWorks ADP.;capsule;oral;for-brave,handpalm,hairgrowth;1;capsules;DE,UK
