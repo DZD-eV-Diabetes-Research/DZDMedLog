@@ -1,5 +1,18 @@
 <template>
   <UTable :rows="rows" :columns="columns" class="break-words">
+    <template #pzn-data="{ row }">
+      <div class="flex flex-col items-start gap-1">
+        {{ row.pzn }}
+        <UBadge
+            v-if="row.intake.is_activeingredient_equivalent_choice"
+            label="weicht ab"
+            color="amber"
+            variant="subtle"
+            icon="i-heroicons-arrows-right-left"
+        />
+      </div>
+    </template>
+
     <template #actions-data="{ row }">
       <UDropdown :items="myOptions(row)">
         <UButton color="gray" variant="ghost" icon="i-heroicons-ellipsis-horizontal-20-solid" />
@@ -29,7 +42,7 @@ const columns: Array<{ key: string; label?: string, sortable?: boolean }> = [
     sortable: true,
   },
   {
-    key: "drug",
+    key: "name",
     label: "Medikament",
     sortable: true,
   },
@@ -108,9 +121,10 @@ const rows = computed(() => {
 
   return props.intakes.map((item) => ({
     event: item.event.name,
+    intake: item,
     pzn: item.drug.codes?.PZN,
     source: item.source_of_drug_information,
-    drug: item.drug.trade_name,
+    name: item.drug.trade_name,
     dose: item.dose_per_day === 0 ? "-/-" : item.dose_per_day,
     intervall: useIntervallDoseTranslator(
         item.regular_intervall_of_daily_dose,
