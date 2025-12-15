@@ -1,11 +1,17 @@
 <!-- This is the main drug intake form component that is used to create or edit intakes -->
 <template>
   <UForm ref="intakeForm" :state="state" :schema="schema" class="space-y-4" @submit="onSubmit">
-    <div style="padding-top: 2.5%">
-      <UFormGroup label="Quelle der Arzneimittelangabe" name="drugSource">
-        <USelect v-model="state.drugSource" :options="drugSourceOptions" :color="props.color" />
-      </UFormGroup>
-    </div>
+    <UFormGroup
+        label="Wirkstoff äquivalent, abweichender Produkt-Code"
+        description="Das gewählte Präparat entspricht in Wirkstoff und Wirkstoffmenge dem eingenommenen, die PZN ist unbekannt."
+    >
+      <UToggle v-model="state.isActiveIngredientEquivalentChoice" />
+    </UFormGroup>
+
+    <UFormGroup label="Quelle der Arzneimittelangabe" name="drugSource">
+      <USelect v-model="state.drugSource" :options="drugSourceOptions" :color="props.color" />
+    </UFormGroup>
+
     <UFormGroup label="Vom Arzt verordnet?" name="administeredByDoctor">
       <USelect v-model="state.administeredByDoctor" :options="administeredByDoctorOptions" :color="props.color" />
     </UFormGroup>
@@ -53,7 +59,7 @@
 
 <script setup lang="ts">
 
-import { object, number, date, string, type InferType } from "yup";
+import { object, number, date, string, type InferType, boolean } from "yup";
 import type { FormSubmitEvent } from "#ui/types";
 import {watch} from "vue";
 
@@ -153,6 +159,7 @@ const state = reactive({
   endTime: null,
   frequency: frequencyOptions[0].value,
   intervall: doseIntervalOptions[0].value,
+  isActiveIngredientEquivalentChoice: false,
   medsTakenToday: medsTakenTodayOptions[0].value,
   startTime: null,
 });
@@ -165,6 +172,7 @@ const schema = object({
   endTime: date().optional().nullable(),
   frequency: string().oneOf(frequencyOptions.map(item => item.value)).required("Required"),
   intervall: string().oneOf(doseIntervalOptions.map(item => item.value)),
+  isActiveIngredientEquivalentChoice: boolean().required(),
   medsTakenToday: string().oneOf(medsTakenTodayOptions.map(item => item.value)).required("Required"),
   startTime: date().optional().nullable(),
 });

@@ -88,7 +88,7 @@
           <div style="text-align: center">
             <h4 style="color: red">Sie löschen folgenden Eintrag:</h4>
             <br>
-            <h4>{{ drugToDelete.drug }}</h4>
+            <h4>{{ drugToDelete.name }}</h4>
             <br>
             <UForm :state="deleteState" class="space-y-4" @submit="deleteIntake">
               <UButton
@@ -179,6 +179,7 @@ async function saveIntake(data: IntakeFormSchema) {
     intake_end_time_utc: data.endTime ? dayjs(data.endTime).format("YYYY-MM-DD") : null,
     intake_regular_or_as_needed: data.frequency,
     intake_start_time_utc: data.startTime ? dayjs(data.startTime).format("YYYY-MM-DD") : null,
+    is_activeingredient_equivalent_choice: data.isActiveIngredientEquivalentChoice,
     regular_intervall_of_daily_dose: data.intervall,
     source_of_drug_information: data.drugSource
   };
@@ -244,6 +245,7 @@ async function openEditModal(row: object) {
     endTime: data.value.intake_end_time_utc,
     frequency: data.value.intake_regular_or_as_needed,
     intervall: data.value.regular_intervall_of_daily_dose,
+    isActiveIngredientEquivalentChoice: data.value.is_activeingredient_equivalent_choice,
     medsTakenToday: data.value.consumed_meds_today,
     startTime: data.value.intake_start_time_utc,
   }
@@ -261,6 +263,7 @@ async function saveEditIntake(data: IntakeFormSchema) {
     intake_end_time_utc: data.endTime ? dayjs(data.endTime).format("YYYY-MM-DD") : null,
     intake_regular_or_as_needed: data.frequency,
     intake_start_time_utc: data.startTime ? dayjs(data.startTime).format("YYYY-MM-DD") : null,
+    is_activeingredient_equivalent_choice: data.isActiveIngredientEquivalentChoice,
     regular_intervall_of_daily_dose: data.intervall,
     source_of_drug_information: data.drugSource
   };
