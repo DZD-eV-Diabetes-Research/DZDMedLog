@@ -1,15 +1,25 @@
 <script setup lang="ts">
+import type {SchemaDisplayPriorityClass} from "#open-fetch-schemas/medlogapi";
+
+const drugFieldsStore = useDrugFields();
+
 const props = defineProps({
   drug: { type: Object, required: true },
 })
 
 defineEmits(['drugSelected']);
 
+const drugCodeSystems = drugFieldsStore.codes.filter((item) => item.client_visible === true)
+
 const showDetails = ref(false);
 
-const drugFieldsStore = useDrugFields();
-
-const drugCodeSystems = drugFieldsStore.codes.filter((item) => item.client_visible === true)
+const dataTableItems = computed(() => {
+  const items = prioritizedFieldDefinitions.value[2] ?? [];
+  if (showDetails.value) {
+    return items.concat(prioritizedFieldDefinitions.value[3] ?? [])
+  }
+  return items;
+});
 
 const keyValuePills = computed(() =>  {
   const pills = [];
@@ -25,11 +35,27 @@ const keyValuePills = computed(() =>  {
     }
   }
 
+  if (prioritizedFieldDefinitions.value[1] ?? []) {
+    for (const { fieldDefinition, attributeClass } of prioritizedFieldDefinitions.value[1]) {
+      pills.push({ label: fieldDefinition.field_name_display, value: getDisplayValue(fieldDefinition, attributeClass) });
+    }
+  }
+
   // Only include entries with a value
   return pills.filter(item => item.value);
 });
 
-function getDisplayValue(attribute, attributeClass) {
+const prioritizedFieldDefinitions = computed(() => {
+  const fields: Record<SchemaDisplayPriorityClass, { attributeClass: string, fieldDefinition: any }[]> = { 1: [], 2: [], 3: [] };
+  for (const attributeClass of Object.keys(drugFieldsStore.fieldsForSearchResults)) {
+    for (const fieldDefinition of drugFieldsStore.fieldsForSearchResults[attributeClass]) {
+      fields[fieldDefinition.field_display_priority_class].push({ attributeClass, fieldDefinition });
+    }
+  }
+  return fields;
+});
+
+function getDisplayValue(attribute, attributeClass): string {
   const value = props.drug?.[attributeClass]?.[attribute.field_name];
 
   if (attribute.is_multi_val_field && attribute.is_reference_list_field) {
@@ -40,7 +66,7 @@ function getDisplayValue(attribute, attributeClass) {
     return value?.display;
   }
 
-  return value;
+  return String(value);
 }
 
 </script>
@@ -52,13 +78,13 @@ function getDisplayValue(attribute, attributeClass) {
     <div class="flex flex-row justify-between gap-2">
       <div>
         <strong>{{ drug.trade_name }}</strong><br>
-        <div v-if="keyValuePills" class="flex flex-row">
-          <DrugCodePill
+        <div v-if="keyValuePills" class="flex flex-row flex-wrap">
+          <KeyValuePill
               v-for="{ label, value } in keyValuePills"
               :key="label"
-              :code-system="label"
-              :code-value="value"
-              class="mr-2"
+              :key-label="label"
+              :value-label="value"
+              class="mr-2 mb-1"
           />
         </div>
       </div>
@@ -92,26 +118,18 @@ function getDisplayValue(attribute, attributeClass) {
       </div>
     </div>
 
-    <div class="flex flex-row justify-between gap-2 items-end">
-      <dl v-if="showDetails">
-        <template v-for="attributeClass in Object.keys(drugFieldsStore.fieldsForSearchResults)">
-          <template v-for="attribute in drugFieldsStore.fieldsForSearchResults[attributeClass]" :key="attribute.field_name">
-            <dt>
-              {{ attribute.field_name_display }}
-              <UTooltip v-if="attribute.field_desc" :text="attribute.field_desc" :popper="{ placement: 'right' }">
-                <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-black cursor-pointer" />
-              </UTooltip>
-            </dt>
-            <dd>{{ getDisplayValue(attribute, attributeClass) ?? 'N/A' }}</dd>
-          </template>
-        </template>
+    <div v-if="dataTableItems.length" class="flex flex-row gap-2 items-end">
+      <dl class="grow">
+        <DrugDataTableItem
+            v-for="{ fieldDefinition, attributeClass } in dataTableItems"
+            :key="fieldDefinition.field_name"
+            :field-definition="fieldDefinition"
+            :display-value="getDisplayValue(fieldDefinition, attributeClass)"
+        />
       </dl>
-      <div v-else>
-        <!-- Placeholder to keep the button on the right -->
-        &nbsp;
-      </div>
 
       <UButton
+          :disabled="(prioritizedFieldDefinitions[3] ?? []).length == 0"
           :title="showDetails ? 'Details verstecken' : 'Details zeigen'"
           variant="outline"
           :icon="showDetails ? 'heroicons-chevron-up' : 'i-heroicons-information-circle'"
@@ -131,22 +149,5 @@ dl {
   border-radius: 1rem;
   overflow: hidden;
   background-color: #fff;
-}
-
-dt {
-  grid-column-start: 1;
-  background-color: lightyellow;
-  padding: 0.2em 0.4em;
-  font-weight: bold;
-}
-
-dt ~ dt, dd ~ dd {
-  border-top: 2px solid darkgray;
-}
-
-dd {
-  grid-column-start: 2;
-  background-color: #fff;
-  padding: 0.2em 0.4em;
 }
 </style>
