@@ -45,7 +45,7 @@
               v-for="item in paginatedItems"
               :key="item.drug.id"
               :drug="item.drug"
-              @drug-selected="selectDrug(item)"
+              @drug-selected="(activeIngredientOnly) => selectDrug(item, activeIngredientOnly)"
           />
         </ul>
       </div>
@@ -149,8 +149,8 @@ const paginatedItems = computed(() => {
   return searchResults.value.slice(startIndex, endIndex);
 });
 
-function selectDrug(item) {
+function selectDrug(item, activeIngredientOnly) {
   searchTerm.value = "";
-  emit('drug-selected', item.drug_id);
+  emit('drug-selected', item.drug_id, activeIngredientOnly);
 }
 </script>

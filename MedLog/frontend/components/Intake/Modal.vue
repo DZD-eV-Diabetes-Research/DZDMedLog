@@ -51,7 +51,7 @@
         <DrugSummaryCard v-model="intakeDrugId" :readonly="!isDrugEditable" class="mb-4" />
         <IntakeForm
             :drug-id="intakeDrugId"
-            :initial-state="props.initialState"
+            :initial-state="intakeFormInitialState"
             @cancel="$emit('cancel')"
             @save="data => $emit('save', data)"
         />
@@ -99,9 +99,18 @@ defineEmits(['cancel', 'save'])
 const createCustomDrugError = ref();
 const customDrugModalVisibility = ref(false);
 const intakeDrugId = ref<string>('');
+const intakeFormInitialState = ref();
 
-function onDrugSelected(newDrugId) {
+function onDrugSelected(newDrugId: string, activeIngredientOnly?: boolean) {
   intakeDrugId.value = newDrugId;
+  if (activeIngredientOnly === true || activeIngredientOnly === false) {
+    const state = { isActiveIngredientEquivalentChoice: activeIngredientOnly };
+    if (intakeFormInitialState.value) {
+      Object.assign(intakeFormInitialState.value, state);
+    } else {
+      intakeFormInitialState.value = state;
+    }
+  }
 }
 
 async function openCustomModal() {
@@ -131,9 +140,13 @@ async function saveCustomDrug(customDrugBody: DrugBody) {
 }
 
 onMounted(async () => {
-  if (props.initialState?.drugId) {
-    // Populate selected drug from given state
-    intakeDrugId.value = props.initialState.drugId;
+  if (props.initialState) {
+    intakeFormInitialState.value = props.initialState;
+
+    if (props.initialState.drugId) {
+      // Populate selected drug from given state
+      intakeDrugId.value = props.initialState.drugId;
+    }
   }
 })
 </script>

@@ -47,19 +47,52 @@ function getDisplayValue(attribute, attributeClass) {
 
 <template>
   <li
-      class="border border-blue-400 my-1 p-2 rounded-md bg-blue-100 hover:bg-blue-200 flex flex-row justify-between"
+      class="border border-blue-400 my-1 p-2 rounded-md bg-blue-100 hover:bg-blue-200 flex flex-col"
   >
-    <div>
-      <strong>{{ drug.trade_name }}</strong><br>
-      <div v-if="keyValuePills" class="flex flex-row">
-        <DrugCodePill
-            v-for="{ label, value } in keyValuePills"
-            :key="label"
-            :code-system="label"
-            :code-value="value"
-            class="mr-2"
-        />
+    <div class="flex flex-row justify-between gap-2">
+      <div>
+        <strong>{{ drug.trade_name }}</strong><br>
+        <div v-if="keyValuePills" class="flex flex-row">
+          <DrugCodePill
+              v-for="{ label, value } in keyValuePills"
+              :key="label"
+              :code-system="label"
+              :code-value="value"
+              class="mr-2"
+          />
+        </div>
       </div>
+      <div>
+        <UButtonGroup orientation="horizontal">
+          <UButton
+              label="Übernehmen"
+              @click="$emit('drugSelected', false)"
+          />
+          <UDropdown
+              :items="[[
+            {
+              label: 'Als Wirkstoff-äquivalent übernehmen',
+              slot: 'activeIngredientOnly',
+              click: () => {
+                $emit('drugSelected', true)
+              }
+            },
+          ]]"
+              :popper="{ placement: 'bottom-end' }"
+              :ui="{ item: { base: 'flex-col' } }"
+          >
+            <UButton icon="i-heroicons-chevron-down-20-solid" color="green" />
+
+            <template #activeIngredientOnly>
+              <span class="font-semibold text-left">Als Wirkstoff-äquivalent übernehmen</span>
+              <small class="text-left">Dieses Präparat stellvertretend für Wirkstoff und Wirkstoffmenge auswählen. Das exakte Produkt ist unbekannt.</small>
+            </template>
+          </UDropdown>
+        </UButtonGroup>
+      </div>
+    </div>
+
+    <div class="flex flex-row justify-between gap-2 items-end">
       <dl v-if="showDetails">
         <template v-for="attributeClass in Object.keys(drugFieldsStore.fieldsForSearchResults)">
           <template v-for="attribute in drugFieldsStore.fieldsForSearchResults[attributeClass]" :key="attribute.field_name">
@@ -73,10 +106,13 @@ function getDisplayValue(attribute, attributeClass) {
           </template>
         </template>
       </dl>
-    </div>
-    <div class="flex flex-col justify-between ml-3">
-      <UButton icon="i-heroicons-arrow-right-circle" @click="$emit('drugSelected')" />
+      <div v-else>
+        <!-- Placeholder to keep the button on the right -->
+        &nbsp;
+      </div>
+
       <UButton
+          :title="showDetails ? 'Details verstecken' : 'Details zeigen'"
           variant="outline"
           :icon="showDetails ? 'heroicons-chevron-up' : 'i-heroicons-information-circle'"
           class="mt-2 bg-white"
