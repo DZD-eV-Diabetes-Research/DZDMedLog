@@ -1,14 +1,12 @@
 // Store to handle the dynamic fields of drugs
 
 import { defineStore } from 'pinia'
-import { useMedlogapi, type MedlogapiResponse } from '#open-fetch';
-
-type Fields = MedlogapiResponse<'list_field_definitions_api_drug_field_def_get'>
-type Codes = MedlogapiResponse<'list_drug_code_systems_api_drug_code_def_get'>
+import { useMedlogapi } from '#open-fetch';
+import type { SchemaDrugAttrFieldDefinitionContainer, SchemaDrugCodeSystem } from "#open-fetch-schemas/medlogapi";
 
 interface DrugFieldStore {
-    codes: Codes
-    fields: Fields
+    codes: SchemaDrugCodeSystem[]
+    fields: SchemaDrugAttrFieldDefinitionContainer
 }
 
 export const useDrugFields = defineStore('drugFields', {
@@ -47,7 +45,10 @@ export const useDrugFields = defineStore('drugFields', {
         allFields: (state: DrugFieldStore) => {
             return state.fields;
         },
-        fieldsForSearchResults: (state): Fields => {
+        clientVisibleCodes: (state: DrugFieldStore) => {
+            return state.codes.filter((item) => item.client_visible === true);
+        },
+        fieldsForSearchResults: (state): SchemaDrugAttrFieldDefinitionContainer => {
             return {
                 attrs: state.fields.attrs.filter(item => item.show_in_search_results),
                 attrs_ref: state.fields.attrs_ref.filter(item => item.show_in_search_results),
@@ -55,7 +56,7 @@ export const useDrugFields = defineStore('drugFields', {
                 attrs_multi_ref: state.fields.attrs_multi_ref.filter(item => item.show_in_search_results),
             }
         },
-        fieldsForCustomDrugs: (state): Fields => {
+        fieldsForCustomDrugs: (state): SchemaDrugAttrFieldDefinitionContainer => {
             return {
                 attrs: state.fields.attrs.filter(item => item.used_for_custom_drug),
                 attrs_ref: state.fields.attrs_ref.filter(item => item.used_for_custom_drug),

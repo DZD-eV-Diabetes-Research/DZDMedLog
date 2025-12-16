@@ -51,6 +51,16 @@ class DrugCodeSystem(DrugModelTableBase, table=True):
         default=True,
         description="Will every drug have a unique code or can multiple drug products can have the same code.",
     )
+
+    code_icon: Optional[str] = Field(
+        default=None,
+        description="A unicode icon that can be shown next to the code field or instead of the `name`",
+        schema_extra={"examples": ["💩", "🔢", "💊"]},
+    )
+    code_display_sort_order: Optional[int] = Field(
+        default=0,
+        description="This should define the sequence how the code fields are listed in the client `0` should be the first field(s). The higher the number, the farther down the field should appear.",
+    )
     client_visible: bool = Field(
         default=True,
         description="Should the code be shown in the UI. Some IDs are internal and are not interesting for the client.",
