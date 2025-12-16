@@ -41,6 +41,7 @@ const keyValuePills = computed(() =>  {
     for (const drugCodeSystem of drugCodeSystems) {
       if (Object.hasOwn(props.drug.codes, drugCodeSystem.id)) {
         pills.push({
+          icon: drugCodeSystem.code_icon ?? undefined,
           label: drugCodeSystem.id,
           value: props.drug.codes?.[drugCodeSystem.id]
         });
@@ -115,8 +116,9 @@ function getDisplayValue(attribute, attributeClass): string {
         <strong>{{ drug.trade_name }}</strong><br>
         <div v-if="keyValuePills" class="flex flex-row flex-wrap">
           <KeyValuePill
-              v-for="{ label, value } in keyValuePills"
+              v-for="{ label, value, icon } in keyValuePills"
               :key="label"
+              :icon="icon"
               :key-label="label"
               :value-label="value"
               class="mr-2 mb-1"

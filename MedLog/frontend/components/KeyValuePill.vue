@@ -1,5 +1,6 @@
 <script setup lang="ts">
 defineProps<{
+  icon?: string;
   keyLabel: string;
   valueLabel: string;
 }>()
@@ -8,6 +9,7 @@ defineProps<{
 <template>
   <UBadge variant="outline" color="black" class="bg-white items-baseline">
     <template #leading>
+      <span v-if="icon">{{ icon }}</span>
       <strong>{{ keyLabel }}</strong>
     </template>
     <template #default>
