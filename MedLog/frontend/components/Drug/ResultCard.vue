@@ -47,6 +47,8 @@ const keyValuePills = computed(() =>  {
 
 const prioritizedFieldDefinitions = computed(() => {
   const fields: Record<SchemaDisplayPriorityClass, { attributeClass: string, fieldDefinition: any }[]> = { 1: [], 2: [], 3: [] };
+
+  // Group field definitions by priority class
   for (const attributeClass of Object.keys(drugFieldsStore.fieldsForSearchResults)) {
     for (const fieldDefinition of drugFieldsStore.fieldsForSearchResults[attributeClass]) {
       if (fieldDefinition.field_display_priority_class && Object.keys(fields).includes(String(fieldDefinition.field_display_priority_class))) {
@@ -54,6 +56,24 @@ const prioritizedFieldDefinitions = computed(() => {
       }
     }
   }
+
+  // Sort within priority classes
+  for (const priorityClassArray of Object.values(fields)) {
+    priorityClassArray.sort((a, b) => {
+      if (a.fieldDefinition.field_display_sort_order == b.fieldDefinition.field_display_sort_order) {
+        return 0;
+      }
+
+      if (a.fieldDefinition.field_display_sort_order === null) {
+        return 1;
+      } else if (b.fieldDefinition.field_display_sort_order === null) {
+        return -1;
+      }
+
+      return a.fieldDefinition.field_display_sort_order - b.fieldDefinition.field_display_sort_order;
+    });
+  }
+
   return fields;
 });
 
