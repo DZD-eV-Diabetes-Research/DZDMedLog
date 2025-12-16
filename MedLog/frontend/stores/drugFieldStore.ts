@@ -45,6 +45,9 @@ export const useDrugFields = defineStore('drugFields', {
         allFields: (state: DrugFieldStore) => {
             return state.fields;
         },
+        clientVisibleCodes: (state: DrugFieldStore) => {
+            return state.codes.filter((item) => item.client_visible === true);
+        },
         fieldsForSearchResults: (state): SchemaDrugAttrFieldDefinitionContainer => {
             return {
                 attrs: state.fields.attrs.filter(item => item.show_in_search_results),

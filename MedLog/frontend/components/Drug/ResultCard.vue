@@ -9,7 +9,20 @@ const props = defineProps({
 
 defineEmits(['drugSelected']);
 
-const drugCodeSystems = drugFieldsStore.codes.filter((item) => item.client_visible === true)
+const drugCodeSystems = drugFieldsStore.clientVisibleCodes
+    .sort((a, b) => {
+      if (a.code_display_sort_order == b.code_display_sort_order) {
+        return 0;
+      }
+
+      if (a.code_display_sort_order === null) {
+        return 1;
+      } else if (b.code_display_sort_order === null) {
+        return -1;
+      }
+
+      return a.code_display_sort_order - b.code_display_sort_order;
+    })
 
 const showDetails = ref(false);
 
