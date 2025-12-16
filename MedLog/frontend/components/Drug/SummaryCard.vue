@@ -4,11 +4,11 @@
   <UAlert v-else :actions="actions" :title="title" class="bg-blue-100">
     <template #description>
       <div v-if="keyValuePills" class="flex flex-row">
-        <DrugCodePill
+        <KeyValuePill
             v-for="{ label, value } in keyValuePills"
             :key="label"
-            :code-system="label"
-            :code-value="value"
+            :key-label="label"
+            :value-label="value"
             class="mr-2"
         />
       </div>

@@ -19,7 +19,7 @@ defineProps({
 dt {
   grid-column-start: 1;
   background-color: lightyellow;
-  padding: 0.2em 0.4em;
+  padding: 0.2em 0.4em 0.2em 0.6em;
   font-weight: bold;
 }
 
@@ -30,6 +30,6 @@ dt ~ dt, dd ~ dd {
 dd {
   grid-column-start: 2;
   background-color: #fff;
-  padding: 0.2em 0.4em;
+  padding: 0.2em 0.6em 0.2em 0.4em;
 }
 </style>

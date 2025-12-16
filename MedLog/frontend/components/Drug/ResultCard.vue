@@ -49,7 +49,9 @@ const prioritizedFieldDefinitions = computed(() => {
   const fields: Record<SchemaDisplayPriorityClass, { attributeClass: string, fieldDefinition: any }[]> = { 1: [], 2: [], 3: [] };
   for (const attributeClass of Object.keys(drugFieldsStore.fieldsForSearchResults)) {
     for (const fieldDefinition of drugFieldsStore.fieldsForSearchResults[attributeClass]) {
-      fields[fieldDefinition.field_display_priority_class].push({ attributeClass, fieldDefinition });
+      if (fieldDefinition.field_display_priority_class && Object.keys(fields).includes(String(fieldDefinition.field_display_priority_class))) {
+        fields[fieldDefinition.field_display_priority_class].push({ attributeClass, fieldDefinition });
+      }
     }
   }
   return fields;
@@ -73,7 +75,7 @@ function getDisplayValue(attribute, attributeClass): string {
 
 <template>
   <li
-      class="border border-blue-400 my-1 p-2 rounded-md bg-blue-100 hover:bg-blue-200 flex flex-col"
+      class="border border-blue-400 my-2 p-2 rounded-md bg-blue-100 hover:bg-blue-200 flex flex-col"
   >
     <div class="flex flex-row justify-between gap-2">
       <div>
@@ -119,7 +121,7 @@ function getDisplayValue(attribute, attributeClass): string {
     </div>
 
     <div v-if="dataTableItems.length" class="flex flex-row gap-2 items-end">
-      <dl class="grow">
+      <dl class="grow text-sm">
         <DrugDataTableItem
             v-for="{ fieldDefinition, attributeClass } in dataTableItems"
             :key="fieldDefinition.field_name"
@@ -145,7 +147,7 @@ dl {
   display: grid;
   grid-template-columns: max-content auto;
   margin-top: 0.75em;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);
   border-radius: 1rem;
   overflow: hidden;
   background-color: #fff;
