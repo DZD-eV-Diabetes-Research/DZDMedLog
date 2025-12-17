@@ -191,6 +191,7 @@ async function endInterview(eventId, interviewId) {
     interviewsForProband.value = await useGetInterviewsByStudyAndProband(studyId.value, probandId.value);
     currentInterview.value = await useGetCurrentInterviewByStudyAndProband(studyId.value, probandId.value);
     lastInterview.value = await useGetLastInterviewByStudyAndProband(studyId.value, probandId.value);
+    fillInterviewStartSelector();
   } catch (error) {
     errorMessage.value = error.message ?? error;
   } finally {
@@ -199,15 +200,25 @@ async function endInterview(eventId, interviewId) {
 }
 
 function fillInterviewStartSelector() {
-  const untouchedEvents = eventsForProband.value.filter(item => item.proband_interview_count === 0);
-  const sortedEvents = untouchedEvents.sort((a, b) => a.order_position - b.order_position);
-  eventsToStartOptions.value = sortedEvents.map(event => ({
+  const sortedEvents = eventsForProband.value.sort((a, b) => a.order_position - b.order_position);
+  const untouchedEvents = sortedEvents.filter(item => item.proband_interview_count === 0);
+  eventsToStartOptions.value = untouchedEvents.map(event => ({
     value: event.id,
     label: event.name,
   }));
 
   if (eventsToStartOptions.value.length > 0) {
-    eventIdToStart.value = eventsToStartOptions.value[0].value;
+    let nextEventId = eventsToStartOptions.value[0].value;
+
+    if (lastInterview.value) {
+      const eventForLastInterview = sortedEvents.find(event => event.id === lastInterview.value.event_id)
+      const nextEvent = untouchedEvents.find(event => event.order_position > eventForLastInterview.order_position)
+      if (nextEvent) {
+        nextEventId = nextEvent.id;
+      }
+    }
+
+    eventIdToStart.value = nextEventId;
   }
 }
 
