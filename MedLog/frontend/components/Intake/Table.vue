@@ -29,7 +29,10 @@ const props = defineProps({
   canDelete: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['edit', 'delete']);
+const emit = defineEmits<{
+  edit: [intakeId: string],
+  delete: [row: object],
+}>();
 
 const columns: Array<{ key: string; label?: string, sortable?: boolean }> = [
   {
@@ -99,7 +102,7 @@ function myOptions(row) {
     options.push({
       label: "Bearbeiten",
       icon: "i-heroicons-pencil-square-20-solid",
-      click: () => emit('edit', row),
+      click: () => emit('edit', row.intakeId),
     });
   }
 

@@ -67,8 +67,8 @@
               :intakes="rows"
               :can-edit="userStore.isAdmin"
               :can-delete="userStore.isAdmin"
-              @edit="row => openEditModal(row)"
-              @delete="row => openDeleteModal(row)"
+              @edit="(intakeId: string) => openEditModal(intakeId)"
+              @delete="(row: object) => openDeleteModal(row)"
           />
 
           <UPagination
@@ -83,31 +83,21 @@
 
       <!-- MODALS -->
 
-      <UModal v-model="deleteModalVisibility" prevent-close>
-        <div class="p-4">
-          <div style="text-align: center">
-            <h4 style="color: red">Sie löschen folgenden Eintrag:</h4>
-            <br>
-            <h4>{{ drugToDelete.name }}</h4>
-            <br>
-            <UForm :state="deleteState" class="space-y-4" @submit="deleteIntake">
-              <UButton
-                  label="Abbrechen"
-                  variant="outline"
-                  color="gray"
-                  class="mr-4"
-                  @click="deleteModalVisibility = false"
-              />
-              <UButton
-                  type="submit" color="red" variant="soft"
-                  class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white"
-              >
-                Eintrag löschen
-              </UButton>
-            </UForm>
-          </div>
-        </div>
-      </UModal>
+      <ConfirmationModal
+          v-model="deleteModalVisibility"
+          confirm-label="Eintrag löschen"
+          :is-dangerous-to-confirm="true"
+          @cancel="deleteModalVisibility = false"
+          @confirm="deleteIntake"
+      >
+        <template #description>
+          <p class="break-all">
+            Möchten Sie den Eintrag für
+            <span class="font-semibold">{{ drugToDelete?.name ?? 'N/A' }}</span>
+            wirklich löschen?
+          </p>
+        </template>
+      </ConfirmationModal>
       <IntakeModal
           v-if="createIntakeModalVisible"
           v-model="createIntakeModalVisible"
@@ -220,36 +210,29 @@ const intakeIdToEdit = ref();
 
 const tableContent = ref([]);
 
-async function openEditModal(row: object) {
-  intakeIdToEdit.value = row.intakeId;
-  const { data, error } = await useMedlogapi('/api/study/{study_id}/interview/{interview_id}/intake/{intake_id}', {
-    method: "GET",
-    path: {
-      study_id: studyId.value,
-      interview_id: interviewId.value,
-      intake_id: intakeIdToEdit.value,
-    }
-  });
+async function openEditModal(intakeId: string) {
+  intakeIdToEdit.value = intakeId;
+  try {
+    const intake = await useGetIntake(studyId.value, interviewId.value, intakeIdToEdit.value);
 
-  if (error.value) {
+    intakeToEdit.value = {
+      administeredByDoctor: intake.administered_by_doctor,
+      dose: intake.dose_per_day,
+      drugId: intake.drug_id,
+      drugSource: intake.source_of_drug_information,
+      endTime: intake.intake_end_time_utc,
+      frequency: intake.intake_regular_or_as_needed,
+      intervall: intake.regular_intervall_of_daily_dose,
+      isActiveIngredientEquivalentChoice: intake.is_activeingredient_equivalent_choice,
+      medsTakenToday: intake.consumed_meds_today,
+      startTime: intake.intake_start_time_utc,
+    }
+  } catch (error) {
     toast.add({
       title: "Konnte Einnahme nicht abrufen",
       description: error.value.data?.detail ?? error.message ?? error,
     });
     return;
-  }
-
-  intakeToEdit.value = {
-    administeredByDoctor: data.value.administered_by_doctor,
-    dose: data.value.dose_per_day,
-    drugId: data.value.drug_id,
-    drugSource: data.value.source_of_drug_information,
-    endTime: data.value.intake_end_time_utc,
-    frequency: data.value.intake_regular_or_as_needed,
-    intervall: data.value.regular_intervall_of_daily_dose,
-    isActiveIngredientEquivalentChoice: data.value.is_activeingredient_equivalent_choice,
-    medsTakenToday: data.value.consumed_meds_today,
-    startTime: data.value.intake_start_time_utc,
   }
 
   editModalVisible.value = true
@@ -304,12 +287,7 @@ async function saveEditIntake(data: IntakeFormSchema) {
 const deleteModalVisibility = ref(false);
 const drugToDelete = ref();
 
-const deleteState = reactive<{drug: string | undefined}>({
-  drug: undefined,
-});
-
 async function openDeleteModal(row: object) {
-  deleteState.drug = "";
   deleteModalVisibility.value = true;
   drugToDelete.value = row;
 }

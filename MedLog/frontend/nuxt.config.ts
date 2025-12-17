@@ -33,7 +33,7 @@ export default defineNuxtConfig({
   },
 
   eslint: {
-    // checker: true, // TODO enable this once we settled for a code style
+    checker: true,
   },
   icon: {
       provider: 'none', // Prevents the dynamic fetching of icons from a CDN
