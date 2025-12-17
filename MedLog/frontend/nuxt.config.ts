@@ -23,7 +23,10 @@ export default defineNuxtConfig({
   },
 
   dayjs: {
-    plugins: ['utc'],
+    locales: ['de', 'en'],
+    plugins: ['relativeTime', 'utc', 'timezone'],
+    defaultLocale: 'de',
+    defaultTimezone: 'Europe/Berlin',
   },
 
   css: ["~/assets/main.css"],
@@ -33,7 +36,7 @@ export default defineNuxtConfig({
   },
 
   eslint: {
-    checker: true,
+    // checker: true,
   },
   icon: {
       provider: 'none', // Prevents the dynamic fetching of icons from a CDN

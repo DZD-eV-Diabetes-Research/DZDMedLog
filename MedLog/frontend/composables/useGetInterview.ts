@@ -1,7 +1,7 @@
 import { useMedlogapi } from "#open-fetch";
-import type { Interview } from "~/stores/interviewStore";
+import type { SchemaInterview } from "#open-fetch-schemas/medlogapi";
 
-export default async function (studyId: string, eventId: string, interviewId: string): Promise<Interview | null> {
+export default async function (studyId: string, eventId: string, interviewId: string): Promise<SchemaInterview | null> {
     const { data, error } = await useMedlogapi('/api/study/{study_id}/event/{event_id}/interview/{interview_id}', {
         path: {
             study_id: studyId,

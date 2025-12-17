@@ -1,7 +1,7 @@
 import { useMedlogapi } from "#open-fetch";
 import type { SchemaIntake } from "#open-fetch-schemas/medlogapi";
 
-export default async function (studyId: string, interviewId: string, intakeId: string): Promise<SchemaIntake | null> {
+export default async function (studyId: string, interviewId: string, intakeId: string): Promise<SchemaIntake> {
     const { data, error } = await useMedlogapi('/api/study/{study_id}/interview/{interview_id}/intake/{intake_id}', {
         path: {
             study_id: studyId,
@@ -12,6 +12,10 @@ export default async function (studyId: string, interviewId: string, intakeId: s
 
     if (error.value) {
         throw error.value;
+    }
+
+    if (data.value === null) {
+        throw new Error('No data.');
     }
 
     return data.value;

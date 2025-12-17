@@ -29,8 +29,11 @@
           </div>
 
           <div class="py-1.5 text-end" style="max-width: 25%">
-            <span v-if="interview.interview_end_time_utc">
-              Interview abgeschlossen am {{ formatDate(interview.interview_end_time_utc) }}
+            <span v-if="interview?.interview_end_time_utc">
+              Interview abgeschlossen am<br>
+              <time :datetime="$dayjs.utc(interview.interview_end_time_utc).format()">
+                {{ $dayjs.utc(interview.interview_end_time_utc).local().format('LLL') }}
+              </time>
             </span>
             <UButton
                 v-else
@@ -123,10 +126,31 @@
 <script setup lang="ts">
 import { useMedlogapi } from '#open-fetch'
 import type { IntakeFormSchema } from "~/components/Intake/Form.vue";
-import dayjs from "dayjs";
-import type { Interview } from "~/stores/interviewStore";
+import { useDayjs } from '#dayjs'
+import localizedFormat from 'dayjs/plugin/localizedFormat'
+import {
+  computed,
+  navigateTo,
+  onMounted,
+  ref,
+  useAsyncData,
+  useDeleteIntake,
+  useEventStore,
+  useGetIntake,
+  useGetIntakesByStudyAndProband,
+  useGetInterview,
+  useGetInterviewsByStudyAndProband,
+  useInterviewStore,
+  useNuxtApp,
+  useRoute,
+  useStudyStore,
+  useToast,
+  useUserStore,
+} from "#imports";
+import type { SchemaInterview } from "#open-fetch-schemas/medlogapi";
 
 const route = useRoute();
+const dayjs = useDayjs();
 const eventStore = useEventStore();
 const interviewStore = useInterviewStore();
 const studyStore = useStudyStore();
@@ -134,13 +158,15 @@ const toast = useToast();
 const userStore = useUserStore();
 const { $medlogapi } = useNuxtApp();
 
-const interviewId = computed(() => route.params.interview_id);
-const probandId = computed(() => route.params.proband_id);
-const studyId = computed(() => route.params.study_id);
+dayjs.extend(localizedFormat);
+
+const interviewId = computed(() => route.params.interview_id as string);
+const probandId = computed(() => route.params.proband_id as string);
+const studyId = computed(() => route.params.study_id as string);
 
 const error = ref();
 const eventId = ref('');
-const interview = ref<Interview | null>();
+const interview = ref<SchemaInterview | null>();
 const loading = ref(true);
 
 const { data: latestItems, pending } = await useAsyncData(

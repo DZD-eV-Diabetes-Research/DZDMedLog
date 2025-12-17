@@ -33,8 +33,11 @@
 </template>
 
 <script setup lang="ts">
+import { computed, useIntervallDoseTranslator } from "#imports";
+import type { SchemaIntakeDetailListItem } from "#open-fetch-schemas/medlogapi";
+
 const props = defineProps({
-  intakes: { type: Array, required: true },
+  intakes: { type: Array as () => SchemaIntakeDetailListItem[], required: true },
   showEvent: { type: Boolean, default: false },
   canEdit: { type: Boolean, default: false },
   canDelete: { type: Boolean, default: false },
@@ -96,7 +99,7 @@ if (props.canEdit || props.canDelete) {
   });
 }
 
-function getIntakeDurationString(intake) {
+function getIntakeDurationString(intake: SchemaIntakeDetailListItem) {
   if (!intake.intake_start_time_utc && !intake.intake_end_time_utc) {
     return "unbekannt";
   }
@@ -106,7 +109,7 @@ function getIntakeDurationString(intake) {
   return `${startDate} bis ${endDate}`;
 }
 
-function myOptions(row) {
+function myOptions(row: object) {
   const options = [];
 
   if (props.canEdit) {

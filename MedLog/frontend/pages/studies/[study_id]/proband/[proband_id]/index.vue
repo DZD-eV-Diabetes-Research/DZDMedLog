@@ -122,26 +122,45 @@
 </template>
 
 <script setup lang="ts">
-import type { Events } from "~/stores/eventStore";
-import type { Interview } from "~/stores/interviewStore";
+import {
+  computed,
+  navigateTo,
+  onMounted,
+  ref,
+  useCreateInterview,
+  useEventStore,
+  useGetCurrentInterviewByStudyAndProband,
+  useGetEventsByStudyAndProband,
+  useGetIntakesByStudyAndProband,
+  useGetInterviewsByStudyAndProband,
+  useGetLastInterviewByStudyAndProband,
+  useInterviewStore,
+  useRoute,
+  useToast,
+} from "#imports";
+import type {
+  SchemaEventReadPerProband,
+  SchemaIntakeDetailListItem,
+  SchemaInterview
+} from "#open-fetch-schemas/medlogapi";
 
 const route = useRoute()
 const eventStore = useEventStore()
 const interviewStore = useInterviewStore()
 const toast = useToast();
 
-const currentInterview = ref<Interview>();
+const currentInterview = ref<SchemaInterview>();
 const errorMessage = ref('');
-const eventsForProband = ref<Events>([]);
+const eventsForProband = ref<SchemaEventReadPerProband[]>([]);
 const eventIdToStart = ref();
 const eventsToStartOptions = ref<{ label: string; value: string }[]>([]);
-const interviewsForProband = ref<Interview[]>([]);
+const interviewsForProband = ref<SchemaInterview[]>([]);
 const introModalVisible = ref(false);
-const lastInterview = ref<Interview>();
+const lastInterview = ref<SchemaInterview>();
 const loading = ref(true);
 
-const probandId = computed(() => route.params.proband_id);
-const studyId = computed(() => route.params.study_id);
+const probandId = computed(() => route.params.proband_id as string);
+const studyId = computed(() => route.params.study_id as string);
 const completedInterviews = computed(() => {
   return interviewsForProband.value.filter(interview => interview.interview_end_time_utc !== null);
 });
@@ -150,7 +169,7 @@ const completedInterviews = computed(() => {
 
 const page = ref(1)
 const itemsPerPage = 10
-const intakes = ref([])
+const intakes = ref<SchemaIntakeDetailListItem[]>([])
 const tableFilterString = ref('')
 
 const rows = computed(() => {
@@ -184,7 +203,7 @@ async function startInterview(hasTakenMeds: boolean) {
   }
 }
 
-async function endInterview(eventId, interviewId) {
+async function endInterview(eventId: string, interviewId: string) {
   try {
     loading.value = true;
     await interviewStore.endInterview(studyId.value, eventId, interviewId);
