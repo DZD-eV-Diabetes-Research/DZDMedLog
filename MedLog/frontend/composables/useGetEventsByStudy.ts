@@ -1,7 +1,7 @@
 import { useMedlogapi } from "#open-fetch";
-import type { Events } from "~/stores/eventStore";
+import type { SchemaEvent } from "#open-fetch-schemas/medlogapi";
 
-export default async function (studyId: string): Promise<Events> {
+export default async function (studyId: string): Promise<SchemaEvent[]> {
     const { data, error } = await useMedlogapi('/api/study/{study_id}/event', {
         path: {
             study_id: studyId,

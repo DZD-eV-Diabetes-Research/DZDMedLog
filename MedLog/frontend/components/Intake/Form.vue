@@ -9,46 +9,42 @@
     </UFormGroup>
 
     <UFormGroup label="Quelle der Arzneimittelangabe" name="drugSource">
-      <USelect v-model="state.drugSource" :options="drugSourceOptions" :color="props.color" />
+      <USelect v-model="state.drugSource" :options="drugSourceOptions" />
     </UFormGroup>
 
     <UFormGroup label="Vom Arzt verordnet?" name="administeredByDoctor">
-      <USelect v-model="state.administeredByDoctor" :options="administeredByDoctorOptions" :color="props.color" />
+      <USelect v-model="state.administeredByDoctor" :options="administeredByDoctorOptions" />
     </UFormGroup>
     <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?" name="frequency">
-      <USelect v-model="state.frequency" :options="frequencyOptions" :color="props.color" />
+      <USelect v-model="state.frequency" :options="frequencyOptions" />
     </UFormGroup>
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
         <UFormGroup label="Dosis pro Einnahme" style="border-color: red" name="dose">
-          <UInput
-            v-model="state.dose" type="number" min="0" :disabled="state.frequency !== 'regular'"
-            :color="state.frequency !== 'regular' ? 'gray' : props.color" />
+          <UInput v-model="state.dose" type="number" min="0" :disabled="state.frequency !== 'regular'"/>
         </UFormGroup>
       </div>
       <div class="flex-1">
         <UFormGroup label="Intervall der Tagesdosen" name="intervall">
-          <USelect
-            v-model="state.intervall" :options="doseIntervalOptions" :disabled="state.frequency !== 'regular'"
-            :color="state.frequency !== 'regular' ? 'gray' : props.color" />
+          <USelect v-model="state.intervall" :options="doseIntervalOptions" :disabled="state.frequency !== 'regular'" />
         </UFormGroup>
       </div>
     </div>
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
         <UFormGroup label="Einnahme Beginn (Datum)" name="startTime">
-          <UInput v-model="state.startTime" type="date" :color="props.color" />
+          <UInput v-model="state.startTime" type="date" />
         </UFormGroup>
       </div>
       <div class="flex-1">
         <UFormGroup label="Einnahme Ende (Datum)" name="endTime">
-          <UInput v-model="state.endTime" type="date" :color="props.color" />
+          <UInput v-model="state.endTime" type="date" />
         </UFormGroup>
       </div>
     </div>
     <URadioGroup
         v-model="state.medsTakenToday" legend="Wurde dieses Medikament heute eingenommen?" name="medsTakenToday"
-        :options="medsTakenTodayOptions" :color="props.color" />
+        :options="medsTakenTodayOptions" />
     <hr>
     <div class="flex justify-between">
       <UButton label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
@@ -64,23 +60,18 @@ import type { FormSubmitEvent } from "#ui/types";
 import {
   onMounted,
   reactive,
-  ref,
+  useTemplateRef,
   watch
 } from "#imports";
 
 const props = defineProps<{
-  color?: string;
   drugId?: string;
   initialState?: any;
 }>();
 
 const emit = defineEmits(['cancel', 'save'])
 
-/**
- * TODO Switch to useTemplateRef() when updating to Vue 3.5
- * See https://vuejs.org/guide/essentials/template-refs.html#accessing-the-refs
- */
-const intakeForm = ref(null)
+const intakeForm = useTemplateRef('intakeForm')
 
 const drugSourceOptions = [
   { value: "Study participant: verbal specification", label: "Probandenangabe" },
@@ -200,8 +191,8 @@ watch(() => state.endTime, (newValue) => {
   }
 })
 
-watch(() => props.drugId, async (newDrugId: string) => {
-  state.drugId = newDrugId;
+watch(() => props.drugId, async (newDrugId?: string) => {
+  state.drugId = newDrugId ?? "";
   try {
     await intakeForm.value.validate();
   } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars

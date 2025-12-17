@@ -1,8 +1,8 @@
 // Helper to create Interview
 import { useMedlogapi } from "#open-fetch";
-import type {SchemaInterviewCreateApi} from "#open-fetch-schemas/medlogapi";
+import type { SchemaInterviewCreateApi } from "#open-fetch-schemas/medlogapi";
 
-export async function useCreateInterview(studyId:string, eventId:string, probandExternalId: string, probandHasTakenMeds:boolean): Promise<SchemaInterviewCreateApi | null>{
+export async function useCreateInterview(studyId:string, eventId:string, probandExternalId: string, probandHasTakenMeds:boolean): Promise<SchemaInterviewCreateApi>{
     const body = {
         "proband_external_id": probandExternalId,
         "proband_has_taken_meds": probandHasTakenMeds,
@@ -19,6 +19,10 @@ export async function useCreateInterview(studyId:string, eventId:string, proband
 
     if (error.value) {
         throw error.value;
+    }
+
+    if (!data.value) {
+        throw new Error('No data returned.');
     }
 
     return data.value;

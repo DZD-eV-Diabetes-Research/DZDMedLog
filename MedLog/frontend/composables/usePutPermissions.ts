@@ -1,7 +1,7 @@
 import { useMedlogapi } from "#open-fetch";
 import type { SchemaStudyPermissionRead } from "#open-fetch-schemas/medlogapi";
 
-export default async function (studyId: string, userId: string, body: any): Promise<SchemaStudyPermissionRead | null> {
+export default async function (studyId: string, userId: string, body: any): Promise<SchemaStudyPermissionRead> {
     const { data, error } = await useMedlogapi('/api/study/{study_id}/permissions/{user_id}', {
         method: "PUT",
         path: {
@@ -13,6 +13,10 @@ export default async function (studyId: string, userId: string, body: any): Prom
 
     if (error.value) {
         throw error.value;
+    }
+
+    if (!data.value) {
+        throw new Error('No data returned.');
     }
 
     return data.value;

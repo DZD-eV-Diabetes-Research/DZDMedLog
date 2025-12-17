@@ -8,8 +8,8 @@ export default async function (): Promise<SchemaUser> {
         throw error.value;
     }
 
-    if (data.value === null) {
-        throw new Error('No data.');
+    if (!data.value) {
+        throw new Error('No data returned.');
     }
 
     return data.value;
