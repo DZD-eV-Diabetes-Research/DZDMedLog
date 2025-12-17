@@ -1,5 +1,16 @@
 <template>
   <UTable :rows="rows" :columns="columns" class="break-words">
+    <template #event-data="{ row }">
+      <UButton
+          :to="`/studies/${row.intake.event.study_id}/proband/${row.intake.interview.proband_external_id}/interview/${row.intake.interview_id}`"
+          :label="row.event"
+          variant="link"
+          icon="i-heroicons-arrow-right-circle"
+          class="whitespace-nowrap"
+          trailing
+      />
+    </template>
+
     <template #pzn-data="{ row }">
       <div class="flex flex-col items-start gap-1">
         {{ row.pzn }}
