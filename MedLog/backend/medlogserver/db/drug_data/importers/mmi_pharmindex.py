@@ -1,3 +1,4 @@
+from pydoc import classify_class_attrs
 from typing import (
     List,
     Callable,
@@ -43,6 +44,7 @@ from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
     ValueTypeCasting,
     CustomPreParserFunc,
+    DisplayPriorityClass,
 )
 from medlogserver.model.drug_data.drug_attr_field_lov_item import (
     DrugAttrFieldLovItem,
@@ -346,6 +348,8 @@ def get_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 examples=["3.5 g", "2x100 ml", "60 st"],
                 importer_name=importername,
                 searchable=False,
+                field_display_priority_class=DisplayPriorityClass.CLASS2,
+                field_display_sort_order=1,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs.amount"],
         ),
@@ -423,6 +427,8 @@ def get_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 is_multi_val_field=False,
                 examples=[1, 0],
                 importer_name=importername,
+                field_display_priority_class=DisplayPriorityClass.CLASS2,
+                field_display_sort_order=0,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_generikum"],
         ),
@@ -476,6 +482,8 @@ def get_attr_multi_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 examples=["D04AA04", "V60A"],
                 importer_name=importername,
                 searchable=True,
+                field_display_priority_class=DisplayPriorityClass.CLASS1,
+                field_display_sort_order=0,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs_multi.ATC"],
         )
@@ -893,7 +901,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             # write everything to database
             await self.commit()
 
-    async def _disect_drug_data(self, drug_data: DrugData) -> AsyncGenerator[
+    async def _disect_drug_data(
+        self, drug_data: DrugData
+    ) -> AsyncGenerator[
         DrugData | DrugVal | DrugValRef | DrugCode | DrugValMulti | DrugValMultiRef,
         None,
     ]:
@@ -1427,9 +1437,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             result = csv_content_view.data[_filter_value_casted]
             if max_number_rows:
                 result = result[:max_number_rows]
-            self._cache_csv_lookups[csv_lookup_filter_call_signature][
-                filter_value
-            ] = result
+            self._cache_csv_lookups[csv_lookup_filter_call_signature][filter_value] = (
+                result
+            )
 
             self._debug_stats_csv_lookup = (
                 self._debug_stats_csv_lookup[0],
