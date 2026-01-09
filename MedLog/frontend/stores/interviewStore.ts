@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { defineStore } from '#imports'
 import type { SchemaInterview } from '#open-fetch-schemas/medlogapi';
 import { usePatchInterview } from "#imports";
 

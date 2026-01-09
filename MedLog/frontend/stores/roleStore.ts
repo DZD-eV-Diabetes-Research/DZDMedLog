@@ -1,5 +1,5 @@
 import { type MedlogapiResponse, useMedlogapi } from "#open-fetch";
-import { defineStore } from 'pinia'
+import { defineStore } from '#imports'
 
 export type Roles = MedlogapiResponse<'Get_Roles_api_role_get'>
 

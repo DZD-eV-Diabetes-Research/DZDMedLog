@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { defineStore } from '#imports'
 import type { MedlogapiResponse } from '#open-fetch';
 import useGetEventsByStudy from "~/composables/useGetEventsByStudy";
 

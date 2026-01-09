@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { defineStore } from '#imports'
 import { useMedlogapi, type MedlogapiResponse } from '#open-fetch';
 
 type HealthReport = MedlogapiResponse<'get_health_report_api_health_report_get'>

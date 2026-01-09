@@ -2,7 +2,7 @@
 
 import { type MedlogapiResponse, useMedlogapi } from "#open-fetch";
 import type { SchemaStudy } from "#open-fetch-schemas/medlogapi";
-import { defineStore } from 'pinia'
+import { defineStore } from '#imports'
 
 type Studies = MedlogapiResponse<'list_studies_api_study_get'>['items']
 export type Study = MedlogapiResponse<'create_study_api_study_post'>

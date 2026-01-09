@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { defineStore } from '#imports'
 import { useMedlogapi } from '#open-fetch';
 
 interface ConfigStore {
@@ -11,7 +11,7 @@ interface ConfigStore {
     },
 }
 
-export const useConfigStore = defineStore('branding', {
+export const useConfigStore = defineStore('config', {
     state: (): ConfigStore => ({
         branding: {
             supportEmail: undefined,
