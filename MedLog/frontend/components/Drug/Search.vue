@@ -45,7 +45,7 @@
               v-for="item in paginatedItems"
               :key="item.drug.id"
               :drug="item.drug"
-              @drug-selected="(activeIngredientOnly) => selectDrug(item, activeIngredientOnly)"
+              @drug-selected="(activeIngredientOnly: boolean) => selectDrug(item, activeIngredientOnly)"
           />
         </ul>
       </div>
@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "#imports";
 import { apiDrugSearch } from '~/api/drug';
 
 const itemsPerPage = 5;
@@ -81,7 +81,7 @@ const searchTerm = ref("");
 const totalCount = ref(0);
 const warningMessage = ref("");
 
-const fetchDrugs = async (searchTerm) => {
+const fetchDrugs = async (searchTerm: string) => {
   searchError.value = undefined;
   warningMessage.value = "";
 
@@ -149,7 +149,7 @@ const paginatedItems = computed(() => {
   return searchResults.value.slice(startIndex, endIndex);
 });
 
-function selectDrug(item, activeIngredientOnly) {
+function selectDrug(item, activeIngredientOnly: boolean) {
   searchTerm.value = "";
   emit('drug-selected', item.drug_id, activeIngredientOnly);
 }

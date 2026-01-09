@@ -87,6 +87,7 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, ref } from "#imports";
 import type { DrugBody } from "~/components/CustomDrugForm.vue";
 
 const props = defineProps({

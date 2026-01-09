@@ -17,6 +17,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch } from "#imports";
+
 const model = defineModel({ type: String, required: true });
 
 const props = defineProps({
