@@ -14,12 +14,9 @@
   "dependencies": {
     "@nuxt/kit": "3.20.2",
     "@nuxt/ui": "2.22.3",
-    "@nuxtjs/supabase": "^1.6.2",
     "@pinia/nuxt": "^0.5.5",
-    "@sidebase/nuxt-auth": "^0.9.4",
     "caniuse-lite": "^1.0.30001763",
     "dayjs-nuxt": "^2.1.11",
-    "next-auth": "4.21.1",
     "nuxt": "3.20.2",
     "nuxt-open-fetch": "^0.12.2",
     "pinia": "^2.3.1",
