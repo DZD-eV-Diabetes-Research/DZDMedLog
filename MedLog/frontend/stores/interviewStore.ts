@@ -1,6 +1,5 @@
-import { defineStore } from '#imports'
+import { defineStore, usePatchInterview  } from '#imports'
 import type { SchemaInterview } from '#open-fetch-schemas/medlogapi';
-import { usePatchInterview } from "#imports";
 
 interface InterviewsStore {
     interviews: SchemaInterview[]
