@@ -14,7 +14,6 @@ export default defineNuxtConfig({
     "@nuxt/ui",
     "@nuxt/icon",
     "dayjs-nuxt",
-    "@nuxt/test-utils/module",
     "nuxt-open-fetch"
   ],
 

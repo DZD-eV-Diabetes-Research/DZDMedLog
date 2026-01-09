@@ -30,16 +30,10 @@
   "devDependencies": {
     "@iconify-json/heroicons": "^1.2.3",
     "@nuxt/eslint": "^1.12.1",
-    "@nuxt/test-utils": "^3.23.0",
-    "@playwright/test": "^1.57.0",
-    "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.23",
     "eslint": "^9.39.2",
-    "happy-dom": "^18.0.1",
-    "playwright-core": "^1.57.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
-    "vite-plugin-eslint2": "^5.0.4",
-    "vitest": "^3.2.4"
+    "vite-plugin-eslint2": "^5.0.4"
   }
 }
