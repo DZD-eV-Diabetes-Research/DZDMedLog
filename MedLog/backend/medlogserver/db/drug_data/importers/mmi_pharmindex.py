@@ -13,6 +13,7 @@ from typing import (
     Union,
     Iterator,
     AsyncGenerator,
+    Self,
 )
 import uuid
 from sqlalchemy.orm.collections import InstrumentedList
@@ -801,6 +802,30 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         # self._cache_csv_dataview = {}
         del self._cache_csv_lookups
         self._cache_csv_lookups = {}
+
+    async def check_for_remote_dataset_update_available(self) -> str | None:
+        # do ftp stuff TODO
+        pass
+
+    async def download_remote_dataset_update(self) -> Self | None:
+        # download the update TODO
+        pass
+
+    async def was_dataset_version_imported(self) -> DrugDataSetVersion | None:
+        imported_datasets = await self.get_already_imported_datasets()
+        for imported_dataset in imported_datasets:
+            if (
+                imported_dataset.dataset_version == self.version
+                and imported_dataset.import_status in ["running", "done"]
+            ):
+                return imported_dataset
+        return None
+
+    async def get_drug_dataset_version(self) -> str:
+        if self.version is None and self.source_dir is not None:
+            source_dir_name = Path(self.source_dir).name
+            self.version = source_dir_name
+        return self.version
 
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None
