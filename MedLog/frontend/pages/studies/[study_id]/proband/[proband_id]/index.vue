@@ -24,7 +24,7 @@
               />
               <br>
               <span class="text-base">
-                {{ formatDate(lastInterview.interview_start_time_utc) }}
+                {{ $dayjs.utc(lastInterview.interview_start_time_utc).local().format('LLL') }}
               </span>
             </div>
             <span v-else class="text-lg">
@@ -43,7 +43,7 @@
             >
               <template #description>
                 Das Interview für das Event <span class="font-semibold font-mono">{{ eventStore.nameForEvent(currentInterview.event_id) || 'N/A' }}</span> wurde noch nicht abgeschlossen.
-                Es wurde am {{ formatDate(currentInterview.interview_start_time_utc, true) }} gestartet.
+                Es wurde am {{ $dayjs.utc(currentInterview.interview_start_time_utc).local().format('LL') }}  gestartet.
                 <br><br>
                 Vor dem Start eines neuen Interviews muss das laufende Interview beendet sein.
               </template>
@@ -143,11 +143,16 @@ import type {
   SchemaIntakeDetailListItem,
   SchemaInterview
 } from "#open-fetch-schemas/medlogapi";
+import { useDayjs } from '#dayjs'
+import localizedFormat from 'dayjs/plugin/localizedFormat'
 
+const dayjs = useDayjs();
 const route = useRoute()
 const eventStore = useEventStore()
 const interviewStore = useInterviewStore()
 const toast = useToast();
+
+dayjs.extend(localizedFormat);
 
 const currentInterview = ref<SchemaInterview>();
 const errorMessage = ref('');

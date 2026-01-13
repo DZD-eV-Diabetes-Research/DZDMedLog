@@ -71,11 +71,17 @@
 </template>
 
 <script setup lang="ts">
+import { useDayjs } from '#dayjs'
+import localizedFormat from 'dayjs/plugin/localizedFormat'
+
+const dayjs = useDayjs();
 const route = useRoute();
 const studyStore = useStudyStore();
 const { $medlogapi } = useNuxtApp();
 const toast = useToast();
 const userStore = useUserStore();
+
+dayjs.extend(localizedFormat);
 
 const columns = [
   {
@@ -109,20 +115,6 @@ const studyId = computed(() => {
   return route.params.study_id;
 });
 
-function parseTime(time: string) {
-  const date = new Date(time);
-  return date.toLocaleString('de-DE', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).replace(',', '');
-}
-
-
 async function listDownloads() {
   try {
     const data = await $medlogapi(`/api/study/{studyId}/export`, {
@@ -135,7 +127,7 @@ async function listDownloads() {
 
     downloads.value = data.items.map((item) => ({
       study: studyName.display_name,
-      time: parseTime(item.created_at),
+      time: dayjs.utc(item.created_at).local().format('LLL'),
       status: item.state,
       downloadLink: `${item.download_file_path}`,
     }));

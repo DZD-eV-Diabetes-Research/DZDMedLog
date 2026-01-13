@@ -37,10 +37,16 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ onUpdate: () => void }>();
+import { useDayjs } from '#dayjs'
+import localizedFormat from 'dayjs/plugin/localizedFormat'
 
+const dayjs = useDayjs();
 const { $medlogapi } = useNuxtApp();
 const route = useRoute();
+
+dayjs.extend(localizedFormat);
+
+const props = defineProps<{ onUpdate: () => void }>();
 
 const openCopyPreviousIntakesModal = ref(false)
 const error = ref();
@@ -70,11 +76,7 @@ async function openCopyIntakeModal() {
 
 
         lastEventName.value = intakes[0]?.event.name
-        lastEventDate.value = new Date(intakes[0]?.interview.interview_end_time_utc).toLocaleDateString("de-DE", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-        });
+        lastEventDate.value = dayjs.utc(intakes[0]?.interview.interview_end_time_utc).local().format('LLL');
 
         // Transform the API response into a format suitable for both the UI and the POST request body
         previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
