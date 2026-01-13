@@ -51,13 +51,13 @@
         <template #header>
           <div class="flex flex-col">
             <h2 class="text-lg self-center">Medikationen</h2>
-            <div class="flex flex-row justify-between">
-              <UInput v-model="q" placeholder="Tabelle filtern" autocomplete="off" />
+            <div class="inline-grid grid-cols-3 justify-items-center">
+              <UInput v-model="q" placeholder="Tabelle filtern" autocomplete="off" class="justify-self-start" />
               <CopyPreviousDrugs
-                  v-if="!pending && latestItems?.length && !interview.interview_end_time_utc"
+                  :deactivated="!(!pending && latestItems?.length && !interview.interview_end_time_utc)"
                   :on-update="loadIntakeList" />
               <UButton
-                  class="self-end"
+                  class="justify-self-end"
                   label="Präparat erfassen"
                   @click="openCreateIntakeModal"
               />
