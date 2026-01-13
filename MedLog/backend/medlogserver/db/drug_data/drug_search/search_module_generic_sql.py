@@ -447,7 +447,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         """
         Gives bonus points based on how early tokens appear in the result.
 
-        Uses INSTR() to find position, then applies inverse scaling:
+        Uses INSTR() or POSITION() to find position, then applies inverse scaling:
         - Token at position 1-10: higher bonus
         - Token at position 50+: lower bonus
 
@@ -466,11 +466,13 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
 
         result: ColumnElement = literal(0.0)
         scale_factor: float = 20.0  # Adjust to control how quickly score drops off
-
         for search_token in search_term_tokens:
             # Find position of token (case-insensitive)
             # INSTR returns position (1-indexed), or 0 if not found
-            position = func.instr(func.lower(content_column), search_token.lower())
+            if get_db_type(config.SQL_DATABASE_URL) != "postgres":
+                position = func.instr(func.lower(search_token.lower(), content_column))
+            else:
+                position = func.strpos(func.lower(search_token.lower(), content_column))
 
             # Calculate position score: max_bonus / (1 + position/scale_factor)
             # This creates a decay curve: closer to start = higher score
@@ -662,10 +664,16 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 )
             )
             # we try to score the match position in the search content. Early macthes will get a bonus
-            match_position_statement = func.instr(
-                func.lower(GenericSQLDrugSearchCache.search_index_content),
-                search_token.lower(),
-            )
+            if get_db_type(config.SQL_DATABASE_URL) != "postgres":
+                match_position_statement = func.instr(
+                    func.lower(GenericSQLDrugSearchCache.search_index_content),
+                    search_token.lower(),
+                )
+            else:
+                match_position_statement = func.strpos(
+                    func.lower(GenericSQLDrugSearchCache.search_index_content),
+                    search_token.lower(),
+                )
             # Adjust to control how quickly score drops off
             match_position_scale_factor: float = 20.0
             max_bonus = 1.0
