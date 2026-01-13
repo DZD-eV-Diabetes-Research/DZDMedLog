@@ -3,7 +3,7 @@ set -euo pipefail
 
 # === CONFIGURATION ===
 PYTHON_VERSION="3.11"
-ENV_DIR=".medlogcondaenv"
+ENV_DIR=".medlog-python-env"
 REQ_FILE="./MedLog/backend/requirements.txt"
 REQ_FILE_DEV="./MedLog/backend/requirements_tests.txt"
 # === FUNCTIONS ===
@@ -31,6 +31,7 @@ create_env() {
 
 activate_env() {
     # shellcheck disable=SC1091
+    echo "🏎️ activate env at $ENV_DIR with 'source $ENV_DIR/bin/activate'"
     source "$ENV_DIR/bin/activate"
 }
 

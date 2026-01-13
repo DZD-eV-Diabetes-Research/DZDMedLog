@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.12.1.dev4+g842c318a5"
+    "version": "0.12.1.dev19+g09c783115.d20260113"
   },
   "paths": {
     "/api/health": {
@@ -4605,7 +4605,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/medlogserver__utils__Error__1"
+                  "$ref": "#/components/schemas/medlogserver__utils__Error"
                 }
               }
             }
@@ -4672,7 +4672,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/medlogserver__utils__Error"
+                  "$ref": "#/components/schemas/medlogserver__utils__Error__3"
                 }
               }
             }
@@ -8554,6 +8554,19 @@
       "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs": {
         "properties": {
           "dispensingtype": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype",
+            "description": "How are the drugs made available."
+          }
+        },
+        "type": "object",
+        "required": [
+          "dispensingtype"
+        ],
+        "title": "AttrRefs"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__2": {
+        "properties": {
+          "dispensingtype": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype__2"
@@ -8567,19 +8580,6 @@
           }
         },
         "type": "object",
-        "title": "AttrRefs"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__1": {
-        "properties": {
-          "dispensingtype": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype",
-            "description": "How are the drugs made available."
-          }
-        },
-        "type": "object",
-        "required": [
-          "dispensingtype"
-        ],
         "title": "AttrRefs"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__Attrs": {
@@ -8671,12 +8671,9 @@
           }
         },
         "type": "object",
-        "required": [
-          "keywords"
-        ],
         "title": "AttrsMulti"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__2": {
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__1": {
         "properties": {
           "keywords": {
             "items": {
@@ -8694,6 +8691,9 @@
           }
         },
         "type": "object",
+        "required": [
+          "keywords"
+        ],
         "title": "AttrsMulti"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__Attrs__1": {
@@ -8772,17 +8772,21 @@
             "description": "The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties."
           },
           "PZN": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Pzn"
           }
         },
         "type": "object",
-        "required": [
-          "PZN"
-        ],
         "title": "Codes"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__Codes__2": {
+      "medlogserver__model__drug_data__api_drug_model_factory__Codes__1": {
         "properties": {
           "ATC": {
             "anyOf": [
@@ -8797,18 +8801,14 @@
             "description": "The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties."
           },
           "PZN": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Pzn"
           }
         },
         "type": "object",
+        "required": [
+          "PZN"
+        ],
         "title": "Codes"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__Drug": {
@@ -8878,18 +8878,18 @@
             "description": "If Drug is created by user as a custom drug the user id will be saved here."
           },
           "codes": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes__2"
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes"
           },
           "attrs": {
             "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs",
             "description": "Scalar Drug attributes. One value only per drug attribute."
           },
           "attrs_multi": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__2",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti",
             "description": "All Drug attributes that can have multiple values. e.g. something like 'Keywords'. Will always be a list."
           },
           "attrs_ref": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__2",
             "description": "All Drug attributes reference an existing list (value + display Value. Aka SelectList)."
           },
           "attrs_multi_ref": {
@@ -8971,18 +8971,18 @@
             "description": "If Drug is created by user as a custom drug the user id will be saved here."
           },
           "codes": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes"
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes__1"
           },
           "attrs": {
             "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs__1",
             "description": "Scalar Drug attributes. One value only per drug attribute."
           },
           "attrs_multi": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__1",
             "description": "All Drug attributes that can have multiple values. e.g. something like 'Keywords'. Will always be a list."
           },
           "attrs_ref": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__1",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs",
             "description": "All Drug attributes reference an existing list (value + display Value. Aka SelectList)."
           },
           "attrs_multi_ref": {
@@ -9068,20 +9068,6 @@
         "type": "object",
         "title": "Error"
       },
-      "medlogserver__utils__Error__1": {
-        "properties": {
-          "detail": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Detail",
-            "default": "Export job does not exist."
-          }
-        },
-        "type": "object",
-        "title": "Error"
-      },
       "medlogserver__utils__Error__2": {
         "properties": {
           "detail": {
@@ -9091,6 +9077,20 @@
             "type": "object",
             "title": "Detail",
             "default": "Export job is not finished yet. Try again later."
+          }
+        },
+        "type": "object",
+        "title": "Error"
+      },
+      "medlogserver__utils__Error__3": {
+        "properties": {
+          "detail": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Detail",
+            "default": "Export job does not exist."
           }
         },
         "type": "object",
