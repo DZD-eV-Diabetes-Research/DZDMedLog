@@ -311,11 +311,6 @@ class Config(BaseSettings):
             )
         return AUTH_OIDC_PROVIDERS
 
-    AI_DATA_IMPORTER_FLUSH_AFTER_N_ROWS: int = Field(
-        default=1000,
-        description="When reading the Arzneimittelindex data files, write every n rows to the database. Lower this number in a low memory env.",
-    )
-
     # Availabe modules live in MedLog/backend/medlogserver/model/drug_data/importers/__init__.py
     DRUG_IMPORTER_PLUGIN: Literal[
         "WidoGkvArzneimittelindex52", "MmmiPharmaindex1_32", "DummyDrugImporterV1"
@@ -335,6 +330,20 @@ class Config(BaseSettings):
     DRUG_IMPORTER_BATCH_SIZE: int = Field(
         default=200000,
         description="If the drug import supports batching, this is the size per batch. The trade of are some speed bumps, while drug importing, versus memory consumption. On a low memory machine decrease this value.",
+    )
+
+    DRUG_IMPORTER_MMI_UPDATER_FTP_HOST: str = Field(
+        default="ftp.mmi.de",
+        description="When using MmmiPharmaindex1_32 auto updater, this is the FTP host to check for available datasets.",
+    )
+    DRUG_IMPORTER_MMI_UPDATER_FTP_USER: Optional[str] = Field(
+        default=None,
+        description="When using MmmiPharmaindex1_32 auto updater, authorize with this username against the MMI Pharmindex FTP Server ",
+    )
+
+    DRUG_IMPORTER_MMI_UPDATER_FTP_PASSWORD: Optional[SecretStr] = Field(
+        default=None,
+        description="When using MmmiPharmaindex1_32 auto updater, authorize with this password against the MMI Pharmindex FTP Server ",
     )
 
     DRUG_SEARCHENGINE_CLASS: Literal["GenericSQLDrugSearch"] = Field(
