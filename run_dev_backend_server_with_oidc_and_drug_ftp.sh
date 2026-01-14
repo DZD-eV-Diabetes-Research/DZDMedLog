@@ -137,6 +137,25 @@ done
 echo "OIDC mockup server seemed to have booted."
 PIDS+=($mock_server_PID)
 
+#######################################
+# Start FTP Drug Data mockup server
+#######################################
+echo "Start dummy FTP Drug Data Server"
+(
+    cd ./MedLog/backend/medlogserver/_dev && "$PYTHON_BIN" drug_data_remote_ftp_server.py
+) &
+mock_server_PID=$!
+
+# Wait up to 3 seconds for FTP mockup server to boot successfully
+for i in {1..3}; do
+    if ! kill -0 $mock_server_PID 2>/dev/null; then
+        echo "FTP Drug Data mockup server failed to start."
+        exit 1
+    fi
+    sleep 1
+done
+echo "FTP Drug Data mockup server seemed to have booted."
+PIDS+=($mock_server_PID)
 
 #######################################
 # Start MedLog Backend

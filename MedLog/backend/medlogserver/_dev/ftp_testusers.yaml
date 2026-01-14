@@ -1,0 +1,7 @@
+users:
+  - username: testuser
+    password: testpass
+    permissions: elradfmw  # full access
+  - username: readonly
+    password: readonly123
+    permissions: elr  # read-only

@@ -162,12 +162,6 @@ pyasn1==0.6.1
     # via
     #   python-jose
     #   rsa
-pyasynchat==1.0.5
-    # via pyftpdlib
-pyasyncore==1.0.5
-    # via
-    #   pyasynchat
-    #   pyftpdlib
 pycparser==2.23
     # via cffi
 pydantic[email]==2.12.5
@@ -179,8 +173,6 @@ pydantic[email]==2.12.5
 pydantic-core==2.41.5
     # via pydantic
 pydantic-settings==2.12.0
-    # via medlogserver (MedLog/backend/pyproject.toml)
-pyftpdlib==2.1.0
     # via medlogserver (MedLog/backend/pyproject.toml)
 pygments==2.19.2
     # via mkdocs-material

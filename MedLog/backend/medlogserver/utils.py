@@ -11,6 +11,7 @@ from typing import (
     Any,
     Type,
 )
+from htpy import base
 from sqlmodel import SQLModel
 
 if TYPE_CHECKING:
@@ -610,3 +611,26 @@ def sqlmodel_apply_updates(existing: SQLModel, incoming: SQLModel) -> bool:
             changed = True
 
     return changed
+
+
+from ftplib import FTP
+
+
+def list_remote_ftp_dir(
+    host: str,
+    user: str,
+    password: str | pydantic.SecretStr,
+    base_dir: str | Path = None,
+    host_port: int = 21,
+):
+    if isinstance(password, pydantic.SecretStr):
+        pw: str = password.get_secret_value()
+    else:
+        pw = password
+
+    ftp = FTP(host=host, user=user, passwd=pw)
+    ftp.port = host_port
+    ftp.login()
+    if base_dir:
+        ftp.cwd(str(base_dir))
+    return list(ftp.mlsd())
