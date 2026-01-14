@@ -18,7 +18,7 @@
 
     <CreateStudyModal v-model="createStudyModalVisible" class="w-[1000px] !important" @create-study="createStudy">
       <template #error>
-        <ErrorMessage v-if="createStudyErrorMessage" title="Konnte Studie nicht anlegen" :message="createStudyErrorMessage" />
+        <ErrorMessage v-if="createStudyError" title="Konnte Studie nicht anlegen" :error="createStudyError" />
       </template>
     </CreateStudyModal>
   </section>
@@ -43,11 +43,11 @@ const userStore = useUserStore();
 const studyStore = useStudyStore();
 
 const createStudyModalVisible = ref(false);
-const createStudyErrorMessage = ref();
+const createStudyError = ref();
 
 async function openStudyModal() {
   createStudyModalVisible.value = true
-  createStudyErrorMessage.value = ""
+  createStudyError.value = ""
 }
 
 async function createStudy(name: string) {
@@ -56,7 +56,7 @@ async function createStudy(name: string) {
     studyStore.upsertStudy(newStudy);
     createStudyModalVisible.value = false;
   } catch (error) {
-    createStudyErrorMessage.value = error.response?._data?.detail ?? error.message ?? error;
+    createStudyError.value = error;
   }
 }
 

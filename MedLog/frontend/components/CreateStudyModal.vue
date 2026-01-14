@@ -46,7 +46,7 @@ watch(modelValue, (isOpen) => {
 
       <UForm :schema="schema" :state="state" class="space-y-4 mt-2" @submit="createStudy">
         <UFormGroup label="Name der Studie" name="studyName">
-          <UInput v-model="state.studyName" required />
+          <UInput v-model="state.studyName" autofocus required />
         </UFormGroup>
         <div class="flex justify-between">
           <UButton label="Abbrechen" color="gray" variant="outline" @click.prevent="onClose" />
