@@ -40,7 +40,6 @@ export async function apiDrugSearch(searchTerm: string, limit = 100) {
 
     const { data: result, error } = await useMedlogapi(`/api/drug/search`,{
         query: {
-            only_current_medications: true, // FIXME market_accessable seems to be the correct/current parameter here
             offset: 0,
             limit: limit,
             search_term: searchTerm,

@@ -51,12 +51,16 @@ export default defineNuxtConfig({
       },
   },
 
+  typescript: {
+    strict: true,
+    typeCheck: true,
+  },
+
   runtimeConfig: {
     public: {
       baseURL: process.env.BASE_URL || '/api/',
       openFetch: {
         medlogapi: {
-          schema: "../openapi.json",
           baseURL: "/api",
         },
       },

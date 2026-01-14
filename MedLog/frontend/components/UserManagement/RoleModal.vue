@@ -1,18 +1,26 @@
 <script setup lang="ts">
-import { watch } from "vue";
+import { reactive, useRoleStore, watch } from "#imports";
+import type {FormSubmitEvent} from "#ui/types";
 
 const roleStore = useRoleStore();
 const props = defineProps({
   initialRoles: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['cancel', 'save'])
+const emit = defineEmits<{
+  cancel: [],
+  save: [data: RoleFormSchema],
+}>()
 
-const state = reactive({
+type RoleFormSchema = {
+  roles: string[];
+};
+
+const state = reactive<RoleFormSchema>({
   roles: [],
 })
 
-function onSubmit(event) {
+function onSubmit(event: FormSubmitEvent<RoleFormSchema>) {
   emit('save', event.data);
 }
 
