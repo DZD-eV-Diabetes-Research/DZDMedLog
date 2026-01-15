@@ -11,6 +11,9 @@ export default async function (searchTerm: string, limit = 100): Promise<SchemaP
     });
 
     if (error.value) {
+        if (error.value.statusCode === 425) {
+            throw new Error("Der Suchindex wird noch aufgebaut, daher ist die Suche derzeit noch nicht verfügbar. Bitte versuchen Sie es in Kürze erneut.")
+        }
         throw error.value;
     }
 
