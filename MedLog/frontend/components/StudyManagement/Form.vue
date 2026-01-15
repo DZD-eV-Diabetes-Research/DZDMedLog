@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted, reactive, useTemplateRef } from "#imports";
 import { boolean, type InferType, object, string } from "yup";
 import type { FormSubmitEvent } from "#ui/types";
 

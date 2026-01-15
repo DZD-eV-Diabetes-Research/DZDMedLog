@@ -1,11 +1,10 @@
-import { defineStore } from 'pinia'
-import { useMedlogapi, type MedlogapiResponse } from '#open-fetch';
-
-type HealthReport = MedlogapiResponse<'get_health_report_api_health_report_get'>
+import { defineStore } from '#imports'
+import { useMedlogapi } from '#open-fetch';
+import type { SchemaHealthCheckReport } from "#open-fetch-schemas/medlogapi";
 
 interface HealthCheckStore {
     healthy?: boolean
-    report?: HealthReport
+    report?: SchemaHealthCheckReport
 }
 
 export const useHealthCheck = defineStore('healthCheck', {

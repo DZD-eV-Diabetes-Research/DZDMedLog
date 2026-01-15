@@ -1,19 +1,25 @@
 <script setup lang="ts">
-import { watch } from "vue";
+import { reactive, watch } from "#imports";
+import type { SchemaStudyPermissionDesc } from "#open-fetch-schemas/medlogapi";
+import type { FormSubmitEvent } from "#ui/types";
 
 const props = defineProps({
-  availablePermissions: { type: Array, default: () => [] },
-  initialPermissions: { type: Array, default: () => [] },
+  availablePermissions: { type: Array as () => SchemaStudyPermissionDesc[], default: () => [] },
+  initialPermissions: { type: Array as () => string[], default: () => [] },
 });
 
 const emit = defineEmits(['cancel', 'save'])
 
-const state = reactive({
+type PermissionFormSchema = {
+  permissions: string[];
+};
+
+const state = reactive<PermissionFormSchema>({
   permissions: [],
 })
 
-function onSubmit(event) {
-  const permissions = {};
+function onSubmit(event: FormSubmitEvent<PermissionFormSchema>) {
+  const permissions = {} as Record<string, boolean>;
   props.availablePermissions.forEach((item) => {
     permissions[item.study_permission_name] = event.data.permissions.includes(item.study_permission_name);
   })
@@ -46,7 +52,7 @@ watch(() => props.initialPermissions, (newValue) => {
             :key="permission.study_permission_name"
             v-model="state.permissions"
             :label="permission.study_permission_name"
-            :help="permission.description"
+            :help="permission.description ?? ''"
             :value="permission.study_permission_name"
             class="mb-2"
         />

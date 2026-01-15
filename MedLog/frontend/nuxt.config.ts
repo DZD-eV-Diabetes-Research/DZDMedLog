@@ -1,11 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import { resolve } from "path"
 
 export default defineNuxtConfig({
-  alias: {
-    "@": resolve(__dirname, "/")
-  },
-
   devtools: { enabled: true },
 
   modules: [
@@ -14,16 +9,18 @@ export default defineNuxtConfig({
     "@nuxt/ui",
     "@nuxt/icon",
     "dayjs-nuxt",
-    "@nuxt/test-utils/module",
     "nuxt-open-fetch"
   ],
 
   pinia: {
-    storesDirs: ['./stores/**', './custom-folder/stores/**'],
+    storesDirs: ['./stores/**'],
   },
 
   dayjs: {
-    plugins: ['utc'],
+    locales: ['de', 'en'],
+    plugins: ['relativeTime', 'utc', 'timezone'],
+    defaultLocale: 'de',
+    defaultTimezone: 'Europe/Berlin',
   },
 
   css: ["~/assets/main.css"],
@@ -33,7 +30,7 @@ export default defineNuxtConfig({
   },
 
   eslint: {
-    // checker: true, // TODO enable this once we settled for a code style
+    checker: true,
   },
   icon: {
       provider: 'none', // Prevents the dynamic fetching of icons from a CDN
@@ -54,12 +51,16 @@ export default defineNuxtConfig({
       },
   },
 
+  typescript: {
+    // strict: true,
+    // typeCheck: true, TODO enable as soon as all the typing issues are resolved
+  },
+
   runtimeConfig: {
     public: {
       baseURL: process.env.BASE_URL || '/api/',
       openFetch: {
         medlogapi: {
-          schema: "../openapi.json",
           baseURL: "/api",
         },
       },

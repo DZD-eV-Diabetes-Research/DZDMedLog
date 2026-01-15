@@ -1,5 +1,16 @@
 <template>
   <UTable :rows="rows" :columns="columns" class="break-words">
+    <template #event-data="{ row }">
+      <UButton
+          :to="`/studies/${row.intake.event.study_id}/proband/${row.intake.interview.proband_external_id}/interview/${row.intake.interview_id}`"
+          :label="row.event"
+          variant="link"
+          icon="i-heroicons-arrow-right-circle"
+          class="whitespace-nowrap"
+          trailing
+      />
+    </template>
+
     <template #pzn-data="{ row }">
       <div class="flex flex-col items-start gap-1">
         {{ row.pzn }}
@@ -22,14 +33,22 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "#imports";
+import type { SchemaIntakeDetailListItem } from "#open-fetch-schemas/medlogapi";
+import { doseIntervalOptions, drugSourceOptions } from "~/constants";
+import useGetLabelForValue from "~/utils/useGetLabelForValue";
+
 const props = defineProps({
-  intakes: { type: Array, required: true },
+  intakes: { type: Array as () => SchemaIntakeDetailListItem[], required: true },
   showEvent: { type: Boolean, default: false },
   canEdit: { type: Boolean, default: false },
   canDelete: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['edit', 'delete']);
+const emit = defineEmits<{
+  edit: [intakeId: string],
+  delete: [row: object],
+}>();
 
 const columns: Array<{ key: string; label?: string, sortable?: boolean }> = [
   {
@@ -82,7 +101,7 @@ if (props.canEdit || props.canDelete) {
   });
 }
 
-function getIntakeDurationString(intake) {
+function getIntakeDurationString(intake: SchemaIntakeDetailListItem) {
   if (!intake.intake_start_time_utc && !intake.intake_end_time_utc) {
     return "unbekannt";
   }
@@ -92,14 +111,14 @@ function getIntakeDurationString(intake) {
   return `${startDate} bis ${endDate}`;
 }
 
-function myOptions(row) {
+function myOptions(row: object) {
   const options = [];
 
   if (props.canEdit) {
     options.push({
       label: "Bearbeiten",
       icon: "i-heroicons-pencil-square-20-solid",
-      click: () => emit('edit', row),
+      click: () => emit('edit', row.intakeId),
     });
   }
 
@@ -123,13 +142,10 @@ const rows = computed(() => {
     event: item.event.name,
     intake: item,
     pzn: item.drug.codes?.PZN,
-    source: item.source_of_drug_information,
+    source: useGetLabelForValue(drugSourceOptions, item.source_of_drug_information),
     name: item.drug.trade_name,
     dose: item.dose_per_day === 0 ? "-/-" : item.dose_per_day,
-    intervall: useIntervallDoseTranslator(
-        item.regular_intervall_of_daily_dose,
-        null
-    ),
+    intervall: useGetLabelForValue(doseIntervalOptions, item.regular_intervall_of_daily_dose),
     consumed_meds_today: item.consumed_meds_today,
     option: item.intake_regular_or_as_needed,
     startTime: item.intake_start_time_utc,

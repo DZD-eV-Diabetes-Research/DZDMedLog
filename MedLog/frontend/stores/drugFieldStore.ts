@@ -1,6 +1,6 @@
 // Store to handle the dynamic fields of drugs
 
-import { defineStore } from 'pinia'
+import { defineStore } from '#imports'
 import { useMedlogapi } from '#open-fetch';
 import type { SchemaDrugAttrFieldDefinitionContainer, SchemaDrugCodeSystem } from "#open-fetch-schemas/medlogapi";
 

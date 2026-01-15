@@ -1,8 +1,7 @@
-import { useMedlogapi, type MedlogapiResponse } from "#open-fetch";
+import { useMedlogapi } from "#open-fetch";
+import type { SchemaIntakeDetailListItem } from "#open-fetch-schemas/medlogapi";
 
-export type Intakes = MedlogapiResponse<'list_all_intakes_detailed_api_study__study_id__proband__proband_id__intake_details_get'>['items']
-
-export default async function (studyId: string, probandId: string, interviewId?: string): Promise<Intakes> {
+export default async function (studyId: string, probandId: string, interviewId?: string): Promise<SchemaIntakeDetailListItem[]> {
     const { data, error } = await useMedlogapi('/api/study/{study_id}/proband/{proband_id}/intake/details', {
         path: {
             study_id: studyId,

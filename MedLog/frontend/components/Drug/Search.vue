@@ -45,7 +45,7 @@
               v-for="item in paginatedItems"
               :key="item.drug.id"
               :drug="item.drug"
-              @drug-selected="(activeIngredientOnly) => selectDrug(item, activeIngredientOnly)"
+              @drug-selected="(activeIngredientOnly: boolean) => selectDrug(item, activeIngredientOnly)"
           />
         </ul>
       </div>
@@ -61,8 +61,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "#imports";
 import { apiDrugSearch } from '~/api/drug';
+import type {SchemaMedLogSearchEngineResult} from "#open-fetch-schemas/medlogapi";
 
 const itemsPerPage = 5;
 const searchItemLimit = 100;
@@ -76,12 +77,12 @@ const emit = defineEmits(['drug-selected'])
 const currentPage = ref(1);
 const isLoading = ref(false);
 const searchError = ref();
-const searchResults = ref([]);
+const searchResults = ref<SchemaMedLogSearchEngineResult[]>([]);
 const searchTerm = ref("");
 const totalCount = ref(0);
 const warningMessage = ref("");
 
-const fetchDrugs = async (searchTerm) => {
+const fetchDrugs = async (searchTerm: string) => {
   searchError.value = undefined;
   warningMessage.value = "";
 
@@ -98,12 +99,12 @@ const fetchDrugs = async (searchTerm) => {
   try {
     const response = await apiDrugSearch(searchTerm, searchItemLimit)
 
-    if (response.total_count === 0) {
+    if (response?.total_count === 0) {
       warningMessage.value = "Die Suche ergab keine Treffer."
     }
 
-    searchResults.value = response.items ?? [];
-    totalCount.value = response.total_count;
+    searchResults.value = response?.items ?? [];
+    totalCount.value = response?.total_count ?? 0;
     currentPage.value = 1;
   } catch (error) {
     searchError.value = error;
@@ -113,7 +114,7 @@ const fetchDrugs = async (searchTerm) => {
   }
 };
 
-let debounceTimeout: number | undefined = undefined;
+let debounceTimeout: NodeJS.Timeout | undefined = undefined;
 
 watch(
   () => searchTerm.value,
@@ -149,7 +150,7 @@ const paginatedItems = computed(() => {
   return searchResults.value.slice(startIndex, endIndex);
 });
 
-function selectDrug(item, activeIngredientOnly) {
+function selectDrug(item: SchemaMedLogSearchEngineResult, activeIngredientOnly: boolean) {
   searchTerm.value = "";
   emit('drug-selected', item.drug_id, activeIngredientOnly);
 }

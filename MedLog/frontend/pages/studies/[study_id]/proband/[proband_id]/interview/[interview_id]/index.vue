@@ -29,8 +29,11 @@
           </div>
 
           <div class="py-1.5 text-end" style="max-width: 25%">
-            <span v-if="interview.interview_end_time_utc">
-              Interview abgeschlossen am {{ formatDate(interview.interview_end_time_utc) }}
+            <span v-if="interview?.interview_end_time_utc">
+              Interview abgeschlossen am<br>
+              <time :datetime="$dayjs.utc(interview.interview_end_time_utc).format()">
+                {{ $dayjs.utc(interview.interview_end_time_utc).local().format('LLL') }}
+              </time>
             </span>
             <UButton
                 v-else
@@ -48,13 +51,13 @@
         <template #header>
           <div class="flex flex-col">
             <h2 class="text-lg self-center">Medikationen</h2>
-            <div class="flex flex-row justify-between">
-              <UInput v-model="q" placeholder="Tabelle filtern" autocomplete="off" />
+            <div class="inline-grid grid-cols-3 justify-items-center">
+              <UInput v-model="q" placeholder="Tabelle filtern" autocomplete="off" class="justify-self-start" />
               <CopyPreviousDrugs
-                  v-if="!pending && latestItems?.length && !interview.interview_end_time_utc"
+                  :deactivated="!(!pending && latestItems?.length && !loading && !interview?.interview_end_time_utc)"
                   :on-update="loadIntakeList" />
               <UButton
-                  class="self-end"
+                  class="justify-self-end"
                   label="Präparat erfassen"
                   @click="openCreateIntakeModal"
               />
@@ -67,8 +70,8 @@
               :intakes="rows"
               :can-edit="userStore.isAdmin"
               :can-delete="userStore.isAdmin"
-              @edit="row => openEditModal(row)"
-              @delete="row => openDeleteModal(row)"
+              @edit="(intakeId: string) => openEditModal(intakeId)"
+              @delete="(row: object) => openDeleteModal(row)"
           />
 
           <UPagination
@@ -83,31 +86,21 @@
 
       <!-- MODALS -->
 
-      <UModal v-model="deleteModalVisibility" prevent-close>
-        <div class="p-4">
-          <div style="text-align: center">
-            <h4 style="color: red">Sie löschen folgenden Eintrag:</h4>
-            <br>
-            <h4>{{ drugToDelete.name }}</h4>
-            <br>
-            <UForm :state="deleteState" class="space-y-4" @submit="deleteIntake">
-              <UButton
-                  label="Abbrechen"
-                  variant="outline"
-                  color="gray"
-                  class="mr-4"
-                  @click="deleteModalVisibility = false"
-              />
-              <UButton
-                  type="submit" color="red" variant="soft"
-                  class="border border-red-500 hover:bg-red-300 hover:border-white hover:text-white"
-              >
-                Eintrag löschen
-              </UButton>
-            </UForm>
-          </div>
-        </div>
-      </UModal>
+      <ConfirmationModal
+          v-model="deleteModalVisibility"
+          confirm-label="Eintrag löschen"
+          :is-dangerous-to-confirm="true"
+          @cancel="deleteModalVisibility = false"
+          @confirm="deleteIntake"
+      >
+        <template #description>
+          <p class="break-all">
+            Möchten Sie den Eintrag für
+            <span class="font-semibold">{{ drugToDelete?.name ?? 'N/A' }}</span>
+            wirklich löschen?
+          </p>
+        </template>
+      </ConfirmationModal>
       <IntakeModal
           v-if="createIntakeModalVisible"
           v-model="createIntakeModalVisible"
@@ -133,10 +126,31 @@
 <script setup lang="ts">
 import { useMedlogapi } from '#open-fetch'
 import type { IntakeFormSchema } from "~/components/Intake/Form.vue";
-import dayjs from "dayjs";
-import type { Interview } from "~/stores/interviewStore";
+import { useDayjs } from '#dayjs'
+import localizedFormat from 'dayjs/plugin/localizedFormat'
+import {
+  computed,
+  navigateTo,
+  onMounted,
+  ref,
+  useAsyncData,
+  useDeleteIntake,
+  useEventStore,
+  useGetIntake,
+  useGetIntakesByStudyAndProband,
+  useGetInterview,
+  useGetInterviewsByStudyAndProband,
+  useInterviewStore,
+  useNuxtApp,
+  useRoute,
+  useStudyStore,
+  useToast,
+  useUserStore,
+} from "#imports";
+import type {SchemaIntakeDetailListItem, SchemaInterview } from "#open-fetch-schemas/medlogapi";
 
 const route = useRoute();
+const dayjs = useDayjs();
 const eventStore = useEventStore();
 const interviewStore = useInterviewStore();
 const studyStore = useStudyStore();
@@ -144,22 +158,24 @@ const toast = useToast();
 const userStore = useUserStore();
 const { $medlogapi } = useNuxtApp();
 
-const interviewId = computed(() => route.params.interview_id);
-const probandId = computed(() => route.params.proband_id);
-const studyId = computed(() => route.params.study_id);
+dayjs.extend(localizedFormat);
+
+const interviewId = computed(() => route.params.interview_id as string);
+const probandId = computed(() => route.params.proband_id as string);
+const studyId = computed(() => route.params.study_id as string);
 
 const error = ref();
 const eventId = ref('');
-const interview = ref<Interview | null>();
+const interview = ref<SchemaInterview | null>();
 const loading = ref(true);
 
 const { data: latestItems, pending } = await useAsyncData(
   'latestItems',
   () => $medlogapi(
-    `/api/study/{studyId}/proband/{probandId}/interview/last/intake`, {
+    '/api/study/{study_id}/proband/{proband_id}/interview/last/intake', {
       path: {
-          studyId: studyId.value,
-          probandId: probandId.value,
+          study_id: studyId.value,
+          proband_id: probandId.value,
         }
     }
   )
@@ -218,38 +234,31 @@ const editModalVisible = ref(false);
 const intakeToEdit = ref<IntakeFormSchema>();
 const intakeIdToEdit = ref();
 
-const tableContent = ref([]);
+const tableContent = ref<SchemaIntakeDetailListItem[]>([]);
 
-async function openEditModal(row: object) {
-  intakeIdToEdit.value = row.intakeId;
-  const { data, error } = await useMedlogapi('/api/study/{study_id}/interview/{interview_id}/intake/{intake_id}', {
-    method: "GET",
-    path: {
-      study_id: studyId.value,
-      interview_id: interviewId.value,
-      intake_id: intakeIdToEdit.value,
+async function openEditModal(intakeId: string) {
+  intakeIdToEdit.value = intakeId;
+  try {
+    const intake = await useGetIntake(studyId.value, interviewId.value, intakeIdToEdit.value);
+
+    intakeToEdit.value = {
+      administeredByDoctor: intake.administered_by_doctor,
+      dose: intake.dose_per_day,
+      drugId: intake.drug_id,
+      drugSource: intake.source_of_drug_information,
+      endTime: intake.intake_end_time_utc,
+      frequency: intake.intake_regular_or_as_needed,
+      intervall: intake.regular_intervall_of_daily_dose,
+      isActiveIngredientEquivalentChoice: intake.is_activeingredient_equivalent_choice,
+      medsTakenToday: intake.consumed_meds_today,
+      startTime: intake.intake_start_time_utc,
     }
-  });
-
-  if (error.value) {
+  } catch (error) {
     toast.add({
       title: "Konnte Einnahme nicht abrufen",
       description: error.value.data?.detail ?? error.message ?? error,
     });
     return;
-  }
-
-  intakeToEdit.value = {
-    administeredByDoctor: data.value.administered_by_doctor,
-    dose: data.value.dose_per_day,
-    drugId: data.value.drug_id,
-    drugSource: data.value.source_of_drug_information,
-    endTime: data.value.intake_end_time_utc,
-    frequency: data.value.intake_regular_or_as_needed,
-    intervall: data.value.regular_intervall_of_daily_dose,
-    isActiveIngredientEquivalentChoice: data.value.is_activeingredient_equivalent_choice,
-    medsTakenToday: data.value.consumed_meds_today,
-    startTime: data.value.intake_start_time_utc,
   }
 
   editModalVisible.value = true
@@ -304,12 +313,7 @@ async function saveEditIntake(data: IntakeFormSchema) {
 const deleteModalVisibility = ref(false);
 const drugToDelete = ref();
 
-const deleteState = reactive<{drug: string | undefined}>({
-  drug: undefined,
-});
-
 async function openDeleteModal(row: object) {
-  deleteState.drug = "";
   deleteModalVisibility.value = true;
   drugToDelete.value = row;
 }

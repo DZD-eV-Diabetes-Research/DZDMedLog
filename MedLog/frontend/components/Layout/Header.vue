@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed } from '#imports';
 
 const userStore = useUserStore();
 const studyStore = useStudyStore();

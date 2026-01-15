@@ -105,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import type { SchemaEvent } from "#open-fetch-schemas/medlogapi";
 import { object, string } from "yup";
 
 const eventStore = useEventStore();
@@ -119,10 +120,10 @@ const showCreateEventModal = ref(false);
 const sortingMode = ref(false);
 
 const studyId = computed(() => {
-  return route.params.study_id;
+  return route.params.study_id as string;
 });
 
-const myEvents = ref([])
+const myEvents = ref<SchemaEvent[]>([])
 
 async function loadEvents() {
   loading.value = true;

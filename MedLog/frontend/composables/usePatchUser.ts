@@ -14,8 +14,8 @@ export default async function (userId: string, body: any): Promise<SchemaUser> {
         throw error.value;
     }
 
-    if (data.value === null) {
-        throw new Error('Response was empty');
+    if (!data.value) {
+        throw new Error('No data returned.');
     }
 
     return data.value;

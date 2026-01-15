@@ -12,37 +12,29 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@nuxt/kit": "3.19.3",
+    "@nuxt/kit": "3.20.2",
     "@nuxt/ui": "2.22.3",
-    "@nuxtjs/supabase": "^1.4.0",
-    "@pinia/nuxt": "^0.5.4",
-    "@sidebase/nuxt-auth": "^0.9.1",
-    "caniuse-lite": "^1.0.30001699",
+    "@pinia/nuxt": "^0.11.3",
+    "caniuse-lite": "^1.0.30001763",
     "dayjs-nuxt": "^2.1.11",
-    "next-auth": "4.21.1",
-    "nuxt": "3.19.3",
-    "nuxt-open-fetch": "^0.12.2",
-    "pinia": "^2.2.2",
-    "sass": "^1.77.8",
-    "vue": "^3.4.38",
-    "vue-router": "^4.4.3",
+    "nuxt": "3.20.2",
+    "nuxt-open-fetch": "^0.13.7",
+    "pinia": "^3.0.4",
+    "sass": "^1.97.2",
+    "vue": "^3.5.26",
+    "vue-router": "^4.6.4",
     "vuedraggable": "^4.1.0",
-    "yup": "^1.4.0"
+    "yup": "^1.7.1"
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610",
   "devDependencies": {
     "@iconify-json/heroicons": "^1.2.3",
-    "@nuxt/eslint": "^1.9.0",
-    "@nuxt/test-utils": "^3.19.2",
-    "@playwright/test": "^1.54.1",
-    "@vue/test-utils": "^2.4.6",
-    "autoprefixer": "^10.4.20",
-    "eslint": "^9.37.0",
-    "happy-dom": "^18.0.1",
-    "playwright-core": "^1.54.1",
-    "postcss": "^8.4.44",
-    "tailwindcss": "^3.4.10",
+    "@nuxt/eslint": "^1.12.1",
+    "autoprefixer": "^10.4.23",
+    "eslint": "^9.39.2",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
     "vite-plugin-eslint2": "^5.0.4",
-    "vitest": "^3.2.4"
+    "vue-tsc": "^3.2.2"
   }
 }

@@ -1,11 +1,30 @@
 <script setup lang="ts">
+import {
+  computed,
+  onMounted,
+  ref,
+  useDeletePermissions,
+  useGetPermissions,
+  useGetPermissionsByStudy,
+  usePutPermissions,
+  useRoute,
+  useStudyStore,
+  useToast,
+  useUserStore
+} from "#imports";
+import type {
+  SchemaStudyPermissionDesc,
+  SchemaStudyPermissionRead,
+  SchemaStudyPermissonUpdate
+} from "#open-fetch-schemas/medlogapi";
+
 const route = useRoute();
 const studyStore = useStudyStore();
 const toast = useToast();
 const userStore = useUserStore();
 
 const currentStudy = computed(() => studyStore.getStudy(studyId.value));
-const studyId = computed(() => route.params.study_id);
+const studyId = computed(() => route.params.study_id as string);
 const userIdsWithAccess = computed(() => {
   return studyPermissions.value.map((value) => value.user_id);
 });
@@ -22,10 +41,10 @@ const usersWithoutAccessOptions = computed(() => {
       });
 });
 
-const availablePermissions = ref([]);
+const availablePermissions = ref<SchemaStudyPermissionDesc[]>([]);
 const loading = ref(true);
-const permissionsToEdit = ref();
-const studyPermissions = ref([]);
+const permissionsToEdit = ref<string[]>();
+const studyPermissions = ref<SchemaStudyPermissionRead[]>([]);
 const studyPermissionToDelete = ref();
 const showEditModal = ref(false);
 const showDeleteModal = ref(false);
@@ -74,17 +93,20 @@ function onEditPermissions(studyPermissionsId: string) {
   }
 
   userIdToEditPermissionsFor.value = studyPermission.user_ref?.id;
-  const permissions = [];
+  const permissions: string[] = [];
   availablePermissions.value.forEach((item) => {
-    if (Object.hasOwn(studyPermission, item.study_permission_name) && studyPermission[item.study_permission_name] === true) {
-      permissions.push(item.study_permission_name);
+    if (Object.hasOwn(studyPermission, item.study_permission_name)) {
+      const studyPermissionName = item.study_permission_name as keyof typeof studyPermission;
+      if (studyPermission[studyPermissionName] === true) {
+        permissions.push(studyPermissionName);
+      }
     }
   })
   permissionsToEdit.value = permissions;
   showEditModal.value = true;
 }
 
-async function onSavePermissions(data) {
+async function onSavePermissions(data: SchemaStudyPermissonUpdate) {
   try {
     await usePutPermissions(studyId.value, userIdToEditPermissionsFor.value, data);
     await loadStudyPermissions();
@@ -124,7 +146,7 @@ onMounted(async () => {
     </div>
 
     <WarningMessage
-        v-if="currentStudy.no_permissions"
+        v-if="currentStudy?.no_permissions"
         title="Vereinfachtes Rechtemodell aktiv"
         message="Alle Nutzer haben das Recht, für diese Studie Interviews zu führen, auch wenn sie hier nicht aufgeführt sind."
         class="mb-4"

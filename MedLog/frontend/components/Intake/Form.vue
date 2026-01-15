@@ -9,46 +9,42 @@
     </UFormGroup>
 
     <UFormGroup label="Quelle der Arzneimittelangabe" name="drugSource">
-      <USelect v-model="state.drugSource" :options="drugSourceOptions" :color="props.color" />
+      <USelect v-model="state.drugSource" :options="drugSourceOptions" />
     </UFormGroup>
 
     <UFormGroup label="Vom Arzt verordnet?" name="administeredByDoctor">
-      <USelect v-model="state.administeredByDoctor" :options="administeredByDoctorOptions" :color="props.color" />
+      <USelect v-model="state.administeredByDoctor" :options="administeredByDoctorOptions" />
     </UFormGroup>
     <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?" name="frequency">
-      <USelect v-model="state.frequency" :options="frequencyOptions" :color="props.color" />
+      <USelect v-model="state.frequency" :options="frequencyOptions" />
     </UFormGroup>
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
         <UFormGroup label="Dosis pro Einnahme" style="border-color: red" name="dose">
-          <UInput
-            v-model="state.dose" type="number" min="0" :disabled="state.frequency !== 'regular'"
-            :color="state.frequency !== 'regular' ? 'gray' : props.color" />
+          <UInput v-model="state.dose" type="number" min="0" :disabled="state.frequency !== 'regular'"/>
         </UFormGroup>
       </div>
       <div class="flex-1">
         <UFormGroup label="Intervall der Tagesdosen" name="intervall">
-          <USelect
-            v-model="state.intervall" :options="doseIntervalOptions" :disabled="state.frequency !== 'regular'"
-            :color="state.frequency !== 'regular' ? 'gray' : props.color" />
+          <USelect v-model="state.intervall" :options="doseIntervalOptions" :disabled="state.frequency !== 'regular'" />
         </UFormGroup>
       </div>
     </div>
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
         <UFormGroup label="Einnahme Beginn (Datum)" name="startTime">
-          <UInput v-model="state.startTime" type="date" :color="props.color" />
+          <UInput v-model="state.startTime" type="date" />
         </UFormGroup>
       </div>
       <div class="flex-1">
         <UFormGroup label="Einnahme Ende (Datum)" name="endTime">
-          <UInput v-model="state.endTime" type="date" :color="props.color" />
+          <UInput v-model="state.endTime" type="date" />
         </UFormGroup>
       </div>
     </div>
     <URadioGroup
         v-model="state.medsTakenToday" legend="Wurde dieses Medikament heute eingenommen?" name="medsTakenToday"
-        :options="medsTakenTodayOptions" :color="props.color" />
+        :options="medsTakenTodayOptions" />
     <hr>
     <div class="flex justify-between">
       <UButton label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
@@ -61,95 +57,28 @@
 
 import { object, number, date, string, type InferType, boolean } from "yup";
 import type { FormSubmitEvent } from "#ui/types";
-import {watch} from "vue";
+import {
+  onMounted,
+  reactive,
+  useTemplateRef,
+  watch
+} from "#imports";
+import {
+  administeredByDoctorOptions,
+  doseIntervalOptions,
+  drugSourceOptions,
+  frequencyOptions,
+  medsTakenTodayOptions
+} from "~/constants";
 
 const props = defineProps<{
-  color?: string;
   drugId?: string;
   initialState?: any;
 }>();
 
 const emit = defineEmits(['cancel', 'save'])
 
-/**
- * TODO Switch to useTemplateRef() when updating to Vue 3.5
- * See https://vuejs.org/guide/essentials/template-refs.html#accessing-the-refs
- */
-const intakeForm = ref(null)
-
-const drugSourceOptions = [
-  { value: "Study participant: verbal specification", label: "Probandenangabe" },
-  { value: "Medication package: Scanned PZN", label: "Medikamentenpackung: PZN gescannt" },
-  { value: "Medication package: Typed in PZN", label: "Medikamentenpackung: PZN getippt" },
-  { value: "Medication package: Drug name", label: "Medikamentenpackung: Arzneimittelname" },
-  { value: "Medication leaflet", label: "Beipackzettel" },
-  { value: "Study participant: medication plan", label: "Medikamentenplan" },
-  { value: "Study participant: Medication prescription", label: "Rezept" },
-  { value: "Follow up via phone/message: Typed in PZN", label: "Nacherhebung: Tastatureingabe der PZN" },
-  { value: "Follow up via phone/message: Medication name", label: "Nacherhebung: Arzneimittelname" },
-];
-
-const administeredByDoctorOptions = [
-  { value: 'prescribed', label: 'ja, auf Rezept' },
-  { value: 'recommended', label: 'vom Arzt empfohlen' },
-  { value: 'no', label: 'nein' },
-  { value: 'unknown', label: 'unbekannt' },
-];
-
-const frequencyOptions = [
-  { value: "as needed", label: "nach Bedarf" },
-  { value: "regular", label: "regelmäßig" },
-];
-
-const doseIntervalOptions = [
-  {
-    value: "Unknown",
-    label: "unbekannt"
-  },
-  {
-    value: "Daily",
-    label: "täglich"
-  },
-  {
-    value: "every 2. day",
-    label: "jeden 2. Tag"
-  },
-  {
-    value: "every 3. day",
-    label: "jeden 3. Tag"
-  },
-  {
-    value: "every 4. day / twice a week",
-    label: "jeden 4. Tag = 2x pro Woche"
-  },
-  {
-    value: "intervals of one week or more",
-    label: "Im Abstand von 1 Woche und mehr"
-  },
-  {
-    value: "intervals of one month or more",
-    label: "Im Abstand von 1 Monat und mehr",
-  },
-  {
-    value: "intervals of one year or more",
-    label: "Im Abstand von 1 Jahr und mehr",
-  },
-];
-
-const medsTakenTodayOptions = [
-  {
-    value: "Yes",
-    label: "Ja",
-  },
-  {
-    value: "No",
-    label: "Nein",
-  },
-  {
-    value: "UNKNOWN",
-    label: "Unbekannt",
-  },
-];
+const intakeForm = useTemplateRef('intakeForm')
 
 const state = reactive({
   administeredByDoctor: administeredByDoctorOptions[0].value,
@@ -195,8 +124,8 @@ watch(() => state.endTime, (newValue) => {
   }
 })
 
-watch(() => props.drugId, async (newDrugId: string) => {
-  state.drugId = newDrugId;
+watch(() => props.drugId, async (newDrugId?: string) => {
+  state.drugId = newDrugId ?? "";
   try {
     await intakeForm.value.validate();
   } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars

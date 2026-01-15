@@ -17,6 +17,10 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch } from "#imports";
+import type {ButtonColor, ButtonVariant} from "#ui/types";
+import type {SchemaMedlogserverModelDrugDataApiDrugModelFactoryCodes_2} from "#open-fetch-schemas/medlogapi";
+
 const model = defineModel({ type: String, required: true });
 
 const props = defineProps({
@@ -28,25 +32,30 @@ const actions = computed(() => {
     return [];
   }
 
-  return [{ label: 'Präparat ändern', variant: 'outline', color: 'gray', click: () => model.value = '' }];
+  return [{
+    label: 'Präparat ändern',
+    variant: 'outline' as ButtonVariant,
+    color: 'gray' as ButtonColor,
+    click: () => model.value = ''
+  }];
 });
 const keyValuePills = computed(() =>  {
   const pills = [];
 
   for (const key of Object.keys(codes.value)) {
-    pills.push({ label: key, value: codes.value[key] });
+    pills.push({ label: key, value: codes.value[key as keyof typeof codes.value] });
   }
 
   // Only include entries with a value
-  return pills.filter(item => item.value);
+  return pills.filter(item => item.value) as { label: string; value: string }[];
 });
 
 const loading = ref<boolean>(false);
 const errorMessage = ref<string>('');
 const title = ref<string>('');
-const codes = ref<Record<string, string>>({});
+const codes = ref<SchemaMedlogserverModelDrugDataApiDrugModelFactoryCodes_2>({});
 
-async function loadDrug(drugId) {
+async function loadDrug(drugId: string) {
   loading.value = true;
   errorMessage.value = '';
   const { data, error } = await useMedlogapi('/api/drug/id/{drug_id}', {
@@ -61,8 +70,8 @@ async function loadDrug(drugId) {
     return;
   }
 
-  title.value = data.value.trade_name ?? 'Kein Name';
-  codes.value = data.value.codes ?? {};
+  title.value = data.value?.trade_name ?? 'Kein Name';
+  codes.value = data.value?.codes ?? {};
 
   loading.value = false;
 }
