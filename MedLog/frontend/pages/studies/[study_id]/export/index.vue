@@ -73,6 +73,7 @@
 <script setup lang="ts">
 import { useDayjs } from '#dayjs'
 import localizedFormat from 'dayjs/plugin/localizedFormat'
+import type {SchemaWorkerJobState} from "#open-fetch-schemas/medlogapi";
 
 const dayjs = useDayjs();
 const route = useRoute();
@@ -103,7 +104,14 @@ const columns = [
   },
 ];
 
-const downloads = ref([]);
+interface Download {
+  study: string;
+  time: string;
+  status: SchemaWorkerJobState;
+  downloadLink: string;
+}
+
+const downloads = ref<Download[]>([]);
 let downloadCheckInterval: NodeJS.Timeout | null = null;
 
 const isAllowedToExport = computed(() => {
@@ -112,21 +120,21 @@ const isAllowedToExport = computed(() => {
 });
 
 const studyId = computed(() => {
-  return route.params.study_id;
+  return route.params.study_id as string;
 });
 
 async function listDownloads() {
   try {
-    const data = await $medlogapi(`/api/study/{studyId}/export`, {
+    const data = await $medlogapi('/api/study/{study_id}/export', {
       path: {
-        studyId: studyId.value,
+        study_id: studyId.value,
       }
     });
 
-    const studyName = studyStore.getStudy(studyId.value);
+    const study = studyStore.getStudy(studyId.value);
 
     downloads.value = data.items.map((item) => ({
-      study: studyName.display_name,
+      study: study?.display_name ?? 'N/A',
       time: dayjs.utc(item.created_at).local().format('LLL'),
       status: item.state,
       downloadLink: `${item.download_file_path}`,
@@ -144,7 +152,7 @@ async function listDownloads() {
   }
 }
 
-async function downloadFile(row) {
+async function downloadFile(row: Download) {
   const fileUrl = row.downloadLink;
   console.log(fileUrl);
   try {
@@ -176,12 +184,15 @@ async function downloadFile(row) {
 async function requestDownload() {
   try {
     await $medlogapi(
-      `/api/study/{studyId}/export?format=csv`,
+      '/api/study/{study_id}/export',
       {
         method: "POST",
         path: {
-          studyId: studyId.value
-        }
+          study_id: studyId.value
+        },
+        query: {
+          format: 'csv',
+        },
       }
     );
   } catch (error) {

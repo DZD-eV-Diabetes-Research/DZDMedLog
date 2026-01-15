@@ -45,6 +45,7 @@
 
 <script setup lang="ts">
 import { useMedlogapi } from '#imports';
+import type {SchemaAuthSchemeInfo} from "#open-fetch-schemas/medlogapi";
 
 const toast = useToast();
 const userStore = useUserStore();
@@ -76,7 +77,7 @@ const login = async (endpoint: string, username: string, password: string) => {
   await navigateTo('/')
 }
 
-const loginOIDC = async function (oidc_method) {
+const loginOIDC = async function (oidc_method: SchemaAuthSchemeInfo) {
   try {
 
     console.log('target path is', route.query.target_path)

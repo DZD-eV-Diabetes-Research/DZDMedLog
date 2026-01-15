@@ -1,7 +1,7 @@
 import { useMedlogapi } from "#open-fetch";
-import type { SchemaStudyPermissionRead } from "#open-fetch-schemas/medlogapi";
+import type {SchemaStudyPermissionRead, SchemaStudyPermissonUpdate} from "#open-fetch-schemas/medlogapi";
 
-export default async function (studyId: string, userId: string, body: any): Promise<SchemaStudyPermissionRead> {
+export default async function (studyId: string, userId: string, body: SchemaStudyPermissonUpdate): Promise<SchemaStudyPermissionRead> {
     const { data, error } = await useMedlogapi('/api/study/{study_id}/permissions/{user_id}', {
         method: "PUT",
         path: {

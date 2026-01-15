@@ -52,7 +52,7 @@ watch(() => props.initialPermissions, (newValue) => {
             :key="permission.study_permission_name"
             v-model="state.permissions"
             :label="permission.study_permission_name"
-            :help="permission.description"
+            :help="permission.description ?? ''"
             :value="permission.study_permission_name"
             class="mb-2"
         />

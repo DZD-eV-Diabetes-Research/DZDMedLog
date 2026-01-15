@@ -62,7 +62,7 @@ const errorTitle = ref("");
 const loading = ref(false);
 
 const previousIntakes = ref<any[]>([])
-const selectedIntakes = ref([])
+const selectedIntakes = ref<any[]>([])
 const lastEventName = ref("")
 const lastEventDate = ref("")
 
@@ -75,19 +75,19 @@ async function openCopyIntakeModal() {
     loading.value = true;
 
     try {
-        const intakes = await $medlogapi(`/api/study/{studyId}/proband/{probandId}/interview/last/intake/details`,{
+        const intakes = await $medlogapi('/api/study/{study_id}/proband/{proband_id}/interview/last/intake/details',{
             path: {
-                studyId: route.params.study_id,
-                probandId: route.params.proband_id,
+                study_id: route.params.study_id as string,
+                proband_id: route.params.proband_id as string,
             }
         })
 
 
-        lastEventName.value = intakes[0]?.event.name
-        lastEventDate.value = dayjs.utc(intakes[0]?.interview.interview_end_time_utc).local().format('LLL');
+        lastEventName.value = intakes?.[0]?.event.name ?? 'N/A'
+        lastEventDate.value = (intakes && intakes[0]) ? dayjs.utc(intakes[0].interview.interview_end_time_utc).local().format('LLL') : 'N/A';
 
         // Transform the API response into a format suitable for both the UI and the POST request body
-        previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
+        previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake) => ({
             Medikament: intake.drug.trade_name,
             Custom: intake.drug?.is_custom_drug ? "Ja" : "Nein",
             Einnahmebeginn: intake.intake_start_time_utc || 'Unbekannt',
@@ -129,12 +129,12 @@ async function saveIntakes() {
 
     try {
       for (const element of selectedIntakes.value) {
-        await $medlogapi(`/api/study/{studyId}/interview/{interviewId}/intake`, {
+        await $medlogapi('/api/study/{study_id}/interview/{interview_id}/intake', {
           method: "POST",
           body: element.postBody,
           path: {
-            studyId: route.params.study_id,
-            interviewId: route.params.interview_id,
+            study_id: route.params.study_id as string,
+            interview_id: route.params.interview_id as string,
           }
         })
       }

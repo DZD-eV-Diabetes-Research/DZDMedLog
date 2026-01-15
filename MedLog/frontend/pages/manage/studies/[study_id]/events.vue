@@ -120,7 +120,7 @@ const showCreateEventModal = ref(false);
 const sortingMode = ref(false);
 
 const studyId = computed(() => {
-  return route.params.study_id;
+  return route.params.study_id as string;
 });
 
 const myEvents = ref<SchemaEvent[]>([])

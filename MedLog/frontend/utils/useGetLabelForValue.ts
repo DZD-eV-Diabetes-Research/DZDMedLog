@@ -1,4 +1,4 @@
-export default function (options: { value: string; label: string }[], givenValue?: string): string {
+export default function (options: { value: string; label: string }[], givenValue?: string | null): string {
     if (!givenValue) {
         return ''
     }

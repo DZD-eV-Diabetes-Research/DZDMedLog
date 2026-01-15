@@ -1,4 +1,12 @@
-export const drugSourceOptions: { value: string; label: string }[] = [
+import type {
+    SchemaAdministeredByDoctorAnswers,
+    SchemaConsumedMedsTodayAnswers,
+    SchemaIntakeRegularOrAsNeededAnswers,
+    SchemaIntervalOfDailyDoseAnswers,
+    SchemaSourceOfDrugInformationAnwers
+} from "#open-fetch-schemas/medlogapi";
+
+export const drugSourceOptions: { value: SchemaSourceOfDrugInformationAnwers; label: string }[] = [
     { value: "Study participant: verbal specification", label: "Probandenangabe" },
     { value: "Medication package: Scanned PZN", label: "Medikamentenpackung: PZN gescannt" },
     { value: "Medication package: Typed in PZN", label: "Medikamentenpackung: PZN getippt" },
@@ -10,19 +18,19 @@ export const drugSourceOptions: { value: string; label: string }[] = [
     { value: "Follow up via phone/message: Medication name", label: "Nacherhebung: Arzneimittelname" },
 ];
 
-export const administeredByDoctorOptions: { value: string; label: string }[] = [
+export const administeredByDoctorOptions: { value: SchemaAdministeredByDoctorAnswers; label: string }[] = [
     { value: 'prescribed', label: 'ja, auf Rezept' },
     { value: 'recommended', label: 'vom Arzt empfohlen' },
     { value: 'no', label: 'nein' },
     { value: 'unknown', label: 'unbekannt' },
 ];
 
-export const frequencyOptions: { value: string; label: string }[] = [
+export const frequencyOptions: { value: SchemaIntakeRegularOrAsNeededAnswers; label: string }[] = [
     { value: "as needed", label: "nach Bedarf" },
     { value: "regular", label: "regelmäßig" },
 ];
 
-export const doseIntervalOptions: { value: string; label: string }[] = [
+export const doseIntervalOptions: { value: SchemaIntervalOfDailyDoseAnswers; label: string }[] = [
     {
         value: "Unknown",
         label: "unbekannt"
@@ -57,7 +65,7 @@ export const doseIntervalOptions: { value: string; label: string }[] = [
     },
 ];
 
-export const medsTakenTodayOptions: { value: string; label: string }[] = [
+export const medsTakenTodayOptions: { value: SchemaConsumedMedsTodayAnswers; label: string }[] = [
     {
         value: "Yes",
         label: "Ja",

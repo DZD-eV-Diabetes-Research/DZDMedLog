@@ -7,6 +7,7 @@ import {
   useUserStore,
   useGetUser,
 } from "#imports";
+import type {RoleFormSchema} from "~/components/UserManagement/RoleModal.vue";
 
 const roleStore = useRoleStore();
 const toast = useToast();
@@ -31,7 +32,7 @@ async function onEditUserRoles(userId: string) {
   }
 }
 
-async function onRoleModalSave(data) {
+async function onRoleModalSave(data: RoleFormSchema) {
   try {
     const patchedUser = await usePatchUser(userIdForEditModal.value, { roles: data.roles });
     userStore.upsertUser(patchedUser);

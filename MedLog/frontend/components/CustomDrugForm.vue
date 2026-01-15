@@ -135,6 +135,7 @@
 <script setup lang="ts">
 import {apiGetFieldDefinitions} from "~/api/drug";
 import type {FormError} from "#ui/types";
+import type { SchemaDrugCodeSystem } from "#open-fetch-schemas/medlogapi";
 const { $medlogapi } = useNuxtApp();
 
 const toast = useToast();
@@ -158,7 +159,7 @@ export interface DrugBody {
 
 const emit = defineEmits(['cancel', 'save'])
 
-const codeSystems = ref([])
+const codeSystems = ref<SchemaDrugCodeSystem[]>([])
 const error = ref();
 
 const state = reactive({
@@ -219,15 +220,18 @@ async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, m
 
       // this leads back to the /api/drug.ts file the ref[4] is the boolean if the field_def is: 'is_large_reference_list'
       if (ref[4]) {
-        response = await $medlogapi(`/api/drug/field_def/{ref}/refs?limit=10`, {
+        response = await $medlogapi('/api/drug/field_def/{field_name}/refs', {
           path: {
-            ref: ref[1]
-          }
+            field_name: ref[1]
+          },
+          query: {
+            limit: 10,
+          },
         });
       } else {
-        response = await $medlogapi(`/api/drug/field_def/{ref}/refs`, {
+        response = await $medlogapi('/api/drug/field_def/{field_name}/refs', {
           path: {
-            ref: ref[1]
+            field_name: ref[1]
           }
         });
 
@@ -264,8 +268,14 @@ watch(
 
 async function onSearchRef(fieldName: string, query: string) {
   try {
-    const response = await $medlogapi(`/api/drug/field_def/{ref}/refs?search_term=${query}&limit=10`, {
-      path: { ref: fieldName }
+    const response = await $medlogapi('/api/drug/field_def/{field_name}/refs', {
+      path: {
+        field_name: fieldName
+      },
+      query: {
+        search_term: query,
+        limit: 10,
+      },
     });
 
     const menu = refSelectMenus.value.find(item => item.field_name === fieldName);

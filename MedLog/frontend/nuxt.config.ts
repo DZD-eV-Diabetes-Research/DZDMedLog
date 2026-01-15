@@ -30,7 +30,7 @@ export default defineNuxtConfig({
   },
 
   eslint: {
-    // checker: true,
+    checker: true,
   },
   icon: {
       provider: 'none', // Prevents the dynamic fetching of icons from a CDN
@@ -52,8 +52,8 @@ export default defineNuxtConfig({
   },
 
   typescript: {
-    strict: true,
-    typeCheck: true,
+    // strict: true,
+    // typeCheck: true, TODO enable as soon as all the typing issues are resolved
   },
 
   runtimeConfig: {

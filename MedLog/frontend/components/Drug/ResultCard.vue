@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from "#imports";
-import type {SchemaDisplayPriorityClass, SchemaDrugCodeSystem} from "#open-fetch-schemas/medlogapi";
+import type {
+  SchemaDisplayPriorityClass,
+  SchemaDrugAttrFieldDefinitionContainer,
+  SchemaDrugCodeSystem
+} from "#open-fetch-schemas/medlogapi";
 
 const drugFieldsStore = useDrugFields();
 
@@ -63,10 +67,11 @@ const keyValuePills = computed(() =>  {
 });
 
 const prioritizedFieldDefinitions = computed(() => {
-  const fields: Record<SchemaDisplayPriorityClass, { attributeClass: string, fieldDefinition: any }[]> = { 1: [], 2: [], 3: [] };
+  const fields: Record<SchemaDisplayPriorityClass, { attributeClass: keyof SchemaDrugAttrFieldDefinitionContainer, fieldDefinition: any }[]> = { 1: [], 2: [], 3: [] };
 
   // Group field definitions by priority class
-  for (const attributeClass of Object.keys(drugFieldsStore.fieldsForSearchResults)) {
+  for (let attributeClass of Object.keys(drugFieldsStore.fieldsForSearchResults)) {
+    attributeClass = attributeClass as keyof typeof drugFieldsStore.fieldsForSearchResults;
     for (const fieldDefinition of drugFieldsStore.fieldsForSearchResults[attributeClass]) {
       if (fieldDefinition.field_display_priority_class && Object.keys(fields).includes(String(fieldDefinition.field_display_priority_class))) {
         fields[fieldDefinition.field_display_priority_class].push({ attributeClass, fieldDefinition });
@@ -94,7 +99,7 @@ const prioritizedFieldDefinitions = computed(() => {
   return fields;
 });
 
-function getDisplayValue(attribute, attributeClass): string {
+function getDisplayValue(attribute, attributeClass: keyof SchemaDrugAttrFieldDefinitionContainer): string {
   const value = props.drug?.[attributeClass]?.[attribute.field_name];
 
   if (attribute.is_multi_val_field && attribute.is_reference_list_field) {

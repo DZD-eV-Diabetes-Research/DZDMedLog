@@ -24,8 +24,10 @@
 </template>
 
 <script setup lang="ts">
+import type { NuxtError } from "#app";
+
 const props = defineProps<{
-  error?: Error;
+  error?: Error | NuxtError;
   title?: string
   message?: string
   details?: string
@@ -37,7 +39,7 @@ const titleString = computed(() => {
   }
 
   if (props.error) {
-    return props.error.statusMessage ?? "Fehler";
+    return isNuxtError(props.error) ? props.error.statusMessage : "Fehler";
   }
 
   return "";
@@ -60,7 +62,7 @@ const detailsString = computed(() => {
     return props.details;
   }
 
-  if (props.error) {
+  if (props.error && isNuxtError(props.error)) {
     return props.error.data ?? "";
   }
 

@@ -1,11 +1,9 @@
 import { defineStore } from '#imports'
-import type { MedlogapiResponse } from '#open-fetch';
 import useGetEventsByStudy from "~/composables/useGetEventsByStudy";
-
-export type Events = MedlogapiResponse<'list_events_api_study__study_id__event_get'>['items']
+import type { SchemaEvent } from "#open-fetch-schemas/medlogapi";
 
 interface EventStore {
-    events: Events
+    events: SchemaEvent[]
 }
 
 export const useEventStore = defineStore('events', {

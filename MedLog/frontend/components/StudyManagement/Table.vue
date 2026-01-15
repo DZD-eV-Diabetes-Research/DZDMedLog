@@ -21,7 +21,10 @@ defineProps({
   studies: { type: Array as () => SchemaStudy[], default: () => [] },
 });
 
-const sort = ref({
+const sort = ref<{
+  column: string;
+  direction: "asc" | "desc";
+}>({
   column: 'display_name',
   direction: 'asc'
 })

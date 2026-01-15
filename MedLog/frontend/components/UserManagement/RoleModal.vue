@@ -12,7 +12,7 @@ const emit = defineEmits<{
   save: [data: RoleFormSchema],
 }>()
 
-type RoleFormSchema = {
+export type RoleFormSchema = {
   roles: string[];
 };
 
@@ -50,7 +50,7 @@ watch(() => props.initialRoles, (newRoles) => {
             :key="role.role_name"
             v-model="state.roles"
             :label="role.role_name"
-            :help="role.description"
+            :help="role.description ?? ''"
             :value="role.role_name"
             class="mb-2"
         />

@@ -54,7 +54,7 @@
             <div class="inline-grid grid-cols-3 justify-items-center">
               <UInput v-model="q" placeholder="Tabelle filtern" autocomplete="off" class="justify-self-start" />
               <CopyPreviousDrugs
-                  :deactivated="!(!pending && latestItems?.length && !interview.interview_end_time_utc)"
+                  :deactivated="!(!pending && latestItems?.length && !loading && !interview?.interview_end_time_utc)"
                   :on-update="loadIntakeList" />
               <UButton
                   class="justify-self-end"
@@ -147,7 +147,7 @@ import {
   useToast,
   useUserStore,
 } from "#imports";
-import type { SchemaInterview } from "#open-fetch-schemas/medlogapi";
+import type {SchemaIntakeDetailListItem, SchemaInterview } from "#open-fetch-schemas/medlogapi";
 
 const route = useRoute();
 const dayjs = useDayjs();
@@ -172,10 +172,10 @@ const loading = ref(true);
 const { data: latestItems, pending } = await useAsyncData(
   'latestItems',
   () => $medlogapi(
-    `/api/study/{studyId}/proband/{probandId}/interview/last/intake`, {
+    '/api/study/{study_id}/proband/{proband_id}/interview/last/intake', {
       path: {
-          studyId: studyId.value,
-          probandId: probandId.value,
+          study_id: studyId.value,
+          proband_id: probandId.value,
         }
     }
   )
@@ -234,7 +234,7 @@ const editModalVisible = ref(false);
 const intakeToEdit = ref<IntakeFormSchema>();
 const intakeIdToEdit = ref();
 
-const tableContent = ref([]);
+const tableContent = ref<SchemaIntakeDetailListItem[]>([]);
 
 async function openEditModal(intakeId: string) {
   intakeIdToEdit.value = intakeId;
