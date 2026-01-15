@@ -62,7 +62,6 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "#imports";
-import { apiDrugSearch } from '~/api/drug';
 import type {SchemaMedLogSearchEngineResult} from "#open-fetch-schemas/medlogapi";
 
 const itemsPerPage = 5;
@@ -97,7 +96,7 @@ const fetchDrugs = async (searchTerm: string) => {
 
   isLoading.value = true;
   try {
-    const response = await apiDrugSearch(searchTerm, searchItemLimit)
+    const response = await useGetDrugSearch(searchTerm, searchItemLimit)
 
     if (response?.total_count === 0) {
       warningMessage.value = "Die Suche ergab keine Treffer."
