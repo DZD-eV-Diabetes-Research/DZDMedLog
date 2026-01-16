@@ -1,25 +1,39 @@
 <template>
   <div>
-    <UFormGroup name="drug" class="mb-4">
-      <UInput
-          v-model="searchTerm"
-          :autofocus="autofocusInput"
-          placeholder="Medikament/PZN oder ATC-Code eingeben"
-          icon="i-heroicons-magnifying-glass-20-solid"
-          :ui="{ icon: { trailing: { pointer: '' } } }"
-      >
-        <template #trailing>
-          <UButton
-              v-show="searchTerm !== ''"
-              color="gray"
-              variant="link"
-              icon="i-heroicons-x-mark-20-solid"
-              :padded="false"
-              @click="searchTerm = ''"
+    <div class="grid grid-cols-5 gap-8">
+      <UFormGroup label="Suchbegriff" name="drug" class="mb-4 col-span-3">
+        <UInput
+            v-model="searchTerm"
+            :autofocus="autofocusInput"
+            placeholder="Medikament/PZN oder ATC-Code eingeben"
+            icon="i-heroicons-magnifying-glass-20-solid"
+            :ui="{ icon: { trailing: { pointer: '' } } }"
+        >
+          <template #trailing>
+            <UButton
+                v-show="searchTerm !== ''"
+                color="gray"
+                variant="link"
+                icon="i-heroicons-x-mark-20-solid"
+                :padded="false"
+                @click="searchTerm = ''"
+            />
+          </template>
+        </UInput>
+      </UFormGroup>
+
+      <UFormGroup label="Derzeit im Verkauf">
+        <div class="flex space-x-6">
+          <URadio
+              v-for="option in marketAccessibilityOptions"
+              :key="option.value"
+              v-model="marketAccessible"
+              :value="option.value"
+              :label="option.label"
           />
-        </template>
-      </UInput>
-    </UFormGroup>
+        </div>
+      </UFormGroup>
+    </div>
 
     <div class="h-6 flex flex-col">
       <UProgress v-if="isLoading" animation="carousel" />
@@ -73,8 +87,21 @@ defineProps({
 
 const emit = defineEmits(['drug-selected'])
 
+enum MarketAccessible {
+  YES = "yes",
+  NO = "no",
+  ALL = "all",
+}
+
+const marketAccessibilityOptions = [
+  { value: MarketAccessible.YES, label: 'Ja' },
+  { value: MarketAccessible.NO, label: 'Nein' },
+  { value: MarketAccessible.ALL, label: 'Egal' },
+];
+
 const currentPage = ref(1);
 const isLoading = ref(false);
+const marketAccessible = ref<MarketAccessible>(MarketAccessible.ALL);
 const searchError = ref();
 const searchResults = ref<SchemaMedLogSearchEngineResult[]>([]);
 const searchTerm = ref("");
@@ -96,7 +123,11 @@ const fetchDrugs = async (searchTerm: string) => {
 
   isLoading.value = true;
   try {
-    const response = await useGetDrugSearch(searchTerm, searchItemLimit)
+    const response = await useGetDrugSearch(
+        searchTerm,
+        searchItemLimit,
+        marketAccessible.value === MarketAccessible.ALL ? null : marketAccessible.value === MarketAccessible.YES
+    );
 
     if (response?.total_count === 0) {
       warningMessage.value = "Die Suche ergab keine Treffer."
@@ -133,6 +164,14 @@ watch(
     debounceTimeout = setTimeout(fetchDrugs, 500, newValue);
   },
   { immediate: false }
+);
+
+watch(
+    () => marketAccessible.value,
+    () => {
+      fetchDrugs(searchTerm.value);
+    },
+    { immediate: false }
 );
 
 const resultsText = computed(() => {
