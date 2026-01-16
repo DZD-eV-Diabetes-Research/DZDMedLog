@@ -39,7 +39,7 @@
           :total="searchResults.length"
           class="self-center"
       />
-      <div :style="searchResults.length > itemsPerPage ? 'min-height: 30rem;' : ''">
+      <div :style="searchResults.length > itemsPerPage ? 'min-height: 47rem;' : ''">
         <ul>
           <DrugResultCard
               v-for="item in paginatedItems"

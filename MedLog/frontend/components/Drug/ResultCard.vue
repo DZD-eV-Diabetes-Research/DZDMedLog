@@ -7,8 +7,13 @@ import type {
   SchemaMedLogSearchEngineResult,
 } from "#open-fetch-schemas/medlogapi";
 import {type FieldDefinition, isMultiRefField, isMultiValueField, isSingleRefField} from "~/type-helper";
+import { useDayjs } from '#dayjs'
+import localizedFormat from 'dayjs/plugin/localizedFormat'
 
+const dayjs = useDayjs();
 const drugFieldsStore = useDrugFields();
+
+dayjs.extend(localizedFormat);
 
 const props = defineProps({
   drug: { type: Object as () => SchemaMedLogSearchEngineResult["drug"], required: true },
@@ -101,6 +106,28 @@ const prioritizedFieldDefinitions = computed(() => {
   return fields;
 });
 
+const accessDate = computed(() => Date.parse(props.drug.market_access_date ?? ""));
+const exitDate = computed(() => Date.parse(props.drug.market_exit_date ?? ""));
+const now = computed(() => Date.now() );
+
+const isCurrentlySold = computed(() => {
+  if (Number.isNaN(accessDate.value) && Number.isNaN(exitDate.value)) {
+    return true;
+  }
+
+  return !(exitDate.value < now.value || accessDate.value > now.value);
+});
+
+const marketStatusText = computed((): string => {
+  if (accessDate.value > now.value) {
+    return `Erst ab ${dayjs.utc(accessDate.value).local().format('LL')} im Verkauf`;
+  } else if (exitDate.value < now.value) {
+    return `Seit ${dayjs.utc(exitDate.value).local().format('LL')} nicht mehr im Verkauf`;
+  }
+
+  return ""
+});
+
 function getDisplayValue(fieldDefinition: FieldDefinition, attributeClass: keyof SchemaDrugAttrFieldDefinitionContainer): string {
   const fields = props.drug[attributeClass];
 
@@ -128,12 +155,30 @@ function getDisplayValue(fieldDefinition: FieldDefinition, attributeClass: keyof
 
 <template>
   <li
-      class="border border-blue-400 my-2 p-2 rounded-md bg-blue-100 hover:bg-blue-200 flex flex-col"
+      class="border my-2 p-2 rounded-md flex flex-col"
+      :class="{
+          'border-blue-400': isCurrentlySold && !drug.is_custom_drug,
+          'bg-blue-100': isCurrentlySold && !drug.is_custom_drug,
+          'hover:bg-blue-200': isCurrentlySold && !drug.is_custom_drug,
+          'border-gray-400': !isCurrentlySold && !drug.is_custom_drug,
+          'bg-gray-100': !isCurrentlySold && !drug.is_custom_drug,
+          'hover:bg-gray-200': !isCurrentlySold && !drug.is_custom_drug,
+          'border-purple-400': drug.is_custom_drug,
+          'bg-purple-100': drug.is_custom_drug,
+          'hover:bg-purple-200': drug.is_custom_drug,
+      }"
   >
     <div class="flex flex-row justify-between gap-2">
       <div>
-        <strong>{{ drug.trade_name }}</strong><br>
-        <div v-if="keyValuePills" class="flex flex-row flex-wrap">
+        <strong>{{ drug.trade_name }}</strong>
+        <UTooltip v-if="drug.is_custom_drug" text="Dieses Medikament wurde manuell eingetragen" :popper="{ arrow: true, placement: 'right' }">
+          <UBadge label="Ungelistet" color="purple" size="xs" class="ml-2"/>
+        </UTooltip>
+        <UTooltip v-if="!isCurrentlySold" :text="marketStatusText" :popper="{ arrow: true, placement: 'right' }">
+          <UBadge icon="i-heroicons-shopping-cart" label="Nicht im Verkauf" color="gray" size="xs" class="ml-2"/>
+        </UTooltip>
+        <br>
+        <div v-if="keyValuePills" class="flex flex-row flex-wrap mt-1">
           <KeyValuePill
               v-for="{ label, value, icon } in keyValuePills"
               :key="label"

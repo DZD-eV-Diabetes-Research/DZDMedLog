@@ -41,7 +41,7 @@
         </p>
         <div class="flex justify-end">
           <UButton
-              label="Ungelistetes Medikament aufnehmen" color="yellow" variant="outline"
+              label="Ungelistetes Medikament aufnehmen" color="purple" variant="outline"
               @click="openCustomModal()"
           />
         </div>
