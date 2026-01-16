@@ -3,13 +3,15 @@ import { computed, ref } from "#imports";
 import type {
   SchemaDisplayPriorityClass,
   SchemaDrugAttrFieldDefinitionContainer,
-  SchemaDrugCodeSystem
+  SchemaDrugCodeSystem,
+  SchemaMedLogSearchEngineResult,
 } from "#open-fetch-schemas/medlogapi";
+import {type FieldDefinition, isMultiRefField, isMultiValueField, isSingleRefField} from "~/type-helper";
 
 const drugFieldsStore = useDrugFields();
 
 const props = defineProps({
-  drug: { type: Object, required: true },
+  drug: { type: Object as () => SchemaMedLogSearchEngineResult["drug"], required: true },
 })
 
 defineEmits<{
@@ -44,13 +46,13 @@ const dataTableItems = computed(() => {
 const keyValuePills = computed(() =>  {
   const pills = [];
 
-  if (Object.hasOwn(props.drug, 'codes')) {
+  if ('codes' in props.drug && typeof props.drug.codes === 'object') {
     for (const drugCodeSystem of drugCodeSystems) {
       if (Object.hasOwn(props.drug.codes, drugCodeSystem.id)) {
         pills.push({
           icon: drugCodeSystem.code_icon ?? undefined,
           label: drugCodeSystem.id,
-          value: props.drug.codes?.[drugCodeSystem.id]
+          value: props.drug.codes[drugCodeSystem.id as keyof typeof props.drug.codes] ?? ""
         });
       }
     }
@@ -67,12 +69,12 @@ const keyValuePills = computed(() =>  {
 });
 
 const prioritizedFieldDefinitions = computed(() => {
-  const fields: Record<SchemaDisplayPriorityClass, { attributeClass: keyof SchemaDrugAttrFieldDefinitionContainer, fieldDefinition: any }[]> = { 1: [], 2: [], 3: [] };
+  const fields: Record<SchemaDisplayPriorityClass, { attributeClass: keyof SchemaDrugAttrFieldDefinitionContainer, fieldDefinition: FieldDefinition }[]> = { 1: [], 2: [], 3: [] };
 
   // Group field definitions by priority class
-  for (let attributeClass of Object.keys(drugFieldsStore.fieldsForSearchResults)) {
-    attributeClass = attributeClass as keyof typeof drugFieldsStore.fieldsForSearchResults;
-    for (const fieldDefinition of drugFieldsStore.fieldsForSearchResults[attributeClass]) {
+  for (const attributeClassString of Object.keys(drugFieldsStore.fieldsForSearchResults)) {
+    const attributeClass = attributeClassString as keyof typeof drugFieldsStore.fieldsForSearchResults;
+    for (const fieldDefinition of drugFieldsStore.fieldsForSearchResults[attributeClass] as FieldDefinition[]) {
       if (fieldDefinition.field_display_priority_class && Object.keys(fields).includes(String(fieldDefinition.field_display_priority_class))) {
         fields[fieldDefinition.field_display_priority_class].push({ attributeClass, fieldDefinition });
       }
@@ -99,18 +101,27 @@ const prioritizedFieldDefinitions = computed(() => {
   return fields;
 });
 
-function getDisplayValue(attribute, attributeClass: keyof SchemaDrugAttrFieldDefinitionContainer): string {
-  const value = props.drug?.[attributeClass]?.[attribute.field_name];
+function getDisplayValue(fieldDefinition: FieldDefinition, attributeClass: keyof SchemaDrugAttrFieldDefinitionContainer): string {
+  const fields = props.drug[attributeClass];
 
-  if (attribute.is_multi_val_field && attribute.is_reference_list_field) {
-    return value?.map(item => item.display).join(', ');
-  } else if (attribute.is_multi_val_field && !attribute.is_reference_list_field) {
-    return value?.join(', ');
-  } else if (!attribute.is_multi_val_field && attribute.is_reference_list_field) {
-    return value?.display;
+  if (!fields || !fieldDefinition.field_name || !(fieldDefinition.field_name in fields)) {
+    return "ERROR";
   }
 
-  return String(value);
+  // Seems repetitive, but ensures type safety
+  if (isMultiRefField(fieldDefinition, fields)) {
+    const field = fields[fieldDefinition.field_name as keyof typeof fields];
+    return field ? field.map(item => item.display).join(', ') : "";
+  } else if (isMultiValueField(fieldDefinition, fields)) {
+    const field = fields[fieldDefinition.field_name as keyof typeof fields];
+    return field.join(', ');
+  } else if (isSingleRefField(fieldDefinition, fields)) {
+    const field = fields[fieldDefinition.field_name as keyof typeof fields];
+    return field ? field.display ?? "" : "";
+  }
+
+  const field = fields[fieldDefinition.field_name as keyof typeof fields];
+  return String(field ?? "");
 }
 
 </script>
