@@ -332,16 +332,16 @@ class Config(BaseSettings):
         description="If the drug import supports batching, this is the size per batch. The trade of are some speed bumps, while drug importing, versus memory consumption. On a low memory machine decrease this value.",
     )
 
-    DRUG_IMPORTER_MMI_UPDATER_FTP_HOST: str = Field(
+    DRUG_IMPORTER_SOURCE_FTP_HOST: str = Field(
         default="ftp.mmi.de",
         description="When using MmmiPharmaindex1_32 auto updater, this is the FTP host to check for available datasets.",
     )
-    DRUG_IMPORTER_MMI_UPDATER_FTP_USER: Optional[str] = Field(
+    DRUG_IMPORTER_SOURCE_FTP_USER: Optional[str] = Field(
         default=None,
         description="When using MmmiPharmaindex1_32 auto updater, authorize with this username against the MMI Pharmindex FTP Server ",
     )
 
-    DRUG_IMPORTER_MMI_UPDATER_FTP_PASSWORD: Optional[SecretStr] = Field(
+    DRUG_IMPORTER_SOURCE_FTP_PASSWORD: Optional[SecretStr] = Field(
         default=None,
         description="When using MmmiPharmaindex1_32 auto updater, authorize with this password against the MMI Pharmindex FTP Server ",
     )

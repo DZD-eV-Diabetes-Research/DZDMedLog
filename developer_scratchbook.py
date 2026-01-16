@@ -730,99 +730,148 @@ def random_past_date(
     return min_date + datetime.timedelta(days=random_days)
 
 
-from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
-import sys
-import __main__
+def test_normalize_sqlite_url():
+    from pathlib import Path
+    from urllib.parse import urlsplit, urlunsplit
+    import sys
+    import __main__
 
+    def normalize_sqlite_url(db_url: str) -> str:
+        """
+        Normalize SQLAlchemy-style sqlite URLs:
+        - sqlite:///relative -> resolves relative to __main__ dir
+        - sqlite:////absolute -> absolute POSIX
+        - sqlite:///C:/... -> absolute Windows
+        Preserves query and fragment. Leaves :memory: untouched.
+        """
+        parts = urlsplit(db_url)
+        scheme = parts.scheme or ""
+        if not scheme.lower().startswith("sqlite"):
+            return db_url
 
-def normalize_sqlite_url(db_url: str) -> str:
-    """
-    Normalize SQLAlchemy-style sqlite URLs:
-      - sqlite:///relative -> resolves relative to __main__ dir
-      - sqlite:////absolute -> absolute POSIX
-      - sqlite:///C:/... -> absolute Windows
-    Preserves query and fragment. Leaves :memory: untouched.
-    """
-    parts = urlsplit(db_url)
-    scheme = parts.scheme or ""
-    if not scheme.lower().startswith("sqlite"):
-        return db_url
+        # Preserve query/fragment
+        query, fragment = parts.query, parts.fragment
 
-    # Preserve query/fragment
-    query, fragment = parts.query, parts.fragment
+        # Determine raw tail after ":" up to ? or #
+        after_colon = db_url.split(":", 1)[1]
+        # cut off query/fragment from after_colon
+        for sep in ("?", "#"):
+            idx = after_colon.find(sep)
+            if idx != -1:
+                after_colon = after_colon[:idx]
+        # count leading slashes
+        leading_slashes = len(after_colon) - len(after_colon.lstrip("/"))
+        fs_part = after_colon.lstrip(
+            "/"
+        )  # filesystem-like portion (may be '', './x', 'C:/x', 'opt/x')
 
-    # Determine raw tail after ":" up to ? or #
-    after_colon = db_url.split(":", 1)[1]
-    # cut off query/fragment from after_colon
-    for sep in ("?", "#"):
-        idx = after_colon.find(sep)
-        if idx != -1:
-            after_colon = after_colon[:idx]
-    # count leading slashes
-    leading_slashes = len(after_colon) - len(after_colon.lstrip("/"))
-    fs_part = after_colon.lstrip(
-        "/"
-    )  # filesystem-like portion (may be '', './x', 'C:/x', 'opt/x')
+        # special-case :memory:
+        if fs_part == ":memory:":
+            return db_url
 
-    # special-case :memory:
-    if fs_part == ":memory:":
-        return db_url
+        # If fs_part is empty, nothing to do
+        if not fs_part:
+            return db_url
 
-    # If fs_part is empty, nothing to do
-    if not fs_part:
-        return db_url
+        # Decide relative vs absolute strictly per SQLAlchemy
+        is_relative = False
+        is_absolute = False
 
-    # Decide relative vs absolute strictly per SQLAlchemy
-    is_relative = False
-    is_absolute = False
+        # Windows drive detection (e.g., 'C:/path' or 'C:\\path' represented as C:/ in URL)
+        def is_windows_drive(s: str) -> bool:
+            return len(s) >= 2 and s[1] == ":" and s[0].isalpha()
 
-    # Windows drive detection (e.g., 'C:/path' or 'C:\\path' represented as C:/ in URL)
-    def is_windows_drive(s: str) -> bool:
-        return len(s) >= 2 and s[1] == ":" and s[0].isalpha()
-
-    if leading_slashes == 3:
-        # sqlite:/// -> relative unless it's a windows absolute like C:/...
-        if is_windows_drive(fs_part):
+        if leading_slashes == 3:
+            # sqlite:/// -> relative unless it's a windows absolute like C:/...
+            if is_windows_drive(fs_part):
+                is_absolute = True
+            else:
+                is_relative = True
+        elif leading_slashes >= 4:
+            # sqlite://// -> absolute POSIX
             is_absolute = True
         else:
-            is_relative = True
-    elif leading_slashes >= 4:
-        # sqlite://// -> absolute POSIX
-        is_absolute = True
-    else:
-        # Unexpected forms (e.g. fewer slashes) -> leave unchanged
-        return db_url
+            # Unexpected forms (e.g. fewer slashes) -> leave unchanged
+            return db_url
 
-    # Resolve accordingly
-    if is_relative:
-        # resolve relative to __main__ directory
-        try:
-            main_file = Path(
-                getattr(__main__, "__file__", sys.argv[0] or ".")
-            ).resolve()
-        except Exception:
-            main_file = Path(sys.argv[0] or ".").resolve()
-        base_dir = main_file.parent
-        resolved = (base_dir / fs_part).resolve()
-    else:
-        # absolute: Windows drive or POSIX
-        if is_windows_drive(fs_part):
-            resolved = Path(fs_part).resolve()
+        # Resolve accordingly
+        if is_relative:
+            # resolve relative to __main__ directory
+            try:
+                main_file = Path(
+                    getattr(__main__, "__file__", sys.argv[0] or ".")
+                ).resolve()
+            except Exception:
+                main_file = Path(sys.argv[0] or ".").resolve()
+            base_dir = main_file.parent
+            resolved = (base_dir / fs_part).resolve()
         else:
-            # fs_part is like 'opt/local.db' for sqlite:////opt/local.db -> want '/opt/local.db'
-            resolved = Path("/" + fs_part).resolve()
+            # absolute: Windows drive or POSIX
+            if is_windows_drive(fs_part):
+                resolved = Path(fs_part).resolve()
+            else:
+                # fs_part is like 'opt/local.db' for sqlite:////opt/local.db -> want '/opt/local.db'
+                resolved = Path("/" + fs_part).resolve()
 
-    # Rebuild SQLAlchemy-style path: three leading slashes + posix path
-    new_path = f"/{resolved.as_posix()}"
+        # Rebuild SQLAlchemy-style path: three leading slashes + posix path
+        new_path = f"/{resolved.as_posix()}"
 
-    return urlunsplit((scheme, "", new_path, query, fragment))
+        return urlunsplit((scheme, "", new_path, query, fragment))
+
+    print(normalize_sqlite_url("sqlite+aiosqlite:///./local2.sqlite"))
+    print(normalize_sqlite_url("sqlite+aiosqlite:///opt/local2.sqlite"))
+    print(normalize_sqlite_url("sqlite:///./opt/local2.sqlite"))
+    print(normalize_sqlite_url("sqlite:////opt/local2.sqlite"))
+    print(normalize_sqlite_url("sqlite:///C:/path/db.sqlite"))
+    print(normalize_sqlite_url("sqlite:///:memory:"))
+    print(normalize_sqlite_url("sqlite+aiosqlite:///./local2.sqlite"))
 
 
-print(normalize_sqlite_url("sqlite+aiosqlite:///./local2.sqlite"))
-print(normalize_sqlite_url("sqlite+aiosqlite:///opt/local2.sqlite"))
-print(normalize_sqlite_url("sqlite:///./opt/local2.sqlite"))
-print(normalize_sqlite_url("sqlite:////opt/local2.sqlite"))
-print(normalize_sqlite_url("sqlite:///C:/path/db.sqlite"))
-print(normalize_sqlite_url("sqlite:///:memory:"))
-print(normalize_sqlite_url("sqlite+aiosqlite:///./local2.sqlite"))
+def test_ftp():
+    from ftplib import FTP, error_perm
+    import pydantic
+    from pathlib import Path
+
+    def list_remote_ftp_dir(
+        host: str,
+        user: str,
+        password: str | pydantic.SecretStr,
+        base_dir: str | Path = None,
+        host_port: int = 21,
+    ):
+        if isinstance(password, pydantic.SecretStr):
+            pw: str = password.get_secret_value()
+        else:
+            pw = password
+
+        ftp = FTP(host=host, user=user, passwd=pw)
+        ftp.port = host_port
+
+        try:
+            if base_dir:
+                ftp.cwd(str(base_dir))
+
+            # Try mlsd first
+            try:
+                return list(ftp.mlsd())
+            except error_perm:
+                # Fall back to parsing LIST output
+                lines = []
+                ftp.retrlines("LIST", lines.append)
+
+                result = []
+                for line in lines:
+                    # Simple parsing: first char is 'd' for directory, '-' for file
+                    is_dir = line.startswith("d")
+                    name = line.split()[-1]  # Last token is filename
+                    attrs = {"type": "dir" if is_dir else "file"}
+                    result.append((name, attrs))
+
+                return result
+        finally:
+            ftp.quit()
+
+    print(list_remote_ftp_dir())
+
+
+test_ftp()

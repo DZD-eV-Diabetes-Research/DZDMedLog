@@ -5,7 +5,9 @@ from pathlib import Path
 
 def zip_drugset_directories():
     """
-    Zips the content of each directory in dummy_drugset into separate zip files.
+    Helperscript for dev/debuging/testing. To emulate remote update-downloading of the drug database, we zip the drugset and serve it on a local FTP Server.
+    This script just zip the dummy drugdata.
+    Its zips the content of each directory in dummy_drugset into separate zip files.
     Each zip file is placed in a subdirectory within 'zipped' that matches the source directory name.
     The zip file itself also has the same name as the source directory.
     Existing zip files are overwritten.

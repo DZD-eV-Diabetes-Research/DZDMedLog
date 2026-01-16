@@ -1,3 +1,4 @@
+from ftplib import FTP
 from typing import (
     List,
     Callable,
@@ -49,7 +50,7 @@ from medlogserver.model.drug_data.drug_code import DrugCode
 from medlogserver.log import get_logger
 from medlogserver.config import Config
 from medlogserver.model.unset import Unset
-from medlogserver.utils import extract_bracket_values
+from medlogserver.utils import extract_bracket_values, FTPClient
 
 config = Config()
 log = get_logger(modulename="DRUGIMPORT")
@@ -409,18 +410,37 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             "provisioning_data/dummy_drugset",
         ).absolute()
 
+    def _get_ftp_client_for_remote_drug_data_source(self) -> FTPClient | None:
+        ftp_client: FTPClient | None = None
+        if config.DRUG_IMPORTER_SOURCE_FTP_HOST:
+            ftp_client = FTPClient(
+                host=config.DRUG_IMPORTER_SOURCE_FTP_HOST,
+                user=config.DRUG_IMPORTER_SOURCE_FTP_USER,
+                password=config.DRUG_IMPORTER_SOURCE_FTP_PASSWORD,
+            )
+            ftp_client.is_server_up(timeout=1)
+            return ftp_client
+
     async def check_for_remote_dataset_update_available(self) -> str | None:
-        dummy_datasets_base_dir = self.get_dummy_dataset_base_path()
-        print("dummy_datasets_base_dir", dummy_datasets_base_dir)
-        # MedLog/backend/medlogserver/db/drug_data/importers/dummy_drugs.py
-        # MedLog/backend/tests/provisioning_data
-        imported_datasets = await self.get_already_imported_datasets()
-        for dummy_dataset_dir in dummy_datasets_base_dir.iterdir():
-            version_string = dummy_dataset_dir.name
-            print("####dummy_datasets_base_dir version_string", version_string)
-            print(imported_datasets)
-            if version_string not in [ds.dataset_version for ds in imported_datasets]:
-                return version_string
+        ftp_client = self._get_ftp_client_for_remote_drug_data_source()
+        if ftp_client is None:
+            # we just work with the local dummy drug data files directly
+            dummy_datasets_base_dir = self.get_dummy_dataset_base_path()
+            print("dummy_datasets_base_dir", dummy_datasets_base_dir)
+            # MedLog/backend/medlogserver/db/drug_data/importers/dummy_drugs.py
+            # MedLog/backend/tests/provisioning_data
+            imported_datasets = await self.get_already_imported_datasets()
+            for dummy_dataset_dir in dummy_datasets_base_dir.iterdir():
+                version_string = dummy_dataset_dir.name
+                print("####dummy_datasets_base_dir version_string", version_string)
+                print(imported_datasets)
+                if version_string not in [
+                    ds.dataset_version for ds in imported_datasets
+                ]:
+                    return version_string
+        else:
+            # we serve the local dummy drug data files via a FTP server
+
         return None
 
     async def download_remote_dataset_update(self) -> Self | None:

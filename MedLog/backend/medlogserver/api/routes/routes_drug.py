@@ -168,7 +168,7 @@ class DrugAttrFieldDefinitionContainer(BaseModel):
 @fast_api_drug_router.get(
     "/drug/search",
     response_model=PaginatedResponse[MedLogSearchEngineResult],
-    description=f"List all medicine/drugs from the system. {NEEDS_ADMIN_API_INFO}",
+    description=f"Search for drug in the drug database.",
     responses={
         status.HTTP_425_TOO_EARLY: {
             "description": "Index in build up error </br>The Index is still busy being build and therefore no search is available at the moment. </br>The Error detail message will be: `The search index is not ready yet. Please try it later`"

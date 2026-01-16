@@ -48,6 +48,10 @@ from sqlalchemy.exc import OperationalError
 from sqlmodel.ext.asyncio.session import AsyncSession
 from urllib.parse import urlsplit, urlunsplit
 import sys
+
+from ftplib import FTP, error_perm
+from typing import BinaryIO
+
 import __main__
 
 
@@ -613,24 +617,88 @@ def sqlmodel_apply_updates(existing: SQLModel, incoming: SQLModel) -> bool:
     return changed
 
 
-from ftplib import FTP
+class FTPClient:
+    def __init__(
+        self,
+        host: str,
+        user: str,
+        password: str | pydantic.SecretStr,
+        port: int = 21,
+        base_dir: str | Path | None = None,
+    ):
+        self.host = host
+        self.user = user
+        self.port = port
+        self.base_dir = str(base_dir) if base_dir else None
+        self._password = (
+            password.get_secret_value()
+            if isinstance(password, pydantic.SecretStr)
+            else password
+        )
 
+    def _connect(self) -> FTP:
+        ftp = FTP(host=self.host, user=self.user, passwd=self._password)
+        ftp.port = self.port
+        if self.base_dir:
+            ftp.cwd(self.base_dir)
+        return ftp
 
-def list_remote_ftp_dir(
-    host: str,
-    user: str,
-    password: str | pydantic.SecretStr,
-    base_dir: str | Path = None,
-    host_port: int = 21,
-):
-    if isinstance(password, pydantic.SecretStr):
-        pw: str = password.get_secret_value()
-    else:
-        pw = password
+    def list_files(
+        self, remote_dir: str | Path | None = None
+    ) -> list[tuple[str, dict[str, str]]]:
+        ftp = self._connect()
+        try:
+            if remote_dir:
+                ftp.cwd(str(remote_dir))
 
-    ftp = FTP(host=host, user=user, passwd=pw)
-    ftp.port = host_port
-    ftp.login()
-    if base_dir:
-        ftp.cwd(str(base_dir))
-    return list(ftp.mlsd())
+            try:
+                return list(ftp.mlsd())
+            except error_perm:
+                lines: list[str] = []
+                ftp.retrlines("LIST", lines.append)
+
+                result: list[tuple[str, dict[str, str]]] = []
+                for line in lines:
+                    is_dir = line.startswith("d")
+                    name = line.split()[-1]
+                    attrs = {"type": "dir" if is_dir else "file"}
+                    result.append((name, attrs))
+                return result
+        finally:
+            ftp.quit()
+
+    def download_file(
+        self,
+        remote_path: str | Path,
+        local_path: str | Path,
+        callback: callable[[bytes], None] | None = None,
+    ) -> None:
+        ftp = self._connect()
+        try:
+            with open(local_path, "wb") as f:
+                ftp.retrbinary(
+                    f"RETR {remote_path}", f.write if not callback else callback
+                )
+        finally:
+            ftp.quit()
+
+    def download_to_stream(
+        self,
+        remote_path: str | Path,
+        stream: BinaryIO,
+    ) -> None:
+        ftp = self._connect()
+        try:
+            ftp.retrbinary(f"RETR {remote_path}", stream.write)
+        finally:
+            ftp.quit()
+
+    def is_server_up(self, timeout: int = 3) -> bool:
+        try:
+            ftp = FTP(timeout=timeout)
+            ftp.connect(self.host, self.port)
+            ftp.login(self.user, self._password)
+            ftp.quit()
+            return True
+        except Exception:
+            return False
