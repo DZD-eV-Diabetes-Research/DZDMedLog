@@ -31,24 +31,3 @@ export async function apiGetFieldDefinitions(type: string) {
         attrs_multi_ref: fieldDefinitions.value?.attrs_multi_ref?.filter(filterFn).map((item: any) => [item.field_name_display, item.field_name, item.value_type, item.field_desc, item.is_large_reference_list]) || [],
     };
 }
-
-export async function apiDrugSearch(searchTerm: string, limit = 100) {
-    
-    ///
-    // This is function uses the /drug/search endpoint to search for the drugs
-    ///
-
-    const { data: result, error } = await useMedlogapi(`/api/drug/search`,{
-        query: {
-            offset: 0,
-            limit: limit,
-            search_term: searchTerm,
-        }
-    }); 
-
-    if (error.value) {
-        throw error.value;
-    }
-
-    return result.value
-}

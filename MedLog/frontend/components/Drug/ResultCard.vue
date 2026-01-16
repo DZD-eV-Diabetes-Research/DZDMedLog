@@ -3,13 +3,20 @@ import { computed, ref } from "#imports";
 import type {
   SchemaDisplayPriorityClass,
   SchemaDrugAttrFieldDefinitionContainer,
-  SchemaDrugCodeSystem
+  SchemaDrugCodeSystem,
+  SchemaMedLogSearchEngineResult,
 } from "#open-fetch-schemas/medlogapi";
+import {type FieldDefinition, isMultiRefField, isMultiValueField, isSingleRefField} from "~/type-helper";
+import { useDayjs } from '#dayjs'
+import localizedFormat from 'dayjs/plugin/localizedFormat'
 
+const dayjs = useDayjs();
 const drugFieldsStore = useDrugFields();
 
+dayjs.extend(localizedFormat);
+
 const props = defineProps({
-  drug: { type: Object, required: true },
+  drug: { type: Object as () => SchemaMedLogSearchEngineResult["drug"], required: true },
 })
 
 defineEmits<{
@@ -44,13 +51,13 @@ const dataTableItems = computed(() => {
 const keyValuePills = computed(() =>  {
   const pills = [];
 
-  if (Object.hasOwn(props.drug, 'codes')) {
+  if ('codes' in props.drug && typeof props.drug.codes === 'object') {
     for (const drugCodeSystem of drugCodeSystems) {
       if (Object.hasOwn(props.drug.codes, drugCodeSystem.id)) {
         pills.push({
           icon: drugCodeSystem.code_icon ?? undefined,
           label: drugCodeSystem.id,
-          value: props.drug.codes?.[drugCodeSystem.id]
+          value: props.drug.codes[drugCodeSystem.id as keyof typeof props.drug.codes] ?? ""
         });
       }
     }
@@ -67,12 +74,12 @@ const keyValuePills = computed(() =>  {
 });
 
 const prioritizedFieldDefinitions = computed(() => {
-  const fields: Record<SchemaDisplayPriorityClass, { attributeClass: keyof SchemaDrugAttrFieldDefinitionContainer, fieldDefinition: any }[]> = { 1: [], 2: [], 3: [] };
+  const fields: Record<SchemaDisplayPriorityClass, { attributeClass: keyof SchemaDrugAttrFieldDefinitionContainer, fieldDefinition: FieldDefinition }[]> = { 1: [], 2: [], 3: [] };
 
   // Group field definitions by priority class
-  for (let attributeClass of Object.keys(drugFieldsStore.fieldsForSearchResults)) {
-    attributeClass = attributeClass as keyof typeof drugFieldsStore.fieldsForSearchResults;
-    for (const fieldDefinition of drugFieldsStore.fieldsForSearchResults[attributeClass]) {
+  for (const attributeClassString of Object.keys(drugFieldsStore.fieldsForSearchResults)) {
+    const attributeClass = attributeClassString as keyof typeof drugFieldsStore.fieldsForSearchResults;
+    for (const fieldDefinition of drugFieldsStore.fieldsForSearchResults[attributeClass] as FieldDefinition[]) {
       if (fieldDefinition.field_display_priority_class && Object.keys(fields).includes(String(fieldDefinition.field_display_priority_class))) {
         fields[fieldDefinition.field_display_priority_class].push({ attributeClass, fieldDefinition });
       }
@@ -99,30 +106,79 @@ const prioritizedFieldDefinitions = computed(() => {
   return fields;
 });
 
-function getDisplayValue(attribute, attributeClass: keyof SchemaDrugAttrFieldDefinitionContainer): string {
-  const value = props.drug?.[attributeClass]?.[attribute.field_name];
+const accessDate = computed(() => Date.parse(props.drug.market_access_date ?? ""));
+const exitDate = computed(() => Date.parse(props.drug.market_exit_date ?? ""));
+const now = computed(() => Date.now() );
 
-  if (attribute.is_multi_val_field && attribute.is_reference_list_field) {
-    return value?.map(item => item.display).join(', ');
-  } else if (attribute.is_multi_val_field && !attribute.is_reference_list_field) {
-    return value?.join(', ');
-  } else if (!attribute.is_multi_val_field && attribute.is_reference_list_field) {
-    return value?.display;
+const isCurrentlySold = computed(() => {
+  if (Number.isNaN(accessDate.value) && Number.isNaN(exitDate.value)) {
+    return true;
   }
 
-  return String(value);
+  return !(exitDate.value < now.value || accessDate.value > now.value);
+});
+
+const marketStatusText = computed((): string => {
+  if (accessDate.value > now.value) {
+    return `Erst ab ${dayjs.utc(accessDate.value).local().format('LL')} im Verkauf`;
+  } else if (exitDate.value < now.value) {
+    return `Seit ${dayjs.utc(exitDate.value).local().format('LL')} nicht mehr im Verkauf`;
+  }
+
+  return ""
+});
+
+function getDisplayValue(fieldDefinition: FieldDefinition, attributeClass: keyof SchemaDrugAttrFieldDefinitionContainer): string {
+  const fields = props.drug[attributeClass];
+
+  if (!fields || !fieldDefinition.field_name || !(fieldDefinition.field_name in fields)) {
+    return "ERROR";
+  }
+
+  // Seems repetitive, but ensures type safety
+  if (isMultiRefField(fieldDefinition, fields)) {
+    const field = fields[fieldDefinition.field_name as keyof typeof fields];
+    return field ? field.map(item => item.display).join(', ') : "";
+  } else if (isMultiValueField(fieldDefinition, fields)) {
+    const field = fields[fieldDefinition.field_name as keyof typeof fields];
+    return field.join(', ');
+  } else if (isSingleRefField(fieldDefinition, fields)) {
+    const field = fields[fieldDefinition.field_name as keyof typeof fields];
+    return field ? field.display ?? "" : "";
+  }
+
+  const field = fields[fieldDefinition.field_name as keyof typeof fields];
+  return String(field ?? "");
 }
 
 </script>
 
 <template>
   <li
-      class="border border-blue-400 my-2 p-2 rounded-md bg-blue-100 hover:bg-blue-200 flex flex-col"
+      class="border my-2 p-2 rounded-md flex flex-col"
+      :class="{
+          'border-blue-400': isCurrentlySold && !drug.is_custom_drug,
+          'bg-blue-100': isCurrentlySold && !drug.is_custom_drug,
+          'hover:bg-blue-200': isCurrentlySold && !drug.is_custom_drug,
+          'border-gray-400': !isCurrentlySold && !drug.is_custom_drug,
+          'bg-gray-100': !isCurrentlySold && !drug.is_custom_drug,
+          'hover:bg-gray-200': !isCurrentlySold && !drug.is_custom_drug,
+          'border-purple-400': drug.is_custom_drug,
+          'bg-purple-100': drug.is_custom_drug,
+          'hover:bg-purple-200': drug.is_custom_drug,
+      }"
   >
     <div class="flex flex-row justify-between gap-2">
       <div>
-        <strong>{{ drug.trade_name }}</strong><br>
-        <div v-if="keyValuePills" class="flex flex-row flex-wrap">
+        <strong>{{ drug.trade_name }}</strong>
+        <UTooltip v-if="drug.is_custom_drug" text="Dieses Medikament wurde manuell eingetragen" :popper="{ arrow: true, placement: 'right' }">
+          <UBadge label="Ungelistet" color="purple" size="xs" class="ml-2"/>
+        </UTooltip>
+        <UTooltip v-if="!isCurrentlySold" :text="marketStatusText" :popper="{ arrow: true, placement: 'right' }">
+          <UBadge icon="i-heroicons-shopping-cart" label="Nicht im Verkauf" color="gray" size="xs" class="ml-2"/>
+        </UTooltip>
+        <br>
+        <div v-if="keyValuePills" class="flex flex-row flex-wrap mt-1">
           <KeyValuePill
               v-for="{ label, value, icon } in keyValuePills"
               :key="label"
