@@ -7,7 +7,7 @@ interface HealthCheckStore {
     report?: SchemaHealthCheckReport
 }
 
-export const useHealthCheck = defineStore('healthCheck', {
+export const useHealthCheckStore = defineStore('healthCheck', {
     state: (): HealthCheckStore => ({
         healthy: undefined,
         report: undefined,
@@ -33,5 +33,8 @@ export const useHealthCheck = defineStore('healthCheck', {
                 this.report = undefined;
             }
         },
+    },
+    getters: {
+        fullReport: state => state.report
     },
 });

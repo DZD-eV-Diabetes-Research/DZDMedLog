@@ -6,21 +6,21 @@
 </template>
 
 <script setup lang="ts">
-useHead({
-  title: 'DZD Medlog',
+const configStore = useConfigStore();
+const drugFieldsStore = useDrugFields();
+const healthCheckStore = useHealthCheckStore();
+const studyStore = useStudyStore();
+const userStore = useUserStore();
+
+useHead(() => ({
+  title: configStore.appName,
   meta: [
     { name: 'description', content: 'DZD Webapp to audit medication for clinical studies' }
   ],
   htmlAttrs: {
     lang: 'de',
   },
-})
-
-const configStore = useConfigStore();
-const drugFieldsStore = useDrugFields();
-const healthCheckStore = useHealthCheck();
-const studyStore = useStudyStore();
-const userStore = useUserStore();
+}))
 
 // Check health of the backend
 try {

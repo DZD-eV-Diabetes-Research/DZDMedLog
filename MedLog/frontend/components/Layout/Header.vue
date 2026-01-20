@@ -3,7 +3,7 @@
     <div class="flex w-full justify-between items-center gap-20">
       <div>
         <NuxtLink to="/" class="text-4xl font-bold text-gray-800 hover:border-[#ec372d] hover:border-b-2">
-          DZDMedLog
+          {{ configStore.appName }}
         </NuxtLink>
       </div>
 
@@ -19,6 +19,7 @@
 <script setup>
 import { computed } from '#imports';
 
+const configStore = useConfigStore();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
 

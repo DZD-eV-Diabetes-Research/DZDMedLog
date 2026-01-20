@@ -44,4 +44,11 @@ export const useConfigStore = defineStore('config', {
             this.versionInfo.version = data.value?.version ?? undefined;
         },
     },
+    getters: {
+        appName: () => {
+            // Currently the app name is part of the health check report
+            const healthCheckStore = useHealthCheckStore();
+            return healthCheckStore.fullReport?.name ?? "DZDMedLog"
+        },
+    },
 });
