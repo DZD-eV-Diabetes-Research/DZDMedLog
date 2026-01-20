@@ -11,6 +11,9 @@ useHead({
   meta: [
     { name: 'description', content: 'DZD Webapp to audit medication for clinical studies' }
   ],
+  htmlAttrs: {
+    lang: 'de',
+  },
 })
 
 const configStore = useConfigStore();
