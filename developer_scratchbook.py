@@ -874,4 +874,78 @@ def test_ftp():
     print(list_remote_ftp_dir())
 
 
-test_ftp()
+def generic_version_comparison_function():
+    import re
+    from itertools import zip_longest
+
+    def is_version_higher(v1: str, v2: str) -> bool:
+        """
+        Compare two generic version strings and return True if v1 is newer than v2.
+
+        Supports semantic versions, build numbers, and date-based versions
+        (e.g. "1.2.10", "somename_20250404", "2023_04_04", "20090921").
+        Numeric components are compared numerically, text components
+        lexicographically, ignoring separators.
+        """
+
+        def tokenize(version: str):
+            # Extract numeric and alphabetic chunks, ignoring separators
+            parts = re.findall(r"\d+|[a-zA-Z]+", version)
+            return [int(p) if p.isdigit() else p.lower() for p in parts]
+
+        t1 = tokenize(v1)
+        t2 = tokenize(v2)
+
+        for a, b in zip_longest(t1, t2, fillvalue=0):
+            if a == b:
+                continue
+
+            # Numbers outrank strings
+            if isinstance(a, int) and isinstance(b, str):
+                return True
+            if isinstance(a, str) and isinstance(b, int):
+                return False
+
+            return a > b
+
+        return False  # equal versions
+
+    print(
+        "somename_20250404",
+        "somename_20240101",
+        is_version_higher("somename_20250404", "somename_20240101"),
+    )  # True
+    print(
+        "2023_04_04",
+        "2023_03_30",
+        is_version_higher("2023_04_04", "2023_03_30"),
+    )  # True
+    print(
+        "2023_03_30",
+        "2023_04_04",
+        is_version_higher("2023_03_30", "2023_04_04"),
+    )  # True
+    print(
+        "20090921",
+        "20081231",
+        is_version_higher("20090921", "20081231"),
+    )  # True
+
+    print(
+        "v1.2.10",
+        "v1.2.3",
+        is_version_higher("v1.2.10", "v1.2.3"),
+    )  # True
+    print(
+        "v1.2.10",
+        "v2.2.3",
+        is_version_higher("v1.2.10", "v2.2.3"),
+    )  # False
+    print(
+        "build_10",
+        "build_2",
+        is_version_higher("build_10", "build_2"),
+    )  # True
+
+
+generic_version_comparison_function()

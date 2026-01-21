@@ -27,7 +27,10 @@ export SERVER_LISTENING_PORT=8888
 export ADMIN_USER_PW=password123
 export ADMIN_USER_EMAIL=user@test.de
 export SERVER_HOSTNAME=localhost
-
+export DRUG_IMPORTER_SOURCE_FTP_HOST=localhost 
+export DRUG_IMPORTER_SOURCE_FTP_USER=readonly
+export DRUG_IMPORTER_SOURCE_FTP_PASSWORD=readonly123
+export DRUG_IMPORTER_SOURCE_FTP_PORT=2121
 #######################################
 # OIDC Configuration
 #######################################
@@ -142,7 +145,7 @@ PIDS+=($mock_server_PID)
 #######################################
 echo "Start dummy FTP Drug Data Server"
 (
-    cd ./MedLog/backend/medlogserver/_dev && "$PYTHON_BIN" drug_data_remote_ftp_server.py
+    cd ./MedLog/backend/medlogserver/_dev && "$PYTHON_BIN" dummy_drug_data_ftp_server.py
 ) &
 mock_server_PID=$!
 

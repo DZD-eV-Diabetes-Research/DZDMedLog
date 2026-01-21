@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import (
     List,
     Literal,
@@ -10,6 +11,7 @@ from typing import (
     Callable,
     Any,
     Type,
+    Iterable,
 )
 from htpy import base
 from sqlmodel import SQLModel
@@ -30,19 +32,17 @@ import os
 from getversion.main import DetailedResults
 from urllib.parse import urlparse
 
-import json
+
 import asyncio
 import threading
-import csv
-import io
 import yaml
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
-import re
+
 import concurrent.futures
 import datetime
+from itertools import zip_longest
 
-import random
 import time
 from sqlalchemy.exc import OperationalError
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -51,6 +51,9 @@ import sys
 
 from ftplib import FTP, error_perm
 from typing import BinaryIO
+
+import zipfile
+
 
 import __main__
 
@@ -618,6 +621,11 @@ def sqlmodel_apply_updates(existing: SQLModel, incoming: SQLModel) -> bool:
 
 
 class FTPClient:
+    @dataclass
+    class RemoteObject:
+        name: str
+        type_: Literal["file", "dir"]
+
     def __init__(
         self,
         host: str,
@@ -630,39 +638,43 @@ class FTPClient:
         self.user = user
         self.port = port
         self.base_dir = str(base_dir) if base_dir else None
-        self._password = (
+        self.password = (
             password.get_secret_value()
             if isinstance(password, pydantic.SecretStr)
             else password
         )
 
     def _connect(self) -> FTP:
-        ftp = FTP(host=self.host, user=self.user, passwd=self._password)
-        ftp.port = self.port
+        ftp = FTP()
+
+        ftp.connect(self.host, self.port)
+        ftp.login(user=self.user, passwd=self.password)
         if self.base_dir:
             ftp.cwd(self.base_dir)
         return ftp
 
-    def list_files(
-        self, remote_dir: str | Path | None = None
-    ) -> list[tuple[str, dict[str, str]]]:
+    def list_files(self, remote_dir: str | Path | None = None) -> List[RemoteObject]:
         ftp = self._connect()
         try:
             if remote_dir:
                 ftp.cwd(str(remote_dir))
 
             try:
-                return list(ftp.mlsd())
+                return [
+                    FTPClient.RemoteObject(name=obj[0], type_=obj[1]["type"])
+                    for obj in list(ftp.mlsd())
+                ]
             except error_perm:
                 lines: list[str] = []
                 ftp.retrlines("LIST", lines.append)
 
-                result: list[tuple[str, dict[str, str]]] = []
+                result: List[FTPClient.RemoteObject] = []
                 for line in lines:
                     is_dir = line.startswith("d")
                     name = line.split()[-1]
-                    attrs = {"type": "dir" if is_dir else "file"}
-                    result.append((name, attrs))
+                    result.append(
+                        FTPClient.RemoteObject(name, "dir" if is_dir else "file")
+                    )
                 return result
         finally:
             ftp.quit()
@@ -671,7 +683,7 @@ class FTPClient:
         self,
         remote_path: str | Path,
         local_path: str | Path,
-        callback: callable[[bytes], None] | None = None,
+        callback: Callable[[bytes], None] | None = None,
     ) -> None:
         ftp = self._connect()
         try:
@@ -697,8 +709,106 @@ class FTPClient:
         try:
             ftp = FTP(timeout=timeout)
             ftp.connect(self.host, self.port)
-            ftp.login(self.user, self._password)
+            ftp.login(self.user, self.password)
             ftp.quit()
             return True
         except Exception:
             return False
+
+
+def is_version_higher(v1: str, v2: str) -> bool:
+    """
+    Compare two generic version strings and return True if v1 is newer than v2.
+
+    Supports semantic versions, build numbers, and date-based versions
+    (e.g. "1.2.10","v1.2.10", "somename_20250404", "2023_04_04", "20090921").
+    Numeric components are compared numerically, text components
+    lexicographically, ignoring separators.
+    """
+
+    def tokenize(version: str):
+        # Extract numeric and alphabetic chunks, ignoring separators
+        parts = re.findall(r"\d+|[a-zA-Z]+", version)
+        return [int(p) if p.isdigit() else p.lower() for p in parts]
+
+    t1 = tokenize(v1)
+    t2 = tokenize(v2)
+
+    for a, b in zip_longest(t1, t2, fillvalue=0):
+        if a == b:
+            continue
+
+        # Numbers outrank strings
+        if isinstance(a, int) and isinstance(b, str):
+            return True
+        if isinstance(a, str) and isinstance(b, int):
+            return False
+
+        return a > b
+
+    return False  # equal versions
+
+
+def highest_version(versions: Iterable[str]) -> str:
+    """
+    Return the highest version string from an iterable of version strings.
+
+    Comparison is performed using is_version_higher(), supporting semantic,
+    build, and date-based version formats. Raises ValueError if the iterable
+    is empty.
+    """
+    versions = list(versions)
+    if not versions:
+        raise ValueError("versions must not be empty")
+
+    highest = versions[0]
+    for v in versions[1:]:
+        if is_version_higher(v, highest):
+            highest = v
+
+    return highest
+
+
+def unzip(
+    zip_path: Union[str, Path],
+    destination: Union[str, Path],
+    unwrap_single_dir: bool = True,
+) -> Path:
+    """
+    Extract a ZIP archive to a destination directory.
+
+    Optionally return the single top-level directory if the archive
+    contains exactly one directory at the first level.
+
+    Args:
+        zip_path: Path to the ZIP file.
+        destination: Directory where the ZIP file should be extracted.
+        unwrap_single_dir: If True and the extracted content
+            contains exactly one top-level directory, return that directory's path.
+
+    Returns:
+        Path to the extracted content. If unwrap_single_dir is True
+        and there is a single top-level directory, this directory path is returned;
+        otherwise, the destination path.
+    """
+    zip_path = Path(zip_path)
+    destination = Path(destination)
+
+    destination.mkdir(parents=True, exist_ok=True)
+
+    with zipfile.ZipFile(zip_path, "r") as zip_file:
+        zip_file.extractall(destination)
+
+        # Determine top-level entries from the archive contents
+        top_level_entries = {
+            Path(member).parts[0]
+            for member in zip_file.namelist()
+            if member and not member.endswith("/")
+        }
+
+    if unwrap_single_dir and len(top_level_entries) == 1:
+        candidate = destination / next(iter(top_level_entries))
+        if candidate.is_dir():
+            return candidate
+
+    return destination

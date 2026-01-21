@@ -16,6 +16,7 @@ CONFIG_DATABASE_FILE = Path(Path(__file__).parent, "ftp_testusers.yaml")
 DUMMY_DRUG_DATA_PATH = Path(
     Path(__file__).parent.parent.parent, "provisioning_data/dummy_drugset"
 )
+FTP_SERVER_PORT = 2121
 
 
 class FTPTestServer:
@@ -183,10 +184,10 @@ if __name__ == "__main__":
         with FTPTestServer(
             directory=str(serve_dir),
             host="127.0.0.1",
-            port=2121,
+            port=FTP_SERVER_PORT,
         ) as server:
             print("\nServer running. Press Ctrl+C to stop...")
-            print(f"Connect with: ftp://testuser:testpass@127.0.0.1:2121")
+            print(f"Connect with: ftp://testuser:testpass@127.0.0.1:FTP_SERVER_PORT")
 
             # Keep running until interrupted
             while True:
