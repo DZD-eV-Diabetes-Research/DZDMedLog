@@ -26,7 +26,7 @@ import datetime
 import csv
 import re
 from dataclasses import dataclass
-from sqlmodel import SQLModel, select, text
+from sqlmodel import SQLModel, select, text, and_
 from medlogserver.db._session import (
     get_async_session_context,
     AsyncSession,
@@ -62,7 +62,14 @@ from medlogserver.model.drug_data.drug_code import DrugCode
 from medlogserver.log import get_logger
 from medlogserver.config import Config
 from medlogserver.model.unset import Unset
-from medlogserver.utils import extract_bracket_values, async_enumerate, humanbytes
+from medlogserver.utils import (
+    extract_bracket_values,
+    async_enumerate,
+    FTPClient,
+    is_version_higher,
+    highest_version,
+    unzip,
+)
 import gc
 
 
@@ -803,13 +810,110 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         del self._cache_csv_lookups
         self._cache_csv_lookups = {}
 
+    def _get_ftp_client_for_remote_drug_data_source(self) -> FTPClient | None:
+        ftp_client: FTPClient | None = None
+        if config.DRUG_IMPORTER_SOURCE_FTP_HOST:
+            log.debug(
+                f"Connect to FTP `{config.DRUG_IMPORTER_SOURCE_FTP_HOST}:{config.DRUG_IMPORTER_SOURCE_FTP_PORT}` with `{config.DRUG_IMPORTER_SOURCE_FTP_USER}/{config.DRUG_IMPORTER_SOURCE_FTP_PASSWORD}`"
+            )
+            ftp_client = FTPClient(
+                host=config.DRUG_IMPORTER_SOURCE_FTP_HOST,
+                user=config.DRUG_IMPORTER_SOURCE_FTP_USER,
+                port=config.DRUG_IMPORTER_SOURCE_FTP_PORT,
+                password=config.DRUG_IMPORTER_SOURCE_FTP_PASSWORD,
+            )
+            log.debug(
+                f"Check FTP `{config.DRUG_IMPORTER_SOURCE_FTP_HOST}:{config.DRUG_IMPORTER_SOURCE_FTP_PORT}` is available."
+            )
+            ftp_client.is_server_up(timeout=1)
+            log.debug(
+                f"FTP `{config.DRUG_IMPORTER_SOURCE_FTP_HOST}:{config.DRUG_IMPORTER_SOURCE_FTP_PORT}` seems healthy."
+            )
+            return ftp_client
+
     async def check_for_remote_dataset_update_available(self) -> str | None:
-        # do ftp stuff TODO
-        pass
+        imported_datasets = await self.get_already_imported_datasets()
+        imported_dataset_version_strings = [
+            imp.dataset_version for imp in imported_datasets
+        ]
+        highest_imported_dataset_version = highest_version(
+            imported_dataset_version_strings
+        )
+        log.debug("CHECK FOR REMOT DRUG DATA UPDATE")
+        ftp_client = self._get_ftp_client_for_remote_drug_data_source()
+        if ftp_client is None:
+            return None
+
+        remote_file_list = ftp_client.list_files()
+        remote_versions = [d.name for d in remote_file_list]
+        log.debug(f"REMOTE VERSION {remote_versions}")
+        if not remote_versions:
+            return None
+        highest_remote_version = highest_version(remote_versions)
+
+        if is_version_higher(highest_remote_version, highest_imported_dataset_version):
+            return highest_remote_version
+        return None
 
     async def download_remote_dataset_update(self) -> Self | None:
-        # download the update TODO
-        pass
+        """This function checks if the is a more recent drug-data-set available, if yes it will be downloaded
+
+        Returns:
+            DrugDataSetVersion: _description_
+        """
+        new_version_string = await self.check_for_remote_dataset_update_available()
+        if not new_version_string:
+            return None
+
+        ftp_client = self._get_ftp_client_for_remote_drug_data_source()
+        if not ftp_client:
+            return None
+        Path(config.DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR).mkdir(
+            parents=True, exist_ok=True
+        )
+        target_download_path = Path(
+            config.DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR,
+            f"{new_version_string}.zip",
+        )
+        target_unzip_dir_path = Path(
+            config.DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR,
+            new_version_string,
+        )
+        new_remote_version_zip_file = ftp_client.list_files(new_version_string)[0].name
+        ftp_client.download_file(
+            remote_path=Path(new_version_string, new_remote_version_zip_file),
+            local_path=target_download_path,
+        )
+        target_unzip_dir_path.mkdir(exist_ok=True)
+        dummy_dataset_dir = unzip(
+            zip_path=target_download_path,
+            destination=target_unzip_dir_path,
+            unwrap_single_dir=True,
+        )
+
+        self.source_dir = dummy_dataset_dir
+        self.version = new_version_string
+        return self
+
+    async def get_already_imported_datasets(
+        self,
+    ) -> List[DrugDataSetVersion]:
+        print("DummyDrugs", self.dataset_name)
+        all_rows = []
+        async with get_async_session_context() as session:
+            query = (
+                select(DrugDataSetVersion)
+                .where(
+                    and_(
+                        DrugDataSetVersion.dataset_source_name == self.dataset_name,
+                        DrugDataSetVersion.is_custom_drugs_collection == False,
+                    )
+                )
+                .order_by(DrugDataSetVersion.dataset_version)
+            )
+            result = await session.exec(query)
+            all_rows = result.all()
+        return list(all_rows)
 
     async def was_dataset_version_imported(self) -> DrugDataSetVersion | None:
         imported_datasets = await self.get_already_imported_datasets()
@@ -977,9 +1081,7 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             # write everything to database
             await self.commit()
 
-    async def _disect_drug_data(
-        self, drug_data: DrugData
-    ) -> AsyncGenerator[
+    async def _disect_drug_data(self, drug_data: DrugData) -> AsyncGenerator[
         DrugData | DrugVal | DrugValRef | DrugCode | DrugValMulti | DrugValMultiRef,
         None,
     ]:
@@ -1513,9 +1615,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             result = csv_content_view.data[_filter_value_casted]
             if max_number_rows:
                 result = result[:max_number_rows]
-            self._cache_csv_lookups[csv_lookup_filter_call_signature][filter_value] = (
-                result
-            )
+            self._cache_csv_lookups[csv_lookup_filter_call_signature][
+                filter_value
+            ] = result
 
             self._debug_stats_csv_lookup = (
                 self._debug_stats_csv_lookup[0],
