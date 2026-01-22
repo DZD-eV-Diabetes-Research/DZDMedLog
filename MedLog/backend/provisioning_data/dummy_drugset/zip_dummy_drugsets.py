@@ -13,8 +13,11 @@ def zip_drugset_directories():
     Existing zip files are overwritten.
     """
     # Define paths
-    source_dir = Path("MedLog/backend/provisioning_data/dummy_drugset")
+    source_dir = Path(
+        Path(__file__).parent.parent.parent, "provisioning_data/dummy_drugset"
+    )
     zipped_base_dir = source_dir / "zipped"
+    print(f"ZIP Dummy drugdataset to {zipped_base_dir.absolute()}...")
 
     # Create base zipped directory if it doesn't exist
     zipped_base_dir.mkdir(parents=True, exist_ok=True)

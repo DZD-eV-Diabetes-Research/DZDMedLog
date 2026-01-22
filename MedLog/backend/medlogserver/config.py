@@ -320,7 +320,7 @@ class Config(BaseSettings):
     )
     DRUG_IMPORTER_AUTO_UPDATE_DRUG_DB: bool = Field(
         default=False,
-        description="If the drug importer plugin, does support it, the drug DB will be updated automaticly. Otherwise it must be manually triggered via endpoint ...TODO",
+        description="If the drug importer plugin, does support it, the drug DB will be updated automaticly. Otherwise it must be manually triggered via the RestApi/WebClient",
     )
     DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB: bool = Field(
         default=False,
@@ -332,8 +332,8 @@ class Config(BaseSettings):
         description="If the drug import supports batching, this is the size per batch. The trade of are some speed bumps, while drug importing, versus memory consumption. On a low memory machine decrease this value.",
     )
 
-    DRUG_IMPORTER_SOURCE_FTP_HOST: str = Field(
-        default="localhost",
+    DRUG_IMPORTER_SOURCE_FTP_HOST: Optional[str] = Field(
+        default=None,
         description="When using MmmiPharmaindex1_32 auto updater, this is the FTP host to check for available datasets.",
     )
     DRUG_IMPORTER_SOURCE_FTP_PORT: int = Field(

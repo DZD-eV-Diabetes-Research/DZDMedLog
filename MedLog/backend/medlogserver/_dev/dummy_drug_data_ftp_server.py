@@ -176,6 +176,7 @@ if __name__ == "__main__":
 
     from zip_dummy_drugsets import zip_drugset_directories
 
+    print("\nGenerate FTP server directory and content...")
     zip_drugset_directories()
     serve_dir = Path(DUMMY_DRUG_DATA_PATH, "zipped")
 
