@@ -448,7 +448,9 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             # MedLog/backend/medlogserver/db/drug_data/importers/dummy_drugs.py
             # MedLog/backend/tests/provisioning_data
             remote_versions = [
-                d.stem for d in dummy_datasets_base_dir.iterdir() if d.stem != "zipped"
+                d.stem
+                for d in dummy_datasets_base_dir.iterdir()
+                if d.stem not in ["zipped", "zip_dummy_drugsets.py"]
             ]
         else:
             remote_file_list = ftp_client.list_files()

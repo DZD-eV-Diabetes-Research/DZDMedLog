@@ -946,6 +946,13 @@ def generic_version_comparison_function():
         "build_2",
         is_version_higher("build_10", "build_2"),
     )  # True
+    print(
+        "mmiPharmindexR3_20260115MAIN",
+        "mmiPharmindexR3_20270115MAIN",
+        is_version_higher(
+            "mmiPharmindexR3_20260115MAIN", "mmiPharmindexR3_20240115MAIN"
+        ),
+    )  # True
 
 
 generic_version_comparison_function()
