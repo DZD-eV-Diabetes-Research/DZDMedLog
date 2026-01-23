@@ -312,9 +312,7 @@ class Config(BaseSettings):
         return AUTH_OIDC_PROVIDERS
 
     # Availabe modules live in MedLog/backend/medlogserver/model/drug_data/importers/__init__.py
-    DRUG_IMPORTER_PLUGIN: Literal[
-        "WidoGkvArzneimittelindex52", "MmmiPharmaindex1_32", "DummyDrugImporterV1"
-    ] = Field(
+    DRUG_IMPORTER_PLUGIN: Literal["MmmiPharmaindex1_32", "DummyDrugImporterV1"] = Field(
         default="DummyDrugImporterV1",
         description="Depending on the drug database that is used, we can define an importer.",
     )
@@ -358,7 +356,7 @@ class Config(BaseSettings):
         description="The search engine used in the background to answer drug search requests.",
         default="GenericSQLDrugSearch",
     )
-    DRUG_TABLE_PROVISIONING_SOURCE_DIR: str = Field(
+    DRUG_TABLE_PROVISIONING_SOURCE_DIR: Optional[str] = Field(
         description="If MedLog is booted with an empty drug database, it will check if a source data set of the GKV Arzneimittel Index is located in this dir",
         default=str(
             Path(

@@ -1,3 +1,4 @@
+from operator import contains
 from pydoc import classify_class_attrs
 from typing import (
     List,
@@ -832,26 +833,34 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             return ftp_client
 
     async def check_for_remote_dataset_update_available(self) -> str | None:
-        imported_datasets = await self.get_already_imported_datasets()
-        imported_dataset_version_strings = [
-            imp.dataset_version for imp in imported_datasets
-        ]
-        highest_imported_dataset_version = highest_version(
-            imported_dataset_version_strings
-        )
+        allready_imported_datasets = await self.get_already_imported_datasets()
+
         log.debug("CHECK FOR REMOT DRUG DATA UPDATE")
         ftp_client = self._get_ftp_client_for_remote_drug_data_source()
         if ftp_client is None:
             return None
 
-        remote_file_list = ftp_client.list_files()
-        remote_versions = [d.name for d in remote_file_list]
+        remote_file_list = ftp_client.list_files(remote_dir="MMI_RohdatenR3")
+        remote_versions = [
+            d.name.rstrip(".zip") for d in remote_file_list if d.type_ == "file"
+        ]
         log.debug(f"REMOTE VERSION {remote_versions}")
         if not remote_versions:
             return None
         highest_remote_version = highest_version(remote_versions)
 
-        if is_version_higher(highest_remote_version, highest_imported_dataset_version):
+        if allready_imported_datasets:
+            imported_dataset_version_strings = [
+                imp.dataset_version for imp in allready_imported_datasets
+            ]
+            highest_imported_dataset_version = highest_version(
+                imported_dataset_version_strings
+            )
+            if is_version_higher(
+                highest_remote_version, highest_imported_dataset_version
+            ):
+                return highest_remote_version
+        else:
             return highest_remote_version
         return None
 
@@ -871,17 +880,27 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         Path(config.DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR).mkdir(
             parents=True, exist_ok=True
         )
-        target_download_path = Path(
-            config.DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR,
-            f"{new_version_string}.zip",
-        )
+
         target_unzip_dir_path = Path(
             config.DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR,
-            new_version_string,
+            f"{new_version_string}",
         )
-        new_remote_version_zip_file = ftp_client.list_files(new_version_string)[0].name
+        new_remote_version_zip_file = None
+        for remote_obj in ftp_client.list_files(remote_dir="MMI_RohdatenR3"):
+            if remote_obj.type_ == "dir":
+                continue
+            elif remote_obj.name.endswith(".zip"):
+                new_remote_version_zip_file = remote_obj.name
+        if new_remote_version_zip_file is None:
+            return None
+        target_download_path = Path(
+            config.DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR,
+            f"{new_remote_version_zip_file}.zip",
+        )
+        remote_path = Path("MMI_RohdatenR3", new_remote_version_zip_file)
+        log.info(f"Download drug data update `{remote_path} from `{ftp_client.host}`")
         ftp_client.download_file(
-            remote_path=Path(new_version_string, new_remote_version_zip_file),
+            remote_path=remote_path,
             local_path=target_download_path,
         )
         target_unzip_dir_path.mkdir(exist_ok=True)
@@ -1081,7 +1100,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             # write everything to database
             await self.commit()
 
-    async def _disect_drug_data(self, drug_data: DrugData) -> AsyncGenerator[
+    async def _disect_drug_data(
+        self, drug_data: DrugData
+    ) -> AsyncGenerator[
         DrugData | DrugVal | DrugValRef | DrugCode | DrugValMulti | DrugValMultiRef,
         None,
     ]:
@@ -1615,9 +1636,9 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             result = csv_content_view.data[_filter_value_casted]
             if max_number_rows:
                 result = result[:max_number_rows]
-            self._cache_csv_lookups[csv_lookup_filter_call_signature][
-                filter_value
-            ] = result
+            self._cache_csv_lookups[csv_lookup_filter_call_signature][filter_value] = (
+                result
+            )
 
             self._debug_stats_csv_lookup = (
                 self._debug_stats_csv_lookup[0],

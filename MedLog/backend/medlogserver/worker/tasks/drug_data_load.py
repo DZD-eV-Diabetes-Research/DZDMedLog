@@ -37,7 +37,7 @@ from medlogserver.db.drug_data.drug_dataset_version import (
 )
 from medlogserver.api.paginator import QueryParamsInterface, create_query_params_class
 
-log = get_logger(modulename="Job:DrugDataLoader")
+log = get_logger(modulename="Task:DrugDataLoader")
 config = Config()
 
 

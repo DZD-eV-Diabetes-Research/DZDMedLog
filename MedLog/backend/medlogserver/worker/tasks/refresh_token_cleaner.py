@@ -8,7 +8,7 @@ from medlogserver.db._session import get_async_session_context
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
-log = get_logger(modulename="Job:TokenCleaner")
+log = get_logger(modulename="Task:TokenCleaner")
 config = Config()
 
 

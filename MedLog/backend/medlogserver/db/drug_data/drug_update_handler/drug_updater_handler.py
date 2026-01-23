@@ -27,7 +27,7 @@ DRUG_IMPORTER_CLASS = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
 class DrugUpdateHandler:
     def __init__(
         self,
-        user_id: uuid.UUID,
+        user_id: Optional[uuid.UUID] = None,
     ):
         self.user_id = user_id
 
@@ -45,18 +45,30 @@ class DrugUpdateHandler:
         drug_dataset_version_crud: DrugDataSetVersionCRUD,
         worker_job_crud: WorkerJobCRUD,
         http_response: Optional[Response] = None,
+        parent_job_id: Optional[uuid.UUID] = None,
+        extra_job_tags: Optional[List[str]] = None,
     ) -> DrugUpdaterStatus:
         updater_status = await self._get_drug_update_status(
             drug_dataset_version_crud, worker_job_crud
         )
         if updater_status.update_available:
+            tags = [
+                "drug-data-download",
+                f"version:{updater_status.update_available_version}",
+            ]
+            if parent_job_id:
+                tags.extend(
+                    [
+                        f"triggeredBy:drug-data-auto-updater/version:{updater_status.update_available_version}",
+                        f"triggeredByJobID:{parent_job_id}",
+                    ]
+                )
+            if extra_job_tags:
+                tags.extend(extra_job_tags)
             data_download_job = WorkerJobCreate(
                 task_name=Tasks(Tasks.DRUG_DATA_UPDATE_DOWNLOAD).name,
                 task_params=None,
-                tags=[
-                    "drug-data-download",
-                    f"version:{updater_status.update_available_version}",
-                ],
+                tags=tags,
                 user_id=self.user_id,
             )
             data_download_job = await worker_job_crud.create(data_download_job)

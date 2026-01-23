@@ -1,3 +1,7 @@
+# This Drug Data Importer is archived for now.
+# The License of the Wido Arzneimittelindex seems not to be compatible with a multiseat software.
+
+
 from typing import List, Callable, Tuple, Dict, Optional, AsyncIterator, TypeVar
 from pathlib import Path
 import datetime

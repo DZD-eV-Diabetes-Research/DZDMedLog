@@ -1,4 +1,4 @@
-from typing import Dict, List, Type
+from typing import Any, Dict, List, Type, Optional
 import asyncio
 import datetime
 import traceback
@@ -74,7 +74,7 @@ class TaskBase:
 async def task_runner(
     task_class: Type[TaskBase],
     job: WorkerJob = None,
-    task_params: Dict = None,
+    task_params: Optional[Dict[str, Any]] = None,
     instant_run: bool = False,
 ):
     task = task_class(job=job, task_params=task_params)
