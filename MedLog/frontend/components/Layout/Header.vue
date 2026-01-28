@@ -20,6 +20,7 @@
 import { computed } from '#imports';
 
 const configStore = useConfigStore();
+const eventStore = useEventStore();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
 
@@ -82,12 +83,13 @@ const menuItems = computed(() => {
 });
 
 async function logout() {
-  userStore.$reset();
-  studyStore.$reset();
-
+  // TODO build logout page that does all that
   await useMedlogapi("/api/auth/logout", {
     method: 'POST'
   })
+  userStore.$reset();
+  eventStore.$reset();
+  studyStore.$reset();
   await navigateTo('/login');
 }
 </script>

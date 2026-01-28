@@ -9,6 +9,7 @@
 const configStore = useConfigStore();
 const drugFieldsStore = useDrugFields();
 const healthCheckStore = useHealthCheckStore();
+const roleStore = useRoleStore();
 const studyStore = useStudyStore();
 const userStore = useUserStore();
 
@@ -31,6 +32,20 @@ try {
     cause: error,
     fatal: true,
   });
+}
+
+try {
+  await roleStore.loadRoles()
+  await userStore.setUserInfo()
+} catch (error) {
+  // Swallow 401 errors, they are handled separately
+  if (!(isNuxtError(error) && error.statusCode == 401)) {
+    throw createError({
+      message: 'Konnte Rollen oder Nutzerdaten nicht abrufen',
+      cause: error,
+      fatal: true,
+    })
+  }
 }
 
 if (userStore.isLoggedIn) {
