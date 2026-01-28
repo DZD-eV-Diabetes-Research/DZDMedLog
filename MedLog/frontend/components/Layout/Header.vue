@@ -20,9 +20,7 @@
 import { computed } from '#imports';
 
 const configStore = useConfigStore();
-const eventStore = useEventStore();
 const userStore = useUserStore();
-const studyStore = useStudyStore();
 
 const menuItems = computed(() => {
   const links = [
@@ -66,7 +64,7 @@ const menuItems = computed(() => {
       label: 'Logout',
       labelClass: 'text-base',
       icon: 'i-heroicons-power',
-      click: logout
+      to: '/logout'
     });
   } else {
     rightSideLinks.push({
@@ -81,17 +79,6 @@ const menuItems = computed(() => {
 
   return links;
 });
-
-async function logout() {
-  // TODO build logout page that does all that
-  await useMedlogapi("/api/auth/logout", {
-    method: 'POST'
-  })
-  userStore.$reset();
-  eventStore.$reset();
-  studyStore.$reset();
-  await navigateTo('/login');
-}
 </script>
 
 <style scoped>
