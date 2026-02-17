@@ -1056,11 +1056,14 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
             drug_schema_objects = []
             drug_dataset = await self._ensure_drug_dataset_version()
             # generate list of values
-            all_attr_defs_by_type = await self.get_all_attr_field_definitions()
 
+            all_attr_defs_by_type = await self.get_all_attr_field_definitions()
+            all_attr_defs_flat = []
             for attrdefs in all_attr_defs_by_type.values():
                 for attrdef in attrdefs:
-                    drug_schema_objects.append(attrdef)
+                    all_attr_defs_flat.append(attrdef)
+
+            # all_objs.extend(all_attr_defs_flat)
 
             for ref_lov_field_obj in (
                 get_attr_ref_definitions() + get_attr_multi_ref_definitions()
