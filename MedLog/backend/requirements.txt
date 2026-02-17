@@ -130,7 +130,7 @@ sqlalchemy[asyncio]==2.0.46
     #   alembic
     #   medlogserver (MedLog/backend/pyproject.toml)
     #   sqlmodel
-sqlmodel==0.0.32
+sqlmodel==0.0.31
     # via medlogserver (MedLog/backend/pyproject.toml)
 starlette==0.52.1
     # via
