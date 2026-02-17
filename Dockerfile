@@ -5,9 +5,9 @@ FROM oven/bun AS medlog-frontend-build
 RUN mkdir /frontend_build
 WORKDIR /frontend_build
 COPY MedLog/frontend /frontend_build
-RUN rm -r /frontend_build/.nuxt
-RUN rm -r /frontend_build/.output
-RUN rm -r /frontend_build/node_modules
+RUN rm -rf /frontend_build/.nuxt
+RUN rm -rf /frontend_build/.output
+RUN rm -rf /frontend_build/node_modules
 RUN bun install && bun run build && bunx nuxi generate
 
 # BACKEND BUILD AND RUN STAGE
