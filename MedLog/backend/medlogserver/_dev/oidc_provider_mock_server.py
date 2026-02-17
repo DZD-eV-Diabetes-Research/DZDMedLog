@@ -8,15 +8,16 @@ from pathlib import Path
 
 import yaml
 
+CONFIG_DATABASE_FILE = Path(Path(__file__).parent, "oidc_testusers.yaml")
+
 
 def provision_test_users(oidc_mockup_server_base_url: str):
-    users_database_file = Path(Path(__file__).parent, "testusers.yaml")
     users: List[Dict] = []
-    if users_database_file.is_file():
-        with open(users_database_file, "r") as file:
+    if CONFIG_DATABASE_FILE.is_file():
+        with open(CONFIG_DATABASE_FILE, "r") as file:
             file_content_parsed = yaml.safe_load(file.read())
-            if "Users" in file_content_parsed:
-                users.extend(file_content_parsed["Users"])
+            if "users" in file_content_parsed:
+                users.extend(file_content_parsed["users"])
     for user in users:
         print(f"Create testuser data: {user}")
         res = requests.put(

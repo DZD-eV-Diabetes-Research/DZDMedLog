@@ -3,6 +3,7 @@ from enum import Enum
 import importlib
 from pathlib import Path
 
+
 if TYPE_CHECKING:
     from medlogserver.worker.task import TaskBase
 
@@ -22,6 +23,9 @@ class Tasks(Enum):
         "medlogserver.worker.tasks.drug_data_update_download.TaskDrugDataUpdateDownload"
     )
     DRUG_DATA_CLEANING = "medlogserver.worker.tasks.drug_data_remove_obsolete_drug_entries.TaskRemoveOnbsoleteDrugDataEntries"
+    DRUG_DATA_AUTO_UPDATER = (
+        "medlogserver.worker.tasks.drug_data_auto_updater.TaskDrugDataAutoUpdater"
+    )
 
 
 def import_task_class(class_path: str) -> Type["TaskBase"]:

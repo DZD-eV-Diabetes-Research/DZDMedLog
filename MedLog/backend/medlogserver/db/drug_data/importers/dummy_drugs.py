@@ -1,3 +1,4 @@
+from ftplib import FTP
 from typing import (
     List,
     Callable,
@@ -49,7 +50,13 @@ from medlogserver.model.drug_data.drug_code import DrugCode
 from medlogserver.log import get_logger
 from medlogserver.config import Config
 from medlogserver.model.unset import Unset
-from medlogserver.utils import extract_bracket_values
+from medlogserver.utils import (
+    extract_bracket_values,
+    FTPClient,
+    highest_version,
+    is_version_higher,
+    unzip,
+)
 
 config = Config()
 log = get_logger(modulename="DRUGIMPORT")
@@ -207,6 +214,7 @@ code_attr_definitions = [
             importer_name=config.DRUG_IMPORTER_PLUGIN,
             code_display_sort_order=1,
             code_icon="💊",
+            client_visible=True,
         ),
         source_mapping=drugs_csv_2_attr_mappings["codes.ATC"],
     ),
@@ -219,6 +227,7 @@ code_attr_definitions = [
             unique=True,
             importer_name=config.DRUG_IMPORTER_PLUGIN,
             code_display_sort_order=0,
+            client_visible=True,
         ),
         source_mapping=drugs_csv_2_attr_mappings["codes.PZN"],
     ),
@@ -407,18 +416,52 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             "provisioning_data/dummy_drugset",
         ).absolute()
 
+    def _get_ftp_client_for_remote_drug_data_source(self) -> FTPClient | None:
+        ftp_client: FTPClient | None = None
+        if config.DRUG_IMPORTER_SOURCE_FTP_HOST:
+            log.debug(
+                f"Connect to FTP `{config.DRUG_IMPORTER_SOURCE_FTP_HOST}:{config.DRUG_IMPORTER_SOURCE_FTP_PORT}` with `{config.DRUG_IMPORTER_SOURCE_FTP_USER}/{config.DRUG_IMPORTER_SOURCE_FTP_PASSWORD}`"
+            )
+            ftp_client = FTPClient(
+                host=config.DRUG_IMPORTER_SOURCE_FTP_HOST,
+                user=config.DRUG_IMPORTER_SOURCE_FTP_USER,
+                port=config.DRUG_IMPORTER_SOURCE_FTP_PORT,
+                password=config.DRUG_IMPORTER_SOURCE_FTP_PASSWORD,
+            )
+            ftp_client.is_server_up(timeout=1)
+            return ftp_client
+
     async def check_for_remote_dataset_update_available(self) -> str | None:
-        dummy_datasets_base_dir = self.get_dummy_dataset_base_path()
-        print("dummy_datasets_base_dir", dummy_datasets_base_dir)
-        # MedLog/backend/medlogserver/db/drug_data/importers/dummy_drugs.py
-        # MedLog/backend/tests/provisioning_data
         imported_datasets = await self.get_already_imported_datasets()
-        for dummy_dataset_dir in dummy_datasets_base_dir.iterdir():
-            version_string = dummy_dataset_dir.name
-            print("####dummy_datasets_base_dir version_string", version_string)
-            print(imported_datasets)
-            if version_string not in [ds.dataset_version for ds in imported_datasets]:
-                return version_string
+        imported_dataset_version_strings = [
+            imp.dataset_version for imp in imported_datasets
+        ]
+        highest_imported_dataset_version = highest_version(
+            imported_dataset_version_strings
+        )
+        log.debug("CHECK FOR REMOT DRUG DATA UPDATE")
+        ftp_client = self._get_ftp_client_for_remote_drug_data_source()
+        if ftp_client is None:
+            # we just work with the local dummy drug data files directly
+            dummy_datasets_base_dir = self.get_dummy_dataset_base_path()
+            print("dummy_datasets_base_dir", dummy_datasets_base_dir)
+            # MedLog/backend/medlogserver/db/drug_data/importers/dummy_drugs.py
+            # MedLog/backend/tests/provisioning_data
+            remote_versions = [
+                d.stem
+                for d in dummy_datasets_base_dir.iterdir()
+                if d.stem not in ["zipped", "zip_dummy_drugsets.py"]
+            ]
+        else:
+            remote_file_list = ftp_client.list_files()
+            remote_versions = [d.name for d in remote_file_list]
+            log.debug(f"REMOTE VERSION {remote_versions}")
+        if not remote_versions:
+            return None
+        highest_remote_version = highest_version(remote_versions)
+
+        if is_version_higher(highest_remote_version, highest_imported_dataset_version):
+            return highest_remote_version
         return None
 
     async def download_remote_dataset_update(self) -> Self | None:
@@ -431,11 +474,42 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
         Returns:
             DrugDataSetVersion: _description_
         """
-        dummy_datasets_base_dir = self.get_dummy_dataset_base_path()
         new_version_string = await self.check_for_remote_dataset_update_available()
         if not new_version_string:
             return None
-        dummy_dataset_dir = Path(dummy_datasets_base_dir, new_version_string)
+
+        ftp_client = self._get_ftp_client_for_remote_drug_data_source()
+        if ftp_client:
+            Path(config.DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR).mkdir(
+                parents=True, exist_ok=True
+            )
+            target_download_path = Path(
+                config.DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR,
+                f"{new_version_string}.zip",
+            )
+            target_unzip_dir_path = Path(
+                config.DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR,
+                new_version_string,
+            )
+            new_remote_version_zip_file = ftp_client.list_files(new_version_string)[
+                0
+            ].name
+            ftp_client.download_file(
+                remote_path=Path(new_version_string, new_remote_version_zip_file),
+                local_path=target_download_path,
+            )
+            target_unzip_dir_path.mkdir(exist_ok=True)
+            dummy_dataset_dir = unzip(
+                zip_path=target_download_path,
+                destination=target_unzip_dir_path,
+                unwrap_single_dir=True,
+            )
+        else:
+            # we just work with the local dummy drug data files directly
+            # there is no dummy FTP server
+            dummy_datasets_base_dir = self.get_dummy_dataset_base_path()
+
+            dummy_dataset_dir = Path(dummy_datasets_base_dir, new_version_string)
 
         self.source_dir = dummy_dataset_dir
         self.version = new_version_string

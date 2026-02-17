@@ -37,7 +37,7 @@ from medlogserver.worker.tasks import Tasks
 
 from medlogserver.api.paginator import QueryParamsInterface, create_query_params_class
 
-log = get_logger(modulename="Job:DrugDataDownloader")
+log = get_logger(modulename="Task:DrugDataDownloader")
 config = Config()
 
 

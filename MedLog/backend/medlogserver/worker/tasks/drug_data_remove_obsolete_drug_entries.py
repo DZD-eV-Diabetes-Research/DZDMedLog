@@ -14,7 +14,7 @@ from medlogserver.log import get_logger
 from medlogserver.model.drug_data import DrugData, DrugDataSetVersion
 from medlogserver.model.intake import Intake
 
-log = get_logger(modulename="Job:DrugDataSetCleaner")
+log = get_logger(modulename="Task:DrugDataSetCleaner")
 config = Config()
 
 

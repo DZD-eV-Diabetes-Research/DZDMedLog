@@ -1,3 +1,4 @@
+from operator import contains
 from pydoc import classify_class_attrs
 from typing import (
     List,
@@ -13,6 +14,7 @@ from typing import (
     Union,
     Iterator,
     AsyncGenerator,
+    Self,
 )
 import uuid
 from sqlalchemy.orm.collections import InstrumentedList
@@ -25,7 +27,7 @@ import datetime
 import csv
 import re
 from dataclasses import dataclass
-from sqlmodel import SQLModel, select, text
+from sqlmodel import SQLModel, select, text, and_
 from medlogserver.db._session import (
     get_async_session_context,
     AsyncSession,
@@ -61,7 +63,14 @@ from medlogserver.model.drug_data.drug_code import DrugCode
 from medlogserver.log import get_logger
 from medlogserver.config import Config
 from medlogserver.model.unset import Unset
-from medlogserver.utils import extract_bracket_values, async_enumerate, humanbytes
+from medlogserver.utils import (
+    extract_bracket_values,
+    async_enumerate,
+    FTPClient,
+    is_version_higher,
+    highest_version,
+    unzip,
+)
 import gc
 
 
@@ -316,6 +325,8 @@ def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 optional=False,
                 unique=True,
                 importer_name=importername,
+                code_display_sort_order=1,
+                client_visible=True,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["codes.PZN"],
         ),
@@ -328,6 +339,8 @@ def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 optional=False,
                 unique=False,
                 importer_name=importername,
+                code_display_sort_order=2,
+                client_visible=False,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["codes.MMIP"],
         ),
@@ -349,6 +362,7 @@ def get_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 importer_name=importername,
                 searchable=False,
                 field_display_priority_class=DisplayPriorityClass.CLASS2,
+                field_icon=None,
                 field_display_sort_order=1,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs.amount"],
@@ -365,6 +379,9 @@ def get_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 is_multi_val_field=False,
                 examples=[True, False],
                 importer_name=importername,
+                field_display_priority_class=DisplayPriorityClass.CLASS3,
+                field_icon=None,
+                field_display_sort_order=1,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_verhuetungsmittel"],
         ),
@@ -380,6 +397,9 @@ def get_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 is_multi_val_field=False,
                 examples=[True, False],
                 importer_name=importername,
+                field_display_priority_class=DisplayPriorityClass.CLASS3,
+                field_icon=None,
+                field_display_sort_order=10,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_kosmetikum"],
         ),
@@ -395,6 +415,9 @@ def get_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 is_multi_val_field=False,
                 examples=[True, False],
                 importer_name=importername,
+                field_display_priority_class=DisplayPriorityClass.CLASS3,
+                field_icon=None,
+                field_display_sort_order=2,
             ),
             source_mapping=mmi_rohdaten_r3_mappings[
                 "attrs.ist_nahrungsergaenzungsmittel"
@@ -412,6 +435,9 @@ def get_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 is_multi_val_field=False,
                 examples=[True, False],
                 importer_name=importername,
+                field_display_priority_class=DisplayPriorityClass.CLASS3,
+                field_icon=None,
+                field_display_sort_order=3,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_pflanzlich"],
         ),
@@ -428,7 +454,8 @@ def get_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 examples=[1, 0],
                 importer_name=importername,
                 field_display_priority_class=DisplayPriorityClass.CLASS2,
-                field_display_sort_order=0,
+                field_icon=None,
+                field_display_sort_order=3,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_generikum"],
         ),
@@ -444,6 +471,9 @@ def get_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 is_multi_val_field=False,
                 examples=[1, 0],
                 importer_name=importername,
+                field_display_priority_class=DisplayPriorityClass.CLASS2,
+                field_icon=None,
+                field_display_sort_order=4,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs.ist_homoeopathisch"],
         ),
@@ -483,7 +513,7 @@ def get_attr_multi_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 importer_name=importername,
                 searchable=True,
                 field_display_priority_class=DisplayPriorityClass.CLASS1,
-                field_display_sort_order=0,
+                field_display_sort_order=1,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs_multi.ATC"],
         )
@@ -505,6 +535,9 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 examples=["AUGEN", "DIL"],
                 importer_name=importername,
                 searchable=True,
+                field_display_priority_class=DisplayPriorityClass.CLASS1,
+                field_icon=None,
+                field_display_sort_order=5,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.darreichungsform"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
@@ -524,6 +557,9 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 examples=["D", "F"],
                 importer_name=importername,
                 searchable=False,
+                field_display_priority_class=DisplayPriorityClass.CLASS1,
+                field_icon=None,
+                field_display_sort_order=2,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.vertriebsstatus"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
@@ -543,6 +579,9 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 examples=["A", "1"],
                 importer_name=importername,
                 searchable=False,
+                field_display_priority_class=DisplayPriorityClass.CLASS2,
+                field_icon=None,
+                field_display_sort_order=4,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.normgroesse"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
@@ -562,6 +601,9 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 examples=["0", "2"],
                 importer_name=importername,
                 searchable=False,
+                field_display_priority_class=DisplayPriorityClass.CLASS2,
+                field_icon=None,
+                field_display_sort_order=5,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.abgabestatus"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
@@ -581,6 +623,9 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 examples=["E", "N", "Y"],
                 importer_name=importername,
                 searchable=False,
+                field_display_priority_class=DisplayPriorityClass.CLASS3,
+                field_icon=None,
+                field_display_sort_order=8,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.lebensmittel"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
@@ -600,6 +645,9 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 examples=["E", "N", "Y"],
                 importer_name=importername,
                 searchable=False,
+                field_display_priority_class=DisplayPriorityClass.CLASS2,
+                field_icon=None,
+                field_display_sort_order=4,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.diaetetikum"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
@@ -620,6 +668,9 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 examples=["13819", "15777", "12"],
                 importer_name=importername,
                 searchable=False,
+                field_display_priority_class=DisplayPriorityClass.CLASS1,
+                field_icon=None,
+                field_display_sort_order=0,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.hersteller"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
@@ -648,6 +699,9 @@ def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 examples=["104", "19"],
                 importer_name=importername,
                 searchable=True,
+                field_display_priority_class=DisplayPriorityClass.CLASS1,
+                field_icon=None,
+                field_display_sort_order=6,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs_multi_ref.applikationsart"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
@@ -667,6 +721,9 @@ def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 examples=["8", "23", "70"],
                 importer_name=importername,
                 searchable=True,
+                field_display_priority_class=DisplayPriorityClass.CLASS3,
+                field_icon=None,
+                field_display_sort_order=9,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs_multi_ref.keywords"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
@@ -690,6 +747,9 @@ def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 examples=["A01.0, M01.39", "B44.8 K23.8", "F41.1"],
                 importer_name=importername,
                 searchable=True,
+                field_display_priority_class=DisplayPriorityClass.CLASS2,
+                field_icon=None,
+                field_display_sort_order=9,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["attrs_multi_ref.icd10"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
@@ -750,6 +810,145 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
         # self._cache_csv_dataview = {}
         del self._cache_csv_lookups
         self._cache_csv_lookups = {}
+
+    def _get_ftp_client_for_remote_drug_data_source(self) -> FTPClient | None:
+        ftp_client: FTPClient | None = None
+        if config.DRUG_IMPORTER_SOURCE_FTP_HOST:
+            log.debug(
+                f"Connect to FTP `{config.DRUG_IMPORTER_SOURCE_FTP_HOST}:{config.DRUG_IMPORTER_SOURCE_FTP_PORT}` with `{config.DRUG_IMPORTER_SOURCE_FTP_USER}/{config.DRUG_IMPORTER_SOURCE_FTP_PASSWORD}`"
+            )
+            ftp_client = FTPClient(
+                host=config.DRUG_IMPORTER_SOURCE_FTP_HOST,
+                user=config.DRUG_IMPORTER_SOURCE_FTP_USER,
+                port=config.DRUG_IMPORTER_SOURCE_FTP_PORT,
+                password=config.DRUG_IMPORTER_SOURCE_FTP_PASSWORD,
+            )
+            log.debug(
+                f"Check FTP `{config.DRUG_IMPORTER_SOURCE_FTP_HOST}:{config.DRUG_IMPORTER_SOURCE_FTP_PORT}` is available."
+            )
+            ftp_client.is_server_up(timeout=1)
+            log.debug(
+                f"FTP `{config.DRUG_IMPORTER_SOURCE_FTP_HOST}:{config.DRUG_IMPORTER_SOURCE_FTP_PORT}` seems healthy."
+            )
+            return ftp_client
+
+    async def check_for_remote_dataset_update_available(self) -> str | None:
+        allready_imported_datasets = await self.get_already_imported_datasets()
+
+        log.debug("CHECK FOR REMOT DRUG DATA UPDATE")
+        ftp_client = self._get_ftp_client_for_remote_drug_data_source()
+        if ftp_client is None:
+            return None
+
+        remote_file_list = ftp_client.list_files(remote_dir="MMI_RohdatenR3")
+        remote_versions = [
+            d.name.rstrip(".zip") for d in remote_file_list if d.type_ == "file"
+        ]
+        log.debug(f"REMOTE VERSION {remote_versions}")
+        if not remote_versions:
+            return None
+        highest_remote_version = highest_version(remote_versions)
+
+        if allready_imported_datasets:
+            imported_dataset_version_strings = [
+                imp.dataset_version for imp in allready_imported_datasets
+            ]
+            highest_imported_dataset_version = highest_version(
+                imported_dataset_version_strings
+            )
+            if is_version_higher(
+                highest_remote_version, highest_imported_dataset_version
+            ):
+                return highest_remote_version
+        else:
+            return highest_remote_version
+        return None
+
+    async def download_remote_dataset_update(self) -> Self | None:
+        """This function checks if the is a more recent drug-data-set available, if yes it will be downloaded
+
+        Returns:
+            DrugDataSetVersion: _description_
+        """
+        new_version_string = await self.check_for_remote_dataset_update_available()
+        if not new_version_string:
+            return None
+
+        ftp_client = self._get_ftp_client_for_remote_drug_data_source()
+        if not ftp_client:
+            return None
+        Path(config.DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR).mkdir(
+            parents=True, exist_ok=True
+        )
+
+        target_unzip_dir_path = Path(
+            config.DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR,
+            f"{new_version_string}",
+        )
+        new_remote_version_zip_file = None
+        for remote_obj in ftp_client.list_files(remote_dir="MMI_RohdatenR3"):
+            if remote_obj.type_ == "dir":
+                continue
+            elif remote_obj.name.endswith(".zip"):
+                new_remote_version_zip_file = remote_obj.name
+        if new_remote_version_zip_file is None:
+            return None
+        target_download_path = Path(
+            config.DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR,
+            f"{new_remote_version_zip_file}.zip",
+        )
+        remote_path = Path("MMI_RohdatenR3", new_remote_version_zip_file)
+        log.info(f"Download drug data update `{remote_path} from `{ftp_client.host}`")
+        ftp_client.download_file(
+            remote_path=remote_path,
+            local_path=target_download_path,
+        )
+        target_unzip_dir_path.mkdir(exist_ok=True)
+        dummy_dataset_dir = unzip(
+            zip_path=target_download_path,
+            destination=target_unzip_dir_path,
+            unwrap_single_dir=True,
+        )
+
+        self.source_dir = dummy_dataset_dir
+        self.version = new_version_string
+        return self
+
+    async def get_already_imported_datasets(
+        self,
+    ) -> List[DrugDataSetVersion]:
+        print("DummyDrugs", self.dataset_name)
+        all_rows = []
+        async with get_async_session_context() as session:
+            query = (
+                select(DrugDataSetVersion)
+                .where(
+                    and_(
+                        DrugDataSetVersion.dataset_source_name == self.dataset_name,
+                        DrugDataSetVersion.is_custom_drugs_collection == False,
+                    )
+                )
+                .order_by(DrugDataSetVersion.dataset_version)
+            )
+            result = await session.exec(query)
+            all_rows = result.all()
+        return list(all_rows)
+
+    async def was_dataset_version_imported(self) -> DrugDataSetVersion | None:
+        imported_datasets = await self.get_already_imported_datasets()
+        for imported_dataset in imported_datasets:
+            if (
+                imported_dataset.dataset_version == self.version
+                and imported_dataset.import_status in ["running", "done"]
+            ):
+                return imported_dataset
+        return None
+
+    async def get_drug_dataset_version(self) -> str:
+        if self.version is None and self.source_dir is not None:
+            source_dir_name = Path(self.source_dir).name
+            self.version = source_dir_name
+        return self.version
 
     async def get_attr_field_definitions(
         self, by_name: Optional[str] = None

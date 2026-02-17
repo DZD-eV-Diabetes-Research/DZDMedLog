@@ -4,23 +4,23 @@
 #
 #    pip-compile --extra=docs --output-file=MedLog/backend/requirements_docs.txt MedLog/backend/pyproject.toml
 #
-aiosqlite==0.21.0
+aiosqlite==0.22.1
     # via medlogserver (MedLog/backend/pyproject.toml)
-alembic==1.17.2
+alembic==1.18.0
     # via medlogserver (MedLog/backend/pyproject.toml)
 annotated-doc==0.0.4
     # via fastapi
 annotated-types==0.7.0
     # via pydantic
-anyio==4.11.0
+anyio==4.12.1
     # via
     #   httpx
     #   starlette
-apscheduler==3.11.1
+apscheduler==3.11.2
     # via medlogserver (MedLog/backend/pyproject.toml)
 async-lru==2.0.5
     # via medlogserver (MedLog/backend/pyproject.toml)
-authlib==1.6.5
+authlib==1.6.6
     # via medlogserver (MedLog/backend/pyproject.toml)
 babel==2.17.0
     # via mkdocs-material
@@ -28,9 +28,9 @@ backrefs==6.1
     # via mkdocs-material
 bcrypt==5.0.0
     # via passlib
-build==1.3.0
+build==1.4.0
     # via pip-tools
-certifi==2025.11.12
+certifi==2026.1.4
     # via
     #   httpcore
     #   httpx
@@ -59,13 +59,13 @@ ecdsa==0.19.1
     # via python-jose
 email-validator==2.3.0
     # via pydantic
-fastapi==0.121.3
+fastapi==0.128.0
     # via medlogserver (MedLog/backend/pyproject.toml)
 getversion==1.0.2
     # via medlogserver (MedLog/backend/pyproject.toml)
 ghp-import==2.1.0
     # via mkdocs
-greenlet==3.2.4
+greenlet==3.3.0
     # via sqlalchemy
 griffe==1.15.0
     # via mkdocstrings-python
@@ -123,15 +123,15 @@ mkdocs-autorefs==1.4.3
     #   mkdocstrings-python
 mkdocs-get-deps==0.2.0
     # via mkdocs
-mkdocs-material==9.7.0
+mkdocs-material==9.7.1
     # via medlogserver (MedLog/backend/pyproject.toml)
 mkdocs-material-extensions==1.3.1
     # via mkdocs-material
-mkdocstrings[python]==0.30.1
+mkdocstrings[python]==1.0.0
     # via
     #   medlogserver (MedLog/backend/pyproject.toml)
     #   mkdocstrings-python
-mkdocstrings-python==1.19.0
+mkdocstrings-python==2.0.1
     # via mkdocstrings
 oauthlib==3.3.1
     # via medlogserver (MedLog/backend/pyproject.toml)
@@ -144,19 +144,19 @@ paginate==0.5.7
     # via mkdocs-material
 passlib[bcrypt]==1.7.4
     # via medlogserver (MedLog/backend/pyproject.toml)
-pathspec==0.12.1
+pathspec==1.0.3
     # via mkdocs
 pip-tools==7.5.2
     # via medlogserver (MedLog/backend/pyproject.toml)
-platformdirs==4.5.0
+platformdirs==4.5.1
     # via mkdocs-get-deps
-polars==1.35.2
+polars==1.37.1
     # via medlogserver (MedLog/backend/pyproject.toml)
-polars-runtime-32==1.35.2
+polars-runtime-32==1.37.1
     # via polars
-psycopg[binary]==3.2.12
+psycopg[binary]==3.3.2
     # via medlogserver (MedLog/backend/pyproject.toml)
-psycopg-binary==3.2.12
+psycopg-binary==3.3.2
     # via psycopg
 pyasn1==0.6.1
     # via
@@ -164,7 +164,7 @@ pyasn1==0.6.1
     #   rsa
 pycparser==2.23
     # via cffi
-pydantic[email]==2.12.4
+pydantic[email]==2.12.5
     # via
     #   fastapi
     #   medlogserver (MedLog/backend/pyproject.toml)
@@ -176,7 +176,7 @@ pydantic-settings==2.12.0
     # via medlogserver (MedLog/backend/pyproject.toml)
 pygments==2.19.2
     # via mkdocs-material
-pymdown-extensions==10.17.1
+pymdown-extensions==10.20
     # via
     #   mkdocs-material
     #   mkdocstrings
@@ -190,7 +190,7 @@ python-dotenv==1.2.1
     # via pydantic-settings
 python-jose[cryptography]==3.5.0
     # via medlogserver (MedLog/backend/pyproject.toml)
-python-multipart==0.0.20
+python-multipart==0.0.21
     # via medlogserver (MedLog/backend/pyproject.toml)
 pyyaml==6.0.3
     # via
@@ -211,14 +211,12 @@ six==1.17.0
     # via
     #   ecdsa
     #   python-dateutil
-sniffio==1.3.1
-    # via anyio
-sqlalchemy[asyncio]==2.0.44
+sqlalchemy[asyncio]==2.0.45
     # via
     #   alembic
     #   medlogserver (MedLog/backend/pyproject.toml)
     #   sqlmodel
-sqlmodel==0.0.27
+sqlmodel==0.0.31
     # via medlogserver (MedLog/backend/pyproject.toml)
 starlette==0.50.0
     # via
@@ -228,7 +226,6 @@ stdlib-list==0.12.0
     # via getversion
 typing-extensions==4.15.0
     # via
-    #   aiosqlite
     #   alembic
     #   fastapi
     #   pydantic
@@ -241,13 +238,13 @@ typing-inspection==0.4.2
     #   pydantic-settings
 tzlocal==5.3.1
     # via apscheduler
-urllib3==2.5.0
+urllib3==2.6.3
     # via requests
-uvicorn==0.38.0
+uvicorn==0.40.0
     # via medlogserver (MedLog/backend/pyproject.toml)
 watchdog==6.0.0
     # via mkdocs
-websockets==15.0.1
+websockets==16.0
     # via medlogserver (MedLog/backend/pyproject.toml)
 wheel==0.45.1
     # via pip-tools

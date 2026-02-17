@@ -47,7 +47,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-tests = ["pytest", "requests", "oidc-provider-mock", "memory_profiler"]
+tests = [
+    "pytest",
+    "requests",
+    "oidc-provider-mock",
+    "memory_profiler",
+    "pyftpdlib",
+]
 docs = ["mkdocs", "mkdocstrings[python]", "mkdocs-autorefs", "mkdocs-material"]
 
 

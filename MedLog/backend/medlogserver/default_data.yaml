@@ -16,3 +16,10 @@ items:
         tags: ["background-job"]
         interval_params:
           seconds: 10
+      - id: c6a8dbdd-1a89-45c9-8c55-d1453f83884d
+        task_name: DRUG_DATA_AUTO_UPDATER
+        #task_params: null
+        #user_id: null
+        tags: ["background-job"]
+        interval_params:
+          days: 1

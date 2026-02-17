@@ -311,21 +311,14 @@ class Config(BaseSettings):
             )
         return AUTH_OIDC_PROVIDERS
 
-    AI_DATA_IMPORTER_FLUSH_AFTER_N_ROWS: int = Field(
-        default=1000,
-        description="When reading the Arzneimittelindex data files, write every n rows to the database. Lower this number in a low memory env.",
-    )
-
     # Availabe modules live in MedLog/backend/medlogserver/model/drug_data/importers/__init__.py
-    DRUG_IMPORTER_PLUGIN: Literal[
-        "WidoGkvArzneimittelindex52", "MmmiPharmaindex1_32", "DummyDrugImporterV1"
-    ] = Field(
+    DRUG_IMPORTER_PLUGIN: Literal["MmmiPharmaindex1_32", "DummyDrugImporterV1"] = Field(
         default="DummyDrugImporterV1",
         description="Depending on the drug database that is used, we can define an importer.",
     )
     DRUG_IMPORTER_AUTO_UPDATE_DRUG_DB: bool = Field(
         default=False,
-        description="If the drug importer plugin, does support it, the drug DB will be updated automaticly. Otherwise it must be manually triggered via endpoint ...TODO",
+        description="If the drug importer plugin, does support it, the drug DB will be updated automaticly. Otherwise it must be manually triggered via the RestApi/WebClient",
     )
     DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB: bool = Field(
         default=False,
@@ -337,11 +330,33 @@ class Config(BaseSettings):
         description="If the drug import supports batching, this is the size per batch. The trade of are some speed bumps, while drug importing, versus memory consumption. On a low memory machine decrease this value.",
     )
 
+    DRUG_IMPORTER_SOURCE_FTP_HOST: Optional[str] = Field(
+        default=None,
+        description="When using MmmiPharmaindex1_32 auto updater, this is the FTP host to check for available datasets.",
+    )
+    DRUG_IMPORTER_SOURCE_FTP_PORT: int = Field(
+        default=21,
+        description="When using MmmiPharmaindex1_32 auto updater, this is the FTP port to connect to `DRUG_IMPORTER_SOURCE_FTP_HOST`.",
+    )
+    DRUG_IMPORTER_SOURCE_FTP_USER: Optional[str] = Field(
+        default=None,
+        description="When using MmmiPharmaindex1_32 auto updater, authorize with this username against the MMI Pharmindex FTP Server ",
+    )
+
+    DRUG_IMPORTER_SOURCE_FTP_PASSWORD: Optional[SecretStr] = Field(
+        default=None,
+        description="When using MmmiPharmaindex1_32 auto updater, authorize with this password against the MMI Pharmindex FTP Server ",
+    )
+    DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR: str = Field(
+        default="/tmp/medlog_drugdata",
+        description="A directory for storing downloaded drug data sets",
+    )
+
     DRUG_SEARCHENGINE_CLASS: Literal["GenericSQLDrugSearch"] = Field(
         description="The search engine used in the background to answer drug search requests.",
         default="GenericSQLDrugSearch",
     )
-    DRUG_TABLE_PROVISIONING_SOURCE_DIR: str = Field(
+    DRUG_TABLE_PROVISIONING_SOURCE_DIR: Optional[str] = Field(
         description="If MedLog is booted with an empty drug database, it will check if a source data set of the GKV Arzneimittel Index is located in this dir",
         default=str(
             Path(
