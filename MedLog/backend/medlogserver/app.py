@@ -58,15 +58,21 @@ class FastApiAppContainer:
         json_parent_dir_path = json_file_path.parent
         json_parent_dir_path.mkdir(exist_ok=True, parents=True)
         # f"{Path(__file__).parent}/../../openapi.json"
+        """
+        openapi_spec = (
+            get_openapi(
+                title=self.app.title,
+                version=self.app.version,
+                openapi_version=self.app.openapi_version,
+                description=self.app.description,
+                routes=self.app.routes,
+            ),
+        )
+        """
+        openapi_spec = self.app.openapi()
         with open(json_file_path, "w") as f:
             json.dump(
-                get_openapi(
-                    title=self.app.title,
-                    version=self.app.version,
-                    openapi_version=self.app.openapi_version,
-                    description=self.app.description,
-                    routes=self.app.routes,
-                ),
+                openapi_spec,
                 f,
                 sort_keys=False,
                 indent=2,

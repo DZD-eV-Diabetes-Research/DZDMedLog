@@ -5,7 +5,6 @@ import os
 from pydantic import (
     Field,
     SecretStr,
-    AnyHttpUrl,
     field_validator,
     StringConstraints,
     model_validator,

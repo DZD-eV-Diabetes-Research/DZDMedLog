@@ -37,8 +37,9 @@ WORKDIR $BASEDIR
 RUN pip install -U pip-tools
 
 # Generate requirements.txt based on depenencies defined in pyproject.toml
-COPY MedLog/backend/pyproject.toml $BASEDIR/medlogserver/pyproject.toml
-RUN pip-compile -o $BASEDIR/requirements.txt $BASEDIR/medlogserver/pyproject.toml
+#COPY MedLog/backend/pyproject.toml $BASEDIR/medlogserver/pyproject.toml
+#RUN pip-compile -o $BASEDIR/requirements.txt $BASEDIR/medlogserver/pyproject.toml
+COPY MedLog/backend/requirements.txt $BASEDIR/requirements.txt
 
 # Install requirements
 RUN pip install -U -r $BASEDIR/requirements.txt
