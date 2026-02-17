@@ -950,9 +950,9 @@ def generic_version_comparison_function():
         "mmiPharmindexR3_20260115MAIN",
         "mmiPharmindexR3_20270115MAIN",
         is_version_higher(
-            "mmiPharmindexR3_20260115MAIN", "mmiPharmindexR3_20240115MAIN"
+            "mmiPharmindexR3_20260115MAIN", "mmiPharmindexR3_20270115MAIN"
         ),
-    )  # True
+    )  # False
 
 
 generic_version_comparison_function()
