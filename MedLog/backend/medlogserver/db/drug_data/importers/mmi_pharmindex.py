@@ -76,7 +76,7 @@ import gc
 
 config = Config()
 log = get_logger(modulename="DRUGIMPORT")
-importername = "MmmiPharmaindex1_32"
+importername = "MmiPharmaindex1_32"
 
 
 @dataclass
@@ -774,10 +774,10 @@ class CsvFileContentViewCache:
     parent_csv: CsvFileContentCache
 
 
-class MmmiPharmaindex1_32(DrugDataSetImporterBase):
+class MMIPharmindex1_32(DrugDataSetImporterBase):
     def __init__(self):
         self.dataset_name = "MMI Pharmindex"
-        self.api_name = "mmipharmindex"
+        self.api_name = importername
         self.dataset_link = "https://www.MmiPi.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/"
         self.source_dir = None
         self.version = None
