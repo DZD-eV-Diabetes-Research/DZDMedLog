@@ -359,7 +359,7 @@ class DrugDataSetImporterBase:
 
             # Process attribute definitions
             query = select(DrugAttrFieldDefinition).where(
-                DrugAttrFieldDefinition.importer_name == self.
+                DrugAttrFieldDefinition.importer_name == self.api_name
             )
             old_attr_defs = (await session.exec(query)).all()
             log.debug(
