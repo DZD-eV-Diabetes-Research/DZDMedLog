@@ -109,13 +109,13 @@ class IntakeUpdate(MedLogBaseModel, table=False):
         description="If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
     )
 
-    intake_start_time_utc: Optional[date] = Field(default=None)
+    intake_start_date: Optional[date] = Field(default=None)
     intake_start_date_option: Optional[IntakeStartDateOption] = Field(
         default=None,
         description="Use when no exact start date is available. Mutually exclusive with intake_start_time_utc. One of the two is mandatory.",
     )
 
-    intake_end_time_utc: Optional[date] = Field(default=None)
+    intake_end_date: Optional[date] = Field(default=None)
     intake_end_date_option: Optional[IntakeEndDateOption] = Field(
         default=None,
         description="Use when no exact end date is available. Mutually exclusive with intake_end_time_utc.",
@@ -135,17 +135,17 @@ class IntakeUpdate(MedLogBaseModel, table=False):
 
     @model_validator(mode="after")
     def validate_start_date(self):
-        if bool(self.intake_start_time_utc) == bool(self.intake_start_date_option):
+        if bool(self.intake_start_date) == bool(self.intake_start_date_option):
             raise ValueError(
-                "Exactly one of 'intake_start_time_utc' or 'intake_start_date_option' must be set."
+                "Exactly one of 'intake_start_date' or 'intake_start_date_option' must be set."
             )
         return self
 
     @model_validator(mode="after")
     def validate_end_date(self):
-        if self.intake_end_time_utc and self.intake_end_date_option:
+        if self.intake_end_date and self.intake_end_date_option:
             raise ValueError(
-                "Only one of 'intake_end_time_utc' or 'intake_end_date_option' may be set."
+                "Only one of 'intake_end_date' or 'intake_end_date_option' may be set."
             )
         return self
 

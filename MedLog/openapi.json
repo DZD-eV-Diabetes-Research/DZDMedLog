@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.13.2.dev49+g08c9da9dd.d20260225"
+    "version": "0.13.2.dev50+g155c72edf.d20260225"
   },
   "paths": {
     "/api/health": {
@@ -3122,9 +3122,9 @@
                 "created_at",
                 "source_of_drug_information",
                 "is_activeingredient_equivalent_choice",
-                "intake_start_time_utc",
+                "intake_start_date",
                 "intake_start_date_option",
-                "intake_end_time_utc",
+                "intake_end_date",
                 "intake_end_date_option",
                 "administered_by_doctor",
                 "intake_regular_or_as_needed",
@@ -3265,9 +3265,9 @@
                 "created_at",
                 "source_of_drug_information",
                 "is_activeingredient_equivalent_choice",
-                "intake_start_time_utc",
+                "intake_start_date",
                 "intake_start_date_option",
-                "intake_end_time_utc",
+                "intake_end_date",
                 "intake_end_date_option",
                 "administered_by_doctor",
                 "intake_regular_or_as_needed",
@@ -6550,7 +6550,7 @@
             "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
             "default": false
           },
-          "intake_start_time_utc": {
+          "intake_start_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6560,7 +6560,7 @@
                 "type": "null"
               }
             ],
-            "title": "Intake Start Time Utc"
+            "title": "Intake Start Date"
           },
           "intake_start_date_option": {
             "anyOf": [
@@ -6573,7 +6573,7 @@
             ],
             "description": "Use when no exact start date is available. Mutually exclusive with intake_start_time_utc. One of the two is mandatory."
           },
-          "intake_end_time_utc": {
+          "intake_end_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6583,7 +6583,7 @@
                 "type": "null"
               }
             ],
-            "title": "Intake End Time Utc"
+            "title": "Intake End Date"
           },
           "intake_end_date_option": {
             "anyOf": [
@@ -6695,7 +6695,7 @@
             "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
             "default": false
           },
-          "intake_start_time_utc": {
+          "intake_start_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6705,7 +6705,7 @@
                 "type": "null"
               }
             ],
-            "title": "Intake Start Time Utc"
+            "title": "Intake Start Date"
           },
           "intake_start_date_option": {
             "anyOf": [
@@ -6718,7 +6718,7 @@
             ],
             "description": "Use when no exact start date is available. Mutually exclusive with intake_start_time_utc. One of the two is mandatory."
           },
-          "intake_end_time_utc": {
+          "intake_end_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6728,7 +6728,7 @@
                 "type": "null"
               }
             ],
-            "title": "Intake End Time Utc"
+            "title": "Intake End Date"
           },
           "intake_end_date_option": {
             "anyOf": [
@@ -6830,7 +6830,7 @@
             "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
             "default": false
           },
-          "intake_start_time_utc": {
+          "intake_start_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6840,7 +6840,7 @@
                 "type": "null"
               }
             ],
-            "title": "Intake Start Time Utc"
+            "title": "Intake Start Date"
           },
           "intake_start_date_option": {
             "anyOf": [
@@ -6853,7 +6853,7 @@
             ],
             "description": "Use when no exact start date is available. Mutually exclusive with intake_start_time_utc. One of the two is mandatory."
           },
-          "intake_end_time_utc": {
+          "intake_end_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6863,7 +6863,7 @@
                 "type": "null"
               }
             ],
-            "title": "Intake End Time Utc"
+            "title": "Intake End Date"
           },
           "intake_end_date_option": {
             "anyOf": [
@@ -7019,7 +7019,7 @@
             "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
             "default": false
           },
-          "intake_start_time_utc": {
+          "intake_start_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -7029,7 +7029,7 @@
                 "type": "null"
               }
             ],
-            "title": "Intake Start Time Utc"
+            "title": "Intake Start Date"
           },
           "intake_start_date_option": {
             "anyOf": [
@@ -7042,7 +7042,7 @@
             ],
             "description": "Use when no exact start date is available. Mutually exclusive with intake_start_time_utc. One of the two is mandatory."
           },
-          "intake_end_time_utc": {
+          "intake_end_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -7052,7 +7052,7 @@
                 "type": "null"
               }
             ],
-            "title": "Intake End Time Utc"
+            "title": "Intake End Date"
           },
           "intake_end_date_option": {
             "anyOf": [

@@ -1,6 +1,7 @@
 from typing import List, Dict
 import json
 import datetime
+
 from _single_test_file_runner import run_all_tests_if_test_file_called
 
 if __name__ == "__main__":
@@ -36,6 +37,7 @@ def test_do_drugv2():
         DrugMultiValApiCreate,
     )
     from medlogserver.model.drug_data.drug import DrugData
+    from medlogserver.model.intake import IntakeStartDateOption
 
     search_identifiert_flag = "8473wterfgjhdsgf789w3eitgu"
     custom_drug_payload = DrugCustomCreate(
@@ -191,7 +193,7 @@ def test_create_intake():
     intake_data = IntakeCreateAPI(
         drug_id=drug["id"],
         source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
-        intake_start_time_utc=datetime.date.today().isoformat(),
+        intake_start_date=datetime.date.today().isoformat(),
         administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
         intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
         as_needed_dose_unit=1,
@@ -242,9 +244,14 @@ def test_update_intake():
         AdministeredByDoctorAnswers,
         IntakeRegularOrAsNeededAnswers,
         ConsumedMedsTodayAnswers,
+        IntakeStartDateOption,
     )
 
-    update_data = IntakeUpdate(administered_by_doctor=AdministeredByDoctorAnswers.NO)
+    update_data = IntakeUpdate(
+        administered_by_doctor=AdministeredByDoctorAnswers.NO,
+        intake_start_date=None,
+        intake_start_date_option=IntakeStartDateOption.UNKNOWN,
+    )
 
     updated_intake = req(
         f"api/study/{study_id}/interview/{interview.interview.id}/intake/{intake.intake.id}",
@@ -298,7 +305,7 @@ def test_get_intake():
     dict_must_contain(
         intake,
         required_keys=[
-            "intake_start_time_utc",
+            "intake_start_date",
             "administered_by_doctor",
             "source_of_drug_information",
         ],
@@ -330,12 +337,14 @@ def test_create_intake_with_empty_start_date_issue_163():
         IntakeRegularOrAsNeededAnswers,
         ConsumedMedsTodayAnswers,
     )
+    from medlogserver.model.intake import IntakeStartDateOption
 
     # Create a test intake
     intake_data = IntakeCreateAPI(
         drug_id=drug["id"],
         source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
-        intake_start_time_utc=None,
+        intake_start_date=None,
+        intake_start_date_option=IntakeStartDateOption.UNKNOWN,
         administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
         intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
         as_needed_dose_unit=1,
@@ -353,7 +362,7 @@ def test_create_intake_with_empty_start_date_issue_163():
     # Verify the created intake
     dict_must_contain(
         new_intake,
-        required_keys_and_val={"intake_start_time_utc": None},
+        required_keys_and_val={"intake_start_date": None},
         exception_dict_identifier="create intake with empty start time response",
     )
 
@@ -390,7 +399,7 @@ def test_create_intake_with_special_dateoptions_issue_215():
     intake_data = IntakeCreateAPI(
         drug_id=drug["id"],
         source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
-        intake_start_time_utc=None,
+        intake_start_date=None,
         intake_start_date_option=IntakeStartDateOption.AT_LEAST_12_MONTHS,
         intake_end_date_option=IntakeEndDateOption.ONGOING,
         administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
@@ -411,7 +420,7 @@ def test_create_intake_with_special_dateoptions_issue_215():
     dict_must_contain(
         new_intake,
         required_keys_and_val={
-            "intake_start_time_utc": None,
+            "intake_start_date": None,
             "intake_start_date_option": IntakeStartDateOption.AT_LEAST_12_MONTHS.value,
             "intake_end_date_option": IntakeEndDateOption.ONGOING.value,
         },
