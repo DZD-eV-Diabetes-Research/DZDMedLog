@@ -89,6 +89,16 @@ class SourceOfDrugInformationAnwers(str, enum.Enum):
     FOLLOW_UP_DRUG_NAME = "Follow up via phone/message: Medication name"
 
 
+class IntakeStartDateOption(str, enum.Enum):
+    UNKNOWN = "unknown"
+    AT_LEAST_12_MONTHS = "at_least_12_months"
+
+
+class IntakeEndDateOption(enum.Enum):
+    UNKNOWN = "unknown"
+    ONGOING = "ongoing"
+
+
 class IntakeUpdate(MedLogBaseModel, table=False):
     source_of_drug_information: Optional[SourceOfDrugInformationAnwers] = Field(
         default=None,
@@ -98,10 +108,19 @@ class IntakeUpdate(MedLogBaseModel, table=False):
         default=False,
         description="If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
     )
-    intake_start_time_utc: Optional[date] = Field(
+
+    intake_start_time_utc: Optional[date] = Field(default=None)
+    intake_start_date_option: Optional[IntakeStartDateOption] = Field(
         default=None,
+        description="Use when no exact start date is available. Mutually exclusive with intake_start_time_utc. One of the two is mandatory.",
     )
+
     intake_end_time_utc: Optional[date] = Field(default=None)
+    intake_end_date_option: Optional[IntakeEndDateOption] = Field(
+        default=None,
+        description="Use when no exact end date is available. Mutually exclusive with intake_end_time_utc.",
+    )
+
     administered_by_doctor: Optional[AdministeredByDoctorAnswers] = Field(default=None)
     intake_regular_or_as_needed: Optional[IntakeRegularOrAsNeededAnswers] = Field(
         default=None,
@@ -111,12 +130,24 @@ class IntakeUpdate(MedLogBaseModel, table=False):
     regular_intervall_of_daily_dose: Optional[IntervalOfDailyDoseAnswers] = Field(
         default=None
     )
-    as_needed_dose_unit: Optional[int] = Field(
-        default=None,
-    )
-    consumed_meds_today: Optional[ConsumedMedsTodayAnswers] = Field(
-        default=None,
-    )
+    as_needed_dose_unit: Optional[int] = Field(default=None)
+    consumed_meds_today: Optional[ConsumedMedsTodayAnswers] = Field(default=None)
+
+    @model_validator(mode="after")
+    def validate_start_date(self):
+        if bool(self.intake_start_time_utc) == bool(self.intake_start_date_option):
+            raise ValueError(
+                "Exactly one of 'intake_start_time_utc' or 'intake_start_date_option' must be set."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_end_date(self):
+        if self.intake_end_time_utc and self.intake_end_date_option:
+            raise ValueError(
+                "Only one of 'intake_end_time_utc' or 'intake_end_date_option' may be set."
+            )
+        return self
 
     @model_validator(mode="after")
     def validate_intake_regular_or_as_needed(self):
