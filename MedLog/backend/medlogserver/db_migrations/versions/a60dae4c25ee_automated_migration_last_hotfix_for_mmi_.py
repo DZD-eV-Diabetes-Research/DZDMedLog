@@ -50,9 +50,9 @@ def upgrade():
         # 2️⃣ Create enum types
         # -------------------------
         start_option_enum = sa.Enum(
-            "unknown", "at_least_12_months", name="intakestartdateoption"
+            "UNKNOWN", "AT_LEAST_12_MONTHS", name="intakestartdateoption"
         )
-        end_option_enum = sa.Enum("unknown", "ongoing", name="intakeenddateoption")
+        end_option_enum = sa.Enum("UNKNOWN", "ONGOING", name="intakeenddateoption")
 
         start_option_enum.create(bind, checkfirst=True)
         end_option_enum.create(bind, checkfirst=True)
@@ -65,8 +65,8 @@ def upgrade():
             sa.Column(
                 "intake_start_date_option",
                 sa.Enum(
-                    "unknown",
-                    "at_least_12_months",
+                    "UNKNOWN",
+                    "AT_LEAST_12_MONTHS",
                     name="intakestartdateoption",
                     create_type=False,
                 ),
@@ -78,8 +78,8 @@ def upgrade():
             sa.Column(
                 "intake_end_date_option",
                 sa.Enum(
-                    "unknown",
-                    "ongoing",
+                    "UNKNOWN",
+                    "ONGOING",
                     name="intakeenddateoption",
                     create_type=False,
                 ),
@@ -92,7 +92,7 @@ def upgrade():
         # -------------------------
         op.execute("""
             UPDATE intake
-            SET intake_start_date_option = 'unknown'
+            SET intake_start_date_option = 'UNKNOWN'
             WHERE intake_start_date IS NULL
               AND intake_start_date_option IS NULL
         """)
@@ -139,7 +139,7 @@ def upgrade():
 
         op.execute("""
             UPDATE intake
-            SET intake_start_date_option = 'unknown'
+            SET intake_start_date_option = 'UNKNOWN'
             WHERE intake_start_date IS NULL
               AND intake_start_date_option IS NULL
         """)

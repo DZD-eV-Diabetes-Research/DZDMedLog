@@ -94,7 +94,7 @@ class IntakeStartDateOption(str, enum.Enum):
     AT_LEAST_12_MONTHS = "at_least_12_months"
 
 
-class IntakeEndDateOption(enum.Enum):
+class IntakeEndDateOption(str, enum.Enum):
     UNKNOWN = "unknown"
     ONGOING = "ongoing"
 

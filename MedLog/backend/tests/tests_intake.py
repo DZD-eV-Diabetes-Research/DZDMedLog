@@ -252,7 +252,7 @@ def test_update_intake():
         intake_start_date=None,
         intake_start_date_option=IntakeStartDateOption.UNKNOWN,
     )
-
+    print("dictyfy(update_data)", dictyfy(update_data))
     updated_intake = req(
         f"api/study/{study_id}/interview/{interview.interview.id}/intake/{intake.intake.id}",
         method="patch",
