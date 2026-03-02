@@ -30,6 +30,7 @@ A Webapplication to log medication history of study participants.
       - [3b. Reset the backend](#3b-reset-the-backend)
     - [4.](#4)
 - [Config](#config)
+  - [License](#license)
 
 # Run
 
@@ -219,3 +220,9 @@ for all possible configuration parameters see [config.py](MedLog/backend/medlogs
 
 > [!IMPORTANT]  
 > This chaper still needs to be written :) sorry
+
+
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
