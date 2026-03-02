@@ -32,12 +32,20 @@ export const useConfigStore = defineStore('config', {
                 throw error.value;
             }
 
+            if (typeof data.value !== 'object') {
+                throw new Error("Branding endpoint did not provide an object");
+            }
+
             this.branding.supportEmail = data.value?.support_email ?? undefined;
         },
         async fetchVersionConfig() {
             const { data, error } = await useMedlogapi("/api/config/version")
             if (error.value) {
                 throw error.value;
+            }
+
+            if (typeof data.value !== 'object') {
+                throw new Error("Version endpoint did not provide an object");
             }
 
             this.versionInfo.branch = data.value?.branch ?? undefined;
