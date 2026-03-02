@@ -6,18 +6,22 @@
 </template>
 
 <script setup lang="ts">
-useHead({
-  title: 'DZD Medlog',
+const configStore = useConfigStore();
+const drugFieldsStore = useDrugFields();
+const healthCheckStore = useHealthCheckStore();
+const roleStore = useRoleStore();
+const studyStore = useStudyStore();
+const userStore = useUserStore();
+
+useHead(() => ({
+  title: configStore.appName,
   meta: [
     { name: 'description', content: 'DZD Webapp to audit medication for clinical studies' }
   ],
-})
-
-const configStore = useConfigStore();
-const drugFieldsStore = useDrugFields();
-const healthCheckStore = useHealthCheck();
-const studyStore = useStudyStore();
-const userStore = useUserStore();
+  htmlAttrs: {
+    lang: 'de',
+  },
+}))
 
 // Check health of the backend
 try {
@@ -28,6 +32,20 @@ try {
     cause: error,
     fatal: true,
   });
+}
+
+try {
+  await roleStore.loadRoles()
+  await userStore.setUserInfo()
+} catch (error) {
+  // Swallow 401 errors, they are handled separately
+  if (!(isNuxtError(error) && error.statusCode == 401)) {
+    throw createError({
+      message: 'Konnte Rollen oder Nutzerdaten nicht abrufen',
+      cause: error,
+      fatal: true,
+    })
+  }
 }
 
 if (userStore.isLoggedIn) {

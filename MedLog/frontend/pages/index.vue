@@ -5,8 +5,9 @@
     <ul v-if="activeStudies.length" class="mt-4">
       <StudyOverviewCard v-for="study in activeStudies" :key="study.id" :study="study" as="li" />
     </ul>
-    <UAlert v-else-if="!userStore.isAdmin" color="yellow" title="Keine Studien verfügbar" description="Dies kann auch an fehlenden Rechten liegen." />
-    <UAlert v-else color="yellow" title="Keine Studien verfügbar" description="Über die Studienverwaltung können neue Studien angelegt werden." />
+    <WarningMessage v-else-if="!userStore.isLoggedIn" title="Nicht angemeldet" description="Bitte loggen Sie sich ein." />
+    <WarningMessage v-else-if="!userStore.isAdmin" title="Keine Studien verfügbar" description="Dies kann auch an fehlenden Rechten liegen." />
+    <WarningMessage v-else title="Keine Studien verfügbar" description="Über die Studienverwaltung können neue Studien angelegt werden." />
   </div>
 </template>
 
