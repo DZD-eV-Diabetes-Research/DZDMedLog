@@ -37,7 +37,7 @@ const configStore = useConfigStore();
     <h2 id="studien" class="text-xl mt-6 mb-2">Teil 1: Studien und Interviews erstellen bzw. verwalten</h2>
     <p>
       Teil 1 finden Sie mittels des Buttons "Studienverwaltung" auf der Landingpage.
-      Diese können Sie von überall erreichen, indem Sie auf den DZD-Medlog-Schriftzug in der oberen linken Ecke klicken.
+      Diese können Sie von überall erreichen, indem Sie auf den Schriftzug <em>{{ configStore.appName }}</em> in der oberen linken Ecke klicken.
       Bitte beachten Sie, dass nur Benutzer mit Admin-Rechten neue Studien und Interviews anlegen können.
     </p>
 

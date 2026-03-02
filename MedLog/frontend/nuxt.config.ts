@@ -67,7 +67,6 @@ export default defineNuxtConfig({
     },
   },
   openFetch: {
-    disableNuxtPlugin: true,
     clients: {
       medlogapi: {
         schema: "../openapi.json",

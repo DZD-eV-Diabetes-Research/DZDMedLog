@@ -32,6 +32,10 @@ export const useConfigStore = defineStore('config', {
                 throw error.value;
             }
 
+            if (typeof data.value !== 'object') {
+                throw new Error("Branding endpoint did not provide an object");
+            }
+
             this.branding.supportEmail = data.value?.support_email ?? undefined;
         },
         async fetchVersionConfig() {
@@ -40,8 +44,19 @@ export const useConfigStore = defineStore('config', {
                 throw error.value;
             }
 
+            if (typeof data.value !== 'object') {
+                throw new Error("Version endpoint did not provide an object");
+            }
+
             this.versionInfo.branch = data.value?.branch ?? undefined;
             this.versionInfo.version = data.value?.version ?? undefined;
+        },
+    },
+    getters: {
+        appName: () => {
+            // Currently the app name is part of the health check report
+            const healthCheckStore = useHealthCheckStore();
+            return healthCheckStore.fullReport?.name ?? "DZDMedLog"
         },
     },
 });
