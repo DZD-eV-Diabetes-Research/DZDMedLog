@@ -1,4 +1,4 @@
-from typing import Literal, Dict, List, Any
+from typing import Literal, Dict, List, Any, Tuple, Type
 from pathlib import Path, PurePath
 import shutil
 import csv
@@ -38,11 +38,24 @@ class DrugCodesExport(BaseModel):
     drug_code: str
 
 
+class ValueReferenceCodeNotApplicable:
+    pass
+
+
+class DrugDataExport(BaseModel):
+    drug_attr_name: str
+    drug_attr_value: str | List[str] | None
+    drug_attr_reference_code: (
+        str | List[str] | None | Type[ValueReferenceCodeNotApplicable]
+    ) = ValueReferenceCodeNotApplicable
+
+
 class ExportIntakeContainer(BaseModel):
     event: EventExport
     interview: InterviewExport
     intake: IntakeExport
     drug_codes: List[DrugCodesExport]
+    drug_attrs: List[DrugDataExport]
 
 
 class ExportContainer(BaseModel):
@@ -56,15 +69,16 @@ class ExportContainer(BaseModel):
         values = []
         for intake in self.intakes:
             row = {}
-            for objs, obj_class_name, pivot_by_column in [
+            for objs, obj_name, pivot_by_column in [
                 (self.study, "study", None),
                 (intake.event, "event", None),
                 (intake.interview, "interview", None),
                 (intake.intake, "intake", None),
-                (intake.drug_codes, "drug", "drug_code_system_name"),
+                (intake.drug_codes, "drug_code", "drug_code_system_name"),
+                (intake.drug_attrs, "drug", "drug_attr_name"),
             ]:
                 objs: BaseModel | List[BaseModel] = objs
-                if not include_study_data_each_row and obj_class_name == "study":
+                if not include_study_data_each_row and obj_name == "study":
                     continue
                 if not isinstance(objs, list):
                     objs = [objs]
@@ -73,8 +87,10 @@ class ExportContainer(BaseModel):
                     for prop_name, prop_value in obj.model_dump(
                         exclude=[pivot_by_column]
                     ).items():
-                        column_name = f"{obj_class_name}_{prop_name}"
-                        if prop_name.startswith(obj_class_name):
+                        if prop_value == ValueReferenceCodeNotApplicable:
+                            continue
+                        column_name = f"{obj_name}_{prop_name}"
+                        if prop_name.startswith(obj_name):
                             column_name = prop_name
                         if pivot_by_column:
                             list_column_att = getattr(obj, pivot_by_column)
@@ -142,8 +158,11 @@ class StudyDataExporter:
                     self.events = [EventExport(**e.model_dump()) for e in events]
         return next(e for e in self.events if e.id == event_id)
 
-    async def _get_drug_data(self, drug_id: uuid.UUID) -> List[DrugCodesExport]:
+    async def _get_drug_data(
+        self, drug_id: uuid.UUID
+    ) -> Tuple[List[DrugCodesExport], List[DrugDataExport]]:
         codes: List[DrugCodesExport] = []
+        attrs: List[DrugDataExport] = []
         async with get_async_session_context() as session:
             async with DrugCRUD.crud_context(session) as drug_crud:
                 drug_crud: DrugCRUD = drug_crud
@@ -156,7 +175,29 @@ class StudyDataExporter:
                             drug_code=code.code,
                         )
                     )
-        return codes
+
+                for attr in drug.attrs:
+                    attrs.append(
+                        DrugDataExport(
+                            drug_attr_name=attr.field_name, drug_attr_value=attr.value
+                        )
+                    )
+                for attr in drug.attrs_multi:
+                    attrs.append(
+                        DrugDataExport(
+                            drug_attr_name=attr.field_name,
+                            drug_attr_value=attr.value,
+                        )
+                    )
+                for attr in drug.attrs_ref:
+                    attrs.append(
+                        DrugDataExport(
+                            drug_attr_name=attr.field_name,
+                            drug_attr_value=attr.lov_item.display,
+                            drug_attr_reference_code=attr.lov_item.value,
+                        )
+                    )
+        return codes, attrs
 
     async def _get_interview_data(self, interview_id: uuid.UUID) -> InterviewExport:
         if not self.interviews:
@@ -172,7 +213,7 @@ class StudyDataExporter:
                     ]
         return next(i for i in self.interviews if i.id == interview_id)
 
-    async def _gather_export_data(self) -> List[ExportContainer]:
+    async def _gather_export_data(self) -> ExportContainer:
         study_data = await self._get_study_data()
         export_data: ExportContainer = ExportContainer(study=study_data, intakes=[])
 
@@ -187,14 +228,16 @@ class StudyDataExporter:
                     event_data = await self._get_event_data(
                         event_id=interview_data.event_id
                     )
-                    drug_codes = await self._get_drug_data(drug_id=intake_data.drug_id)
+                    drug_codes, drug_attrs = await self._get_drug_data(
+                        drug_id=intake_data.drug_id
+                    )
                     export_data.intakes.append(
                         ExportIntakeContainer(
-                            study=study_data,
                             event=event_data,
                             interview=interview_data,
                             intake=intake_data,
                             drug_codes=drug_codes,
+                            drug_attrs=drug_attrs,
                         )
                     )
         return export_data
