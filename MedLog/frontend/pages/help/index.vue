@@ -119,9 +119,7 @@ const configStore = useConfigStore();
       Des weiteren können Sie sich über die Breadcrumbs, am oberen Bildschirmrand, zu den jeweiligen vorher besuchten Seiten klicken
     </p>
 
-    <p>
-      Für Admins oder Technikinteressierte finden Sie hier unser <NuxtLink to="https://github.com/DZD-eV-Diabetes-Research/DZDMedLog" :external="true" target="_blank">Repository</NuxtLink>
-    </p>
+    <hr>
 
     <UAlert v-if="configStore.branding.supportEmail" color="sky" icon="i-heroicons-envelope" class="mt-4">
       <template #description>
@@ -137,12 +135,29 @@ const configStore = useConfigStore();
       </template>
     </UAlert>
 
-    <hr>
-
-    <div class="text-center font-extralight">
+    <div class="text-center font-extralight mt-4">
       <p>Version: {{ configStore.versionInfo.version ?? 'Unbekannt' }}</p>
       <p>Branch: {{ configStore.versionInfo.branch ?? 'Unbekannt' }}</p>
     </div>
+
+    <hr>
+
+    <UAlert
+        icon="i-heroicons-lock-open-solid"
+        color="teal"
+        variant="solid"
+        title="DZDMedLog ist freie Software"
+        description="Der Quellcode wurde unter der MIT-Lizenz veröffentlicht und ist auf GitHub zu finden."
+        :actions="[{
+          label: 'GitHub',
+          variant: 'solid',
+          color: 'white',
+          to: 'https://github.com/DZD-eV-Diabetes-Research/DZDMedLog',
+          external: true,
+          target: '_blank',
+          icon: 'i-heroicons-arrow-top-right-on-square',
+        }]"
+    />
   </section>
 </template>
 
