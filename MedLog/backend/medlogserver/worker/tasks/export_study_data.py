@@ -3,6 +3,7 @@ from pathlib import Path, PurePath
 import shutil
 import csv
 import uuid
+from itertools import groupby
 from pydantic import BaseModel
 from medlogserver.utils import path_is_parent
 from medlogserver.worker.task import TaskBase
@@ -44,7 +45,7 @@ class ValueReferenceCodeNotApplicable:
 
 class DrugDataExport(BaseModel):
     drug_attr_name: str
-    drug_attr_value: str | List[str] | None
+    drug_attr_value: str | List[str | None] | None
     drug_attr_reference_code: (
         str | List[str] | None | Type[ValueReferenceCodeNotApplicable]
     ) = ValueReferenceCodeNotApplicable
@@ -87,7 +88,11 @@ class ExportContainer(BaseModel):
                     for prop_name, prop_value in obj.model_dump(
                         exclude=[pivot_by_column]
                     ).items():
+                        log.debug(
+                            f"#####{prop_name} -> prop_value {prop_value} == ValueReferenceCodeNotApplicable: {prop_value == ValueReferenceCodeNotApplicable}"
+                        )
                         if prop_value == ValueReferenceCodeNotApplicable:
+                            log.debug("Continue")
                             continue
                         column_name = f"{obj_name}_{prop_name}"
                         if prop_name.startswith(obj_name):
@@ -176,6 +181,36 @@ class StudyDataExporter:
                         )
                     )
 
+                attrs.append(
+                    DrugDataExport(
+                        drug_attr_name="trade_name", drug_attr_value=drug.trade_name
+                    )
+                )
+                attrs.append(
+                    DrugDataExport(
+                        drug_attr_name="market_access_date",
+                        drug_attr_value=str(drug.market_access_date),
+                    )
+                )
+                attrs.append(
+                    DrugDataExport(
+                        drug_attr_name="market_exit_date",
+                        drug_attr_value=str(drug.market_exit_date),
+                    )
+                )
+                attrs.append(
+                    DrugDataExport(
+                        drug_attr_name="is_custom_drug",
+                        drug_attr_value=str(drug.is_custom_drug),
+                    )
+                )
+                attrs.append(
+                    DrugDataExport(
+                        drug_attr_name="custom_drug_notes",
+                        drug_attr_value=drug.custom_drug_notes,
+                    )
+                )
+
                 for attr in drug.attrs:
                     attrs.append(
                         DrugDataExport(
@@ -197,6 +232,46 @@ class StudyDataExporter:
                             drug_attr_reference_code=attr.lov_item.value,
                         )
                     )
+                # attr_multi
+                attrs_multi_sorted_by_name_and_index = sorted(
+                    drug.attrs_multi,
+                    key=lambda attr: (attr.field_name, attr.value_index),
+                )
+
+                for field_name, attr_group in groupby(
+                    attrs_multi_sorted_by_name_and_index,
+                    key=lambda attr: attr.field_name,
+                ):
+                    values = [attr.value for attr in attr_group]
+                    attrs.append(
+                        DrugDataExport(
+                            drug_attr_name=field_name,
+                            drug_attr_value=values,
+                        )
+                    )
+                # attr_multi_ref
+                attrs_multi_ref_sorted_by_name_and_index = sorted(
+                    drug.attrs_multi_ref,
+                    key=lambda attr: (attr.field_name, attr.value_index),
+                )
+
+                for field_name, attr_group in groupby(
+                    attrs_multi_ref_sorted_by_name_and_index,
+                    key=lambda attr: attr.field_name,
+                ):
+                    attr_multi_ref_values = [
+                        attr.lov_item.display for attr in attr_group
+                    ]
+                    attr_multi_ref_codes = [attr.lov_item.value for attr in attr_group]
+
+                    attrs.append(
+                        DrugDataExport(
+                            drug_attr_name=field_name,
+                            drug_attr_value=attr_multi_ref_values,
+                            drug_attr_reference_code=attr_multi_ref_codes,
+                        )
+                    )
+
         return codes, attrs
 
     async def _get_interview_data(self, interview_id: uuid.UUID) -> InterviewExport:
