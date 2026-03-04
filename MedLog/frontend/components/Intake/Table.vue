@@ -35,7 +35,7 @@
 <script setup lang="ts">
 import { computed } from "#imports";
 import type { SchemaIntakeDetailListItem } from "#open-fetch-schemas/medlogapi";
-import { doseIntervalOptions, drugSourceOptions } from "~/constants";
+import {doseIntervalOptions, drugSourceOptions, endDateOptions, startDateOptions} from "~/constants";
 import useGetLabelForValue from "~/utils/useGetLabelForValue";
 
 const props = defineProps({
@@ -102,13 +102,13 @@ if (props.canEdit || props.canDelete) {
 }
 
 function getIntakeDurationString(intake: SchemaIntakeDetailListItem) {
-  if (!intake.intake_start_time_utc && !intake.intake_end_time_utc) {
-    return "unbekannt";
+  if (intake.intake_start_date && intake.intake_end_date) {
+    return `${intake.intake_start_date} bis ${intake.intake_end_date}`;
   }
 
-  const startDate = intake.intake_start_time_utc === null ? 'unbekannt' : intake.intake_start_time_utc;
-  const endDate = intake.intake_end_time_utc === null ? 'unbekannt' : intake.intake_end_time_utc;
-  return `${startDate} bis ${endDate}`;
+  const startDate = intake.intake_start_date === null ? useGetLabelForValue(startDateOptions, intake.intake_start_date_option) : intake.intake_start_date;
+  const endDate = intake.intake_end_date === null ? useGetLabelForValue(endDateOptions, intake.intake_end_date_option) : intake.intake_end_date;
+  return `Beginn: ${startDate}, Ende: ${endDate}`;
 }
 
 function myOptions(row: object) {
@@ -148,8 +148,8 @@ const rows = computed(() => {
     intervall: useGetLabelForValue(doseIntervalOptions, item.regular_intervall_of_daily_dose),
     consumed_meds_today: item.consumed_meds_today,
     option: item.intake_regular_or_as_needed,
-    startTime: item.intake_start_time_utc,
-    endTime: item.intake_end_time_utc,
+    startTime: item.intake_start_date,
+    endTime: item.intake_end_date,
     time: getIntakeDurationString(item),
     intakeId: item.id,
     custom: item.drug?.is_custom_drug ? "Ja" : "Nein",
