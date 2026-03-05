@@ -45,6 +45,23 @@ const dropdownItems = computed(() => {
 
   return [optionItems, fixedItems];
 });
+
+watch([selectedDate, selectedOptionValue], ([newSelectedDate, newSelectedOptionValue]) => {
+  if (newSelectedDate) {
+    dateSelectionMode.value = true;
+    selectedOptionLabel.value = '';
+  } else if (newSelectedOptionValue) {
+    dateSelectionMode.value = false;
+    const foundOption = props.options.find((option) => option.value === newSelectedOptionValue);
+    if (foundOption) {
+      selectedOptionLabel.value = foundOption.label;
+    } else {
+      // Probably invalid option value, reset choice
+      selectedOptionValue.value = undefined;
+      selectedOptionLabel.value = '';
+    }
+  }
+});
 </script>
 
 <template>
