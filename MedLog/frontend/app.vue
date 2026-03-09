@@ -1,6 +1,6 @@
 <template>
   <LayoutHeader />
-  <NuxtPage />
+  <NuxtPage id="content-wrap" />
   <LayoutFooter />
   <UNotifications />
 </template>
