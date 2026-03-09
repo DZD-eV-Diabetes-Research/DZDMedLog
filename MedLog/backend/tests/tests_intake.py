@@ -426,3 +426,64 @@ def test_create_intake_with_special_dateoptions_issue_215():
         },
         exception_dict_identifier="create intake with empty start time response",
     )
+
+
+def test_create_intake_with_end_and_start_option_update_issue_228():
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestCreateIntakeWithEndAndStartOption228",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        with_intakes=0,
+        proband_count=1,
+    )
+
+    study_id = study_data.study.id
+    event = study_data.events[0]
+    interview = event.interviews[0]
+    from medlogserver.api.routes.routes_drug import search_drugs
+
+    drug_search_result = req("api/drug/search", q={"search_term": "Test"})
+    drug = drug_search_result["items"][0]["drug"]
+    from medlogserver.model.intake import (
+        IntakeCreateAPI,
+        IntakeUpdate,
+        SourceOfDrugInformationAnwers,
+        AdministeredByDoctorAnswers,
+        IntakeRegularOrAsNeededAnswers,
+        ConsumedMedsTodayAnswers,
+        IntakeEndDateOption,
+        IntakeStartDateOption,
+    )
+
+    # Create an intake with both start and end date options
+    intake_data = IntakeCreateAPI(
+        drug_id=drug["id"],
+        source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
+        intake_end_date_option=IntakeEndDateOption.ONGOING,
+        intake_start_date_option=IntakeStartDateOption.AT_LEAST_12_MONTHS,
+        administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
+        intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
+        as_needed_dose_unit=1,
+        consumed_meds_today=ConsumedMedsTodayAnswers.UNKNOWN,
+    )
+    intake_data_dict = dictyfy(intake_data)
+    from medlogserver.api.routes.routes_intake import create_intake
+
+    new_intake: Dict = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake",
+        method="post",
+        b=intake_data_dict,
+    )
+
+    # Send a PATCH request to set start and end dates (omit options)
+    intake_data_update = IntakeUpdate(
+        intake_end_date_option=IntakeEndDateOption.UNKNOWN,
+        intake_start_date_option=IntakeStartDateOption.UNKNOWN,
+    )
+    intake_data_update_dict = dictyfy(intake_data_update)
+
+    req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake/{new_intake['id']}",
+        method="patch",
+        b=intake_data_update_dict,
+    )
