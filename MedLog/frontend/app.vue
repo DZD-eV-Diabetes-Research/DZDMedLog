@@ -28,6 +28,7 @@ useHead(() => ({
 
 async function refreshStatus() {
   try {
+    await healthCheckStore.doSimpleHealthCheck();
     await healthCheckStore.doFullHealthCheck();
     await drugDbUpdaterStore.fetchStatus();
   } catch (error) {

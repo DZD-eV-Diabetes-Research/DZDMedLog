@@ -8,7 +8,7 @@ const drugDbUpdaterStore = useDrugDbUpdaterStore();
   <footer class="bg-gray-100 w-full py-4">
     <div class="grid grid-cols-3 py-2 px-10 mx-auto">
       <div>
-        <!-- TODO: System status -->
+        <SystemStatus />
       </div>
       <div class="flex flex-col items-center text-sm">
         <div>
