@@ -1,6 +1,6 @@
 <!-- This is the main drug intake form component that is used to create or edit intakes -->
 <template>
-  <UForm ref="intakeForm" :state="state" :schema="schema" class="space-y-4" @submit="onSubmit">
+  <UForm ref="intakeForm" :state="state" :schema="schema" class="space-y-4" :validate-on="['blur', 'submit']" @submit="onSubmit">
     <UFormGroup
         label="Wirkstoff äquivalent, abweichender Produkt-Code"
         description="Das gewählte Präparat entspricht in Wirkstoff und Wirkstoffmenge dem eingenommenen, die PZN ist unbekannt."
@@ -32,13 +32,21 @@
     </div>
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
-        <UFormGroup label="Einnahme Beginn (Datum)" name="startTime">
-          <UInput v-model="state.startTime" type="date" />
+        <UFormGroup label="Einnahme Beginn (Datum)" name="startDate">
+          <DatePickerWithOptions
+              v-model:date="state.startDate"
+              v-model:option="state.startDateOption"
+              :options="startDateOptions"
+          />
         </UFormGroup>
       </div>
       <div class="flex-1">
-        <UFormGroup label="Einnahme Ende (Datum)" name="endTime">
-          <UInput v-model="state.endTime" type="date" />
+        <UFormGroup label="Einnahme Ende (Datum)" name="endDate">
+          <DatePickerWithOptions
+              v-model:date="state.endDate"
+              v-model:option="state.endDateOption"
+              :options="endDateOptions"
+          />
         </UFormGroup>
       </div>
     </div>
@@ -55,7 +63,7 @@
 
 <script setup lang="ts">
 
-import { object, number, date, string, type InferType, boolean } from "yup";
+import { object, number, string, type InferType, boolean } from "yup";
 import type { FormSubmitEvent } from "#ui/types";
 import {
   onMounted,
@@ -66,9 +74,9 @@ import {
 import {
   administeredByDoctorOptions,
   doseIntervalOptions,
-  drugSourceOptions,
+  drugSourceOptions, endDateOptions,
   frequencyOptions,
-  medsTakenTodayOptions
+  medsTakenTodayOptions, startDateOptions
 } from "~/constants";
 
 const props = defineProps<{
@@ -85,12 +93,14 @@ const state = reactive({
   dose: 0,
   drugId: "",
   drugSource: drugSourceOptions[0].value,
-  endTime: null,
+  endDate: undefined,
+  endDateOption: undefined,
   frequency: frequencyOptions[0].value,
   intervall: doseIntervalOptions[0].value,
   isActiveIngredientEquivalentChoice: false,
   medsTakenToday: medsTakenTodayOptions[0].value,
-  startTime: null,
+  startDate: undefined,
+  startDateOption: undefined,
 });
 
 const schema = object({
@@ -98,12 +108,14 @@ const schema = object({
   dose: number().min(0, "Required"),
   drugId: string().required("Kein Medikament ausgewählt"),
   drugSource: string().oneOf(drugSourceOptions.map(item => item.value)).required("Required"),
-  endTime: date().optional().nullable(),
+  endDate: string().when('endDateOption', { is: undefined, then: (schema) => schema.required(), otherwise: (schema) => schema.optional() }),
+  endDateOption: string().oneOf(endDateOptions.map(item => item.value)).optional(),
   frequency: string().oneOf(frequencyOptions.map(item => item.value)).required("Required"),
   intervall: string().oneOf(doseIntervalOptions.map(item => item.value)),
   isActiveIngredientEquivalentChoice: boolean().required(),
   medsTakenToday: string().oneOf(medsTakenTodayOptions.map(item => item.value)).required("Required"),
-  startTime: date().optional().nullable(),
+  startDate: string().when('startDateOption', { is: undefined, then: (schema) => schema.required(), otherwise: (schema) => schema.optional() }),
+  startDateOption: string().oneOf(startDateOptions.map(item => item.value)).optional(),
 });
 
 export type IntakeFormSchema = InferType<typeof schema>;
@@ -112,25 +124,8 @@ async function onSubmit(event: FormSubmitEvent<IntakeFormSchema>) {
   emit('save', event.data);
 }
 
-// Explicitly reset dates to null, to prevent a validation error
-watch(() => state.startTime, (newValue) => {
-  if (newValue === "") {
-    state.startTime = null;
-  }
-})
-watch(() => state.endTime, (newValue) => {
-  if (newValue === "") {
-    state.endTime = null;
-  }
-})
-
 watch(() => props.drugId, async (newDrugId?: string) => {
   state.drugId = newDrugId ?? "";
-  try {
-    await intakeForm.value.validate();
-  } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
-    // Swallow error, the result is shown directly in the form
-  }
 }, { immediate: true });
 
 onMounted(async () => {
@@ -142,8 +137,14 @@ onMounted(async () => {
       }
     }
 
+    if (Object.hasOwn(props.initialState, 'isActiveIngredientEquivalentChoice') && Object.keys(props.initialState).length === 1) {
+      // Exit before validation. This initial state does not represent a full record and was only used to set
+      // the "active ingredient is equivalent" directly from the search results.
+      return;
+    }
+
     try {
-      await intakeForm.value.validate();
+      await intakeForm.value?.validate();
     } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
       // Swallow error, the result is shown directly in the form
     }
