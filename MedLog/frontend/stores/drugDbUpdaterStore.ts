@@ -20,6 +20,8 @@ export const useDrugDbUpdaterStore = defineStore('drugDBUpdater', {
                 this.status = undefined;
                 return;
             } else if (error.value) {
+                this.updateFeatureAvailable = false;
+                this.status = undefined;
                 throw error.value;
             }
 

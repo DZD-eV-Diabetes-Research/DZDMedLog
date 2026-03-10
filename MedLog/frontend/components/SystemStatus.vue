@@ -12,7 +12,7 @@ const isDegraded = computed(() => {
 
   return optionalStatus.some(status => status === false)
 });
-const isCritical = computed(() => {
+const isOK = computed(() => {
   const essentialStatus = [
     healthCheckStore.healthy,
     healthCheckStore.fullReport?.db_working
@@ -22,14 +22,14 @@ const isCritical = computed(() => {
     return undefined;
   }
 
-  return essentialStatus.some(status => status === false)
+  return !essentialStatus.some(status => status === false)
 });
 </script>
 
 <template>
   <UPopover mode="hover" :ui="{ trigger: 'w-auto' }" :popper="{ placement: 'top', arrow: true }">
     <div>
-      <span class="font-medium">Status: </span> <StatusBadge :value="!isCritical" :degraded="isDegraded" />
+      <span class="font-medium">Status: </span> <StatusBadge :value="isOK" :degraded="isDegraded" />
     </div>
 
     <template #panel>

@@ -12,7 +12,10 @@ const drugFieldsStore = useDrugFields();
 const healthCheckStore = useHealthCheckStore();
 const roleStore = useRoleStore();
 const studyStore = useStudyStore();
+const toast = useToast();
 const userStore = useUserStore();
+
+const statusRefreshIntervalDelay = 60000;
 
 const statusRefreshInterval = ref<NodeJS.Timeout | null>(null);
 
@@ -32,8 +35,12 @@ async function refreshStatus() {
     await healthCheckStore.doFullHealthCheck();
     await drugDbUpdaterStore.fetchStatus();
   } catch (error) {
-    // TODO store and display refresh errors
-    console.error(error);
+    toast.add({
+      title: 'Konnte Systemstatus nicht abfragen',
+      description: isNuxtError(error) ? error.statusMessage : String(error),
+      actions: [{ click: refreshStatus, label: 'Jetzt erneut versuchen' }],
+      timeout: statusRefreshIntervalDelay,
+    })
   }
 }
 
@@ -78,7 +85,7 @@ if (userStore.isLoggedIn) {
       clearInterval(statusRefreshInterval.value);
       statusRefreshInterval.value = null;
     }
-    statusRefreshInterval.value = setInterval(refreshStatus, 60000);
+    statusRefreshInterval.value = setInterval(refreshStatus, statusRefreshIntervalDelay);
   } catch (error) {
     throw createError({
       message: 'Konnte elementare Daten nicht abrufen',
