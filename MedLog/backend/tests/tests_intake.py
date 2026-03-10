@@ -1,6 +1,7 @@
 from typing import List, Dict
 import json
 import datetime
+
 from _single_test_file_runner import run_all_tests_if_test_file_called
 
 if __name__ == "__main__":
@@ -36,6 +37,7 @@ def test_do_drugv2():
         DrugMultiValApiCreate,
     )
     from medlogserver.model.drug_data.drug import DrugData
+    from medlogserver.model.intake import IntakeStartDateOption
 
     search_identifiert_flag = "8473wterfgjhdsgf789w3eitgu"
     custom_drug_payload = DrugCustomCreate(
@@ -191,7 +193,7 @@ def test_create_intake():
     intake_data = IntakeCreateAPI(
         drug_id=drug["id"],
         source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
-        intake_start_time_utc=datetime.date.today().isoformat(),
+        intake_start_date=datetime.date.today().isoformat(),
         administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
         intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
         as_needed_dose_unit=1,
@@ -242,10 +244,15 @@ def test_update_intake():
         AdministeredByDoctorAnswers,
         IntakeRegularOrAsNeededAnswers,
         ConsumedMedsTodayAnswers,
+        IntakeStartDateOption,
     )
 
-    update_data = IntakeUpdate(administered_by_doctor=AdministeredByDoctorAnswers.NO)
-
+    update_data = IntakeUpdate(
+        administered_by_doctor=AdministeredByDoctorAnswers.NO,
+        intake_start_date=None,
+        intake_start_date_option=IntakeStartDateOption.UNKNOWN,
+    )
+    print("dictyfy(update_data)", dictyfy(update_data))
     updated_intake = req(
         f"api/study/{study_id}/interview/{interview.interview.id}/intake/{intake.intake.id}",
         method="patch",
@@ -298,7 +305,7 @@ def test_get_intake():
     dict_must_contain(
         intake,
         required_keys=[
-            "intake_start_time_utc",
+            "intake_start_date",
             "administered_by_doctor",
             "source_of_drug_information",
         ],
@@ -330,12 +337,14 @@ def test_create_intake_with_empty_start_date_issue_163():
         IntakeRegularOrAsNeededAnswers,
         ConsumedMedsTodayAnswers,
     )
+    from medlogserver.model.intake import IntakeStartDateOption
 
     # Create a test intake
     intake_data = IntakeCreateAPI(
         drug_id=drug["id"],
         source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
-        intake_start_time_utc=None,
+        intake_start_date=None,
+        intake_start_date_option=IntakeStartDateOption.UNKNOWN,
         administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
         intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
         as_needed_dose_unit=1,
@@ -353,6 +362,173 @@ def test_create_intake_with_empty_start_date_issue_163():
     # Verify the created intake
     dict_must_contain(
         new_intake,
-        required_keys_and_val={"intake_start_time_utc": None},
+        required_keys_and_val={"intake_start_date": None},
+        exception_dict_identifier="create intake with empty start time response",
+    )
+
+
+def test_create_intake_with_special_dateoptions_issue_215():
+    # https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/215
+    """Test creating a new intake"""
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestCreateIntakeWithSpecialStartDateStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        with_intakes=0,
+        proband_count=1,
+    )
+
+    study_id = study_data.study.id
+    event = study_data.events[0]
+    interview = event.interviews[0]
+    from medlogserver.api.routes.routes_drug import search_drugs
+
+    drug_search_result = req("api/drug/search", q={"search_term": "Test"})
+    drug = drug_search_result["items"][0]["drug"]
+    from medlogserver.model.intake import (
+        IntakeCreateAPI,
+        SourceOfDrugInformationAnwers,
+        AdministeredByDoctorAnswers,
+        IntakeRegularOrAsNeededAnswers,
+        ConsumedMedsTodayAnswers,
+        IntakeEndDateOption,
+        IntakeStartDateOption,
+    )
+
+    # Create a test intake
+    intake_data = IntakeCreateAPI(
+        drug_id=drug["id"],
+        source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
+        intake_start_date=None,
+        intake_start_date_option=IntakeStartDateOption.AT_LEAST_12_MONTHS,
+        intake_end_date_option=IntakeEndDateOption.ONGOING,
+        administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
+        intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
+        as_needed_dose_unit=1,
+        consumed_meds_today=ConsumedMedsTodayAnswers.UNKNOWN,
+    )
+    intake_data_dict = dictyfy(intake_data)
+    from medlogserver.api.routes.routes_intake import create_intake
+
+    new_intake: Dict = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake",
+        method="post",
+        b=intake_data_dict,
+    )
+
+    # Verify the created intake
+    dict_must_contain(
+        new_intake,
+        required_keys_and_val={
+            "intake_start_date": None,
+            "intake_start_date_option": IntakeStartDateOption.AT_LEAST_12_MONTHS.value,
+            "intake_end_date_option": IntakeEndDateOption.ONGOING.value,
+        },
+        exception_dict_identifier="create intake with empty start time response",
+    )
+
+
+def test_create_intake_with_end_and_start_option_update_issue_228():
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestCreateIntakeWithEndAndStartOption228",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        with_intakes=0,
+        proband_count=1,
+    )
+
+    study_id = study_data.study.id
+    event = study_data.events[0]
+    interview = event.interviews[0]
+    from medlogserver.api.routes.routes_drug import search_drugs
+
+    drug_search_result = req("api/drug/search", q={"search_term": "Test"})
+    drug = drug_search_result["items"][0]["drug"]
+    from medlogserver.model.intake import (
+        IntakeCreateAPI,
+        IntakeUpdate,
+        SourceOfDrugInformationAnwers,
+        AdministeredByDoctorAnswers,
+        IntakeRegularOrAsNeededAnswers,
+        ConsumedMedsTodayAnswers,
+        IntakeEndDateOption,
+        IntakeStartDateOption,
+    )
+
+    # Create an intake with both start and end date options
+    intake_data = IntakeCreateAPI(
+        drug_id=drug["id"],
+        source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
+        intake_end_date_option=IntakeEndDateOption.ONGOING,
+        intake_start_date_option=IntakeStartDateOption.AT_LEAST_12_MONTHS,
+        administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
+        intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
+        as_needed_dose_unit=1,
+        consumed_meds_today=ConsumedMedsTodayAnswers.UNKNOWN,
+    )
+    intake_data_dict = dictyfy(intake_data)
+    from medlogserver.api.routes.routes_intake import create_intake
+
+    new_intake: Dict = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake",
+        method="post",
+        b=intake_data_dict,
+    )
+
+    dict_must_contain(
+        new_intake,
+        required_keys_and_val={
+            "intake_start_date": None,
+            "intake_end_date": None,
+            "intake_start_date_option": IntakeStartDateOption.AT_LEAST_12_MONTHS.value,
+            "intake_end_date_option": IntakeEndDateOption.ONGOING.value,
+        },
+        exception_dict_identifier="create intake with empty start time response",
+    )
+
+    # Send a PATCH request to set start and end dates (omit options)
+    today_date_string = datetime.date.today().isoformat()
+    tomorrow_date_string = (
+        datetime.date.today() + datetime.timedelta(days=1)
+    ).isoformat()
+    intake_data_update_dict = {
+        "intake_start_date": today_date_string,
+        "intake_end_date": tomorrow_date_string,
+    }
+
+    updated_intake_resp = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake/{new_intake['id']}",
+        method="patch",
+        b=intake_data_update_dict,
+    )
+    # Verify the updated intake
+    # because we set a date, the options should be automactly set to none by the backend
+    dict_must_contain(
+        updated_intake_resp,
+        required_keys_and_val={
+            "intake_start_date": today_date_string,
+            "intake_end_date": tomorrow_date_string,
+            "intake_start_date_option": None,
+            "intake_end_date_option": None,
+        },
+        exception_dict_identifier="create intake with empty start time response",
+    )
+
+    intake_data_update_dict = {
+        "intake_start_date_option": IntakeStartDateOption.AT_LEAST_12_MONTHS.value,
+    }
+    updated_intake_resp = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake/{new_intake['id']}",
+        method="patch",
+        b=intake_data_update_dict,
+    )
+    dict_must_contain(
+        updated_intake_resp,
+        required_keys_and_val={
+            "intake_start_date": None,
+            "intake_end_date": tomorrow_date_string,
+            "intake_start_date_option": IntakeStartDateOption.AT_LEAST_12_MONTHS.value,
+            "intake_end_date_option": None,
+        },
         exception_dict_identifier="create intake with empty start time response",
     )

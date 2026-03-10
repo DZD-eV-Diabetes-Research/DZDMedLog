@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.13.2.dev45+g315b6120c.d20260217"
+    "version": "0.13.2.dev56+g483a19d94.d20260310"
   },
   "paths": {
     "/api/health": {
@@ -3122,8 +3122,10 @@
                 "created_at",
                 "source_of_drug_information",
                 "is_activeingredient_equivalent_choice",
-                "intake_start_time_utc",
-                "intake_end_time_utc",
+                "intake_start_date",
+                "intake_start_date_option",
+                "intake_end_date",
+                "intake_end_date_option",
                 "administered_by_doctor",
                 "intake_regular_or_as_needed",
                 "dose_per_day",
@@ -3263,8 +3265,10 @@
                 "created_at",
                 "source_of_drug_information",
                 "is_activeingredient_equivalent_choice",
-                "intake_start_time_utc",
-                "intake_end_time_utc",
+                "intake_start_date",
+                "intake_start_date_option",
+                "intake_end_date",
+                "intake_end_date_option",
                 "administered_by_doctor",
                 "intake_regular_or_as_needed",
                 "dose_per_day",
@@ -6538,15 +6542,15 @@
                 "type": "null"
               }
             ],
-            "description": "How was the drug/medication identified."
+            "description": "How the drug/medication was identified (e.g. by name, active ingredient, barcode)."
           },
           "is_activeingredient_equivalent_choice": {
             "type": "boolean",
             "title": "Is Activeingredient Equivalent Choice",
-            "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+            "description": "Set to `true` when the searched drug was not found but an alternative with the same active ingredient was intentionally selected as a substitute. Defaults to `false`.",
             "default": false
           },
-          "intake_start_time_utc": {
+          "intake_start_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6556,9 +6560,21 @@
                 "type": "null"
               }
             ],
-            "title": "Intake Start Time Utc"
+            "title": "Intake Start Date",
+            "description": "Exact start date of the intake. Mutually exclusive with `intake_start_date_option` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date_option` is automatically set to `null`."
           },
-          "intake_end_time_utc": {
+          "intake_start_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeStartDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact start date is available (e.g. `UNKNOWN`, `SINCE_BIRTH`). Mutually exclusive with `intake_start_date` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date` is automatically set to `null`."
+          },
+          "intake_end_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6568,7 +6584,19 @@
                 "type": "null"
               }
             ],
-            "title": "Intake End Time Utc"
+            "title": "Intake End Date",
+            "description": "Exact end date of the intake. Mutually exclusive with `intake_end_date_option` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date_option` is automatically set to `null`. If neither this nor `intake_end_date_option` is provided, `intake_end_date_option` defaults to `ONGOING`."
+          },
+          "intake_end_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeEndDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact end date is available (e.g. `ONGOING`, `UNKNOWN`). Mutually exclusive with `intake_end_date` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date` is automatically set to `null`. If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
           },
           "administered_by_doctor": {
             "anyOf": [
@@ -6578,7 +6606,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Indicates whether the medication was administered by a doctor."
           },
           "intake_regular_or_as_needed": {
             "anyOf": [
@@ -6589,7 +6618,7 @@
                 "type": "null"
               }
             ],
-            "description": "If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version"
+            "description": "Defines whether the medication is taken on a regular schedule or as needed. Drives mutual exclusivity of dose fields: `REGULAR` requires `regular_intervall_of_daily_dose` to be set and `as_needed_dose_unit` to be `null`. `AS_NEEDED` requires `as_needed_dose_unit` to be set and `regular_intervall_of_daily_dose` to be `null`."
           },
           "dose_per_day": {
             "anyOf": [
@@ -6600,7 +6629,8 @@
                 "type": "null"
               }
             ],
-            "title": "Dose Per Day"
+            "title": "Dose Per Day",
+            "description": "Number of doses taken per day."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -6610,7 +6640,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Interval between doses for regular intake. Required when `intake_regular_or_as_needed` is `REGULAR`. Must be `null` when `intake_regular_or_as_needed` is `AS_NEEDED`."
           },
           "as_needed_dose_unit": {
             "anyOf": [
@@ -6621,7 +6652,8 @@
                 "type": "null"
               }
             ],
-            "title": "As Needed Dose Unit"
+            "title": "As Needed Dose Unit",
+            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
@@ -6661,15 +6693,15 @@
                 "type": "null"
               }
             ],
-            "description": "How was the drug/medication identified."
+            "description": "How the drug/medication was identified (e.g. by name, active ingredient, barcode)."
           },
           "is_activeingredient_equivalent_choice": {
             "type": "boolean",
             "title": "Is Activeingredient Equivalent Choice",
-            "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+            "description": "Set to `true` when the searched drug was not found but an alternative with the same active ingredient was intentionally selected as a substitute. Defaults to `false`.",
             "default": false
           },
-          "intake_start_time_utc": {
+          "intake_start_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6679,9 +6711,21 @@
                 "type": "null"
               }
             ],
-            "title": "Intake Start Time Utc"
+            "title": "Intake Start Date",
+            "description": "Exact start date of the intake. Mutually exclusive with `intake_start_date_option` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date_option` is automatically set to `null`."
           },
-          "intake_end_time_utc": {
+          "intake_start_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeStartDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact start date is available (e.g. `UNKNOWN`, `SINCE_BIRTH`). Mutually exclusive with `intake_start_date` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date` is automatically set to `null`."
+          },
+          "intake_end_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6691,7 +6735,19 @@
                 "type": "null"
               }
             ],
-            "title": "Intake End Time Utc"
+            "title": "Intake End Date",
+            "description": "Exact end date of the intake. Mutually exclusive with `intake_end_date_option` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date_option` is automatically set to `null`. If neither this nor `intake_end_date_option` is provided, `intake_end_date_option` defaults to `ONGOING`."
+          },
+          "intake_end_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeEndDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact end date is available (e.g. `ONGOING`, `UNKNOWN`). Mutually exclusive with `intake_end_date` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date` is automatically set to `null`. If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
           },
           "administered_by_doctor": {
             "anyOf": [
@@ -6701,7 +6757,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Indicates whether the medication was administered by a doctor."
           },
           "intake_regular_or_as_needed": {
             "anyOf": [
@@ -6712,7 +6769,7 @@
                 "type": "null"
               }
             ],
-            "description": "If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version"
+            "description": "Defines whether the medication is taken on a regular schedule or as needed. Drives mutual exclusivity of dose fields: `REGULAR` requires `regular_intervall_of_daily_dose` to be set and `as_needed_dose_unit` to be `null`. `AS_NEEDED` requires `as_needed_dose_unit` to be set and `regular_intervall_of_daily_dose` to be `null`."
           },
           "dose_per_day": {
             "anyOf": [
@@ -6723,7 +6780,8 @@
                 "type": "null"
               }
             ],
-            "title": "Dose Per Day"
+            "title": "Dose Per Day",
+            "description": "Number of doses taken per day."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -6733,7 +6791,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Interval between doses for regular intake. Required when `intake_regular_or_as_needed` is `REGULAR`. Must be `null` when `intake_regular_or_as_needed` is `AS_NEEDED`."
           },
           "as_needed_dose_unit": {
             "anyOf": [
@@ -6744,7 +6803,8 @@
                 "type": "null"
               }
             ],
-            "title": "As Needed Dose Unit"
+            "title": "As Needed Dose Unit",
+            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
@@ -6774,15 +6834,15 @@
                 "type": "null"
               }
             ],
-            "description": "How was the drug/medication identified."
+            "description": "How the drug/medication was identified (e.g. by name, active ingredient, barcode)."
           },
           "is_activeingredient_equivalent_choice": {
             "type": "boolean",
             "title": "Is Activeingredient Equivalent Choice",
-            "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+            "description": "Set to `true` when the searched drug was not found but an alternative with the same active ingredient was intentionally selected as a substitute. Defaults to `false`.",
             "default": false
           },
-          "intake_start_time_utc": {
+          "intake_start_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6792,9 +6852,21 @@
                 "type": "null"
               }
             ],
-            "title": "Intake Start Time Utc"
+            "title": "Intake Start Date",
+            "description": "Exact start date of the intake. Mutually exclusive with `intake_start_date_option` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date_option` is automatically set to `null`."
           },
-          "intake_end_time_utc": {
+          "intake_start_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeStartDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact start date is available (e.g. `UNKNOWN`, `SINCE_BIRTH`). Mutually exclusive with `intake_start_date` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date` is automatically set to `null`."
+          },
+          "intake_end_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6804,7 +6876,19 @@
                 "type": "null"
               }
             ],
-            "title": "Intake End Time Utc"
+            "title": "Intake End Date",
+            "description": "Exact end date of the intake. Mutually exclusive with `intake_end_date_option` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date_option` is automatically set to `null`. If neither this nor `intake_end_date_option` is provided, `intake_end_date_option` defaults to `ONGOING`."
+          },
+          "intake_end_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeEndDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact end date is available (e.g. `ONGOING`, `UNKNOWN`). Mutually exclusive with `intake_end_date` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date` is automatically set to `null`. If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
           },
           "administered_by_doctor": {
             "anyOf": [
@@ -6814,7 +6898,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Indicates whether the medication was administered by a doctor."
           },
           "intake_regular_or_as_needed": {
             "anyOf": [
@@ -6825,7 +6910,7 @@
                 "type": "null"
               }
             ],
-            "description": "If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version"
+            "description": "Defines whether the medication is taken on a regular schedule or as needed. Drives mutual exclusivity of dose fields: `REGULAR` requires `regular_intervall_of_daily_dose` to be set and `as_needed_dose_unit` to be `null`. `AS_NEEDED` requires `as_needed_dose_unit` to be set and `regular_intervall_of_daily_dose` to be `null`."
           },
           "dose_per_day": {
             "anyOf": [
@@ -6836,7 +6921,8 @@
                 "type": "null"
               }
             ],
-            "title": "Dose Per Day"
+            "title": "Dose Per Day",
+            "description": "Number of doses taken per day."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -6846,7 +6932,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Interval between doses for regular intake. Required when `intake_regular_or_as_needed` is `REGULAR`. Must be `null` when `intake_regular_or_as_needed` is `AS_NEEDED`."
           },
           "as_needed_dose_unit": {
             "anyOf": [
@@ -6857,7 +6944,8 @@
                 "type": "null"
               }
             ],
-            "title": "As Needed Dose Unit"
+            "title": "As Needed Dose Unit",
+            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
@@ -6906,6 +6994,14 @@
         ],
         "title": "IntakeDetailListItem"
       },
+      "IntakeEndDateOption": {
+        "type": "string",
+        "enum": [
+          "unknown",
+          "ongoing"
+        ],
+        "title": "IntakeEndDateOption"
+      },
       "IntakeRegularOrAsNeededAnswers": {
         "type": "string",
         "enum": [
@@ -6913,6 +7009,14 @@
           "as needed"
         ],
         "title": "IntakeRegularOrAsNeededAnswers"
+      },
+      "IntakeStartDateOption": {
+        "type": "string",
+        "enum": [
+          "unknown",
+          "at_least_12_months"
+        ],
+        "title": "IntakeStartDateOption"
       },
       "IntakeUpdate": {
         "properties": {
@@ -6925,15 +7029,15 @@
                 "type": "null"
               }
             ],
-            "description": "How was the drug/medication identified."
+            "description": "How the drug/medication was identified (e.g. by name, active ingredient, barcode)."
           },
           "is_activeingredient_equivalent_choice": {
             "type": "boolean",
             "title": "Is Activeingredient Equivalent Choice",
-            "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+            "description": "Set to `true` when the searched drug was not found but an alternative with the same active ingredient was intentionally selected as a substitute. Defaults to `false`.",
             "default": false
           },
-          "intake_start_time_utc": {
+          "intake_start_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6943,9 +7047,21 @@
                 "type": "null"
               }
             ],
-            "title": "Intake Start Time Utc"
+            "title": "Intake Start Date",
+            "description": "Exact start date of the intake. Mutually exclusive with `intake_start_date_option` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date_option` is automatically set to `null`."
           },
-          "intake_end_time_utc": {
+          "intake_start_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeStartDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact start date is available (e.g. `UNKNOWN`, `SINCE_BIRTH`). Mutually exclusive with `intake_start_date` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date` is automatically set to `null`."
+          },
+          "intake_end_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6955,7 +7071,19 @@
                 "type": "null"
               }
             ],
-            "title": "Intake End Time Utc"
+            "title": "Intake End Date",
+            "description": "Exact end date of the intake. Mutually exclusive with `intake_end_date_option` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date_option` is automatically set to `null`. If neither this nor `intake_end_date_option` is provided, `intake_end_date_option` defaults to `ONGOING`."
+          },
+          "intake_end_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeEndDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact end date is available (e.g. `ONGOING`, `UNKNOWN`). Mutually exclusive with `intake_end_date` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date` is automatically set to `null`. If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
           },
           "administered_by_doctor": {
             "anyOf": [
@@ -6965,7 +7093,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Indicates whether the medication was administered by a doctor."
           },
           "intake_regular_or_as_needed": {
             "anyOf": [
@@ -6976,7 +7105,7 @@
                 "type": "null"
               }
             ],
-            "description": "If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version"
+            "description": "Defines whether the medication is taken on a regular schedule or as needed. Drives mutual exclusivity of dose fields: `REGULAR` requires `regular_intervall_of_daily_dose` to be set and `as_needed_dose_unit` to be `null`. `AS_NEEDED` requires `as_needed_dose_unit` to be set and `regular_intervall_of_daily_dose` to be `null`."
           },
           "dose_per_day": {
             "anyOf": [
@@ -6987,7 +7116,8 @@
                 "type": "null"
               }
             ],
-            "title": "Dose Per Day"
+            "title": "Dose Per Day",
+            "description": "Number of doses taken per day."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -6997,7 +7127,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Interval between doses for regular intake. Required when `intake_regular_or_as_needed` is `REGULAR`. Must be `null` when `intake_regular_or_as_needed` is `AS_NEEDED`."
           },
           "as_needed_dose_unit": {
             "anyOf": [
@@ -7008,7 +7139,8 @@
                 "type": "null"
               }
             ],
-            "title": "As Needed Dose Unit"
+            "title": "As Needed Dose Unit",
+            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "anyOf": [
@@ -7018,11 +7150,13 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Indicates whether the patient has already taken this medication today."
           }
         },
         "type": "object",
-        "title": "IntakeUpdate"
+        "title": "IntakeUpdate",
+        "description": "Update an existing medication intake record.\n\n**Start Date** \u2014 exactly one of `intake_start_date` or `intake_start_date_option` must be set.\nSending both returns 400. The omitted field is automatically nulled out.\n\n**End Date** \u2014 at most one of `intake_end_date` or `intake_end_date_option` may be set.\nSending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.\nThe omitted field is automatically nulled out.\n\n**Intake mode** \u2014 mutually exclusive fields depending on `intake_regular_or_as_needed`:\n- `REGULAR`: `as_needed_dose_unit` must be `null`\n- `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`"
       },
       "IntervalOfDailyDoseAnswers": {
         "type": "string",

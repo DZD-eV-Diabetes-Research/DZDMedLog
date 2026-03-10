@@ -147,7 +147,7 @@ import {
   useToast,
   useUserStore,
 } from "#imports";
-import type {SchemaIntakeDetailListItem, SchemaInterview } from "#open-fetch-schemas/medlogapi";
+import type {SchemaIntakeCreateApi, SchemaIntakeDetailListItem, SchemaInterview} from "#open-fetch-schemas/medlogapi";
 
 const route = useRoute();
 const dayjs = useDayjs();
@@ -188,15 +188,17 @@ function openCreateIntakeModal() {
 }
 
 async function saveIntake(data: IntakeFormSchema) {
-  const body = {
+  const body: SchemaIntakeCreateApi = {
     administered_by_doctor: data.administeredByDoctor,
     as_needed_dose_unit: null,
     consumed_meds_today: data.medsTakenToday,
     dose_per_day: data.dose,
     drug_id: data.drugId,
-    intake_end_time_utc: data.endTime ? dayjs(data.endTime).format("YYYY-MM-DD") : null,
+    intake_end_date: data.endDate ? dayjs(data.endDate).format("YYYY-MM-DD") : null,
+    intake_end_date_option: data.endDateOption ?? null,
     intake_regular_or_as_needed: data.frequency,
-    intake_start_time_utc: data.startTime ? dayjs(data.startTime).format("YYYY-MM-DD") : null,
+    intake_start_date: data.startDate ? dayjs(data.startDate).format("YYYY-MM-DD") : null,
+    intake_start_date_option: data.startDateOption ?? null,
     is_activeingredient_equivalent_choice: data.isActiveIngredientEquivalentChoice,
     regular_intervall_of_daily_dose: data.intervall,
     source_of_drug_information: data.drugSource
@@ -246,12 +248,14 @@ async function openEditModal(intakeId: string) {
       dose: intake.dose_per_day,
       drugId: intake.drug_id,
       drugSource: intake.source_of_drug_information,
-      endTime: intake.intake_end_time_utc,
+      endDate: intake.intake_end_date ?? undefined,
+      endDateOption: intake.intake_end_date_option ?? undefined,
       frequency: intake.intake_regular_or_as_needed,
       intervall: intake.regular_intervall_of_daily_dose,
       isActiveIngredientEquivalentChoice: intake.is_activeingredient_equivalent_choice,
       medsTakenToday: intake.consumed_meds_today,
-      startTime: intake.intake_start_time_utc,
+      startDate: intake.intake_start_date ?? undefined,
+      startDateOption: intake.intake_start_date_option ?? undefined,
     }
   } catch (error) {
     toast.add({
@@ -271,9 +275,11 @@ async function saveEditIntake(data: IntakeFormSchema) {
     consumed_meds_today: data.medsTakenToday,
     dose_per_day: data.dose,
     drug_id: data.drugId,
-    intake_end_time_utc: data.endTime ? dayjs(data.endTime).format("YYYY-MM-DD") : null,
+    intake_end_date: data.endDate ? dayjs(data.endDate).format("YYYY-MM-DD") : null,
+    intake_end_date_option: data.endDateOption ?? null,
     intake_regular_or_as_needed: data.frequency,
-    intake_start_time_utc: data.startTime ? dayjs(data.startTime).format("YYYY-MM-DD") : null,
+    intake_start_date: data.startDate ? dayjs(data.startDate).format("YYYY-MM-DD") : null,
+    intake_start_date_option: data.startDateOption ?? null,
     is_activeingredient_equivalent_choice: data.isActiveIngredientEquivalentChoice,
     regular_intervall_of_daily_dose: data.intervall,
     source_of_drug_information: data.drugSource

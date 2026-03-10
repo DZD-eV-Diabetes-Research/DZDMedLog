@@ -1,7 +1,9 @@
 import type {
     SchemaAdministeredByDoctorAnswers,
     SchemaConsumedMedsTodayAnswers,
+    SchemaIntakeEndDateOption,
     SchemaIntakeRegularOrAsNeededAnswers,
+    SchemaIntakeStartDateOption,
     SchemaIntervalOfDailyDoseAnswers,
     SchemaSourceOfDrugInformationAnwers
 } from "#open-fetch-schemas/medlogapi";
@@ -76,6 +78,28 @@ export const medsTakenTodayOptions: { value: SchemaConsumedMedsTodayAnswers; lab
     },
     {
         value: "UNKNOWN",
+        label: "Unbekannt",
+    },
+];
+
+export const startDateOptions: { value: SchemaIntakeStartDateOption; label: string }[] = [
+    {
+        value: "at_least_12_months",
+        label: "Mindestens 12 Monate",
+    },
+    {
+        value: "unknown",
+        label: "Unbekannt",
+    },
+];
+
+export const endDateOptions: { value: SchemaIntakeEndDateOption; label: string }[] = [
+    {
+        value: "ongoing",
+        label: "Wird aktuell eingenommen",
+    },
+    {
+        value: "unknown",
         label: "Unbekannt",
     },
 ];
