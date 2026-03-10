@@ -80,7 +80,18 @@ async def get_intake(
 @fast_api_intake_router.post(
     "/study/{study_id}/interview/{interview_id}/intake",
     response_model=Intake,
-    description=f"Create intake record in certain interview. user must have at least 'interviewer'-permissions on study.",
+    description="""Create intake record in certain interview. user must have at least 'interviewer'-permissions on study.
+    **Start Date** — exactly one of `intake_start_date` or `intake_start_date_option` must be set.
+    Sending both returns 400. The omitted field is automatically nulled out.
+
+    **End Date** — at most one of `intake_end_date` or `intake_end_date_option` may be set.
+    Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.
+    The omitted field is automatically nulled out.
+
+    **Intake mode** — mutually exclusive fields depending on `intake_regular_or_as_needed`:
+    - `REGULAR`: `as_needed_dose_unit` must be `null`
+    - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`
+    """,
 )
 async def create_intake(
     intake: Annotated[IntakeCreateAPI, Body()],
@@ -112,7 +123,18 @@ async def create_intake(
 @fast_api_intake_router.patch(
     "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
     response_model=Intake,
-    description=f"Update intake record. user must have at least 'interviewer'-permissions on study.",
+    description="""Update intake record. user must have at least 'interviewer'-permissions on study.
+    **Start Date** — exactly one of `intake_start_date` or `intake_start_date_option` must be set.
+    Sending both returns 400. The omitted field is automatically nulled out.
+
+    **End Date** — at most one of `intake_end_date` or `intake_end_date_option` may be set.
+    Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.
+    The omitted field is automatically nulled out.
+
+    **Intake mode** — mutually exclusive fields depending on `intake_regular_or_as_needed`:
+    - `REGULAR`: `as_needed_dose_unit` must be `null`
+    - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`
+    """,
 )
 async def update_intake(
     intake_id: uuid.UUID,

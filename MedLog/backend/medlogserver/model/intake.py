@@ -7,6 +7,8 @@ from typing import (
     Annotated,
     Dict,
     TYPE_CHECKING,
+    Any,
+    Self,
 )
 import enum
 from pydantic import (
@@ -100,57 +102,197 @@ class IntakeEndDateOption(str, enum.Enum):
 
 
 class IntakeUpdate(MedLogBaseModel, table=False):
+    """
+    Update an existing medication intake record.
+
+    **Start Date** — exactly one of `intake_start_date` or `intake_start_date_option` must be set.
+    Sending both returns 400. The omitted field is automatically nulled out.
+
+    **End Date** — at most one of `intake_end_date` or `intake_end_date_option` may be set.
+    Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.
+    The omitted field is automatically nulled out.
+
+    **Intake mode** — mutually exclusive fields depending on `intake_regular_or_as_needed`:
+    - `REGULAR`: `as_needed_dose_unit` must be `null`
+    - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`
+    """
+
     source_of_drug_information: Optional[SourceOfDrugInformationAnwers] = Field(
         default=None,
-        description="How was the drug/medication identified.",
+        description="How the drug/medication was identified (e.g. by name, active ingredient, barcode).",
     )
     is_activeingredient_equivalent_choice: bool = Field(
         default=False,
-        description="If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+        description=(
+            "Set to `true` when the searched drug was not found but an alternative with the same "
+            "active ingredient was intentionally selected as a substitute. Defaults to `false`."
+        ),
     )
 
-    intake_start_date: Optional[date] = Field(default=None)
+    intake_start_date: Optional[date] = Field(
+        default=None,
+        description=(
+            "Exact start date of the intake. "
+            "Mutually exclusive with `intake_start_date_option` — exactly one of the two must be set. "
+            "If this field is provided, `intake_start_date_option` is automatically set to `null`."
+        ),
+    )
     intake_start_date_option: Optional[IntakeStartDateOption] = Field(
         default=None,
-        description="Use when no exact start date is available. Mutually exclusive with intake_start_time_utc. One of the two is mandatory.",
+        description=(
+            "Use when no exact start date is available (e.g. `UNKNOWN`, `SINCE_BIRTH`). "
+            "Mutually exclusive with `intake_start_date` — exactly one of the two must be set. "
+            "If this field is provided, `intake_start_date` is automatically set to `null`."
+        ),
     )
 
-    intake_end_date: Optional[date] = Field(default=None)
+    intake_end_date: Optional[date] = Field(
+        default=None,
+        description=(
+            "Exact end date of the intake. "
+            "Mutually exclusive with `intake_end_date_option` — at most one of the two may be set. "
+            "If this field is provided, `intake_end_date_option` is automatically set to `null`. "
+            "If neither this nor `intake_end_date_option` is provided, `intake_end_date_option` defaults to `ONGOING`."
+        ),
+    )
     intake_end_date_option: Optional[IntakeEndDateOption] = Field(
         default=None,
-        description="Use when no exact end date is available. Mutually exclusive with intake_end_time_utc.",
+        description=(
+            "Use when no exact end date is available (e.g. `ONGOING`, `UNKNOWN`). "
+            "Mutually exclusive with `intake_end_date` — at most one of the two may be set. "
+            "If this field is provided, `intake_end_date` is automatically set to `null`. "
+            "If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
+        ),
     )
 
-    administered_by_doctor: Optional[AdministeredByDoctorAnswers] = Field(default=None)
+    administered_by_doctor: Optional[AdministeredByDoctorAnswers] = Field(
+        default=None,
+        description="Indicates whether the medication was administered by a doctor.",
+    )
     intake_regular_or_as_needed: Optional[IntakeRegularOrAsNeededAnswers] = Field(
         default=None,
-        description="If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version",
+        description=(
+            "Defines whether the medication is taken on a regular schedule or as needed. "
+            "Drives mutual exclusivity of dose fields: "
+            "`REGULAR` requires `regular_intervall_of_daily_dose` to be set and `as_needed_dose_unit` to be `null`. "
+            "`AS_NEEDED` requires `as_needed_dose_unit` to be set and `regular_intervall_of_daily_dose` to be `null`."
+        ),
     )
-    dose_per_day: Optional[int] = Field(default=None)
+    dose_per_day: Optional[int] = Field(
+        default=None,
+        description="Number of doses taken per day.",
+    )
     regular_intervall_of_daily_dose: Optional[IntervalOfDailyDoseAnswers] = Field(
-        default=None
+        default=None,
+        description=(
+            "Interval between doses for regular intake. "
+            "Required when `intake_regular_or_as_needed` is `REGULAR`. "
+            "Must be `null` when `intake_regular_or_as_needed` is `AS_NEEDED`."
+        ),
     )
-    as_needed_dose_unit: Optional[int] = Field(default=None)
-    consumed_meds_today: Optional[ConsumedMedsTodayAnswers] = Field(default=None)
+    as_needed_dose_unit: Optional[int] = Field(
+        default=None,
+        description=(
+            "Dose unit for as-needed intake. "
+            "Required when `intake_regular_or_as_needed` is `AS_NEEDED`. "
+            "Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
+        ),
+    )
+    consumed_meds_today: Optional[ConsumedMedsTodayAnswers] = Field(
+        default=None,
+        description="Indicates whether the patient has already taken this medication today.",
+    )
 
-    @model_validator(mode="after")
-    def validate_start_date(self):
-        if bool(self.intake_start_date) == bool(self.intake_start_date_option):
+    @model_validator(mode="before")
+    @classmethod
+    def validate_start_date(
+        cls, values: Dict[str, Any] | Self
+    ) -> Dict[str, Any] | Self:
+        if isinstance(values, dict):
+            if (
+                "intake_start_date" not in values
+                and "intake_start_date_option" not in values
+            ):
+                return values  # neither sent, nothing to validate
+            has_date: bool = values.get("intake_start_date") is not None
+            has_option: bool = values.get("intake_start_date_option") is not None
+        else:
+            if (
+                "intake_start_date" not in values.model_fields_set
+                and "intake_start_date_option" not in values.model_fields_set
+            ):
+                return values
+            has_date = getattr(values, "intake_start_date", None) is not None
+            has_option = getattr(values, "intake_start_date_option", None) is not None
+
+        if has_date and has_option:
+            raise ValueError(
+                "Only one of 'intake_start_date' or 'intake_start_date_option' may be set."
+            )
+        if not has_date and not has_option:
             raise ValueError(
                 "Exactly one of 'intake_start_date' or 'intake_start_date_option' must be set."
             )
-        return self
 
-    @model_validator(mode="after")
-    def validate_end_date(self):
-        if self.intake_end_date and self.intake_end_date_option:
+        if isinstance(values, dict):
+            if has_date:
+                values["intake_start_date_option"] = None
+            else:
+                values["intake_start_date"] = None
+        else:
+            if has_date:
+                object.__setattr__(values, "intake_start_date_option", None)
+            else:
+                object.__setattr__(values, "intake_start_date", None)
+
+        return values
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_end_date(cls, values: dict[str, Any] | Self) -> dict[str, Any] | Self:
+        if isinstance(values, dict):
+            if (
+                "intake_end_date" not in values
+                and "intake_end_date_option" not in values
+            ):
+                return values  # neither sent, nothing to validate
+            has_date: bool = values.get("intake_end_date") is not None
+            has_option: bool = values.get("intake_end_date_option") is not None
+        else:
+            if (
+                "intake_end_date" not in values.model_fields_set
+                and "intake_end_date_option" not in values.model_fields_set
+            ):
+                return values
+            has_date = getattr(values, "intake_end_date", None) is not None
+            has_option = getattr(values, "intake_end_date_option", None) is not None
+
+        if has_date and has_option:
             raise ValueError(
                 "Only one of 'intake_end_date' or 'intake_end_date_option' may be set."
             )
-        return self
+
+        if isinstance(values, dict):
+            if not has_date and not has_option:
+                values["intake_end_date_option"] = IntakeEndDateOption.ONGOING
+            elif has_date:
+                values["intake_end_date_option"] = None
+            else:
+                values["intake_end_date"] = None
+        else:
+            if not has_date and not has_option:
+                object.__setattr__(
+                    values, "intake_end_date_option", IntakeEndDateOption.ONGOING
+                )
+            elif has_date:
+                object.__setattr__(values, "intake_end_date_option", None)
+            else:
+                object.__setattr__(values, "intake_end_date", None)
+
+        return values
 
     @model_validator(mode="after")
-    def validate_intake_regular_or_as_needed(self):
+    def validate_intake_regular_or_as_needed(self) -> Self:
         if self.intake_regular_or_as_needed == IntakeRegularOrAsNeededAnswers.REGULAR:
             if self.as_needed_dose_unit is not None:
                 raise ValueError(

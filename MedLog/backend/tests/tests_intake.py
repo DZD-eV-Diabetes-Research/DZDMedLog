@@ -475,15 +475,60 @@ def test_create_intake_with_end_and_start_option_update_issue_228():
         b=intake_data_dict,
     )
 
-    # Send a PATCH request to set start and end dates (omit options)
-    intake_data_update = IntakeUpdate(
-        intake_end_date_option=IntakeEndDateOption.UNKNOWN,
-        intake_start_date_option=IntakeStartDateOption.UNKNOWN,
+    dict_must_contain(
+        new_intake,
+        required_keys_and_val={
+            "intake_start_date": None,
+            "intake_end_date": None,
+            "intake_start_date_option": IntakeStartDateOption.AT_LEAST_12_MONTHS.value,
+            "intake_end_date_option": IntakeEndDateOption.ONGOING.value,
+        },
+        exception_dict_identifier="create intake with empty start time response",
     )
-    intake_data_update_dict = dictyfy(intake_data_update)
 
-    req(
+    # Send a PATCH request to set start and end dates (omit options)
+    today_date_string = datetime.date.today().isoformat()
+    tomorrow_date_string = (
+        datetime.date.today() + datetime.timedelta(days=1)
+    ).isoformat()
+    intake_data_update_dict = {
+        "intake_start_date": today_date_string,
+        "intake_end_date": tomorrow_date_string,
+    }
+
+    updated_intake_resp = req(
         f"api/study/{study_id}/interview/{interview.interview.id}/intake/{new_intake['id']}",
         method="patch",
         b=intake_data_update_dict,
+    )
+    # Verify the updated intake
+    # because we set a date, the options should be automactly set to none by the backend
+    dict_must_contain(
+        updated_intake_resp,
+        required_keys_and_val={
+            "intake_start_date": today_date_string,
+            "intake_end_date": tomorrow_date_string,
+            "intake_start_date_option": None,
+            "intake_end_date_option": None,
+        },
+        exception_dict_identifier="create intake with empty start time response",
+    )
+
+    intake_data_update_dict = {
+        "intake_start_date_option": IntakeStartDateOption.AT_LEAST_12_MONTHS.value,
+    }
+    updated_intake_resp = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake/{new_intake['id']}",
+        method="patch",
+        b=intake_data_update_dict,
+    )
+    dict_must_contain(
+        updated_intake_resp,
+        required_keys_and_val={
+            "intake_start_date": None,
+            "intake_end_date": tomorrow_date_string,
+            "intake_start_date_option": IntakeStartDateOption.AT_LEAST_12_MONTHS.value,
+            "intake_end_date_option": None,
+        },
+        exception_dict_identifier="create intake with empty start time response",
     )
