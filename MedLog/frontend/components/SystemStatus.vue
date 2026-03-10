@@ -45,7 +45,7 @@ const isCritical = computed(() => {
           <dt>Worker zuletzt erfolgreich</dt>
           <dd><StatusBadge :value="healthCheckStore.fullReport?.last_worker_run_succesfull" /></dd>
         </dl>
-        <UDivider label="Arzneimittel-Datenbank" />
+        <UDivider label="Arzneimitteldatenbank" />
         <dl>
           <dt>Arzneimittel importiert</dt>
           <dd><StatusBadge :value="healthCheckStore.fullReport?.drugs_imported" fail-label="Nein" /></dd>
