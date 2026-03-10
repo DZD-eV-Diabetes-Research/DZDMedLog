@@ -6,6 +6,21 @@ body {
     background-color: white;
 }
 
+#__nuxt {
+    position: relative;
+    min-height: 100vh;
+}
+
+#content-wrap {
+    padding-bottom: 9rem;
+}
+
+footer {
+    position: absolute;
+    bottom: 0;
+    height: 7rem;
+}
+
 .u-checkbox {
     border: 1px solid black !important;
     border-radius: 4px;

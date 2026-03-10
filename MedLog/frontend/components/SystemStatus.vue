@@ -1,0 +1,78 @@
+<script setup lang="ts">
+const drugDbUpdaterStore = useDrugDbUpdaterStore();
+const healthCheckStore = useHealthCheckStore();
+
+const isDegraded = computed(() => {
+  const optionalStatus = [
+    healthCheckStore.fullReport?.drugs_imported,
+    drugDbUpdaterStore.status?.current_drug_data_ready_to_use,
+    healthCheckStore.fullReport?.drug_search_index_working,
+    healthCheckStore.fullReport?.last_worker_run_succesfull,
+  ];
+
+  return optionalStatus.some(status => status === false)
+});
+const isOK = computed(() => {
+  const essentialStatus = [
+    healthCheckStore.healthy,
+    healthCheckStore.fullReport?.db_working
+  ];
+
+  if (essentialStatus.some(status => status === undefined)) {
+    return undefined;
+  }
+
+  return !essentialStatus.some(status => status === false)
+});
+</script>
+
+<template>
+  <UPopover mode="hover" :ui="{ trigger: 'w-auto' }" :popper="{ placement: 'top', arrow: true }">
+    <div>
+      <span class="font-medium">Status: </span> <StatusBadge :value="isOK" :degraded="isDegraded" />
+    </div>
+
+    <template #panel>
+      <div class="p-4">
+        <dl>
+          <dt>Gesamtzustand</dt>
+          <dd><StatusBadge :value="healthCheckStore.healthy" /></dd>
+        </dl>
+        <UDivider label="Anwendung" />
+        <dl>
+          <dt>Datenbank bereit</dt>
+          <dd><StatusBadge :value="healthCheckStore.fullReport?.db_working" /></dd>
+          <dt>Worker zuletzt erfolgreich</dt>
+          <dd><StatusBadge :value="healthCheckStore.fullReport?.last_worker_run_succesfull" /></dd>
+        </dl>
+        <UDivider label="Arzneimitteldatenbank" />
+        <dl>
+          <dt>Arzneimittel importiert</dt>
+          <dd><StatusBadge :value="healthCheckStore.fullReport?.drugs_imported" fail-label="Nein" /></dd>
+          <dt>Einsatzbereit</dt>
+          <dd><StatusBadge :value="drugDbUpdaterStore.status?.current_drug_data_ready_to_use" fail-label="Nein" /></dd>
+          <dt>Suchindex funktionsfähig</dt>
+          <dd><StatusBadge :value="healthCheckStore.fullReport?.drug_search_index_working" fail-label="Nein" /></dd>
+        </dl>
+      </div>
+    </template>
+  </UPopover>
+</template>
+
+<style scoped>
+dl {
+  display: grid;
+  grid-template-columns: max-content auto;
+}
+
+dt {
+  grid-column-start: 1;
+  padding: 0.2em 0.4em 0.2em 0.6em;
+}
+
+dd {
+  grid-column-start: 2;
+  padding: 0.2em 0.6em 0.2em 0.4em;
+  text-align: end;
+}
+</style>
