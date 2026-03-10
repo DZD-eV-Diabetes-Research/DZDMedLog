@@ -73,11 +73,12 @@ if (userStore.isLoggedIn) {
     await drugFieldsStore.fetchFields();
     await drugFieldsStore.fetchCodes();
 
+    // Update the status on a regular basis
     if (statusRefreshInterval.value) {
       clearInterval(statusRefreshInterval.value);
       statusRefreshInterval.value = null;
     }
-    statusRefreshInterval.value = setInterval(refreshStatus, 15000);
+    statusRefreshInterval.value = setInterval(refreshStatus, 60000);
   } catch (error) {
     throw createError({
       message: 'Konnte elementare Daten nicht abrufen',
