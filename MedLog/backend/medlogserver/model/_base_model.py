@@ -1,6 +1,6 @@
 from typing import Optional
 import datetime
-from pydantic import field_validator, ValidationInfo
+from pydantic import field_validator, ValidationInfo, BaseModel
 from sqlalchemy import text
 from sqlmodel import Field
 import uuid
@@ -18,8 +18,13 @@ config = Config()
 import uuid
 
 
+class MedLogBaseApiModel(BaseModel):
+    # Absolute base class for all api only models. All api only model classes will inherhit from this class.
+    pass
+
+
 class MedLogBaseModel(SQLModel):
-    # Absolute base class. All model classes will inherhit from this class.
+    # Absolute database and api base class. All model classes will inherhit from this class.
 
     # cast all ids to UUIDs
     @field_validator("id", check_fields=False)

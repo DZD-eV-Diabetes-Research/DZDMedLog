@@ -52,7 +52,7 @@ config = Config()
 
 oauth_clients: dict[str, OAuthContainer] = register_and_create_oauth_clients()
 
-SESSION_COOKIE_NAME = f"session_{slugify_string(config.APP_NAME,'_')}"
+SESSION_COOKIE_NAME = f"session_{slugify_string(config.APP_NAME, '_')}"
 NEEDS_ADMIN_API_INFO = "Needs Admin role"
 NEEDS_USERMAN_API_INFO = "Need usermanager role"
 api_token_security = HTTPBearer(auto_error=False)
@@ -128,6 +128,29 @@ async def get_current_user_auth(
                 )
                 raise e
     return user_auth
+
+
+async def get_logged_in_state(
+    request: Request,
+    user_session_crud: UserSessionCRUD = Depends(UserSessionCRUD.get_crud),
+    user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
+    user_crud: UserCRUD = Depends(UserCRUD.get_crud),
+    api_token: Optional[HTTPAuthorizationCredentials] = Depends(api_token_security),
+) -> bool:
+    try:
+        user_auth: UserAuth | None = await get_current_user_auth(
+            request=request,
+            user_session_crud=user_session_crud,
+            user_auth_crud=user_auth_crud,
+            api_token=api_token,
+        )
+    except HTTPException as e:
+        if e.status_code == status.HTTP_401_UNAUTHORIZED:
+            return False
+    if user_auth is not None:
+        return True
+
+    return False
 
 
 async def get_current_user(

@@ -33,11 +33,12 @@ from medlogserver.api.paginator import (
     create_query_params_class,
     QueryParamsInterface,
 )
+from medlogserver.api.auth.security import get_logged_in_state
 from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
 from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.model.branding_data import BrandingData
 from medlogserver.model.drug_data_config import DrugDataConfig
-
+from medlogserver.model.api_only.system_accouncement import SystemAnnouncement
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -85,3 +86,26 @@ async def get_drug_data_config() -> DrugDataConfig:
         and drug_importer_dummy.capabilities.can_download_remote_updates
         and drug_importer_dummy.capabilities.can_check_for_remote_updates,
     )
+
+
+@fast_api_config_router.get(
+    "/config/announcements",
+    response_model=List[SystemAnnouncement],
+    description="Provides some meta data about the drug data configuration",
+)
+async def get_system_announcements(
+    user_is_logged_in_state: User = Security(get_logged_in_state),
+) -> List[SystemAnnouncement]:
+    all_announcements: List[SystemAnnouncement] = []
+    log.debug(f"config.SYSTEM_ANNOUNCEMENTS: {config.SYSTEM_ANNOUNCEMENTS}")
+    for announcement in config.SYSTEM_ANNOUNCEMENTS:
+        if not user_is_logged_in_state and not announcement.public:
+            continue
+        all_announcements.append(
+            SystemAnnouncement(
+                id=str(hash(f"{announcement.type} {announcement.message}")),
+                type=announcement.type,
+                message=announcement.message,
+            )
+        )
+    return all_announcements
