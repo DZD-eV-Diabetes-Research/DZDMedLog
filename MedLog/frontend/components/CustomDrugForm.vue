@@ -15,92 +15,73 @@
           <UInput v-model="state.customName" />
         </UFormGroup>
 
-        <UFormGroup v-for="code in codeSystems" :key="code.id">
-          <template #label>
-                    <span class="inline-flex items-center gap-1">
-                      {{ code.name }}
-                      <UTooltip
-                          :text="code.desc || 'Keine Beschreibung'"
-                          :popper="{ placement: 'right' }"
-                          :ui="{ width: 'max-w-4xl' }"
-                      >
-                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 cursor-pointer" />
-                      </UTooltip>
-                    </span>
-          </template>
-
-          <!-- Input oder Checkbox -->
+        <DZDUIFormGroup v-for="code in codeSystems" :key="code.id" :label="code.name" :description="code.desc ?? ''">
           <UInput v-model="drugCodeState[code.id]" />
-        </UFormGroup>
+        </DZDUIFormGroup>
 
-        <UFormGroup v-for="attr in drugFieldDefinitionsObject.attrs" :key="attr[1]" :name="attr[1]">
-          <!-- Label-Slot: Text + Tooltip-Icon -->
-          <template #label>
-                    <span class="inline-flex items-center gap-1">
-                      {{ attr[0] }}
-                      <UTooltip :text="attr[3]" :popper="{ placement: 'right' }" :ui="{ width: 'max-w-4xl' }">
-                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 cursor-pointer" />
-                      </UTooltip>
-                    </span>
-          </template>
-
-          <!-- Input oder Checkbox -->
+        <DZDUIFormGroup
+            v-for="attr in drugFieldDefinitionsObject.attrs"
+            :key="attr[1]"
+            :name="attr[1]"
+            :label="attr[0]"
+            :description="attr[3]"
+        >
           <UInput
-              v-if="getFormInputType(attr[2]) !== 'checkbox'" v-model="attrState[attr[1]]"
-              :type="getFormInputType(attr[2])" />
+              v-if="getFormInputType(attr[2]) !== 'checkbox'"
+              v-model="attrState[attr[1]]"
+              :type="getFormInputType(attr[2])"
+          />
           <UCheckbox v-else v-model="attrState[attr[1]]" :name="attr[1]" />
-        </UFormGroup>
+        </DZDUIFormGroup>
 
-        <UFormGroup
-            v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref" :key="attr_ref[1]"
-            :name="attr_ref[1]">
-          <template #label>
-                    <span class="inline-flex items-center gap-1">
-                      {{ attr_ref[0] }}
-                      <UTooltip :text="attr_ref[3]" :popper="{ placement: 'right' }" :ui="{ width: 'max-w-4xl' }">
-                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 cursor-pointer" />
-                      </UTooltip>
-                    </span>
-          </template>
+        <DZDUIFormGroup
+            v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref"
+            :key="attr_ref[1]"
+            :name="attr_ref[1]"
+            :label="attr_ref[0]"
+            :description="attr_ref[3]"
+        >
           <USelectMenu
               v-model="attr_refState[attr_ref[1]]"
               v-model:query="queries[attr_ref[1]]"
               :options="refSelectMenus.find(item => item.field_name === attr_ref[1])?.options"
-              value-attribute="value" option-attribute="display"
-              placeholder="Option auswählen" :searchable="!!attr_ref[4]" />
-        </UFormGroup>
-        <UFormGroup
-            v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi" :key="attr_multi[1]"
-            :name="attr_multi[1]">
-          <template #label>
-                    <span class="inline-flex items-center gap-1">
-                      {{ attr_multi[0] }}
-                      <UTooltip :text="attr_multi[3]" :popper="{ placement: 'right' }" :ui="{ width: 'max-w-4xl' }">
-                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 cursor-pointer" />
-                      </UTooltip>
-                    </span>
-          </template>
+              value-attribute="value"
+              option-attribute="display"
+              placeholder="Option auswählen"
+              :searchable="!!attr_ref[4]"
+          />
+        </DZDUIFormGroup>
+
+        <DZDUIFormGroup
+            v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi"
+            :key="attr_multi[1]"
+            :name="attr_multi[1]"
+            :label="attr_multi[0]"
+            :description="attr_multi[3]"
+        >
           <UInput
-              v-model="inputValues[attr_multi[1]]" placeholder="Option auswählen und Enter drücken"
+              v-model="inputValues[attr_multi[1]]"
+              placeholder="Option auswählen und Enter drücken"
               @keydown.enter.prevent="updateMultiState(attr_multi[1])"
-              @blur="updateMultiState(attr_multi[1])" />
+              @blur="updateMultiState(attr_multi[1])"
+          />
           <UBadge
-              v-for="(word, index) in attr_multiState[attr_multi[1]]" :key="index"
-              class="mr-2 cursor-pointer" @click="removeItem(attr_multi[1], index)">
+              v-for="(word, index) in attr_multiState[attr_multi[1]]"
+              :key="index"
+              class="mr-2 cursor-pointer"
+              @click="removeItem(attr_multi[1], index)"
+          >
             {{ word }}
           </UBadge>
-        </UFormGroup>
-        <UFormGroup
+        </DZDUIFormGroup>
+
+        <DZDUIFormGroup
             v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref"
-            :key="attr_multi_ref[1]" :name="attr_multi_ref[1]">
-          <template #label>
-            <span class="inline-flex items-center gap-1">
-              {{ attr_multi_ref[0] }}
-              <UTooltip :text="attr_multi_ref[3]" :popper="{ placement: 'right' }" :ui="{ width: 'max-w-4xl' }">
-                <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 cursor-pointer" />
-              </UTooltip>
-            </span>
-          </template>
+            :key="attr_multi_ref[1]"
+            :name="attr_multi_ref[1]"
+            :label="attr_multi_ref[0]"
+            :description="attr_multi_ref[3]"
+        >
           <USelectMenu
               v-model="attr_multi_refState[attr_multi_ref[1]]"
               :options="multiRefSelectMenus.find(item => item.field_name === attr_multi_ref[1])?.options"
@@ -117,7 +98,7 @@
               <span v-else>Mehrfachauswahl möglich</span>
             </template>
           </USelectMenu>
-        </UFormGroup>
+        </DZDUIFormGroup>
 
         <hr>
         <div class="flex justify-between">
