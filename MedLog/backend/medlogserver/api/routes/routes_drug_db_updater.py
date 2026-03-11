@@ -105,6 +105,14 @@ async def trigger_drug_update_active(
     ),
     worker_job_crud: WorkerJobCRUD = Depends(WorkerJobCRUD.get_crud),
 ) -> DrugUpdaterStatus:
+    if not config.DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB:
+        msg = f"The current drug database configuration does not allow manual updates."
+        if config.DRUG_IMPORTER_AUTO_UPDATE_DRUG_DB:
+            msg = f"\nUpdates will be dont automaticly"
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=msg,
+        )
     drug_update_handler = DrugUpdateHandler(user_id=user.id)
     try:
         return await drug_update_handler.trigger_drug_update_active(

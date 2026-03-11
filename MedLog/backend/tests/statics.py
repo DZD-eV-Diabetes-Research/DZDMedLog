@@ -7,3 +7,4 @@ ADMIN_USER_PW = "password123"
 ADMIN_USER_EMAIL = "user@test.de"
 TEST_USER_NAME = "testuser01"
 TEST_USER_PW = "testuserpw01"
+DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB = True
