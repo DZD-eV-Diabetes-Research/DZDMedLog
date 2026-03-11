@@ -12,7 +12,7 @@
 
       <UForm :state="state" :validate="validate" class="space-y-4" @submit.prevent="onSubmit">
         <UFormGroup label="Name" name="customName" required class="mb-6">
-          <UInput v-model="state.customName" color="yellow" />
+          <UInput v-model="state.customName" />
         </UFormGroup>
 
         <UFormGroup v-for="code in codeSystems" :key="code.id">
@@ -24,13 +24,13 @@
                           :popper="{ placement: 'right' }"
                           :ui="{ width: 'max-w-4xl' }"
                       >
-                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
+                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 cursor-pointer" />
                       </UTooltip>
                     </span>
           </template>
 
           <!-- Input oder Checkbox -->
-          <UInput v-model="drugCodeState[code.id]" color="yellow" />
+          <UInput v-model="drugCodeState[code.id]" />
         </UFormGroup>
 
         <UFormGroup v-for="attr in drugFieldDefinitionsObject.attrs" :key="attr[1]" :name="attr[1]">
@@ -39,7 +39,7 @@
                     <span class="inline-flex items-center gap-1">
                       {{ attr[0] }}
                       <UTooltip :text="attr[3]" :popper="{ placement: 'right' }" :ui="{ width: 'max-w-4xl' }">
-                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
+                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 cursor-pointer" />
                       </UTooltip>
                     </span>
           </template>
@@ -47,8 +47,8 @@
           <!-- Input oder Checkbox -->
           <UInput
               v-if="getFormInputType(attr[2]) !== 'checkbox'" v-model="attrState[attr[1]]"
-              :type="getFormInputType(attr[2])" color="yellow" />
-          <UCheckbox v-else v-model="attrState[attr[1]]" color="yellow" :name="attr[1]" />
+              :type="getFormInputType(attr[2])" />
+          <UCheckbox v-else v-model="attrState[attr[1]]" :name="attr[1]" />
         </UFormGroup>
 
         <UFormGroup
@@ -58,7 +58,7 @@
                     <span class="inline-flex items-center gap-1">
                       {{ attr_ref[0] }}
                       <UTooltip :text="attr_ref[3]" :popper="{ placement: 'right' }" :ui="{ width: 'max-w-4xl' }">
-                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
+                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 cursor-pointer" />
                       </UTooltip>
                     </span>
           </template>
@@ -66,7 +66,7 @@
               v-model="attr_refState[attr_ref[1]]"
               v-model:query="queries[attr_ref[1]]"
               :options="refSelectMenus.find(item => item.field_name === attr_ref[1])?.options"
-              value-attribute="value" option-attribute="display" color="yellow"
+              value-attribute="value" option-attribute="display"
               placeholder="Option auswählen" :searchable="!!attr_ref[4]" />
         </UFormGroup>
         <UFormGroup
@@ -76,17 +76,17 @@
                     <span class="inline-flex items-center gap-1">
                       {{ attr_multi[0] }}
                       <UTooltip :text="attr_multi[3]" :popper="{ placement: 'right' }" :ui="{ width: 'max-w-4xl' }">
-                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
+                        <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 cursor-pointer" />
                       </UTooltip>
                     </span>
           </template>
           <UInput
               v-model="inputValues[attr_multi[1]]" placeholder="Option auswählen und Enter drücken"
-              color="yellow" @keydown.enter.prevent="updateMultiState(attr_multi[1])"
+              @keydown.enter.prevent="updateMultiState(attr_multi[1])"
               @blur="updateMultiState(attr_multi[1])" />
           <UBadge
               v-for="(word, index) in attr_multiState[attr_multi[1]]" :key="index"
-              class="mr-2 cursor-pointer" color="yellow" @click="removeItem(attr_multi[1], index)">
+              class="mr-2 cursor-pointer" @click="removeItem(attr_multi[1], index)">
             {{ word }}
           </UBadge>
         </UFormGroup>
@@ -97,14 +97,14 @@
             <span class="inline-flex items-center gap-1">
               {{ attr_multi_ref[0] }}
               <UTooltip :text="attr_multi_ref[3]" :popper="{ placement: 'right' }" :ui="{ width: 'max-w-4xl' }">
-                <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-yellow-500 cursor-pointer" />
+                <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 cursor-pointer" />
               </UTooltip>
             </span>
           </template>
           <USelectMenu
               v-model="attr_multi_refState[attr_multi_ref[1]]"
               :options="multiRefSelectMenus.find(item => item.field_name === attr_multi_ref[1])?.options"
-              value-attribute="value" option-attribute="display" multiple searchable color="yellow"
+              value-attribute="value" option-attribute="display" multiple searchable
               placeholder="Option auswählen">
             <template #label>
               <span
