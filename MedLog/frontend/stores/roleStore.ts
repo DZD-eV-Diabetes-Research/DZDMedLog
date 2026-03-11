@@ -18,6 +18,10 @@ export const useRoleStore = defineStore('RoleStore', {
                 throw error.value;
             }
 
+            if (!Array.isArray(data.value)) {
+                throw new Error("Roles endpoint did not provide an array");
+            }
+
             this.roles = data.value ?? [];
         },
     },

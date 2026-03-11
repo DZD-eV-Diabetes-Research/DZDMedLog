@@ -7,7 +7,7 @@ interface HealthCheckStore {
     report?: SchemaHealthCheckReport
 }
 
-export const useHealthCheck = defineStore('healthCheck', {
+export const useHealthCheckStore = defineStore('healthCheck', {
     state: (): HealthCheckStore => ({
         healthy: undefined,
         report: undefined,
@@ -16,7 +16,13 @@ export const useHealthCheck = defineStore('healthCheck', {
         async doSimpleHealthCheck() {
             const { data, error } = await useMedlogapi("/api/health")
             if (error.value) {
+                this.healthy = undefined;
                 throw error.value;
+            }
+
+            if (typeof data.value !== 'object') {
+                this.healthy = undefined;
+                throw new Error("Health endpoint did not provide an object");
             }
 
             this.healthy = data.value?.healthy === true
@@ -24,7 +30,13 @@ export const useHealthCheck = defineStore('healthCheck', {
         async doFullHealthCheck() {
             const { data, error } = await useMedlogapi("/api/health/report")
             if (error.value) {
+                this.report = undefined;
                 throw error.value;
+            }
+
+            if (typeof data.value !== 'object') {
+                this.report = undefined;
+                throw new Error("Health report endpoint did not provide an object");
             }
 
             if (data.value) {
@@ -33,5 +45,8 @@ export const useHealthCheck = defineStore('healthCheck', {
                 this.report = undefined;
             }
         },
+    },
+    getters: {
+        fullReport: state => state.report
     },
 });
