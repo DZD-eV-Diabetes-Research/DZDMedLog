@@ -5,6 +5,9 @@ FROM oven/bun AS medlog-frontend-build
 RUN mkdir /frontend_build
 WORKDIR /frontend_build
 COPY MedLog/frontend /frontend_build
+RUN rm -rf /frontend_build/.nuxt
+RUN rm -rf /frontend_build/.output
+RUN rm -rf /frontend_build/node_modules
 RUN bun install && bun run build && bunx nuxi generate
 
 # BACKEND BUILD AND RUN STAGE
@@ -34,8 +37,9 @@ WORKDIR $BASEDIR
 RUN pip install -U pip-tools
 
 # Generate requirements.txt based on depenencies defined in pyproject.toml
-COPY MedLog/backend/pyproject.toml $BASEDIR/medlogserver/pyproject.toml
-RUN pip-compile -o $BASEDIR/requirements.txt $BASEDIR/medlogserver/pyproject.toml
+#COPY MedLog/backend/pyproject.toml $BASEDIR/medlogserver/pyproject.toml
+#RUN pip-compile -o $BASEDIR/requirements.txt $BASEDIR/medlogserver/pyproject.toml
+COPY MedLog/backend/requirements.txt $BASEDIR/requirements.txt
 
 # Install requirements
 RUN pip install -U -r $BASEDIR/requirements.txt

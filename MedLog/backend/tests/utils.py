@@ -510,8 +510,8 @@ def create_test_study(
                         b=dictyfy(
                             IntakeCreateAPI(
                                 drug_id=drug_data["id"],
-                                intake_start_time_utc=random_startdate,
-                                intake_end_time_utc=random_enddate,
+                                intake_start_date=random_startdate,
+                                intake_end_date=random_enddate,
                                 consumed_meds_today=random_gen.choice(
                                     list(ConsumedMedsTodayAnswers)
                                 ),

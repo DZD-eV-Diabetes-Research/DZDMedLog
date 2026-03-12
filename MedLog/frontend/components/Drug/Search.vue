@@ -1,25 +1,59 @@
 <template>
   <div>
-    <UFormGroup name="drug" class="mb-4">
-      <UInput
-          v-model="searchTerm"
-          :autofocus="autofocusInput"
-          placeholder="Medikament/PZN oder ATC-Code eingeben"
-          icon="i-heroicons-magnifying-glass-20-solid"
-          :ui="{ icon: { trailing: { pointer: '' } } }"
-      >
-        <template #trailing>
-          <UButton
-              v-show="searchTerm !== ''"
-              color="gray"
-              variant="link"
-              icon="i-heroicons-x-mark-20-solid"
-              :padded="false"
-              @click="searchTerm = ''"
-          />
+    <div class="grid grid-cols-5 gap-8">
+      <UFormGroup label="Suchbegriff" name="drug" class="mb-4 col-span-3">
+        <UInput
+            v-model="searchTerm"
+            :autofocus="autofocusInput"
+            placeholder="Medikament/PZN oder ATC-Code eingeben"
+            icon="i-heroicons-magnifying-glass-20-solid"
+            :ui="{ icon: { trailing: { pointer: '' } } }"
+        >
+          <template #trailing>
+            <UButton
+                v-show="searchTerm !== ''"
+                color="gray"
+                variant="link"
+                icon="i-heroicons-x-mark-20-solid"
+                :padded="false"
+                @click="searchTerm = ''"
+            />
+          </template>
+        </UInput>
+
+        <template #hint>
+          <UPopover mode="hover" class="text-black text-base">
+            <UIcon name="i-heroicons-question-mark-circle" />
+
+            <template #panel>
+              <div class="p-4 max-w-xl bg-sky-100">
+                <h3 class="font-semibold">Tipps zur Suche</h3>
+
+                <ul class="list-disc my-2 list-inside">
+                  <li>Wörter mit weniger als drei Zeichen werden ignoriert</li>
+                  <li>Zusammenhängende Zeichenketten können mit Anführungszeichen gesucht werden (z.B. <span class="font-mono bg-gray-300 p-0.5">Metoprolol "10 mg"</span>)</li>
+                  <li>Wörter, die am Anfang des Namens stehen, erhöhen die Relevanz</li>
+                  <li>Treffende Groß-/Kleinschreibung erhöht die Relevanz</li>
+                </ul>
+                Eine ausführliche Beschreibung ist in der <ULink to="/help#suche" target="_blank" class="underline">Hilfe</ULink> zu finden.
+              </div>
+            </template>
+          </UPopover>
         </template>
-      </UInput>
-    </UFormGroup>
+      </UFormGroup>
+
+      <UFormGroup label="Derzeit im Verkauf">
+        <div class="flex space-x-6">
+          <URadio
+              v-for="option in marketAccessibilityOptions"
+              :key="option.value"
+              v-model="marketAccessible"
+              :value="option.value"
+              :label="option.label"
+          />
+        </div>
+      </UFormGroup>
+    </div>
 
     <div class="h-6 flex flex-col">
       <UProgress v-if="isLoading" animation="carousel" />
@@ -39,13 +73,13 @@
           :total="searchResults.length"
           class="self-center"
       />
-      <div :style="searchResults.length > itemsPerPage ? 'min-height: 30rem;' : ''">
+      <div :style="searchResults.length > itemsPerPage ? 'min-height: 47rem;' : ''">
         <ul>
           <DrugResultCard
               v-for="item in paginatedItems"
               :key="item.drug.id"
               :drug="item.drug"
-              @drug-selected="(activeIngredientOnly) => selectDrug(item, activeIngredientOnly)"
+              @drug-selected="(activeIngredientOnly: boolean) => selectDrug(item, activeIngredientOnly)"
           />
         </ul>
       </div>
@@ -61,8 +95,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { apiDrugSearch } from '~/api/drug';
+import { computed, ref, watch } from "#imports";
+import type {SchemaMedLogSearchEngineResult} from "#open-fetch-schemas/medlogapi";
 
 const itemsPerPage = 5;
 const searchItemLimit = 100;
@@ -73,15 +107,28 @@ defineProps({
 
 const emit = defineEmits(['drug-selected'])
 
+enum MarketAccessible {
+  YES = "yes",
+  NO = "no",
+  ALL = "all",
+}
+
+const marketAccessibilityOptions = [
+  { value: MarketAccessible.YES, label: 'Ja' },
+  { value: MarketAccessible.NO, label: 'Nein' },
+  { value: MarketAccessible.ALL, label: 'Egal' },
+];
+
 const currentPage = ref(1);
 const isLoading = ref(false);
+const marketAccessible = ref<MarketAccessible>(MarketAccessible.ALL);
 const searchError = ref();
-const searchResults = ref([]);
+const searchResults = ref<SchemaMedLogSearchEngineResult[]>([]);
 const searchTerm = ref("");
 const totalCount = ref(0);
 const warningMessage = ref("");
 
-const fetchDrugs = async (searchTerm) => {
+const fetchDrugs = async (searchTerm: string) => {
   searchError.value = undefined;
   warningMessage.value = "";
 
@@ -96,14 +143,18 @@ const fetchDrugs = async (searchTerm) => {
 
   isLoading.value = true;
   try {
-    const response = await apiDrugSearch(searchTerm, searchItemLimit)
+    const response = await useGetDrugSearch(
+        searchTerm,
+        searchItemLimit,
+        marketAccessible.value === MarketAccessible.ALL ? null : marketAccessible.value === MarketAccessible.YES
+    );
 
-    if (response.total_count === 0) {
+    if (response?.total_count === 0) {
       warningMessage.value = "Die Suche ergab keine Treffer."
     }
 
-    searchResults.value = response.items ?? [];
-    totalCount.value = response.total_count;
+    searchResults.value = response?.items ?? [];
+    totalCount.value = response?.total_count ?? 0;
     currentPage.value = 1;
   } catch (error) {
     searchError.value = error;
@@ -113,7 +164,7 @@ const fetchDrugs = async (searchTerm) => {
   }
 };
 
-let debounceTimeout: number | undefined = undefined;
+let debounceTimeout: NodeJS.Timeout | undefined = undefined;
 
 watch(
   () => searchTerm.value,
@@ -135,6 +186,14 @@ watch(
   { immediate: false }
 );
 
+watch(
+    () => marketAccessible.value,
+    () => {
+      fetchDrugs(searchTerm.value);
+    },
+    { immediate: false }
+);
+
 const resultsText = computed(() => {
   if (totalCount.value > searchItemLimit) {
     return `Zeige ${ searchResults.value.length } Ergebnisse von insgesamt ${ totalCount.value }`;
@@ -149,7 +208,7 @@ const paginatedItems = computed(() => {
   return searchResults.value.slice(startIndex, endIndex);
 });
 
-function selectDrug(item, activeIngredientOnly) {
+function selectDrug(item: SchemaMedLogSearchEngineResult, activeIngredientOnly: boolean) {
   searchTerm.value = "";
   emit('drug-selected', item.drug_id, activeIngredientOnly);
 }

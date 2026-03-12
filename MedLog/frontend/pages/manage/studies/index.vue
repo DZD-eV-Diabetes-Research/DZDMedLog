@@ -16,20 +16,11 @@
 
     <StudyManagementTable :studies="studyStore.studies"/>
 
-    <UModal v-model="showModal" class="w-[1000px] !important">
-      <div class="p-4 text-center">
-        <UForm :schema="schema" :state="state" class="space-y-4" @submit="createStudy">
-          <h3 class="text-2xl font-normal">Studie anlegen</h3>
-          <ErrorMessage v-if="errorMessage" title="Konnte Studie nicht anlegen" :message="errorMessage" />
-          <UFormGroup label="Studienname" name="study_name">
-            <UInput v-model="state.study_name" required />
-          </UFormGroup>
-          <UButton
-              type="submit" label="Studie anlegen" color="green" variant="soft"
-              class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white" />
-        </UForm>
-      </div>
-    </UModal>
+    <CreateStudyModal v-model="createStudyModalVisible" class="w-[1000px] !important" @create-study="createStudy">
+      <template #error>
+        <ErrorMessage v-if="createStudyError" title="Konnte Studie nicht anlegen" :error="createStudyError" />
+      </template>
+    </CreateStudyModal>
   </section>
   <section v-else class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
     <ErrorMessage
@@ -40,41 +31,32 @@
 </template>
 
 <script setup lang="ts">
-import { object, string } from "yup";
+import {
+  onMounted,
+  ref,
+  useCreateStudy,
+  useStudyStore,
+  useUserStore
+} from "#imports";
 
 const userStore = useUserStore();
 const studyStore = useStudyStore();
-const { $medlogapi } = useNuxtApp();
 
-
-const showModal = ref(false);
-const state = reactive({
-  study_name: "",
-});
-
-const schema = object({
-  study_name: string().max(128).required("Required"),
-});
-
-const errorMessage = ref();
+const createStudyModalVisible = ref(false);
+const createStudyError = ref();
 
 async function openStudyModal() {
-  state.study_name = ""
-  showModal.value = !showModal.value
-  errorMessage.value = ""
+  createStudyModalVisible.value = true
+  createStudyError.value = ""
 }
 
-async function createStudy() {
+async function createStudy(name: string) {
   try {
-    const body = { display_name: state.study_name.trim() };
-    await $medlogapi("/api/study", {
-      method: "POST",
-      body,
-    });
-    await studyStore.loadAvailableStudies();
-    showModal.value = false;
+    const newStudy = await useCreateStudy(name);
+    studyStore.upsertStudy(newStudy);
+    createStudyModalVisible.value = false;
   } catch (error) {
-    errorMessage.value = error.response?._data?.detail ?? error.message ?? error;
+    createStudyError.value = error;
   }
 }
 

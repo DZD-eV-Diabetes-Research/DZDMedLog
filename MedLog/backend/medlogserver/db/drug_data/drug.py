@@ -284,9 +284,12 @@ class DrugCRUD(
         # attrs_ref
         for attr_ref_create in drug_create.attrs_ref:
             attr_ref_def = find_attr_def("attrs_ref", attr_ref_create.field_name)
+            log.debug(f"find_lov_item - attr_ref_def {attr_ref_def}")
             lov_item = await find_lov_item(
                 "attrs_ref", attr_ref_def.field_name, attr_ref_create.value
             )
+            log.debug(f"find_lov_item - attr_ref_create {attr_ref_create}")
+            log.debug(f"find_lov_item - lov_item {lov_item}")
             drug.attrs_ref.append(
                 DrugValRef(
                     field_name=attr_ref_def.field_name,

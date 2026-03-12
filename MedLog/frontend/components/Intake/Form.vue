@@ -1,6 +1,6 @@
 <!-- This is the main drug intake form component that is used to create or edit intakes -->
 <template>
-  <UForm ref="intakeForm" :state="state" :schema="schema" class="space-y-4" @submit="onSubmit">
+  <UForm ref="intakeForm" :state="state" :schema="schema" class="space-y-4" :validate-on="['blur', 'submit']" @submit="onSubmit">
     <UFormGroup
         label="Wirkstoff äquivalent, abweichender Produkt-Code"
         description="Das gewählte Präparat entspricht in Wirkstoff und Wirkstoffmenge dem eingenommenen, die PZN ist unbekannt."
@@ -9,46 +9,50 @@
     </UFormGroup>
 
     <UFormGroup label="Quelle der Arzneimittelangabe" name="drugSource">
-      <USelect v-model="state.drugSource" :options="drugSourceOptions" :color="props.color" />
+      <USelect v-model="state.drugSource" :options="drugSourceOptions" />
     </UFormGroup>
 
     <UFormGroup label="Vom Arzt verordnet?" name="administeredByDoctor">
-      <USelect v-model="state.administeredByDoctor" :options="administeredByDoctorOptions" :color="props.color" />
+      <USelect v-model="state.administeredByDoctor" :options="administeredByDoctorOptions" />
     </UFormGroup>
     <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?" name="frequency">
-      <USelect v-model="state.frequency" :options="frequencyOptions" :color="props.color" />
+      <USelect v-model="state.frequency" :options="frequencyOptions" />
     </UFormGroup>
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
         <UFormGroup label="Dosis pro Einnahme" style="border-color: red" name="dose">
-          <UInput
-            v-model="state.dose" type="number" min="0" :disabled="state.frequency !== 'regular'"
-            :color="state.frequency !== 'regular' ? 'gray' : props.color" />
+          <UInput v-model="state.dose" type="number" min="0" :disabled="state.frequency !== 'regular'"/>
         </UFormGroup>
       </div>
       <div class="flex-1">
         <UFormGroup label="Intervall der Tagesdosen" name="intervall">
-          <USelect
-            v-model="state.intervall" :options="doseIntervalOptions" :disabled="state.frequency !== 'regular'"
-            :color="state.frequency !== 'regular' ? 'gray' : props.color" />
+          <USelect v-model="state.intervall" :options="doseIntervalOptions" :disabled="state.frequency !== 'regular'" />
         </UFormGroup>
       </div>
     </div>
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
-        <UFormGroup label="Einnahme Beginn (Datum)" name="startTime">
-          <UInput v-model="state.startTime" type="date" :color="props.color" />
+        <UFormGroup label="Einnahme Beginn (Datum)" name="startDate">
+          <DatePickerWithOptions
+              v-model:date="state.startDate"
+              v-model:option="state.startDateOption"
+              :options="startDateOptions"
+          />
         </UFormGroup>
       </div>
       <div class="flex-1">
-        <UFormGroup label="Einnahme Ende (Datum)" name="endTime">
-          <UInput v-model="state.endTime" type="date" :color="props.color" />
+        <UFormGroup label="Einnahme Ende (Datum)" name="endDate">
+          <DatePickerWithOptions
+              v-model:date="state.endDate"
+              v-model:option="state.endDateOption"
+              :options="endDateOptions"
+          />
         </UFormGroup>
       </div>
     </div>
     <URadioGroup
         v-model="state.medsTakenToday" legend="Wurde dieses Medikament heute eingenommen?" name="medsTakenToday"
-        :options="medsTakenTodayOptions" :color="props.color" />
+        :options="medsTakenTodayOptions" />
     <hr>
     <div class="flex justify-between">
       <UButton label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
@@ -59,109 +63,44 @@
 
 <script setup lang="ts">
 
-import { object, number, date, string, type InferType, boolean } from "yup";
+import { object, number, string, type InferType, boolean } from "yup";
 import type { FormSubmitEvent } from "#ui/types";
-import {watch} from "vue";
+import {
+  onMounted,
+  reactive,
+  useTemplateRef,
+  watch
+} from "#imports";
+import {
+  administeredByDoctorOptions,
+  doseIntervalOptions,
+  drugSourceOptions, endDateOptions,
+  frequencyOptions,
+  medsTakenTodayOptions, startDateOptions
+} from "~/constants";
 
 const props = defineProps<{
-  color?: string;
   drugId?: string;
   initialState?: any;
 }>();
 
 const emit = defineEmits(['cancel', 'save'])
 
-/**
- * TODO Switch to useTemplateRef() when updating to Vue 3.5
- * See https://vuejs.org/guide/essentials/template-refs.html#accessing-the-refs
- */
-const intakeForm = ref(null)
-
-const drugSourceOptions = [
-  { value: "Study participant: verbal specification", label: "Probandenangabe" },
-  { value: "Medication package: Scanned PZN", label: "Medikamentenpackung: PZN gescannt" },
-  { value: "Medication package: Typed in PZN", label: "Medikamentenpackung: PZN getippt" },
-  { value: "Medication package: Drug name", label: "Medikamentenpackung: Arzneimittelname" },
-  { value: "Medication leaflet", label: "Beipackzettel" },
-  { value: "Study participant: medication plan", label: "Medikamentenplan" },
-  { value: "Study participant: Medication prescription", label: "Rezept" },
-  { value: "Follow up via phone/message: Typed in PZN", label: "Nacherhebung: Tastatureingabe der PZN" },
-  { value: "Follow up via phone/message: Medication name", label: "Nacherhebung: Arzneimittelname" },
-];
-
-const administeredByDoctorOptions = [
-  { value: 'prescribed', label: 'ja, auf Rezept' },
-  { value: 'recommended', label: 'vom Arzt empfohlen' },
-  { value: 'no', label: 'nein' },
-  { value: 'unknown', label: 'unbekannt' },
-];
-
-const frequencyOptions = [
-  { value: "as needed", label: "nach Bedarf" },
-  { value: "regular", label: "regelmäßig" },
-];
-
-const doseIntervalOptions = [
-  {
-    value: "Unknown",
-    label: "unbekannt"
-  },
-  {
-    value: "Daily",
-    label: "täglich"
-  },
-  {
-    value: "every 2. day",
-    label: "jeden 2. Tag"
-  },
-  {
-    value: "every 3. day",
-    label: "jeden 3. Tag"
-  },
-  {
-    value: "every 4. day / twice a week",
-    label: "jeden 4. Tag = 2x pro Woche"
-  },
-  {
-    value: "intervals of one week or more",
-    label: "Im Abstand von 1 Woche und mehr"
-  },
-  {
-    value: "intervals of one month or more",
-    label: "Im Abstand von 1 Monat und mehr",
-  },
-  {
-    value: "intervals of one year or more",
-    label: "Im Abstand von 1 Jahr und mehr",
-  },
-];
-
-const medsTakenTodayOptions = [
-  {
-    value: "Yes",
-    label: "Ja",
-  },
-  {
-    value: "No",
-    label: "Nein",
-  },
-  {
-    value: "UNKNOWN",
-    label: "Unbekannt",
-  },
-];
+const intakeForm = useTemplateRef('intakeForm')
 
 const state = reactive({
   administeredByDoctor: administeredByDoctorOptions[0].value,
   dose: 0,
   drugId: "",
   drugSource: drugSourceOptions[0].value,
-  endTime: null,
+  endDate: undefined,
+  endDateOption: undefined,
   frequency: frequencyOptions[0].value,
   intervall: doseIntervalOptions[0].value,
   isActiveIngredientEquivalentChoice: false,
   medsTakenToday: medsTakenTodayOptions[0].value,
-  startTime: null,
+  startDate: undefined,
+  startDateOption: undefined,
 });
 
 const schema = object({
@@ -169,12 +108,14 @@ const schema = object({
   dose: number().min(0, "Required"),
   drugId: string().required("Kein Medikament ausgewählt"),
   drugSource: string().oneOf(drugSourceOptions.map(item => item.value)).required("Required"),
-  endTime: date().optional().nullable(),
+  endDate: string().when('endDateOption', { is: undefined, then: (schema) => schema.required(), otherwise: (schema) => schema.optional() }),
+  endDateOption: string().oneOf(endDateOptions.map(item => item.value)).optional(),
   frequency: string().oneOf(frequencyOptions.map(item => item.value)).required("Required"),
   intervall: string().oneOf(doseIntervalOptions.map(item => item.value)),
   isActiveIngredientEquivalentChoice: boolean().required(),
   medsTakenToday: string().oneOf(medsTakenTodayOptions.map(item => item.value)).required("Required"),
-  startTime: date().optional().nullable(),
+  startDate: string().when('startDateOption', { is: undefined, then: (schema) => schema.required(), otherwise: (schema) => schema.optional() }),
+  startDateOption: string().oneOf(startDateOptions.map(item => item.value)).optional(),
 });
 
 export type IntakeFormSchema = InferType<typeof schema>;
@@ -183,25 +124,8 @@ async function onSubmit(event: FormSubmitEvent<IntakeFormSchema>) {
   emit('save', event.data);
 }
 
-// Explicitly reset dates to null, to prevent a validation error
-watch(() => state.startTime, (newValue) => {
-  if (newValue === "") {
-    state.startTime = null;
-  }
-})
-watch(() => state.endTime, (newValue) => {
-  if (newValue === "") {
-    state.endTime = null;
-  }
-})
-
-watch(() => props.drugId, async (newDrugId: string) => {
-  state.drugId = newDrugId;
-  try {
-    await intakeForm.value.validate();
-  } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
-    // Swallow error, the result is shown directly in the form
-  }
+watch(() => props.drugId, async (newDrugId?: string) => {
+  state.drugId = newDrugId ?? "";
 }, { immediate: true });
 
 onMounted(async () => {
@@ -213,8 +137,14 @@ onMounted(async () => {
       }
     }
 
+    if (Object.hasOwn(props.initialState, 'isActiveIngredientEquivalentChoice') && Object.keys(props.initialState).length === 1) {
+      // Exit before validation. This initial state does not represent a full record and was only used to set
+      // the "active ingredient is equivalent" directly from the search results.
+      return;
+    }
+
     try {
-      await intakeForm.value.validate();
+      await intakeForm.value?.validate();
     } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
       // Swallow error, the result is shown directly in the form
     }

@@ -6,7 +6,7 @@ const studyStore = useStudyStore();
 const toast = useToast();
 const userStore = useUserStore();
 
-const studyId = route.params.study_id;
+const studyId = route.params.study_id as string;
 
 const studyToEdit = ref();
 

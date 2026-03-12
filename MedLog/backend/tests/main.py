@@ -20,6 +20,7 @@ from statics import (
     ADMIN_USER_EMAIL,
     ADMIN_USER_PW,
     ADMIN_USER_NAME,
+    DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB,
 )
 
 
@@ -42,6 +43,9 @@ def set_config_for_test_env():
     )
     os.environ["CLIENT_URL"] = "https://localhost:8888"
     os.environ["BRANDING_SUPPORT_EMAIL_ADDRESS"] = "mytest@test.de"
+    os.environ["DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB"] = str(
+        DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB
+    )
 
 
 set_config_for_test_env()

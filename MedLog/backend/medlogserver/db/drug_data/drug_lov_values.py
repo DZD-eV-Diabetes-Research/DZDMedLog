@@ -5,7 +5,19 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func, col, or_, and_
+from sqlmodel import (
+    Field,
+    select,
+    delete,
+    Column,
+    JSON,
+    SQLModel,
+    func,
+    col,
+    or_,
+    and_,
+    desc,
+)
 from sqlmodel.sql import expression as sqlEpression
 import uuid
 from uuid import UUID
@@ -13,6 +25,7 @@ from uuid import UUID
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
+from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.drug_attr_field_lov_item import (
     DrugAttrFieldLovItem,
     DrugAttrFieldLovItemCREATE,
@@ -38,6 +51,29 @@ class DrugAttrFieldLovItemCRUD(
         update_model=DrugAttrFieldLovItem,
     )
 ):
+    async def append_current_dataset_version_where_clause(
+        self, query: sqlEpression.Select
+    ):
+        drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
+        drug_importer = drug_importer_class()
+        # todo: this probably can be optimized...
+
+        sub_query = (
+            select(DrugDataSetVersion.id)
+            .where(
+                DrugDataSetVersion.dataset_source_name == drug_importer.dataset_name
+                and DrugDataSetVersion.is_custom_drugs_collection == False
+            )
+            .order_by(desc(DrugDataSetVersion.current_active))
+            .order_by(desc(DrugDataSetVersion.dataset_version))
+            .limit(1)
+            .scalar_subquery()
+        )
+        query = query.where(
+            DrugAttrFieldLovItem.drug_dataset_version_fk == sub_query,
+        )
+        return query
+
     async def count(
         self,
         field_name: str,
@@ -55,6 +91,7 @@ class DrugAttrFieldLovItemCRUD(
                     col(DrugAttrFieldLovItem.display).icontains(search_term),
                 )
             )
+        query = await self.append_current_dataset_version_where_clause(query)
         results = await self.session.exec(statement=query)
         return results.first()
 
@@ -74,6 +111,8 @@ class DrugAttrFieldLovItemCRUD(
                     col(DrugAttrFieldLovItem.display).icontains(search_term),
                 )
             )
+        query = await self.append_current_dataset_version_where_clause(query)
+        log.debug(f"query list {query}")
         if pagination:
             query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)
@@ -91,6 +130,7 @@ class DrugAttrFieldLovItemCRUD(
                 DrugAttrFieldLovItem.value == value,
             )
         )
+        query = await self.append_current_dataset_version_where_clause(query)
         result = await self.session.exec(statement=query)
         obj = result.one_or_none()
         if obj is None and raise_exception_if_none:

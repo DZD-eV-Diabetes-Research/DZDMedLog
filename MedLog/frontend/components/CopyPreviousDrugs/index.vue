@@ -2,45 +2,59 @@
 
 <template>
     <div class="flex flex-col justify-center items-center">
-        <div class="flex flex-row justify-center">
-            <UButton
-                color="green" variant="soft" label="Medikationsübernahme" style="margin-right: 10px"
-                class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white"
-                @click="openCopyIntakeModal()" />
+        <div>
+            <UTooltip text="Es liegen keine Medikamente zur Übernahme vor" :popper="{ arrow: true }" :prevent="!deactivated">
+                <UButton
+                    :disabled="deactivated"
+                    icon="i-heroicons-document-duplicate"
+                    :color="deactivated ? 'gray' : 'green'" variant="outline" label="Medikationsübernahme"
+                    @click="openCopyIntakeModal()"
+                />
+            </UTooltip>
         </div>
-        <UModal v-model="openCopyPreviousIntakesModal" :ui="{ width: 'lg:max-w-6xl' }">
-            <div class="p-10 text-center">
-                <ErrorMessage v-if="error" :error="error" :title="errorTitle" />
-                <UProgress v-if="loading" animation="carousel" />
-                <div v-if="previousIntakes.length > 0">
-                    <div class="flex flex-col items-center space-y-2 mb-6">
-                        <h3 class="text-2xl font-normal mb-2">Medikationsübernahme</h3>
-                        <h5 class="text-md font-light">Des Events: <span class="text-md font-bold">{{ lastEventName
-                        }}</span></h5>
-                        <h5 class="text-md font-light">Letzte Änderung: <span class="text-md font-bold">{{ lastEventDate
-                        }}</span></h5>
+        <UModal v-model="openCopyPreviousIntakesModal" :ui="{ width: 'lg:max-w-6xl' }" prevent-close>
+            <UCard>
+                <template #header>
+                    <div class="flex items-center justify-between">
+                      <span class="text-lg">Medikationsübernahme</span>
+                      <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="openCopyPreviousIntakesModal = false" />
                     </div>
-                    <UTable
-                        v-model="selectedIntakes" :columns="columns" :rows="previousIntakes"
-                        class="border border-slate-400 rounded-md" />
-                    <UButton
-                        label="Medikation Übernehmen" color="green" variant="soft" style="margin-right: 10px"
-                        class="border border-green-500 hover:bg-green-300 hover:border-white hover:text-white  mt-8"
-                        @click="saveIntakes()" />
+                </template>
+
+                <div class="text-center">
+                    <ErrorMessage v-if="error" :error="error" :title="errorTitle" />
+                    <UProgress v-if="loading" animation="carousel" />
+                    <div v-if="previousIntakes.length > 0">
+                        <div class="space-y-2 mb-6">
+                            <span class="text-md font-bold">Event:</span> {{ lastEventName }}
+                            <br>
+                            <span class="text-md font-bold">Letzte Änderung:</span> {{ lastEventDate }}
+                        </div>
+                        <UTable
+                            v-model="selectedIntakes" :columns="columns" :rows="previousIntakes"
+                            class="border border-slate-400 rounded-md" />
+                        <UButton label="Ausgewählte Medikamente übernehmen" class="mt-8" @click="saveIntakes()" />
+                    </div>
+                    <div v-if="previousIntakes.length === 0">
+                        <h3>Es gibt keine Einträge im letzten Event</h3>
+                    </div>
                 </div>
-                <div v-if="previousIntakes.length === 0">
-                    <h3>Es gibt keine Einträge im letzten Event</h3>
-                </div>
-            </div>
+            </UCard>
         </UModal>
     </div>
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ onUpdate: () => void }>();
+import { useDayjs } from '#dayjs'
+import localizedFormat from 'dayjs/plugin/localizedFormat'
 
+const dayjs = useDayjs();
 const { $medlogapi } = useNuxtApp();
 const route = useRoute();
+
+dayjs.extend(localizedFormat);
+
+const props = defineProps<{ onUpdate: () => void, deactivated: boolean }>();
 
 const openCopyPreviousIntakesModal = ref(false)
 const error = ref();
@@ -48,7 +62,7 @@ const errorTitle = ref("");
 const loading = ref(false);
 
 const previousIntakes = ref<any[]>([])
-const selectedIntakes = ref([])
+const selectedIntakes = ref<any[]>([])
 const lastEventName = ref("")
 const lastEventDate = ref("")
 
@@ -61,34 +75,30 @@ async function openCopyIntakeModal() {
     loading.value = true;
 
     try {
-        const intakes = await $medlogapi(`/api/study/{studyId}/proband/{probandId}/interview/last/intake/details`,{
+        const intakes = await $medlogapi('/api/study/{study_id}/proband/{proband_id}/interview/last/intake/details',{
             path: {
-                studyId: route.params.study_id,
-                probandId: route.params.proband_id,
+                study_id: route.params.study_id as string,
+                proband_id: route.params.proband_id as string,
             }
         })
 
 
-        lastEventName.value = intakes[0]?.event.name
-        lastEventDate.value = new Date(intakes[0]?.interview.interview_end_time_utc).toLocaleDateString("de-DE", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-        });
+        lastEventName.value = intakes?.[0]?.event.name ?? 'N/A'
+        lastEventDate.value = (intakes && intakes[0]) ? dayjs.utc(intakes[0].interview.interview_end_time_utc).local().format('LLL') : 'N/A';
 
         // Transform the API response into a format suitable for both the UI and the POST request body
-        previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake: any) => ({
+        previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake) => ({
             Medikament: intake.drug.trade_name,
             Custom: intake.drug?.is_custom_drug ? "Ja" : "Nein",
-            Einnahmebeginn: intake.intake_start_time_utc || 'Unbekannt',
-            Einnahmeende: intake.intake_end_time_utc || 'Unbekannt',
+            Einnahmebeginn: intake.intake_start_date || 'Unbekannt',
+            Einnahmeende: intake.intake_end_date || 'Unbekannt',
             Dosis: intake.dose_per_day || 'Unbekannt',
             ID: intake.id,
             postBody: {
                 "drug_id": intake.drug_id,
                 "source_of_drug_information": intake.source_of_drug_information,
-                "intake_start_time_utc": intake.intake_start_time_utc,
-                "intake_end_time_utc": intake.intake_end_time_utc,
+                "intake_start_time_utc": intake.intake_start_date,
+                "intake_end_time_utc": intake.intake_end_date,
                 "administered_by_doctor": intake.administered_by_doctor,
                 "intake_regular_or_as_needed": intake.intake_regular_or_as_needed,
                 "dose_per_day": intake.dose_per_day,
@@ -119,12 +129,12 @@ async function saveIntakes() {
 
     try {
       for (const element of selectedIntakes.value) {
-        await $medlogapi(`/api/study/{studyId}/interview/{interviewId}/intake`, {
+        await $medlogapi('/api/study/{study_id}/interview/{interview_id}/intake', {
           method: "POST",
           body: element.postBody,
           path: {
-            studyId: route.params.study_id,
-            interviewId: route.params.interview_id,
+            study_id: route.params.study_id as string,
+            interview_id: route.params.interview_id as string,
           }
         })
       }

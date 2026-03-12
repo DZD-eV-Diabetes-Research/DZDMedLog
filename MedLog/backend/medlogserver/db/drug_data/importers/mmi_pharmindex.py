@@ -76,7 +76,7 @@ import gc
 
 config = Config()
 log = get_logger(modulename="DRUGIMPORT")
-importername = "MmmiPharmaindex1_32"
+importername = "MmiPharmaindex1_32"
 
 
 @dataclass
@@ -87,6 +87,9 @@ class MmiPiDrugAttrRefFieldLovImportDefinition:
     filter_col: Optional[str] = "CATALOGID"
     filter_val: Optional[str] = None
     sort_attr: Optional[Literal["field_name", "value", "display"]] = None
+    display_name_factory: Optional[Callable[[str, str, str], str]] = (
+        lambda field_name, value, display: display
+    )
 
 
 @dataclass
@@ -754,6 +757,9 @@ def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
             source_mapping=mmi_rohdaten_r3_mappings["attrs_multi_ref.icd10"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
                 filter_val="18",
+                display_name_factory=lambda field_name, value, display: (
+                    f"{value} - {display}"
+                ),
             ),
         ),
     ]
@@ -774,10 +780,10 @@ class CsvFileContentViewCache:
     parent_csv: CsvFileContentCache
 
 
-class MmmiPharmaindex1_32(DrugDataSetImporterBase):
+class MMIPharmindex1_32(DrugDataSetImporterBase):
     def __init__(self):
         self.dataset_name = "MMI Pharmindex"
-        self.api_name = "mmipharmindex"
+        self.api_name = importername
         self.dataset_link = "https://www.MmiPi.de/forschung-projekte/arzneimittel/gkv-arzneimittelindex/"
         self.source_dir = None
         self.version = None
@@ -1056,11 +1062,14 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
             drug_schema_objects = []
             drug_dataset = await self._ensure_drug_dataset_version()
             # generate list of values
-            all_attr_defs_by_type = await self.get_all_attr_field_definitions()
 
+            all_attr_defs_by_type = await self.get_all_attr_field_definitions()
+            all_attr_defs_flat = []
             for attrdefs in all_attr_defs_by_type.values():
                 for attrdef in attrdefs:
-                    drug_schema_objects.append(attrdef)
+                    all_attr_defs_flat.append(attrdef)
+
+            # all_objs.extend(all_attr_defs_flat)
 
             for ref_lov_field_obj in (
                 get_attr_ref_definitions() + get_attr_multi_ref_definitions()
@@ -1739,6 +1748,10 @@ class MmmiPharmaindex1_32(DrugDataSetImporterBase):
                 display_value = row[
                     get_header_index(lov_definition.display_value_col_name, headers)
                 ]
+                if lov_definition.display_name_factory:
+                    display_value = lov_definition.display_name_factory(
+                        paren_field.field_name, value, display_value
+                    )
                 # filter rows
                 if lov_definition.filter_col is not None:
                     filter_col_index = get_header_index(

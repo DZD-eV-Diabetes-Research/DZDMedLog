@@ -5,7 +5,6 @@ import os
 from pydantic import (
     Field,
     SecretStr,
-    AnyHttpUrl,
     field_validator,
     StringConstraints,
     model_validator,
@@ -312,7 +311,7 @@ class Config(BaseSettings):
         return AUTH_OIDC_PROVIDERS
 
     # Availabe modules live in MedLog/backend/medlogserver/model/drug_data/importers/__init__.py
-    DRUG_IMPORTER_PLUGIN: Literal["MmmiPharmaindex1_32", "DummyDrugImporterV1"] = Field(
+    DRUG_IMPORTER_PLUGIN: Literal["MMIPharmindex1_32", "DummyDrugImporterV1"] = Field(
         default="DummyDrugImporterV1",
         description="Depending on the drug database that is used, we can define an importer.",
     )
@@ -332,20 +331,20 @@ class Config(BaseSettings):
 
     DRUG_IMPORTER_SOURCE_FTP_HOST: Optional[str] = Field(
         default=None,
-        description="When using MmmiPharmaindex1_32 auto updater, this is the FTP host to check for available datasets.",
+        description="When using MMIPharmindex1_32 auto updater, this is the FTP host to check for available datasets.",
     )
     DRUG_IMPORTER_SOURCE_FTP_PORT: int = Field(
         default=21,
-        description="When using MmmiPharmaindex1_32 auto updater, this is the FTP port to connect to `DRUG_IMPORTER_SOURCE_FTP_HOST`.",
+        description="When using MMIPharmindex1_32 auto updater, this is the FTP port to connect to `DRUG_IMPORTER_SOURCE_FTP_HOST`.",
     )
     DRUG_IMPORTER_SOURCE_FTP_USER: Optional[str] = Field(
         default=None,
-        description="When using MmmiPharmaindex1_32 auto updater, authorize with this username against the MMI Pharmindex FTP Server ",
+        description="When using MMIPharmindex1_32 auto updater, authorize with this username against the MMI Pharmindex FTP Server ",
     )
 
     DRUG_IMPORTER_SOURCE_FTP_PASSWORD: Optional[SecretStr] = Field(
         default=None,
-        description="When using MmmiPharmaindex1_32 auto updater, authorize with this password against the MMI Pharmindex FTP Server ",
+        description="When using MMIPharmindex1_32 auto updater, authorize with this password against the MMI Pharmindex FTP Server ",
     )
     DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR: str = Field(
         default="/tmp/medlog_drugdata",

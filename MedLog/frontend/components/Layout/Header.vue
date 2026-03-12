@@ -3,7 +3,7 @@
     <div class="flex w-full justify-between items-center gap-20">
       <div>
         <NuxtLink to="/" class="text-4xl font-bold text-gray-800 hover:border-[#ec372d] hover:border-b-2">
-          DZDMedLog
+          {{ configStore.appName }}
         </NuxtLink>
       </div>
 
@@ -17,10 +17,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed } from '#imports';
 
+const configStore = useConfigStore();
 const userStore = useUserStore();
-const studyStore = useStudyStore();
 
 const menuItems = computed(() => {
   const links = [
@@ -64,7 +64,7 @@ const menuItems = computed(() => {
       label: 'Logout',
       labelClass: 'text-base',
       icon: 'i-heroicons-power',
-      click: logout
+      to: '/logout'
     });
   } else {
     rightSideLinks.push({
@@ -79,16 +79,6 @@ const menuItems = computed(() => {
 
   return links;
 });
-
-async function logout() {
-  userStore.$reset();
-  studyStore.$reset();
-
-  await useMedlogapi("/api/auth/logout", {
-    method: 'POST'
-  })
-  await navigateTo('/login');
-}
 </script>
 
 <style scoped>

@@ -3,8 +3,8 @@ defineProps({
   title: { type: String, default: "Sind sie sicher?" },
   description: { type: String, default: "" },
   isDangerousToConfirm: { type: Boolean, default: false },
-  cancelLabel: { type: String, default: "Nein" },
-  confirmLabel: { type: String, default: "Ja" },
+  cancelLabel: { type: String, default: "Abbrechen" },
+  confirmLabel: { type: String, default: "Fortfahren" },
 })
 
 defineEmits(['cancel', 'confirm'])

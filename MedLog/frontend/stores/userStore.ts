@@ -1,6 +1,6 @@
 // Store to handle the User-information
 
-import {defineStore} from 'pinia'
+import { defineStore } from '#imports'
 import type {SchemaUser} from '#open-fetch-schemas/medlogapi'
 
 interface UserStore {

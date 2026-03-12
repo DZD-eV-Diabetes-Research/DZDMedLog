@@ -1,14 +1,11 @@
 // Store to handle to current studies
 
-import { type MedlogapiResponse, useMedlogapi } from "#open-fetch";
+import { useMedlogapi } from "#open-fetch";
 import type { SchemaStudy } from "#open-fetch-schemas/medlogapi";
-import { defineStore } from 'pinia'
-
-type Studies = MedlogapiResponse<'list_studies_api_study_get'>['items']
-export type Study = MedlogapiResponse<'create_study_api_study_post'>
+import { defineStore } from '#imports'
 
 interface StudyState {
-    studies: Studies,
+    studies: SchemaStudy[],
 }
 
 export const useStudyStore = defineStore('StudyStore', {

@@ -1,8 +1,15 @@
 <script setup lang="ts">
+import { useDayjs } from '#dayjs'
+import type { SchemaInterview } from "#open-fetch-schemas/medlogapi";
+import localizedFormat from 'dayjs/plugin/localizedFormat'
+
+const dayjs = useDayjs();
 const eventStore = useEventStore()
 
+dayjs.extend(localizedFormat);
+
 const props = defineProps({
-  interviews: { type: Array as () => Interview, required: true },
+  interviews: { type: Array as () => SchemaInterview[], required: true },
   studyId: { type: String, required: true },
 });
 
@@ -18,10 +25,10 @@ const columns = [{
 }]
 
 const rows = computed(() => {
-  const items = props.interviews?.map((interview: Interview) => {
+  const items = props.interviews?.map((interview: SchemaInterview) => {
     return {
-      date: formatDate(interview.interview_start_time_utc, true),
-      timestamp: Date.parse(interview.interview_start_time_utc + 'Z').valueOf() ?? 0,
+      date: dayjs.utc(interview.interview_start_time_utc).local().format('LL'),
+      timestamp: dayjs.utc(interview.interview_start_time_utc).valueOf() ?? 0,
       eventId: interview.event_id,
       eventName: eventStore.nameForEvent(interview.event_id),
       interviewId: interview.id,

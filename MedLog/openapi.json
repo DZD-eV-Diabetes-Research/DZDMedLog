@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.12.1.dev19+g09c783115.d20260113"
+    "version": "0.13.2.dev56+g483a19d94.d20260310"
   },
   "paths": {
     "/api/health": {
@@ -3122,8 +3122,10 @@
                 "created_at",
                 "source_of_drug_information",
                 "is_activeingredient_equivalent_choice",
-                "intake_start_time_utc",
-                "intake_end_time_utc",
+                "intake_start_date",
+                "intake_start_date_option",
+                "intake_end_date",
+                "intake_end_date_option",
                 "administered_by_doctor",
                 "intake_regular_or_as_needed",
                 "dose_per_day",
@@ -3263,8 +3265,10 @@
                 "created_at",
                 "source_of_drug_information",
                 "is_activeingredient_equivalent_choice",
-                "intake_start_time_utc",
-                "intake_end_time_utc",
+                "intake_start_date",
+                "intake_start_date_option",
+                "intake_end_date",
+                "intake_end_date_option",
                 "administered_by_doctor",
                 "intake_regular_or_as_needed",
                 "dose_per_day",
@@ -3621,7 +3625,7 @@
           "Drug"
         ],
         "summary": "Search Drugs",
-        "description": "List all medicine/drugs from the system. Needs admin role.",
+        "description": "Search for drug in the drug database.",
         "operationId": "search_drugs_api_drug_search_get",
         "security": [
           {
@@ -3811,7 +3815,7 @@
                       "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__1"
                     },
                     {
-                      "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
+                      "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__2"
                     }
                   ],
                   "title": "Response Get Drug Api Drug Id  Drug Id  Get"
@@ -4186,7 +4190,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
+                  "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__2"
                 }
               }
             }
@@ -4605,7 +4609,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/medlogserver__utils__Error"
+                  "$ref": "#/components/schemas/medlogserver__utils__Error__1"
                 }
               }
             }
@@ -6538,15 +6542,15 @@
                 "type": "null"
               }
             ],
-            "description": "How was the drug/medication identified."
+            "description": "How the drug/medication was identified (e.g. by name, active ingredient, barcode)."
           },
           "is_activeingredient_equivalent_choice": {
             "type": "boolean",
             "title": "Is Activeingredient Equivalent Choice",
-            "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+            "description": "Set to `true` when the searched drug was not found but an alternative with the same active ingredient was intentionally selected as a substitute. Defaults to `false`.",
             "default": false
           },
-          "intake_start_time_utc": {
+          "intake_start_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6556,9 +6560,21 @@
                 "type": "null"
               }
             ],
-            "title": "Intake Start Time Utc"
+            "title": "Intake Start Date",
+            "description": "Exact start date of the intake. Mutually exclusive with `intake_start_date_option` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date_option` is automatically set to `null`."
           },
-          "intake_end_time_utc": {
+          "intake_start_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeStartDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact start date is available (e.g. `UNKNOWN`, `SINCE_BIRTH`). Mutually exclusive with `intake_start_date` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date` is automatically set to `null`."
+          },
+          "intake_end_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6568,7 +6584,19 @@
                 "type": "null"
               }
             ],
-            "title": "Intake End Time Utc"
+            "title": "Intake End Date",
+            "description": "Exact end date of the intake. Mutually exclusive with `intake_end_date_option` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date_option` is automatically set to `null`. If neither this nor `intake_end_date_option` is provided, `intake_end_date_option` defaults to `ONGOING`."
+          },
+          "intake_end_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeEndDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact end date is available (e.g. `ONGOING`, `UNKNOWN`). Mutually exclusive with `intake_end_date` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date` is automatically set to `null`. If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
           },
           "administered_by_doctor": {
             "anyOf": [
@@ -6578,7 +6606,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Indicates whether the medication was administered by a doctor."
           },
           "intake_regular_or_as_needed": {
             "anyOf": [
@@ -6589,7 +6618,7 @@
                 "type": "null"
               }
             ],
-            "description": "If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version"
+            "description": "Defines whether the medication is taken on a regular schedule or as needed. Drives mutual exclusivity of dose fields: `REGULAR` requires `regular_intervall_of_daily_dose` to be set and `as_needed_dose_unit` to be `null`. `AS_NEEDED` requires `as_needed_dose_unit` to be set and `regular_intervall_of_daily_dose` to be `null`."
           },
           "dose_per_day": {
             "anyOf": [
@@ -6600,7 +6629,8 @@
                 "type": "null"
               }
             ],
-            "title": "Dose Per Day"
+            "title": "Dose Per Day",
+            "description": "Number of doses taken per day."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -6610,7 +6640,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Interval between doses for regular intake. Required when `intake_regular_or_as_needed` is `REGULAR`. Must be `null` when `intake_regular_or_as_needed` is `AS_NEEDED`."
           },
           "as_needed_dose_unit": {
             "anyOf": [
@@ -6621,7 +6652,8 @@
                 "type": "null"
               }
             ],
-            "title": "As Needed Dose Unit"
+            "title": "As Needed Dose Unit",
+            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
@@ -6661,15 +6693,15 @@
                 "type": "null"
               }
             ],
-            "description": "How was the drug/medication identified."
+            "description": "How the drug/medication was identified (e.g. by name, active ingredient, barcode)."
           },
           "is_activeingredient_equivalent_choice": {
             "type": "boolean",
             "title": "Is Activeingredient Equivalent Choice",
-            "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+            "description": "Set to `true` when the searched drug was not found but an alternative with the same active ingredient was intentionally selected as a substitute. Defaults to `false`.",
             "default": false
           },
-          "intake_start_time_utc": {
+          "intake_start_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6679,9 +6711,21 @@
                 "type": "null"
               }
             ],
-            "title": "Intake Start Time Utc"
+            "title": "Intake Start Date",
+            "description": "Exact start date of the intake. Mutually exclusive with `intake_start_date_option` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date_option` is automatically set to `null`."
           },
-          "intake_end_time_utc": {
+          "intake_start_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeStartDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact start date is available (e.g. `UNKNOWN`, `SINCE_BIRTH`). Mutually exclusive with `intake_start_date` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date` is automatically set to `null`."
+          },
+          "intake_end_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6691,7 +6735,19 @@
                 "type": "null"
               }
             ],
-            "title": "Intake End Time Utc"
+            "title": "Intake End Date",
+            "description": "Exact end date of the intake. Mutually exclusive with `intake_end_date_option` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date_option` is automatically set to `null`. If neither this nor `intake_end_date_option` is provided, `intake_end_date_option` defaults to `ONGOING`."
+          },
+          "intake_end_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeEndDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact end date is available (e.g. `ONGOING`, `UNKNOWN`). Mutually exclusive with `intake_end_date` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date` is automatically set to `null`. If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
           },
           "administered_by_doctor": {
             "anyOf": [
@@ -6701,7 +6757,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Indicates whether the medication was administered by a doctor."
           },
           "intake_regular_or_as_needed": {
             "anyOf": [
@@ -6712,7 +6769,7 @@
                 "type": "null"
               }
             ],
-            "description": "If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version"
+            "description": "Defines whether the medication is taken on a regular schedule or as needed. Drives mutual exclusivity of dose fields: `REGULAR` requires `regular_intervall_of_daily_dose` to be set and `as_needed_dose_unit` to be `null`. `AS_NEEDED` requires `as_needed_dose_unit` to be set and `regular_intervall_of_daily_dose` to be `null`."
           },
           "dose_per_day": {
             "anyOf": [
@@ -6723,7 +6780,8 @@
                 "type": "null"
               }
             ],
-            "title": "Dose Per Day"
+            "title": "Dose Per Day",
+            "description": "Number of doses taken per day."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -6733,7 +6791,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Interval between doses for regular intake. Required when `intake_regular_or_as_needed` is `REGULAR`. Must be `null` when `intake_regular_or_as_needed` is `AS_NEEDED`."
           },
           "as_needed_dose_unit": {
             "anyOf": [
@@ -6744,7 +6803,8 @@
                 "type": "null"
               }
             ],
-            "title": "As Needed Dose Unit"
+            "title": "As Needed Dose Unit",
+            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
@@ -6774,15 +6834,15 @@
                 "type": "null"
               }
             ],
-            "description": "How was the drug/medication identified."
+            "description": "How the drug/medication was identified (e.g. by name, active ingredient, barcode)."
           },
           "is_activeingredient_equivalent_choice": {
             "type": "boolean",
             "title": "Is Activeingredient Equivalent Choice",
-            "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+            "description": "Set to `true` when the searched drug was not found but an alternative with the same active ingredient was intentionally selected as a substitute. Defaults to `false`.",
             "default": false
           },
-          "intake_start_time_utc": {
+          "intake_start_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6792,9 +6852,21 @@
                 "type": "null"
               }
             ],
-            "title": "Intake Start Time Utc"
+            "title": "Intake Start Date",
+            "description": "Exact start date of the intake. Mutually exclusive with `intake_start_date_option` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date_option` is automatically set to `null`."
           },
-          "intake_end_time_utc": {
+          "intake_start_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeStartDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact start date is available (e.g. `UNKNOWN`, `SINCE_BIRTH`). Mutually exclusive with `intake_start_date` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date` is automatically set to `null`."
+          },
+          "intake_end_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6804,7 +6876,19 @@
                 "type": "null"
               }
             ],
-            "title": "Intake End Time Utc"
+            "title": "Intake End Date",
+            "description": "Exact end date of the intake. Mutually exclusive with `intake_end_date_option` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date_option` is automatically set to `null`. If neither this nor `intake_end_date_option` is provided, `intake_end_date_option` defaults to `ONGOING`."
+          },
+          "intake_end_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeEndDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact end date is available (e.g. `ONGOING`, `UNKNOWN`). Mutually exclusive with `intake_end_date` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date` is automatically set to `null`. If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
           },
           "administered_by_doctor": {
             "anyOf": [
@@ -6814,7 +6898,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Indicates whether the medication was administered by a doctor."
           },
           "intake_regular_or_as_needed": {
             "anyOf": [
@@ -6825,7 +6910,7 @@
                 "type": "null"
               }
             ],
-            "description": "If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version"
+            "description": "Defines whether the medication is taken on a regular schedule or as needed. Drives mutual exclusivity of dose fields: `REGULAR` requires `regular_intervall_of_daily_dose` to be set and `as_needed_dose_unit` to be `null`. `AS_NEEDED` requires `as_needed_dose_unit` to be set and `regular_intervall_of_daily_dose` to be `null`."
           },
           "dose_per_day": {
             "anyOf": [
@@ -6836,7 +6921,8 @@
                 "type": "null"
               }
             ],
-            "title": "Dose Per Day"
+            "title": "Dose Per Day",
+            "description": "Number of doses taken per day."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -6846,7 +6932,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Interval between doses for regular intake. Required when `intake_regular_or_as_needed` is `REGULAR`. Must be `null` when `intake_regular_or_as_needed` is `AS_NEEDED`."
           },
           "as_needed_dose_unit": {
             "anyOf": [
@@ -6857,7 +6944,8 @@
                 "type": "null"
               }
             ],
-            "title": "As Needed Dose Unit"
+            "title": "As Needed Dose Unit",
+            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
@@ -6890,7 +6978,7 @@
                 "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__1"
               },
               {
-                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__2"
               }
             ],
             "title": "Drug"
@@ -6906,6 +6994,14 @@
         ],
         "title": "IntakeDetailListItem"
       },
+      "IntakeEndDateOption": {
+        "type": "string",
+        "enum": [
+          "unknown",
+          "ongoing"
+        ],
+        "title": "IntakeEndDateOption"
+      },
       "IntakeRegularOrAsNeededAnswers": {
         "type": "string",
         "enum": [
@@ -6913,6 +7009,14 @@
           "as needed"
         ],
         "title": "IntakeRegularOrAsNeededAnswers"
+      },
+      "IntakeStartDateOption": {
+        "type": "string",
+        "enum": [
+          "unknown",
+          "at_least_12_months"
+        ],
+        "title": "IntakeStartDateOption"
       },
       "IntakeUpdate": {
         "properties": {
@@ -6925,15 +7029,15 @@
                 "type": "null"
               }
             ],
-            "description": "How was the drug/medication identified."
+            "description": "How the drug/medication was identified (e.g. by name, active ingredient, barcode)."
           },
           "is_activeingredient_equivalent_choice": {
             "type": "boolean",
             "title": "Is Activeingredient Equivalent Choice",
-            "description": "If a drug is not found in the search results but an alternative drug with the same active substance is available, the interviewer needs a dedicated field to indicate that this alternative was intentionally selected.",
+            "description": "Set to `true` when the searched drug was not found but an alternative with the same active ingredient was intentionally selected as a substitute. Defaults to `false`.",
             "default": false
           },
-          "intake_start_time_utc": {
+          "intake_start_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6943,9 +7047,21 @@
                 "type": "null"
               }
             ],
-            "title": "Intake Start Time Utc"
+            "title": "Intake Start Date",
+            "description": "Exact start date of the intake. Mutually exclusive with `intake_start_date_option` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date_option` is automatically set to `null`."
           },
-          "intake_end_time_utc": {
+          "intake_start_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeStartDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact start date is available (e.g. `UNKNOWN`, `SINCE_BIRTH`). Mutually exclusive with `intake_start_date` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date` is automatically set to `null`."
+          },
+          "intake_end_date": {
             "anyOf": [
               {
                 "type": "string",
@@ -6955,7 +7071,19 @@
                 "type": "null"
               }
             ],
-            "title": "Intake End Time Utc"
+            "title": "Intake End Date",
+            "description": "Exact end date of the intake. Mutually exclusive with `intake_end_date_option` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date_option` is automatically set to `null`. If neither this nor `intake_end_date_option` is provided, `intake_end_date_option` defaults to `ONGOING`."
+          },
+          "intake_end_date_option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeEndDateOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use when no exact end date is available (e.g. `ONGOING`, `UNKNOWN`). Mutually exclusive with `intake_end_date` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date` is automatically set to `null`. If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
           },
           "administered_by_doctor": {
             "anyOf": [
@@ -6965,7 +7093,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Indicates whether the medication was administered by a doctor."
           },
           "intake_regular_or_as_needed": {
             "anyOf": [
@@ -6976,7 +7105,7 @@
                 "type": "null"
               }
             ],
-            "description": "If a med is taken regualr or as needed. When choosen regular the field `regular_intervall_of_daily_dose` is mandatory and `as_needed_dose_unit` must be `None`/`null`. When the choosen `as needed` the oposite is true. This is the old IDOM behaviour, its ugly, i hate it and it will change in a futue version"
+            "description": "Defines whether the medication is taken on a regular schedule or as needed. Drives mutual exclusivity of dose fields: `REGULAR` requires `regular_intervall_of_daily_dose` to be set and `as_needed_dose_unit` to be `null`. `AS_NEEDED` requires `as_needed_dose_unit` to be set and `regular_intervall_of_daily_dose` to be `null`."
           },
           "dose_per_day": {
             "anyOf": [
@@ -6987,7 +7116,8 @@
                 "type": "null"
               }
             ],
-            "title": "Dose Per Day"
+            "title": "Dose Per Day",
+            "description": "Number of doses taken per day."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -6997,7 +7127,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Interval between doses for regular intake. Required when `intake_regular_or_as_needed` is `REGULAR`. Must be `null` when `intake_regular_or_as_needed` is `AS_NEEDED`."
           },
           "as_needed_dose_unit": {
             "anyOf": [
@@ -7008,7 +7139,8 @@
                 "type": "null"
               }
             ],
-            "title": "As Needed Dose Unit"
+            "title": "As Needed Dose Unit",
+            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "anyOf": [
@@ -7018,11 +7150,13 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Indicates whether the patient has already taken this medication today."
           }
         },
         "type": "object",
-        "title": "IntakeUpdate"
+        "title": "IntakeUpdate",
+        "description": "Update an existing medication intake record.\n\n**Start Date** \u2014 exactly one of `intake_start_date` or `intake_start_date_option` must be set.\nSending both returns 400. The omitted field is automatically nulled out.\n\n**End Date** \u2014 at most one of `intake_end_date` or `intake_end_date_option` may be set.\nSending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.\nThe omitted field is automatically nulled out.\n\n**Intake mode** \u2014 mutually exclusive fields depending on `intake_regular_or_as_needed`:\n- `REGULAR`: `as_needed_dose_unit` must be `null`\n- `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`"
       },
       "IntervalOfDailyDoseAnswers": {
         "type": "string",
@@ -7199,7 +7333,7 @@
                 "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__1"
               },
               {
-                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug"
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Drug__2"
               }
             ],
             "title": "Drug"
@@ -7212,6 +7346,63 @@
           "drug"
         ],
         "title": "MedLogSearchEngineResult"
+      },
+      "MultiAttrRefValProducing_country": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display"
+          },
+          "ref_list": {
+            "type": "string",
+            "const": "/api/drug/field_def/producing_country/refs",
+            "title": "Ref List",
+            "description": "The API path to the list this value references",
+            "default": "/api/drug/field_def/producing_country/refs"
+          }
+        },
+        "type": "object",
+        "title": "MultiAttrRefValProducing_country"
+      },
+      "MultiAttrRefs": {
+        "properties": {
+          "producing_country": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MultiAttrRefValProducing_country"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Producing Country",
+            "description": "Country in which the manufacturer produces this drug",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "MultiAttrRefs"
       },
       "PaginatedResponse_DrugAttrFieldLovItemAPIRead_": {
         "properties": {
@@ -8014,7 +8205,8 @@
           "medlogserver.worker.tasks.run_ad_hoc_jobs.TaskRunAdHocJobs",
           "medlogserver.worker.tasks.drug_data_load.TaskDrugDataLoading",
           "medlogserver.worker.tasks.drug_data_update_download.TaskDrugDataUpdateDownload",
-          "medlogserver.worker.tasks.drug_data_remove_obsolete_drug_entries.TaskRemoveOnbsoleteDrugDataEntries"
+          "medlogserver.worker.tasks.drug_data_remove_obsolete_drug_entries.TaskRemoveOnbsoleteDrugDataEntries",
+          "medlogserver.worker.tasks.drug_data_auto_updater.TaskDrugDataAutoUpdater"
         ],
         "title": "Tasks"
       },
@@ -8350,6 +8542,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",
@@ -8488,7 +8687,7 @@
         ],
         "title": "WorkerJobState"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype": {
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype__1": {
         "properties": {
           "value": {
             "type": "integer",
@@ -8551,10 +8750,10 @@
         "type": "object",
         "title": "AttrRefValDispensingtype"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs": {
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__1": {
         "properties": {
           "dispensingtype": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype__1",
             "description": "How are the drugs made available."
           }
         },
@@ -8582,7 +8781,111 @@
         "type": "object",
         "title": "AttrRefs"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__Attrs": {
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__1": {
+        "properties": {
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Keywords",
+            "description": "How are the drugs made available.",
+            "examples": [
+              [
+                "autoimmune",
+                "suppress"
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "keywords"
+        ],
+        "title": "AttrsMulti"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__2": {
+        "properties": {
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Keywords",
+            "description": "How are the drugs made available.",
+            "examples": [
+              [
+                "autoimmune",
+                "suppress"
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "title": "AttrsMulti"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__Attrs__1": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "title": "Amount",
+            "description": "Amount in package",
+            "examples": [
+              10.0,
+              5.5,
+              80.0
+            ]
+          },
+          "manufacturer": {
+            "type": "string",
+            "title": "Manufacturer",
+            "description": "Manufacturing company of the drug",
+            "examples": [
+              "PharamGigant",
+              "MoneyMaker"
+            ]
+          },
+          "deliverysystem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliverysystem",
+            "description": "Drug delivery refers to approaches, formulations, manufacturing techniques, storage systems, and technologies involved in transporting a pharmaceutical compound to its target site to achieve a desired therapeutic effect.",
+            "examples": [
+              "Spray",
+              "Needle"
+            ]
+          },
+          "routeofadministration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routeofadministration",
+            "description": "route of administration is the way by which a drug, fluid, poison, or other substance is taken into the body.",
+            "examples": [
+              "oral",
+              "intravenous"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount",
+          "manufacturer"
+        ],
+        "title": "Attrs"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__Attrs__2": {
         "properties": {
           "amount": {
             "anyOf": [
@@ -8653,139 +8956,6 @@
         "type": "object",
         "title": "Attrs"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti": {
-        "properties": {
-          "keywords": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Keywords",
-            "description": "How are the drugs made available.",
-            "examples": [
-              [
-                "autoimmune",
-                "suppress"
-              ]
-            ]
-          }
-        },
-        "type": "object",
-        "title": "AttrsMulti"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__1": {
-        "properties": {
-          "keywords": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Keywords",
-            "description": "How are the drugs made available.",
-            "examples": [
-              [
-                "autoimmune",
-                "suppress"
-              ]
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "keywords"
-        ],
-        "title": "AttrsMulti"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__Attrs__1": {
-        "properties": {
-          "amount": {
-            "type": "number",
-            "title": "Amount",
-            "description": "Amount in package",
-            "examples": [
-              10.0,
-              5.5,
-              80.0
-            ]
-          },
-          "manufacturer": {
-            "type": "string",
-            "title": "Manufacturer",
-            "description": "Manufacturing company of the drug",
-            "examples": [
-              "PharamGigant",
-              "MoneyMaker"
-            ]
-          },
-          "deliverysystem": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Deliverysystem",
-            "description": "Drug delivery refers to approaches, formulations, manufacturing techniques, storage systems, and technologies involved in transporting a pharmaceutical compound to its target site to achieve a desired therapeutic effect.",
-            "examples": [
-              "Spray",
-              "Needle"
-            ]
-          },
-          "routeofadministration": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Routeofadministration",
-            "description": "route of administration is the way by which a drug, fluid, poison, or other substance is taken into the body.",
-            "examples": [
-              "oral",
-              "intravenous"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "amount",
-          "manufacturer"
-        ],
-        "title": "Attrs"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__Codes": {
-        "properties": {
-          "ATC": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Atc",
-            "description": "The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties."
-          },
-          "PZN": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Pzn"
-          }
-        },
-        "type": "object",
-        "title": "Codes"
-      },
       "medlogserver__model__drug_data__api_drug_model_factory__Codes__1": {
         "properties": {
           "ATC": {
@@ -8811,48 +8981,9 @@
         ],
         "title": "Codes"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__Drug": {
+      "medlogserver__model__drug_data__api_drug_model_factory__Codes__2": {
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "trade_name": {
-            "type": "string",
-            "title": "Trade Name"
-          },
-          "market_access_date": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Market Access Date"
-          },
-          "market_exit_date": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Market Exit Date"
-          },
-          "is_custom_drug": {
-            "type": "boolean",
-            "title": "Is Custom Drug",
-            "description": "User can create placeholder drugs, if the drug they try to document is not listed yet.",
-            "default": false
-          },
-          "custom_drug_notes": {
+          "ATC": {
             "anyOf": [
               {
                 "type": "string"
@@ -8861,48 +8992,23 @@
                 "type": "null"
               }
             ],
-            "title": "Custom Drug Notes",
-            "description": "If custom drug is defined the user can enter some notes here."
+            "title": "Atc",
+            "description": "The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties."
           },
-          "custom_created_by": {
+          "PZN": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Custom Created By",
-            "description": "If Drug is created by user as a custom drug the user id will be saved here."
-          },
-          "codes": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes"
-          },
-          "attrs": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs",
-            "description": "Scalar Drug attributes. One value only per drug attribute."
-          },
-          "attrs_multi": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti",
-            "description": "All Drug attributes that can have multiple values. e.g. something like 'Keywords'. Will always be a list."
-          },
-          "attrs_ref": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__2",
-            "description": "All Drug attributes reference an existing list (value + display Value. Aka SelectList)."
-          },
-          "attrs_multi_ref": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefs",
-            "description": "All Drug attributes that can have a list of values. These values must reference an existing list."
+            "title": "Pzn"
           }
         },
         "type": "object",
-        "required": [
-          "trade_name",
-          "custom_drug_notes"
-        ],
-        "title": "Drug"
+        "title": "Codes"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__Drug__1": {
         "properties": {
@@ -8982,11 +9088,11 @@
             "description": "All Drug attributes that can have multiple values. e.g. something like 'Keywords'. Will always be a list."
           },
           "attrs_ref": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__1",
             "description": "All Drug attributes reference an existing list (value + display Value. Aka SelectList)."
           },
           "attrs_multi_ref": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefs",
+            "$ref": "#/components/schemas/MultiAttrRefs",
             "description": "All Drug attributes that can have a list of values. These values must reference an existing list."
           }
         },
@@ -8997,64 +9103,100 @@
         ],
         "title": "Drug"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefValProducing_country": {
+      "medlogserver__model__drug_data__api_drug_model_factory__Drug__2": {
         "properties": {
-          "value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          },
-          "display": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display"
-          },
-          "ref_list": {
+          "id": {
             "type": "string",
-            "const": "/api/drug/field_def/producing_country/refs",
-            "title": "Ref List",
-            "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/producing_country/refs"
-          }
-        },
-        "type": "object",
-        "title": "MultiAttrRefValProducing_country"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefs": {
-        "properties": {
-          "producing_country": {
+            "format": "uuid",
+            "title": "Id"
+          },
+          "trade_name": {
+            "type": "string",
+            "title": "Trade Name"
+          },
+          "market_access_date": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__MultiAttrRefValProducing_country"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "date"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Producing Country",
-            "description": "Country in which the manufacturer produces this drug",
-            "default": []
+            "title": "Market Access Date"
+          },
+          "market_exit_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Exit Date"
+          },
+          "is_custom_drug": {
+            "type": "boolean",
+            "title": "Is Custom Drug",
+            "description": "User can create placeholder drugs, if the drug they try to document is not listed yet.",
+            "default": false
+          },
+          "custom_drug_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Drug Notes",
+            "description": "If custom drug is defined the user can enter some notes here."
+          },
+          "custom_created_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Created By",
+            "description": "If Drug is created by user as a custom drug the user id will be saved here."
+          },
+          "codes": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes__2"
+          },
+          "attrs": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs__2",
+            "description": "Scalar Drug attributes. One value only per drug attribute."
+          },
+          "attrs_multi": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__2",
+            "description": "All Drug attributes that can have multiple values. e.g. something like 'Keywords'. Will always be a list."
+          },
+          "attrs_ref": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__2",
+            "description": "All Drug attributes reference an existing list (value + display Value. Aka SelectList)."
+          },
+          "attrs_multi_ref": {
+            "$ref": "#/components/schemas/MultiAttrRefs",
+            "description": "All Drug attributes that can have a list of values. These values must reference an existing list."
           }
         },
         "type": "object",
-        "title": "MultiAttrRefs"
+        "required": [
+          "trade_name",
+          "custom_drug_notes"
+        ],
+        "title": "Drug"
       },
-      "medlogserver__utils__Error": {
+      "medlogserver__utils__Error__1": {
         "properties": {
           "detail": {
             "additionalProperties": {

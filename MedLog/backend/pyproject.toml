@@ -26,7 +26,7 @@ dependencies = [
     "passlib[bcrypt]",
     "Authlib",
     "httpx",
-    "sqlmodel",
+    "sqlmodel == 0.0.31",        # https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/226
     "sqlalchemy[asyncio]",
     "aiosqlite",
     "itsdangerous",

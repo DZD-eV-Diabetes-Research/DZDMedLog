@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { Study } from '~/stores/studyStore'
 import { type InferType, object, string } from "yup";
 import type {FormSubmitEvent} from "#ui/types";
+import type {SchemaStudy} from "#open-fetch-schemas/medlogapi";
 
 const props = defineProps({
-  study: { type: Object as () => Study, required: true },
+  study: { type: Object as () => SchemaStudy, required: true },
 })
 
 const state = reactive({

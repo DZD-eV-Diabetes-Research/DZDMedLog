@@ -100,7 +100,7 @@ def test_endpoint_drug_update_workflow():
     intake_data = IntakeCreateAPI(
         drug_id=drug_to_prove_inital_dataset["id"],
         source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
-        intake_start_time_utc=datetime.date.today().isoformat(),
+        intake_start_date=datetime.date.today().isoformat(),
         administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
         intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
         as_needed_dose_unit=1,
@@ -249,3 +249,27 @@ def test_endpoint_drug_update_workflow():
             ),
         )
     )
+
+    list_dispensingtype = req(
+        "/api/drug/field_def/dispensingtype/refs",
+        method="get",
+    )
+
+    def find_duplicates(dict_list):
+        seen = set()
+        duplicates = []
+
+        for d in dict_list:
+            key = tuple(sorted(d.items()))
+            if key in seen:
+                duplicates.append(d)
+            else:
+                seen.add(key)
+
+        return duplicates
+
+    if find_duplicates(list_dispensingtype["items"]):
+        raise ValueError(
+            f"Duplicated in ref values for dispensingtype after second drug update: {list_dispensingtype}"
+        )
+    # print("list_dispensingtype", list_dispensingtype)

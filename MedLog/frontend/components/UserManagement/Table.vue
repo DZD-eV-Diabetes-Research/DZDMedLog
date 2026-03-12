@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type { Roles } from '~/stores/roleStore'
-import type { SchemaUser } from '#open-fetch-schemas/medlogapi'
+import type { SchemaUser, SchemaUserRoleApiRead } from '#open-fetch-schemas/medlogapi'
 
 const columns = [{
   key: 'name',
@@ -21,13 +20,16 @@ const columns = [{
 
 const props = defineProps({
   loading: { type: Boolean, default: false },
-  roles: { type: Array as () => Roles, default: () => [] },
+  roles: { type: Array as () => SchemaUserRoleApiRead[], default: () => [] },
   users: { type: Array as () => SchemaUser[], default: () => [] },
 });
 
 defineEmits(['edit-roles']);
 
-const sort = ref({
+const sort = ref<{
+  column: string;
+  direction: "asc" | "desc";
+}>({
   column: 'name',
   direction: 'asc'
 })

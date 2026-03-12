@@ -13,7 +13,6 @@ from typing import (
     Type,
     Iterable,
 )
-from htpy import base
 from sqlmodel import SQLModel
 
 if TYPE_CHECKING:
