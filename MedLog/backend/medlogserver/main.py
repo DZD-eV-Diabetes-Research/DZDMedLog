@@ -95,7 +95,7 @@ def start():
             or not Path(config.FRONTEND_FILES_DIR, "index.html").exists()
         ):
             raise ValueError(
-                "Can not find frontend files. Maybe you need to build the frontend first. Try to run 'make frontend'"
+                f"Can not find frontend files in '{config.FRONTEND_FILES_DIR}'. Maybe you need to build the frontend first. Try to run 'make frontend'"
             )
     event_loop = asyncio.get_event_loop()
     run_db_migrations()

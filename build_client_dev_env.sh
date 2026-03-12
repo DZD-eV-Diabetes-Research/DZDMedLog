@@ -28,8 +28,15 @@ if [ ! -d "$TARGET_DIR" ]; then
     exit 1
 fi
 
+
+
 echo "[INFO] Running bun install in $TARGET_DIR..."
 cd "$TARGET_DIR"
+
+
+
+
+
 bun install
 
 echo "[INFO] bun install completed successfully in $TARGET_DIR"
