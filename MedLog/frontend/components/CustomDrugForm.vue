@@ -3,13 +3,6 @@
     <ErrorMessage v-if="error" :error="error" class="mb-5" />
     <div v-if="isDataLoaded">
 
-      <!-- After the drugFieldDefinitionsObject is created we loop through each of the 4 arrays:
-      attr: A free field in case of yes and no questions, boolean
-      attr_ref: A predefined selection of options
-      attr_multi: Multiple answers possible
-      attr_multi_ref: Multiple answers of predefined selction possible
-      and created inputs for each item in this array. -->
-
       <UForm :state="state" :validate="validate" class="space-y-4" @submit.prevent="onSubmit">
         <UFormGroup label="Name" name="customName" required class="mb-6">
           <UInput v-model="state.customName" />
@@ -20,79 +13,79 @@
         </DZDUIFormGroup>
 
         <DZDUIFormGroup
-            v-for="attr in drugFieldDefinitionsObject.attrs"
-            :key="attr[1]"
-            :name="attr[1]"
-            :label="attr[0]"
-            :description="attr[3]"
+            v-for="attr in drugFields.fieldsForCustomDrugs.attrs"
+            :key="attr.field_name"
+            :name="attr.field_name"
+            :label="attr.field_name_display"
+            :description="attr.field_desc ?? ''"
         >
           <UInput
-              v-if="getFormInputType(attr[2]) !== 'checkbox'"
-              v-model="attrState[attr[1]]"
-              :type="getFormInputType(attr[2])"
+              v-if="getFormInputType(attr.value_type) !== 'checkbox'"
+              v-model="attrState[attr.field_name] as string|number"
+              :type="getFormInputType(attr.value_type)"
           />
-          <UCheckbox v-else v-model="attrState[attr[1]]" :name="attr[1]" />
+          <UCheckbox v-else v-model="attrState[attr.field_name] as boolean" :name="attr.field_name" />
         </DZDUIFormGroup>
 
         <DZDUIFormGroup
-            v-for="attr_ref in drugFieldDefinitionsObject.attrs_ref"
-            :key="attr_ref[1]"
-            :name="attr_ref[1]"
-            :label="attr_ref[0]"
-            :description="attr_ref[3]"
+            v-for="attr_ref in drugFields.fieldsForCustomDrugs.attrs_ref"
+            :key="attr_ref.field_name"
+            :name="attr_ref.field_name"
+            :label="attr_ref.field_name_display"
+            :description="attr_ref.field_desc ?? ''"
         >
           <USelectMenu
-              v-model="attr_refState[attr_ref[1]]"
-              v-model:query="queries[attr_ref[1]]"
-              :options="refSelectMenus.find(item => item.field_name === attr_ref[1])?.options"
+              v-model="attr_refState[attr_ref.field_name]"
+              v-model:query="queries[attr_ref.field_name]"
+              :options="refSelectMenus.find(item => item.field_name === attr_ref.field_name)?.options"
               value-attribute="value"
               option-attribute="display"
               placeholder="Option auswählen"
-              :searchable="!!attr_ref[4]"
+              :searchable="!!attr_ref.is_large_reference_list"
           />
         </DZDUIFormGroup>
 
         <DZDUIFormGroup
-            v-for="attr_multi in drugFieldDefinitionsObject.attrs_multi"
-            :key="attr_multi[1]"
-            :name="attr_multi[1]"
-            :label="attr_multi[0]"
-            :description="attr_multi[3]"
+            v-for="attr_multi in drugFields.fieldsForCustomDrugs.attrs_multi"
+            :key="attr_multi.field_name"
+            :name="attr_multi.field_name"
+            :label="attr_multi.field_name_display"
+            :description="attr_multi.field_desc ?? ''"
         >
           <UInput
-              v-model="inputValues[attr_multi[1]]"
+              v-model="inputValues[attr_multi.field_name]"
               placeholder="Option auswählen und Enter drücken"
-              @keydown.enter.prevent="updateMultiState(attr_multi[1])"
-              @blur="updateMultiState(attr_multi[1])"
+              @keydown.enter.prevent="updateMultiState(attr_multi.field_name)"
+              @blur="updateMultiState(attr_multi.field_name)"
           />
           <UBadge
-              v-for="(word, index) in attr_multiState[attr_multi[1]]"
+              v-for="(word, index) in attr_multiState[attr_multi.field_name]"
               :key="index"
               class="mr-2 cursor-pointer"
-              @click="removeItem(attr_multi[1], index)"
+              @click="removeItem(attr_multi.field_name, index)"
           >
             {{ word }}
           </UBadge>
         </DZDUIFormGroup>
 
         <DZDUIFormGroup
-            v-for="attr_multi_ref in drugFieldDefinitionsObject.attrs_multi_ref"
-            :key="attr_multi_ref[1]"
-            :name="attr_multi_ref[1]"
-            :label="attr_multi_ref[0]"
-            :description="attr_multi_ref[3]"
+            v-for="attr_multi_ref in drugFields.fieldsForCustomDrugs.attrs_multi_ref"
+            :key="attr_multi_ref.field_name"
+            :name="attr_multi_ref.field_name"
+            :label="attr_multi_ref.field_name_display"
+            :description="attr_multi_ref.field_desc ?? ''"
         >
           <USelectMenu
-              v-model="attr_multi_refState[attr_multi_ref[1]]"
-              :options="multiRefSelectMenus.find(item => item.field_name === attr_multi_ref[1])?.options"
+              v-model="attr_multi_refState[attr_multi_ref.field_name]"
+              :options="multiRefSelectMenus.find(item => item.field_name === attr_multi_ref.field_name)?.options"
               value-attribute="value" option-attribute="display" multiple searchable
               placeholder="Option auswählen">
             <template #label>
               <span
-                  v-if="Array.isArray(attr_multi_refState[attr_multi_ref[1]]) && attr_multi_refState[attr_multi_ref[1]].length">
-                {{attr_multi_refState[attr_multi_ref[1]].map(val => multiRefSelectMenus.find(item =>
+                  v-if="Array.isArray(attr_multi_refState[attr_multi_ref.field_name]) && attr_multi_refState[attr_multi_ref.field_name].length">
+                {{attr_multi_refState[attr_multi_ref.field_name].map(val => multiRefSelectMenus.find(item =>
                   item.field_name ===
-                  attr_multi_ref[1])?.options.find(option => option.value === val)?.display || val)
+                  attr_multi_ref.field_name)?.options.find(option => option.value === val)?.display || val)
                   .join('; ')}}
               </span>
               <span v-else>Mehrfachauswahl möglich</span>
@@ -114,31 +107,22 @@
 </template>
 
 <script setup lang="ts">
-import {apiGetFieldDefinitions} from "~/api/drug";
 import type {FormError} from "#ui/types";
-import type { SchemaDrugCodeSystem } from "#open-fetch-schemas/medlogapi";
+import type {SchemaDrugAttrFieldDefinitionContainer, SchemaDrugCodeSystem, SchemaDrugCustomCreate} from "#open-fetch-schemas/medlogapi";
 const { $medlogapi } = useNuxtApp();
 
 const toast = useToast();
 const drugFields = useDrugFields();
 
-interface Attribute {
-  [key: string]: any;
+interface FieldOptions {
+  field_name: string;
+  options: { value: string, display: string }[];
 }
 
-export interface DrugBody {
-  trade_name: string;
-  market_access_date: string | null;
-  market_exit_date: string | null;
-  custom_drug_notes: string | null;
-  attrs: Attribute[] | null;
-  attrs_ref: Attribute[] | null;
-  attrs_multi: Attribute[] | null;
-  attrs_multi_ref: Attribute[] | null;
-  codes: Attribute[] | null;
-}
-
-const emit = defineEmits(['cancel', 'save'])
+const emit = defineEmits<{
+  cancel: []
+  save: [customDrugBody: SchemaDrugCustomCreate]
+}>()
 
 const codeSystems = ref<SchemaDrugCodeSystem[]>([])
 const error = ref();
@@ -148,17 +132,16 @@ const state = reactive({
 });
 
 const isDataLoaded = ref(false);
-let drugFieldDefinitionsObject: any = null;
 
 const drugCodeState = reactive<Record<string, string>>({});
 
-const attrState = ref(null);
+const attrState = reactive<Record<string, string | number | boolean>>({});
 const attr_refState = reactive<Record<string, string | number | boolean>>({});
-const attr_multiState = reactive({});
-const attr_multi_refState = reactive<Record<string, string | number | boolean>>({});
-const refSelectMenus = ref<{ field_name: string, options: { value: string, display: string }[] }[]>([]);
-const multiRefSelectMenus = ref<{ field_name: string, options: { value: string, display: string }[] }[]>([]);
-const inputValues = reactive({});
+const attr_multiState = reactive<Record<string, string[]>>({});
+const attr_multi_refState = reactive<Record<string, string[]>>({});
+const refSelectMenus = ref<FieldOptions[]>([]);
+const multiRefSelectMenus = ref<FieldOptions[]>([]);
+const inputValues = reactive<Record<string, string>>({});
 
 function validate(state: any): FormError[] {
   const errors = []
@@ -177,13 +160,13 @@ async function onSubmit() {
         code: value,
       })).filter(item => item.code !== '');
 
-  const customDrugBody: DrugBody = {
+  const customDrugBody: SchemaDrugCustomCreate = {
     trade_name: state.customName,
     market_access_date: null,
     market_exit_date: null,
     custom_drug_notes: null,
-    attrs: Object.entries(attrState.value).map(([key, value]) => ({ field_name: key, value: value == null ? null : String(value) })),
-    attrs_ref: Object.entries(attr_refState).map(([key, value]) => ({ field_name: key, value: value })),
+    attrs: Object.entries(attrState).map(([key, value]) => ({ field_name: key, value: !value ? null : String(value) })),
+    attrs_ref: Object.entries(attr_refState).map(([key, value]) => ({ field_name: key, value: value == null ? null : String(value) })),
     attrs_multi: Object.entries(attr_multiState).map(([key, value]) => ({ field_name: key, values: value })),
     attrs_multi_ref: Object.entries(attr_multi_refState).map(([key, value]) => ({ field_name: key, values: value })),
     codes: drugCodeBody
@@ -192,18 +175,17 @@ async function onSubmit() {
   emit('save', customDrugBody)
 }
 
-async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, multiple = false) {
+async function createRefSelectMenus(refs: SchemaDrugAttrFieldDefinitionContainer['attrs_ref'] | SchemaDrugAttrFieldDefinitionContainer['attrs_multi_ref'], state: Record<string, any>, selectMenus: Ref<FieldOptions[]>, multiple = false) {
   try {
     for (const ref of refs) {
 
-      const item = { field_name: ref[1], options: [] };
+      const item = { field_name: ref.field_name, options: [] };
       let response = null
 
-      // this leads back to the /api/drug.ts file the ref[4] is the boolean if the field_def is: 'is_large_reference_list'
-      if (ref[4]) {
+      if (ref.is_large_reference_list) {
         response = await $medlogapi('/api/drug/field_def/{field_name}/refs', {
           path: {
-            field_name: ref[1]
+            field_name: ref.field_name
           },
           query: {
             limit: 10,
@@ -212,7 +194,7 @@ async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, m
       } else {
         response = await $medlogapi('/api/drug/field_def/{field_name}/refs', {
           path: {
-            field_name: ref[1]
+            field_name: ref.field_name
           }
         });
 
@@ -224,7 +206,7 @@ async function createRefSelectMenus(refs: any[], state: any, selectMenus: any, m
       }));
 
       selectMenus.value.push(item);
-      state[ref[1]] = multiple ? [] : null;
+      state[ref.field_name] = multiple ? [] : null;
     }
   } catch (error) {
     throw new Error("Could not create refSelectMenus", { cause: error });
@@ -277,39 +259,34 @@ async function onSearchRef(fieldName: string, query: string) {
 // end of search logic
 
 async function createMultiState() {
-  drugFieldDefinitionsObject.attrs_multi.forEach(element => {
-    attr_multiState[element[1]] = [];
-    inputValues[element[1]] = "";
+  drugFields.fieldsForCustomDrugs.attrs_multi.forEach(element => {
+    attr_multiState[element.field_name] = [];
+    inputValues[element.field_name] = "";
   });
 }
 
-function updateMultiState(field) {
-  const newValues = inputValues[field]
+function updateMultiState(fieldName: string) {
+  const newValues = inputValues[fieldName]
       .split(',')
       .map(w => w.trim())
       .filter(w => w !== "");
 
-  attr_multiState[field].push(...newValues);
-  inputValues[field] = "";
+  attr_multiState[fieldName].push(...newValues);
+  inputValues[fieldName] = "";
 }
 
 const fetchFieldDefinitions = async () => {
-  drugFieldDefinitionsObject = await apiGetFieldDefinitions("dynamic_form");
-  attrState.value = reactive(generateDynamicState(drugFieldDefinitionsObject.attrs));
-  //schema.value = object(generateDynamicSchema(drugFieldDefinitionsObject));
+  generateDynamicState(drugFields.fieldsForCustomDrugs.attrs);
   isDataLoaded.value = true;
-  await createRefSelectMenus(drugFieldDefinitionsObject.attrs_ref, attr_refState, refSelectMenus)
-  await createRefSelectMenus(drugFieldDefinitionsObject.attrs_multi_ref, attr_multi_refState, multiRefSelectMenus, true)
+  await createRefSelectMenus(drugFields.fieldsForCustomDrugs.attrs_ref, attr_refState, refSelectMenus)
+  await createRefSelectMenus(drugFields.fieldsForCustomDrugs.attrs_multi_ref, attr_multi_refState, multiRefSelectMenus, true)
   await createMultiState()
 }
 
-function generateDynamicState(fieldsObject: [[]]) {
-  const dynamicState = {};
-
-  fieldsObject.forEach(([, key, type]) => {
-    dynamicState[key] = type === "BOOL" ? false : null;
+function generateDynamicState(fieldsObject: SchemaDrugAttrFieldDefinitionContainer['attrs']): void {
+  fieldsObject.forEach((attr) => {
+    attrState[attr.field_name] = attr.value_type === "BOOL" ? false : "";
   });
-  return dynamicState;
 }
 
 function getFormInputType(type: any) {
@@ -331,7 +308,7 @@ function getFormInputType(type: any) {
   }
 }
 
-function removeItem(field, index) {
+function removeItem(field: string, index: number) {
   attr_multiState[field].splice(index, 1);
 }
 
