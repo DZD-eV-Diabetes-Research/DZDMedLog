@@ -532,3 +532,77 @@ def test_create_intake_with_end_and_start_option_update_issue_228():
         },
         exception_dict_identifier="create intake with empty start time response",
     )
+    intake_data_update_dict_2 = {
+        "intake_start_date_option": IntakeStartDateOption.AT_LEAST_12_MONTHS.value,
+        "intake_start_date": today_date_string,
+    }
+    updated_intake_resp = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake/{new_intake['id']}",
+        method="patch",
+        b=intake_data_update_dict_2,
+        expected_http_code=422,
+    )
+    intake_data_update_dict_3 = {
+        "intake_end_date_option": IntakeStartDateOption.AT_LEAST_12_MONTHS.value,
+        "intake_end_date": today_date_string,
+    }
+    updated_intake_resp = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake/{new_intake['id']}",
+        method="patch",
+        b=intake_data_update_dict_3,
+        expected_http_code=422,
+    )
+
+    # 500 provoking payload found during testing
+    intake_data_update_dict_4 = {
+        "source_of_drug_information": "Medication package: Scanned PZN",
+        "is_activeingredient_equivalent_choice": False,
+        "administered_by_doctor": "prescribed",
+        "intake_regular_or_as_needed": "regular",
+        "dose_per_day": 0,
+        "regular_intervall_of_daily_dose": "Unknown",
+        "consumed_meds_today": "Yes",
+        "as_needed_dose_unit": 5,
+    }
+    updated_intake_resp = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake/{new_intake['id']}",
+        method="patch",
+        b=intake_data_update_dict_4,
+        expected_http_code=422,
+    )
+
+    intake_data_update_dict_4 = {
+        "source_of_drug_information": "Medication package: Scanned PZN",
+        "is_activeingredient_equivalent_choice": False,
+        "administered_by_doctor": "prescribed",
+        "intake_regular_or_as_needed": "regular",
+        "dose_per_day": 0,
+        "regular_intervall_of_daily_dose": "Unknown",
+        "consumed_meds_today": "Yes",
+        "as_needed_dose_unit": None,
+    }
+    updated_intake_resp = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake/{new_intake['id']}",
+        method="patch",
+        b=intake_data_update_dict_4,
+    )
+    expected_result = {
+        "source_of_drug_information": "Medication package: Scanned PZN",
+        "is_activeingredient_equivalent_choice": False,
+        "intake_start_date_option": "at_least_12_months",
+        "intake_end_date_option": None,
+        "intake_regular_or_as_needed": "regular",
+        "regular_intervall_of_daily_dose": "Unknown",
+        "consumed_meds_today": "Yes",
+        "intake_start_date": None,
+        "intake_end_date": tomorrow_date_string,
+        "administered_by_doctor": "prescribed",
+        "dose_per_day": 0,
+        "as_needed_dose_unit": None,
+    }
+    dict_must_contain(
+        updated_intake_resp,
+        required_keys_and_val=expected_result,
+        exception_dict_identifier="full intake check",
+    )
+    print("updated_intake_resp:", updated_intake_resp)
