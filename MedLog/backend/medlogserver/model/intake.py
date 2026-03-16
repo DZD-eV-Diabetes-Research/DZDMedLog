@@ -291,21 +291,40 @@ class IntakeUpdate(MedLogBaseModel, table=False):
 
         return values
 
-    @model_validator(mode="after")
-    def validate_intake_regular_or_as_needed(self) -> Self:
-        if self.intake_regular_or_as_needed == IntakeRegularOrAsNeededAnswers.REGULAR:
-            if self.as_needed_dose_unit is not None:
-                raise ValueError(
-                    "When choosing regular intake, as_needed_dose_unit must be empty"
-                )
-        elif (
-            self.intake_regular_or_as_needed == IntakeRegularOrAsNeededAnswers.ASNEEDED
-        ):
-            if self.regular_intervall_of_daily_dose is not None:
-                raise ValueError(
-                    "When choosing 'as needed' intake, regular_intervall_of_daily_dose must be empty"
-                )
-        return self
+    @model_validator(mode="before")
+    @classmethod
+    def validate_intake_regular_or_as_needed(
+        cls, values: Dict[str, Any] | Self
+    ) -> Dict[str, Any] | Self:
+        if isinstance(values, dict):
+            intake_mode = values.get("intake_regular_or_as_needed")
+        else:
+            intake_mode = getattr(values, "intake_regular_or_as_needed", None)
+
+        if intake_mode == IntakeRegularOrAsNeededAnswers.REGULAR:
+            if isinstance(values, dict):
+                if values.get("as_needed_dose_unit") is not None:
+                    raise ValueError(
+                        "When choosing regular intake, as_needed_dose_unit must be empty"
+                    )
+            else:
+                if getattr(values, "as_needed_dose_unit", None) is not None:
+                    raise ValueError(
+                        "When choosing regular intake, as_needed_dose_unit must be empty"
+                    )
+        elif intake_mode == IntakeRegularOrAsNeededAnswers.ASNEEDED:
+            if isinstance(values, dict):
+                if values.get("regular_intervall_of_daily_dose") is not None:
+                    raise ValueError(
+                        "When choosing 'as needed' intake, regular_intervall_of_daily_dose must be empty"
+                    )
+            else:
+                if getattr(values, "regular_intervall_of_daily_dose", None) is not None:
+                    raise ValueError(
+                        "When choosing 'as needed' intake, regular_intervall_of_daily_dose must be empty"
+                    )
+
+        return values
 
 
 class IntakeCreateAPI(IntakeUpdate, table=False):
