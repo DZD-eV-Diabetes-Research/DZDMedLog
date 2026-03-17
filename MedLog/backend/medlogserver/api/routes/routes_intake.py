@@ -13,6 +13,7 @@ from fastapi import (
 )
 import uuid
 from fastapi.responses import JSONResponse, Response
+from pydantic import ValidationError
 from medlogserver.db.interview import InterviewCRUD
 from medlogserver.model.intake import (
     Intake,
@@ -20,6 +21,7 @@ from medlogserver.model.intake import (
     IntakeUpdate,
     IntakeCreateAPI,
     IntakeDetailListItem,
+    IntakeValidationError,
 )
 from medlogserver.db.intake import IntakeCRUD
 from medlogserver.api.study_access import (
@@ -142,7 +144,12 @@ async def create_intake(
     log.debug(f"interview_id: {interview_id}")
     # ToDo: Casting to uuid is a hotfix here. it should be validated/transformed in the model itself
     # interview_id = uuid.UUID(interview_id)
-    intake_create = IntakeCreate(interview_id=interview_id, **intake.model_dump())
+    try:
+        intake_create = IntakeCreate(interview_id=interview_id, **intake.model_dump())
+    except (IntakeValidationError, ValidationError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e)
+        )
     return await intake_crud.create(intake_create)
 
 

@@ -12,6 +12,7 @@ from typing import (
 )
 import enum
 from pydantic import (
+    ValidationError,
     validate_email,
     field_validator,
     model_validator,
@@ -48,6 +49,10 @@ config = Config()
 # AdministeredByDoctorAnswers = enum.Enum(
 #    "AdministeredByDoctorAnswers", config.APP_CONFIG_PRESCRIBED_BY_DOC_ANSWERS
 # )
+
+
+class IntakeValidationError(ValueError):
+    pass
 
 
 class AdministeredByDoctorAnswers(str, enum.Enum):
@@ -226,11 +231,11 @@ class IntakeUpdate(MedLogBaseModel, table=False):
             has_option = getattr(values, "intake_start_date_option", None) is not None
 
         if has_date and has_option:
-            raise ValueError(
+            raise IntakeValidationError(
                 "Only one of 'intake_start_date' or 'intake_start_date_option' may be set."
             )
         if not has_date and not has_option:
-            raise ValueError(
+            raise IntakeValidationError(
                 "Exactly one of 'intake_start_date' or 'intake_start_date_option' must be set."
             )
 
@@ -268,7 +273,7 @@ class IntakeUpdate(MedLogBaseModel, table=False):
             has_option = getattr(values, "intake_end_date_option", None) is not None
 
         if has_date and has_option:
-            raise ValueError(
+            raise IntakeValidationError(
                 "Only one of 'intake_end_date' or 'intake_end_date_option' may be set."
             )
 
@@ -304,23 +309,23 @@ class IntakeUpdate(MedLogBaseModel, table=False):
         if intake_mode == IntakeRegularOrAsNeededAnswers.REGULAR:
             if isinstance(values, dict):
                 if values.get("as_needed_dose_unit") is not None:
-                    raise ValueError(
+                    raise IntakeValidationError(
                         "When choosing regular intake, as_needed_dose_unit must be empty"
                     )
             else:
                 if getattr(values, "as_needed_dose_unit", None) is not None:
-                    raise ValueError(
+                    raise IntakeValidationError(
                         "When choosing regular intake, as_needed_dose_unit must be empty"
                     )
         elif intake_mode == IntakeRegularOrAsNeededAnswers.ASNEEDED:
             if isinstance(values, dict):
                 if values.get("regular_intervall_of_daily_dose") is not None:
-                    raise ValueError(
+                    raise IntakeValidationError(
                         "When choosing 'as needed' intake, regular_intervall_of_daily_dose must be empty"
                     )
             else:
                 if getattr(values, "regular_intervall_of_daily_dose", None) is not None:
-                    raise ValueError(
+                    raise IntakeValidationError(
                         "When choosing 'as needed' intake, regular_intervall_of_daily_dose must be empty"
                     )
 

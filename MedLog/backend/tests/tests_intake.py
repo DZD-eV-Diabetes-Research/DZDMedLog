@@ -606,3 +606,32 @@ def test_create_intake_with_end_and_start_option_update_issue_228():
         exception_dict_identifier="full intake check",
     )
     print("updated_intake_resp:", updated_intake_resp)
+
+    intake_data = IntakeCreateAPI(
+        drug_id=drug["id"],
+        source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
+        intake_end_date_option=IntakeEndDateOption.ONGOING,
+        intake_start_date_option=IntakeStartDateOption.AT_LEAST_12_MONTHS,
+        administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
+        intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
+        as_needed_dose_unit=1,
+        consumed_meds_today=ConsumedMedsTodayAnswers.UNKNOWN,
+    )
+    intake_data_dict = dictyfy(intake_data)
+    from medlogserver.api.routes.routes_intake import create_intake
+
+    intake_data_2 = IntakeCreateAPI(
+        drug_id=drug["id"],
+        source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
+        administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
+        intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
+        as_needed_dose_unit=1,
+        consumed_meds_today=ConsumedMedsTodayAnswers.UNKNOWN,
+    )
+    intake_data_dict_2 = dictyfy(intake_data_2)
+    new_intake_2: Dict = req(
+        f"api/study/{study_id}/interview/{interview.interview.id}/intake",
+        method="post",
+        b=intake_data_dict_2,
+        expected_http_code=422,
+    )
