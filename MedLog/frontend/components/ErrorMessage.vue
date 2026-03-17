@@ -15,19 +15,17 @@
           </code>
         </div>
       </details>
-      <details v-if="error?.cause" class="mt-3">
+      <details v-if="causeString" class="mt-3">
         <summary>Ursache</summary>
-        {{ error.cause }}
+        {{ causeString }}
       </details>
     </template>
   </UAlert>
 </template>
 
 <script setup lang="ts">
-import type { NuxtError } from "#app";
-
 const props = defineProps<{
-  error?: Error | NuxtError;
+  error?: unknown;
   title?: string
   message?: string
   details?: string
@@ -51,7 +49,7 @@ const messageString = computed(() => {
   }
 
   if (props.error) {
-    return props.error.message ?? props.error.toString() ?? "Unbekannter Fehler";
+    return useGetErrorMessage(props.error) ?? "Unbekannter Fehler";
   }
 
   return "";
@@ -68,6 +66,14 @@ const detailsString = computed(() => {
 
   return "";
 });
+
+const causeString = computed(() => {
+  if (props.error && typeof props.error === 'object' && 'cause' in props.error) {
+    return String(props.error.cause);
+  }
+
+  return "";
+})
 </script>
 
 <style scoped>

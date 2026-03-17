@@ -179,7 +179,7 @@ async function createRefSelectMenus(refs: SchemaDrugAttrFieldDefinitionContainer
   try {
     for (const ref of refs) {
 
-      const item = { field_name: ref.field_name, options: [] };
+      const item: FieldOptions = { field_name: ref.field_name, options: [] };
       let response = null
 
       if (ref.is_large_reference_list) {
@@ -251,7 +251,7 @@ async function onSearchRef(fieldName: string, query: string) {
   } catch (err) {
     toast.add({
       title: "Fehler bei der Suche",
-      description: err.value.data?.detail ?? err.message ?? err,
+      description: useGetErrorMessage(err),
     });
   }
 }

@@ -75,7 +75,7 @@ async function onDeletePermissionsConfirmation() {
   } catch (error) {
     toast.add({
       title: "Konnte Zugriff nicht widerrufen",
-      description: error.data?.detail ?? error.message ?? error,
+      description: useGetErrorMessage(error),
     });
   }
   await loadStudyPermissions();
@@ -115,7 +115,7 @@ async function onSavePermissions(data: SchemaStudyPermissonUpdate) {
   } catch (error) {
     toast.add({
       title: "Fehler beim Speichern",
-      description: error.data?.detail ?? error.message ?? error,
+      description: useGetErrorMessage(error),
     });
   }
 }

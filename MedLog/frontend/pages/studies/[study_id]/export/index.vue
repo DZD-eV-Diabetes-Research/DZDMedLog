@@ -144,10 +144,10 @@ async function listDownloads() {
       clearInterval(downloadCheckInterval);
       downloadCheckInterval = null;
     }
-  } catch (e) {
+  } catch (error) {
     toast.add({
       title: "Fehler beim Laden der Exporte",
-      description: e.message,
+      description: useGetErrorMessage(error),
     });
   }
 }
@@ -174,7 +174,7 @@ async function downloadFile(row: Download) {
   } catch (error) {
     toast.add({
       title: "Fehler beim Herunterladen",
-      description: error.message,
+      description: useGetErrorMessage(error),
     });
   }
 }
@@ -198,7 +198,7 @@ async function requestDownload() {
   } catch (error) {
     toast.add({
       title: "Konnte Exportauftrag nicht anlegen",
-      description: error.message,
+      description: useGetErrorMessage(error),
     });
     return;
   }
