@@ -47,20 +47,7 @@
             :label="attr_multi.field_name_display"
             :description="attr_multi.field_desc ?? ''"
         >
-          <UInput
-              v-model="inputValues[attr_multi.field_name]"
-              placeholder="Option auswählen und Enter drücken"
-              @keydown.enter.prevent="updateMultiState(attr_multi.field_name)"
-              @blur="updateMultiState(attr_multi.field_name)"
-          />
-          <UBadge
-              v-for="(word, index) in attr_multiState[attr_multi.field_name]"
-              :key="index"
-              class="mr-2 cursor-pointer"
-              @click="removeItem(attr_multi.field_name, index)"
-          >
-            {{ word }}
-          </UBadge>
+          <InputTags v-model="attr_multiState[attr_multi.field_name]" />
         </DZDUIFormGroup>
 
         <DZDUIFormGroup
@@ -116,7 +103,6 @@ const attrState = reactive<Record<string, string | number | boolean>>({});
 const attr_refState = reactive<Record<string, string | number | boolean>>({});
 const attr_multiState = reactive<Record<string, string[]>>({});
 const attr_multi_refState = reactive<Record<string, string[]>>({});
-const inputValues = reactive<Record<string, string>>({});
 
 function validate(state: any): FormError[] {
   const errors = []
@@ -153,18 +139,7 @@ async function onSubmit() {
 async function createMultiState() {
   drugFields.fieldsForCustomDrugs.attrs_multi.forEach(element => {
     attr_multiState[element.field_name] = [];
-    inputValues[element.field_name] = "";
   });
-}
-
-function updateMultiState(fieldName: string) {
-  const newValues = inputValues[fieldName]
-      .split(',')
-      .map(w => w.trim())
-      .filter(w => w !== "");
-
-  attr_multiState[fieldName].push(...newValues);
-  inputValues[fieldName] = "";
 }
 
 const fetchFieldDefinitions = async () => {
@@ -196,10 +171,6 @@ function getFormInputType(type: any) {
     default:
       return "text";
   }
-}
-
-function removeItem(field: string, index: number) {
-  attr_multiState[field].splice(index, 1);
 }
 
 onMounted(async () => {
