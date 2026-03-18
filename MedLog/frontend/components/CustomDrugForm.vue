@@ -34,14 +34,9 @@
             :label="attr_ref.field_name_display"
             :description="attr_ref.field_desc ?? ''"
         >
-          <USelectMenu
+          <RefFieldSelectMenu
               v-model="attr_refState[attr_ref.field_name]"
-              v-model:query="queries[attr_ref.field_name]"
-              :options="refSelectMenus.find(item => item.field_name === attr_ref.field_name)?.options"
-              value-attribute="value"
-              option-attribute="display"
-              placeholder="Option auswählen"
-              :searchable="!!attr_ref.is_large_reference_list"
+              :field-definition="attr_ref"
           />
         </DZDUIFormGroup>
 
@@ -75,22 +70,11 @@
             :label="attr_multi_ref.field_name_display"
             :description="attr_multi_ref.field_desc ?? ''"
         >
-          <USelectMenu
+          <RefFieldSelectMenu
               v-model="attr_multi_refState[attr_multi_ref.field_name]"
-              :options="multiRefSelectMenus.find(item => item.field_name === attr_multi_ref.field_name)?.options"
-              value-attribute="value" option-attribute="display" multiple searchable
-              placeholder="Option auswählen">
-            <template #label>
-              <span
-                  v-if="Array.isArray(attr_multi_refState[attr_multi_ref.field_name]) && attr_multi_refState[attr_multi_ref.field_name].length">
-                {{attr_multi_refState[attr_multi_ref.field_name].map(val => multiRefSelectMenus.find(item =>
-                  item.field_name ===
-                  attr_multi_ref.field_name)?.options.find(option => option.value === val)?.display || val)
-                  .join('; ')}}
-              </span>
-              <span v-else>Mehrfachauswahl möglich</span>
-            </template>
-          </USelectMenu>
+              :field-definition="attr_multi_ref"
+              multiple
+          />
         </DZDUIFormGroup>
 
         <hr>
@@ -109,15 +93,8 @@
 <script setup lang="ts">
 import type {FormError} from "#ui/types";
 import type {SchemaDrugAttrFieldDefinitionContainer, SchemaDrugCodeSystem, SchemaDrugCustomCreate} from "#open-fetch-schemas/medlogapi";
-const { $medlogapi } = useNuxtApp();
 
-const toast = useToast();
 const drugFields = useDrugFields();
-
-interface FieldOptions {
-  field_name: string;
-  options: { value: string, display: string }[];
-}
 
 const emit = defineEmits<{
   cancel: []
@@ -139,8 +116,6 @@ const attrState = reactive<Record<string, string | number | boolean>>({});
 const attr_refState = reactive<Record<string, string | number | boolean>>({});
 const attr_multiState = reactive<Record<string, string[]>>({});
 const attr_multi_refState = reactive<Record<string, string[]>>({});
-const refSelectMenus = ref<FieldOptions[]>([]);
-const multiRefSelectMenus = ref<FieldOptions[]>([]);
 const inputValues = reactive<Record<string, string>>({});
 
 function validate(state: any): FormError[] {
@@ -175,89 +150,6 @@ async function onSubmit() {
   emit('save', customDrugBody)
 }
 
-async function createRefSelectMenus(refs: SchemaDrugAttrFieldDefinitionContainer['attrs_ref'] | SchemaDrugAttrFieldDefinitionContainer['attrs_multi_ref'], state: Record<string, any>, selectMenus: Ref<FieldOptions[]>, multiple = false) {
-  try {
-    for (const ref of refs) {
-
-      const item: FieldOptions = { field_name: ref.field_name, options: [] };
-      let response = null
-
-      if (ref.is_large_reference_list) {
-        response = await $medlogapi('/api/drug/field_def/{field_name}/refs', {
-          path: {
-            field_name: ref.field_name
-          },
-          query: {
-            limit: 10,
-          },
-        });
-      } else {
-        response = await $medlogapi('/api/drug/field_def/{field_name}/refs', {
-          path: {
-            field_name: ref.field_name
-          }
-        });
-
-      }
-
-      item.options = response.items.map((element) => ({
-        value: element.value,
-        display: element.display,
-      }));
-
-      selectMenus.value.push(item);
-      state[ref.field_name] = multiple ? [] : null;
-    }
-  } catch (error) {
-    throw new Error("Could not create refSelectMenus", { cause: error });
-  }
-}
-
-// Logic for the search field and function
-
-const queries = reactive<Record<string, string>>({});
-
-watch(
-    () => ({ ...queries }),
-    (newQueries) => {
-      for (const [field, q] of Object.entries(newQueries)) {
-        if (q && q.length >= 2) {
-          onSearchRef(field, q);
-        }
-      }
-    },
-    { deep: true }
-);
-
-async function onSearchRef(fieldName: string, query: string) {
-  try {
-    const response = await $medlogapi('/api/drug/field_def/{field_name}/refs', {
-      path: {
-        field_name: fieldName
-      },
-      query: {
-        search_term: query,
-        limit: 10,
-      },
-    });
-
-    const menu = refSelectMenus.value.find(item => item.field_name === fieldName);
-    if (menu) {
-      menu.options = response.items.map((el: any) => ({
-        value: el.value,
-        display: el.display,
-      }));
-    }
-  } catch (err) {
-    toast.add({
-      title: "Fehler bei der Suche",
-      description: useGetErrorMessage(err),
-    });
-  }
-}
-
-// end of search logic
-
 async function createMultiState() {
   drugFields.fieldsForCustomDrugs.attrs_multi.forEach(element => {
     attr_multiState[element.field_name] = [];
@@ -278,8 +170,6 @@ function updateMultiState(fieldName: string) {
 const fetchFieldDefinitions = async () => {
   generateDynamicState(drugFields.fieldsForCustomDrugs.attrs);
   isDataLoaded.value = true;
-  await createRefSelectMenus(drugFields.fieldsForCustomDrugs.attrs_ref, attr_refState, refSelectMenus)
-  await createRefSelectMenus(drugFields.fieldsForCustomDrugs.attrs_multi_ref, attr_multi_refState, multiRefSelectMenus, true)
   await createMultiState()
 }
 

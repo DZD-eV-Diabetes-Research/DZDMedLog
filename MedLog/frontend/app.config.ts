@@ -7,6 +7,19 @@ export default defineAppConfig({
                 timeout: 10000,
             },
         },
+        selectMenu: {
+            default: {
+                searchablePlaceholder: {
+                    label: 'Suchen...'
+                },
+                empty: {
+                    label: 'Keine Einträge.'
+                },
+                optionEmpty: {
+                    label: 'Keine Ergebnisse für "{query}".'
+                }
+            },
+        },
         table: {
             default: {
                 emptyState: {
