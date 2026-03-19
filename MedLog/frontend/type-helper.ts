@@ -18,15 +18,15 @@ interface FastAPIError {
     detail: string | { [key: string]: string; };
 }
 
-export function isMultiValueField(fieldDefinition: FieldDefinition, _fields: object): _fields is SchemaMedlogserverModelDrugDataApiDrugModelFactoryAttrsMulti_1 {
+export function isMultiValueField(fieldDefinition: FieldDefinition, _fields?: object): _fields is SchemaMedlogserverModelDrugDataApiDrugModelFactoryAttrsMulti_1 {
     return fieldDefinition.is_multi_val_field && !fieldDefinition.is_reference_list_field;
 }
 
-export function isMultiRefField(fieldDefinition: FieldDefinition, _fields: object): _fields is SchemaMultiAttrRefs {
+export function isMultiRefField(fieldDefinition: FieldDefinition, _fields?: object): _fields is SchemaMultiAttrRefs {
     return fieldDefinition.is_multi_val_field && fieldDefinition.is_reference_list_field;
 }
 
-export function isSingleRefField(fieldDefinition: FieldDefinition, _fields: object): _fields is SchemaMedlogserverModelDrugDataApiDrugModelFactoryAttrRefs_1 {
+export function isSingleRefField(fieldDefinition: FieldDefinition, _fields?: object): _fields is SchemaMedlogserverModelDrugDataApiDrugModelFactoryAttrRefs_1 {
     return !fieldDefinition.is_multi_val_field && fieldDefinition.is_reference_list_field;
 }
 

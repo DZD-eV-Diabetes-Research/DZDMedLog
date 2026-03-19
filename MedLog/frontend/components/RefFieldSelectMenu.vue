@@ -39,7 +39,6 @@ const multiValueLabel = computed((): string => {
 });
 
 async function onSearch(query: string): Promise<Option[]> {
-  console.log('onSearch', query);
   // An empty search is performed on initialization of the component
   if (query === '') {
     return cachedOptions.value;

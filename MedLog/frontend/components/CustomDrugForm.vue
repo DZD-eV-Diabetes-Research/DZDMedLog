@@ -13,57 +13,38 @@
         </DZDUIFormGroup>
 
         <DZDUIFormGroup
-            v-for="attr in drugFields.fieldsForCustomDrugs.attrs"
-            :key="attr.field_name"
-            :name="attr.field_name"
-            :label="attr.field_name_display"
-            :description="attr.field_desc ?? ''"
+          v-for="field in prioritizedFieldDefinitions"
+          :key="field.fieldDefinition.field_name"
+          :name="field.fieldDefinition.field_name"
+          :label="field.fieldDefinition.field_name_display"
+          :description="field.fieldDefinition.field_desc ?? ''"
         >
+          <InputTags
+            v-if="isMultiValueField(field.fieldDefinition)"
+            v-model="attr_multiState[field.fieldDefinition.field_name]"
+          />
+          <RefFieldSelectMenu
+            v-else-if="isSingleRefField(field.fieldDefinition)"
+            v-model="attr_refState[field.fieldDefinition.field_name]"
+            :field-definition="field.fieldDefinition"
+          />
+          <RefFieldSelectMenu
+            v-else-if="isMultiRefField(field.fieldDefinition)"
+            v-model="attr_multi_refState[field.fieldDefinition.field_name]"
+            :field-definition="field.fieldDefinition"
+            multiple
+          />
+          <UCheckbox
+            v-else-if="getFormInputType(field.fieldDefinition.value_type) === 'checkbox'"
+            v-model="attrState[field.fieldDefinition.field_name] as boolean"
+            :name="field.fieldDefinition.field_name"
+          />
           <UInput
-              v-if="getFormInputType(attr.value_type) !== 'checkbox'"
-              v-model="attrState[attr.field_name] as string|number"
-              :type="getFormInputType(attr.value_type)"
-          />
-          <UCheckbox v-else v-model="attrState[attr.field_name] as boolean" :name="attr.field_name" />
-        </DZDUIFormGroup>
-
-        <DZDUIFormGroup
-            v-for="attr_ref in drugFields.fieldsForCustomDrugs.attrs_ref"
-            :key="attr_ref.field_name"
-            :name="attr_ref.field_name"
-            :label="attr_ref.field_name_display"
-            :description="attr_ref.field_desc ?? ''"
-        >
-          <RefFieldSelectMenu
-              v-model="attr_refState[attr_ref.field_name]"
-              :field-definition="attr_ref"
+            v-else
+            v-model="attrState[field.fieldDefinition.field_name] as string|number"
+            :type="getFormInputType(field.fieldDefinition.value_type)"
           />
         </DZDUIFormGroup>
-
-        <DZDUIFormGroup
-            v-for="attr_multi in drugFields.fieldsForCustomDrugs.attrs_multi"
-            :key="attr_multi.field_name"
-            :name="attr_multi.field_name"
-            :label="attr_multi.field_name_display"
-            :description="attr_multi.field_desc ?? ''"
-        >
-          <InputTags v-model="attr_multiState[attr_multi.field_name]" />
-        </DZDUIFormGroup>
-
-        <DZDUIFormGroup
-            v-for="attr_multi_ref in drugFields.fieldsForCustomDrugs.attrs_multi_ref"
-            :key="attr_multi_ref.field_name"
-            :name="attr_multi_ref.field_name"
-            :label="attr_multi_ref.field_name_display"
-            :description="attr_multi_ref.field_desc ?? ''"
-        >
-          <RefFieldSelectMenu
-              v-model="attr_multi_refState[attr_multi_ref.field_name]"
-              :field-definition="attr_multi_ref"
-              multiple
-          />
-        </DZDUIFormGroup>
-
         <hr>
         <div class="flex justify-between">
           <UButton label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
@@ -80,6 +61,8 @@
 <script setup lang="ts">
 import type {FormError} from "#ui/types";
 import type {SchemaDrugAttrFieldDefinitionContainer, SchemaDrugCodeSystem, SchemaDrugCustomCreate} from "#open-fetch-schemas/medlogapi";
+import {computed} from "#imports";
+import {isMultiRefField, isMultiValueField, isSingleRefField} from "~/type-helper";
 
 const drugFields = useDrugFields();
 
@@ -103,6 +86,11 @@ const attrState = reactive<Record<string, string | number | boolean>>({});
 const attr_refState = reactive<Record<string, string | number | boolean>>({});
 const attr_multiState = reactive<Record<string, string[]>>({});
 const attr_multi_refState = reactive<Record<string, string[]>>({});
+
+const prioritizedFieldDefinitions = computed(() => {
+  const fieldDefinitions = useGetPrioritizedFieldDefinitions(drugFields.fieldsForCustomDrugs);
+  return Array.of(...fieldDefinitions[1], ...fieldDefinitions[2], ...fieldDefinitions[3]);
+});
 
 function validate(state: any): FormError[] {
   const errors = []
