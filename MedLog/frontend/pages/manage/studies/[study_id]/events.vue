@@ -155,7 +155,7 @@ async function endReordering() {
   } catch (error) {
     toast.add({
       title: "Konnte Reihenfolge nicht speichern",
-      description: error.data?.detail ?? error.message ?? error,
+      description: useGetErrorMessage(error),
     });
   }
 }

@@ -6,7 +6,7 @@
       <UProgress animation="carousel" />
     </div>
 
-    <UAlert v-else-if="errorMessage" color="red" title="Fehler" :description="errorMessage" />
+    <ErrorMessage v-else-if="errorMessage" :error="errorMessage" />
 
     <div v-else class="flex flex-col self-center justify-center gap-4 mt-4 max-w-6xl mx-auto">
       <UCard>
@@ -155,7 +155,7 @@ const toast = useToast();
 dayjs.extend(localizedFormat);
 
 const currentInterview = ref<SchemaInterview>();
-const errorMessage = ref('');
+const errorMessage = ref();
 const eventsForProband = ref<SchemaEventReadPerProband[]>([]);
 const eventIdToStart = ref();
 const eventsToStartOptions = ref<{ label: string; value: string }[]>([]);
@@ -203,7 +203,7 @@ async function startInterview(hasTakenMeds: boolean) {
   catch (error) {
     toast.add({
       title: "Konnte Interview nicht anlegen",
-      description: error.message ?? error,
+      description: useGetErrorMessage(error),
     });
   }
 }
@@ -217,7 +217,7 @@ async function endInterview(eventId: string, interviewId: string) {
     lastInterview.value = await useGetLastInterviewByStudyAndProband(studyId.value, probandId.value);
     fillInterviewStartSelector();
   } catch (error) {
-    errorMessage.value = error.message ?? error;
+    errorMessage.value = error;
   } finally {
     loading.value = false;
   }
@@ -258,7 +258,7 @@ onMounted(async () => {
 
     fillInterviewStartSelector();
   } catch (error) {
-    errorMessage.value = error.message ?? error;
+    errorMessage.value = error;
   } finally {
     loading.value = false;
   }

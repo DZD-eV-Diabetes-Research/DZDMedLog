@@ -221,7 +221,7 @@ async function saveIntake(data: IntakeFormSchema) {
   if (error.value) {
     toast.add({
       title: "Konnte Einnahme nicht anlegen",
-      description: error.value.data?.detail ?? error.message ?? error,
+      description: useGetErrorMessage(error),
     });
     return;
   }
@@ -233,7 +233,7 @@ async function saveIntake(data: IntakeFormSchema) {
 // Editform Modal
 
 const editModalVisible = ref(false);
-const intakeToEdit = ref<IntakeFormSchema>();
+const intakeToEdit = ref<Partial<IntakeFormSchema>>();
 const intakeIdToEdit = ref();
 
 const tableContent = ref<SchemaIntakeDetailListItem[]>([]);
@@ -244,14 +244,14 @@ async function openEditModal(intakeId: string) {
     const intake = await useGetIntake(studyId.value, interviewId.value, intakeIdToEdit.value);
 
     intakeToEdit.value = {
-      administeredByDoctor: intake.administered_by_doctor,
-      dose: intake.dose_per_day,
-      drugId: intake.drug_id,
-      drugSource: intake.source_of_drug_information,
+      administeredByDoctor: intake.administered_by_doctor === null ? undefined : intake.administered_by_doctor,
+      dose: intake.dose_per_day === null ? undefined : intake.dose_per_day,
+      drugId: intake.drug_id ?? "",
+      drugSource: intake.source_of_drug_information === null ? undefined : intake.source_of_drug_information,
       endDate: intake.intake_end_date ?? undefined,
       endDateOption: intake.intake_end_date_option ?? undefined,
-      frequency: intake.intake_regular_or_as_needed,
-      intervall: intake.regular_intervall_of_daily_dose,
+      frequency: intake.intake_regular_or_as_needed === null ? undefined : intake.intake_regular_or_as_needed,
+      intervall: intake.regular_intervall_of_daily_dose === null ? undefined : intake.regular_intervall_of_daily_dose,
       isActiveIngredientEquivalentChoice: intake.is_activeingredient_equivalent_choice,
       medsTakenToday: intake.consumed_meds_today,
       startDate: intake.intake_start_date ?? undefined,
@@ -260,7 +260,7 @@ async function openEditModal(intakeId: string) {
   } catch (error) {
     toast.add({
       title: "Konnte Einnahme nicht abrufen",
-      description: error.value.data?.detail ?? error.message ?? error,
+      description: useGetErrorMessage(error),
     });
     return;
   }
@@ -305,7 +305,7 @@ async function saveEditIntake(data: IntakeFormSchema) {
   if (error.value) {
     toast.add({
       title: "Konnte Einnahme nicht speichern",
-      description: error.value.data?.detail ?? error.message ?? error,
+      description: useGetErrorMessage(error),
     });
     return;
   }
@@ -332,7 +332,7 @@ async function deleteIntake() {
   } catch (error) {
     toast.add({
       title: "Konnte Einnahme nicht löschen",
-      description: error.message ?? error,
+      description: useGetErrorMessage(error),
     });
   }
 }

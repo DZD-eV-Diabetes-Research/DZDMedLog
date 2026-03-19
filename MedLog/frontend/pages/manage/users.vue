@@ -14,7 +14,7 @@ const toast = useToast();
 const userStore = useUserStore();
 
 const roleModalOpen = ref(false);
-const rolesForEditModal = ref([]);
+const rolesForEditModal = ref<string[]>([]);
 const userIdForEditModal = ref('');
 const usersPending = ref(false);
 
@@ -24,10 +24,10 @@ async function onEditUserRoles(userId: string) {
     userIdForEditModal.value = userId;
     rolesForEditModal.value = user.roles;
     roleModalOpen.value = true;
-  } catch (e) {
+  } catch (error) {
     toast.add({
       title: "Konnte User nicht laden",
-      description: e.data?.detail ?? e.message ?? e,
+      description: useGetErrorMessage(error),
     });
   }
 }
@@ -37,10 +37,10 @@ async function onRoleModalSave(data: RoleFormSchema) {
     const patchedUser = await usePatchUser(userIdForEditModal.value, { roles: data.roles });
     userStore.upsertUser(patchedUser);
     roleModalOpen.value = false;
-  } catch (e) {
+  } catch (error) {
     toast.add({
       title: "Konnte Rollen nicht speichern",
-      description: e.data?.detail ?? e.message ?? e,
+      description: useGetErrorMessage(error),
     });
   }
 }

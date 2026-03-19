@@ -33,10 +33,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "#imports";
 import type { SchemaIntakeDetailListItem } from "#open-fetch-schemas/medlogapi";
+import type { ElementType, ValueOf } from "~/type-helper";
 import {doseIntervalOptions, drugSourceOptions, endDateOptions, startDateOptions} from "~/constants";
 import useGetLabelForValue from "~/utils/useGetLabelForValue";
+
+const toast = useToast();
 
 const props = defineProps({
   intakes: { type: Array as () => SchemaIntakeDetailListItem[], required: true },
@@ -47,7 +49,7 @@ const props = defineProps({
 
 const emit = defineEmits<{
   edit: [intakeId: string],
-  delete: [row: object],
+  delete: [row: ElementType<ValueOf<typeof rows>>],
 }>();
 
 const columns: Array<{ key: string; label?: string, sortable?: boolean }> = [
@@ -111,14 +113,22 @@ function getIntakeDurationString(intake: SchemaIntakeDetailListItem) {
   return `Beginn: ${startDate}, Ende: ${endDate}`;
 }
 
-function myOptions(row: object) {
+function myOptions(row: ElementType<ValueOf<typeof rows>>) {
   const options = [];
+
+  if (!row.intakeId) {
+    toast.add({
+      title: "Kann Bearbeitung nicht starten",
+      description: "intakeId ist leer",
+    })
+    return;
+  }
 
   if (props.canEdit) {
     options.push({
       label: "Bearbeiten",
       icon: "i-heroicons-pencil-square-20-solid",
-      click: () => emit('edit', row.intakeId),
+      click: () => emit('edit', row.intakeId as string), // cast should not be necessary as undefined is caught above
     });
   }
 
