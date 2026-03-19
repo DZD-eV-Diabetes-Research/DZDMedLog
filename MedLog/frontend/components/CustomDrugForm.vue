@@ -8,7 +8,7 @@
           <UInput v-model="state.customName" />
         </UFormGroup>
 
-        <DZDUIFormGroup v-for="code in codeSystems" :key="code.id" :label="code.name" :description="code.desc ?? ''">
+        <DZDUIFormGroup v-for="code in drugFields.codes" :key="code.id" :label="code.name" :description="code.desc ?? ''">
           <UInput v-model="drugCodeState[code.id]" />
         </DZDUIFormGroup>
 
@@ -60,7 +60,7 @@
 
 <script setup lang="ts">
 import type {FormError} from "#ui/types";
-import type {SchemaDrugAttrFieldDefinitionContainer, SchemaDrugCodeSystem, SchemaDrugCustomCreate} from "#open-fetch-schemas/medlogapi";
+import type {SchemaDrugCustomCreate} from "#open-fetch-schemas/medlogapi";
 import {computed} from "#imports";
 import {isMultiRefField, isMultiValueField, isSingleRefField} from "~/type-helper";
 
@@ -71,21 +71,16 @@ const emit = defineEmits<{
   save: [customDrugBody: SchemaDrugCustomCreate]
 }>()
 
-const codeSystems = ref<SchemaDrugCodeSystem[]>([])
-const error = ref();
-
-const state = reactive({
-  customName: "",
-});
-
-const isDataLoaded = ref(false);
-
-const drugCodeState = reactive<Record<string, string>>({});
-
 const attrState = reactive<Record<string, string | number | boolean>>({});
 const attr_refState = reactive<Record<string, string | number | boolean>>({});
 const attr_multiState = reactive<Record<string, string[]>>({});
 const attr_multi_refState = reactive<Record<string, string[]>>({});
+const drugCodeState = reactive<Record<string, string>>({});
+const error = ref();
+const isDataLoaded = ref(false);
+const state = reactive({
+  customName: "",
+});
 
 const prioritizedFieldDefinitions = computed(() => {
   const fieldDefinitions = useGetPrioritizedFieldDefinitions(drugFields.fieldsForCustomDrugs);
@@ -124,25 +119,25 @@ async function onSubmit() {
   emit('save', customDrugBody)
 }
 
-async function createMultiState() {
+function initializeState() {
+  drugFields.codes.forEach(code => {
+    drugCodeState[code.id] = "";
+  });
+  drugFields.fieldsForCustomDrugs.attrs.forEach((attr) => {
+    attrState[attr.field_name] = attr.value_type === "BOOL" ? false : "";
+  });
+  drugFields.fieldsForCustomDrugs.attrs_ref.forEach(element => {
+    attr_refState[element.field_name] = "";
+  });
   drugFields.fieldsForCustomDrugs.attrs_multi.forEach(element => {
     attr_multiState[element.field_name] = [];
   });
-}
-
-const fetchFieldDefinitions = async () => {
-  generateDynamicState(drugFields.fieldsForCustomDrugs.attrs);
-  isDataLoaded.value = true;
-  await createMultiState()
-}
-
-function generateDynamicState(fieldsObject: SchemaDrugAttrFieldDefinitionContainer['attrs']): void {
-  fieldsObject.forEach((attr) => {
-    attrState[attr.field_name] = attr.value_type === "BOOL" ? false : "";
+  drugFields.fieldsForCustomDrugs.attrs_multi_ref.forEach(element => {
+    attr_multi_refState[element.field_name] = [];
   });
 }
 
-function getFormInputType(type: any) {
+function getFormInputType(type: string) {
   switch (type) {
     case "STR":
       return "text";
@@ -163,16 +158,12 @@ function getFormInputType(type: any) {
 
 onMounted(async () => {
   try {
-    await fetchFieldDefinitions()
-    codeSystems.value = drugFields.codes
-    codeSystems.value?.forEach(code => {
-      drugCodeState[code.id] = "";
-    });
+    initializeState();
+    isDataLoaded.value = true;
   } catch (e) {
     error.value = e;
   }
 });
-
 </script>
 
 <style scoped>
