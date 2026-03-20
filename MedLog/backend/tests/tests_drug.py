@@ -2,6 +2,7 @@ from typing import List, Dict
 import json
 import time
 import uuid
+
 from _single_test_file_runner import run_all_tests_if_test_file_called
 
 if __name__ == "__main__":
@@ -313,3 +314,80 @@ def test_endpoint_drug_get():
         expected_http_code=404,
         tolerated_error_codes=[404],
     )
+
+
+def test_custom_drug_issue():
+    """Testcase for bug found by abrain"""
+    from medlogserver.api.routes.routes_drug import create_custom_drug
+    from medlogserver.model.drug_data.drug import (
+        DrugCustomCreate,
+        DrugValApiCreate,
+        DrugCodeApi,
+        DrugValRef,
+        DrugValMulti,
+        DrugMultiValApiCreate,
+        DrugVal,
+    )
+    from medlogserver.model.drug_data.drug import DrugData, DrugValMultiRef, DrugValRef
+
+    drug_name = "Test437895ziurwe"
+    custom_drug = DrugCustomCreate(
+        trade_name=drug_name,
+        attrs=[DrugVal(field_name="amount", value="23")],
+        attrs_ref=[
+            DrugValRef(field_name="dispensingtype", value="0"),
+        ],
+        attrs_multi=[DrugValMulti(field_name="keywords", value=[])],
+        attrs_multi_ref=[
+            DrugValMultiRef(field_name="producing_country", values=["DE", "UK"])
+        ],
+        codes=[],
+    )
+    custom_drug_payload = dictyfy(custom_drug)
+
+    custom_drug_payload_2 = {
+        "trade_name": drug_name,
+        "market_access_date": None,
+        "market_exit_date": None,
+        "custom_drug_notes": None,
+        "attrs": [
+            {"field_name": "amount", "value": "genug"},
+            {"field_name": "ist_verhuetungsmittel", "value": None},
+            {"field_name": "ist_kosmetikum", "value": None},
+            {"field_name": "ist_nahrungsergaenzungsmittel", "value": None},
+            {"field_name": "ist_pflanzlich", "value": "true"},
+            {"field_name": "ist_generikum", "value": None},
+            {"field_name": "ist_homoeopathisch", "value": None},
+        ],
+        "attrs_ref": [
+            {"field_name": "darreichungsform", "value": None},
+            {"field_name": "vertriebsstatus", "value": "D"},
+            {"field_name": "normgroesse", "value": "2"},
+            {"field_name": "abgabestatus", "value": None},
+            {"field_name": "lebensmittel", "value": None},
+            {"field_name": "diaetetikum", "value": "N"},
+            {"field_name": "hersteller", "value": "765"},
+        ],
+        "attrs_multi": [{"field_name": "ATC", "values": []}],
+        "attrs_multi_ref": [
+            {"field_name": "applikationsart", "values": []},
+            {"field_name": "keywords", "values": ["4", "6"]},
+            {
+                "field_name": "icd10",
+                "values": ["A01.1", "Z20.3", "B26.0 N51.1", "B26.2"],
+            },
+        ],
+        "codes": [],
+    }
+    res = req(
+        "api/drug/custom",
+        method="post",
+        b=custom_drug_payload,
+    )
+    print("res", res)
+    paginated_search_response = req(
+        "api/drug/search",
+        method="get",
+        q={"search_term": drug_name, "limit": 3, "offset": 0},
+    )
+    print("paginated_search_response", paginated_search_response)

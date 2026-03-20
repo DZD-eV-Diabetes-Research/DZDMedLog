@@ -192,8 +192,11 @@ class DrugCRUD(
             query = pagination.append_to_query(query)
 
         results = await self.session.exec(statement=query)
+
         if keep_result_in_ids_order:
             # todo: maybe we can solve the drug order in sql?
+            db_map = {obj.id: obj for obj in results.all()}
+            return [db_map[drug_id] for drug_id in ids if drug_id in db_map]
             db_order: List[DrugData] = results.all()
             new_order: List[DrugData] = []
             for drug_id in ids:
