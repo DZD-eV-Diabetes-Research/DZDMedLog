@@ -45,7 +45,7 @@
 <script setup lang="ts">
 import type { SchemaIntakeDetailListItem } from "#open-fetch-schemas/medlogapi";
 import type { ElementType, ValueOf } from "~/type-helper";
-import {doseIntervalOptions, drugSourceOptions, endDateOptions, startDateOptions} from "~/constants";
+import {doseIntervalOptions, endDateOptions, startDateOptions} from "~/constants";
 import useGetLabelForValue from "~/utils/useGetLabelForValue";
 
 const toast = useToast();
@@ -152,14 +152,9 @@ const rows = computed(() => {
     event: item.event.name,
     intake: item,
     pzn: item.is_activeingredient_equivalent_choice ? '' : item.drug.codes?.PZN,
-    source: useGetLabelForValue(drugSourceOptions, item.source_of_drug_information),
     name: item.drug.trade_name,
     dose: item.dose_per_day === 0 ? "-/-" : item.dose_per_day,
     intervall: useGetLabelForValue(doseIntervalOptions, item.regular_intervall_of_daily_dose),
-    consumed_meds_today: item.consumed_meds_today,
-    option: item.intake_regular_or_as_needed,
-    startTime: item.intake_start_date,
-    endTime: item.intake_end_date,
     time: getIntakeDurationString(item),
     intakeId: item.id,
   }));
