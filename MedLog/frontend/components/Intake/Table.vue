@@ -11,16 +11,26 @@
       />
     </template>
 
-    <template #pzn-data="{ row }">
+    <template #name-data="{ row }">
       <div class="flex flex-col items-start gap-1">
-        {{ row.pzn }}
-        <UBadge
+        <span class="font-semibold">
+          {{ row.name }}
+        </span>
+        <UTooltip
+          v-if="row.intake.drug.is_custom_drug"
+          text="Dieses Medikament wurde manuell eingetragen"
+          :popper="{ arrow: true, placement: 'right' }"
+        >
+          <UBadge label="Ungelistet" color="purple" size="xs" />
+        </UTooltip>
+        <UTooltip
             v-if="row.intake.is_activeingredient_equivalent_choice"
-            label="weicht ab"
-            color="amber"
-            variant="subtle"
-            icon="i-heroicons-arrows-right-left"
-        />
+            text="Dieses Medikament wurde stellvertretend für Wirkstoff und Wirkstoffmenge gewählt."
+            :popper="{ arrow: true, placement: 'right' }"
+            :ui="{ width: 'max-w-lg' }"
+        >
+          <UBadge label="Alternative" color="amber" size="xs" />
+        </UTooltip>
       </div>
     </template>
 
@@ -35,7 +45,7 @@
 <script setup lang="ts">
 import type { SchemaIntakeDetailListItem } from "#open-fetch-schemas/medlogapi";
 import type { ElementType, ValueOf } from "~/type-helper";
-import {doseIntervalOptions, drugSourceOptions, endDateOptions, startDateOptions} from "~/constants";
+import {doseIntervalOptions, endDateOptions, startDateOptions} from "~/constants";
 import useGetLabelForValue from "~/utils/useGetLabelForValue";
 
 const toast = useToast();
@@ -55,21 +65,11 @@ const emit = defineEmits<{
 const columns: Array<{ key: string; label?: string, sortable?: boolean }> = [
   {
     key: "pzn",
-    label: "Medikament PZN",
-  },
-  {
-    key: "custom",
-    label: "Custom",
-    sortable: true,
+    label: "PZN",
   },
   {
     key: "name",
     label: "Medikament",
-    sortable: true,
-  },
-  {
-    key: "source",
-    label: "Quelle der Angabe",
     sortable: true,
   },
   {
@@ -151,21 +151,12 @@ const rows = computed(() => {
   return props.intakes.map((item) => ({
     event: item.event.name,
     intake: item,
-    pzn: item.drug.codes?.PZN,
-    source: useGetLabelForValue(drugSourceOptions, item.source_of_drug_information),
+    pzn: item.is_activeingredient_equivalent_choice ? '' : item.drug.codes?.PZN,
     name: item.drug.trade_name,
     dose: item.dose_per_day === 0 ? "-/-" : item.dose_per_day,
     intervall: useGetLabelForValue(doseIntervalOptions, item.regular_intervall_of_daily_dose),
-    consumed_meds_today: item.consumed_meds_today,
-    option: item.intake_regular_or_as_needed,
-    startTime: item.intake_start_date,
-    endTime: item.intake_end_date,
     time: getIntakeDurationString(item),
     intakeId: item.id,
-    custom: item.drug?.is_custom_drug ? "Ja" : "Nein",
-    class: item.drug?.is_custom_drug
-        ? "bg-yellow-50"
-        : null,
   }));
 });
 </script>
