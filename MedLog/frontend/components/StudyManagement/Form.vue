@@ -39,7 +39,7 @@ onMounted(async () => {
     }
 
     try {
-      await studyForm.value.validate();
+      await studyForm.value?.validate();
     } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
       // Swallow error, the result is shown directly in the form
     }

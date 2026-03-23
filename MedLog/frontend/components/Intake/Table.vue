@@ -11,16 +11,26 @@
       />
     </template>
 
-    <template #pzn-data="{ row }">
+    <template #name-data="{ row }">
       <div class="flex flex-col items-start gap-1">
-        {{ row.pzn }}
-        <UBadge
+        <span class="font-semibold">
+          {{ row.name }}
+        </span>
+        <UTooltip
+          v-if="row.intake.drug.is_custom_drug"
+          text="Dieses Medikament wurde manuell eingetragen"
+          :popper="{ arrow: true, placement: 'right' }"
+        >
+          <UBadge label="Ungelistet" color="purple" size="xs" />
+        </UTooltip>
+        <UTooltip
             v-if="row.intake.is_activeingredient_equivalent_choice"
-            label="weicht ab"
-            color="amber"
-            variant="subtle"
-            icon="i-heroicons-arrows-right-left"
-        />
+            text="Dieses Medikament wurde stellvertretend für Wirkstoff und Wirkstoffmenge gewählt."
+            :popper="{ arrow: true, placement: 'right' }"
+            :ui="{ width: 'max-w-lg' }"
+        >
+          <UBadge label="Alternative" color="amber" size="xs" />
+        </UTooltip>
       </div>
     </template>
 
@@ -33,10 +43,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "#imports";
 import type { SchemaIntakeDetailListItem } from "#open-fetch-schemas/medlogapi";
-import {doseIntervalOptions, drugSourceOptions, endDateOptions, startDateOptions} from "~/constants";
+import type { ElementType, ValueOf } from "~/type-helper";
+import {doseIntervalOptions, endDateOptions, startDateOptions} from "~/constants";
 import useGetLabelForValue from "~/utils/useGetLabelForValue";
+
+const toast = useToast();
 
 const props = defineProps({
   intakes: { type: Array as () => SchemaIntakeDetailListItem[], required: true },
@@ -47,27 +59,17 @@ const props = defineProps({
 
 const emit = defineEmits<{
   edit: [intakeId: string],
-  delete: [row: object],
+  delete: [row: ElementType<ValueOf<typeof rows>>],
 }>();
 
 const columns: Array<{ key: string; label?: string, sortable?: boolean }> = [
   {
     key: "pzn",
-    label: "Medikament PZN",
-  },
-  {
-    key: "custom",
-    label: "Custom",
-    sortable: true,
+    label: "PZN",
   },
   {
     key: "name",
     label: "Medikament",
-    sortable: true,
-  },
-  {
-    key: "source",
-    label: "Quelle der Angabe",
     sortable: true,
   },
   {
@@ -111,14 +113,22 @@ function getIntakeDurationString(intake: SchemaIntakeDetailListItem) {
   return `Beginn: ${startDate}, Ende: ${endDate}`;
 }
 
-function myOptions(row: object) {
+function myOptions(row: ElementType<ValueOf<typeof rows>>) {
   const options = [];
+
+  if (!row.intakeId) {
+    toast.add({
+      title: "Kann Bearbeitung nicht starten",
+      description: "intakeId ist leer",
+    })
+    return;
+  }
 
   if (props.canEdit) {
     options.push({
       label: "Bearbeiten",
       icon: "i-heroicons-pencil-square-20-solid",
-      click: () => emit('edit', row.intakeId),
+      click: () => emit('edit', row.intakeId as string), // cast should not be necessary as undefined is caught above
     });
   }
 
@@ -141,21 +151,12 @@ const rows = computed(() => {
   return props.intakes.map((item) => ({
     event: item.event.name,
     intake: item,
-    pzn: item.drug.codes?.PZN,
-    source: useGetLabelForValue(drugSourceOptions, item.source_of_drug_information),
+    pzn: item.is_activeingredient_equivalent_choice ? '' : item.drug.codes?.PZN,
     name: item.drug.trade_name,
     dose: item.dose_per_day === 0 ? "-/-" : item.dose_per_day,
     intervall: useGetLabelForValue(doseIntervalOptions, item.regular_intervall_of_daily_dose),
-    consumed_meds_today: item.consumed_meds_today,
-    option: item.intake_regular_or_as_needed,
-    startTime: item.intake_start_date,
-    endTime: item.intake_end_date,
     time: getIntakeDurationString(item),
     intakeId: item.id,
-    custom: item.drug?.is_custom_drug ? "Ja" : "Nein",
-    class: item.drug?.is_custom_drug
-        ? "bg-yellow-50"
-        : null,
   }));
 });
 </script>

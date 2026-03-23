@@ -87,6 +87,9 @@ class MmiPiDrugAttrRefFieldLovImportDefinition:
     filter_col: Optional[str] = "CATALOGID"
     filter_val: Optional[str] = None
     sort_attr: Optional[Literal["field_name", "value", "display"]] = None
+    display_name_factory: Optional[Callable[[str, str, str], str]] = (
+        lambda field_name, value, display: display
+    )
 
 
 @dataclass
@@ -754,6 +757,9 @@ def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
             source_mapping=mmi_rohdaten_r3_mappings["attrs_multi_ref.icd10"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
                 filter_val="18",
+                display_name_factory=lambda field_name, value, display: (
+                    f"{value} - {display}"
+                ),
             ),
         ),
     ]
@@ -1742,6 +1748,10 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
                 display_value = row[
                     get_header_index(lov_definition.display_value_col_name, headers)
                 ]
+                if lov_definition.display_name_factory:
+                    display_value = lov_definition.display_name_factory(
+                        paren_field.field_name, value, display_value
+                    )
                 # filter rows
                 if lov_definition.filter_col is not None:
                     filter_col_index = get_header_index(

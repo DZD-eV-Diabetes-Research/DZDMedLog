@@ -81,7 +81,7 @@ import {
 
 const props = defineProps<{
   drugId?: string;
-  initialState?: any;
+  initialState?: { [key: string]: string; };
 }>();
 
 const emit = defineEmits(['cancel', 'save'])

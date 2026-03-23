@@ -44,6 +44,10 @@ from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.db.drug_data.drug import DrugCRUD
 from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef, DrugValMultiRef
+from medlogserver.db.drug_data.drug_lov_values import (
+    DrugAttrFieldLovItemCRUD,
+    DrugAttrFieldLovItem,
+)
 from medlogserver.model.drug_data.api_drug_model_factory import drug_to_drugAPI_obj
 from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.config import Config
@@ -392,14 +396,25 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             field_values_aggregated += f" {code.code}"
 
         for attr_multi_ref in drug.attrs_multi_ref:
+            log.debug(f"attr_multi_ref {attr_multi_ref}")
+            log.debug(f"attr_multi_ref.lov_item {attr_multi_ref.lov_item}")
             if (
                 attr_multi_ref.field_name
                 in searchable_drug_fields_names_by_type["attrs_multi_ref"]
                 and attr_multi_ref.value is not None
             ):
-                field_values_aggregated += (
-                    f" {attr_multi_ref.value} {attr_multi_ref.lov_item.display}"
-                )
+                lov_item = attr_multi_ref.lov_item
+                if attr_multi_ref.lov_item is None:
+                    async with get_async_session_context() as session:
+                        async with DrugAttrFieldLovItemCRUD.crud_context(
+                            session
+                        ) as drug_attr_lov_crud:
+                            lov_item = await drug_attr_lov_crud.get(
+                                field_name=attr_multi_ref.field_name,
+                                value=attr_multi_ref.value,
+                            )
+
+                field_values_aggregated += f" {attr_multi_ref.value} {lov_item.display}"
         field_values_aggregated = (
             field_values_aggregated[:MAX_INDEXABLE_LENGTH]
             if field_values_aggregated

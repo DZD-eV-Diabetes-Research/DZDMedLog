@@ -402,7 +402,7 @@ async def auth_oidc_callback(
             key=SESSION_COOKIE_NAME,
             value=str(user_session.id),
             httponly=True,
-            secure=False,  # True in prod
+            secure=config.SET_SESSION_COOKIE_SECURE,
             samesite="Lax",
         )
         return response

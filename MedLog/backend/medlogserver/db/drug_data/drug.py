@@ -192,8 +192,11 @@ class DrugCRUD(
             query = pagination.append_to_query(query)
 
         results = await self.session.exec(statement=query)
+
         if keep_result_in_ids_order:
             # todo: maybe we can solve the drug order in sql?
+            db_map = {obj.id: obj for obj in results.all()}
+            return [db_map[drug_id] for drug_id in ids if drug_id in db_map]
             db_order: List[DrugData] = results.all()
             new_order: List[DrugData] = []
             for drug_id in ids:
@@ -284,9 +287,12 @@ class DrugCRUD(
         # attrs_ref
         for attr_ref_create in drug_create.attrs_ref:
             attr_ref_def = find_attr_def("attrs_ref", attr_ref_create.field_name)
+            log.debug(f"find_lov_item - attr_ref_def {attr_ref_def}")
             lov_item = await find_lov_item(
                 "attrs_ref", attr_ref_def.field_name, attr_ref_create.value
             )
+            log.debug(f"find_lov_item - attr_ref_create {attr_ref_create}")
+            log.debug(f"find_lov_item - lov_item {lov_item}")
             drug.attrs_ref.append(
                 DrugValRef(
                     field_name=attr_ref_def.field_name,

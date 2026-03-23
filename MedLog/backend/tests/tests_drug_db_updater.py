@@ -249,3 +249,27 @@ def test_endpoint_drug_update_workflow():
             ),
         )
     )
+
+    list_dispensingtype = req(
+        "/api/drug/field_def/dispensingtype/refs",
+        method="get",
+    )
+
+    def find_duplicates(dict_list):
+        seen = set()
+        duplicates = []
+
+        for d in dict_list:
+            key = tuple(sorted(d.items()))
+            if key in seen:
+                duplicates.append(d)
+            else:
+                seen.add(key)
+
+        return duplicates
+
+    if find_duplicates(list_dispensingtype["items"]):
+        raise ValueError(
+            f"Duplicated in ref values for dispensingtype after second drug update: {list_dispensingtype}"
+        )
+    # print("list_dispensingtype", list_dispensingtype)

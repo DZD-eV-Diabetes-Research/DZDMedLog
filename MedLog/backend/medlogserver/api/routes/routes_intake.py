@@ -13,6 +13,7 @@ from fastapi import (
 )
 import uuid
 from fastapi.responses import JSONResponse, Response
+from pydantic import ValidationError
 from medlogserver.db.interview import InterviewCRUD
 from medlogserver.model.intake import (
     Intake,
@@ -20,6 +21,7 @@ from medlogserver.model.intake import (
     IntakeUpdate,
     IntakeCreateAPI,
     IntakeDetailListItem,
+    IntakeValidationError,
 )
 from medlogserver.db.intake import IntakeCRUD
 from medlogserver.api.study_access import (
@@ -81,17 +83,44 @@ async def get_intake(
     "/study/{study_id}/interview/{interview_id}/intake",
     response_model=Intake,
     description="""Create intake record in certain interview. user must have at least 'interviewer'-permissions on study.
-    **Start Date** — exactly one of `intake_start_date` or `intake_start_date_option` must be set.
-    Sending both returns 400. The omitted field is automatically nulled out.
-
-    **End Date** — at most one of `intake_end_date` or `intake_end_date_option` may be set.
+    **Start Date** — exactly one of `intake_start_date` or `intake_start_date_option` must be set.  
+    Sending both returns 400. The omitted field is automatically nulled out.  
+    **End Date** — at most one of `intake_end_date` or `intake_end_date_option` may be set.  
     Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.
-    The omitted field is automatically nulled out.
-
-    **Intake mode** — mutually exclusive fields depending on `intake_regular_or_as_needed`:
-    - `REGULAR`: `as_needed_dose_unit` must be `null`
-    - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`
+    The omitted field is automatically nulled out.  
+    **Intake mode** — mutually exclusive fields depending on `intake_regular_or_as_needed`:  
+    - `REGULAR`: `as_needed_dose_unit` must be `null`  
+    - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`  
     """,
+    responses={
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": (
+                "**UNPROCESSABLE ENTITY** — Returned when the request body violates one of the following validation rules:\n\n"
+                "**Start Date (exactly one required)**\n"
+                "- Both `intake_start_date` and `intake_start_date_option` are set — only one may be provided.\n"
+                "- Neither `intake_start_date` nor `intake_start_date_option` is set — exactly one must be provided.\n\n"
+                "**End Date (at most one allowed)**\n"
+                "- Both `intake_end_date` and `intake_end_date_option` are set — only one may be provided. "
+                "If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n"
+                "**Intake Mode (mutually exclusive dose fields)**\n"
+                "- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n"
+                "- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`."
+            ),
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": [
+                            {
+                                "loc": ["body"],
+                                "msg": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set.",
+                                "type": "value_error",
+                            }
+                        ]
+                    }
+                }
+            },
+        },
+    },
 )
 async def create_intake(
     intake: Annotated[IntakeCreateAPI, Body()],
@@ -115,7 +144,12 @@ async def create_intake(
     log.debug(f"interview_id: {interview_id}")
     # ToDo: Casting to uuid is a hotfix here. it should be validated/transformed in the model itself
     # interview_id = uuid.UUID(interview_id)
-    intake_create = IntakeCreate(interview_id=interview_id, **intake.model_dump())
+    try:
+        intake_create = IntakeCreate(interview_id=interview_id, **intake.model_dump())
+    except (IntakeValidationError, ValidationError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e)
+        )
     return await intake_crud.create(intake_create)
 
 
@@ -123,18 +157,45 @@ async def create_intake(
 @fast_api_intake_router.patch(
     "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
     response_model=Intake,
-    description="""Update intake record. user must have at least 'interviewer'-permissions on study.
-    **Start Date** — exactly one of `intake_start_date` or `intake_start_date_option` must be set.
-    Sending both returns 400. The omitted field is automatically nulled out.
-
-    **End Date** — at most one of `intake_end_date` or `intake_end_date_option` may be set.
+    description="""Update intake record. user must have at least 'interviewer'-permissions on study.  
+    **Start Date** — exactly one of `intake_start_date` or `intake_start_date_option` must be set.  
+    Sending both returns 400. The omitted field is automatically nulled out.  
+    **End Date** — at most one of `intake_end_date` or `intake_end_date_option` may be set.  
     Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.
-    The omitted field is automatically nulled out.
-
-    **Intake mode** — mutually exclusive fields depending on `intake_regular_or_as_needed`:
-    - `REGULAR`: `as_needed_dose_unit` must be `null`
-    - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`
+    The omitted field is automatically nulled out.  
+    **Intake mode** — mutually exclusive fields depending on `intake_regular_or_as_needed`:  
+    - `REGULAR`: `as_needed_dose_unit` must be `null`  
+    - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`  
     """,
+    responses={
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": (
+                "**UNPROCESSABLE ENTITY** — Returned when the request body violates one of the following validation rules:\n\n"
+                "**Start Date (exactly one required)**\n"
+                "- Both `intake_start_date` and `intake_start_date_option` are set — only one may be provided.\n"
+                "- Neither `intake_start_date` nor `intake_start_date_option` is set — exactly one must be provided.\n\n"
+                "**End Date (at most one allowed)**\n"
+                "- Both `intake_end_date` and `intake_end_date_option` are set — only one may be provided. "
+                "If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n"
+                "**Intake Mode (mutually exclusive dose fields)**\n"
+                "- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n"
+                "- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`."
+            ),
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": [
+                            {
+                                "loc": ["body"],
+                                "msg": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set.",
+                                "type": "value_error",
+                            }
+                        ]
+                    }
+                }
+            },
+        },
+    },
 )
 async def update_intake(
     intake_id: uuid.UUID,

@@ -71,7 +71,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from "#imports";
-import type { DrugBody } from "~/components/CustomDrugForm.vue";
+import type {SchemaDrugCustomCreate} from "#open-fetch-schemas/medlogapi";
 
 const props = defineProps({
   isDrugEditable: { type: Boolean, default: true },
@@ -101,7 +101,7 @@ async function openCustomModal() {
   customDrugModalVisibility.value = true
 }
 
-async function saveCustomDrug(customDrugBody: DrugBody) {
+async function saveCustomDrug(customDrugBody: SchemaDrugCustomCreate) {
   createCustomDrugError.value = undefined;
   const { data, error } = await useMedlogapi(
       `/api/drug/custom`,

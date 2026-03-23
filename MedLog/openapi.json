@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.13.2.dev80+gcef55b717.d20260311"
+    "version": "0.13.2.dev88+g62a24032b.d20260316"
   },
   "paths": {
     "/api/health": {
@@ -2800,7 +2800,7 @@
           "Intake"
         ],
         "summary": "Update Intake",
-        "description": "Update intake record. user must have at least 'interviewer'-permissions on study.\n    **Start Date** \u2014 exactly one of `intake_start_date` or `intake_start_date_option` must be set.\n    Sending both returns 400. The omitted field is automatically nulled out.\n\n    **End Date** \u2014 at most one of `intake_end_date` or `intake_end_date_option` may be set.\n    Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.\n    The omitted field is automatically nulled out.\n\n    **Intake mode** \u2014 mutually exclusive fields depending on `intake_regular_or_as_needed`:\n    - `REGULAR`: `as_needed_dose_unit` must be `null`\n    - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`",
+        "description": "Update intake record. user must have at least 'interviewer'-permissions on study.  \n    **Start Date** \u2014 exactly one of `intake_start_date` or `intake_start_date_option` must be set.  \n    Sending both returns 400. The omitted field is automatically nulled out.  \n    **End Date** \u2014 at most one of `intake_end_date` or `intake_end_date_option` may be set.  \n    Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.\n    The omitted field is automatically nulled out.  \n    **Intake mode** \u2014 mutually exclusive fields depending on `intake_regular_or_as_needed`:  \n    - `REGULAR`: `as_needed_dose_unit` must be `null`  \n    - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`",
         "operationId": "update_intake_api_study__study_id__interview__interview_id__intake__intake_id__patch",
         "security": [
           {
@@ -2861,11 +2861,19 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                "example": {
+                  "detail": [
+                    {
+                      "loc": [
+                        "body"
+                      ],
+                      "msg": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set.",
+                      "type": "value_error"
+                    }
+                  ]
                 }
               }
             }
@@ -2995,11 +3003,19 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                "example": {
+                  "detail": [
+                    {
+                      "loc": [
+                        "body"
+                      ],
+                      "msg": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set.",
+                      "type": "value_error"
+                    }
+                  ]
                 }
               }
             }

@@ -22,7 +22,7 @@ async function onSubmit(data: StudyFormSchema) {
   } catch (error) {
     toast.add({
       title: "Fehler beim Speichern",
-      description: error.data?.detail ?? error.message ?? error,
+      description: useGetErrorMessage(error),
     });
   }
 }
