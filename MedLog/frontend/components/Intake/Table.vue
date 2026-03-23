@@ -24,6 +24,15 @@
       </div>
     </template>
 
+    <template #name-data="{ row }">
+      <div class="flex flex-col items-start gap-1">
+      {{ row.name }}
+      <UTooltip v-if="row.intake.drug.is_custom_drug" text="Dieses Medikament wurde manuell eingetragen" :popper="{ arrow: true, placement: 'right' }">
+        <UBadge label="Ungelistet" color="purple" size="xs" />
+      </UTooltip>
+      </div>
+    </template>
+
     <template #actions-data="{ row }">
       <UDropdown :items="myOptions(row)">
         <UButton color="gray" variant="ghost" icon="i-heroicons-ellipsis-horizontal-20-solid" />
@@ -56,11 +65,6 @@ const columns: Array<{ key: string; label?: string, sortable?: boolean }> = [
   {
     key: "pzn",
     label: "Medikament PZN",
-  },
-  {
-    key: "custom",
-    label: "Custom",
-    sortable: true,
   },
   {
     key: "name",
@@ -162,10 +166,6 @@ const rows = computed(() => {
     endTime: item.intake_end_date,
     time: getIntakeDurationString(item),
     intakeId: item.id,
-    custom: item.drug?.is_custom_drug ? "Ja" : "Nein",
-    class: item.drug?.is_custom_drug
-        ? "bg-yellow-50"
-        : null,
   }));
 });
 </script>
