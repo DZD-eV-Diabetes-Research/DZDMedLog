@@ -244,14 +244,24 @@ def list_contains_dict_that_must_contain(
     return False
 
 
-def dictyfy(val: str | sqlmodel.SQLModel | pydantic.BaseModel | dict) -> dict:
+def dictyfy(
+    val: str | sqlmodel.SQLModel | pydantic.BaseModel | dict | list,
+) -> dict | list:
+    if isinstance(val, list):
+        return [dictyfy(item) for item in val]
     if isinstance(val, dict):
-        return val
+        return {k: dictyfy(v) for k, v in val.items()}
     if isinstance(val, str):
-        return json.loads(val)
+        try:
+            parsed = json.loads(val)
+            if isinstance(parsed, (dict, list)):
+                return dictyfy(parsed)
+            return val
+        except json.JSONDecodeError:
+            return val
     if isinstance(val, (sqlmodel.SQLModel, pydantic.BaseModel)):
-        return json.loads(val.model_dump_json(exclude_unset=True))
-    raise ValueError("Dont know how to inteprete value as dict")
+        return dictyfy(json.loads(val.model_dump_json(exclude_unset=True)))
+    return val
 
 
 def get_test_functions_from_file_or_module(
