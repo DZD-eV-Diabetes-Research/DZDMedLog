@@ -27,7 +27,7 @@ class DrugValApiCreate(DrugModelTableBase, table=False):
         primary_key=True,
         foreign_key="Name of the attribute. Available field_names can be retrieved from REST API Endpoint '/api/drug/field_def' ",
     )
-    value: Optional[str] = Field(
+    value: Optional[str | int | float | bool] = Field(
         default=None,
         description="Value of the drug attribute",
     )
@@ -38,7 +38,7 @@ class DrugMultiValApiCreate(DrugModelTableBase, table=False):
         primary_key=True,
         foreign_key="Name of the attribute. Available field_names can be retrieved from REST API Endpoint '/api/drug/field_def' ",
     )
-    values: Optional[List[str]] = Field(
+    values: Optional[List[str | int | float | bool]] = Field(
         default=None,
         description="Value of the drug attribute",
     )

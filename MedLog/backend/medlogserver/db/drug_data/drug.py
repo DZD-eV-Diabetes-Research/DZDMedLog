@@ -197,15 +197,6 @@ class DrugCRUD(
             # todo: maybe we can solve the drug order in sql?
             db_map = {obj.id: obj for obj in results.all()}
             return [db_map[drug_id] for drug_id in ids if drug_id in db_map]
-            db_order: List[DrugData] = results.all()
-            new_order: List[DrugData] = []
-            for drug_id in ids:
-                db_order_item_index = next(
-                    (i for i, obj in enumerate(db_order) if obj.id == drug_id)
-                )
-                item = db_order.pop(db_order_item_index)
-                new_order.append(item)
-            return new_order
         return results.all()
 
     async def create_custom(
