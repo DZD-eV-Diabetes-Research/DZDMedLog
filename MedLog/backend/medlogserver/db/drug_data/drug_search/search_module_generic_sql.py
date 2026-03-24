@@ -388,6 +388,16 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 attr_ref.field_name in searchable_drug_fields_names_by_type["attrs_ref"]
                 and attr_ref.value is not None
             ):
+                if attr_ref.lov_item is None:
+                    async with get_async_session_context() as session:
+                        async with DrugAttrFieldLovItemCRUD.crud_context(
+                            session
+                        ) as drug_attr_lov_crud:
+                            lov_item = await drug_attr_lov_crud.get(
+                                field_name=attr_ref.field_name,
+                                value=attr_ref.value,
+                            )
+
                 field_values_aggregated += (
                     f" {attr_ref.value} {attr_ref.lov_item.display}"
                 )
