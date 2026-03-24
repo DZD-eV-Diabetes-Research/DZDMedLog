@@ -374,6 +374,11 @@ class Config(BaseSettings):
         description="The directory to store the result of export jobs (CSV files, JSON files,...).",
     )
 
+    PROBAND_IDS_CASE_SENSETIVE: bool = Field(
+        default=False,
+        description="If set to true a proband with the ID '1A' will be different from '1a'.",
+    )
+
     ###### CONFIG END ######
     # "class Config:" is a pydantic-settings pre-defined config class to control the behaviour of our settings model
     # you could call it a "meta config" class

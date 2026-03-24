@@ -5,8 +5,7 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, func, col
-
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel, col, func
 import uuid
 from uuid import UUID
 
@@ -65,11 +64,13 @@ class EventCRUD(create_crud_base(Event, EventRead, EventCreate, EventUpdate)):
         pagination: Optional[QueryParamsInterface] = None,
     ) -> List[EventReadPerProband]:
         """List all events that a proband participated"""
-        query = (
-            select(Event, func.count(col(Interview.id)))
-            .join(Interview)
-            .where(Interview.proband_external_id == proband_id)
-        )
+        query = select(Event, func.count(col(Interview.id))).join(Interview)
+        if config.PROBAND_IDS_CASE_SENSETIVE:
+            query = query.where(Interview.proband_external_id == proband_id)
+        else:
+            query = query.where(
+                func.lower(Interview.proband_external_id) == func.lower(proband_id)
+            )
 
         if filter_study_id:
             query = query.where(Event.study_id == filter_study_id)

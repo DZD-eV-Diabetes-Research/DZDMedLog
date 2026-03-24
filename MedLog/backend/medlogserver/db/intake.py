@@ -3,11 +3,9 @@ import enum
 from pydantic import validate_email, field_validator, model_validator, StringConstraints
 from pydantic_core import PydanticCustomError
 from fastapi import Depends, HTTPException, status
-import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc, and_
-
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc, and_, func
 from datetime import datetime, timezone
 import uuid
 from uuid import UUID
@@ -64,9 +62,15 @@ class IntakeCRUD(
         if filter_event_id:
             query = query.where(Interview.event_id == filter_event_id)
         if filter_proband_external_id:
-            query = query.where(
-                Interview.proband_external_id == filter_proband_external_id
-            )
+            if config.PROBAND_IDS_CASE_SENSETIVE:
+                query = query.where(
+                    Interview.proband_external_id == filter_proband_external_id
+                )
+            else:
+                query = query.where(
+                    func.lower(Interview.proband_external_id)
+                    == func.lower(filter_proband_external_id)
+                )
         if filter_interview_id:
             query = query.where(Intake.interview_id == filter_interview_id)
         if pagination:
@@ -107,9 +111,15 @@ class IntakeCRUD(
         if filter_event_id:
             query = query.where(Interview.event_id == filter_event_id)
         if filter_proband_external_id:
-            query = query.where(
-                Interview.proband_external_id == filter_proband_external_id
-            )
+            if config.PROBAND_IDS_CASE_SENSETIVE:
+                query = query.where(
+                    Interview.proband_external_id == filter_proband_external_id
+                )
+            else:
+                query = query.where(
+                    func.lower(Interview.proband_external_id)
+                    == func.lower(filter_proband_external_id)
+                )
         if filter_interview_id:
             query = query.where(Intake.interview_id == filter_interview_id)
         if pagination:
@@ -141,18 +151,27 @@ class IntakeCRUD(
         raise_exception_if_no_last_interview: Exception = None,
         pagination: Optional[QueryParamsInterface] = None,
     ) -> List[Intake]:
-        last_interview_query = (
-            select(Interview)
-            .join(Event)
-            .where(
+        last_interview_query = select(Interview).join(Event)
+        if config.PROBAND_IDS_CASE_SENSETIVE:
+            last_interview_query = last_interview_query.where(
                 and_(
                     Interview.proband_external_id == proband_external_id,
                     Event.study_id == study_id,
                 )
             )
-            .order_by(desc(Interview.interview_end_time_utc))
-            .limit(1)
-        )
+
+        else:
+            last_interview_query = last_interview_query.where(
+                and_(
+                    func.lower(Interview.proband_external_id)
+                    == func.lower(proband_external_id),
+                    Event.study_id == study_id,
+                )
+            )
+        last_interview_query = last_interview_query.order_by(
+            desc(Interview.interview_end_time_utc)
+        ).limit(1)
+
         last_interview_results = await self.session.exec(statement=last_interview_query)
         last_interview: Interview = last_interview_results.one_or_none()
 

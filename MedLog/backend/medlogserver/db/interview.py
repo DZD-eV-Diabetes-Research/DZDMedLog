@@ -5,7 +5,7 @@ from fastapi import Depends
 import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc, and_
+from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc, and_, func
 from sqlalchemy.sql.operators import is_not, is_
 from datetime import datetime, timezone
 import uuid
@@ -50,9 +50,15 @@ class InterviewCRUD(
         if filter_event_id:
             query = query.where(Interview.event_id == filter_event_id)
         if filter_proband_external_id:
-            query = query.where(
-                Interview.proband_external_id == filter_proband_external_id
-            )
+            if config.PROBAND_IDS_CASE_SENSETIVE:
+                query = query.where(
+                    Interview.proband_external_id == filter_proband_external_id
+                )
+            else:
+                query = query.where(
+                    func.lower(Interview.proband_external_id)
+                    == func.lower(filter_proband_external_id)
+                )
         if pagination:
             query = pagination.append_to_query(query)
         results = await self.session.exec(statement=query)
@@ -65,16 +71,24 @@ class InterviewCRUD(
         completed: bool = False,
         raise_exception_if_none: Exception = None,
     ) -> Optional[Interview]:
-        query = (
-            select(Interview)
-            .join(Event)
-            .where(
+        query = select(Interview).join(Event)
+        if config.PROBAND_IDS_CASE_SENSETIVE:
+            query = query.where(
                 and_(
                     Interview.proband_external_id == proband_external_id,
                     Event.study_id == study_id,
                 )
             )
-        )
+
+        else:
+            query = query.where(
+                and_(
+                    func.lower(Interview.proband_external_id)
+                    == func.lower(proband_external_id),
+                    Event.study_id == study_id,
+                )
+            )
+
         if completed:
             query = (
                 query.where(is_not(Interview.interview_end_time_utc, None))
