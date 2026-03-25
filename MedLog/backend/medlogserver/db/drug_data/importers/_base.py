@@ -1,4 +1,4 @@
-from typing import Dict, List, AsyncIterator, Literal, Optional, Self, Type
+from typing import Dict, List, AsyncIterator, Literal, Optional, Self, Type, Final
 import traceback
 from pathlib import Path
 from dataclasses import dataclass
@@ -21,12 +21,18 @@ from medlogserver.utils import (
     PathContentHasher,
     get_now_datetime,
     sqlmodel_apply_updates,
+    highest_version,
+    is_version_higher,
 )
 from medlogserver.model.drug_data.drug import DrugAttrTypeName
-from medlogserver.log import get_logger
 
+from medlogserver.db.app_state import AppState, AppStateCRUD
+
+from medlogserver.log import get_logger
+from medlogserver.config import Config
 
 log = get_logger(modulename="DRUGIMPORT")
+config = Config()
 
 
 @dataclass
@@ -54,6 +60,17 @@ class DrugDataSetImporterBase:
         )
         self._ensured_dataset_version: DrugDataSetVersion | None = None
 
+    async def check_for_remote_latest_dataset_version(self) -> str | None:
+        """Checks the remote source for the latest available drug dataset version.
+
+        Returns:
+            A lexicographically comparable version string (e.g., '2024.01.15'),
+            or None if the version could not be determined.
+        """
+        raise NotImplementedError(
+            "This drug module does not support remote dataset updating"
+        )
+
     async def check_for_remote_dataset_update_available(self) -> str | None:
         """Returns a version string if new version available
 
@@ -63,9 +80,31 @@ class DrugDataSetImporterBase:
         Returns:
             str: _description_
         """
-        raise NotImplementedError(
-            "This drug module does not support remote dataset updating"
+        allready_imported_datasets = await self.get_already_imported_datasets()
+
+        log.debug("CHECK FOR REMOT DRUG DATA UPDATE")
+        latest_remote_version_name = (
+            await self._check_for_remote_latest_dataset_version_cached()
         )
+
+        log.debug(f"REMOTE VERSION {latest_remote_version_name}")
+        if not latest_remote_version_name:
+            return None
+
+        if allready_imported_datasets:
+            imported_dataset_version_strings = [
+                imp.dataset_version for imp in allready_imported_datasets
+            ]
+            highest_imported_dataset_version = highest_version(
+                imported_dataset_version_strings
+            )
+            if is_version_higher(
+                latest_remote_version_name, highest_imported_dataset_version
+            ):
+                return latest_remote_version_name
+        else:
+            return latest_remote_version_name
+        return None
 
     async def download_remote_dataset_update(self) -> Self | None:
         """Download (and maybe extract) remote dataset (if available)
@@ -438,3 +477,58 @@ class DrugDataSetImporterBase:
 
         all_objs.extend(await self.get_code_definitions())
         return all_objs
+
+    async def _check_for_remote_latest_dataset_version_cached(self) -> str | None:
+        """Returns a version string if new version available
+
+        Raises:
+            NotImplementedError: _description_
+
+        Returns:
+            str: _description_
+        """
+        STATE_NAME_LAST_TIME_CHECKED: Final[str] = (
+            "LAST_CHECK_DRUG_DATETIME_UTC_UPDATE_AVAILABLE"
+        )
+        STATE_NAME_CACHED_VALUE: Final[str] = "LAST_CHECK_DRUG_UPDATE_RESULT"
+        REMOTE_UPDATE_CHECK_COOLDOWN_TIME_SEC: Final[int] = (
+            config.DRUG_IMPORTER_REMOTE_VERSION_CHECK_COOLDOWN_TIME_SEC
+        )
+
+        async with get_async_session_context() as session:
+            app_state_crud = AppStateCRUD(session=session)
+            last_time_checked = await app_state_crud.get(
+                key=STATE_NAME_LAST_TIME_CHECKED
+            )
+
+            check_result = None
+            if (
+                last_time_checked is None
+                or (
+                    datetime.datetime.now(datetime.timezone.utc)
+                    - datetime.datetime.fromisoformat(last_time_checked)
+                ).seconds
+                > REMOTE_UPDATE_CHECK_COOLDOWN_TIME_SEC
+            ):
+                log.debug(
+                    f"check_for_remote_latest_dataset_version: Start check for remote datadrug set version"
+                )
+                check_result = await self.check_for_remote_latest_dataset_version()
+
+                await app_state_crud.set(
+                    key=STATE_NAME_LAST_TIME_CHECKED,
+                    value=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                )
+                await app_state_crud.set(
+                    key=STATE_NAME_CACHED_VALUE,
+                    value=check_result,
+                )
+                log.debug(
+                    f"check_for_remote_latest_dataset_version: Finished check for remote datadrug set version: {check_result}"
+                )
+            else:
+                check_result = await app_state_crud.get(key=STATE_NAME_CACHED_VALUE)
+                log.debug(
+                    f"check_for_remote_latest_dataset_version: Skip check for remote datadrug set version. Return cached value: {check_result}"
+                )
+            return check_result

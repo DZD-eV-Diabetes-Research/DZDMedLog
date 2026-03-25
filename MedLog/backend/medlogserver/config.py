@@ -341,6 +341,10 @@ class Config(BaseSettings):
         default=None,
         description="When using MMIPharmindex1_32 auto updater, authorize with this username against the MMI Pharmindex FTP Server ",
     )
+    DRUG_IMPORTER_REMOTE_VERSION_CHECK_COOLDOWN_TIME_SEC: int = Field(
+        default=3600,
+        description="What time should we wait until we re-check the remote drug data source if there is an update available. If queried in the cooldown time medlog will return a chached value.",
+    )
 
     DRUG_IMPORTER_SOURCE_FTP_PASSWORD: Optional[SecretStr] = Field(
         default=None,

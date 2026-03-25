@@ -838,10 +838,7 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
             )
             return ftp_client
 
-    async def check_for_remote_dataset_update_available(self) -> str | None:
-        allready_imported_datasets = await self.get_already_imported_datasets()
-
-        log.debug("CHECK FOR REMOT DRUG DATA UPDATE")
+    async def check_for_remote_latest_dataset_version(self) -> str | None:
         ftp_client = self._get_ftp_client_for_remote_drug_data_source()
         if ftp_client is None:
             return None
@@ -850,25 +847,9 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
         remote_versions = [
             d.name.rstrip(".zip") for d in remote_file_list if d.type_ == "file"
         ]
-        log.debug(f"REMOTE VERSION {remote_versions}")
         if not remote_versions:
             return None
-        highest_remote_version = highest_version(remote_versions)
-
-        if allready_imported_datasets:
-            imported_dataset_version_strings = [
-                imp.dataset_version for imp in allready_imported_datasets
-            ]
-            highest_imported_dataset_version = highest_version(
-                imported_dataset_version_strings
-            )
-            if is_version_higher(
-                highest_remote_version, highest_imported_dataset_version
-            ):
-                return highest_remote_version
-        else:
-            return highest_remote_version
-        return None
+        return highest_version(remote_versions)
 
     async def download_remote_dataset_update(self) -> Self | None:
         """This function checks if the is a more recent drug-data-set available, if yes it will be downloaded

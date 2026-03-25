@@ -1,9 +1,13 @@
 class _Unset:
-    def __repr__(self):
-        return "<Unset>"
+    _instance: "_Unset | None" = None
 
-    def __eq__(self, other):
-        return isinstance(other, _Unset)
+    def __new__(cls) -> "_Unset":
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __repr__(self) -> str:
+        return "Unset"
 
 
 Unset = _Unset()
