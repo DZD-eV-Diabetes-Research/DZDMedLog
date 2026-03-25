@@ -416,6 +416,7 @@ def test_wrong_count_issue_252():
         method="get",
         q={"search_term": "TestCount"},
     )
+
     print("paginated_search_response", paginated_search_response)
     assert paginated_search_response["total_count"] == len(
         paginated_search_response["items"]
