@@ -273,3 +273,15 @@ def test_endpoint_drug_update_workflow():
             f"Duplicated in ref values for dispensingtype after second drug update: {list_dispensingtype}"
         )
     # print("list_dispensingtype", list_dispensingtype)
+
+
+def test_wrong_count_after_upgrade_issue_252():
+    paginated_search_response = req(
+        "api/drug/search",
+        method="get",
+        q={"search_term": "TestCount"},
+    )
+    print("paginated_search_response", paginated_search_response)
+    assert paginated_search_response["total_count"] == len(
+        paginated_search_response["items"]
+    )

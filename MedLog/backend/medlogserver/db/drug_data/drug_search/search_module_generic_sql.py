@@ -407,8 +407,8 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             field_values_aggregated += f" {code.code}"
 
         for attr_multi_ref in drug.attrs_multi_ref:
-            log.debug(f"attr_multi_ref {attr_multi_ref}")
-            log.debug(f"attr_multi_ref.lov_item {attr_multi_ref.lov_item}")
+            # log.debug(f"attr_multi_ref {attr_multi_ref}")
+            # log.debug(f"attr_multi_ref.lov_item {attr_multi_ref.lov_item}")
             if (
                 attr_multi_ref.field_name
                 in searchable_drug_fields_names_by_type["attrs_multi_ref"]

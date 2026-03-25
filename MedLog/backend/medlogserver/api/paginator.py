@@ -1,4 +1,14 @@
-from typing import Optional, Generic, TypeVar, List, Annotated, Literal, Callable, Type
+from typing import (
+    Optional,
+    Generic,
+    TypeVar,
+    List,
+    Annotated,
+    Literal,
+    Callable,
+    Type,
+    Any,
+)
 import inspect
 from pydantic import BaseModel, Field
 from fastapi import Query
@@ -72,7 +82,7 @@ class QueryParamsInterface:
 
     def append_to_query(
         self,
-        sqlmodel_query: sqlEpression.Select,
+        sqlmodel_query: sqlEpression.Select[Any],
         ignore_limit: bool = False,
         ignore_order_by: bool = False,
     ):
@@ -158,10 +168,8 @@ def create_query_params_class(
             self.order_by = order_by
             self.order_desc = order_desc
 
-        init_func: Callable = (
-            lambda self, offset, limit, order_by, order_desc: __init__func_wrapper(
-                self, offset, limit, order_by, order_desc
-            )
+        init_func: Callable = lambda self, offset, limit, order_by, order_desc: (
+            __init__func_wrapper(self, offset, limit, order_by, order_desc)
         )
         init_default = (default_offset, default_limit, default_order_by_attr, False)
     init_func.__defaults__ = init_default
