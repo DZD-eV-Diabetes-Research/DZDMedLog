@@ -431,15 +431,8 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             ftp_client.is_server_up(timeout=1)
             return ftp_client
 
-    async def check_for_remote_dataset_update_available(self) -> str | None:
-        imported_datasets = await self.get_already_imported_datasets()
-        imported_dataset_version_strings = [
-            imp.dataset_version for imp in imported_datasets
-        ]
-        highest_imported_dataset_version = highest_version(
-            imported_dataset_version_strings
-        )
-        log.debug("CHECK FOR REMOT DRUG DATA UPDATE")
+    async def check_for_remote_latest_dataset_version(self) -> str | None:
+
         ftp_client = self._get_ftp_client_for_remote_drug_data_source()
         if ftp_client is None:
             # we just work with the local dummy drug data files directly
@@ -455,14 +448,9 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
         else:
             remote_file_list = ftp_client.list_files()
             remote_versions = [d.name for d in remote_file_list]
-            log.debug(f"REMOTE VERSION {remote_versions}")
         if not remote_versions:
             return None
-        highest_remote_version = highest_version(remote_versions)
-
-        if is_version_higher(highest_remote_version, highest_imported_dataset_version):
-            return highest_remote_version
-        return None
+        return highest_version(remote_versions)
 
     async def download_remote_dataset_update(self) -> Self | None:
         """This dummy function checks if the second dummy set was allready imported and if not return a new dataloader with thew path.

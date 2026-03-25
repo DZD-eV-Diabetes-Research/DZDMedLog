@@ -86,8 +86,8 @@ def test_create_custom_drug_with_refs():
 
     custom_drug_payload = DrugCustomCreate(
         custom_drug_notes="Look mom, my custom Drug!",
-        trade_name="My Custom Drug",
-        codes=[DrugCodeApi(code_system_id="PZN", code="34576456745")],
+        trade_name="My Custom Drug with refs",
+        codes=[DrugCodeApi(code_system_id="PZN", code="4565464564")],
         attrs=[
             DrugValApiCreate(field_name="amount", value="100"),
             DrugValApiCreate(field_name="manufacturer", value="Company1"),
@@ -147,7 +147,7 @@ def test_create_custom_drug_with_refs():
     )
     dict_must_contain(
         res["codes"],
-        required_keys_and_val={"PZN": "34576456745"},
+        required_keys_and_val={"PZN": "4565464564"},
         exception_dict_identifier="create custom drug object attrs_ref",
     )
 
