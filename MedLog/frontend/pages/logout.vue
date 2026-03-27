@@ -3,6 +3,7 @@ const { $medlogapi } = useNuxtApp()
 const drugFieldStore = useDrugFields();
 const eventStore = useEventStore();
 const interviewStore = useInterviewStore();
+const systemAnnouncementsStore = useSystemAnnouncementsStore();
 const userStore = useUserStore();
 const studyStore = useStudyStore();
 
@@ -27,6 +28,10 @@ onMounted(async () => {
   studyStore.$reset();
   drugFieldStore.$reset();
   userStore.$reset();
+  systemAnnouncementsStore.$reset(); // Public and internal announcements are mixed, let's remove them all
+
+  // Fetch publicly available announcements again
+  await systemAnnouncementsStore.fetchSystemAnnouncements();
 })
 </script>
 
