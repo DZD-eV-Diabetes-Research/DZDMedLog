@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional
 import logging
 import os
-import getversion
 import yaml
 import sys
 import asyncio
@@ -20,6 +19,11 @@ arg_parser = argparse.ArgumentParser("DZDMedLog")
 arg_parser.add_argument(
     "--set_version_file",
     help="Set this flag to just write the __version__.py file based on the git version. Only needed for CI/CD pipeline.",
+    action="store_true",
+)
+arg_parser.add_argument(
+    "--app_version",
+    help="Overwrite the automatic version extraction based on the git metadata",
     action="store_true",
 )
 arg_parser.add_argument(
@@ -56,10 +60,10 @@ from memory_profiler import profile
 
 
 def start():
-    import medlogserver
+    from medlogserver.utils import get_version
 
     print(
-        f"Start medlogserver version: {getversion.get_module_version(medlogserver)[0]} under user with id {os.getuid()}"
+        f"Start medlogserver version: {get_version()} under user with id {os.getuid()}"
     )
     from medlogserver.log import (
         get_logger,
@@ -172,9 +176,12 @@ if __name__ == "__main__":
 
     if args.set_version_file:
         print("Write `__version__.py` file...")
-        from medlogserver.utils import set_version_file
+        from medlogserver.utils import write_version_file
 
-        version_file = set_version_file(MODULE_DIR)
+        app_version_overwrite = None
+        if args.app_version:
+            app_version_overwrite = args.app_version
+        version_file = write_version_file(version=app_version_overwrite)
         version = version_file.read_text()
         print(f"Wrote '{version}' into '{version_file.absolute()}'")
         exit()

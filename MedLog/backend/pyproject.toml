@@ -35,7 +35,7 @@ dependencies = [
     "pydantic[email]",
     "pydantic_settings",
     "Click",
-    "getversion",
+    "setuptools-scm",            # replaces getversion for runtime version detection
     "pip-tools",
     "python-multipart",
     "apscheduler",
@@ -56,9 +56,13 @@ tests = [
 ]
 docs = ["mkdocs", "mkdocstrings[python]", "mkdocs-autorefs", "mkdocs-material"]
 
-
 [tool.setuptools.packages.find]
 include = ['medlogserver', 'provisioning_data']
+
+[tool.setuptools_scm]
+version_scheme = "no-guess-dev"
+local_scheme = "node-and-date"   # appends commit hash and date
+search_parent_directories = true
 
 [project.scripts]
 medlogserver = "medlogserver.main:start"

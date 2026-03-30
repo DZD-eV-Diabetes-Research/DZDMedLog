@@ -12,6 +12,7 @@ RUN bun install && bun run build && bunx nuxi generate
 
 # BACKEND BUILD AND RUN STAGE
 FROM python:3.11 AS medlog-backend
+ARG APP_VERSION=""   # empty by default; only set for release builds
 ARG BASEDIR=/opt/medlog
 ARG MODULENAME=medlogserver
 ENV MEDLOG_DOCKER_BASEDIR=$BASEDIR
@@ -19,15 +20,15 @@ ENV DOCKER_MODE=1
 ENV FRONTEND_FILES_DIR=$BASEDIR/medlogfrontend
 
 # prep stuff
-RUN mkdir -p $BASEDIR/medlogserver
-RUN mkdir -p $BASEDIR/medlogfrontend
+RUN mkdir -p $BASEDIR/$MODULENAME
+RUN mkdir -p $FRONTEND_FILES_DIR
 RUN mkdir -p /data
 RUN mkdir -p /data/db
 RUN mkdir -p /data/provisioning/database
-RUN mkdir -p /data/provisioning/arzneimittelindex/demo
+RUN mkdir -p /data/provisioning/dummy_drugset
 
 # Copy frontend dist from pre stage
-COPY --from=medlog-frontend-build /frontend_build/.output/public $BASEDIR/medlogfrontend
+COPY --from=medlog-frontend-build /frontend_build/.output/public $FRONTEND_FILES_DIR
 
 
 # Install Server
@@ -45,26 +46,30 @@ COPY MedLog/backend/requirements.txt $BASEDIR/requirements.txt
 RUN pip install -U -r $BASEDIR/requirements.txt
 
 # install app
-COPY MedLog/backend/medlogserver $BASEDIR/medlogserver
+COPY MedLog/backend/$MODULENAME $BASEDIR/$MODULENAME
 
 # copy .git folder to be able to generate version file
 COPY .git $BASEDIR/.git
-RUN python3 $BASEDIR/medlogserver/main.py --set_version_file
+RUN if [ -n "$APP_VERSION" ]; then \
+    python3 $BASEDIR/$MODULENAME/main.py --set_version_file --app_version "$APP_VERSION"; \
+    else \
+    python3 $BASEDIR/$MODULENAME/main.py --set_version_file; \
+    fi
 #RUN echo "__version__ = '$(python -m setuptools_scm 2>/dev/null | tail -n 1)'" > $BASEDIR/medlogserver/__version__.py
 # Remove git folder
 RUN rm -r $BASEDIR/.git
 
 #Copy default app data provisioning files
 COPY MedLog/backend/provisioning_data $BASEDIR/provisioning/database
-RUN mv $BASEDIR/provisioning/database/dummy_drugset/20251228/* /data/provisioning/arzneimittelindex/demo/
+RUN mv $BASEDIR/provisioning/database/dummy_drugset/20251228/* /data/provisioning/dummy_drugset/
 
 
 # set base config
-WORKDIR $BASEDIR/medlogserver
+WORKDIR $BASEDIR/$MODULENAME
 # set base config
 ENV SERVER_LISTENING_HOST=0.0.0.0
 ENV APP_PROVISIONING_DATA_YAML_FILES='[]'
-ENV DRUG_TABLE_PROVISIONING_SOURCE_DIR=/data/provisioning/arzneimittelindex/demo
+ENV DRUG_TABLE_PROVISIONING_SOURCE_DIR=/data/provisioning/dummy_drugset
 ENV SERVER_HOSTNAME=localhost
 ENV EXPORT_CACHE_DIR=/data/export
 ENV SQL_DATABASE_URL="sqlite+aiosqlite:////data/db/medlog.db"

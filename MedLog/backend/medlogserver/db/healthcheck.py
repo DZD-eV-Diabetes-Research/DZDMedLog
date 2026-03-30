@@ -9,8 +9,7 @@ from sqlmodel import Field, select, delete, Column, JSON, SQLModel
 
 import uuid
 from uuid import UUID
-from getversion import get_module_version
-import medlogserver
+from medlogserver.utils import get_version
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model.healthcheck import HealthCheck, HealthCheckReport
@@ -49,7 +48,7 @@ class HealthcheckRead(DatabaseInteractionBase):
     ) -> HealthCheckReport:
         healthcheck = HealthCheckReport(
             name=config.APP_NAME,
-            version=get_module_version(medlogserver)[0],
+            version=get_version(),
             db_working=False,
             drugs_imported=False,
             last_worker_run_succesfull=True,  # not yet implemented. always true
