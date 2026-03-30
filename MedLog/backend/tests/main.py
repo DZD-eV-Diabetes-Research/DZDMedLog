@@ -9,6 +9,7 @@ import types
 from pathlib import Path
 import sys, os
 
+
 if __name__ == "__main__":
     MODULE_DIR = Path(__file__).parent
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
@@ -83,36 +84,41 @@ if RESET_DB:
         print(
             "WARNING: RESET_DB is enabled but SQL_DATABASE_URL is set to an external database. Can not reset the DB. This must be done externaly."
         )
+if __name__ == "__main__":
+    multiprocessing.set_start_method("fork")  # explicit, works on Linux/Mac
 
+    from medlogserver.main import start as medlogserver_start
+    from medlogserver.worker.worker import run_background_worker
 
-from medlogserver.main import start as medlogserver_start
-from medlogserver.worker.worker import run_background_worker
+    medlogserver_process = multiprocessing.Process(
+        target=medlogserver_start,
+        name="DZDMedLogServer",
+        kwargs={},
+    )
 
-
-medlogserver_process = multiprocessing.Process(
-    target=medlogserver_start,
-    name="DZDMedLogServer",
-    kwargs={},
-)
-
-background_worker_process = multiprocessing.Process(
-    target=run_background_worker,
-    name="DZDMedLogBackgroundWorker",
-    kwargs={"run_in_extra_process": False},
-)
+    background_worker_process = multiprocessing.Process(
+        target=run_background_worker,
+        name="DZDMedLogBackgroundWorker",
+        kwargs={"run_in_extra_process": False},
+    )
 
 medlogserver_base_url = get_medlogserver_base_url()
 
 
-def wait_for_medlogserver_up_and_healthy(timeout_sec=120):
+def wait_for_medlogserver_up_and_healthy(timeout_sec=60):
     from utils import req, dict_must_contain
+    import time
 
+    deadline = time.monotonic() + timeout_sec
+
+    # --- Wait for server to respond ---
     medlogserver_not_available = True
     while medlogserver_not_available:
+        if time.monotonic() > deadline:
+            raise TimeoutError(f"Server did not come up within {timeout_sec}s")
         try:
             r = requests.get(f"{medlogserver_base_url}/health")
             r.raise_for_status()
-
             medlogserver_not_available = False
         except (
             requests.HTTPError,
@@ -120,14 +126,21 @@ def wait_for_medlogserver_up_and_healthy(timeout_sec=120):
             urllib3.exceptions.MaxRetryError,
         ):
             time.sleep(1)
+
     print(f"SERVER UP FOR LISTENING: {r.status_code}")
-    medlogserver_not_initialized = True
+
+    # --- Wait for server to finish initializing ---
     access_token = authorize(
         username=ADMIN_USER_NAME,
         pw=ADMIN_USER_PW,
         set_as_global_default_login=False,
     )
+    medlogserver_not_initialized = True
     while medlogserver_not_initialized:
+        if time.monotonic() > deadline:
+            raise TimeoutError(
+                f"Server did not finish initializing within {timeout_sec}s"
+            )
         from medlogserver.api.routes.routes_healthcheck import HealthCheckReport
 
         r = req("api/health/report", access_token=access_token)
@@ -139,6 +152,7 @@ def wait_for_medlogserver_up_and_healthy(timeout_sec=120):
             medlogserver_not_initialized = False
 
         time.sleep(2)
+
     print(f"SERVER READY FOR TESTING: {r}")
 
 

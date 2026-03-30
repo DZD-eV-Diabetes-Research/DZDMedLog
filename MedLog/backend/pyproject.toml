@@ -44,6 +44,7 @@ dependencies = [
     "polars",
     "psycopg[binary]",
     "alembic",
+    "multiprocessing-logging",
 ]
 
 [project.optional-dependencies]

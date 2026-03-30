@@ -11,7 +11,7 @@ RUN rm -rf /frontend_build/node_modules
 RUN bun install && bun run build && bunx nuxi generate
 
 # BACKEND BUILD AND RUN STAGE
-FROM python:3.11 AS medlog-backend
+FROM python:3.14 AS medlog-backend
 ARG APP_VERSION=""   # empty by default; only set for release builds
 ARG BASEDIR=/opt/medlog
 ARG MODULENAME=medlogserver

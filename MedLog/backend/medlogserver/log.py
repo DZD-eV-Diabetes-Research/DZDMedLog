@@ -1,7 +1,9 @@
 import logging
+import logging.handlers
 import sys
 import os
 import hashlib
+import multiprocessing
 from typing import Optional, Dict, Tuple
 import inspect
 from pathlib import Path
@@ -9,41 +11,30 @@ from medlogserver.config import Config
 
 config = Config()
 
-
 APP_LOGGER_DEFAULT_NAME = config.APP_NAME
 
-
-# suppress "AttributeError: module 'bcrypt' has no attribute '__about__'"-warning
-# https://github.com/pyca/bcrypt/issues/684
 logging.getLogger("passlib").setLevel(logging.ERROR)
 
 
-# ANSI Color codes
 class Colors:
-    """ANSI color codes for terminal output"""
-
     RESET = "\033[0m"
-
-    # Log level colors
-    DEBUG = "\033[36m"  # Cyan
-    INFO = "\033[32m"  # Green
-    WARNING = "\033[33m"  # Yellow
-    ERROR = "\033[31m"  # Red
-    CRITICAL = "\033[35m"  # Magenta
-
-    # Module name colors - distinctive, neutral palette
+    DEBUG = "\033[36m"
+    INFO = "\033[32m"
+    WARNING = "\033[33m"
+    ERROR = "\033[31m"
+    CRITICAL = "\033[35m"
     MODULE_COLORS = [
-        "\033[34m",  # Blue
-        "\033[33m",  # Yellow
-        "\033[32m",  # Green
-        "\033[36m",  # Cyan
-        "\033[35m",  # Magenta
-        "\033[94m",  # Bright Blue
-        "\033[93m",  # Bright Yellow
-        "\033[92m",  # Bright Green
-        "\033[96m",  # Bright Cyan
-        "\033[95m",  # Bright Magenta
-        "\033[91m",  # Bright Red (subtle, for modules)
+        "\033[34m",
+        "\033[33m",
+        "\033[32m",
+        "\033[36m",
+        "\033[35m",
+        "\033[94m",
+        "\033[93m",
+        "\033[92m",
+        "\033[96m",
+        "\033[95m",
+        "\033[91m",
     ]
 
 
@@ -52,24 +43,16 @@ def get_loglevel():
 
 
 def get_module_color(module_name: str) -> str:
-    """
-    Generate a deterministic, unique color for each module name.
-    Same module name will always get the same color.
-    """
     if config.LOG_DISABLE_COLORS:
         return ""
-
     hash_digest = hashlib.md5(module_name.encode()).hexdigest()
-    hash_int = int(hash_digest, 16)
-    color_index = hash_int % len(Colors.MODULE_COLORS)
+    color_index = int(hash_digest, 16) % len(Colors.MODULE_COLORS)
     return Colors.MODULE_COLORS[color_index]
 
 
 def get_loglevel_color(level: int) -> str:
-    """Get the color for a specific log level"""
     if config.LOG_DISABLE_COLORS:
         return ""
-
     if level >= logging.CRITICAL:
         return Colors.CRITICAL
     elif level >= logging.ERROR:
@@ -78,80 +61,108 @@ def get_loglevel_color(level: int) -> str:
         return Colors.WARNING
     elif level >= logging.INFO:
         return Colors.INFO
-    else:  # DEBUG and below
-        return Colors.DEBUG
+    return Colors.DEBUG
 
 
 class ColoredFormatter(logging.Formatter):
-    """Custom formatter that adds colors to log output"""
-
-    GRAY = "\033[90m"  # Bright black (dark gray)
+    GRAY = "\033[90m"
 
     def format(self, record):
-        # Get colors
         levelcolor = get_loglevel_color(record.levelno)
-
-        # Color the level name
         record.levelname = f"{levelcolor}{record.levelname}{Colors.RESET if not config.LOG_DISABLE_COLORS else ''}"
-
-        # Format the record
         result = super().format(record)
-
-        # Color the timestamp gray if colors are enabled
         if not config.LOG_DISABLE_COLORS:
             parts = result.split(" - ", 1)
             if parts:
-                timestamp = parts[0]
-                rest = " - " + parts[1] if len(parts) > 1 else ""
-                result = f"{self.GRAY}{timestamp}{Colors.RESET}{rest}"
-
+                result = f"{self.GRAY}{parts[0]}{Colors.RESET} - {parts[1]}"
         return result
 
 
-active_loggers_store = None
+# --- Multiprocessing-safe logging infrastructure ---
+# A single Queue is created at module import time in the main process.
+# Worker processes detect they are not the main process and install a
+# QueueHandler on the root logger, forwarding all records back here.
+
+_log_queue: multiprocessing.Queue = multiprocessing.Queue(-1)
+_listener: Optional[logging.handlers.QueueListener] = None
+active_loggers_store: Dict[str, logging.Logger] = {}
+
+
+def _make_handler(format_string: str) -> logging.StreamHandler:
+    h = logging.StreamHandler(sys.stdout)
+    h.setFormatter(ColoredFormatter(format_string))
+    return h
+
+
+def _ensure_listener_running(handler: logging.Handler):
+    """Start the QueueListener in the main process if not already running."""
+    global _listener
+    if _listener is None:
+        _listener = logging.handlers.QueueListener(
+            _log_queue, handler, respect_handler_level=True
+        )
+        _listener.start()
+        import atexit
+
+        atexit.register(_listener.stop)
+
+
+def _is_worker_process() -> bool:
+    return multiprocessing.current_process().name != "MainProcess"
+
+
+def _ensure_worker_configured():
+    """
+    In a worker process, redirect the root logger to the shared queue.
+    Called lazily on first get_logger() call inside the worker.
+    """
+    root = logging.getLogger()
+    if any(isinstance(h, logging.handlers.QueueHandler) for h in root.handlers):
+        return  # already configured
+    root.handlers.clear()
+    root.addHandler(logging.handlers.QueueHandler(_log_queue))
+    root.setLevel(get_loglevel())
+
+
+# --- Public API ---
 
 
 def get_logger(
-    name: Optional[str] = APP_LOGGER_DEFAULT_NAME, modulename: Optional[str] = ""
+    name: Optional[str] = APP_LOGGER_DEFAULT_NAME,
+    modulename: Optional[str] = "",
 ) -> logging.Logger:
     global active_loggers_store
-    if active_loggers_store is None:
-        active_loggers_store = {}
+
     if not modulename:
         modulename = Path(inspect.stack()[1].filename).name
+
     store_name = f"{name}{modulename}"
-    module = ""
-    module_color_code = ""
+    if store_name in active_loggers_store:
+        return active_loggers_store[store_name]
 
-    if modulename:
-        module_color_code = get_module_color(modulename)
-        module = f" - [{module_color_code}{modulename}{Colors.RESET}]"
+    module_color = get_module_color(modulename)
+    module_str = f" - [{module_color}{modulename}{Colors.RESET}]" if modulename else ""
+    format_string = f"%(asctime)s - {name}{module_str} - %(levelname)s - %(message)s"
 
-    logger_ = None
-
-    if store_name not in active_loggers_store:
+    if _is_worker_process():
+        _ensure_worker_configured()
         logger_ = logging.getLogger(store_name)
         logger_.setLevel(get_loglevel())
-
-        # Clear existing handlers to avoid duplicate logs
-        logger_.handlers.clear()
-
-        handler = logging.StreamHandler(sys.stdout)
-
-        format_string = f"%(asctime)s - {name}{module} - %(levelname)s - %(message)s"
-        formatter = ColoredFormatter(format_string)
-        handler.setFormatter(formatter)
-
-        logger_.addHandler(handler)
-        active_loggers_store[store_name] = logger_
+        # No direct handlers — propagates to root QueueHandler
     else:
-        logger_ = active_loggers_store[store_name]
+        handler = _make_handler(format_string)
+        _ensure_listener_running(handler)
+        logger_ = logging.getLogger(store_name)
+        logger_.setLevel(get_loglevel())
+        logger_.handlers.clear()
+        logger_.addHandler(handler)
+        logger_.propagate = False
 
+    active_loggers_store[store_name] = logger_
     return logger_
 
 
 def get_uvicorn_loglevel() -> str:
-    # uvicorn has a different log level naming system than python, we need to translate the log level setting
     UVICORN_LOG_LEVEL_map: Dict[Tuple[int | str, ...], str] = {
         (logging.NOTSET, "NOTSET", "notset", "0"): "trace",
         (logging.CRITICAL, "50", "CRITICAL", "critical", "FATAL", "fatal"): "critical",
@@ -160,18 +171,12 @@ def get_uvicorn_loglevel() -> str:
         (logging.INFO, "20", "INFO", "info"): "info",
         (logging.DEBUG, "10", "DEBUG", "debug"): "debug",
     }
-
-    # if the uvicorn log level is not defined, it will be the same as the python log level
     UVICORN_LOG_LEVEL: str = (
         config.SERVER_UVICORN_LOG_LEVEL
         if config.SERVER_UVICORN_LOG_LEVEL is not None
         else config.LOG_LEVEL
     )
-    uvicorn_log_level_mapped: str | None = None
     for key, val in UVICORN_LOG_LEVEL_map.items():
         if UVICORN_LOG_LEVEL in key:
-            uvicorn_log_level_mapped = val
-            break
-    if uvicorn_log_level_mapped is None:
-        uvicorn_log_level_mapped = "info"
-    return uvicorn_log_level_mapped
+            return val
+    return "info"

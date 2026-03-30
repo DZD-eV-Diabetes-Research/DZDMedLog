@@ -20,6 +20,14 @@ from medlogserver.worker.task import task_runner
 from medlogserver.utils import get_default_file_data
 from medlogserver.config import Config
 from medlogserver.log import get_logger
+from medlogserver.log import _log_queue
+
+
+def _worker_init(q):
+    import medlogserver.log as log_module
+
+    log_module._log_queue = q
+
 
 log = get_logger(modulename="WORKER")
 config = Config()
@@ -116,6 +124,7 @@ async def _inital_setup_scheduled_background_tasks() -> AsyncIOScheduler:
 
 
 def _start_background_scheduler(event_loop=None):
+    _worker_init(_log_queue)
     if event_loop is None:
         event_loop = asyncio.new_event_loop()
         asyncio.set_event_loop(event_loop)
@@ -147,5 +156,10 @@ def run_background_worker(
         return background_worker_process
     else:
         if event_loop is None:
-            event_loop = asyncio.get_event_loop()
-        event_loop.create_task(_start_background_scheduler(event_loop))
+            try:
+                event_loop = asyncio.get_running_loop()
+            except RuntimeError:
+                event_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(event_loop)
+        event_loop.create_task(_start_background_scheduler())
+        return None

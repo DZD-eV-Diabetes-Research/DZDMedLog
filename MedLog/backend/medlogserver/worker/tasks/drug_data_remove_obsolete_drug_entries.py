@@ -28,7 +28,7 @@ class DrugDataRemoveObsoleteDrugDataEntries:
                 and_(
                     is_(DrugDataSetVersion.current_active, False),
                     is_(DrugDataSetVersion.is_custom_drugs_collection, False),
-                    is_(DrugDataSetVersion.cleaned_date_datetime_utc, None),
+                    DrugDataSetVersion.cleaned_date_datetime_utc is None,
                 )
             )
             result_data_set_versions_disabled_and_non_cleaned_drug = await session.exec(
