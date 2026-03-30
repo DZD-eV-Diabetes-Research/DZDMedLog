@@ -155,11 +155,16 @@ def run_background_worker(
         log.info(f"Started background worker (Process: {background_worker_process})")
         return background_worker_process
     else:
+        log.info("Start background worker...")
+        start_event_loop = False
         if event_loop is None:
             try:
                 event_loop = asyncio.get_running_loop()
             except RuntimeError:
                 event_loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(event_loop)
+                start_event_loop = True
         event_loop.create_task(_start_background_scheduler())
+        if start_event_loop:
+            event_loop.run_until_complete()
         return None

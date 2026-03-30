@@ -128,37 +128,41 @@ def _ensure_worker_configured():
 
 
 def get_logger(
-    name: Optional[str] = APP_LOGGER_DEFAULT_NAME,
-    modulename: Optional[str] = "",
+    name: Optional[str] = APP_LOGGER_DEFAULT_NAME, modulename: Optional[str] = ""
 ) -> logging.Logger:
     global active_loggers_store
-
+    if active_loggers_store is None:
+        active_loggers_store = {}
     if not modulename:
         modulename = Path(inspect.stack()[1].filename).name
-
     store_name = f"{name}{modulename}"
-    if store_name in active_loggers_store:
-        return active_loggers_store[store_name]
+    module = ""
+    module_color_code = ""
 
-    module_color = get_module_color(modulename)
-    module_str = f" - [{module_color}{modulename}{Colors.RESET}]" if modulename else ""
-    format_string = f"%(asctime)s - {name}{module_str} - %(levelname)s - %(message)s"
+    if modulename:
+        module_color_code = get_module_color(modulename)
+        module = f" - [{module_color_code}{modulename}{Colors.RESET}]"
 
-    if _is_worker_process():
-        _ensure_worker_configured()
+    logger_ = None
+
+    if store_name not in active_loggers_store:
         logger_ = logging.getLogger(store_name)
         logger_.setLevel(get_loglevel())
-        # No direct handlers — propagates to root QueueHandler
-    else:
-        handler = _make_handler(format_string)
-        _ensure_listener_running(handler)
-        logger_ = logging.getLogger(store_name)
-        logger_.setLevel(get_loglevel())
+
+        # Clear existing handlers to avoid duplicate logs
         logger_.handlers.clear()
-        logger_.addHandler(handler)
-        logger_.propagate = False
 
-    active_loggers_store[store_name] = logger_
+        handler = logging.StreamHandler(sys.stdout)
+
+        format_string = f"%(asctime)s - {name}{module} - %(levelname)s - %(message)s"
+        formatter = ColoredFormatter(format_string)
+        handler.setFormatter(formatter)
+
+        logger_.addHandler(handler)
+        active_loggers_store[store_name] = logger_
+    else:
+        logger_ = active_loggers_store[store_name]
+
     return logger_
 
 

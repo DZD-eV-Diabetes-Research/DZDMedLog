@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.13.1.post1.dev127+g7a69fa2d1.d20260330"
+    "version": "0.13.1.post1.dev128+gdafa5f9a7.d20260330"
   },
   "paths": {
     "/api/health": {

@@ -8,6 +8,7 @@ import traceback
 import types
 from pathlib import Path
 import sys, os
+import threading
 
 
 if __name__ == "__main__":
@@ -102,10 +103,11 @@ if __name__ == "__main__":
         kwargs={"run_in_extra_process": False},
     )
 
+
 medlogserver_base_url = get_medlogserver_base_url()
 
 
-def wait_for_medlogserver_up_and_healthy(timeout_sec=60):
+def wait_for_medlogserver_up_and_healthy(timeout_sec=20):
     from utils import req, dict_must_contain
     import time
 
@@ -144,6 +146,13 @@ def wait_for_medlogserver_up_and_healthy(timeout_sec=60):
         from medlogserver.api.routes.routes_healthcheck import HealthCheckReport
 
         r = req("api/health/report", access_token=access_token)
+        print("health res", r)
+        print("health medlogserver_process.exitcode", medlogserver_process.exitcode)
+        print(
+            "health background_worker_process.exitcode",
+            background_worker_process.exitcode,
+        )
+
         if (
             r["drugs_imported"]
             and r["last_worker_run_succesfull"]
@@ -182,8 +191,28 @@ def start_medlogserver_and_backgroundworker():
     print("STARTED medlogserver!")
 
 
-start_medlogserver_and_backgroundworker()
+def monitor_medlogserver_and_backgroundworker():
+    try:
+        while True:
+            if not medlogserver_process.is_alive():
+                print("❌ medlogserver_process died")
+                shutdown_medlogserver_and_backgroundworker()
+                os._exit(1)
 
+            if not background_worker_process.is_alive():
+                print("❌ background_worker_process died")
+                shutdown_medlogserver_and_backgroundworker()
+                os._exit(1)
+
+            time.sleep(1)
+    except KeyboardInterrupt:
+        shutdown_medlogserver_and_backgroundworker()
+        exit(0)
+
+
+start_medlogserver_and_backgroundworker()
+monitor_thread = threading.Thread(target=monitor_medlogserver_and_backgroundworker)
+monitor_thread.start()
 successfull_test_files: List[str] = []
 
 

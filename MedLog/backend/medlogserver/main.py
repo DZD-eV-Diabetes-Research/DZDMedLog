@@ -11,7 +11,7 @@ from pathlib import Path
 import sys, os
 from contextlib import asynccontextmanager
 import time
-
+import multiprocessing
 # Main can be started with arguments. Lets parse these first.
 
 
@@ -45,6 +45,8 @@ if __name__ == "__main__":
     MODULE_DIR = Path(__file__).parent
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
     sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
+
+    multiprocessing.set_start_method("fork")
 
 # Import and load config
 from medlogserver.config import Config
