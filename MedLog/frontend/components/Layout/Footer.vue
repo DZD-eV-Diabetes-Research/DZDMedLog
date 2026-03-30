@@ -33,9 +33,14 @@ const drugDbUpdaterStore = useDrugDbUpdaterStore();
           </template>
         </template>
       </div>
-      <div class="text-end">
-        <NuxtLink to="/help">Hilfe</NuxtLink>
-        <NuxtLink to="https://www.dzd-ev.de/impressum" :external="true" target="_blank">Impressum</NuxtLink>
+      <div class="flex flex-col items-end justify-between">
+        <div class="text-end">
+          <NuxtLink to="/help">Hilfe</NuxtLink>
+          <NuxtLink to="https://www.dzd-ev.de/impressum" :external="true" target="_blank">Impressum</NuxtLink>
+        </div>
+        <span class="text-sm font-extralight">
+          Version {{ configStore.versionInfo.version ?? 'N/A' }}
+        </span>
       </div>
     </div>
   </footer>

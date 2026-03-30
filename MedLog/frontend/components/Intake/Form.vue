@@ -20,7 +20,7 @@
     </UFormGroup>
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
-        <UFormGroup label="Dosis pro Einnahme" style="border-color: red" name="dose">
+        <UFormGroup label="Dosis pro Tag der Einnahme" style="border-color: red" name="dose">
           <UInput v-model="state.dose" type="number" min="0" :disabled="state.frequency !== 'regular'"/>
         </UFormGroup>
       </div>
