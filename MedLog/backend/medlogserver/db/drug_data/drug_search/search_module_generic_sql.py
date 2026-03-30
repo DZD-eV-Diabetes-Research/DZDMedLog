@@ -6,7 +6,7 @@ import datetime
 import uuid
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, delete, desc
 from sqlalchemy import case, Case, func, literal, Float
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, aliased
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.expression import literal_column
 from sqlalchemy.sql.operators import (
@@ -535,9 +535,14 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         search_term: str = None,
         market_accessable: Optional[bool] = None,
         pagination: Optional[QueryParamsInterface] = None,
-        **filter_ref_vals: int | str | bool,
+        filter_ref_vals: Dict[str, int | str | bool] | None = None,
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
         # clean empty string filters
+        log.debug(
+            f"filter_ref_vals in module {type(filter_ref_vals)} {filter_ref_vals}"
+        )
+        if filter_ref_vals is None:
+            filter_ref_vals = {}
         filter_ref_vals = {
             k: v for k, v in filter_ref_vals.items() if v != "" and v is not None
         }
@@ -725,15 +730,15 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             score_cases.label("score"),
         )
         if filter_ref_vals:
-            # Todo: not sure if this will improve speed in any way :D maybe we need extra an chaching table/index for ref values
             query = query.join(
                 DrugData, onclause=GenericSQLDrugSearchCache.id == DrugData.id
             ).join(DrugValRef)
-            for filter_ref_field_name, filter_rev_value in filter_ref_vals.items():
+
+            for filter_ref_field_name, filter_ref_value in filter_ref_vals.items():
                 query = query.where(
                     and_(
-                        DrugValRef.field_name == filter_ref_field_name,
-                        DrugValRef.value == filter_rev_value,
+                        DrugValRef.field_name == str(filter_ref_field_name),
+                        DrugValRef.value == str(filter_ref_value),
                     )
                 )
         if market_accessable == True:
