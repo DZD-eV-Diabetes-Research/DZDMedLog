@@ -726,13 +726,15 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         )
         if filter_ref_vals:
             # Todo: not sure if this will improve speed in any way :D maybe we need extra an chaching table/index for ref values
-            query.join(
+            query = query.join(
                 DrugData, onclause=GenericSQLDrugSearchCache.id == DrugData.id
             ).join(DrugValRef)
             for filter_ref_field_name, filter_rev_value in filter_ref_vals.items():
-                query.where(
-                    DrugValRef.field_name == filter_ref_field_name
-                    and DrugValRef.value == filter_rev_value
+                query = query.where(
+                    and_(
+                        DrugValRef.field_name == filter_ref_field_name,
+                        DrugValRef.value == filter_rev_value,
+                    )
                 )
         if market_accessable == True:
             query = query.where(
@@ -773,15 +775,12 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                     keep_result_in_ids_order=True,
                 )
                 # i do not understand why i need to translate/cast Drug to DrugApiRead object by hand (via drug_to_drugAPI_obj) here because in the "list" endpoint pydantic does it for me... Todo: investigate
+                score_map = {item[0]: item[1] for item in drug_ids_with_score}
                 search_result_objs = [
                     MedLogSearchEngineResult(
                         drug_id=drug.id,
                         drug=await drug_to_drugAPI_obj(drug),
-                        relevance_score=next(
-                            item[1]
-                            for item in drug_ids_with_score
-                            if item[0] == drug.id
-                        ),
+                        relevance_score=score_map[drug.id],
                     )
                     for drug in drugs
                 ]
