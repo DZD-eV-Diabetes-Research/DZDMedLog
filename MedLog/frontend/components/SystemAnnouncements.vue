@@ -55,9 +55,10 @@ const systemAnnouncementsStore = useSystemAnnouncementsStore();
             v-for="announcement in systemAnnouncementsStore.allAnnouncements"
             :key="announcement.id"
             :announcement="announcement"
+            @dismiss="id => systemAnnouncementsStore.dismissAnnouncement(id)"
         />
         <div class="self-end">
-          <UButton color="white" label="Ausblenden" @click="close" />
+          <UButton color="white" label="Schließen" @click="close" />
         </div>
       </div>
     </template>

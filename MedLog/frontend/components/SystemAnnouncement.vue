@@ -8,6 +8,10 @@ const props = defineProps({
   }
 });
 
+defineEmits<{
+  'dismiss': [id: string]
+}>();
+
 const badge = computed(() => {
   switch (props.announcement.type) {
     case 'alert':
@@ -43,7 +47,14 @@ const icon = computed(() => {
 </script>
 
 <template>
-  <UAlert :title="announcement.message" :color="color" :icon="icon" variant="subtle" :ui="{ inner: 'text-start' }">
+  <UAlert
+    :title="announcement.message"
+    :color="color"
+    :icon="icon"
+    variant="subtle"
+    :ui="{ inner: 'text-start' }"
+    :actions="[{ label: 'Ausblenden', variant: 'soft', color: color, click: () => $emit('dismiss', announcement.id) }]"
+  >
     <template #icon>
       <UBadge :color="color" :icon="icon" :label="badge" />
     </template>
