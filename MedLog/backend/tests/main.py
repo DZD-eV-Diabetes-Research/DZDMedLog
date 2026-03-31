@@ -117,6 +117,7 @@ def wait_for_medlogserver_up_and_healthy(timeout_sec=20):
     medlogserver_not_available = True
     while medlogserver_not_available:
         if time.monotonic() > deadline:
+            shutdown_medlogserver_and_backgroundworker()
             raise TimeoutError(f"Server did not come up within {timeout_sec}s")
         try:
             r = requests.get(f"{medlogserver_base_url}/health")
