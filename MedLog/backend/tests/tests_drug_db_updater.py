@@ -157,7 +157,13 @@ def test_endpoint_drug_update_workflow():
     #####
 
     update_running = True
+    timeout_seconds = 60
+    start_time = time.time()
     while update_running:
+        if time.time() - start_time > timeout_seconds:
+            raise TimeoutError(
+                f"Drug DB update did not complete within {timeout_seconds} seconds"
+            )
         response_status: Dict[str, Any] = req("api/drug/db/update", method="get")
         print(f"test_endpoint_drug_update_trigger response_status: {response}")
         dict_must_contain(
@@ -273,3 +279,43 @@ def test_endpoint_drug_update_workflow():
             f"Duplicated in ref values for dispensingtype after second drug update: {list_dispensingtype}"
         )
     # print("list_dispensingtype", list_dispensingtype)
+
+
+def test_wrong_count_after_upgrade_issue_252():
+    from medlogserver.model.drug_data.drug import (
+        DrugCustomCreate,
+        DrugValApiCreate,
+        DrugCodeApi,
+        DrugMultiValApiCreate,
+    )
+
+    custom_drug_payload = DrugCustomCreate(
+        custom_drug_notes="Look mom, my custom Drug!",
+        trade_name="TestCountCustom",
+        codes=[DrugCodeApi(code_system_id="PZN", code="34576456745")],
+        attrs=[
+            DrugValApiCreate(field_name="amount", value="100"),
+            DrugValApiCreate(field_name="manufacturer", value="Company1"),
+        ],
+        attrs_ref=[
+            DrugValApiCreate(field_name="dispensingtype", value="0"),
+        ],
+        attrs_multi_ref=[
+            DrugMultiValApiCreate(field_name="producing_country", values=["UK", "DE"])
+        ],
+    )
+    res = req(
+        "api/drug/custom",
+        method="post",
+        b=custom_drug_payload.model_dump(exclude_unset=True),
+    )
+    paginated_search_response = req(
+        "api/drug/search",
+        method="get",
+        q={"search_term": "TestCount"},
+    )
+
+    print("paginated_search_response", paginated_search_response)
+    assert paginated_search_response["total_count"] == len(
+        paginated_search_response["items"]
+    )

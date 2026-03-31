@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import List, Literal, Annotated, NoReturn
 from typing_extensions import Self
-from jose import JWTError, jwt
 from fastapi import (
     HTTPException,
     status,
@@ -22,7 +21,7 @@ from fastapi import (
     Request,
 )
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-import httpx
+
 
 from authlib.integrations.base_client.errors import OAuthError
 

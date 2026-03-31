@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional
 import logging
 import os
-import getversion
 import yaml
 import sys
 import asyncio
@@ -12,7 +11,7 @@ from pathlib import Path
 import sys, os
 from contextlib import asynccontextmanager
 import time
-
+import multiprocessing
 # Main can be started with arguments. Lets parse these first.
 
 
@@ -20,6 +19,11 @@ arg_parser = argparse.ArgumentParser("DZDMedLog")
 arg_parser.add_argument(
     "--set_version_file",
     help="Set this flag to just write the __version__.py file based on the git version. Only needed for CI/CD pipeline.",
+    action="store_true",
+)
+arg_parser.add_argument(
+    "--app_version",
+    help="Overwrite the automatic version extraction based on the git metadata",
     action="store_true",
 )
 arg_parser.add_argument(
@@ -42,6 +46,8 @@ if __name__ == "__main__":
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
     sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
 
+    multiprocessing.set_start_method("fork")
+
 # Import and load config
 from medlogserver.config import Config
 
@@ -56,10 +62,10 @@ from memory_profiler import profile
 
 
 def start():
-    import medlogserver
+    from medlogserver.utils import get_version
 
     print(
-        f"Start medlogserver version: {getversion.get_module_version(medlogserver)[0]} under user with id {os.getuid()}"
+        f"Start medlogserver version: {get_version()} under user with id {os.getuid()}"
     )
     from medlogserver.log import (
         get_logger,
@@ -97,7 +103,7 @@ def start():
             raise ValueError(
                 "Can not find frontend files. Maybe you need to build the frontend first. Try to run 'make frontend'"
             )
-    event_loop = asyncio.get_event_loop()
+
     run_db_migrations()
 
     uvicorn_log_config: Dict = LOGGING_CONFIG
@@ -120,12 +126,15 @@ def start():
         port=config.SERVER_LISTENING_PORT,
         log_level=get_uvicorn_loglevel(),
         log_config=uvicorn_log_config,
-        loop=event_loop,
         lifespan="on",
     )
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
 
-    event_loop.run_until_complete(init_db())
+    async def _run():
+        await init_db()
+        await uvicorn_server.serve()
+
+    asyncio.run(_run())
 
     if config.DEMO_MODE:
         log.warning(
@@ -172,9 +181,12 @@ if __name__ == "__main__":
 
     if args.set_version_file:
         print("Write `__version__.py` file...")
-        from medlogserver.utils import set_version_file
+        from medlogserver.utils import write_version_file
 
-        version_file = set_version_file(MODULE_DIR)
+        app_version_overwrite = None
+        if args.app_version:
+            app_version_overwrite = args.app_version
+        version_file = write_version_file(version=app_version_overwrite)
         version = version_file.read_text()
         print(f"Wrote '{version}' into '{version_file.absolute()}'")
         exit()

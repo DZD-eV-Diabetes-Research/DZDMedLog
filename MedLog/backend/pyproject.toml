@@ -19,31 +19,25 @@ dynamic = ["version"]
 
 dependencies = [
     "uvicorn",
-    "oauthlib",
     "fastapi",
     "starlette",
-    "python-jose[cryptography]",
-    "passlib[bcrypt]",
+    "python-multipart",
     "Authlib",
     "httpx",
-    "sqlmodel == 0.0.31",        # https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/226
+    "bcrypt",
+    "sqlmodel == 0.0.31",  # https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/226
     "sqlalchemy[asyncio]",
     "aiosqlite",
-    "itsdangerous",
     "pyyaml",
     "pydantic",
     "pydantic[email]",
     "pydantic_settings",
-    "Click",
-    "getversion",
-    "pip-tools",
-    "python-multipart",
+    "setuptools-scm",      # replaces getversion for runtime version detection
     "apscheduler",
-    "async-lru",
-    "websockets",
     "polars",
     "psycopg[binary]",
     "alembic",
+    "itsdangerous",
 ]
 
 [project.optional-dependencies]
@@ -56,9 +50,13 @@ tests = [
 ]
 docs = ["mkdocs", "mkdocstrings[python]", "mkdocs-autorefs", "mkdocs-material"]
 
-
 [tool.setuptools.packages.find]
 include = ['medlogserver', 'provisioning_data']
+
+[tool.setuptools_scm]
+version_scheme = "no-guess-dev"
+local_scheme = "node-and-date"   # appends commit hash and date
+search_parent_directories = true
 
 [project.scripts]
 medlogserver = "medlogserver.main:start"

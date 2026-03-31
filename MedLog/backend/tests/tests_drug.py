@@ -86,8 +86,8 @@ def test_create_custom_drug_with_refs():
 
     custom_drug_payload = DrugCustomCreate(
         custom_drug_notes="Look mom, my custom Drug!",
-        trade_name="My Custom Drug",
-        codes=[DrugCodeApi(code_system_id="PZN", code="34576456745")],
+        trade_name="My Custom Drug with refs",
+        codes=[DrugCodeApi(code_system_id="PZN", code="4565464564")],
         attrs=[
             DrugValApiCreate(field_name="amount", value="100"),
             DrugValApiCreate(field_name="manufacturer", value="Company1"),
@@ -147,7 +147,7 @@ def test_create_custom_drug_with_refs():
     )
     dict_must_contain(
         res["codes"],
-        required_keys_and_val={"PZN": "34576456745"},
+        required_keys_and_val={"PZN": "4565464564"},
         exception_dict_identifier="create custom drug object attrs_ref",
     )
 
@@ -155,7 +155,7 @@ def test_create_custom_drug_with_refs():
 def test_create_custom_drug_with_multi_values():
     """Test creating a custom drug with multi-value attributes"""
     search_identifiert_flag = "SEARCHIDENTIFIER23789rgfiewsdh"
-    custom_drug_payload = DrugCustomCreate(
+    custom_drug = DrugCustomCreate(
         custom_drug_notes="Look mom, my custom Drug!",
         trade_name=f"My Custom Drug {search_identifiert_flag}",
         codes=[DrugCodeApi(code_system_id="PZN", code="654643534534")],
@@ -168,25 +168,27 @@ def test_create_custom_drug_with_multi_values():
         ],
         attrs_multi=[
             DrugMultiValApiCreate(
-                field_name="keywords", value=["homemade", "custom", "test"]
+                field_name="keywords", values=["homemade", "custom", "test"]
             ),
         ],
         attrs_multi_ref=[
             DrugMultiValApiCreate(field_name="producing_country", values=["DE", "UK"])
         ],
     )
+    custom_drug_payload = dictyfy(custom_drug)
+    print("custom_drug_payload", custom_drug_payload)
 
     custom_drug_created = req(
         "api/drug/custom",
         method="post",
-        b=dictyfy(custom_drug_payload),
+        b=custom_drug_payload,
     )
     print("custom_drug_created", custom_drug_created)
     dict_must_contain(
         custom_drug_created,
         required_keys_and_val={
-            "trade_name": custom_drug_payload.trade_name,
-            "custom_drug_notes": custom_drug_payload.custom_drug_notes,
+            "trade_name": custom_drug.trade_name,
+            "custom_drug_notes": custom_drug.custom_drug_notes,
             "is_custom_drug": True,
         },
         required_keys=["codes", "attrs", "attrs_ref", "attrs_multi", "attrs_multi_ref"],
@@ -333,52 +335,21 @@ def test_custom_drug_issue():
     drug_name = "Test437895ziurwe"
     custom_drug = DrugCustomCreate(
         trade_name=drug_name,
-        attrs=[DrugVal(field_name="amount", value="23")],
+        custom_drug_notes="THIS IS MOFO TEST",
+        attrs=[DrugValApiCreate(field_name="amount", value="23")],
         attrs_ref=[
-            DrugValRef(field_name="dispensingtype", value="0"),
+            DrugValApiCreate(field_name="dispensingtype", value="0"),
         ],
-        attrs_multi=[DrugValMulti(field_name="keywords", value=[])],
+        attrs_multi=[DrugMultiValApiCreate(field_name="keywords", values=["blablup"])],
         attrs_multi_ref=[
-            DrugValMultiRef(field_name="producing_country", values=["DE", "UK"])
+            DrugMultiValApiCreate(field_name="producing_country", values=["DE", "UK"])
         ],
         codes=[],
     )
+    print("custom_drugcustom_drug", custom_drug)
     custom_drug_payload = dictyfy(custom_drug)
+    print("custom_drug_payloadcustom_drug_payload", custom_drug_payload)
 
-    custom_drug_payload_2 = {
-        "trade_name": drug_name,
-        "market_access_date": None,
-        "market_exit_date": None,
-        "custom_drug_notes": None,
-        "attrs": [
-            {"field_name": "amount", "value": "genug"},
-            {"field_name": "ist_verhuetungsmittel", "value": None},
-            {"field_name": "ist_kosmetikum", "value": None},
-            {"field_name": "ist_nahrungsergaenzungsmittel", "value": None},
-            {"field_name": "ist_pflanzlich", "value": "true"},
-            {"field_name": "ist_generikum", "value": None},
-            {"field_name": "ist_homoeopathisch", "value": None},
-        ],
-        "attrs_ref": [
-            {"field_name": "darreichungsform", "value": None},
-            {"field_name": "vertriebsstatus", "value": "D"},
-            {"field_name": "normgroesse", "value": "2"},
-            {"field_name": "abgabestatus", "value": None},
-            {"field_name": "lebensmittel", "value": None},
-            {"field_name": "diaetetikum", "value": "N"},
-            {"field_name": "hersteller", "value": "765"},
-        ],
-        "attrs_multi": [{"field_name": "ATC", "values": []}],
-        "attrs_multi_ref": [
-            {"field_name": "applikationsart", "values": []},
-            {"field_name": "keywords", "values": ["4", "6"]},
-            {
-                "field_name": "icd10",
-                "values": ["A01.1", "Z20.3", "B26.0 N51.1", "B26.2"],
-            },
-        ],
-        "codes": [],
-    }
     res = req(
         "api/drug/custom",
         method="post",
@@ -390,4 +361,63 @@ def test_custom_drug_issue():
         method="get",
         q={"search_term": drug_name, "limit": 3, "offset": 0},
     )
+    paginated_search_response["items"][0]
+    print("custom_drug_payload", custom_drug_payload)
+    print(
+        'paginated_search_response["items"][0]["drug"]',
+        paginated_search_response["items"][0]["drug"],
+    )
+
+    dict_must_contain(
+        d=paginated_search_response["items"][0]["drug"],
+        required_keys_and_val={
+            "trade_name": "Test437895ziurwe",
+            "market_access_date": None,
+            "market_exit_date": None,
+            "is_custom_drug": True,
+            "custom_drug_notes": custom_drug.custom_drug_notes,
+            "custom_created_by": None,
+            "codes": {"ATC": None, "PZN": None},
+            "attrs": {
+                "amount": 23.0,
+                "manufacturer": None,
+                "deliverysystem": None,
+                "routeofadministration": None,
+            },
+            "attrs_multi": {"keywords": ["blablup"]},
+            "attrs_ref": {
+                "dispensingtype": {
+                    "value": 0,
+                    "display": "prescription",
+                    "ref_list": "/api/drug/field_def/dispensingtype/refs",
+                }
+            },
+            "attrs_multi_ref": {
+                "producing_country": [
+                    {
+                        "value": "DE",
+                        "display": "Germany",
+                        "ref_list": "/api/drug/field_def/producing_country/refs",
+                    },
+                    {
+                        "value": "UK",
+                        "display": "United Kingdom",
+                        "ref_list": "/api/drug/field_def/producing_country/refs",
+                    },
+                ]
+            },
+        },
+    )
+
+
+def test_wrong_count_issue_252():
+    paginated_search_response = req(
+        "api/drug/search",
+        method="get",
+        q={"search_term": "TestCount"},
+    )
+
     print("paginated_search_response", paginated_search_response)
+    assert paginated_search_response["total_count"] == len(
+        paginated_search_response["items"]
+    )

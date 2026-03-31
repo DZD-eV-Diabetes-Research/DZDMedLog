@@ -8,7 +8,6 @@ import contextlib
 from pydantic import SecretStr, Json
 from fastapi import Depends, HTTPException, status
 from sqlmodel import Field, select, delete, Enum, Column, and_, or_
-from passlib.context import CryptContext
 import secrets
 
 # Internal

@@ -23,12 +23,10 @@ import uuid
 import random
 import re
 import string
-import getversion
 import json
 import fastapi
 import pydantic
 import os
-from getversion.main import DetailedResults
 from urllib.parse import urlparse
 
 
@@ -252,33 +250,93 @@ def humanbytes(B):
         return "{0:.2f} TB".format(B / TB)
 
 
-def get_app_version() -> str:
-    import medlogserver
+from pathlib import Path, PurePath
+import subprocess
 
-    get_version_result_details: DetailedResults = (
-        getversion.get_module_version.__wrapped__(medlogserver)[1]
+# Location where the version file is written during Docker builds
+_VERSION_FILE = Path(PurePath(__file__).parent, "__version__.py")
+
+
+def _read_version_file() -> dict | None:
+    """Read __version__.py if it exists. Returns dict with version and branch, or None."""
+    if not _VERSION_FILE.exists():
+        return None
+    namespace = {}
+    exec(_VERSION_FILE.read_text(), namespace)
+    version = namespace.get("__version__")
+    branch = namespace.get("__version_git_branch__")
+    if not version:
+        return None
+    return {"version": version, "branch": branch}
+
+
+def _get_version_from_git() -> str:
+    """Derive version from git via setuptools_scm. Requires .git to be present."""
+    from setuptools_scm import get_version
+
+    return get_version(
+        version_scheme="no-guess-dev",
+        local_scheme="node-and-date",
     )
-    return get_version_result_details.version_found
 
 
-def set_version_file(base_dir=Path("./")) -> Path:
-    import medlogserver
-    from importlib import reload
+def _get_git_branch() -> str:
+    """Get current git branch name."""
+    try:
+        return (
+            subprocess.check_output(
+                [
+                    "git",
+                    "-C",
+                    str(_VERSION_FILE.parent),
+                    "rev-parse",
+                    "--abbrev-ref",
+                    "HEAD",
+                ],
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+        )
+    except Exception:
+        return "unknown"
 
-    version_file_path = Path(PurePath(base_dir, "__version__.py"))
+
+def get_version() -> str:
+    branded = _read_version_file()
+    if branded:
+        return branded["version"]
+    return _get_version_from_git()
+
+
+def get_branch() -> str:
+    branded = _read_version_file()
+    if branded:
+        return branded["branch"] or "unknown"
+    return _get_git_branch()
+
+
+def write_version_file(version: str | None = None) -> Path:
+    """
+    Write __version__.py to base_dir.
+
+    If `version` is explicitly provided (e.g. passed from CI via --app_version),
+    use it as-is. Otherwise derive from git via setuptools_scm.
+    """
+    resolved_version = version if version else _get_version_from_git()
+    resolved_branch = _get_git_branch()
+
+    version_file_path = Path(PurePath(Path(__file__).parent, "__version__.py"))
     if version_file_path.exists():
         version_file_path.unlink()
-    # medlogserver = reload(medlogserver)
-    content = f'__version__="{get_app_version()}"\n__version_git_branch__="{get_version_git_branch_name()}"'
-    print(f"Write version file to '{version_file_path}'. Content:\n{content}\n")
+
+    content = (
+        f'__version__ = "{resolved_version}"\n'
+        f'__version_git_branch__ = "{resolved_branch}"\n'
+    )
+    print(f"Writing version file to '{version_file_path}':\n{content}")
     version_file_path.write_text(content)
     return version_file_path
-
-
-def get_version_git_branch_name() -> str:
-    from medlogserver import __version_git_branch__
-
-    return __version_git_branch__
 
 
 def sanitize_string(s: str, replace_space_with: str = "_") -> str:

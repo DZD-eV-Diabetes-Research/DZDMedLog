@@ -1,4 +1,3 @@
-import getversion
 import inspect
 import json
 
@@ -15,6 +14,7 @@ from pathlib import Path
 from fastapi.openapi.utils import get_openapi
 
 import medlogserver
+from medlogserver.utils import get_version
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -38,7 +38,7 @@ class FastApiAppContainer:
         self.startup_callbacks: List[AppLifespanCallback] = []
         self.app = FastAPI(
             title="MedLog REST API",
-            version=getversion.get_module_version(medlogserver)[0],
+            version=get_version(),
             # openapi_url=f"{settings.api_v1_prefix}/openapi.json",
             # debug=settings.debug,
             lifespan=self._app_lifespan,

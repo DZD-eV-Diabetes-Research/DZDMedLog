@@ -25,7 +25,7 @@ from fastapi import Depends, APIRouter
 from medlogserver.db.user import User
 
 
-from medlogserver.utils import get_app_version, get_version_git_branch_name
+from medlogserver.utils import get_version, get_branch
 
 from medlogserver.model.app_version import AppVersion
 from medlogserver.api.paginator import (
@@ -57,8 +57,8 @@ fast_api_config_router: APIRouter = APIRouter()
     response_model=AppVersion,
     description="Get the basic health state of the system.",
 )
-async def get_version() -> AppVersion:
-    return AppVersion(version=get_app_version(), branch=get_version_git_branch_name())
+async def get_version_info() -> AppVersion:
+    return AppVersion(version=get_version(), branch=get_branch())
 
 
 @fast_api_config_router.get(

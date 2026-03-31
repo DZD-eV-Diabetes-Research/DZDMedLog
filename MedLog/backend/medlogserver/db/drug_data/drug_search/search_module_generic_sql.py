@@ -6,7 +6,7 @@ import datetime
 import uuid
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, delete, desc
 from sqlalchemy import case, Case, func, literal, Float
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, aliased
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.expression import literal_column
 from sqlalchemy.sql.operators import (
@@ -388,16 +388,27 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 attr_ref.field_name in searchable_drug_fields_names_by_type["attrs_ref"]
                 and attr_ref.value is not None
             ):
-                field_values_aggregated += (
-                    f" {attr_ref.value} {attr_ref.lov_item.display}"
-                )
+                lov_item = None
+                if attr_ref.lov_item is None:
+                    async with get_async_session_context() as session:
+                        async with DrugAttrFieldLovItemCRUD.crud_context(
+                            session
+                        ) as drug_attr_lov_crud:
+                            lov_item = await drug_attr_lov_crud.get(
+                                field_name=attr_ref.field_name,
+                                value=attr_ref.value,
+                            )
+                else:
+                    lov_item = attr_ref.lov_item
+                if lov_item:
+                    field_values_aggregated += f" {attr_ref.value} {lov_item.display}"
 
         for code in drug.codes:
             field_values_aggregated += f" {code.code}"
 
         for attr_multi_ref in drug.attrs_multi_ref:
-            log.debug(f"attr_multi_ref {attr_multi_ref}")
-            log.debug(f"attr_multi_ref.lov_item {attr_multi_ref.lov_item}")
+            # log.debug(f"attr_multi_ref {attr_multi_ref}")
+            # log.debug(f"attr_multi_ref.lov_item {attr_multi_ref.lov_item}")
             if (
                 attr_multi_ref.field_name
                 in searchable_drug_fields_names_by_type["attrs_multi_ref"]
@@ -524,9 +535,14 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         search_term: str = None,
         market_accessable: Optional[bool] = None,
         pagination: Optional[QueryParamsInterface] = None,
-        **filter_ref_vals: int | str | bool,
+        filter_ref_vals: Dict[str, int | str | bool] | None = None,
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
         # clean empty string filters
+        log.debug(
+            f"filter_ref_vals in module {type(filter_ref_vals)} {filter_ref_vals}"
+        )
+        if filter_ref_vals is None:
+            filter_ref_vals = {}
         filter_ref_vals = {
             k: v for k, v in filter_ref_vals.items() if v != "" and v is not None
         }
@@ -714,14 +730,16 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             score_cases.label("score"),
         )
         if filter_ref_vals:
-            # Todo: not sure if this will improve speed in any way :D maybe we need extra an chaching table/index for ref values
-            query.join(
+            query = query.join(
                 DrugData, onclause=GenericSQLDrugSearchCache.id == DrugData.id
             ).join(DrugValRef)
-            for filter_ref_field_name, filter_rev_value in filter_ref_vals.items():
-                query.where(
-                    DrugValRef.field_name == filter_ref_field_name
-                    and DrugValRef.value == filter_rev_value
+
+            for filter_ref_field_name, filter_ref_value in filter_ref_vals.items():
+                query = query.where(
+                    and_(
+                        DrugValRef.field_name == str(filter_ref_field_name),
+                        DrugValRef.value == str(filter_ref_value),
+                    )
                 )
         if market_accessable == True:
             query = query.where(
@@ -762,15 +780,12 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                     keep_result_in_ids_order=True,
                 )
                 # i do not understand why i need to translate/cast Drug to DrugApiRead object by hand (via drug_to_drugAPI_obj) here because in the "list" endpoint pydantic does it for me... Todo: investigate
+                score_map = {item[0]: item[1] for item in drug_ids_with_score}
                 search_result_objs = [
                     MedLogSearchEngineResult(
                         drug_id=drug.id,
                         drug=await drug_to_drugAPI_obj(drug),
-                        relevance_score=next(
-                            item[1]
-                            for item in drug_ids_with_score
-                            if item[0] == drug.id
-                        ),
+                        relevance_score=score_map[drug.id],
                     )
                     for drug in drugs
                 ]

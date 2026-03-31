@@ -25,8 +25,6 @@ from fastapi import Depends, APIRouter
 from medlogserver.db.user import User
 
 
-from medlogserver.utils import get_app_version, get_version_git_branch_name
-
 from medlogserver.model.app_version import AppVersion
 from medlogserver.api.paginator import (
     PaginatedResponse,

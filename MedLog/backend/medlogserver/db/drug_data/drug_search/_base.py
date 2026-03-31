@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import Any, List, Dict, Optional
 from typing_extensions import Unpack
 import uuid
 from pydantic import BaseModel, Field
@@ -65,7 +65,7 @@ class MedLogDrugSearchEngineBase:
         search_term: str = None,
         market_accessable: Optional[bool] = None,
         pagination: Optional[QueryParamsInterface] = None,
-        **filter_ref_vals: Unpack[int | str],
+        filter_ref_vals: Dict[str, int | str | bool] | None = None,
     ) -> PaginatedResponse[MedLogSearchEngineResult]:
         raise NotImplementedError()
 

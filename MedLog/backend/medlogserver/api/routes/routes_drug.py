@@ -201,6 +201,9 @@ async def search_drugs(
     pagination: QueryParamsInterface = Depends(DrugQueryParams),
 ) -> PaginatedResponse[MedLogSearchEngineResult]:
     try:
+        log.debug(
+            f"filter_params: `{type(filter_params)}`, `{filter_params}`, `{filter_params.model_dump()}`"
+        )
         search_results = await drug_search.search(
             search_term=search_term,
             market_accessable=market_accessable,

@@ -8,6 +8,7 @@ import traceback
 import types
 from pathlib import Path
 import sys, os
+import threading
 import json
 
 if __name__ == "__main__":
@@ -89,36 +90,43 @@ if RESET_DB:
         print(
             "WARNING: RESET_DB is enabled but SQL_DATABASE_URL is set to an external database. Can not reset the DB. This must be done externaly."
         )
+if __name__ == "__main__":
+    multiprocessing.set_start_method("fork")  # explicit, works on Linux/Mac
 
+    from medlogserver.main import start as medlogserver_start
+    from medlogserver.worker.worker import run_background_worker
 
-from medlogserver.main import start as medlogserver_start
-from medlogserver.worker.worker import run_background_worker
+    medlogserver_process = multiprocessing.Process(
+        target=medlogserver_start,
+        name="DZDMedLogServer",
+        kwargs={},
+    )
 
+    background_worker_process = multiprocessing.Process(
+        target=run_background_worker,
+        name="DZDMedLogBackgroundWorker",
+        kwargs={"run_in_extra_process": False},
+    )
 
-medlogserver_process = multiprocessing.Process(
-    target=medlogserver_start,
-    name="DZDMedLogServer",
-    kwargs={},
-)
-
-background_worker_process = multiprocessing.Process(
-    target=run_background_worker,
-    name="DZDMedLogBackgroundWorker",
-    kwargs={"run_in_extra_process": False},
-)
 
 medlogserver_base_url = get_medlogserver_base_url()
 
 
-def wait_for_medlogserver_up_and_healthy(timeout_sec=120):
+def wait_for_medlogserver_up_and_healthy(timeout_sec=20):
     from utils import req, dict_must_contain
+    import time
 
+    deadline = time.monotonic() + timeout_sec
+
+    # --- Wait for server to respond ---
     medlogserver_not_available = True
     while medlogserver_not_available:
+        if time.monotonic() > deadline:
+            shutdown_medlogserver_and_backgroundworker()
+            raise TimeoutError(f"Server did not come up within {timeout_sec}s")
         try:
             r = requests.get(f"{medlogserver_base_url}/health")
             r.raise_for_status()
-
             medlogserver_not_available = False
         except (
             requests.HTTPError,
@@ -126,25 +134,36 @@ def wait_for_medlogserver_up_and_healthy(timeout_sec=120):
             urllib3.exceptions.MaxRetryError,
         ):
             time.sleep(1)
+
     print(f"SERVER UP FOR LISTENING: {r.status_code}")
-    medlogserver_not_initialized = True
+
+    # --- Wait for server to finish initializing ---
     access_token = authorize(
         username=ADMIN_USER_NAME,
         pw=ADMIN_USER_PW,
         set_as_global_default_login=False,
     )
+    medlogserver_not_initialized = True
     while medlogserver_not_initialized:
+        if time.monotonic() > deadline:
+            raise TimeoutError(
+                f"Server did not finish initializing within {timeout_sec}s"
+            )
         from medlogserver.api.routes.routes_healthcheck import HealthCheckReport
 
         r = req("api/health/report", access_token=access_token)
-        if (
-            r["drugs_imported"]
-            and r["last_worker_run_succesfull"]
-            and r["drug_search_index_working"]
-        ):
+        print("health res", r)
+        print("health medlogserver_process.exitcode", medlogserver_process.exitcode)
+        print(
+            "health background_worker_process.exitcode",
+            background_worker_process.exitcode,
+        )
+
+        if r["db_working"] and r["drugs_imported"] and r["drug_search_index_working"]:
             medlogserver_not_initialized = False
 
         time.sleep(2)
+
     print(f"SERVER READY FOR TESTING: {r}")
 
 
@@ -152,30 +171,49 @@ def shutdown_medlogserver_and_backgroundworker():
     print("SHUTDOWN SERVER!")
     medlogserver_process.terminate()
     background_worker_process.terminate()
-    time.sleep(5)
+    medlogserver_process.join(timeout=5)
+    background_worker_process.join(timeout=5)
     print("KILL SERVER")
-
-    # YOU ARE HERE! THIS DOES NOT KILL THE BACKGORUND WORKER PROCESS
-    medlogserver_process.kill()
-    medlogserver_process.join()
-    medlogserver_process.close()
-    background_worker_process.kill()
-    background_worker_process.join()
-    background_worker_process.close()
 
 
 def start_medlogserver_and_backgroundworker():
     set_config_for_test_env()
     print("START medlogserver")
     medlogserver_process.start()
-    wait_for_medlogserver_up_and_healthy()
     print("START medlogserver BACKGROUND WORKER")
     background_worker_process.start()
+    wait_for_medlogserver_up_and_healthy()
     print("STARTED medlogserver!")
 
 
-start_medlogserver_and_backgroundworker()
+def monitor_medlogserver_and_backgroundworker(monitor_stop_event: threading.Event):
+    try:
+        while not monitor_stop_event.is_set():
+            if not medlogserver_process.is_alive():
+                print("❌ medlogserver_process died")
+                shutdown_medlogserver_and_backgroundworker()
+                os._exit(1)
 
+            if not background_worker_process.is_alive():
+                print("❌ background_worker_process died")
+                shutdown_medlogserver_and_backgroundworker()
+                os._exit(1)
+
+            time.sleep(1)
+    except KeyboardInterrupt:
+        shutdown_medlogserver_and_backgroundworker()
+        monitor_stop_event.set()
+        exit(0)
+
+
+start_medlogserver_and_backgroundworker()
+monitor_stop_event = threading.Event()
+monitor_thread = threading.Thread(
+    target=monitor_medlogserver_and_backgroundworker,
+    args=(monitor_stop_event,),
+    daemon=True,
+)
+monitor_thread.start()
 successfull_test_files: List[str] = []
 
 
@@ -264,7 +302,8 @@ if __name__ == "__main__":
         run_single_test_file(tests_export)
         run_single_test_file(tests_drug)
         run_single_test_file(tests_drug_db_updater)
-
+    monitor_stop_event.set()
+    monitor_thread.join()
     shutdown_medlogserver_and_backgroundworker()
 
     for test_file in successfull_test_files:

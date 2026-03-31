@@ -7,6 +7,7 @@ from typing import (
     Annotated,
     Tuple,
     Callable,
+    Any,
 )
 from xml.dom import NotFoundErr
 from pydantic import validate_email, validator, StringConstraints
@@ -79,13 +80,13 @@ class DrugCRUD(
     )
 ):
     async def append_current_and_custom_drugs_dataset_version_where_clause(
-        self, query: sqlEpression.Select
-    ):
+        self, query: sqlEpression.Select[Any]
+    ) -> sqlEpression.Select[Any]:
         drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
         drug_importer = drug_importer_class()
         # todo: this probably can be optimized...
 
-        sub_query = (
+        sub_query_current_drugdataset = (
             select(DrugDataSetVersion.id)
             .where(
                 DrugDataSetVersion.dataset_source_name == drug_importer.dataset_name
@@ -96,7 +97,7 @@ class DrugCRUD(
             .limit(1)
             .scalar_subquery()
         )
-        sub_query_custom_drugs = (
+        sub_query_custom_drugset = (
             select(DrugDataSetVersion.id)
             .where(
                 DrugDataSetVersion.dataset_source_name == drug_importer.dataset_name
@@ -107,8 +108,8 @@ class DrugCRUD(
         )
         query.where(
             or_(
-                DrugData.source_dataset_id == sub_query,
-                DrugData.source_dataset_id == sub_query_custom_drugs,
+                DrugData.source_dataset_id == sub_query_current_drugdataset,
+                DrugData.source_dataset_id == sub_query_custom_drugset,
             )
         )
         return query
@@ -125,7 +126,7 @@ class DrugCRUD(
 
     async def list(
         self,
-        filter_study_id: UUID = None,
+        filter_study_id: UUID | None = None,
         pagination: Optional[QueryParamsInterface] = None,
         include_relations: bool = False,
     ) -> List[DrugData]:
@@ -154,7 +155,7 @@ class DrugCRUD(
         self,
         id_: UUID,
         include_relations: bool = False,
-        raise_exception_if_none: Exception = None,
+        raise_exception_if_none: Exception | None = None,
     ) -> DrugData | None:
         # log.info(f"Event.Config.order_by {Event.Config.order_by}")
         query = select(DrugData)
@@ -195,17 +196,10 @@ class DrugCRUD(
 
         if keep_result_in_ids_order:
             # todo: maybe we can solve the drug order in sql?
+            # order items according to input id list
             db_map = {obj.id: obj for obj in results.all()}
             return [db_map[drug_id] for drug_id in ids if drug_id in db_map]
-            db_order: List[DrugData] = results.all()
-            new_order: List[DrugData] = []
-            for drug_id in ids:
-                db_order_item_index = next(
-                    (i for i, obj in enumerate(db_order) if obj.id == drug_id)
-                )
-                item = db_order.pop(db_order_item_index)
-                new_order.append(item)
-            return new_order
+        # Just return the items as returned by the query
         return results.all()
 
     async def create_custom(

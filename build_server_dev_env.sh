@@ -15,7 +15,7 @@ set -eo pipefail
 # Don't use -u when sourcing to avoid breaking the parent shell
 
 # === CONFIGURATION ===
-PYTHON_VERSION="3.11"
+PYTHON_VERSION="3.14"
 ENV_DIR=".medlog-python-env"
 REQ_FILE="./MedLog/backend/requirements.txt"
 REQ_FILE_DEV="./MedLog/backend/requirements_tests.txt"
