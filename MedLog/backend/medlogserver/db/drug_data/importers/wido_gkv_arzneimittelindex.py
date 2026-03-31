@@ -352,7 +352,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 field_name_display="Marktzugang",
                 field_desc="Datum des Marktzugang",
                 value_type=ValueTypeCasting.DATE,
-                pre_parser=CustomPreParserFunc.WIDO_GKV_DATE,
+                pre_parser=CustomPreParserFunc.WIDO_GKV_DATE.name,
                 is_reference_list_field=False,
                 examples=[],
                 importer_name=self.__class__.__name__,

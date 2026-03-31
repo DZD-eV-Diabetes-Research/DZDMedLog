@@ -7,6 +7,7 @@ from pydantic import (
     model_validator,
     field_serializer,
 )
+
 from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, SQLModel, Relationship, JSON, Enum, Column, UniqueConstraint
 from pydantic_core import PydanticUndefined
@@ -48,6 +49,9 @@ class ValueTypeCasting(enum.Enum):
     )
 
 
+ValueTypeCastingNames = tuple([e.name for e in ValueTypeCasting])
+
+
 class DisplayPriorityClass(enum.IntEnum):
     CLASS1 = 1
     CLASS2 = 2
@@ -55,11 +59,12 @@ class DisplayPriorityClass(enum.IntEnum):
 
 
 class CustomPreParserFunc(enum.Enum):
-    # partial wrapper because plain function wont work as enum values
-    # see https://stackoverflow.com/a/40339397/12438690
-    WIDO_GKV_DATE = partial(
+    WIDO_GKV_DATE = enum.member(
         lambda x: datetime.datetime.strptime(x, "%Y%m%d").date().isoformat()
     )
+
+
+CustomPreParserFuncNames = tuple([e.name for e in CustomPreParserFunc])
 
 
 class DrugAttrFieldDefinitionAPIReadBase(DrugModelTableBase):
@@ -99,9 +104,16 @@ class DrugAttrFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIReadBase, table=F
         default=False,
         description="If true this field can hold a list of values instead of a single one. E.g. A drug can have a list of keywords.",
     )
-    value_type: Literal[tuple([e.name for e in ValueTypeCasting])] = Field(
+    value_type: Literal[ValueTypeCastingNames] = Field(
         default=ValueTypeCasting.STR.name,
         description="The type of this value gets casted into, by the backend, as before its passing the RestAPI",
+        sa_column=Column(
+            Enum(
+                ValueTypeCastingNames,
+                name="valuetypecasting",
+            ),
+            nullable=False,
+        ),
     )
     show_in_search_results: bool = Field(
         default=True,
@@ -137,7 +149,7 @@ class DrugAttrMultiFieldDefinitionAPIRead(DrugAttrFieldDefinitionAPIRead, table=
         default=True,
         description="If true this field can hold a list of values instead of a single one. E.g. A drug can have a list of keywords.",
     )
-    value_type: Literal[tuple([e.name for e in ValueTypeCasting])] = Field(
+    value_type: Literal[ValueTypeCastingNames] = Field(
         default=f"List[{ValueTypeCasting.STR.name}]",
         description="The type of this value gets casted into, by the backend, as before its passing the RestAPI",
     )
@@ -210,9 +222,9 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
         default=False,
         description="If this field is will be take into account while using /drug/search endpoint.",
     )
-    pre_parser: Optional[CustomPreParserFunc] = Field(
+    pre_parser: str | None = Field(
         default=None,
-        description="Function that can transform the input value into a fitting string",
+        description="Function that can transform the input value into a fitting string. Function must be registered in CustomPreParserFunc",
     )
     examples: List[str] = Field(
         default_factory=list, sa_column=Column(SqlStringListAny)

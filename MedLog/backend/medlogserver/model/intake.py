@@ -22,6 +22,7 @@ from pydantic import (
 from fastapi import Depends
 from typing import Optional
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc
+from sqlalchemy import Enum as SAEnum
 from datetime import datetime, timezone, date
 import uuid
 from uuid import UUID
@@ -125,6 +126,10 @@ class IntakeUpdate(MedLogBaseModel, table=False):
     source_of_drug_information: Optional[SourceOfDrugInformationAnwers] = Field(
         default=None,
         description="How the drug/medication was identified (e.g. by name, active ingredient, barcode).",
+        sa_column=Column(
+            SAEnum(SourceOfDrugInformationAnwers, name="sourceofdruginformationanwers"),
+            nullable=True,
+        ),
     )
     is_activeingredient_equivalent_choice: bool = Field(
         default=False,
@@ -149,6 +154,9 @@ class IntakeUpdate(MedLogBaseModel, table=False):
             "Mutually exclusive with `intake_start_date` — exactly one of the two must be set. "
             "If this field is provided, `intake_start_date` is automatically set to `null`."
         ),
+        sa_column=Column(
+            SAEnum(IntakeStartDateOption, name="intakestartdateoption"), nullable=True
+        ),
     )
 
     intake_end_date: Optional[date] = Field(
@@ -168,11 +176,18 @@ class IntakeUpdate(MedLogBaseModel, table=False):
             "If this field is provided, `intake_end_date` is automatically set to `null`. "
             "If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
         ),
+        sa_column=Column(
+            SAEnum(IntakeEndDateOption, name="intakeenddateoption"), nullable=True
+        ),
     )
 
     administered_by_doctor: Optional[AdministeredByDoctorAnswers] = Field(
         default=None,
         description="Indicates whether the medication was administered by a doctor.",
+        sa_column=Column(
+            SAEnum(AdministeredByDoctorAnswers, name="administeredbydoctoranswers"),
+            nullable=True,
+        ),
     )
     intake_regular_or_as_needed: Optional[IntakeRegularOrAsNeededAnswers] = Field(
         default=None,
@@ -181,6 +196,12 @@ class IntakeUpdate(MedLogBaseModel, table=False):
             "Drives mutual exclusivity of dose fields: "
             "`REGULAR` requires `regular_intervall_of_daily_dose` to be set and `as_needed_dose_unit` to be `null`. "
             "`AS_NEEDED` requires `as_needed_dose_unit` to be set and `regular_intervall_of_daily_dose` to be `null`."
+        ),
+        sa_column=Column(
+            SAEnum(
+                IntakeRegularOrAsNeededAnswers, name="intakeregularorasneededanswers"
+            ),
+            nullable=True,
         ),
     )
     dose_per_day: Optional[int] = Field(
@@ -194,6 +215,10 @@ class IntakeUpdate(MedLogBaseModel, table=False):
             "Required when `intake_regular_or_as_needed` is `REGULAR`. "
             "Must be `null` when `intake_regular_or_as_needed` is `AS_NEEDED`."
         ),
+        sa_column=Column(
+            SAEnum(IntervalOfDailyDoseAnswers, name="intervalofdailydoseanswers"),
+            nullable=True,
+        ),
     )
     as_needed_dose_unit: Optional[int] = Field(
         default=None,
@@ -206,6 +231,10 @@ class IntakeUpdate(MedLogBaseModel, table=False):
     consumed_meds_today: Optional[ConsumedMedsTodayAnswers] = Field(
         default=None,
         description="Indicates whether the patient has already taken this medication today.",
+        sa_column=Column(
+            SAEnum(ConsumedMedsTodayAnswers, name="consumedmedstodayanswers"),
+            nullable=True,
+        ),
     )
 
     @model_validator(mode="before")

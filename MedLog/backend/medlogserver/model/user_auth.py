@@ -106,7 +106,7 @@ class _UserAuthBase(BaseTable, table=False):
     user_id: uuid.UUID = Field(foreign_key="user.id")
     auth_source_type: AllowedAuthSchemeType = Field(
         default=AllowedAuthSchemeType.basic,
-        sa_column=Column(Enum(AllowedAuthSchemeType)),
+        sa_column=Column(Enum(AllowedAuthSchemeType, name="allowedauthschemetype")),
     )
 
     oidc_provider_slug: Optional[str] = Field(index=True, default=None)

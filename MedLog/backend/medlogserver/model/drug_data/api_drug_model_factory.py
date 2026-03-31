@@ -48,10 +48,25 @@ class DrugApiReadClassFactory:
         Returns:
             Type[BaseModel]: _description_
         """
+
         if self.drug_api_read_class is None:
-            self.drug_api_read_class = asyncio.get_event_loop().run_until_complete(
-                self._get_DrugReadApiClass(importer_class=self.importer_class)
-            )
+            try:
+                # If there's already a running event loop (e.g. inside async context),
+                # use it — otherwise asyncio.run() would raise.
+                loop = asyncio.get_running_loop()
+                import concurrent.futures
+
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    future = pool.submit(
+                        asyncio.run,
+                        self._get_DrugReadApiClass(importer_class=self.importer_class),
+                    )
+                    self.drug_api_read_class = future.result()
+            except RuntimeError:
+                # No running event loop — safe to use asyncio.run() directly
+                self.drug_api_read_class = asyncio.run(
+                    self._get_DrugReadApiClass(importer_class=self.importer_class)
+                )
         return self.drug_api_read_class
 
     async def get_drug_api_read_class_asyncio(self) -> Type[BaseModel]:

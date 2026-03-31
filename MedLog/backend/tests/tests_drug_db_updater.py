@@ -157,7 +157,13 @@ def test_endpoint_drug_update_workflow():
     #####
 
     update_running = True
+    timeout_seconds = 60
+    start_time = time.time()
     while update_running:
+        if time.time() - start_time > timeout_seconds:
+            raise TimeoutError(
+                f"Drug DB update did not complete within {timeout_seconds} seconds"
+            )
         response_status: Dict[str, Any] = req("api/drug/db/update", method="get")
         print(f"test_endpoint_drug_update_trigger response_status: {response}")
         dict_must_contain(

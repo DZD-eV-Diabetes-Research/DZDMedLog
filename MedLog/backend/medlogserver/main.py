@@ -11,7 +11,7 @@ from pathlib import Path
 import sys, os
 from contextlib import asynccontextmanager
 import time
-
+import multiprocessing
 # Main can be started with arguments. Lets parse these first.
 
 
@@ -45,6 +45,8 @@ if __name__ == "__main__":
     MODULE_DIR = Path(__file__).parent
     MODULE_PARENT_DIR = MODULE_DIR.parent.absolute()
     sys.path.insert(0, os.path.normpath(MODULE_PARENT_DIR))
+
+    multiprocessing.set_start_method("fork")
 
 # Import and load config
 from medlogserver.config import Config
@@ -101,7 +103,7 @@ def start():
             raise ValueError(
                 "Can not find frontend files. Maybe you need to build the frontend first. Try to run 'make frontend'"
             )
-    event_loop = asyncio.get_event_loop()
+
     run_db_migrations()
 
     uvicorn_log_config: Dict = LOGGING_CONFIG
@@ -124,12 +126,15 @@ def start():
         port=config.SERVER_LISTENING_PORT,
         log_level=get_uvicorn_loglevel(),
         log_config=uvicorn_log_config,
-        loop=event_loop,
         lifespan="on",
     )
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
 
-    event_loop.run_until_complete(init_db())
+    async def _run():
+        await init_db()
+        await uvicorn_server.serve()
+
+    asyncio.run(_run())
 
     if config.DEMO_MODE:
         log.warning(
