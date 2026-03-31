@@ -5,15 +5,29 @@ interface SystemAnnouncementsStore {
     dismissedIds: string[],
 }
 
+function loadDismissedIds(): string[] {
+    const dismissedIds: string[] = [];
+
+    const savedIds = localStorage.getItem('medlog-dismissed-announcements');
+    if (savedIds) {
+        const parsedValue = JSON.parse(savedIds);
+        if (parsedValue && Array.isArray(parsedValue)) {
+            dismissedIds.push(...parsedValue.filter(item => typeof item === 'string'));
+        }
+    }
+
+    return dismissedIds;
+}
+
 export const useSystemAnnouncementsStore = defineStore('systemAnnouncements', {
     state: (): SystemAnnouncementsStore => ({
         systemAnnouncements: [],
-        dismissedIds: [],
+        dismissedIds: loadDismissedIds(),
     }),
     actions: {
         dismissAnnouncement(id: string) {
             this.dismissedIds.push(id);
-            // TODO save to localStorage
+            localStorage.setItem('medlog-dismissed-announcements', JSON.stringify(this.dismissedIds));
         },
         async fetchSystemAnnouncements() {
             const { $medlogapi } = useNuxtApp();
