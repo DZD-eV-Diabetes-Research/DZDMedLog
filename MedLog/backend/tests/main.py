@@ -153,11 +153,7 @@ def wait_for_medlogserver_up_and_healthy(timeout_sec=20):
             background_worker_process.exitcode,
         )
 
-        if (
-            r["drugs_imported"]
-            and r["last_worker_run_succesfull"]
-            and r["drug_search_index_working"]
-        ):
+        if r["db_working"] and r["drugs_imported"] and r["drug_search_index_working"]:
             medlogserver_not_initialized = False
 
         time.sleep(2)
@@ -169,31 +165,24 @@ def shutdown_medlogserver_and_backgroundworker():
     print("SHUTDOWN SERVER!")
     medlogserver_process.terminate()
     background_worker_process.terminate()
-    time.sleep(5)
+    medlogserver_process.join(timeout=5)
+    background_worker_process.join(timeout=5)
     print("KILL SERVER")
-
-    # YOU ARE HERE! THIS DOES NOT KILL THE BACKGORUND WORKER PROCESS
-    medlogserver_process.kill()
-    medlogserver_process.join()
-    medlogserver_process.close()
-    background_worker_process.kill()
-    background_worker_process.join()
-    background_worker_process.close()
 
 
 def start_medlogserver_and_backgroundworker():
     set_config_for_test_env()
     print("START medlogserver")
     medlogserver_process.start()
-    wait_for_medlogserver_up_and_healthy()
     print("START medlogserver BACKGROUND WORKER")
     background_worker_process.start()
+    wait_for_medlogserver_up_and_healthy()
     print("STARTED medlogserver!")
 
 
-def monitor_medlogserver_and_backgroundworker():
+def monitor_medlogserver_and_backgroundworker(monitor_stop_event: threading.Event):
     try:
-        while True:
+        while not monitor_stop_event.is_set():
             if not medlogserver_process.is_alive():
                 print("❌ medlogserver_process died")
                 shutdown_medlogserver_and_backgroundworker()
@@ -207,11 +196,17 @@ def monitor_medlogserver_and_backgroundworker():
             time.sleep(1)
     except KeyboardInterrupt:
         shutdown_medlogserver_and_backgroundworker()
+        monitor_stop_event.set()
         exit(0)
 
 
 start_medlogserver_and_backgroundworker()
-monitor_thread = threading.Thread(target=monitor_medlogserver_and_backgroundworker)
+monitor_stop_event = threading.Event()
+monitor_thread = threading.Thread(
+    target=monitor_medlogserver_and_backgroundworker,
+    args=(monitor_stop_event,),
+    daemon=True,
+)
 monitor_thread.start()
 successfull_test_files: List[str] = []
 
@@ -301,7 +296,8 @@ if __name__ == "__main__":
         run_single_test_file(tests_export)
         run_single_test_file(tests_drug)
         run_single_test_file(tests_drug_db_updater)
-
+    monitor_stop_event.set()
+    monitor_thread.join()
     shutdown_medlogserver_and_backgroundworker()
 
     for test_file in successfull_test_files:
