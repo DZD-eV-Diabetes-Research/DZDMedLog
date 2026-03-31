@@ -74,7 +74,9 @@ idna==3.11
 iniconfig==2.3.0
     # via pytest
 itsdangerous==2.2.0
-    # via flask
+    # via
+    #   flask
+    #   medlogserver (MedLog/backend/pyproject.toml)
 jinja2==3.1.6
     # via flask
 joserfc==1.6.3
