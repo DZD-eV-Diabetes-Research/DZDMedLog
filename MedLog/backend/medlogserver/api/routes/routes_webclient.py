@@ -13,8 +13,6 @@ from fastapi import (
 )
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from medlogserver.config import Config
-import httpx
-import websockets
 import asyncio
 
 config = Config()

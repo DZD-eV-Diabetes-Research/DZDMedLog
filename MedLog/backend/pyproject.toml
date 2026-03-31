@@ -19,32 +19,24 @@ dynamic = ["version"]
 
 dependencies = [
     "uvicorn",
-    "oauthlib",
     "fastapi",
     "starlette",
-    "python-jose[cryptography]",
-    "passlib[bcrypt]",
+    "python-multipart",
     "Authlib",
     "httpx",
-    "sqlmodel == 0.0.31",        # https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/226
+    "bcrypt",
+    "sqlmodel == 0.0.31",  # https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/226
     "sqlalchemy[asyncio]",
     "aiosqlite",
-    "itsdangerous",
     "pyyaml",
     "pydantic",
     "pydantic[email]",
     "pydantic_settings",
-    "Click",
-    "setuptools-scm",            # replaces getversion for runtime version detection
-    "pip-tools",
-    "python-multipart",
+    "setuptools-scm",      # replaces getversion for runtime version detection
     "apscheduler",
-    "async-lru",
-    "websockets",
     "polars",
     "psycopg[binary]",
     "alembic",
-    "multiprocessing-logging",
 ]
 
 [project.optional-dependencies]
