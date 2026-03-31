@@ -76,7 +76,7 @@ import gc
 
 config = Config()
 log = get_logger(modulename="DRUGIMPORT")
-importername = "MmiPharmaindex1_32"
+importername = "MMIPharmindex1_32"
 
 
 @dataclass
