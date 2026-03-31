@@ -198,7 +198,14 @@ async function startInterview(hasTakenMeds: boolean) {
   try {
     const interview = await useCreateInterview(studyId.value, eventIdToStart.value, probandId.value, hasTakenMeds)
 
-    await navigateTo(`/studies/${studyId.value}/proband/${probandId.value}/interview/${interview.id}`)
+    if (hasTakenMeds) {
+      // Go ahead and conduct the interview
+      await navigateTo(`/studies/${studyId.value}/proband/${probandId.value}/interview/${interview.id}`)
+    } else {
+      // No need to proceed, end the interview right away
+      await endInterview(eventIdToStart.value, interview.id)
+      introModalVisible.value = false
+    }
   }
   catch (error) {
     toast.add({
