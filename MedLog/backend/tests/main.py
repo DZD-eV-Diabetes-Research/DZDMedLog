@@ -49,9 +49,6 @@ def set_config_for_test_env():
     os.environ["DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB"] = str(
         DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB
     )
-    os.environ["DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB"] = str(
-        DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB
-    )
     os.environ["SYSTEM_ANNOUNCEMENTS"] = json.dumps(SYSTEM_ANNOUNCEMENTS)
 
 
