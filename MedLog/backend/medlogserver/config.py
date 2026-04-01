@@ -383,6 +383,24 @@ class Config(BaseSettings):
         description="If set to true a proband with the ID '1A' will be different from '1a'.",
     )
 
+    class SystemAnnouncement(BaseSettings):
+        public: bool = Field(
+            default=False,
+            description="Should this announcement be shown to non logged in users as well.",
+        )
+        type: Literal["info", "warning", "alert"] = Field(
+            default="info",
+            description="Which type the announcement is.",
+        )
+        message: str
+
+    SYSTEM_ANNOUNCEMENTS: List[SystemAnnouncement] = Field(
+        default_factory=list,
+        examples=[
+            """'[{"type": "info", "public": true, "message": "This is a public message"},{"type": "alert", "public": false, "message": "This is a non-public alert"}]'"""
+        ],
+    )
+
     ###### CONFIG END ######
     # "class Config:" is a pydantic-settings pre-defined config class to control the behaviour of our settings model
     # you could call it a "meta config" class

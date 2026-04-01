@@ -9,7 +9,7 @@ import types
 from pathlib import Path
 import sys, os
 import threading
-
+import json
 
 if __name__ == "__main__":
     MODULE_DIR = Path(__file__).parent
@@ -23,6 +23,7 @@ from statics import (
     ADMIN_USER_PW,
     ADMIN_USER_NAME,
     DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB,
+    SYSTEM_ANNOUNCEMENTS,
 )
 
 
@@ -48,6 +49,7 @@ def set_config_for_test_env():
     os.environ["DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB"] = str(
         DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB
     )
+    os.environ["SYSTEM_ANNOUNCEMENTS"] = json.dumps(SYSTEM_ANNOUNCEMENTS)
 
 
 set_config_for_test_env()

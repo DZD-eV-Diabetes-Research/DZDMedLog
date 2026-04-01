@@ -1,14 +1,18 @@
 <template>
   <header class="flex flex-col w-full bg-white py-4 px-10">
-    <div class="flex w-full justify-between items-center gap-20">
-      <div>
-        <NuxtLink to="/" class="text-4xl font-bold text-gray-800 hover:border-[#ec372d] hover:border-b-2">
+    <div class="grid grid-cols-1 md:grid-cols-3 py-2">
+      <div class="text-start">
+        <NuxtLink to="/" class="text-2xl lg:text-4xl font-bold text-gray-800 hover:border-[#ec372d] hover:border-b-2">
           {{ configStore.appName }}
         </NuxtLink>
       </div>
 
-      <div class="w-60">
-        <img src="/img/logos/dzd.png" alt="DZD-Logo" class="max-w-full">
+      <div class="text-center justify-self-center">
+        <SystemAnnouncements />
+      </div>
+
+      <div class="text-end justify-self-end">
+        <img src="/img/logos/dzd.png" alt="DZD-Logo" class="max-w-40 lg:max-w-60">
       </div>
     </div>
 

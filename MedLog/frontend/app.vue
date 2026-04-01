@@ -12,6 +12,7 @@ const drugFieldsStore = useDrugFields();
 const healthCheckStore = useHealthCheckStore();
 const roleStore = useRoleStore();
 const studyStore = useStudyStore();
+const systemAnnouncementsStore = useSystemAnnouncementsStore();
 const toast = useToast();
 const userStore = useUserStore();
 
@@ -33,6 +34,7 @@ async function refreshStatus() {
   try {
     await healthCheckStore.doSimpleHealthCheck();
     await healthCheckStore.doFullHealthCheck();
+    await systemAnnouncementsStore.fetchSystemAnnouncements();
     await drugDbUpdaterStore.fetchStatus();
   } catch (error) {
     toast.add({
@@ -71,6 +73,7 @@ try {
 
 if (userStore.isLoggedIn) {
   await healthCheckStore.doFullHealthCheck();
+  await systemAnnouncementsStore.fetchSystemAnnouncements();
 
   // Set up basic global data
   try {

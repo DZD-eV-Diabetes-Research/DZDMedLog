@@ -120,6 +120,37 @@
         }
       }
     },
+    "/api/config/announcements": {
+      "get": {
+        "tags": [
+          "Config"
+        ],
+        "summary": "Get System Announcements",
+        "description": "Provides some meta data about the drug data configuration",
+        "operationId": "get_system_announcements_api_config_announcements_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SystemAnnouncement"
+                  },
+                  "type": "array",
+                  "title": "Response Get System Announcements Api Config Announcements Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/auth/list": {
       "get": {
         "tags": [
@@ -8233,6 +8264,35 @@
         },
         "type": "object",
         "title": "StudyUpdate"
+      },
+      "SystemAnnouncement": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "A unique has for each message. This id can used by the client to e.g. manage 'user has seen it' states"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "alert"
+            ],
+            "title": "Type"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "message"
+        ],
+        "title": "SystemAnnouncement"
       },
       "Tasks": {
         "type": "string",
