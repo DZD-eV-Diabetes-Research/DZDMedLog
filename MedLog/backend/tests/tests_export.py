@@ -117,7 +117,7 @@ def test_export_contains_with_custom_drug_issue_263():
     # dict_must_contain(res,required_keys_and_val=)
 
 
-def l_test_export_contains_drug_ids():
+def test_export_contains_drug_ids():
     study_data: TestDataContainerStudy = create_test_study(
         study_name="TextExportStudy",
         with_events=1,
