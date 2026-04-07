@@ -90,20 +90,20 @@ if RESET_DB:
 if __name__ == "__main__":
     multiprocessing.set_start_method("fork")  # explicit, works on Linux/Mac
 
-    from medlogserver.main import start as medlogserver_start
-    from medlogserver.worker.worker import run_background_worker
+from medlogserver.main import start as medlogserver_start
+from medlogserver.worker.worker import run_background_worker
 
-    medlogserver_process = multiprocessing.Process(
-        target=medlogserver_start,
-        name="DZDMedLogServer",
-        kwargs={},
-    )
+medlogserver_process = multiprocessing.Process(
+    target=medlogserver_start,
+    name="DZDMedLogServer",
+    kwargs={},
+)
 
-    background_worker_process = multiprocessing.Process(
-        target=run_background_worker,
-        name="DZDMedLogBackgroundWorker",
-        kwargs={"run_in_extra_process": False},
-    )
+background_worker_process = multiprocessing.Process(
+    target=run_background_worker,
+    name="DZDMedLogBackgroundWorker",
+    kwargs={"run_in_extra_process": False},
+)
 
 
 medlogserver_base_url = get_medlogserver_base_url()
