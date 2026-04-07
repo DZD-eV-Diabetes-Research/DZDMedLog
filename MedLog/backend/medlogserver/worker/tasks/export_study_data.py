@@ -47,7 +47,7 @@ class DrugDataExport(BaseModel):
     drug_attr_name: str
     drug_attr_value: str | List[str | None] | None
     drug_attr_reference_code: (
-        str | List[str] | None | Type[ValueReferenceCodeNotApplicable]
+        str | List[str | None] | None | Type[ValueReferenceCodeNotApplicable]
     ) = ValueReferenceCodeNotApplicable
 
 
@@ -63,10 +63,10 @@ class ExportContainer(BaseModel):
     study: StudyExport
     intakes: List[ExportIntakeContainer]
 
-    def to_flat_dict(
+    def to_flat_rows(
         self,
         include_study_data_each_row: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> List[Dict[str, Any]]:
         values = []
         for intake in self.intakes:
             row = {}
@@ -85,8 +85,9 @@ class ExportContainer(BaseModel):
                     objs = [objs]
                 # obj_class_name = obj.__class__.__name__.lower()
                 for obj in objs:
+                    exclude_set = {pivot_by_column} if pivot_by_column else None
                     for prop_name, prop_value in obj.model_dump(
-                        exclude=[pivot_by_column]
+                        exclude=exclude_set
                     ).items():
                         log.debug(
                             f"#####{prop_name} -> prop_value {prop_value} == ValueReferenceCodeNotApplicable: {prop_value == ValueReferenceCodeNotApplicable}"
@@ -129,19 +130,22 @@ class StudyDataExporter:
         elif self.format == "csv":
             with open(self.target_file, "w", encoding="utf-8") as target_file:
                 log.debug(f"exportdata {exportdata}")
-                flatten_export_data = exportdata.to_flat_dict(
+                flatten_export_data = exportdata.to_flat_rows(
                     include_study_data_each_row=True
                 )
-                # log.debug(f"flatten_export_data: {flatten_export_data}")
-
-                writer = csv.writer(target_file)
-                log.debug(
-                    f"flatten_export_data: {flatten_export_data} \n type: {flatten_export_data}"
-                )
                 if flatten_export_data:
-                    writer.writerow(flatten_export_data[0].keys())
-                for row_data in flatten_export_data:
-                    writer.writerow(row_data.values())
+                    fieldnames: List[str] = []
+                    seen: set[str] = set()
+
+                    for row in flatten_export_data:
+                        for key in row.keys():
+                            if key not in seen:
+                                seen.add(key)
+                                fieldnames.append(key)
+                    writer = csv.DictWriter(target_file, fieldnames=fieldnames)
+                    writer.writeheader()
+                    for row in flatten_export_data:
+                        writer.writerow(row)
         else:
             return None
         return self.target_file
@@ -217,19 +221,21 @@ class StudyDataExporter:
                             drug_attr_name=attr.field_name, drug_attr_value=attr.value
                         )
                     )
-                for attr in drug.attrs_multi:
-                    attrs.append(
-                        DrugDataExport(
-                            drug_attr_name=attr.field_name,
-                            drug_attr_value=attr.value,
-                        )
-                    )
+                # for attr in drug.attrs_multi:
+                #    attrs.append(
+                #        DrugDataExport(
+                #            drug_attr_name=attr.field_name,
+                #            drug_attr_value=attr.value,
+                #        )
+                #    )
                 for attr in drug.attrs_ref:
                     attrs.append(
                         DrugDataExport(
                             drug_attr_name=attr.field_name,
-                            drug_attr_value=attr.lov_item.display,
-                            drug_attr_reference_code=attr.lov_item.value,
+                            drug_attr_value=attr.lov_item.display
+                            if attr.value is not None
+                            else None,
+                            drug_attr_reference_code=attr.value,
                         )
                     )
                 # attr_multi
@@ -259,11 +265,12 @@ class StudyDataExporter:
                     attrs_multi_ref_sorted_by_name_and_index,
                     key=lambda attr: attr.field_name,
                 ):
+                    group_list = attr_group  # list(attr_group)
                     attr_multi_ref_values = [
-                        attr.lov_item.display for attr in attr_group
+                        attr.lov_item.display if attr.value is not None else None
+                        for attr in group_list
                     ]
-                    attr_multi_ref_codes = [attr.lov_item.value for attr in attr_group]
-
+                    attr_multi_ref_codes = [attr.value for attr in group_list]
                     attrs.append(
                         DrugDataExport(
                             drug_attr_name=field_name,
@@ -326,8 +333,10 @@ async def export_study_intake_data(
         study_id: uuid.UUID = uuid.UUID(study_id)
     import __main__
 
-    export_cache_path = PurePath(
-        config.EXPORT_CACHE_DIR, str(job_id), f"export_study_{study_id}.{format}"
+    export_cache_path = Path(
+        PurePath(
+            config.EXPORT_CACHE_DIR, str(job_id), f"export_study_{study_id}.{format}"
+        )
     )
     exporter = StudyDataExporter(
         study_id=study_id, format_=format, target_file=export_cache_path
@@ -343,10 +352,12 @@ class TaskExportStudyIntakeData(TaskBase):
         if isinstance(study_id, str):
             study_id: uuid.UUID = uuid.UUID(study_id)
 
-        export_cache_path = PurePath(
-            config.EXPORT_CACHE_DIR,
-            str(self.job.id),
-            f"export_study_{study_id}.{format_}",
+        export_cache_path = Path(
+            PurePath(
+                config.EXPORT_CACHE_DIR,
+                str(self.job.id),
+                f"export_study_{study_id}.{format_}",
+            )
         )
         exporter = StudyDataExporter(
             study_id=study_id, format_=format_, target_file=export_cache_path
