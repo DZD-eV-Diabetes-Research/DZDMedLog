@@ -193,8 +193,8 @@ async def get_export(
 async def download_export(
     export_job_id: uuid.UUID,
     study_id: uuid.UUID,
-    # current_user: User = Depends(get_current_user),
-    # study_access: UserStudyAccess = Security(user_has_study_access),
+    current_user: User = Depends(get_current_user),
+    study_access: UserStudyAccess = Security(user_has_study_access),
     worker_job_crud: WorkerJobCRUD = Depends(WorkerJobCRUD.get_crud),
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
 ) -> FileResponse:
@@ -221,7 +221,7 @@ async def download_export(
     media_type = (
         "text/csv" if worker_job.task_params["format_"] == "csv" else "application/json"
     )
-    filename = f"""medlog_export_{sanitize_string(study.display_name,replace_space_with="-")}_{worker_job.run_started_at.strftime('%S-%M-%H_%d-%m-%Y')}.{worker_job.task_params['format_']}"""
+    filename = f"""medlog_export_{sanitize_string(study.display_name, replace_space_with="-")}_{worker_job.run_started_at.strftime("%S-%M-%H_%d-%m-%Y")}.{worker_job.task_params["format_"]}"""
     # headers = {"Content-Disposition": f'''attachment; filename="{filename}"'''}
     # headers["Content-Type"] = media_type
     return FileResponse(
