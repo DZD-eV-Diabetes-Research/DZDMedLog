@@ -153,17 +153,35 @@ async function listDownloads() {
 }
 
 async function downloadFile(row: Download) {
-  const fileUrl = row.downloadLink;
-  console.log(fileUrl);
   try {
-    const response = await fetch(fileUrl, {
+    const response = await fetch(row.downloadLink, {
       method: "GET",
     });
 
     if (response.ok) {
       const a = document.createElement("a");
-      a.href = fileUrl;
+      a.href = URL.createObjectURL(await response.blob());
+
+      // Try and get the file name
+      const contentDisposition = response.headers.get('content-disposition');
+      if (contentDisposition) {
+        const parts = contentDisposition.split(';');
+        if (parts.length < 1 || parts[0] !== 'attachment') {
+          throw new Error('Not an attachment');
+        }
+
+        const filenameParameter = parts.find(item => item.trim().startsWith('filename='))
+        if (filenameParameter) {
+          const matches = filenameParameter.match(/filename="?([^"]+)"?/)
+          if (matches && matches.length > 1) {
+            a.download = matches[1];
+          }
+        }
+      }
+
+      // Trigger file download
       a.click();
+      URL.revokeObjectURL(a.href);
       a.remove();
     } else {
       toast.add({
