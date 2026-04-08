@@ -23,8 +23,7 @@ arg_parser.add_argument(
 )
 arg_parser.add_argument(
     "--app_version",
-    help="Overwrite the automatic version extraction based on the git metadata",
-    action="store_true",
+    help="Overwrite the automatic version extraction based on the git metadata. Only usable in combination with --set_version_file",
 )
 arg_parser.add_argument(
     "--run_worker_only",
