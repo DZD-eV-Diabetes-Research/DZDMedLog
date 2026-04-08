@@ -58,7 +58,7 @@ def req(
     tolerated_error_codes: List[int] = None,
     tolerated_error_body: List[Dict | str] = None,
     access_token: str = None,
-) -> Dict[str, Any] | str:
+) -> Dict[str, Any] | str | bytes:
     if tolerated_error_codes is None:
         tolerated_error_codes = []
     if tolerated_error_body is None:
@@ -569,6 +569,23 @@ def is_valid_csv_with_rows(
     except Exception:
         print(f"Failed parsing CSV.")
         return False
+
+
+def csv_row_matches(csv_string: str, criteria: Dict[str, Any]) -> bool:
+    """
+    Checks if any row in the CSV matches the given criteria.
+
+    :param csv_string: CSV content as a string (with header row)
+    :param criteria: dict of {column_name: expected_value}
+    :return: True if at least one row matches, else False
+    """
+    reader = csv.DictReader(io.StringIO(csv_string))
+
+    for row in reader:
+        if all(row.get(col) == str(val) for col, val in criteria.items()):
+            return True
+
+    return False
 
 
 def import_test_modules(from_dir: pathlib.Path) -> List[types.ModuleType]:

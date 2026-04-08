@@ -265,7 +265,7 @@ class StudyDataExporter:
                     attrs_multi_ref_sorted_by_name_and_index,
                     key=lambda attr: attr.field_name,
                 ):
-                    group_list = attr_group  # list(attr_group)
+                    group_list = list(attr_group)
                     attr_multi_ref_values = [
                         attr.lov_item.display if attr.value is not None else None
                         for attr in group_list
