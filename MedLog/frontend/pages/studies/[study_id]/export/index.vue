@@ -54,11 +54,12 @@
       <template #actions-data="{ row }">
         <UButton
             v-if="row.status === 'success'"
+            :to="row.downloadLink"
             label="Herunterladen"
             color="gray"
             variant="outline"
             icon="i-heroicons-arrow-down-tray"
-            @click="downloadFile(row)" />
+            @click.prevent="downloadFile(row)" />
       </template>
     </UTable>
   </section>
