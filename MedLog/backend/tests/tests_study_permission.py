@@ -12,7 +12,7 @@ from utils import (
     create_test_study,
     TestDataContainerStudy,
     create_test_user,
-    authorize,
+    authorize_for_access_token,
     dictyfy,
 )
 
@@ -53,7 +53,7 @@ def test_endpoint_study_permissions_get():
     test_user = create_test_user(
         user_name="permtestuser", password=user_password, email="ptest@test.com"
     )
-    test_user_access_token = authorize(
+    test_user_access_token = authorize_for_access_token(
         username=test_user.user_name,
         pw=user_password,
         set_as_global_default_login=False,
@@ -200,7 +200,7 @@ def test_endpoint_study_permissions_delete():
         password="we4r03rredf8",
         email="f@f2.de",
     )
-    test_user_access_token = authorize(
+    test_user_access_token = authorize_for_access_token(
         username=test_user.user_name,
         pw="we4r03rredf8",
         set_as_global_default_login=False,
@@ -264,7 +264,7 @@ def test_full_permission_workflow():
         password=user_password,
         email="pwftest@test.com",
     )
-    test_user_access_token = authorize(
+    test_user_access_token = authorize_for_access_token(
         username=test_user.user_name,
         pw=user_password,
         set_as_global_default_login=False,

@@ -12,7 +12,7 @@ from utils import (
     create_test_study,
     TestDataContainerStudy,
     create_test_user,
-    authorize,
+    authorize_for_access_token,
     dictyfy,
 )
 
@@ -163,7 +163,7 @@ def test_endpoint_study_issue_190():
         password="we4r03rredf8",
         email="f@f2.de",
     )
-    test_user_access_token = authorize(
+    test_user_access_token = authorize_for_access_token(
         username=test_user.user_name,
         pw="we4r03rredf8",
         set_as_global_default_login=False,

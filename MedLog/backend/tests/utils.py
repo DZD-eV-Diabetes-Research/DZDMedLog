@@ -35,7 +35,9 @@ def get_medlogserver_base_url():
     return f"http://{medlogserver_config.SERVER_LISTENING_HOST}:{medlogserver_config.SERVER_LISTENING_PORT}"
 
 
-def authorize(username, pw, set_as_global_default_login: bool = False) -> str:
+def authorize_for_access_token(
+    username, pw, set_as_global_default_login: bool = False
+) -> str:
     response = req(
         "api/auth/basic/login/token", "post", f={"username": username, "password": pw}
     )
@@ -47,41 +49,73 @@ def authorize(username, pw, set_as_global_default_login: bool = False) -> str:
     return response["access_token"]
 
 
+def authorize_for_session(username, pw) -> requests.Session:
+    session = requests.Session()
+    response = req(
+        "api/auth/basic/login/session",
+        "post",
+        b={"username": username, "password": pw},
+        session=session,
+    )
+    # Fix domain mangling by re-setting the cookie with the correct domain
+    for cookie in session.cookies:
+        session.cookies.set(
+            cookie.name,
+            cookie.value,
+            domain=medlogserver_config.SERVER_LISTENING_HOST,
+            path="/",
+        )
+    return session
+
+
+from typing import Literal, Dict, Any, List, Optional
+import requests
+
+
 def req(
     endpoint: str,
     method: Literal["get", "post", "put", "patch", "delete"] = "get",
-    q: Dict[str, str | int | bool | List] = None,  # query params as dict
-    b: Dict = None,  # json body as dict
-    f: Dict = None,  # form data as dict
+    q: Dict[str, str | int | bool | List] = None,
+    b: Dict = None,
+    f: Dict = None,
     expected_http_code: int = None,
     suppress_auth: bool = False,
     tolerated_error_codes: List[int] = None,
     tolerated_error_body: List[Dict | str] = None,
     access_token: str = None,
+    session: Optional[requests.Session] = None,  # 👈 NEW
 ) -> Dict[str, Any] | str | bytes:
+
     if tolerated_error_codes is None:
         tolerated_error_codes = []
     if tolerated_error_body is None:
         tolerated_error_body = []
-    http_method_func = getattr(requests, method)
+
+    # choose request executor (session or plain requests)
+    requestor = session if session is not None else requests
+    http_method_func = getattr(requestor, method)
+
     http_method_func_params = {}
     http_method_func_headers = {}
+
+    # query params
     if q:
-        if not "params" in http_method_func_params:
-            http_method_func_params["params"] = {}
-        # query params
+        http_method_func_params["params"] = {}
         for qp_name, qp_val in q.items():
             if isinstance(qp_val, list):
-                http_method_func_params["params"][qp_name] = ",".join(qp_val)
+                http_method_func_params["params"][qp_name] = ",".join(map(str, qp_val))
             else:
                 http_method_func_params["params"][qp_name] = qp_val
+
+    # body
     if b:
-        # body
         http_method_func_params["json"] = b
+
+    # form data
     if f:
-        # formdata
         http_method_func_headers["Content-Type"] = "application/x-www-form-urlencoded"
         http_method_func_params["data"] = f
+
     # url
     if endpoint and not endpoint.startswith("/"):
         endpoint = f"/{endpoint}"
@@ -89,36 +123,47 @@ def req(
     http_method_func_params["url"] = url
 
     # auth
-    access_token = access_token if access_token is not None else get_access_token()
+    if session is None:
+        access_token = access_token if access_token is not None else get_access_token()
     http_method_func_headers_print = None
-    if access_token and not suppress_auth:
+
+    if session is None and access_token and not suppress_auth:
         http_method_func_headers_print = http_method_func_headers.copy()
         http_method_func_headers["Authorization"] = f"Bearer {access_token}"
         http_method_func_headers_print["Authorization"] = (
             f"Bearer {access_token[:16]}...(truncated)"
         )
+    elif session is not None:
+        for cookie_name, cookie_value in session.cookies.get_dict().items():
+            http_method_func_headers["Cookie"] = f"{cookie_name}={cookie_value}"
 
-    # create log message that documents the whole request
-    log_msg_request = f"TEST-REQUEST:{method} - {endpoint} - PARAMS: { ({k: v for k, v in http_method_func_params.items() if k != 'url'}) } - HEADERS: {http_method_func_headers_print}"
+    # logging
+    log_msg_request = (
+        f"TEST-REQUEST:{method} - {endpoint} - PARAMS: "
+        f"{ {k: v for k, v in http_method_func_params.items() if k != 'url'} } "
+        f"- HEADERS: {http_method_func_headers_print} - SESSION: {session.cookies.get_dict() if session else None}"
+    )
 
-    # attach headers to request params
+    # attach headers
     if http_method_func_headers:
         http_method_func_params["headers"] = http_method_func_headers
-        http_method_func_headers_print = http_method_func_headers.copy()
 
-    print(log_msg_request)
+    print(http_method_func, log_msg_request)
 
     # fire request
     r = http_method_func(**http_method_func_params)
+
+    # status handling
     if expected_http_code:
         assert r.status_code == expected_http_code, (
-            f"Exptected http status {expected_http_code} got {r.status_code} for {log_msg_request} \n {r.content}"
+            f"Expected http status {expected_http_code} got {r.status_code} "
+            f"for {log_msg_request} \n {r.content}"
         )
     else:
         try:
             r.raise_for_status()
         except requests.HTTPError as err:
-            if not r.status_code in tolerated_error_codes:
+            if r.status_code not in tolerated_error_codes:
                 try:
                     body = r.json()
                 except requests.exceptions.JSONDecodeError:
@@ -127,6 +172,7 @@ def req(
                     if body:
                         print("Error body: ", body)
                     raise err
+    # return body
     try:
         return r.json()
     except requests.exceptions.JSONDecodeError:

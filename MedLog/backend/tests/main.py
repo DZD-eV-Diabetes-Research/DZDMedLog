@@ -58,7 +58,7 @@ set_config_for_test_env()
 from utils import (
     get_medlogserver_base_url,
     get_dot_env_file_variable,
-    authorize,
+    authorize_for_access_token,
     get_test_functions_from_file_or_module,
 )
 
@@ -135,7 +135,7 @@ def wait_for_medlogserver_up_and_healthy(timeout_sec=20):
     print(f"SERVER UP FOR LISTENING: {r.status_code}")
 
     # --- Wait for server to finish initializing ---
-    access_token = authorize(
+    access_token = authorize_for_access_token(
         username=ADMIN_USER_NAME,
         pw=ADMIN_USER_PW,
         set_as_global_default_login=False,
@@ -228,7 +228,7 @@ def run_single_test_file(
     print("file_name_or_module", file_name_or_module)
     try:
         if authorize_before:
-            authorize(
+            authorize_for_access_token(
                 username=ADMIN_USER_NAME,
                 pw=ADMIN_USER_PW,
                 set_as_global_default_login=True,
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     import os
     import importlib
 
-    authorize(
+    authorize_for_access_token(
         username=ADMIN_USER_NAME, pw=ADMIN_USER_PW, set_as_global_default_login=True
     )
     # RUN ALL TEST SCRIPTS

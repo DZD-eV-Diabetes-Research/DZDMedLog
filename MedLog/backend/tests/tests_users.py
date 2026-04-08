@@ -13,7 +13,7 @@ from utils import (
     find_first_dict_in_list,
     create_test_user,
     dictyfy,
-    authorize,
+    authorize_for_access_token,
 )
 from statics import ADMIN_USER_EMAIL, ADMIN_USER_NAME, TEST_USER_NAME, TEST_USER_PW
 
@@ -118,7 +118,9 @@ def test_set_other_user_password_as_admin():
         f={"new_password": password, "new_password_repeated": password},
     )
     print("user_res", user_res)
-    access_token = authorize(user_name, pw=password, set_as_global_default_login=False)
+    access_token = authorize_for_access_token(
+        user_name, pw=password, set_as_global_default_login=False
+    )
     print("access_token", access_token)
     assert access_token != ""
     assert access_token is not None
