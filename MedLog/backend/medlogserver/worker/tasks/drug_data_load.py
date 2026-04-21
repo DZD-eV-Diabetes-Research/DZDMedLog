@@ -7,6 +7,9 @@ import yaml
 import traceback
 
 # internal imports
+from medlogserver.db.drug_data.importers.dummy_drugs import (
+    DummyDrugImporterV1,
+)
 from medlogserver.worker.task import TaskBase
 import pydantic
 import gc
@@ -51,7 +54,12 @@ class DrugDataLoader:
         self.importer = self.importer_class()
 
     async def _create_inital_drugdataset_entry_if_needed(self):
-        if not config.DRUG_TABLE_PROVISIONING_SOURCE_DIR:
+        if not config.DRUG_TABLE_PROVISIONING_SOURCE_DIR or (
+            config.DRUG_IMPORTER_PLUGIN != "DummyDrugImporterV1"
+            and config.DRUG_TABLE_PROVISIONING_SOURCE_DIR
+            == Config.model_fields["DRUG_TABLE_PROVISIONING_SOURCE_DIR"].default
+        ):
+            # the user never set a local drug dataset to load and we are not using the dummydrug dataset
             return
 
         async with get_async_session_context() as session:
