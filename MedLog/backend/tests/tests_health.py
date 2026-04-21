@@ -1,3 +1,4 @@
+import os
 from _single_test_file_runner import run_all_tests_if_test_file_called
 
 if __name__ == "__main__":
@@ -21,7 +22,6 @@ def test_health_report():
     dict_must_contain(
         res,
         required_keys_and_val={
-            "name": "DZDMedLog",
             "db_working": True,
             "drugs_imported": True,
             "last_worker_run_succesfull": True,

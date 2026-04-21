@@ -22,6 +22,7 @@ from pathlib import Path, PurePath
 import uuid
 import random
 import re
+import unicodedata
 import string
 import json
 import fastapi
@@ -589,11 +590,20 @@ def get_value_from_first_dict_with_key(
 
 
 def slugify_string(s: str, spacer_string: str = "-") -> str:
-    return "".join(
-        char.lower() if char.isalnum() else spacer_string
-        for char in s
-        if char.isalnum() or char == " "
-    )
+    # Normalize (decompose accents)
+    s = unicodedata.normalize("NFKD", s)
+
+    # Remove diacritics (accents, umlauts, etc.)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+
+    # Convert to ASCII (drops anything still non-ASCII)
+    s = s.encode("ascii", "ignore").decode("ascii")
+
+    # Replace non-alphanumeric with spacer
+    s = re.sub(r"[^a-zA-Z0-9]+", spacer_string, s)
+
+    # Clean up
+    return s.strip(spacer_string).lower()
 
 
 def get_default_file_data(
