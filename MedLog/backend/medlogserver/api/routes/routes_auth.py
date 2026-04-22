@@ -1,5 +1,5 @@
 from typing import Optional, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from fastapi import FastAPI, Request, Depends, Response, HTTPException, status
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlmodel import SQLModel, Session, create_engine, select
@@ -347,8 +347,6 @@ async def auth_oidc_callback(
     )
     user = await user_crud.get_by_user_name(user_name=userinfo.preferred_username)
     if user is None and oauth_config.AUTO_CREATE_AUTHORIZED_USER:
-        from pydantic import ValidationError
-
         try:
             user_create = UserCreate.from_oidc_userinfo(userinfo)
         except ValidationError as e:
