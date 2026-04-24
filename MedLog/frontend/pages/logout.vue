@@ -10,10 +10,13 @@ const studyStore = useStudyStore();
 const logoutError = ref();
 
 onMounted(async () => {
+  let endSessionUrl: string | null = null;
+
   try {
-    await $medlogapi("/api/auth/logout", {
+    const response = await $medlogapi("/api/auth/logout", {
       method: 'POST'
-    })
+    }) as { end_session_url?: string } | null;
+    endSessionUrl = response?.end_session_url ?? null;
   } catch (error) {
     // Ignore a 401 error here, because being not authorized is our goal.
     if (!(error instanceof Error && 'statusCode' in error && error.statusCode === 401)) {
@@ -32,6 +35,13 @@ onMounted(async () => {
 
   // Fetch publicly available announcements again
   await systemAnnouncementsStore.fetchSystemAnnouncements();
+
+  // For OIDC logout: navigate the browser to the IdP's end_session_endpoint so the
+  // IdP session is terminated. The IdP will redirect back to the app root afterwards.
+  if (endSessionUrl) {
+    window.location.href = endSessionUrl;
+    return;
+  }
 })
 </script>
 
