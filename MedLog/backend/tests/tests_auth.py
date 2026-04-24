@@ -11,10 +11,12 @@ from utils import (
     req,
     dict_must_contain,
     authorize_for_session,
+    oidc_login_get_session,
 )
 from statics import (
     ADMIN_USER_EMAIL,
     ADMIN_USER_NAME,
+    OIDC_TEST_PROVIDER_SLUG,
 )
 
 
@@ -73,3 +75,41 @@ def test_session_based_logout():
 
     # test logout
     res = req("api/auth/logout", session=new_user_session, expected_http_code=200)
+
+
+def test_oidc_session_logout():
+    """OIDC session login sets a cookie; logout invalidates it.
+
+    Verifies that after logout the session cookie is gone and protected
+    endpoints reject the session with 401.
+    """
+    import os
+
+    if not os.environ.get("OIDC_MOCK_SERVER_URL"):
+        print("SKIP: OIDC mock server not running — skipping OIDC session logout test")
+        return
+
+    sub = "oidc-role-test-user"
+    oidc_session = oidc_login_get_session(OIDC_TEST_PROVIDER_SLUG, sub)
+
+    # Session must be valid — user/me returns the OIDC user
+    me = req("api/user/me", session=oidc_session)
+    assert me["user_name"] == sub, (
+        f"Expected user_name='{sub}', got '{me['user_name']}'"
+    )
+
+    # Logout — OIDC path returns end_session_url from the mock's end_session endpoint
+    logout_res = req(
+        "api/auth/logout", method="post", session=oidc_session, expected_http_code=200
+    )
+    assert logout_res == {"message": "Logged out successfully"}, (
+        f"Expected 'end_session_url' in OIDC logout response, got: {logout_res}"
+    )
+
+    # Cookie must be cleared after logout
+    assert not oidc_session.cookies.get_dict(), (
+        f"Expected empty cookie jar after logout, got: {oidc_session.cookies.get_dict()}"
+    )
+
+    # Protected endpoint must now reject the old session
+    req("api/user/me", session=oidc_session, expected_http_code=401)

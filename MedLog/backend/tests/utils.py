@@ -70,6 +70,22 @@ def oidc_login_get_token(provider_slug: str, sub: str) -> str:
     return resp.json()["access_token"]
 
 
+def oidc_login_get_session(provider_slug: str, sub: str) -> requests.Session:
+    """Drive the full OIDC authorization-code flow and return a session with the
+    resulting session cookie set (mirrors the browser session-login path)."""
+    session = requests.Session()
+    # Step 1: initiate session login — follow redirects to the mock's authorize page
+    resp = session.get(
+        f"{get_medlogserver_base_url()}/api/auth/oidc/login/{provider_slug}/session",
+        allow_redirects=True,
+    )
+    resp.raise_for_status()
+    # Step 2: submit the user selection — follow redirect to MedLog callback → session cookie
+    resp = session.post(resp.url, data={"sub": sub}, allow_redirects=True)
+    resp.raise_for_status()
+    return session
+
+
 def authorize_for_session(username, pw) -> requests.Session:
     session = requests.Session()
     response = req(
