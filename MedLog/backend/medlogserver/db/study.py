@@ -65,7 +65,7 @@ class StudyCRUD(
         show_deactivated: bool = False,
         raise_exception_if_none: Exception = None,
     ) -> Optional[Study]:
-        query = select(Study).where(Study.name == study_name)
+        query = select(Study).where(Study.display_name == study_name)
         if not show_deactivated:
             query = query.where(Study.deactivated == False)
 

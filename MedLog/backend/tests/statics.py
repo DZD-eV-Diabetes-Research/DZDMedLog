@@ -12,3 +12,10 @@ SYSTEM_ANNOUNCEMENTS = [
     {"type": "info", "public": True, "message": "This is a public message"},
     {"type": "alert", "public": False, "message": "This is a non-public alert"},
 ]
+
+# OIDC mock constants — consumed by tests_oidc_mapping.py and main.py
+OIDC_TEST_PROVIDER_DISPLAY_NAME = "LocalTestOIDC"
+OIDC_TEST_PROVIDER_SLUG = "localtestoidc"
+OIDC_TEST_STUDY_NAME = "OidcPermissionTestStudy"
+OIDC_TEST_ROLE_GROUP = "oidc-group-admins"
+OIDC_TEST_INTERVIEWER_GROUP = "oidc-group-interviewers"

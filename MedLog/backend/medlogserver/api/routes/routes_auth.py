@@ -1,7 +1,10 @@
-import uuid
-from typing import Optional, List, Literal, Annotated
-from urllib.parse import urlencode
+from typing import Optional, Union, List, Annotated
+from pydantic import BaseModel, Field, ValidationError
 from datetime import datetime
+from fastapi import FastAPI, Request, Depends, Response, HTTPException, status
+from fastapi.responses import RedirectResponse, JSONResponse
+from sqlmodel import SQLModel, Session, create_engine, select
+from authlib.integrations.starlette_client import OAuth
 
 from pydantic import BaseModel, Field
 from fastapi import (
@@ -24,7 +27,15 @@ from medlogserver.db.user import UserCRUD
 from medlogserver.model.user import User, UserCreate, UserRegisterAPI
 from medlogserver.db.user_auth import UserAuthCRUD
 from medlogserver.db.user_session import UserSessionCRUD
-from medlogserver.model.user_auth import UserAuth, UserAuthCreate, AllowedAuthSchemeType
+from medlogserver.db.study import StudyCRUD
+from medlogserver.db.study_permission import StudyPermissonCRUD
+from medlogserver.api.auth.oidc_mappings import apply_oidc_group_mappings
+from medlogserver.model.user_auth import (
+    UserAuth,
+    UserAuthCreate,
+    AllowedAuthSchemeType,
+)
+
 from medlogserver.model.user_session import UserSession, UserSessionCreate
 from medlogserver.api.auth.security import (
     SESSION_COOKIE_NAME,
@@ -300,6 +311,8 @@ async def auth_oidc_callback(
     user_crud: UserCRUD = Depends(UserCRUD.get_crud),
     user_session_crud: UserSessionCRUD = Depends(UserSessionCRUD.get_crud),
     user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
+    study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
+    study_permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
 ):
     # Retrieve the original path from session
     target_path: str = request.session.pop("target_path", "/")
@@ -325,8 +338,6 @@ async def auth_oidc_callback(
     )
     user = await user_crud.get_by_user_name(user_name=userinfo.preferred_username)
     if user is None and oauth_config.AUTO_CREATE_AUTHORIZED_USER:
-        from pydantic import ValidationError
-
         try:
             user_create = UserCreate.from_oidc_userinfo(userinfo)
         except ValidationError as e:
@@ -337,6 +348,14 @@ async def auth_oidc_callback(
         user: User = await user_crud.create(user_create)
     elif user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    user = await apply_oidc_group_mappings(
+        user=user,
+        userinfo=userinfo,
+        provider_config=oauth_config,
+        user_crud=user_crud,
+        study_permission_crud=study_permission_crud,
+        study_crud=study_crud,
+    )
     user_auth = await user_auth_crud.create(
         UserAuthCreate(
             user_id=user.id,

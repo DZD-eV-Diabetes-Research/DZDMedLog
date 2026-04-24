@@ -49,6 +49,43 @@ def authorize_for_access_token(
     return response["access_token"]
 
 
+def oidc_login_get_token(provider_slug: str, sub: str) -> str:
+    """Drive the full OIDC authorization-code flow without a browser.
+
+    The mock server's POST /oauth2/authorize accepts a 'sub' form field to
+    directly issue an auth code, so we can simulate a user picking their
+    account from the login page.
+    """
+    session = requests.Session()
+    # Step 1: initiate token login — follow redirects to the mock's authorize page
+    resp = session.get(
+        f"{get_medlogserver_base_url()}/api/auth/oidc/login/{provider_slug}/token",
+        allow_redirects=True,
+    )
+    resp.raise_for_status()
+    # resp.url is now the OIDC mock's /oauth2/authorize?state=...&...
+    # Step 2: submit the user selection — follow redirect to MedLog's callback → token JSON
+    resp = session.post(resp.url, data={"sub": sub}, allow_redirects=True)
+    resp.raise_for_status()
+    return resp.json()["access_token"]
+
+
+def oidc_login_get_session(provider_slug: str, sub: str) -> requests.Session:
+    """Drive the full OIDC authorization-code flow and return a session with the
+    resulting session cookie set (mirrors the browser session-login path)."""
+    session = requests.Session()
+    # Step 1: initiate session login — follow redirects to the mock's authorize page
+    resp = session.get(
+        f"{get_medlogserver_base_url()}/api/auth/oidc/login/{provider_slug}/session",
+        allow_redirects=True,
+    )
+    resp.raise_for_status()
+    # Step 2: submit the user selection — follow redirect to MedLog callback → session cookie
+    resp = session.post(resp.url, data={"sub": sub}, allow_redirects=True)
+    resp.raise_for_status()
+    return session
+
+
 def authorize_for_session(username, pw) -> requests.Session:
     session = requests.Session()
     response = req(

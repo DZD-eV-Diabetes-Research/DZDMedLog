@@ -291,6 +291,29 @@ class Config(BaseSettings):
             default_factory=dict,
             description="""A JSON to map OIDC groups to DZDMedLog Roles. e.g. `{"oidc_appadmins":["medlog-user-manager"],"admins":["medlog-admins"]}`""",
         )
+        STUDY_PERMISSION_MAPPING: Dict[str, Dict[str, List[str]]] = Field(
+            default_factory=dict,
+            description="Map study permissions to membership in OIDC groups. Allowed permissions are is_study_interviewer, is_study_viewer, is_study_admin",
+            examples=[
+                dedent("""{
+                            "MyStudyName": {
+                                "medlog-oidc-group-interviewer": [
+                                "is_study_interviewer"
+                                ],
+                                "medlog-oidc-group-exporter": [
+                                "is_study_viewer"
+                                ],
+                                "medlog-oidc-group-admin": [
+                                "is_study_admin"
+                                ],
+                                "medlog-oidc-group-user-manager": [
+                                "is_study_admin"
+                                ]
+                            }
+                            }
+                       """)
+            ],
+        )
 
     AUTH_OIDC_TOKEN_STORAGE_SECRET: Optional[str] = Field(
         description="Random string to encrypt the oidc access and refresh token for storing it in the database.",

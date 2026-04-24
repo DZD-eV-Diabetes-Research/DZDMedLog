@@ -24,6 +24,11 @@ from statics import (
     ADMIN_USER_NAME,
     DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB,
     SYSTEM_ANNOUNCEMENTS,
+    OIDC_TEST_PROVIDER_DISPLAY_NAME,
+    OIDC_TEST_PROVIDER_SLUG,
+    OIDC_TEST_STUDY_NAME,
+    OIDC_TEST_ROLE_GROUP,
+    OIDC_TEST_INTERVIEWER_GROUP,
 )
 
 
@@ -53,6 +58,87 @@ def set_config_for_test_env():
 
 
 set_config_for_test_env()
+
+# ── OIDC mock setup ───────────────────────────────────────────────────────────
+_OIDC_TEST_USERS = [
+    {
+        "sub": "oidc-role-test-user",
+        "userinfo": {
+            "name": "oidc-role-test-user",
+            "email": "oidc-role-test@test.com",
+            "given_name": "OIDC Role Test",
+            "groups": [OIDC_TEST_ROLE_GROUP],
+        },
+    },
+    {
+        "sub": "oidc-relogin-test-user",
+        "userinfo": {
+            "name": "oidc-relogin-test-user",
+            "email": "oidc-relogin-test@test.com",
+            "given_name": "OIDC Relogin Test",
+            "groups": [OIDC_TEST_ROLE_GROUP],
+        },
+    },
+    {
+        "sub": "oidc-study-perm-test-user",
+        "userinfo": {
+            "name": "oidc-study-perm-test-user",
+            "email": "oidc-study-perm-test@test.com",
+            "given_name": "OIDC Study Perm Test",
+            "groups": [OIDC_TEST_INTERVIEWER_GROUP],
+        },
+    },
+]
+
+_oidc_mock_server = None
+
+
+def setup_oidc_mock_for_tests():
+    global _oidc_mock_server
+    try:
+        import oidc_provider_mock
+        import requests as _requests
+    except ImportError:
+        print("WARNING: oidc_provider_mock not installed — skipping OIDC test setup")
+        return
+
+    ctx = oidc_provider_mock.run_server_in_thread(port=0)
+    server = ctx.__enter__()
+    _oidc_mock_server = (ctx, server)
+
+    mock_url = f"http://localhost:{server.server_port}"
+    os.environ["OIDC_MOCK_SERVER_URL"] = mock_url
+    print(f"OIDC mock server started at {mock_url}")
+
+    for user in _OIDC_TEST_USERS:
+        res = _requests.put(f"{mock_url}/users/{user['sub']}", json=user)
+        res.raise_for_status()
+        print(f"Provisioned OIDC test user: {user['sub']}")
+
+    provider_config = {
+        "PROVIDER_DISPLAY_NAME": OIDC_TEST_PROVIDER_DISPLAY_NAME,
+        "CONFIGURATION_ENDPOINT": f"{mock_url}/.well-known/openid-configuration",
+        "CLIENT_ID": "test-client-id",
+        "CLIENT_SECRET": "test-client-secret",
+        "USER_NAME_ATTRIBUTE": "name",
+        "USER_DISPLAY_NAME_ATTRIBUTE": "given_name",
+        "USER_MAIL_ATTRIBUTE": "email",
+        "USER_GROUPS_ATTRIBUTE": "groups",
+        "ROLE_MAPPING": {OIDC_TEST_ROLE_GROUP: ["medlog-admin"]},
+        "STUDY_PERMISSION_MAPPING": {
+            OIDC_TEST_STUDY_NAME: {
+                OIDC_TEST_INTERVIEWER_GROUP: ["is_study_interviewer"],
+            }
+        },
+    }
+    os.environ["AUTH_OIDC_TOKEN_STORAGE_SECRET"] = "oidc-test-storage-secret-42"
+    os.environ["AUTH_OIDC_PROVIDERS"] = json.dumps([provider_config])
+    print(f"OIDC provider configured with slug '{OIDC_TEST_PROVIDER_SLUG}'")
+
+
+multiprocessing.set_start_method("fork")  # must be set before mock server starts
+setup_oidc_mock_for_tests()
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 from utils import (
@@ -87,9 +173,6 @@ if RESET_DB:
         print(
             "WARNING: RESET_DB is enabled but SQL_DATABASE_URL is set to an external database. Can not reset the DB. This must be done externaly."
         )
-if __name__ == "__main__":
-    multiprocessing.set_start_method("fork")  # explicit, works on Linux/Mac
-
 from medlogserver.main import start as medlogserver_start
 from medlogserver.worker.worker import run_background_worker
 
