@@ -1,40 +1,30 @@
-from typing import Optional, Union
+from typing import Optional, Union, List, Annotated
 from pydantic import BaseModel, Field, ValidationError
+from datetime import datetime
 from fastapi import FastAPI, Request, Depends, Response, HTTPException, status
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlmodel import SQLModel, Session, create_engine, select
 from authlib.integrations.starlette_client import OAuth
 
-from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import List, Literal, Annotated, NoReturn
-from typing_extensions import Self
+from pydantic import BaseModel, Field
 from fastapi import (
+    Request,
+    Depends,
     HTTPException,
     status,
     Security,
-    Depends,
     APIRouter,
     Form,
-    Header,
-    Query,
-    Request,
 )
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-
-
+from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.security import OAuth2PasswordRequestForm, HTTPAuthorizationCredentials
 from authlib.integrations.base_client.errors import OAuthError
-
 
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model.auth_scheme_info import AuthSchemeInfo
-
-
-#
-
-from medlogserver.db.user import UserCRUD, UserCreate
-from medlogserver.model.user import UserCreate, UserRegisterAPI
+from medlogserver.db.user import UserCRUD
+from medlogserver.model.user import User, UserCreate, UserRegisterAPI
 from medlogserver.db.user_auth import UserAuthCRUD
 from medlogserver.db.user_session import UserSessionCRUD
 from medlogserver.db.study import StudyCRUD
@@ -45,23 +35,19 @@ from medlogserver.model.user_auth import (
     UserAuthCreate,
     AllowedAuthSchemeType,
 )
+
+from medlogserver.model.user_session import UserSession, UserSessionCreate
 from medlogserver.api.auth.security import (
     SESSION_COOKIE_NAME,
     oauth_clients,
     get_current_user,
-    get_current_user_auth,
+    api_token_security,
 )
-from medlogserver.model.user import User
-from medlogserver.model.user_session import UserSession, UserSessionCreate
 from medlogserver.api.auth.utils import (
     get_userinfo_from_token_or_endpoint,
     get_access_token_expires_at_value_from_token,
     generate_client_session_id,
-    revoke_oidc_token,
 )
-
-from medlogserver.config import Config
-from medlogserver.log import get_logger
 
 log = get_logger()
 config = Config()
@@ -421,30 +407,59 @@ async def auth_oidc_callback(
 @fast_api_auth_base_router.post("/auth/logout")
 async def logout(
     request: Request,
-    current_user_auth: UserAuth = Depends(get_current_user_auth),
     user_session_crud: UserSessionCRUD = Depends(UserSessionCRUD.get_crud),
     user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
+    api_token: Optional[HTTPAuthorizationCredentials] = Depends(api_token_security),
 ):
-    if current_user_auth.auth_source_type in [
-        AllowedAuthSchemeType.oidc,
-        AllowedAuthSchemeType.basic,
-    ]:
-        user_session = await user_session_crud.get_by_user_auth_id(current_user_auth.id)
-        await user_session_crud.delete(user_session.id)
+    # Session-based logout
+    session_cookie = request.cookies.get(SESSION_COOKIE_NAME)
+    if session_cookie:
+        try:
+            session = await user_session_crud.get(uuid.UUID(session_cookie))
+        except Exception:
+            session = None
+
+        if session:
+            user_auth = await user_auth_crud.get(session.user_auth_id)
+            await user_session_crud.delete(session.id)
+            await user_auth_crud.delete(user_auth.id)
+
+            if user_auth.auth_source_type == AllowedAuthSchemeType.oidc:
+                oidc_token = user_auth.get_decrypted_oidc_token()
+                id_token = oidc_token.get("id_token")
+                oauth_client = oauth_clients[user_auth.oidc_provider_slug]
+                server_metadata = await oauth_client.client.load_server_metadata()
+                end_session_endpoint = server_metadata.get("end_session_endpoint")
+
+                if end_session_endpoint:
+                    params = {"post_logout_redirect_uri": str(request.base_url)}
+                    if id_token:
+                        params["id_token_hint"] = id_token
+                    end_session_url = f"{end_session_endpoint}?{urlencode(params)}"
+                    response = JSONResponse(
+                        content={
+                            "message": "Logged out successfully",
+                            "end_session_url": end_session_url,
+                        }
+                    )
+                    response.delete_cookie(SESSION_COOKIE_NAME)
+                    return response
+
         response = JSONResponse(content={"message": "Logged out successfully"})
-        log.debug(f"current_user_auth: {current_user_auth}")
-        if current_user_auth.auth_source_type == AllowedAuthSchemeType.oidc:
-            # delete local oidc token storage
+        response.delete_cookie(SESSION_COOKIE_NAME)
+        return response
 
-            refresh_token = current_user_auth.get_decrypted_oidc_token().get(
-                "refresh_token"
+    # API token-based logout: delete only the token record itself
+    if api_token:
+        token = api_token.credentials
+        try:
+            token_id = token.split(".", maxsplit=1)[0]
+            token_user_auth = await user_auth_crud.get_api_token_by_id(
+                token_id=token_id
             )
-            await user_auth_crud.delete(id=current_user_auth.id)
+            if token_user_auth:
+                await user_auth_crud.delete(id=token_user_auth.id)
+        except Exception:
+            pass
 
-            # revoke token
-
-            oauth_client = oauth_clients[current_user_auth.oidc_provider_slug]
-            await revoke_oidc_token(oauth_client=oauth_client, token=refresh_token)
-
-    elif current_user_auth.auth_source_type == AllowedAuthSchemeType.api_token:
-        await user_auth_crud.delete(id=current_user_auth.id)
+    return JSONResponse(content={"message": "Logged out successfully"})
