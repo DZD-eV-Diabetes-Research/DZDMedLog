@@ -120,31 +120,6 @@ async def oidc_refresh_access_token(
     return user_auth
 
 
-async def revoke_oidc_token(oauth_client: OAuthContainer, token: str):
-
-    # Nothing to do if no token
-    if token is None:
-        return None
-
-    oauth_client_metadata = await oauth_client.client.load_server_metadata()
-
-    revocation_endpoint = oauth_client_metadata.get("revocation_endpoint")
-    if revocation_endpoint is None:
-        # no revocation endpoint. nothing to revoke
-        log.debug(
-            f"Can not revoke token because there is no revocation_endpoint declared by the oauth provider"
-        )
-        return None
-    resp = await oauth_client.client.post(
-        revocation_endpoint,
-        data={"token": token, "token_type_hint": "access_token"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        auth=(oauth_client.client.client_id, oauth_client.client.client_secret),
-    )
-    if resp.status_code != 200:
-        log.error(resp)
-    return
-
 
 async def _get_api_token_user_auth(
     user_auth_crud: UserAuthCRUD, token: str
