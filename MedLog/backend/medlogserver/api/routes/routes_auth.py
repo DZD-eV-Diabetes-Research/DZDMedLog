@@ -37,6 +37,9 @@ from medlogserver.db.user import UserCRUD, UserCreate
 from medlogserver.model.user import UserCreate, UserRegisterAPI
 from medlogserver.db.user_auth import UserAuthCRUD
 from medlogserver.db.user_session import UserSessionCRUD
+from medlogserver.db.study import StudyCRUD
+from medlogserver.db.study_permission import StudyPermissonCRUD
+from medlogserver.api.auth.oidc_mappings import apply_oidc_group_mappings
 from medlogserver.model.user_auth import (
     UserAuth,
     UserAuthCreate,
@@ -322,6 +325,8 @@ async def auth_oidc_callback(
     user_crud: UserCRUD = Depends(UserCRUD.get_crud),
     user_session_crud: UserSessionCRUD = Depends(UserSessionCRUD.get_crud),
     user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
+    study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
+    study_permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
 ):
     # Retrieve the original path from session
     target_path: str = request.session.pop("target_path", "/")
@@ -357,6 +362,14 @@ async def auth_oidc_callback(
         user: User = await user_crud.create(user_create)
     elif user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    user = await apply_oidc_group_mappings(
+        user=user,
+        userinfo=userinfo,
+        provider_config=oauth_config,
+        user_crud=user_crud,
+        study_permission_crud=study_permission_crud,
+        study_crud=study_crud,
+    )
     user_auth = await user_auth_crud.create(
         UserAuthCreate(
             user_id=user.id,
