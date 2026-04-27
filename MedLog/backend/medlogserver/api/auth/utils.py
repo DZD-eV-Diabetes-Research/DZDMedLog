@@ -92,21 +92,22 @@ async def oidc_refresh_access_token(
     # sanity check
     assert user_session.user_auth_id == user_auth.id
     old_token = user_auth.get_decrypted_oidc_token()
-    log.debug(f"old_token: {old_token}")
+    refresh_token = old_token.get("refresh_token")
+    if not refresh_token:
+        log.warning("OIDC token refresh failed: no refresh_token stored for this session")
+        if raise_custom_expection_if_fails:
+            raise raise_custom_expection_if_fails
+        raise ValueError("No refresh_token available")
     try:
-        oidc_server_metadata = await oauth_client.client.load_server_metadata()
-        token_endpoint = oidc_server_metadata.get("token_endpoint", None)
-        refresh_token = old_token.get("refresh_token")
-        log.debug(f"refresh_token: {refresh_token}")
+        # fetch_access_token loads the token_endpoint from server metadata internally.
+        # Do NOT pass token_endpoint as a positional arg — the first param is redirect_uri.
         new_access_token = await oauth_client.client.fetch_access_token(
-            token_endpoint,
-            refresh_token=refresh_token,
             grant_type="refresh_token",
+            refresh_token=refresh_token,
         )
         user_auth.update_oidc_token(new_access_token)
     except Exception as e:
-        log.debug(f"REFRESH OIDC TOKEN FAILED. Error: {e}", exc_info=True)
-        # log.error(e)
+        log.error(f"OIDC token refresh failed for provider '{oauth_client.config.get_provider_name_slug()}': {e}", exc_info=True)
         if raise_custom_expection_if_fails:
             raise raise_custom_expection_if_fails
         raise e

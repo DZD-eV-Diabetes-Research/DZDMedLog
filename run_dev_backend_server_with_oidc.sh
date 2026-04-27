@@ -33,20 +33,45 @@ export SERVER_HOSTNAME=localhost
 #######################################
 export AUTH_OIDC_TOKEN_STORAGE_SECRET=qi3we7gaukb
 
-PROVIDER_DISPLAY_NAME="LocalDevLogin"
-CONFIGURATION_ENDPOINT=http://localhost:8884/.well-known/openid-configuration
-CLIENT_ID=devdummyid1345
-CLIENT_SECRET=devdummysecrect1345
-USER_NAME_ATTRIBUTE=name
-USER_DISPLAY_NAME_ATTRIBUTE=given_name
-USER_MAIL_ATTRIBUTE=email
-USER_GROUPS_ATTRIBUTE=groups
-TOKEN_STORAGE_SECRET=asuizfqwhj
 
-# Using EOF/heredoc to avoid excessive escaping
-export AUTH_OIDC_PROVIDERS=$(cat <<EOF
-[{"AUTO_LOGIN": true, "PROVIDER_DISPLAY_NAME": "${PROVIDER_DISPLAY_NAME}","CONFIGURATION_ENDPOINT":"${CONFIGURATION_ENDPOINT}","CLIENT_ID":"${CLIENT_ID}","CLIENT_SECRET":"${CLIENT_SECRET}","USER_NAME_ATTRIBUTE":"${USER_NAME_ATTRIBUTE}","USER_DISPLAY_NAME_ATTRIBUTE":"${USER_DISPLAY_NAME_ATTRIBUTE}","USER_MAIL_ATTRIBUTE":"${USER_MAIL_ATTRIBUTE}","USER_GROUPS_ATTRIBUTE": "${USER_GROUPS_ATTRIBUTE}"}, 
-{"PROVIDER_DISPLAY_NAME": "${PROVIDER_DISPLAY_NAME} Nr 2","CONFIGURATION_ENDPOINT":"${CONFIGURATION_ENDPOINT}","CLIENT_ID":"${CLIENT_ID}","CLIENT_SECRET":"${CLIENT_SECRET}","USER_NAME_ATTRIBUTE":"${USER_NAME_ATTRIBUTE}","USER_DISPLAY_NAME_ATTRIBUTE":"${USER_DISPLAY_NAME_ATTRIBUTE}","USER_MAIL_ATTRIBUTE":"${USER_MAIL_ATTRIBUTE}","USER_GROUPS_ATTRIBUTE": "${USER_GROUPS_ATTRIBUTE}"}]
+export AUTH_OIDC_PROVIDERS=$(cat <<'EOF'
+[
+  {
+    "AUTO_LOGIN": true,
+    "PROVIDER_DISPLAY_NAME": "LocalDevLogin",
+    "CONFIGURATION_ENDPOINT": "http://localhost:8884/.well-known/openid-configuration",
+    "CLIENT_ID": "devdummyid1345",
+    "CLIENT_SECRET": "devdummysecrect1345",
+    "USER_NAME_ATTRIBUTE": "name",
+    "USER_DISPLAY_NAME_ATTRIBUTE": "given_name",
+    "USER_MAIL_ATTRIBUTE": "email",
+    "USER_GROUPS_ATTRIBUTE": "groups",
+    "ROLE_MAPPING": {
+      "medlog-admins": ["medlog-admin"],
+      "admins": ["medlog-admin"]
+    },
+    "STUDY_PERMISSION_MAPPING": {
+      "study1": {
+        "interviewer-study1": ["is_study_interviewer"]
+      }
+    }
+  },
+  {
+    "PROVIDER_DISPLAY_NAME": "LocalDevLogin Nr 2",
+    "CONFIGURATION_ENDPOINT": "http://localhost:8884/.well-known/openid-configuration",
+    "CLIENT_ID": "devdummyid1345",
+    "CLIENT_SECRET": "devdummysecrect1345",
+    "USER_NAME_ATTRIBUTE": "name",
+    "USER_DISPLAY_NAME_ATTRIBUTE": "given_name",
+    "USER_MAIL_ATTRIBUTE": "email",
+    "USER_GROUPS_ATTRIBUTE": "groups",
+    "STUDY_PERMISSION_MAPPING": {
+      "study1": {
+        "interviewer-study1": ["is_study_interviewer"]
+      }
+    }
+  }
+]
 EOF
 )
 

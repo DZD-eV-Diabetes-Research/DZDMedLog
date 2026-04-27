@@ -20,10 +20,11 @@ users:
     userinfo:
       name: user1
       email: user1@test.com
-      given_name: User One
+      given_name: User One (Interviewer for study1)
       groups:
         - others
         - icecream-lovers
+        - interviewer-study1
   - sub: user2
     userinfo:
       name: user2
