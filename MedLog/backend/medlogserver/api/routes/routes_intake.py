@@ -129,7 +129,7 @@ async def create_intake(
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> Intake:
-    if not study_access.user_is_study_interviewer:
+    if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not allowed to create intake",
@@ -204,7 +204,7 @@ async def update_intake(
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ) -> Intake:
-    if not study_access.user_is_study_interviewer:
+    if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not allowed to create intake",
@@ -230,7 +230,7 @@ async def delete_intake(
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ):
-    if not study_access.user_is_study_interviewer:
+    if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not allowed to create intake",
