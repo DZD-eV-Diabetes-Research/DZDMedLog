@@ -42,6 +42,10 @@ class UserStudyAccess:
     ):
         if self.user.is_admin():
             return True
+        elif self.user.is_usermanager() and as_role in (None, "viewer"):
+            # user-managers can view/list all studies for permission-management purposes;
+            # elevated roles (interviewer, admin) still require explicit study permissions
+            return True
         elif self.study.no_permissions:
             # the study has access permission switched off. all user have access
             return True
@@ -59,6 +63,7 @@ class UserStudyAccess:
                 )
             elif as_role == "admin":
                 return self.user_study_perm.is_study_admin
+        return False
 
     def user_is_study_interviewer(self) -> bool:
         return self.user_has_access(as_role="interviewer")
@@ -99,14 +104,15 @@ class UserStudyAccessCollection:
         else:
             studies_data = await study_crud.list(show_deactivated=True)
         if self.user.is_usermanager():
-            # lets save us permission data gathering. the user is admin or usermanager; can at least list all studies
+            # Pre-populate all studies with no-perm access so usermanagers can list/view all studies
             for study in studies_data:
                 if study is not None:
                     self.studies_access[study.id] = UserStudyAccess(
                         self.user, study, None
                     )
-            return
 
+        # Load actual study permissions for all users (including usermanagers) so
+        # elevated roles (interviewer, study-admin) are honoured even for usermanagers
         study_permissions = await study_permisson_crud.list(
             filter_user_id=self.user.id, filter_study_id=study_id
         )
