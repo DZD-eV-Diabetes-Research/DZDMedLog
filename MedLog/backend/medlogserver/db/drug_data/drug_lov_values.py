@@ -60,10 +60,8 @@ class DrugAttrFieldLovItemCRUD(
 
         sub_query = (
             select(DrugDataSetVersion.id)
-            .where(
-                DrugDataSetVersion.dataset_source_name == drug_importer.dataset_name
-                and DrugDataSetVersion.is_custom_drugs_collection == False
-            )
+            .where(DrugDataSetVersion.dataset_source_name == drug_importer.dataset_name)
+            .where(DrugDataSetVersion.is_custom_drugs_collection.is_(False))
             .order_by(desc(DrugDataSetVersion.current_active))
             .order_by(desc(DrugDataSetVersion.dataset_version))
             .limit(1)
