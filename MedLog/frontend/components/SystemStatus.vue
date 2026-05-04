@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const drugDbUpdaterStore = useDrugDbUpdaterStore();
 const healthCheckStore = useHealthCheckStore();
+const userStore = useUserStore();
 
 const isDegraded = computed(() => {
   const optionalStatus = [
@@ -14,9 +15,12 @@ const isDegraded = computed(() => {
 });
 const isOK = computed(() => {
   const essentialStatus = [
-    healthCheckStore.healthy,
-    healthCheckStore.fullReport?.db_working
+    healthCheckStore.healthy
   ];
+
+  if (userStore.isLoggedIn) {
+    essentialStatus.push(healthCheckStore.fullReport?.db_working);
+  }
 
   if (essentialStatus.some(status => status === undefined)) {
     return undefined;
@@ -38,22 +42,24 @@ const isOK = computed(() => {
           <dt>Gesamtzustand</dt>
           <dd><StatusBadge :value="healthCheckStore.healthy" /></dd>
         </dl>
-        <UDivider label="Anwendung" />
-        <dl>
-          <dt>Datenbank bereit</dt>
-          <dd><StatusBadge :value="healthCheckStore.fullReport?.db_working" /></dd>
-          <dt>Worker zuletzt erfolgreich</dt>
-          <dd><StatusBadge :value="healthCheckStore.fullReport?.last_worker_run_succesfull" /></dd>
-        </dl>
-        <UDivider label="Arzneimitteldatenbank" />
-        <dl>
-          <dt>Arzneimittel importiert</dt>
-          <dd><StatusBadge :value="healthCheckStore.fullReport?.drugs_imported" fail-label="Nein" /></dd>
-          <dt>Einsatzbereit</dt>
-          <dd><StatusBadge :value="drugDbUpdaterStore.status?.current_drug_data_ready_to_use" fail-label="Nein" /></dd>
-          <dt>Suchindex funktionsfähig</dt>
-          <dd><StatusBadge :value="healthCheckStore.fullReport?.drug_search_index_working" fail-label="Nein" /></dd>
-        </dl>
+        <template v-if="userStore.isLoggedIn">
+          <UDivider label="Anwendung" />
+          <dl>
+            <dt>Datenbank bereit</dt>
+            <dd><StatusBadge :value="healthCheckStore.fullReport?.db_working" /></dd>
+            <dt>Worker zuletzt erfolgreich</dt>
+            <dd><StatusBadge :value="healthCheckStore.fullReport?.last_worker_run_succesfull" /></dd>
+          </dl>
+          <UDivider label="Arzneimitteldatenbank" />
+          <dl>
+            <dt>Arzneimittel importiert</dt>
+            <dd><StatusBadge :value="healthCheckStore.fullReport?.drugs_imported" fail-label="Nein" /></dd>
+            <dt>Einsatzbereit</dt>
+            <dd><StatusBadge :value="drugDbUpdaterStore.status?.current_drug_data_ready_to_use" fail-label="Nein" /></dd>
+            <dt>Suchindex funktionsfähig</dt>
+            <dd><StatusBadge :value="healthCheckStore.fullReport?.drug_search_index_working" fail-label="Nein" /></dd>
+          </dl>
+        </template>
       </div>
     </template>
   </UPopover>
