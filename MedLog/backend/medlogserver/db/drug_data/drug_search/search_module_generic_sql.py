@@ -66,6 +66,7 @@ class GenericSQLDrugSearchState(SQLModel, table=True):
     __tablename__ = "drug_search_generic_sql_state"
     dummy_pk: int = Field(default=1, primary_key=True)
     index_build_up_in_process: bool = Field(default=False)
+    index_build_started_at: Optional[datetime.datetime] = Field(default=None)
     last_index_build_at: Optional[datetime.datetime] = Field(default=None)
     last_index_build_based_on_drug_datasetversion_id: Optional[uuid.UUID] = Field(
         default=None, foreign_key="drug_dataset_version.id"
@@ -152,10 +153,29 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         custom_drug_dataset_version = await self._get_custom_drugs_dataset_version()
         state = await self._get_state()
         if state.index_build_up_in_process:
-            log.warning(
-                "Cancel build_index for 'GenericSQLDrugSearchEngine'-Engine because build up is allready in progress"
+            # A stale lock means the previous build process was killed (e.g. container restart)
+            # without clearing index_build_up_in_process. Detect this by checking how long ago
+            # the build started; if no timestamp exists the record predates this check and is stale.
+            stale_lock_threshold_hours = 6
+            now = get_now_datetime()
+            is_stale = (
+                state.index_build_started_at is None
+                or (now - state.index_build_started_at).total_seconds()
+                > stale_lock_threshold_hours * 3600
             )
-            return
+            if is_stale:
+                log.warning(
+                    f"Stale index build lock detected (started_at={state.index_build_started_at}). "
+                    "Previous build likely crashed or the container was restarted. "
+                    "Resetting lock and rebuilding index."
+                )
+                state.index_build_up_in_process = False
+                await self._save_state(state)
+            else:
+                log.warning(
+                    "Cancel build_index for 'GenericSQLDrugSearchEngine'-Engine because build up is already in progress"
+                )
+                return
         if (
             state.last_index_build_based_on_drug_datasetversion_id
             == target_drug_dataset_version.id
@@ -167,6 +187,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             return
 
         state.index_build_up_in_process = True
+        state.index_build_started_at = get_now_datetime()
         index_item_count = None
         await self._save_state(state)
         try:
@@ -186,11 +207,13 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             # ToDo. We need an extra session here. when there is an sql error the state read/write will be prevented
             state = await self._get_state()
             state.index_build_up_in_process = False
+            state.index_build_started_at = None
             state.last_error = repr(traceback.format_exc())
             await self._save_state(state)
             raise err
         state = await self._get_state()
         state.index_build_up_in_process = False
+        state.index_build_started_at = None
         state.last_index_build_at = get_now_datetime()
         state.last_index_build_based_on_drug_datasetversion_id = (
             target_drug_dataset_version.id
