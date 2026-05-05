@@ -105,17 +105,12 @@ async def _fence_stale_running_jobs():
                 "previous worker process. Closing them as FAILED."
             )
             for job in stale_jobs:
-                await worker_job_crud.update(
-                    WorkerJobUpdate(
-                        id=job.id,
-                        run_finished_at=get_now_datetime(),
-                        last_error=(
-                            "Job was interrupted before completion "
-                            "(worker process restarted). "
-                            "See issue #285."
-                        ),
-                    )
+                job.tags = list(job.tags) + ["closedByWorkerRestart"]
+                job.run_finished_at = get_now_datetime()
+                job.last_error = (
+                    "Job was interrupted before completion (worker process restarted)."
                 )
+                await worker_job_crud.update(job)
 
 
 async def _inital_setup_scheduled_background_tasks() -> AsyncIOScheduler:

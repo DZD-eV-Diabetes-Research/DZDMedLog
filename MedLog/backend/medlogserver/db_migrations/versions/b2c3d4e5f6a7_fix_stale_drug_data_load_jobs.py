@@ -34,10 +34,15 @@ def upgrade():
     # introduced will contain the substring "appVersion:" in that column.
     # We only close jobs that pre-date the fix (no version tag) to avoid
     # accidentally killing jobs from a version that already has the fix.
+    # The "closedByMigration" tag is appended so the status endpoint can
+    # exclude these from error reporting without hiding real failures.
     op.execute(
         sa.text(
             "UPDATE worker_job "
-            "SET run_finished_at = CURRENT_TIMESTAMP, last_error = :msg "
+            "SET run_finished_at = CURRENT_TIMESTAMP, "
+            "    last_error = :msg, "
+            "    tags = CASE WHEN tags IS NULL THEN 'closedByMigration' "
+            "                ELSE tags || ',closedByMigration' END "
             "WHERE task_name = 'DRUG_DATA_LOAD' "
             "  AND run_started_at IS NOT NULL "
             "  AND run_finished_at IS NULL "
