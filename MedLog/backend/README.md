@@ -42,3 +42,5 @@ Start server without background worker
 
 Start extra container with background worker
 `docker run -v ./data:/data -e BACKGROUND_WORKER_IN_EXTRA_PROCESS=false dzdde/dzdmedlog-server --run_worker_only`
+
+> test comment. ignore this
