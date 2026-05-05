@@ -13,11 +13,11 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from medlogserver.db._session import get_async_session_context
 from medlogserver.db.worker_job import WorkerJobCRUD
-from medlogserver.model.worker_job import WorkerJob
+from medlogserver.model.worker_job import WorkerJob, WorkerJobUpdate, WorkerJobState
 from medlogserver.worker.tasks import Tasks, import_task_class
 from medlogserver.worker.task import task_runner
 
-from medlogserver.utils import get_default_file_data
+from medlogserver.utils import get_default_file_data, get_now_datetime
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.log import _log_queue
@@ -82,8 +82,45 @@ async def _wait_for_datascheme_healthy(timeout_sec=60):
         await asyncio.sleep(1)
 
 
+async def _fence_stale_running_jobs():
+    """On worker startup, close any ad-hoc jobs stuck in RUNNING state.
+
+    If the worker process was killed mid-job (e.g. container restart), one-shot
+    ad-hoc jobs are left with run_started_at set but run_finished_at never written.
+    They would stay RUNNING forever because nothing re-triggers them.
+
+    Interval jobs are intentionally excluded: the scheduler overwrites run_started_at
+    on every tick, so they recover on their own without intervention.
+    """
+    async with get_async_session_context() as session:
+        async with WorkerJobCRUD.crud_context(session) as worker_job_crud:
+            stale_jobs = await worker_job_crud.list(
+                filter_job_state=WorkerJobState.RUNNING,
+                filter_intervalled_job=False,
+            )
+            if not stale_jobs:
+                return
+            log.warning(
+                f"Found {len(stale_jobs)} ad-hoc job(s) stuck in RUNNING state from a "
+                "previous worker process. Closing them as FAILED."
+            )
+            for job in stale_jobs:
+                await worker_job_crud.update(
+                    WorkerJobUpdate(
+                        id=job.id,
+                        run_finished_at=get_now_datetime(),
+                        last_error=(
+                            "Job was interrupted before completion "
+                            "(worker process restarted). "
+                            "See issue #285."
+                        ),
+                    )
+                )
+
+
 async def _inital_setup_scheduled_background_tasks() -> AsyncIOScheduler:
     await _wait_for_datascheme_healthy()
+    await _fence_stale_running_jobs()
     log.info("Setup background tasks.....")
     background_jobs: List[WorkerJob] = []
     try:

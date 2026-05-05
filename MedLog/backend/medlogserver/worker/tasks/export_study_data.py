@@ -89,11 +89,7 @@ class ExportContainer(BaseModel):
                     for prop_name, prop_value in obj.model_dump(
                         exclude=exclude_set
                     ).items():
-                        log.debug(
-                            f"#####{prop_name} -> prop_value {prop_value} == ValueReferenceCodeNotApplicable: {prop_value == ValueReferenceCodeNotApplicable}"
-                        )
                         if prop_value == ValueReferenceCodeNotApplicable:
-                            log.debug("Continue")
                             continue
                         column_name = f"{obj_name}_{prop_name}"
                         if prop_name.startswith(obj_name):

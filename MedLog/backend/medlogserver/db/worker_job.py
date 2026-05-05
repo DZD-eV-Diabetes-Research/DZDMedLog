@@ -32,6 +32,7 @@ from medlogserver.model.worker_job import (
 from medlogserver.worker.tasks import Tasks
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
+from medlogserver.utils import get_version
 
 log = get_logger()
 config = Config()
@@ -45,6 +46,21 @@ class WorkerJobCRUD(
         update_model=WorkerJobUpdate,
     )
 ):
+    async def create(
+        self,
+        obj: WorkerJobCreate,
+        exists_ok: bool = False,
+        raise_custom_exception_if_exists: Optional[Exception] = None,
+    ) -> WorkerJob:
+        version_tag = f"appVersion:{get_version()}"
+        if version_tag not in obj.tags:
+            obj.tags = list(obj.tags) + [version_tag]
+        return await super().create(
+            obj,
+            exists_ok=exists_ok,
+            raise_custom_exception_if_exists=raise_custom_exception_if_exists,
+        )
+
     async def list(
         self,
         pagination: Optional[QueryParamsInterface] = None,
