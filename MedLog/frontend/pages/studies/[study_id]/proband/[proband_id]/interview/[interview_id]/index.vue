@@ -47,20 +47,84 @@
         </div>
       </UCard>
 
+      <div class="grid grid-cols-2 gap-4">
+        <UCard
+          :class="{
+            'bg-blue-100': drugsAvailableToCopy,
+            'border-blue-400': drugsAvailableToCopy,
+            'bg-gray-100': !drugsAvailableToCopy,
+            'border-gray-400': !drugsAvailableToCopy,
+          }"
+          :ui="{
+            header: {
+              padding: 'pt-5 pb-2'
+            },
+            divide: '',
+            body: {
+              padding: 'py-4 sm:p-4 sm:px-6'
+            },
+          }"
+        >
+          <template #header>
+            <h2 class="text-lg font-semibold">Medikamente übernehmen</h2>
+          </template>
+
+          <p v-if="!latestItems?.length">
+            Es sind keine Medikamente aus einem früheren Interview verfügbar.
+          </p>
+          <p v-else-if="interview?.interview_end_time_utc">
+            Keine Übernahme, da Interview bereits abgeschlossen ist.
+          </p>
+          <p v-else-if="!drugsAvailableToCopy">
+            Medikamentenübernahme nicht verfügbar
+          </p>
+          <p v-else>
+            Datenübernahme aus dem zuletzt geführten Interview
+          </p>
+
+          <div class="text-center mt-2">
+            <CopyPreviousDrugs
+                :deactivated="!drugsAvailableToCopy"
+                :on-update="loadIntakeList"
+            />
+          </div>
+        </UCard>
+        <UCard
+            class="bg-green-100 border-green-400 text-end"
+            :ui="{
+            header: {
+              padding: 'pt-5 pb-2'
+            },
+            divide: '',
+            body: {
+              padding: 'py-4 sm:p-4 sm:px-6'
+            },
+          }"
+        >
+          <template #header>
+            <h2 class="text-lg font-semibold">Einnahme erfassen</h2>
+          </template>
+
+          <p>
+            Datenbankgestützte Erfassung von eingenommenen Medikamenten
+          </p>
+          <div class="text-center mt-2">
+            <UButton
+                class="justify-self-end"
+                label="Medikament erfassen"
+                icon="i-heroicons-plus"
+                @click="openCreateIntakeModal"
+            />
+          </div>
+        </UCard>
+      </div>
+
       <UCard :ui="{ body: { padding: 'py-4 sm:px-0' } }">
         <template #header>
           <div class="flex flex-col">
-            <h2 class="text-lg self-center">Medikationen</h2>
+            <h2 class="text-lg self-center">Eingenommene Medikamente</h2>
             <div class="inline-grid grid-cols-3 justify-items-center">
               <UInput v-model="q" placeholder="Tabelle filtern" autocomplete="off" class="justify-self-start" />
-              <CopyPreviousDrugs
-                  :deactivated="!(!pending && latestItems?.length && !loading && !interview?.interview_end_time_utc)"
-                  :on-update="loadIntakeList" />
-              <UButton
-                  class="justify-self-end"
-                  label="Präparat erfassen"
-                  @click="openCreateIntakeModal"
-              />
             </div>
           </div>
         </template>
@@ -180,6 +244,8 @@ const { data: latestItems, pending } = await useAsyncData(
     }
   )
 );
+
+const drugsAvailableToCopy = computed(() => { return !pending.value && latestItems.value?.length && !loading.value && !interview.value?.interview_end_time_utc})
 
 const createIntakeModalVisible = ref(false);
 
