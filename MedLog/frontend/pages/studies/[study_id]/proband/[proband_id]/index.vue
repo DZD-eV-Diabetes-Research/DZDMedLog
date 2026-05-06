@@ -175,6 +175,7 @@ async function endInterview(eventId: string, interviewId: string) {
   try {
     loading.value = true;
     await interviewStore.endInterview(studyId.value, eventId, interviewId);
+    eventsForProband.value = await useGetEventsByStudyAndProband(studyId.value, probandId.value);
     interviewsForProband.value = await useGetInterviewsByStudyAndProband(studyId.value, probandId.value);
     currentInterview.value = await useGetCurrentInterviewByStudyAndProband(studyId.value, probandId.value);
     lastInterview.value = await useGetLastInterviewByStudyAndProband(studyId.value, probandId.value);
