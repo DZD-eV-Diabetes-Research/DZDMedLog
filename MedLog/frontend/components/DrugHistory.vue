@@ -28,7 +28,14 @@ const filteredRows = computed(() => {
   }
 
   return props.intakes.filter((intake) => {
-    return Object.values(intake).some((value) => {
+    const codes = [];
+    for (const codesKey in intake.drug.codes) {
+      if (intake.drug.codes[codesKey as keyof typeof intake.drug.codes]) {
+        codes.push(intake.drug.codes[codesKey as keyof typeof intake.drug.codes]);
+      }
+    }
+
+    return [intake.drug.trade_name, ...codes].some((value) => {
       return String(value).toLowerCase().includes(tableFilterString.value.toLowerCase())
     })
   })
@@ -46,7 +53,31 @@ const rows = computed(() => {
       <div class="flex flex-col">
         <h2 class="text-lg self-center">{{ title }}</h2>
         <div class="flex flex-row justify-between">
-          <UInput v-model="tableFilterString" placeholder="Tabelle filtern" autocomplete="off" />
+          <UFormGroup label="Tabelle filtern">
+            <template #description>
+              Es werden Namen und Codes durchsucht
+            </template>
+
+            <UInput
+                v-model="tableFilterString"
+                name="tableFilterString"
+                placeholder="Suchbegriff eingeben"
+                icon="i-heroicons-magnifying-glass-20-solid"
+                autocomplete="off"
+                :ui="{ icon: { trailing: { pointer: '' } } }"
+            >
+              <template #trailing>
+                <UButton
+                    v-show="tableFilterString !== ''"
+                    color="gray"
+                    variant="link"
+                    icon="i-heroicons-x-mark-20-solid"
+                    :padded="false"
+                    @click="tableFilterString = ''"
+                />
+              </template>
+            </UInput>
+          </UFormGroup>
         </div>
       </div>
     </template>
