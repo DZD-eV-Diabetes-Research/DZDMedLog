@@ -1,42 +1,30 @@
-from operator import contains
-from pydoc import classify_class_attrs
 from typing import (
     List,
     Callable,
-    Tuple,
     Dict,
     Optional,
-    AsyncIterator,
-    TypeVar,
     Any,
     Literal,
     Type,
     Union,
-    Iterator,
     AsyncGenerator,
     Self,
 )
 import uuid
-from sqlalchemy.orm.collections import InstrumentedList
-import tracemalloc
-import polars
 import time
-import itertools
 from pathlib import Path
 import datetime
 import csv
-import re
 from dataclasses import dataclass
-from sqlmodel import SQLModel, select, text, and_
+from sqlmodel import SQLModel, select, and_
 from medlogserver.db._session import (
     get_async_session_context,
     AsyncSession,
-    get_async_session,
 )
-from sqlalchemy import insert
+from sqlalchemy import insert, text
+import polars as pl
 from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.drug_attr import (
-    DrugModelTableBase,
     DrugVal,
     DrugValRef,
     DrugValMulti,
@@ -45,14 +33,11 @@ from medlogserver.model.drug_data.drug_attr import (
 from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
     ValueTypeCasting,
-    CustomPreParserFunc,
     DisplayPriorityClass,
 )
 from medlogserver.model.drug_data.drug_attr_field_lov_item import (
     DrugAttrFieldLovItem,
-    DrugAttrFieldLovItemCREATE,
 )
-
 from medlogserver.db.drug_data.importers._base import (
     DrugDataSetImporterBase,
     DrugDataSetImporterCapabilities,
@@ -64,7 +49,6 @@ from medlogserver.log import get_logger
 from medlogserver.config import Config
 from medlogserver.model.unset import Unset
 from medlogserver.utils import (
-    extract_bracket_values,
     async_enumerate,
     FTPClient,
     is_version_higher,
@@ -97,7 +81,7 @@ class SourceAttrMapping:
     filename: str
     colname: str
     source_path: Optional[str] = (
-        None  # CSVs files path from PACKAGE.CSV to the target row that contains the "colname" value
+        None  # documents the join path from PACKAGE.CSV to the source column
     )
     map2: str = None
     cast_func: Optional[Callable] = None
@@ -156,28 +140,23 @@ mmi_rohdaten_r3_mappings = {
     "trade_name": SourceAttrMapping(
         "PACKAGE.CSV",
         "NAME",
-        # source_path="PACKAGE.CSV[ID]",
         map2="trade_name",
     ),
     "market_access_date": SourceAttrMapping(
         "PACKAGE.CSV",
         "ONMARKETDATE",
-        # source_path="PACKAGE.CSV[ID]",
         map2="market_access_date",
         cast_func=lambda x: datetime.datetime.strptime(x, "%d.%m.%Y").date(),
     ),
-    ## FileProductMapping(map2="market_exit_date"), # exited drugs are in an extra file :/ we will fix that later
     # codes
     "codes.PZN": SourceAttrMapping(
         "PACKAGE.CSV",
         "PZN",
-        # source_path="PACKAGE.CSV[ID]",
         map2="codes.PZN",
     ),
     "codes.MMIP": SourceAttrMapping(
         "PACKAGE.CSV",
         "PRODUCTID",
-        # source_path="PACKAGE.CSV[ID]",
         map2="codes.MMIP",
     ),
     "attrs_multi.ATC": SourceAttrMapping(
@@ -190,7 +169,6 @@ mmi_rohdaten_r3_mappings = {
     "attrs.amount": SourceAttrMapping(
         "PACKAGE.CSV",
         "AMOUNTTEXT",
-        # source_path="PACKAGE.CSV[ID]",
         map2="attrs.amount",
     ),
     "attrs.ist_verhuetungsmittel": SourceAttrMapping(
@@ -235,43 +213,39 @@ mmi_rohdaten_r3_mappings = {
         map2="attrs.ist_homoeopathisch",
         cast_func=lambda x: bool(int(x)) if x is not None else None,
     ),
-    "attrs_ref.darreichungsform":
     # ref attrs
-    SourceAttrMapping(
+    "attrs_ref.darreichungsform": SourceAttrMapping(
         "PACKAGE.CSV",
         "IFAPHARMFORMCODE",
-        # source_path="PACKAGE.CSV[ID]",
-        map2="attrs_ref.darreichungsform",  # Im Vertrieb, Rückruf,... catalog ref id 109
+        map2="attrs_ref.darreichungsform",
     ),
     "attrs_ref.vertriebsstatus": SourceAttrMapping(
         "PACKAGE.CSV",
         "SALESSTATUSCODE",
-        # source_path="PACKAGE.CSV[ID]",
-        map2="attrs_ref.vertriebsstatus",  # Im Vertrieb, Rückruf,... catalog ref id 116
+        map2="attrs_ref.vertriebsstatus",
     ),
     "attrs_ref.normgroesse": SourceAttrMapping(
         "PACKAGE.CSV",
         "PACKAGENORMSIZECODE",
-        # source_path="PACKAGE.CSV[ID]",
-        map2="attrs_ref.normgroesse",  # N0, N1,... catalog ref id 117
+        map2="attrs_ref.normgroesse",
     ),
     "attrs_ref.abgabestatus": SourceAttrMapping(
         "PRODUCT.CSV",
         "DISPENSINGTYPECODE",
         source_path="PACKAGE.CSV[PRODUCTID]/PRODUCT.CSV[ID]",
-        map2="attrs_ref.abgabestatus",  # rezeptpflichtig, apothenkenpflichtig,... catalog ref id 119
+        map2="attrs_ref.abgabestatus",
     ),
     "attrs_ref.lebensmittel": SourceAttrMapping(
         "PRODUCT.CSV",
         "PRODUCTFOODTYPECODE",
         source_path="PACKAGE.CSV[PRODUCTID]/PRODUCT.CSV[ID]",
-        map2="attrs_ref.lebensmittel",  # ja, nein, sonstiges ,... catalog ref id 205
+        map2="attrs_ref.lebensmittel",
     ),
     "attrs_ref.diaetetikum": SourceAttrMapping(
         "PRODUCT.CSV",
         "PRODUCTDIETETICSTYPECODE",
         source_path="PACKAGE.CSV[PRODUCTID]/PRODUCT.CSV[ID]",
-        map2="attrs_ref.diaetetikum",  # ja, nein, sonstiges ,... catalog ref id 206
+        map2="attrs_ref.diaetetikum",
     ),
     "attrs_ref.hersteller": SourceAttrMapping(
         "PRODUCT_COMPANY.CSV",
@@ -279,37 +253,28 @@ mmi_rohdaten_r3_mappings = {
         source_path="PACKAGE.CSV[PRODUCTID]/PRODUCT_COMPANY.CSV[PRODUCTID]",
         map2="attrs_ref.hersteller",
         filter_colname="PRODUCTCOMPANYTYPECODE",
-        filter_colval="M",  # only "hersteller" no "mitvertriebler". other wise we get multiple hersteller per product
+        filter_colval="M",
     ),
     # multi ref attrs
     "attrs_multi_ref.applikationsart": SourceAttrMapping(
         "ITEM.CSV",
         "ITEMROACODE",
         source_path="PACKAGE.CSV[PRODUCTID]/ITEM.CSV[PRODUCTID]",
-        map2="attrs_multi_ref.applikationsart",  # Im Vertrieb, Rückruf,... catalog ref id 123
+        map2="attrs_multi_ref.applikationsart",
     ),
     "attrs_multi_ref.keywords": SourceAttrMapping(
         "PRODUCT_KEYWORD.CSV",
         "CODE",
         source_path="PACKAGE.CSV[PRODUCTID]/PRODUCT_KEYWORD.CSV[PRODUCTID]",
-        map2="attrs_multi_ref.keywords",  # no catalog id. seperate csv named KEYWORD.CSV
+        map2="attrs_multi_ref.keywords",
     ),
     "attrs_multi_ref.icd10": SourceAttrMapping(
         "PRODUCT_ICD.CSV",
         "ICDCODE",
         map2="attrs_multi_ref.icd10",
-        source_path="PACKAGE.CSV[PRODUCTID]/PRODUCT_ICD.CSV[PRODUCTID]",  # icd10 code,... catalog ref id 18
+        source_path="PACKAGE.CSV[PRODUCTID]/PRODUCT_ICD.CSV[PRODUCTID]",
     ),
 }
-
-""" I can not grasp the DDD in mmi pharmindex. there is only a DDD per Arzneimittelvereinbarungen (AVR) but that makes no sense for me. Lets keep that stuff out for now.
-    SourceAttrMapping(
-        "ARV_PACKAGEGROUP.CSV",
-        "DDDAMOUNT",
-        packageid_path="ARV_PACKAGEGROUP.CSV[PACKAGEID]",
-        map2="attrs.ddd",
-    ),
-"""
 
 root_props_mapping = {
     prop_name: mapping
@@ -483,23 +448,6 @@ def get_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
     ]
 
 
-""" I can not grasp the DDD in mmi pharmindex. there is only a DDD per Arzneimittelvereinbarungen (AVR) but that makes no sense for me. Lets keep that stuff out for now.
-DrugAttrFieldDefinitionContainer(
-        field=DrugAttrFieldDefinition(
-    field_name="ddd",
-    field_name_display="DDD",
-    field_desc="Angenommene Mittlere Tagesdosis (Defined Daily Dose)",
-    type=ValueTypeCasting.INT,
-    optional=True,
-    is_reference_list_field=False,
-    is_multi_val_field=False,
-    examples=[3],
-    importer_name=importername,
-    searchable=False,
-),
-"""
-
-
 def get_attr_multi_definitions() -> List[DrugAttrFieldDefinitionContainer]:
     return [
         DrugAttrFieldDefinitionContainer(
@@ -509,7 +457,6 @@ def get_attr_multi_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 field_desc="Anatomical Therapeutic Chemical code. A unique code assigned to a medicine according to the organ or system it works on and how it works. The classification system is maintained by the World Health Organization (WHO). ",
                 value_type=ValueTypeCasting.STR,
                 optional=True,
-                # default=False,
                 is_reference_list_field=False,
                 is_multi_val_field=True,
                 examples=["D04AA04", "V60A"],
@@ -532,7 +479,6 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 field_desc="Darreichungsform IFA",
                 value_type=ValueTypeCasting.STR,
                 optional=True,
-                # default=False,
                 is_reference_list_field=True,
                 is_multi_val_field=False,
                 examples=["AUGEN", "DIL"],
@@ -554,7 +500,6 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 field_desc="Wird das Produkt momentan vertrieben",
                 value_type=ValueTypeCasting.STR,
                 optional=False,
-                # default=False,
                 is_reference_list_field=True,
                 is_multi_val_field=False,
                 examples=["D", "F"],
@@ -576,7 +521,6 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 field_desc="Packungsgrößenkennzeichnung für Medikamente ist eine in Deutschland bestehende Normierung der in der Apotheke abzugebenden Menge",
                 value_type=ValueTypeCasting.STR,
                 optional=True,
-                # default=False,
                 is_reference_list_field=True,
                 is_multi_val_field=False,
                 examples=["A", "1"],
@@ -598,7 +542,6 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 field_desc="Ob und wie das Produkt an den Patienten abgegeben werden darf",
                 value_type=ValueTypeCasting.INT,
                 optional=True,
-                # default=False,
                 is_reference_list_field=True,
                 is_multi_val_field=False,
                 examples=["0", "2"],
@@ -620,7 +563,6 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 field_desc="Lebensmittelstatus des Produkt",
                 value_type=ValueTypeCasting.STR,
                 optional=True,
-                # default=False,
                 is_reference_list_field=True,
                 is_multi_val_field=False,
                 examples=["E", "N", "Y"],
@@ -642,7 +584,6 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 field_desc="Diaetetikumstatus des Produkt",
                 value_type=ValueTypeCasting.STR,
                 optional=True,
-                # default=False,
                 is_reference_list_field=True,
                 is_multi_val_field=False,
                 examples=["E", "N", "Y"],
@@ -664,7 +605,6 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 field_desc="Hersteller des Produkt",
                 value_type=ValueTypeCasting.STR,
                 optional=False,
-                # default=False,
                 is_reference_list_field=True,
                 is_multi_val_field=False,
                 is_large_reference_list=True,
@@ -696,7 +636,6 @@ def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 field_desc="Art und Weise wie ein Arzneimittel verabreicht wird",
                 value_type=ValueTypeCasting.INT,
                 optional=True,
-                # default=False,
                 is_reference_list_field=True,
                 is_multi_val_field=True,
                 examples=["104", "19"],
@@ -718,7 +657,6 @@ def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 field_desc="Stichwörter",
                 value_type=ValueTypeCasting.INT,
                 optional=True,
-                # default=False,
                 is_reference_list_field=True,
                 is_multi_val_field=True,
                 examples=["8", "23", "70"],
@@ -744,7 +682,6 @@ def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 field_desc="Einordnung der Präparate nach ICD-10-Schlüssel",
                 value_type=ValueTypeCasting.STR,
                 optional=True,
-                # default=False,
                 is_reference_list_field=True,
                 is_multi_val_field=True,
                 examples=["A01.0, M01.39", "B44.8 K23.8", "F41.1"],
@@ -765,21 +702,6 @@ def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
     ]
 
 
-@dataclass
-class CsvFileContentCache:
-    dataframe: polars.DataFrame
-    headers: List[str]
-    schema: polars.Schema
-    row_limit: Optional[int] = None
-
-
-@dataclass
-class CsvFileContentViewCache:
-    data: Dict[str, List[Any]]
-    key_col_name: str
-    parent_csv: CsvFileContentCache
-
-
 class MMIPharmindex1_32(DrugDataSetImporterBase):
     def __init__(self):
         self.dataset_name = "MMI Pharmindex"
@@ -796,26 +718,8 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
         )
         self._ensured_dataset_version: DrugDataSetVersion = None
         self.batch_size = config.DRUG_IMPORTER_BATCH_SIZE
-        self._attr_definitions = None
-        self._attr_ref_definitions = None
-        self._code_definitions = None
-        self._lov_values: Dict[str, List[DrugAttrFieldLovItem]] = {}
-        self._cache_csv_content: Dict[Path, CsvFileContentCache] = {}
-        self._cache_csv_dataview: Dict[Path, CsvFileContentViewCache] = {}
-        self._cache_csv_lookups: Dict[Tuple, Dict[str, List[List]]] = {}
-        self._cache_validation_target_attrs: Dict[str, DrugAttrFieldDefinition] = {}
-        self._debug_stats_csv_lookup: Tuple[int, int] = (0, 0)
         self._attr_def_cache = {}
-
         self._db_session: AsyncSession | None = None
-
-    def _reset_cache_csv_lookupscache(self):
-        # deleting self._cache_csv_dataview makes no sense
-        # see https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/58#issuecomment-2821409937
-        # del self._cache_csv_dataview
-        # self._cache_csv_dataview = {}
-        del self._cache_csv_lookups
-        self._cache_csv_lookups = {}
 
     def _get_ftp_client_for_remote_drug_data_source(self) -> FTPClient | None:
         ftp_client: FTPClient | None = None
@@ -852,11 +756,7 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
         return highest_version(remote_versions)
 
     async def download_remote_dataset_update(self) -> Self | None:
-        """This function checks if the is a more recent drug-data-set available, if yes it will be downloaded
-
-        Returns:
-            DrugDataSetVersion: _description_
-        """
+        """Download a newer remote drug dataset if one is available."""
         new_version_string = await self.check_for_remote_dataset_update_available()
         if not new_version_string:
             return None
@@ -1018,354 +918,334 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
             for field_def in self._attr_def_cache["code_attr_definitions"]
         ]
 
-    def _debug_print_all_of(self, objs, cls):
-        to_be_printed = []
-        for obj in objs:
-            if isinstance(obj, cls):
-                to_be_printed.append(obj)
-
-                print(f"- {obj}")
-        print(f"----printed {len(to_be_printed)}/{len(objs)} objs")
-        return to_be_printed
-
     async def run_import(self):
         async with get_async_session_context() as db_session:
-            if db_session.bind.dialect.name == "postgresql":
-                """
-                log.debug("Set Postgres DB: SET CONSTRAINTS ALL DEFERRED")
-                await db_session.exec(text("SET CONSTRAINTS ALL DEFERRED"))
-                """
-                # TODO: it does not look like, we can gain anything substancial with deferring our foreing keys.
-                # this is counter intiutive, as we do a lot flushing, which results in a lot of redudant work regarding constraint checks. review later if there is time.
-                pass
             self._db_session = db_session
-            log.info(" Parse metadata...")
-            drug_schema_objects = []
-            drug_dataset = await self._ensure_drug_dataset_version()
-            # generate list of values
+            is_sqlite = config.SQL_DATABASE_URL.startswith("sqlite")
+            is_pg = config.SQL_DATABASE_URL.startswith("postgresql")
+            try:
+                if is_sqlite:
+                    # Reduce fsync overhead during bulk import.
+                    # synchronous=OFF is safe here because a failed import is re-runnable
+                    # and leaves behind a dataset version marked "failed".
+                    for pragma in [
+                        "PRAGMA journal_mode=WAL",
+                        "PRAGMA synchronous=OFF",
+                        "PRAGMA cache_size=-65536",
+                        "PRAGMA temp_store=MEMORY",
+                    ]:
+                        await db_session.exec(text(pragma))
+                    await db_session.commit()
+                elif is_pg:
+                    # WAL fsync on commit is the dominant latency for small batches.
+                    # OFF is safe: a crashed import leaves a "failed" dataset version
+                    # that can be re-imported; we never lose already-committed prior data.
+                    await db_session.execute(text("SET synchronous_commit = OFF"))
 
-            all_attr_defs_by_type = await self.get_all_attr_field_definitions()
-            all_attr_defs_flat = []
-            for attrdefs in all_attr_defs_by_type.values():
-                for attrdef in attrdefs:
-                    all_attr_defs_flat.append(attrdef)
+                log.info(" Parse metadata...")
+                drug_dataset = await self._ensure_drug_dataset_version()
 
-            # all_objs.extend(all_attr_defs_flat)
+                drug_schema_objects = []
+                for ref_lov_field_obj in (
+                    get_attr_ref_definitions() + get_attr_multi_ref_definitions()
+                ):
+                    lov_item_objs = await self._generate_lov_items(
+                        ref_lov_field_obj.field,
+                        lov_definition=ref_lov_field_obj.lov,
+                        drug_dataset_version=drug_dataset,
+                    )
+                    drug_schema_objects.extend(lov_item_objs)
 
-            for ref_lov_field_obj in (
-                get_attr_ref_definitions() + get_attr_multi_ref_definitions()
-            ):
-                # drug_schema_objects.append(ref_lov_field_obj.field)
-                lov_item_objs = await self._generate_lov_items(
-                    ref_lov_field_obj.field,
-                    lov_definition=ref_lov_field_obj.lov,
-                    drug_dataset_version=drug_dataset,
-                )
-                # only needed for debugin validation
-                # self._lov_values[ref_lov_field_obj.field.field_name] = lov_item_objs
+                await self.add_and_flush(objs=drug_schema_objects)
+                del drug_schema_objects
+                self._attr_def_cache.clear()
+                gc.collect()
 
-                drug_schema_objects.extend(lov_item_objs)
+                drug_data_objs: dict[type, List[dict]] = {}
+                async for i, drug_obj in async_enumerate(
+                    self._parse_drug_data(drug_dataset)
+                ):
+                    for table_type, data in drug_obj.items():
+                        if table_type not in drug_data_objs:
+                            drug_data_objs[table_type] = []
+                        drug_data_objs[table_type].extend(data)
+                    if i > 0 and i % self.batch_size == 0:
+                        await self.add_and_flush(table_data=drug_data_objs)
 
-            await self.add_and_flush(objs=drug_schema_objects)
-            drug_schema_objects.clear
-            del drug_schema_objects
-            self._attr_def_cache.clear()
-            gc.collect()
-
-            drug_data_objs: dict[type, List[dict]] = {}
-            async for i, drug_obj in async_enumerate(
-                self._parse_drug_data(drug_dataset)
-            ):
-                for table_type, data in drug_obj.items():
-                    if table_type not in drug_data_objs:
-                        drug_data_objs[table_type] = []
-                    drug_data_objs[table_type].extend(data)
-                if i > 0 and i % self.batch_size == 0:
+                if drug_data_objs:
                     await self.add_and_flush(table_data=drug_data_objs)
 
-            if drug_data_objs:
-                # Add remaining not flushed objects
-                await self.add_and_flush(table_data=drug_data_objs)
+                # safety-net commit for any pending ORM state (e.g. if no drug rows)
+                await self.commit()
 
-            # write everything to database
-            await self.commit()
+            finally:
+                if is_sqlite:
+                    await db_session.exec(text("PRAGMA synchronous=FULL"))
+                    await db_session.exec(text("PRAGMA cache_size=-2000"))
+                    await db_session.commit()
+                elif is_pg:
+                    await db_session.execute(text("SET synchronous_commit = ON"))
+                    await db_session.commit()
 
-    async def _disect_drug_data(
-        self, drug_data: DrugData
-    ) -> AsyncGenerator[
-        DrugData | DrugVal | DrugValRef | DrugCode | DrugValMulti | DrugValMultiRef,
-        None,
-    ]:
-        child_attr_names = [
-            "attrs",
-            "attrs_ref",
-            "attrs_multi",
-            "attrs_multi_ref",
-            "codes",
-        ]
-        yield drug_data
-        for attr_name in child_attr_names:
-            attr = getattr(drug_data, attr_name)
-            for item in attr:
-                yield item
+    def _build_joined_dataframe(self) -> pl.DataFrame:
+        """Load all required CSV files and join them into one wide DataFrame.
+
+        Resolves all cross-file attribute paths (documented in source_path fields
+        of mmi_rohdaten_r3_mappings) upfront with polars joins. The result is a
+        single DataFrame where each row is one PACKAGE with all its attributes
+        as flat columns (scalar) or list columns (multi-value).
+        """
+        src = self.source_dir
+        log.info(" Loading and joining CSV source files...")
+
+        package_df = pl.read_csv(
+            Path(src, "PACKAGE.CSV"),
+            separator=";",
+            infer_schema_length=0,
+        )
+
+        product_cols = pl.read_csv(
+            Path(src, "PRODUCT.CSV"),
+            separator=";",
+            infer_schema_length=0,
+        ).select(["ID", "DISPENSINGTYPECODE", "PRODUCTFOODTYPECODE", "PRODUCTDIETETICSTYPECODE"])
+
+        product_flag_cols = pl.read_csv(
+            Path(src, "PRODUCT_FLAG.CSV"),
+            separator=";",
+            infer_schema_length=0,
+        ).select([
+            "PRODUCTID", "CONTRACEPTIVE_FLAG", "COSMETICS_FLAG",
+            "DIETARYSUPPLEMENT_FLAG", "HERBAL_FLAG", "GENERIC_FLAG", "HOMOEOPATHIC_FLAG",
+        ])
+
+        # One manufacturer per product — keep the first M-type company entry
+        manufacturer_cols = (
+            pl.read_csv(
+                Path(src, "PRODUCT_COMPANY.CSV"),
+                separator=";",
+                infer_schema_length=0,
+            )
+            .filter(pl.col("PRODUCTCOMPANYTYPECODE") == "M")
+            .select(["PRODUCTID", "COMPANYID"])
+            .unique("PRODUCTID")
+        )
+
+        item_df = pl.read_csv(
+            Path(src, "ITEM.CSV"),
+            separator=";",
+            infer_schema_length=0,
+        ).select(["ID", "PRODUCTID", "ITEMROACODE"])
+
+        item_atc_df = pl.read_csv(
+            Path(src, "ITEM_ATC.CSV"),
+            separator=";",
+            infer_schema_length=0,
+        ).select(["ITEMID", "ATCCODE"])
+
+        # Resolve PACKAGE→ITEM→ITEM_ATC; collect ATC codes as list per PRODUCTID
+        atc_per_product = (
+            item_df.select(["ID", "PRODUCTID"])
+            .join(item_atc_df, left_on="ID", right_on="ITEMID", how="left")
+            .group_by("PRODUCTID")
+            .agg(pl.col("ATCCODE").drop_nulls().unique())
+        )
+
+        # One product can have multiple items with different routes of administration
+        roa_per_product = (
+            item_df.select(["PRODUCTID", "ITEMROACODE"])
+            .filter(pl.col("ITEMROACODE").is_not_null() & (pl.col("ITEMROACODE") != ""))
+            .group_by("PRODUCTID")
+            .agg(pl.col("ITEMROACODE").unique())
+        )
+
+        keywords_per_product = (
+            pl.read_csv(
+                Path(src, "PRODUCT_KEYWORD.CSV"),
+                separator=";",
+                infer_schema_length=0,
+            )
+            .select(["PRODUCTID", "CODE"])
+            .filter(pl.col("CODE").is_not_null() & (pl.col("CODE") != ""))
+            .group_by("PRODUCTID")
+            .agg(pl.col("CODE").unique())
+        )
+
+        icd_per_product = (
+            pl.read_csv(
+                Path(src, "PRODUCT_ICD.CSV"),
+                separator=";",
+                infer_schema_length=0,
+            )
+            .select(["PRODUCTID", "ICDCODE"])
+            .filter(pl.col("ICDCODE").is_not_null() & (pl.col("ICDCODE") != ""))
+            .group_by("PRODUCTID")
+            .agg(pl.col("ICDCODE").unique())
+        )
+
+        return (
+            package_df
+            .join(product_cols, left_on="PRODUCTID", right_on="ID", how="left")
+            .join(product_flag_cols, on="PRODUCTID", how="left")
+            .join(manufacturer_cols, on="PRODUCTID", how="left")
+            .join(atc_per_product, on="PRODUCTID", how="left")
+            .join(roa_per_product, on="PRODUCTID", how="left")
+            .join(keywords_per_product, on="PRODUCTID", how="left")
+            .join(icd_per_product, on="PRODUCTID", how="left")
+        )
 
     async def _parse_drug_data(
         self, drug_dataset_version: DrugDataSetVersion
     ) -> AsyncGenerator[Dict[type, List[Dict]], None]:
-        log.info(" Parse drug data...")
-        package_csv_path = Path(self.source_dir, "PACKAGE.CSV")
+        log.info(" Building joined drug DataFrame...")
+        joined_df = self._build_joined_dataframe()
 
-        row_count_total = 0
-
-        # count rows
-        with open(package_csv_path) as f:
-            row_count_total = len(f.readlines()) - 1
-        row_count_processing_max = (
-            config.DRUG_DATA_IMPORT_MAX_ROWS
-            if config.DRUG_DATA_IMPORT_MAX_ROWS
-            else row_count_total
-        )
         if config.DRUG_DATA_IMPORT_MAX_ROWS:
             log.warning(
-                f" Config var 'DRUG_DATA_IMPORT_MAX_ROWS' is set to {config.DRUG_DATA_IMPORT_MAX_ROWS}. We maybe will not import all drug entries..."
+                f" Config var 'DRUG_DATA_IMPORT_MAX_ROWS' is set to {config.DRUG_DATA_IMPORT_MAX_ROWS}. We may not import all drug entries."
             )
-        # parse csv
+            joined_df = joined_df.head(config.DRUG_DATA_IMPORT_MAX_ROWS)
+
+        row_count_processing_max = len(joined_df)
+
+        # Cache definitions once — not per-row
+        code_defs = get_code_attr_definitions()
+        attr_defs = get_attr_definitions()
+        attr_ref_defs = get_attr_ref_definitions()
+        attr_multi_defs = get_attr_multi_definitions()
+        attr_multi_ref_defs = get_attr_multi_ref_definitions()
+
+        log.info(f" Parse drug data ({row_count_processing_max} packages)...")
         debug_perf_start = time.time()
-        with open(package_csv_path, "rt") as package_csv_file:
-            package_csv = csv.reader(package_csv_file, delimiter=";")
-            package_csv_headers = next(package_csv)
-            # package_id_column_index = package_csv_headers.index("ID")
-            for index, package_row in enumerate(package_csv):
-                if index % 1000 == 0:
-                    # log status updates every 1000 rows
-                    log.info(f" Processed {index} rows of {row_count_processing_max}")
-                    log.debug(
-                        f" Cached/Uncached lookups: {self._debug_stats_csv_lookup[0]}/{self._debug_stats_csv_lookup[1]}"
-                    )
 
-                yield await self._parse_drug_data_package_row(
-                    drug_dataset_version, package_row, package_csv_headers
-                )
+        for index, row in enumerate(joined_df.iter_rows(named=True)):
+            if index % 1000 == 0:
+                log.info(f" Processed {index} of {row_count_processing_max} packages")
+            yield self._parse_drug_data_row(
+                drug_dataset_version,
+                row,
+                code_defs,
+                attr_defs,
+                attr_ref_defs,
+                attr_multi_defs,
+                attr_multi_ref_defs,
+            )
 
-                if (
-                    config.DRUG_DATA_IMPORT_MAX_ROWS
-                    and index == row_count_processing_max
-                ):
-                    log.warning(
-                        f" Config var 'DRUG_DATA_IMPORT_MAX_ROWS' is set to {config.DRUG_DATA_IMPORT_MAX_ROWS}. We did not import all drug entries."
-                    )
-                    debug_perf_end = time.time()
-                    # debug line for perf measument. remove later
-                    total_time_sec = debug_perf_end - debug_perf_start
-                    log.info(
-                        f" Time needed: {total_time_sec} secs. for {row_count_processing_max} drug entries."
-                    )
-                    log.info(
-                        f" Estimated time for full drug data import ({row_count_total} rows): {((total_time_sec / row_count_processing_max) * row_count_total) / 60} minutes"
-                    )
-                    return
-        debug_perf_end = time.time()
-        # debug line for perf measument. remove later
-        total_time_sec = debug_perf_end - debug_perf_start
+        total_time_sec = time.time() - debug_perf_start
         log.info(
-            f" Time needed: {total_time_sec} secs. for {row_count_processing_max} drug entries."
+            f" Time needed: {total_time_sec:.1f}s for {row_count_processing_max} drug entries."
         )
 
-    async def _parse_drug_data_package_row(
+    def _parse_drug_data_row(
         self,
         drug_dataset_version: DrugDataSetVersion,
-        package_row: List[str],
-        package_row_headers: List[str],
+        row: Dict[str, Any],
+        code_defs: List[DrugAttrFieldDefinitionContainer],
+        attr_defs: List[DrugAttrFieldDefinitionContainer],
+        attr_ref_defs: List[DrugAttrFieldDefinitionContainer],
+        attr_multi_defs: List[DrugAttrFieldDefinitionContainer],
+        attr_multi_ref_defs: List[DrugAttrFieldDefinitionContainer],
     ) -> Dict[type, List[Dict]]:
         drug_id = uuid.uuid4()
-        drug_objs: Dict[type, List[Dict]] = {}
-
-        # result_drug_data = DrugData(
-        #    id=uuid.uuid4(), source_dataset_id=drug_dataset_version.id
-        # )
         drug_root_obj = {
             "id": drug_id,
             "source_dataset_id": drug_dataset_version.id,
+            "is_custom_drug": False,
+            "market_exit_date": None,
+            "custom_drug_notes": None,
+            "custom_created_by": None,
         }
-        drug_objs[DrugData] = [drug_root_obj]
-        for child_class in DrugCode, DrugVal, DrugValRef, DrugValMulti, DrugValMultiRef:
-            drug_objs[child_class] = []
+        drug_objs: Dict[type, List[Dict]] = {
+            DrugData: [drug_root_obj],
+            DrugCode: [],
+            DrugVal: [],
+            DrugValRef: [],
+            DrugValMulti: [],
+            DrugValMultiRef: [],
+        }
 
-        # drug root attrs
         for root_prop_name, mapping in root_props_mapping.items():
-            drug_attr_value = await self._resolve_source_mapping_to_value(
-                package_row=package_row,
-                package_row_headers=package_row_headers,
-                mapping=mapping,
+            drug_root_obj[root_prop_name] = self._cast_raw_csv_value_if_needed(
+                row.get(mapping.colname), mapping
             )
-            drug_attr_value = self._cast_raw_csv_value_if_needed(
-                drug_attr_value, mapping
+
+        for code_def in code_defs:
+            val = self._cast_raw_csv_value_if_needed(
+                row.get(code_def.source_mapping.colname), code_def.source_mapping
             )
-            drug_root_obj[root_prop_name] = drug_attr_value
-            # setattr(result_drug_data, root_prop_name, drug_attr_value)
-        # drug codes
-        for drug_code_def in get_code_attr_definitions():
-            drug_code_value = await self._resolve_source_mapping_to_value(
-                package_row=package_row,
-                package_row_headers=package_row_headers,
-                mapping=drug_code_def.source_mapping,
-            )
-            drug_code_value = self._cast_raw_csv_value_if_needed(
-                drug_code_value, drug_code_def.source_mapping
-            )
-            if drug_code_value is None:
+            if val is None:
                 continue
-            # await self._validate_csv_value(
-            #    value=drug_code_value, mapping=drug_code_data.source_mapping
-            # )
             drug_objs[DrugCode].append(
                 {
+                    "id": uuid.uuid4(),
                     "drug_id": drug_id,
-                    "code_system_id": drug_code_def.field.id,
-                    "code": drug_code_value,
+                    "code_system_id": code_def.field.id,
+                    "code": val,
                 }
             )
 
-            # result_drug_data.codes.append(
-            #    DrugCode(
-            #        drug_id=result_drug_data.id,
-            #        code_system_id=drug_code_def.field.id,
-            #        code=drug_code_value,
-            #    )
-            # )
-        # drug attrs
-        for attr_def in get_attr_definitions():
-            drug_attr_value = await self._resolve_source_mapping_to_value(
-                package_row=package_row,
-                package_row_headers=package_row_headers,
-                mapping=attr_def.source_mapping,
-            )
-            drug_attr_value = self._cast_raw_csv_value_if_needed(
-                drug_attr_value, attr_def.source_mapping
-            )
-            await self._validate_csv_value(
-                value=drug_attr_value,
-                mapping=attr_def.source_mapping,
-                source_row=package_row,
-            )
-
+        for attr_def in attr_defs:
             drug_objs[DrugVal].append(
                 {
                     "drug_id": drug_id,
                     "field_name": attr_def.field.field_name,
-                    "value": drug_attr_value,
+                    "value": self._cast_raw_csv_value_if_needed(
+                        row.get(attr_def.source_mapping.colname), attr_def.source_mapping
+                    ),
                     "importer_name": importername,
                 }
             )
-            """
-            result_drug_data.attrs.append(
-                DrugVal(
-                    drug_id=result_drug_data.id,
-                    field_name=attr_def.field.field_name,
-                    value=drug_attr_value,
-                    importer_name=importername,
-                )
-            )
-            """
-        # drug ref attr
-        for attr_ref_def in get_attr_ref_definitions():
-            drug_attr_value = await self._resolve_source_mapping_to_value(
-                package_row=package_row,
-                package_row_headers=package_row_headers,
-                mapping=attr_ref_def.source_mapping,
-            )
-            drug_attr_value = self._cast_raw_csv_value_if_needed(
-                drug_attr_value, attr_ref_def.source_mapping
-            )
-            await self._validate_csv_value(
-                value=drug_attr_value,
-                mapping=attr_ref_def.source_mapping,
-                source_row=package_row,
-            )
-            if drug_attr_value is None:
-                # todo: investigate if this makes sense to have None value here?
-                continue
 
+        for attr_ref_def in attr_ref_defs:
+            val = self._cast_raw_csv_value_if_needed(
+                row.get(attr_ref_def.source_mapping.colname), attr_ref_def.source_mapping
+            )
+            if val is None:
+                continue
             drug_objs[DrugValRef].append(
                 {
                     "drug_id": drug_id,
                     "field_name": attr_ref_def.field.field_name,
-                    "value": drug_attr_value,
+                    "value": val,
                     "importer_name": importername,
                     "drug_dataset_version_fk": drug_dataset_version.id,
                 }
             )
 
-        # drug multi attrs
-        for attr_multi_def in get_attr_multi_definitions():
-            drug_attr_values = await self._resolve_source_mapping_to_value(
-                package_row=package_row,
-                package_row_headers=package_row_headers,
-                mapping=attr_multi_def.source_mapping,
-                singular_val=False,
-            )
-
-            for index, drug_attr_val in enumerate(drug_attr_values):
-                drug_attr_val = self._cast_raw_csv_value_if_needed(
-                    drug_attr_val, attr_multi_def.source_mapping
-                )
-                # await self._validate_csv_value(
-                #    value=drug_attr_val, mapping=attr_multi_def.source_mapping
-                # )
+        for attr_multi_def in attr_multi_defs:
+            raw_vals = row.get(attr_multi_def.source_mapping.colname) or []
+            for idx, raw_val in enumerate(raw_vals):
                 drug_objs[DrugValMulti].append(
                     {
                         "drug_id": drug_id,
                         "field_name": attr_multi_def.field.field_name,
-                        "value": drug_attr_val,
-                        "value_index": index,
+                        "value": self._cast_raw_csv_value_if_needed(
+                            raw_val, attr_multi_def.source_mapping
+                        ),
+                        "value_index": idx,
                         "importer_name": importername,
                     }
                 )
 
-        # drug multi ref attrs
-        for attr_multi_ref_def in get_attr_multi_ref_definitions():
-            drug_attr_values = await self._resolve_source_mapping_to_value(
-                package_row=package_row,
-                package_row_headers=package_row_headers,
-                mapping=attr_multi_ref_def.source_mapping,
-                singular_val=False,
-            )
-            # log.debug(("drug_attr_values",drug_attr_values))
-            # log.debug(("package_row",package_row))
-            for index, drug_attr_val in enumerate(drug_attr_values):
-                # log.debug(("BEFORE: drug_attr_val",drug_attr_val))
-                drug_attr_val = self._cast_raw_csv_value_if_needed(
-                    drug_attr_val, attr_multi_ref_def.source_mapping
+        for attr_multi_ref_def in attr_multi_ref_defs:
+            raw_vals = row.get(attr_multi_ref_def.source_mapping.colname) or []
+            for idx, raw_val in enumerate(raw_vals):
+                val = self._cast_raw_csv_value_if_needed(
+                    raw_val, attr_multi_ref_def.source_mapping
                 )
-                # log.debug(("AFTER: drug_attr_val",drug_attr_val))
-
-                if drug_attr_val is None:
-                    # todo: investigate if this makes sense to have None value here?
+                if val is None:
                     continue
-                await self._validate_csv_value(
-                    value=drug_attr_val, mapping=attr_multi_ref_def.source_mapping
-                )
                 drug_objs[DrugValMultiRef].append(
                     {
                         "drug_id": drug_id,
                         "field_name": attr_multi_ref_def.field.field_name,
-                        "value": drug_attr_val,
-                        "value_index": index,
+                        "value": val,
+                        "value_index": idx,
                         "importer_name": importername,
                         "drug_dataset_version_fk": drug_dataset_version.id,
                     }
                 )
-                """
-                result_drug_data.attrs_multi_ref.append(
-                    DrugValMultiRef(
-                        drug_id=result_drug_data.id,
-                        field_name=attr_multi_ref_def.field.field_name,
-                        value=drug_attr_val,
-                        value_index=index,
-                        importer_name=importername,
-                    )
-                )
-                """
+
         return drug_objs
 
     def _cast_raw_csv_value_if_needed(self, value: Any, mapping: SourceAttrMapping):
@@ -1375,301 +1255,81 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
             return mapping.cast_func(value)
         return str(value)
 
-    async def _validate_csv_value(
-        self, value: str, mapping: SourceAttrMapping, source_row: str = None
-    ):
-        return
-        """At the moment this is a pure debuging helper function. Its too expensive for production. 
-        One import takes much longer with all values validated on the fly. 
-        TODO: Make this function cheaper to be able to use it in production code
+    async def _pg_copy_table(
+        self, pg_conn, table_type: type, data: list[dict]
+    ) -> None:
+        """Bulk-load a batch into a single PostgreSQL table via the COPY protocol.
+
+        psycopg3 3.3+ exposes COPY on Cursor, not Connection. We open a cursor on
+        the raw psycopg3 AsyncConnection and stream TSV in chunks of CHUNK rows so
+        the in-memory buffer stays bounded.
         """
-        all_defs = await self.get_all_attr_field_definitions()
-        mapping_attr = mapping.map2.split(".")
-        if len(mapping_attr) == 1:
-            # todo: valdiate root values
-            return
-        attr_type, attr_name = mapping_attr
-        if mapping.map2 not in self._cache_validation_target_attrs:
-            target_attr_def: DrugAttrFieldDefinition = next(
-                (d for d in all_defs[attr_type] if d.field_name == attr_name), None
-            )
-            self._cache_validation_target_attrs[mapping.map2] = target_attr_def
-        else:
-            target_attr_def = self._cache_validation_target_attrs[mapping.map2]
-        if target_attr_def is None:
-            if source_row:
-                log.error(source_row)
-            raise ValueError(
-                f"No attribute defintion  with name '{attr_name}' existent."
-            )
-        """
-        if target_attr_def.is_multi_val_field and not isinstance(value,list):
-            raise ValueError(f"Expected '{mapping_attr}' to be a list. Got {value}")
-        if target_attr_def.is_multi_val_field and isinstance(value,list):
-            raise ValueError(f"Expected '{mapping_attr}' to be a single value. Got {value}")
-        """
-        if value is None and target_attr_def.optional == True:
-            # all fine
-            return
-        if target_attr_def.is_reference_list_field:
-            ref_value_exists = False
-            for lov_item in self._lov_values[attr_name]:
-                # log.debug(
-                #    f"type(lov_item.value): {type(lov_item.value)},type(value): {type(value)}, {value}=={lov_item.value}-> {lov_item.value == value} "
-                # )
-                if lov_item.value == value:
-                    ref_value_exists = True
-                    break
-            if not ref_value_exists:
-                if source_row:
-                    log.error(source_row)
-                raise ValueError(
-                    f"Reference object ({mapping.map2}) does not exists for value '{value}'. Possible values: \n{self._lov_values[attr_name][:20]}{'...truncated (' + str(len(self._lov_values[attr_name])) + ' items)' if len(self._lov_values[attr_name]) > 20 else ''}"
-                )
-        try:
-            target_attr_def.type.value.casting_func(value)
-        except:
-            if source_row:
-                log.error(source_row)
-            raise ValueError(
-                f"Could not cast raw value '{value}' to type {target_attr_def.type.value.python_type} as defined in {target_attr_def}"
-            )
+        table = table_type.__table__
+        cols = [col.name for col in table.columns]
+        col_list = ", ".join(cols)
+        copy_stmt = f"COPY {table.name} ({col_list}) FROM STDIN"
+        CHUNK = 50_000
 
-    async def _resolve_source_mapping_to_value(
-        self,
-        package_row: List[str],
-        package_row_headers: List[str],
-        mapping: SourceAttrMapping,
-        singular_val: bool = True,
-    ) -> List[str] | str:
-        if mapping.filename == "PACKAGE.CSV":
-            target_col_index = package_row_headers.index(mapping.colname)
-            return package_row[target_col_index]
-        if mapping.filename != "PACKAGE.CSV" and mapping.source_path is None:
-            raise ValueError(
-                f"If drug attribute value can not retrieved from PACKAGE.CSV, we need a relative path to the value in the mapping. Mapping: {mapping}"
-            )
-        return await self._follow_source_mapping_path_to_target_vals(
-            target_col_name=mapping.colname,
-            current_rows=[package_row],
-            row_headers=package_row_headers,
-            path=mapping.source_path.split("/"),
-            singular_val=singular_val,
-        )
-
-    async def _follow_source_mapping_path_to_target_vals(
-        self,
-        target_col_name: str,
-        current_rows: List[List[str]],
-        row_headers: List[str],
-        path: List[str],
-        singular_val: bool = False,
-        _depth=0,
-    ) -> List[str]:
-        # example for path ["PACKAGE.CSV[PRODUCTID]","ITEM.CSV[PRODUCTID]>[ID]","ITEM_ATC.CSV[ITEMID]"]
-        current_path_segment = path[0]
-        path_without_current_segment = path[1:]
-        is_last_path_segment = len(path) == 1
-        is_first_path_segment = _depth == 0
-        is_single_segment_path = is_first_path_segment and is_last_path_segment
-        result_values = []
-        for row in current_rows:
-            if is_single_segment_path:
-                # sanity check
-                raise ValueError(
-                    f"We can just extract the value from package.csv. What are you doing here? Path: {path}"
-                )
-            if is_last_path_segment:
-                # col_name = extract_bracket_values(current_path_segment, 1)[0]
-                col_index = row_headers.index(target_col_name)
-                result_values.append(row[col_index])
-            else:
-                next_file_name = path[1].split("[")[0]
-                next_file_path = Path(self.source_dir, next_file_name)
-                if is_first_path_segment:
-                    # e.g. "ITEM.CSV[PRODUCTID]>[ID]"
-                    next_file_col_name = extract_bracket_values(path[1], 1)[0]
-                    bridge_col_name = extract_bracket_values(current_path_segment, 1)[0]
-                    bridge_col_index = row_headers.index(bridge_col_name)
-                    bridge_col_val = row[bridge_col_index]
-                    (
-                        next_row_headers,
-                        next_rows,
-                    ) = await self._get_filtered_rows_with_header_from_csv_file(
-                        file_path=next_file_path,
-                        filter_col_name=next_file_col_name,
-                        filter_value=bridge_col_val,
-                        max_number_rows=1 if singular_val else None,
-                    )
-                else:
-                    # e.g. path[1] -> "ITEM.CSV[PRODUCTID]>[ID]" or "ATC.CSV[PRODUCTID]"
-                    # "PACKAGE.CSV[PRODUCTID]/ITEM.CSV[PRODUCTID]>[ID]/ITEM_ATC.CSV[ITEMID]"
-                    next_file_col_name = extract_bracket_values(path[1], 1)[0]
-                    bridge_col_name = extract_bracket_values(current_path_segment, 2)[1]
-                    bridge_col_index = row_headers.index(bridge_col_name)
-                    bridge_col_val = row[bridge_col_index]
-                    (
-                        next_row_headers,
-                        next_rows,
-                    ) = await self._get_filtered_rows_with_header_from_csv_file(
-                        file_path=next_file_path,
-                        filter_col_name=next_file_col_name,
-                        filter_value=bridge_col_val,
-                        max_number_rows=1 if singular_val else None,
-                    )
-                result_values.extend(
-                    await self._follow_source_mapping_path_to_target_vals(
-                        target_col_name=target_col_name,
-                        current_rows=next_rows,
-                        row_headers=next_row_headers,
-                        path=path_without_current_segment,
-                        _depth=_depth + 1,
-                    )
-                )
-        if singular_val and len(result_values) > 1:
-            # sanity check
-            raise ValueError(
-                "Singlar value has multiple",
-                "PATH:",
-                path,
-                "VALUES:",
-                result_values,
-                "ROWS",
-                current_rows,
-            )
-        if singular_val:
-            return None if not result_values else result_values[0]
-        return result_values
-
-    async def _get_csv_file_rows_with_header(
-        self, file_path: Path, key_column: str = None
-    ) -> CsvFileContentViewCache:
-        if file_path not in self._cache_csv_content:
-            log.debug(f" Parse CSV {file_path}")
-            df = polars.read_csv(
-                source=file_path,
-                has_header=True,
-                separator=";",
-                infer_schema_length=0,  # ready all values as string. we do not need any type parsing/casting in our case. we do that later with/by the drug schema defintion
-                rechunk=True,
-            )
-            self._cache_csv_content[file_path] = CsvFileContentCache(
-                dataframe=df, headers=list(df.schema.keys()), schema=df.schema
-            )
-        if file_path not in self._cache_csv_dataview:
-            self._cache_csv_dataview[file_path] = {}
-        if key_column not in self._cache_csv_dataview[file_path]:
-            log.debug(
-                f" Materialize view on CSV ({file_path})-data for key column {key_column}"
-            )
-            csv_data: CsvFileContentCache = self._cache_csv_content[file_path]
-            # Perform sanity checks
-            try:
-                schema = csv_data.schema
-                if not schema:
-                    raise ValueError(
-                        f"CSV file appears to be empty or missing headers in {file_path}."
-                    )
-            except Exception as e:
-                raise ValueError(f"Error reading CSV headers of {file_path}: {e}")
-
-            if key_column is not None:
-                if key_column not in csv_data.headers:
-                    raise ValueError(
-                        f"Can not find '{key_column}' in headers of file {file_path.absolute()}. headers: {csv_data.headers}"
-                    )
-            if key_column:
-                # pre group data for faster lookups
-                data_view = csv_data.dataframe.rows_by_key(
-                    key=key_column, include_key=True
-                )
-
-                # data = data.sort(by=key_column)
-            else:
-                raise ValueError(
-                    "Parsing with no key not implemented yet. i think we dont need it."
-                )
-            self._cache_csv_dataview[file_path][key_column] = CsvFileContentViewCache(
-                data=data_view, key_col_name=key_column, parent_csv=csv_data
-            )
-
-        return self._cache_csv_dataview[file_path][key_column]
-
-    async def _get_filtered_rows_with_header_from_csv_file(
-        self,
-        filter_col_name: str,
-        filter_value: str,
-        file_path: Path,
-        max_number_rows: int | None = None,
-    ) -> Tuple[List[str], List[List[str]]]:
-        csv_content_view: CsvFileContentViewCache = (
-            await self._get_csv_file_rows_with_header(
-                file_path=file_path, key_column=filter_col_name
-            )
-        )
-        if filter_col_name not in csv_content_view.parent_csv.headers:
-            raise ValueError(
-                f"Can not find '{filter_col_name}' in headers of file {file_path.absolute()}. headers: {csv_content_view.headers}"
-            )
-        csv_lookup_filter_call_signature = hash(
-            (file_path, filter_col_name, max_number_rows)
-        )
-        if csv_lookup_filter_call_signature not in self._cache_csv_lookups:
-            self._cache_csv_lookups[csv_lookup_filter_call_signature] = {}
-
-        if (
-            filter_value
-            not in self._cache_csv_lookups[csv_lookup_filter_call_signature]
-        ):
-            _filter_value_casted = filter_value
-
-            result = csv_content_view.data[_filter_value_casted]
-            if max_number_rows:
-                result = result[:max_number_rows]
-            self._cache_csv_lookups[csv_lookup_filter_call_signature][filter_value] = (
-                result
-            )
-
-            self._debug_stats_csv_lookup = (
-                self._debug_stats_csv_lookup[0],
-                self._debug_stats_csv_lookup[1] + 1,
-            )
-        else:
-            self._debug_stats_csv_lookup = (
-                self._debug_stats_csv_lookup[0] + 1,
-                self._debug_stats_csv_lookup[1],
-            )
-
-        return (
-            csv_content_view.parent_csv.headers,
-            self._cache_csv_lookups[csv_lookup_filter_call_signature][filter_value],
-        )
+        async with pg_conn.cursor() as cursor:
+            async with cursor.copy(copy_stmt) as copy:
+                buf: list[str] = []
+                for row in data:
+                    parts: list[str] = []
+                    for col_name in cols:
+                        val = row.get(col_name)
+                        if val is None:
+                            parts.append("\\N")
+                        elif isinstance(val, bool):
+                            parts.append("t" if val else "f")
+                        else:
+                            s = str(val)
+                            s = (
+                                s.replace("\\", "\\\\")
+                                .replace("\t", "\\t")
+                                .replace("\n", "\\n")
+                                .replace("\r", "\\r")
+                            )
+                            parts.append(s)
+                    buf.append("\t".join(parts) + "\n")
+                    if len(buf) >= CHUNK:
+                        await copy.write("".join(buf).encode("utf-8"))
+                        buf.clear()
+                if buf:
+                    await copy.write("".join(buf).encode("utf-8"))
 
     async def add_and_flush(
         self, objs: List[SQLModel] = None, table_data: dict[type, list[dict]] = None
     ):
         session = self._db_session
+        is_pg = config.SQL_DATABASE_URL.startswith("postgresql")
+
         if objs:
             log.debug(f" Flush {len(objs)} objects to database...")
-            # log.debug(f"{objs}")
-
-            async with session.begin() as transaction:
-                session.add_all(objs)
-                await session.flush()
+            session.add_all(objs)
+            await session.flush()
             objs.clear()
+
         if table_data:
-            async with session.begin() as transaction:
+            if is_pg:
+                sa_conn = await session.connection()
+                raw_conn = await sa_conn.get_raw_connection()
+                pg_conn = raw_conn.driver_connection
+                await session.execute(text("SET CONSTRAINTS ALL DEFERRED"))
                 for table_type, data in table_data.items():
-                    if len(data) == 0:
+                    if not data:
+                        continue
+                    log.debug(f" COPY {len(data)} '{table_type.__name__}' rows...")
+                    await self._pg_copy_table(pg_conn, table_type, data)
+            else:
+                for table_type, data in table_data.items():
+                    if not data:
                         continue
                     log.debug(
-                        f" Flush {len(data)} '{table_type.__name__}'-objects to database..."
+                        f" Bulk insert {len(data)} '{table_type.__name__}' rows..."
                     )
-                    await session.exec(insert(table_type), params=data)
-                await session.flush()
+                    await session.execute(insert(table_type), data)
+            await session.commit()
             table_data.clear()
-
-        self._reset_cache_csv_lookupscache()
 
     async def commit(self, objs=None):
         session = self._db_session
@@ -1678,26 +1338,6 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
                 session.add(obj)
         log.info(" Commit Drug data to database. This may take a while...")
         await session.commit()
-
-    """
-    async def commit(self, objs):
-        async with get_async_session_context() as session:
-            debug_single_obj_add = False
-            if debug_single_obj_add:
-                for obj in objs:
-                    # log.info(("obj", obj))
-                    try:
-                        session.add(obj)
-                    except:
-                        log.error(("Failed obj", obj))
-                        raise
-            else:
-                session.add_all(objs)
-            log.info(
-                " Commit Drug data to database. This may take a while..."
-            )
-            await session.commit()
-    """
 
     async def _generate_lov_items(
         self,
@@ -1733,14 +1373,11 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
                     display_value = lov_definition.display_name_factory(
                         paren_field.field_name, value, display_value
                     )
-                # filter rows
                 if lov_definition.filter_col is not None:
                     filter_col_index = get_header_index(
                         lov_definition.filter_col, headers, default=None
                     )
                     if row[filter_col_index] != lov_definition.filter_val:
-                        # we dont want this value in the lov item list
-                        # this is primarily used to filter list oif values of MMI's CATALOGENTRY.CSV
                         continue
 
                 li = DrugAttrFieldLovItem(
