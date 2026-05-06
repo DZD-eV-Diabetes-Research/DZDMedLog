@@ -3,7 +3,7 @@ const emit = defineEmits(['start', 'cancel'])
 </script>
 
 <template>
-  <UModal>
+  <UModal :ui="{ width: 'w-full sm:max-w-lg lg:max-w-xl' }">
     <UCard>
       <template #header>
         <div class="flex items-center justify-between">
@@ -35,9 +35,19 @@ const emit = defineEmits(['start', 'cancel'])
           <strong>Haben Sie Diabetes-Medikamente in den vergangenen 12 Monaten bzw. andere Medikamente in den letzten 7 Tagen eingenommen?</strong>
         </p>
 
-        <div class="flex flex-row gap-4 mt-4 justify-center">
-          <UButton label="Nein" size="lg" color="amber" @click="emit('start', false)"/>
-          <UButton label="Ja" size="lg" color="emerald" @click="emit('start', true)"/>
+        <div class="grid grid-cols-3 gap-2 mt-4">
+          <div class="flex flex-col gap-1 items-center text-center">
+            <UButton label="Abbrechen" size="lg" color="gray" @click="emit('cancel')"/>
+            <small>Interview nicht starten</small>
+          </div>
+          <div class="flex flex-col gap-1 items-center text-center">
+            <UButton label="Nein" size="lg" color="amber" @click="emit('start', false)"/>
+            <small>Interview direkt abschließen</small>
+          </div>
+          <div class="flex flex-col gap-1 items-center text-center">
+            <UButton label="Ja" size="lg" color="emerald" @click="emit('start', true)"/>
+            <small>Interview starten</small>
+          </div>
         </div>
       </div>
     </UCard>
