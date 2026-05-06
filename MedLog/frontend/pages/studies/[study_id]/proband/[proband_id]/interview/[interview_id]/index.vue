@@ -49,6 +49,7 @@
 
       <div class="grid grid-cols-2 gap-4">
         <UCard
+          class="text-center"
           :class="{
             'bg-blue-100': drugsAvailableToCopy,
             'border-blue-400': drugsAvailableToCopy,
@@ -73,7 +74,7 @@
             Es sind keine Medikamente aus einem früheren Interview verfügbar.
           </p>
           <p v-else-if="interview?.interview_end_time_utc">
-            Keine Übernahme, da Interview bereits abgeschlossen ist.
+            Keine Übernahme, da das Interview bereits abgeschlossen ist.
           </p>
           <p v-else-if="!drugsAvailableToCopy">
             Medikamentenübernahme nicht verfügbar
@@ -90,7 +91,7 @@
           </div>
         </UCard>
         <UCard
-            class="bg-green-100 border-green-400 text-end"
+            class="bg-green-100 border-green-400 text-center"
             :ui="{
             header: {
               padding: 'pt-5 pb-2'
@@ -119,34 +120,14 @@
         </UCard>
       </div>
 
-      <UCard :ui="{ body: { padding: 'py-4 sm:px-0' } }">
-        <template #header>
-          <div class="flex flex-col">
-            <h2 class="text-lg self-center">Eingenommene Medikamente</h2>
-            <div class="inline-grid grid-cols-3 justify-items-center">
-              <UInput v-model="q" placeholder="Tabelle filtern" autocomplete="off" class="justify-self-start" />
-            </div>
-          </div>
-        </template>
-
-        <div class="flex flex-col gap-4">
-          <IntakeTable
-              :intakes="rows"
-              :can-edit="userStore.isAdmin"
-              :can-delete="userStore.isAdmin"
-              @edit="(intakeId: string) => openEditModal(intakeId)"
-              @delete="(row: object) => openDeleteModal(row)"
-          />
-
-          <UPagination
-              v-if="tableContent.length >= pageCount || filteredRows.length >= pageCount"
-              v-model="page"
-              :page-count="pageCount"
-              :total="filteredRows.length"
-              class="self-center"
-          />
-        </div>
-      </UCard>
+      <DrugHistory
+        :intakes="intakes"
+        :can-edit="userStore.isAdmin"
+        :can-delete="userStore.isAdmin"
+        title="Eingenommene Medikamente (dieses Interview)"
+        @edit-intake="(intakeId: string) => openEditModal(intakeId)"
+        @delete-intake="(row: object) => openDeleteModal(row)"
+      />
 
       <!-- MODALS -->
 
@@ -302,7 +283,7 @@ const editModalVisible = ref(false);
 const intakeToEdit = ref<Partial<IntakeFormSchema>>();
 const intakeIdToEdit = ref();
 
-const tableContent = ref<SchemaIntakeDetailListItem[]>([]);
+const intakes = ref<SchemaIntakeDetailListItem[]>([]);
 
 async function openEditModal(intakeId: string) {
   intakeIdToEdit.value = intakeId;
@@ -403,32 +384,6 @@ async function deleteIntake() {
   }
 }
 
-// Table
-
-const page = ref(1);
-const pageCount = 10;
-
-const rows = computed(() => {
-  const data = q.value ? filteredRows.value : tableContent.value;
-  return data.slice((page.value - 1) * pageCount, page.value * pageCount);
-});
-
-const q = ref("");
-
-const filteredRows = computed(() => {
-  if (!q.value) {
-    return tableContent.value;
-  }
-
-  return tableContent.value.filter((tableContent) => {
-    return Object.values(tableContent).some((value) => {
-      return String(value).toLowerCase().includes(q.value.toLowerCase());
-    });
-  });
-});
-
-// REST
-
 async function endInterview() {
   await interviewStore.endInterview(studyId.value, eventId.value, interviewId.value);
   await navigateTo(`/studies/${studyId.value}/proband/${probandId.value}`);
@@ -436,7 +391,7 @@ async function endInterview() {
 
 async function loadIntakeList() {
   try {
-    tableContent.value = await useGetIntakesByStudyAndProband(studyId.value, probandId.value, interviewId.value) ?? [];
+    intakes.value = await useGetIntakesByStudyAndProband(studyId.value, probandId.value, interviewId.value) ?? [];
   } catch (e) {
     error.value = new Error("Konnte Liste der Einnahmen nicht laden", { cause: e });
   }
