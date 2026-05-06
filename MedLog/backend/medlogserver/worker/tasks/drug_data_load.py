@@ -134,10 +134,13 @@ class DrugDataLoader:
             log.debug(f"Import drug dataset: {drug_dataset}")
             self.importer.source_dir = Path(drug_dataset.import_path)
             await self.importer.start_import_process()
-            await self._rebuild_drugsearch_index()
             gc.collect()
         else:
             log.info("...no new drug data available.")
+        # Always verify the search index is healthy, regardless of whether new data
+        # was loaded. This ensures a stale/incomplete index (e.g. from a previous
+        # container crash mid-build) is detected and rebuilt on every task run.
+        await self._rebuild_drugsearch_index()
 
     async def create_follow_up_job_drug_data_cleaning(
         self, user_id: uuid.UUID | None, parent_job_id: uuid.UUID

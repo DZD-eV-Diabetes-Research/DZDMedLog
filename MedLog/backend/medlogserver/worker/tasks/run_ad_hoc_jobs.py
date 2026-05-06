@@ -66,7 +66,19 @@ class WorkerAdHocJobRunner:
 
     async def _process_jobs(self, jobs: List[WorkerJob]) -> List[WorkerJob]:
         finished_jobs: List[WorkerJob] = []
+        current_hour = datetime.datetime.now(tz=datetime.UTC).hour
         for job in jobs:
+            if (
+                job.task_name == Tasks.DRUG_DATA_LOAD.name
+                and config.DRUG_DATA_IMPORT_ALLOWED_HOURS is not None
+                and current_hour not in config.DRUG_DATA_IMPORT_ALLOWED_HOURS
+            ):
+                log.info(
+                    f"Deferring {job.task_name} job (id={job.id}): current hour {current_hour} UTC "
+                    f"is not in DRUG_DATA_IMPORT_ALLOWED_HOURS={config.DRUG_DATA_IMPORT_ALLOWED_HOURS}. "
+                    "Job remains queued."
+                )
+                continue
             # Type[TaskBase]
             log.info(f"Run adhoc job {job.task_name}...")
             job_task_class = import_task_class(Tasks[job.task_name].value)

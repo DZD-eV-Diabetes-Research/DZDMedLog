@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const configStore = useConfigStore();
 const drugDbUpdaterStore = useDrugDbUpdaterStore();
+const userStore = useUserStore();
 
 </script>
 
@@ -11,8 +12,11 @@ const drugDbUpdaterStore = useDrugDbUpdaterStore();
         <SystemStatus />
       </div>
       <div class="flex flex-col items-center text-sm">
+        <div v-if="!userStore.isLoggedIn">
+          &nbsp;
+        </div>
         <ErrorMessage
-            v-if="drugDbUpdaterStore.status?.last_update_run_error"
+            v-else-if="drugDbUpdaterStore.status?.last_update_run_error"
             title="Letztes Update der Arzneimitteldatenbank nicht erfolgreich"
             :message="drugDbUpdaterStore.status.last_update_run_error"
         />

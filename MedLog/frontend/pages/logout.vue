@@ -1,11 +1,14 @@
 <script setup lang="ts">
 const { $medlogapi } = useNuxtApp()
+const drugDbUpdaterStore = useDrugDbUpdaterStore();
 const drugFieldStore = useDrugFields();
 const eventStore = useEventStore();
+const healthCheckStore = useHealthCheckStore();
 const interviewStore = useInterviewStore();
+const roleStore = useRoleStore();
+const studyStore = useStudyStore();
 const systemAnnouncementsStore = useSystemAnnouncementsStore();
 const userStore = useUserStore();
-const studyStore = useStudyStore();
 
 const logoutError = ref();
 
@@ -31,10 +34,16 @@ onMounted(async () => {
   studyStore.$reset();
   drugFieldStore.$reset();
   userStore.$reset();
-  systemAnnouncementsStore.$reset(); // Public and internal announcements are mixed, let's remove them all
+  roleStore.$reset();
+  drugDbUpdaterStore.$reset();
 
-  // Fetch publicly available announcements again
+  // Public and internal announcements are mixed, let's remove them all and fetch the public ones again
+  systemAnnouncementsStore.$reset();
   await systemAnnouncementsStore.fetchSystemAnnouncements();
+
+  // Wipe the full report and fetch the public basic info again
+  healthCheckStore.$reset();
+  await healthCheckStore.doSimpleHealthCheck();
 
   // For OIDC logout: navigate the browser to the IdP's end_session_endpoint so the
   // IdP session is terminated. The IdP will redirect back to the app root afterwards.

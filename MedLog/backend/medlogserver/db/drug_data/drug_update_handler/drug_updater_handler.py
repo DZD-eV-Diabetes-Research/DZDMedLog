@@ -163,6 +163,18 @@ class DrugUpdateHandler:
                     else None,
                 )
             )
+            # Exclude jobs that were closed by external events (worker restart or
+            # migration cleanup) — these are not real failures and should not
+            # bubble up as errors in the status response.
+            _INTERRUPTED_TAGS = {"closedByWorkerRestart", "closedByMigration"}
+            download_jobs_failed = [
+                j for j in download_jobs_failed
+                if not _INTERRUPTED_TAGS.intersection(j.tags)
+            ]
+            loading_jobs_failed = [
+                j for j in loading_jobs_failed
+                if not _INTERRUPTED_TAGS.intersection(j.tags)
+            ]
 
         return (
             download_jobs_queued
@@ -204,9 +216,7 @@ class DrugUpdateHandler:
         )
         last_error: str | None = None
         if failed_loading_jobs:
-            last_error = (
-                failed_loading_jobs[0].last_error or failed_loading_jobs[0].last_error
-            )
+            last_error = failed_loading_jobs[0].last_error
 
         log.debug(
             f"\n\n_get_drug_update_status active_loading_jobs {active_loading_jobs}\navailable_update_version: {available_update_version}\n"

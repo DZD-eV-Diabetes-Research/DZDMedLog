@@ -1,29 +1,23 @@
-from typing import List, Dict, Optional, Literal
-from typing_extensions import Unpack
+from typing import List, Dict, Optional
 import shlex
 import traceback
 import datetime
 import uuid
-from sqlmodel import Field, select, delete, Column, JSON, SQLModel, delete, desc
-from sqlalchemy import case, Case, func, literal, Float
-from sqlalchemy.orm import selectinload, aliased
+from sqlmodel import Field, select, delete, SQLModel, desc
+from sqlalchemy import case, func, literal, Float, text, bindparam, UUID as SA_UUID
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.expression import literal_column
 from sqlalchemy.sql.operators import (
     is_not,
     is_,
-    contains,
-    in_op,
     icontains_op,
     contains_op,
     istartswith_op,
     startswith_op,
-    op,
     or_,
     and_,
 )
 import re
-from pydantic import field_validator
 
 
 from medlogserver.utils import get_db_type, get_now_datetime
@@ -41,13 +35,9 @@ from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.db.drug_data.drug_dataset_version import DrugDataSetVersionCRUD
 from medlogserver.api.paginator import QueryParamsInterface, PaginatedResponse
 from medlogserver.model.drug_data.drug import DrugData
-from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.db.drug_data.drug import DrugCRUD
-from medlogserver.model.drug_data.drug_attr import DrugVal, DrugValRef, DrugValMultiRef
-from medlogserver.db.drug_data.drug_lov_values import (
-    DrugAttrFieldLovItemCRUD,
-    DrugAttrFieldLovItem,
-)
+from medlogserver.model.drug_data.drug_attr import DrugValRef
+from medlogserver.db.drug_data.drug_lov_values import DrugAttrFieldLovItemCRUD
 from medlogserver.model.drug_data.api_drug_model_factory import drug_to_drugAPI_obj
 from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.config import Config
@@ -66,6 +56,7 @@ class GenericSQLDrugSearchState(SQLModel, table=True):
     __tablename__ = "drug_search_generic_sql_state"
     dummy_pk: int = Field(default=1, primary_key=True)
     index_build_up_in_process: bool = Field(default=False)
+    index_build_started_at: Optional[datetime.datetime] = Field(default=None)
     last_index_build_at: Optional[datetime.datetime] = Field(default=None)
     last_index_build_based_on_drug_datasetversion_id: Optional[uuid.UUID] = Field(
         default=None, foreign_key="drug_dataset_version.id"
@@ -152,10 +143,29 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         custom_drug_dataset_version = await self._get_custom_drugs_dataset_version()
         state = await self._get_state()
         if state.index_build_up_in_process:
-            log.warning(
-                "Cancel build_index for 'GenericSQLDrugSearchEngine'-Engine because build up is allready in progress"
+            # A stale lock means the previous build process was killed (e.g. container restart)
+            # without clearing index_build_up_in_process. Detect this by checking how long ago
+            # the build started; if no timestamp exists the record predates this check and is stale.
+            stale_lock_threshold_hours = 6
+            now = get_now_datetime()
+            is_stale = (
+                state.index_build_started_at is None
+                or (now - state.index_build_started_at).total_seconds()
+                > stale_lock_threshold_hours * 3600
             )
-            return
+            if is_stale:
+                log.warning(
+                    f"Stale index build lock detected (started_at={state.index_build_started_at}). "
+                    "Previous build likely crashed or the container was restarted. "
+                    "Resetting lock and rebuilding index."
+                )
+                state.index_build_up_in_process = False
+                await self._save_state(state)
+            else:
+                log.warning(
+                    "Cancel build_index for 'GenericSQLDrugSearchEngine'-Engine because build up is already in progress"
+                )
+                return
         if (
             state.last_index_build_based_on_drug_datasetversion_id
             == target_drug_dataset_version.id
@@ -167,6 +177,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             return
 
         state.index_build_up_in_process = True
+        state.index_build_started_at = get_now_datetime()
         index_item_count = None
         await self._save_state(state)
         try:
@@ -186,11 +197,13 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             # ToDo. We need an extra session here. when there is an sql error the state read/write will be prevented
             state = await self._get_state()
             state.index_build_up_in_process = False
+            state.index_build_started_at = None
             state.last_error = repr(traceback.format_exc())
             await self._save_state(state)
             raise err
         state = await self._get_state()
         state.index_build_up_in_process = False
+        state.index_build_started_at = None
         state.last_index_build_at = get_now_datetime()
         state.last_index_build_based_on_drug_datasetversion_id = (
             target_drug_dataset_version.id
@@ -252,28 +265,19 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
     async def _build_index(
         self, session: AsyncSession, skip_commit: bool = True, batch_size: int = 100000
     ):
-        """
-        Build search index with batch processing to reduce memory consumption.
-
-        Args:
-            session: Database session
-            skip_commit: Whether to skip final commit
-            batch_size: Number of records to process before flushing to database
-        """
         target_drug_dataset_version = await self._get_current_dataset_version()
-        log.debug(
-            f"INDEX BUILD UP target_drug_dataset_version: {target_drug_dataset_version.id} {type(target_drug_dataset_version.id)}"
-        )
-
         custom_drugs_dataset = await self._get_custom_drugs_dataset_version()
         if custom_drugs_dataset is None:
             raise ValueError(
                 "Something went wrong. There is no custom drug dataset registered. This should not happen."
             )
         log.debug(
+            f"INDEX BUILD UP target_drug_dataset_version: {target_drug_dataset_version.id} {type(target_drug_dataset_version.id)}"
+        )
+        log.debug(
             f"INDEX BUILD UP custom_drugs_dataset: {custom_drugs_dataset.id} {type(custom_drugs_dataset.id)}"
         )
-        # get total drug count
+
         drug_count_query = (
             select(func.count())
             .select_from(DrugData)
@@ -284,78 +288,190 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 )
             )
         )
-
         results = await session.exec(statement=drug_count_query)
         total_drug_count = results.first()
-        # Build the base query to fetch all drugs
-        query = (
-            select(DrugData)
-            .where(
-                or_(
-                    DrugData.source_dataset_id == target_drug_dataset_version.id,
-                    DrugData.source_dataset_id == custom_drugs_dataset.id,
-                )
-            )
-            .order_by(DrugData.id)
-        )
-        query = query.options(
-            selectinload(DrugData.attrs),
-            selectinload(DrugData.attrs_ref).selectinload(DrugValRef.lov_item),
-            selectinload(DrugData.attrs_multi),
-            selectinload(DrugData.attrs_multi_ref).selectinload(
-                DrugValMultiRef.lov_item
-            ),
-            selectinload(DrugData.codes),
-        )
-
-        # Process in batches using offset and limit
-        offset = 0
-        total_processed = 0
         log.info(
             f"[INDEX BUILD UP] Start building index for {total_drug_count} drug db entries."
         )
-        while True:
-            # Fetch batch of drugs
-            log.debug(
-                f"[INDEX BUILD UP] Fetching next DrugData batch of max size {batch_size}"
-            )
-            batch_query = query.offset(offset).limit(batch_size)
-            res = await session.exec(
-                batch_query, execution_options={"populate_existing": True}
-            )
-            drugs = res.all()
 
-            # Exit loop if no more drugs to process
-            if not drugs:
-                break
-            log.debug(
-                f"[INDEX BUILD UP] Fetched next DrugData batch of size {len(drugs)}"
+        all_defs = await self._get_all_drug_attr_definitions_fields()
+        searchable_attrs = [f.field_name for f in all_defs.get("attrs", []) if f.searchable]
+        searchable_multi = [f.field_name for f in all_defs.get("attrs_multi", []) if f.searchable]
+        searchable_ref = [f.field_name for f in all_defs.get("attrs_ref", []) if f.searchable]
+        searchable_multi_ref = [f.field_name for f in all_defs.get("attrs_multi_ref", []) if f.searchable]
+
+        is_pg = get_db_type(config.SQL_DATABASE_URL) == "postgres"
+        sql = self._build_index_insert_sql(
+            searchable_attrs=searchable_attrs,
+            searchable_multi=searchable_multi,
+            searchable_ref=searchable_ref,
+            searchable_multi_ref=searchable_multi_ref,
+            is_pg=is_pg,
+        )
+        log.debug("[INDEX BUILD UP] Running INSERT...SELECT aggregation in database...")
+        await session.execute(
+            text(sql).bindparams(
+                bindparam("version_id", type_=SA_UUID()),
+                bindparam("custom_id", type_=SA_UUID()),
+            ),
+            {
+                "version_id": target_drug_dataset_version.id,
+                "custom_id": custom_drugs_dataset.id,
+            },
+        )
+        log.info("[INDEX BUILD UP] Aggregation complete.")
+
+    def _build_index_insert_sql(
+        self,
+        searchable_attrs: List[str],
+        searchable_multi: List[str],
+        searchable_ref: List[str],
+        searchable_multi_ref: List[str],
+        is_pg: bool,
+    ) -> str:
+        """Build an INSERT...SELECT that populates the search cache entirely in SQL.
+
+        Uses CTEs to aggregate each attribute category, then joins them all onto the
+        drug table in one pass. No data ever leaves the database server.
+        """
+
+        def _quoted_names(names: List[str]) -> str:
+            return ", ".join("'" + n + "'" for n in names)
+
+        def _agg(col_expr: str, sep: str = "' '") -> str:
+            if is_pg:
+                return "STRING_AGG(" + col_expr + ", " + sep + ")"
+            return "GROUP_CONCAT(" + col_expr + ", " + sep + ")"
+
+        ctes: List[str] = [
+            "filtered_drugs AS (\n"
+            "    SELECT id FROM drug WHERE source_dataset_id IN (:version_id, :custom_id)\n"
+            ")"
+        ]
+        joins: List[str] = []
+        content_parts: List[str] = ["COALESCE(d.trade_name, '')"]
+
+        if searchable_attrs:
+            names = _quoted_names(searchable_attrs)
+            agg = _agg("value")
+            ctes.append(
+                "sa AS (\n"
+                "    SELECT drug_id, " + agg + " AS agg_val\n"
+                "    FROM drug_attr_val\n"
+                "    WHERE drug_id IN (SELECT id FROM filtered_drugs)\n"
+                "      AND field_name IN (" + names + ")\n"
+                "    GROUP BY drug_id\n"
+                ")"
             )
+            joins.append("LEFT JOIN sa ON sa.drug_id = d.id")
+            content_parts.append("COALESCE(' ' || sa.agg_val, '')")
 
-            cache_entries = []
-            for drug in drugs:
-                cache_entry: GenericSQLDrugSearchCache = await self._drug_to_cache_obj(
-                    drug
-                )
-                cache_entries.append(cache_entry)
-            log.debug(
-                f"[INDEX BUILD UP] Writing next GenericSQLDrugSearchCache-batch of {len(cache_entries)}"
+        if searchable_multi:
+            names = _quoted_names(searchable_multi)
+            agg = _agg("value")
+            ctes.append(
+                "sm AS (\n"
+                "    SELECT drug_id, " + agg + " AS agg_val\n"
+                "    FROM drug_attr_multi_val\n"
+                "    WHERE drug_id IN (SELECT id FROM filtered_drugs)\n"
+                "      AND field_name IN (" + names + ")\n"
+                "    GROUP BY drug_id\n"
+                ")"
             )
-            # Add batch to session and flush
-            session.add_all(cache_entries)
-            await session.flush()
+            joins.append("LEFT JOIN sm ON sm.drug_id = d.id")
+            content_parts.append("COALESCE(' ' || sm.agg_val, '')")
 
-            # Clear session to free memory (but maintain transaction)
-            session.expunge_all()
-
-            # Update counters
-            batch_count = len(drugs)
-            total_processed += batch_count
-            offset += batch_count
-
-            log.info(
-                f"[INDEX BUILD UP] Processed batch of {batch_count} drugs, total processed: {total_processed}/{total_drug_count}"
+        if searchable_ref:
+            names = _quoted_names(searchable_ref)
+            # value + optional LOV display; LEFT JOIN so missing LOV still yields value
+            ref_col = "drv.value || COALESCE(' ' || lov.display, '')"
+            agg = _agg(ref_col)
+            ctes.append(
+                "sra AS (\n"
+                "    SELECT drv.drug_id,\n"
+                "           " + agg + " AS agg_val\n"
+                "    FROM drug_attr_ref_val drv\n"
+                "    LEFT JOIN drug_attr_field_lov_item lov\n"
+                "           ON lov.field_name = drv.field_name\n"
+                "          AND lov.value = drv.value\n"
+                "          AND lov.importer_name = drv.importer_name\n"
+                "          AND lov.drug_dataset_version_fk = drv.drug_dataset_version_fk\n"
+                "    WHERE drv.drug_id IN (SELECT id FROM filtered_drugs)\n"
+                "      AND drv.field_name IN (" + names + ")\n"
+                "    GROUP BY drv.drug_id\n"
+                ")"
             )
+            joins.append("LEFT JOIN sra ON sra.drug_id = d.id")
+            content_parts.append("COALESCE(' ' || sra.agg_val, '')")
+
+        if searchable_multi_ref:
+            names = _quoted_names(searchable_multi_ref)
+            mref_col = "dmrv.value || COALESCE(' ' || lov.display, '')"
+            agg = _agg(mref_col)
+            ctes.append(
+                "smr AS (\n"
+                "    SELECT dmrv.drug_id,\n"
+                "           " + agg + " AS agg_val\n"
+                "    FROM drug_attr_multi_ref_val dmrv\n"
+                "    LEFT JOIN drug_attr_field_lov_item lov\n"
+                "           ON lov.field_name = dmrv.field_name\n"
+                "          AND lov.value = dmrv.value\n"
+                "          AND lov.importer_name = dmrv.importer_name\n"
+                "          AND lov.drug_dataset_version_fk = dmrv.drug_dataset_version_fk\n"
+                "    WHERE dmrv.drug_id IN (SELECT id FROM filtered_drugs)\n"
+                "      AND dmrv.field_name IN (" + names + ")\n"
+                "    GROUP BY dmrv.drug_id\n"
+                ")"
+            )
+            joins.append("LEFT JOIN smr ON smr.drug_id = d.id")
+            content_parts.append("COALESCE(' ' || smr.agg_val, '')")
+
+        # Codes contribute to search_index_content (value only) and search_cache_codes (system:code)
+        agg_codes_content = _agg("code")
+        agg_codes = _agg("code_system_id || ':' || code", sep="'|'")
+        ctes.append(
+            "ac AS (\n"
+            "    SELECT drug_id,\n"
+            "           " + agg_codes_content + " AS agg_codes_content,\n"
+            "           " + agg_codes + " AS agg_codes\n"
+            "    FROM drug_code\n"
+            "    WHERE drug_id IN (SELECT id FROM filtered_drugs)\n"
+            "    GROUP BY drug_id\n"
+            ")"
+        )
+        joins.append("LEFT JOIN ac ON ac.drug_id = d.id")
+        content_parts.append("COALESCE(' ' || ac.agg_codes_content, '')")
+
+        raw_content = " || ".join(content_parts)
+        if is_pg:
+            # REGEXP_REPLACE strips trademark symbols; LEFT caps to the indexable limit
+            content_expr = (
+                "LEFT(REGEXP_REPLACE("
+                + raw_content
+                + ", '[®™℠©℗℅№]', '', 'g'), "
+                + str(MAX_INDEXABLE_LENGTH)
+                + ")"
+            )
+        else:
+            content_expr = "SUBSTR(" + raw_content + ", 1, " + str(MAX_INDEXABLE_LENGTH) + ")"
+
+        ctes_sql = ",\n".join(ctes)
+        joins_sql = "\n    ".join(joins)
+
+        return (
+            "INSERT INTO drug_search_generic_sql_cache\n"
+            "    (id, search_index_content, search_cache_codes, market_exit_date, is_custom_drug)\n"
+            "WITH " + ctes_sql + "\n"
+            "SELECT\n"
+            "    d.id,\n"
+            "    " + content_expr + ",\n"
+            "    COALESCE(ac.agg_codes, ''),\n"
+            "    d.market_exit_date,\n"
+            "    d.is_custom_drug\n"
+            "FROM drug d\n"
+            "JOIN filtered_drugs fd ON fd.id = d.id\n"
+            "    " + joins_sql + "\n"
+        )
 
     async def _drug_to_cache_obj(self, drug: DrugData) -> GenericSQLDrugSearchCache:
         drug_attr_field_defs_all = await self._get_all_drug_attr_definitions_fields()

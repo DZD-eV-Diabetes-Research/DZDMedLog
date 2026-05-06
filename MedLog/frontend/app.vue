@@ -33,9 +33,11 @@ useHead(() => ({
 async function refreshStatus() {
   try {
     await healthCheckStore.doSimpleHealthCheck();
-    await healthCheckStore.doFullHealthCheck();
     await systemAnnouncementsStore.fetchSystemAnnouncements();
-    await drugDbUpdaterStore.fetchStatus();
+    if (userStore.isLoggedIn) {
+      await healthCheckStore.doFullHealthCheck();
+      await drugDbUpdaterStore.fetchStatus();
+    }
   } catch (error) {
     toast.add({
       title: 'Konnte Systemstatus nicht abfragen',

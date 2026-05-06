@@ -9,9 +9,9 @@ on:
 
 jobs:
   push_prod_release_image:
-    name: Push Docker image to Docker Hub
+    name: Push Docker image to Docker Hub (stable)
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' && !github.event.release.prerelease
     steps:
       - name: Check out the repo
         uses: actions/checkout@v6
@@ -53,6 +53,46 @@ jobs:
           short-description: "The server module for DZDMedLog, a system to document the medical history of study participant."
           enable-url-completion: true
           readme-filepath: "DOCKERHUB_README.md"
+
+  push_beta_release_image:
+    name: Push Docker image to Docker Hub (beta)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.release.prerelease
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # critical to get the clean release tag
+      - name: Fetch all tags
+        run: git fetch --tags origin
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_DZD_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_DZD_PASSWORD }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: dzdde/dzdmedlog
+          tags: |
+            type=raw,value=beta
+            type=semver,pattern={{version}}
+      - name: Extract version from release tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args: APP_VERSION=${{ steps.version.outputs.value }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   push_dev_commit_image:
     name: Build and tag dev image

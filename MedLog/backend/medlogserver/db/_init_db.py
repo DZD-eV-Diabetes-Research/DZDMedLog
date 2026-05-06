@@ -57,6 +57,21 @@ from sqlite3 import Connection as SQLite3Connection
 
 
 @event.listens_for(db_engine.sync_engine, "connect")
+def incease_sqlite_busy_timeout(dbapi_connection, connection_record):
+    if isinstance(
+        dbapi_connection,
+        (
+            SQLite3Connection,
+            AsyncAdapt_aiosqlite_connection,
+        ),
+    ):
+        log.debug("SQLite Database: PRAGMA busy_timeout = 5000")
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA busy_timeout = 5000")
+        cursor.close()
+
+
+@event.listens_for(db_engine.sync_engine, "connect")
 def enable_foreign_keys_on_sqlite(dbapi_connection, connection_record):
     """SQLlite databases disable foreign key contraints by default. This behaviour would prevents us from using things like cascade deletes.
     This addin enables that on every connect.

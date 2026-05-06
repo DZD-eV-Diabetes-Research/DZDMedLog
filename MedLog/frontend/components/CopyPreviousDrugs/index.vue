@@ -6,8 +6,8 @@
             <UTooltip text="Es liegen keine Medikamente zur Übernahme vor" :popper="{ arrow: true }" :prevent="!deactivated">
                 <UButton
                     :disabled="deactivated"
-                    icon="i-heroicons-document-duplicate"
-                    :color="deactivated ? 'gray' : 'green'" variant="outline" label="Medikationsübernahme"
+                    icon="i-heroicons-list-bullet"
+                    :color="deactivated ? 'gray' : 'blue'" variant="solid" label="Medikamente auswählen"
                     @click="openCopyIntakeModal()"
                 />
             </UTooltip>
