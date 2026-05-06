@@ -94,28 +94,7 @@
         </template>
       </UAccordion>
 
-      <UCard :ui="{ body: { padding: 'py-4 sm:px-0' } }">
-        <template #header>
-          <div class="flex flex-col">
-            <h2 class="text-lg self-center">Medikationshistorie</h2>
-            <div class="flex flex-row justify-between">
-              <UInput v-model="tableFilterString" placeholder="Tabelle filtern" autocomplete="off" />
-            </div>
-          </div>
-        </template>
-
-        <div class="flex flex-col gap-4">
-          <IntakeTable :intakes="rows" :show-event="true" />
-
-          <UPagination
-              v-if="intakes.length >= itemsPerPage || filteredRows.length >= itemsPerPage"
-              v-model="page"
-              :page-count="itemsPerPage"
-              :total="filteredRows.length"
-              class="self-center"
-          />
-        </div>
-      </UCard>
+      <IntakeHistory :intakes="intakes" :show-event="true" />
     </div>
     <InterviewIntroModal v-model="introModalVisible" @start="startInterview" @cancel="introModalVisible = false" />
   </section>
@@ -159,6 +138,7 @@ const errorMessage = ref();
 const eventsForProband = ref<SchemaEventReadPerProband[]>([]);
 const eventIdToStart = ref();
 const eventsToStartOptions = ref<{ label: string; value: string }[]>([]);
+const intakes = ref<SchemaIntakeDetailListItem[]>([]);
 const interviewsForProband = ref<SchemaInterview[]>([]);
 const introModalVisible = ref(false);
 const lastInterview = ref<SchemaInterview>();
@@ -169,30 +149,6 @@ const studyId = computed(() => route.params.study_id as string);
 const completedInterviews = computed(() => {
   return interviewsForProband.value.filter(interview => interview.interview_end_time_utc !== null);
 });
-
-// table
-
-const page = ref(1)
-const itemsPerPage = 10
-const intakes = ref<SchemaIntakeDetailListItem[]>([])
-const tableFilterString = ref('')
-
-const rows = computed(() => {
-  const data = tableFilterString.value ? filteredRows.value : intakes.value;
-  return data.slice((page.value - 1) * itemsPerPage, page.value * itemsPerPage);
-})
-
-const filteredRows = computed(() => {
-  if (!tableFilterString.value) {
-    return intakes.value
-  }
-
-  return intakes.value.filter((tableContent) => {
-    return Object.values(tableContent).some((value) => {
-      return String(value).toLowerCase().includes(tableFilterString.value.toLowerCase())
-    })
-  })
-})
 
 async function startInterview(hasTakenMeds: boolean) {
   try {

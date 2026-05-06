@@ -74,7 +74,7 @@ const columns: Array<{ key: string; label?: string, sortable?: boolean }> = [
   },
   {
     key: "dose",
-    label: "Dosis",
+    label: "Tagesdosis",
     sortable: true,
   },
   {
