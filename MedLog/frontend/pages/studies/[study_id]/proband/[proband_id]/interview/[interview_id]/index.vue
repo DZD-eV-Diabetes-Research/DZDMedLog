@@ -120,7 +120,7 @@
         </UCard>
       </div>
 
-      <DrugHistory
+      <IntakeHistory
         :intakes="intakes"
         :can-edit="userStore.isAdmin"
         :can-delete="userStore.isAdmin"

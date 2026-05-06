@@ -94,7 +94,7 @@
         </template>
       </UAccordion>
 
-      <DrugHistory :intakes="intakes" :show-event="true" />
+      <IntakeHistory :intakes="intakes" :show-event="true" />
     </div>
     <InterviewIntroModal v-model="introModalVisible" @start="startInterview" @cancel="introModalVisible = false" />
   </section>
