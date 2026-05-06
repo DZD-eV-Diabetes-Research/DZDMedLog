@@ -380,3 +380,5 @@ MedLog/backend/tests/testdb.sqlite-journal
 
 
 testftp.py
+*.sqlite-shm
+*.sqlite-wal

@@ -401,9 +401,9 @@ class DrugDataSetImporterBase:
                 DrugAttrFieldDefinition.importer_name == self.api_name
             )
             old_attr_defs = (await session.exec(query)).all()
-            log.debug(
-                f"_ensure_field_definitions_in_database old_attr_defs {old_attr_defs}"
-            )
+            # log.debug(
+            #    f"_ensure_field_definitions_in_database old_attr_defs {old_attr_defs}"
+            # )
             for current_def in attr_defs:
                 old_def = next(
                     (
@@ -415,9 +415,9 @@ class DrugDataSetImporterBase:
                 )
                 if old_def is None:
                     insert_defs.append(current_def)
-                    log.debug(
-                        f"_ensure_field_definitions_in_database add new def {current_def}"
-                    )
+                    # log.debug(
+                    #    f"_ensure_field_definitions_in_database add new def {current_def}"
+                    # )
                 else:
                     sqlmodel_apply_updates(old_def, current_def)
                     update_defs.append(old_def)
@@ -440,12 +440,12 @@ class DrugDataSetImporterBase:
                         update_defs.append(old_def)
 
             session.add_all(insert_defs)
-            log.debug(
-                f"_ensure_field_definitions_in_database update_defs {update_defs}"
-            )
-            log.debug(
-                f"_ensure_field_definitions_in_database insert_defs {insert_defs}"
-            )
+            # log.debug(
+            #    f"_ensure_field_definitions_in_database update_defs {update_defs}"
+            # )
+            # log.debug(
+            #    f"_ensure_field_definitions_in_database insert_defs {insert_defs}"
+            # )
             await session.commit()
 
     async def _set_dataset_version_status(

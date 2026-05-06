@@ -15,7 +15,7 @@ import time
 from pathlib import Path
 import datetime
 import csv
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from sqlmodel import SQLModel, select, and_
 from medlogserver.db._session import (
     get_async_session_context,
@@ -66,6 +66,7 @@ importername = "MMIPharmindex1_32"
 @dataclass
 class MmiPiDrugAttrRefFieldLovImportDefinition:
     lov_source_file: Optional[str] = "CATALOGENTRY.CSV"
+    additional_lov_source_files: List[str] = field(default_factory=list)
     values_col_name: Optional[str] = "CODE"
     display_value_col_name: Optional[str] = "NAME"
     filter_col: Optional[str] = "CATALOGID"
@@ -146,6 +147,12 @@ mmi_rohdaten_r3_mappings = {
         "PACKAGE.CSV",
         "ONMARKETDATE",
         map2="market_access_date",
+        cast_func=lambda x: datetime.datetime.strptime(x, "%d.%m.%Y").date(),
+    ),
+    "market_exit_date": SourceAttrMapping(
+        "ARCHIVE_PACKAGE.CSV",
+        "OFFMARKETDATE",
+        map2="market_exit_date",
         cast_func=lambda x: datetime.datetime.strptime(x, "%d.%m.%Y").date(),
     ),
     # codes
@@ -618,6 +625,7 @@ def get_attr_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
             source_mapping=mmi_rohdaten_r3_mappings["attrs_ref.hersteller"],
             lov=MmiPiDrugAttrRefFieldLovImportDefinition(
                 lov_source_file="COMPANY.CSV",
+                additional_lov_source_files=["ARCHIVE_COMPANY.CSV"],
                 values_col_name="ID",
                 display_value_col_name="NAME",
                 filter_col=None,
@@ -979,13 +987,18 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
                 await self.commit()
 
             finally:
-                if is_sqlite:
-                    await db_session.exec(text("PRAGMA synchronous=FULL"))
-                    await db_session.exec(text("PRAGMA cache_size=-2000"))
-                    await db_session.commit()
-                elif is_pg:
-                    await db_session.execute(text("SET synchronous_commit = ON"))
-                    await db_session.commit()
+                try:
+                    if is_sqlite:
+                        await db_session.exec(text("PRAGMA synchronous=FULL"))
+                        await db_session.exec(text("PRAGMA cache_size=-2000"))
+                        await db_session.commit()
+                    elif is_pg:
+                        await db_session.execute(text("SET synchronous_commit = ON"))
+                        await db_session.commit()
+                except Exception as cleanup_err:
+                    log.warning(
+                        f"Failed to reset session settings after import (session may be in a broken state): {cleanup_err}"
+                    )
 
     def _build_joined_dataframe(self) -> pl.DataFrame:
         """Load all required CSV files and join them into one wide DataFrame.
@@ -1008,16 +1021,30 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
             Path(src, "PRODUCT.CSV"),
             separator=";",
             infer_schema_length=0,
-        ).select(["ID", "DISPENSINGTYPECODE", "PRODUCTFOODTYPECODE", "PRODUCTDIETETICSTYPECODE"])
+        ).select(
+            [
+                "ID",
+                "DISPENSINGTYPECODE",
+                "PRODUCTFOODTYPECODE",
+                "PRODUCTDIETETICSTYPECODE",
+            ]
+        )
 
         product_flag_cols = pl.read_csv(
             Path(src, "PRODUCT_FLAG.CSV"),
             separator=";",
             infer_schema_length=0,
-        ).select([
-            "PRODUCTID", "CONTRACEPTIVE_FLAG", "COSMETICS_FLAG",
-            "DIETARYSUPPLEMENT_FLAG", "HERBAL_FLAG", "GENERIC_FLAG", "HOMOEOPATHIC_FLAG",
-        ])
+        ).select(
+            [
+                "PRODUCTID",
+                "CONTRACEPTIVE_FLAG",
+                "COSMETICS_FLAG",
+                "DIETARYSUPPLEMENT_FLAG",
+                "HERBAL_FLAG",
+                "GENERIC_FLAG",
+                "HOMOEOPATHIC_FLAG",
+            ]
+        )
 
         # One manufacturer per product — keep the first M-type company entry
         manufacturer_cols = (
@@ -1084,10 +1111,115 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
         )
 
         return (
-            package_df
-            .join(product_cols, left_on="PRODUCTID", right_on="ID", how="left")
+            package_df.join(
+                product_cols, left_on="PRODUCTID", right_on="ID", how="left"
+            )
             .join(product_flag_cols, on="PRODUCTID", how="left")
             .join(manufacturer_cols, on="PRODUCTID", how="left")
+            .join(atc_per_product, on="PRODUCTID", how="left")
+            .join(roa_per_product, on="PRODUCTID", how="left")
+            .join(keywords_per_product, on="PRODUCTID", how="left")
+            .join(icd_per_product, on="PRODUCTID", how="left")
+            .with_columns(pl.lit(None).alias("OFFMARKETDATE"))
+        )
+
+    def _build_archive_joined_dataframe(self) -> pl.DataFrame:
+        """Load ARCHIVE_* CSVs and join supporting tables into the same wide shape
+        as _build_joined_dataframe so both can be concatenated and processed by the
+        same _parse_drug_data_row logic.
+
+        Archive packages have OFFMARKETDATE set. Columns absent from the archive
+        schema (AMOUNTTEXT, IFAPHARMFORMCODE, etc.) are left as nulls via
+        diagonal_relaxed concat and polars fills them in automatically.
+        """
+        src = self.source_dir
+        log.info(" Loading and joining ARCHIVE CSV source files...")
+
+        archive_package_df = pl.read_csv(
+            Path(src, "ARCHIVE_PACKAGE.CSV"),
+            separator=";",
+            infer_schema_length=0,
+        )
+
+        # ARCHIVE_PRODUCT carries DISPENSINGTYPECODE and COMPANYID directly
+        # (no separate PRODUCT_COMPANY join needed)
+        archive_product_cols = pl.read_csv(
+            Path(src, "ARCHIVE_PRODUCT.CSV"),
+            separator=";",
+            infer_schema_length=0,
+        ).select(["ID", "DISPENSINGTYPECODE", "COMPANYID"])
+
+        product_flag_cols = pl.read_csv(
+            Path(src, "PRODUCT_FLAG.CSV"),
+            separator=";",
+            infer_schema_length=0,
+        ).select(
+            [
+                "PRODUCTID",
+                "CONTRACEPTIVE_FLAG",
+                "COSMETICS_FLAG",
+                "DIETARYSUPPLEMENT_FLAG",
+                "HERBAL_FLAG",
+                "GENERIC_FLAG",
+                "HOMOEOPATHIC_FLAG",
+            ]
+        )
+
+        item_df = pl.read_csv(
+            Path(src, "ITEM.CSV"),
+            separator=";",
+            infer_schema_length=0,
+        ).select(["ID", "PRODUCTID", "ITEMROACODE"])
+
+        item_atc_df = pl.read_csv(
+            Path(src, "ITEM_ATC.CSV"),
+            separator=";",
+            infer_schema_length=0,
+        ).select(["ITEMID", "ATCCODE"])
+
+        atc_per_product = (
+            item_df.select(["ID", "PRODUCTID"])
+            .join(item_atc_df, left_on="ID", right_on="ITEMID", how="left")
+            .group_by("PRODUCTID")
+            .agg(pl.col("ATCCODE").drop_nulls().unique())
+        )
+
+        roa_per_product = (
+            item_df.select(["PRODUCTID", "ITEMROACODE"])
+            .filter(pl.col("ITEMROACODE").is_not_null() & (pl.col("ITEMROACODE") != ""))
+            .group_by("PRODUCTID")
+            .agg(pl.col("ITEMROACODE").unique())
+        )
+
+        keywords_per_product = (
+            pl.read_csv(
+                Path(src, "PRODUCT_KEYWORD.CSV"),
+                separator=";",
+                infer_schema_length=0,
+            )
+            .select(["PRODUCTID", "CODE"])
+            .filter(pl.col("CODE").is_not_null() & (pl.col("CODE") != ""))
+            .group_by("PRODUCTID")
+            .agg(pl.col("CODE").unique())
+        )
+
+        icd_per_product = (
+            pl.read_csv(
+                Path(src, "PRODUCT_ICD.CSV"),
+                separator=";",
+                infer_schema_length=0,
+            )
+            .select(["PRODUCTID", "ICDCODE"])
+            .filter(pl.col("ICDCODE").is_not_null() & (pl.col("ICDCODE") != ""))
+            .group_by("PRODUCTID")
+            .agg(pl.col("ICDCODE").unique())
+        )
+
+        return (
+            archive_package_df.join(
+                archive_product_cols, left_on="PRODUCTID", right_on="ID", how="left"
+            )
+            .join(product_flag_cols, on="PRODUCTID", how="left")
             .join(atc_per_product, on="PRODUCTID", how="left")
             .join(roa_per_product, on="PRODUCTID", how="left")
             .join(keywords_per_product, on="PRODUCTID", how="left")
@@ -1099,6 +1231,12 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
     ) -> AsyncGenerator[Dict[type, List[Dict]], None]:
         log.info(" Building joined drug DataFrame...")
         joined_df = self._build_joined_dataframe()
+        log.info(" Building joined archive drug DataFrame...")
+        archive_df = self._build_archive_joined_dataframe()
+        log.info(
+            f" Combining {len(joined_df)} active and {len(archive_df)} archived drug packages..."
+        )
+        joined_df = pl.concat([joined_df, archive_df], how="diagonal_relaxed")
 
         if config.DRUG_DATA_IMPORT_MAX_ROWS:
             log.warning(
@@ -1119,7 +1257,7 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
         debug_perf_start = time.time()
 
         for index, row in enumerate(joined_df.iter_rows(named=True)):
-            if index % 1000 == 0:
+            if index % 10000 == 0:
                 log.info(f" Processed {index} of {row_count_processing_max} packages")
             yield self._parse_drug_data_row(
                 drug_dataset_version,
@@ -1190,7 +1328,8 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
                     "drug_id": drug_id,
                     "field_name": attr_def.field.field_name,
                     "value": self._cast_raw_csv_value_if_needed(
-                        row.get(attr_def.source_mapping.colname), attr_def.source_mapping
+                        row.get(attr_def.source_mapping.colname),
+                        attr_def.source_mapping,
                     ),
                     "importer_name": importername,
                 }
@@ -1198,7 +1337,8 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
 
         for attr_ref_def in attr_ref_defs:
             val = self._cast_raw_csv_value_if_needed(
-                row.get(attr_ref_def.source_mapping.colname), attr_ref_def.source_mapping
+                row.get(attr_ref_def.source_mapping.colname),
+                attr_ref_def.source_mapping,
             )
             if val is None:
                 continue
@@ -1255,9 +1395,7 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
             return mapping.cast_func(value)
         return str(value)
 
-    async def _pg_copy_table(
-        self, pg_conn, table_type: type, data: list[dict]
-    ) -> None:
+    async def _pg_copy_table(self, pg_conn, table_type: type, data: list[dict]) -> None:
         """Bulk-load a batch into a single PostgreSQL table via the COPY protocol.
 
         psycopg3 3.3+ exposes COPY on Cursor, not Connection. We open a cursor on
@@ -1310,6 +1448,7 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
             objs.clear()
 
         if table_data:
+            log.debug(" Write rows to database...")
             if is_pg:
                 sa_conn = await session.connection()
                 raw_conn = await sa_conn.get_raw_connection()
@@ -1346,49 +1485,59 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
         drug_dataset_version: DrugDataSetVersion,
     ) -> List[DrugAttrFieldLovItem]:
         lov_items: List[DrugAttrFieldLovItem] = []
-        source_file = Path(self.source_dir, lov_definition.lov_source_file)
+        seen_values: set[str] = set()
+
+        source_files = [lov_definition.lov_source_file] + list(
+            lov_definition.additional_lov_source_files
+        )
 
         def get_header_index(
-            colname: str, headers: List[str], default: Any = Unset
+            colname: str, headers: List[str], source_file: Path, default: Any = Unset
         ) -> int:
             try:
                 return headers.index(colname)
-            except (IndexError, ValueError) as e:
+            except (IndexError, ValueError):
                 if default is not Unset:
                     return default
                 raise ValueError(
                     f"[{self.__class__.__name__}] Could not find column '{colname}' in file '{source_file.resolve()}' while parsing LOV/Select/Reference-Values for field '{paren_field.field_name}'. \nExisting headers: {headers}"
                 )
 
-        with open(source_file) as csvfile:
-            csvreader = csv.reader(csvfile, delimiter=";")
-            headers: List[str] = next(csvreader)
+        for source_filename in source_files:
+            source_file = Path(self.source_dir, source_filename)
+            with open(source_file) as csvfile:
+                csvreader = csv.reader(csvfile, delimiter=";")
+                headers: List[str] = next(csvreader)
 
-            for index, row in enumerate(csvreader):
-                value = row[get_header_index(lov_definition.values_col_name, headers)]
-                display_value = row[
-                    get_header_index(lov_definition.display_value_col_name, headers)
-                ]
-                if lov_definition.display_name_factory:
-                    display_value = lov_definition.display_name_factory(
-                        paren_field.field_name, value, display_value
-                    )
-                if lov_definition.filter_col is not None:
-                    filter_col_index = get_header_index(
-                        lov_definition.filter_col, headers, default=None
-                    )
-                    if row[filter_col_index] != lov_definition.filter_val:
+                for index, row in enumerate(csvreader):
+                    value = row[get_header_index(lov_definition.values_col_name, headers, source_file)]
+                    if value in seen_values:
                         continue
+                    display_value = row[
+                        get_header_index(lov_definition.display_value_col_name, headers, source_file)
+                    ]
+                    if lov_definition.display_name_factory:
+                        display_value = lov_definition.display_name_factory(
+                            paren_field.field_name, value, display_value
+                        )
+                    if lov_definition.filter_col is not None:
+                        filter_col_index = get_header_index(
+                            lov_definition.filter_col, headers, source_file, default=None
+                        )
+                        if row[filter_col_index] != lov_definition.filter_val:
+                            continue
 
-                li = DrugAttrFieldLovItem(
-                    field_name=paren_field.field_name,
-                    value=value,
-                    display=display_value,
-                    sort_order=index,
-                    importer_name=importername,
-                    drug_dataset_version_fk=drug_dataset_version.id,
-                )
-                lov_items.append(li)
+                    seen_values.add(value)
+                    li = DrugAttrFieldLovItem(
+                        field_name=paren_field.field_name,
+                        value=value,
+                        display=display_value,
+                        sort_order=len(lov_items),
+                        importer_name=importername,
+                        drug_dataset_version_fk=drug_dataset_version.id,
+                    )
+                    lov_items.append(li)
+
         if lov_definition.sort_attr is not None:
             lov_items.sort(key=lambda obj: getattr(obj, lov_definition.sort_attr))
             for new_index, obj in enumerate(lov_items):

@@ -4,7 +4,7 @@ import traceback
 import datetime
 import uuid
 from sqlmodel import Field, select, delete, SQLModel, desc
-from sqlalchemy import case, func, literal, Float, text
+from sqlalchemy import case, func, literal, Float, text, bindparam, UUID as SA_UUID
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.expression import literal_column
 from sqlalchemy.sql.operators import (
@@ -310,10 +310,13 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         )
         log.debug("[INDEX BUILD UP] Running INSERT...SELECT aggregation in database...")
         await session.execute(
-            text(sql),
+            text(sql).bindparams(
+                bindparam("version_id", type_=SA_UUID()),
+                bindparam("custom_id", type_=SA_UUID()),
+            ),
             {
-                "version_id": str(target_drug_dataset_version.id),
-                "custom_id": str(custom_drugs_dataset.id),
+                "version_id": target_drug_dataset_version.id,
+                "custom_id": custom_drugs_dataset.id,
             },
         )
         log.info("[INDEX BUILD UP] Aggregation complete.")
