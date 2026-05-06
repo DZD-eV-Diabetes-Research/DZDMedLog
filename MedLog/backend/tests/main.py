@@ -136,6 +136,14 @@ def setup_oidc_mock_for_tests():
     print(f"OIDC provider configured with slug '{OIDC_TEST_PROVIDER_SLUG}'")
 
 
+def teardown_oidc_mock_for_tests():
+    global _oidc_mock_server
+    if _oidc_mock_server is not None:
+        ctx, _ = _oidc_mock_server
+        ctx.__exit__(None, None, None)
+        _oidc_mock_server = None
+
+
 multiprocessing.set_start_method("fork")  # must be set before mock server starts
 setup_oidc_mock_for_tests()
 # ─────────────────────────────────────────────────────────────────────────────
@@ -385,6 +393,8 @@ if __name__ == "__main__":
     monitor_stop_event.set()
     monitor_thread.join()
     shutdown_medlogserver_and_backgroundworker()
+
+    teardown_oidc_mock_for_tests()
 
     for test_file in successfull_test_files:
         print(f"\t✅️ {test_file}")

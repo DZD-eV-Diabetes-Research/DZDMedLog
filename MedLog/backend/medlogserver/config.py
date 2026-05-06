@@ -395,6 +395,15 @@ class Config(BaseSettings):
         description="For debuging or demo purposes you can limit the amount of drug entries that are parsed and import while the drug importer runs. This speeds up the import process massivly but you will not have all drug entries.",
         default=None,
     )
+    DRUG_DATA_IMPORT_ALLOWED_HOURS: Optional[List[int]] = Field(
+        description=(
+            "Restrict drug data imports to specific hours of the day (UTC, 0-23). "
+            "Useful when multiple instances share a VM and you want to avoid simultaneous "
+            "memory-intensive imports. E.g. [2, 3, 4, 5] allows imports only between 02:00 and 06:00 UTC. "
+            "Null/unset means imports can start at any time."
+        ),
+        default=None,
+    )
 
     EXPORT_CACHE_DIR: str = Field(
         default="./export_cache",
