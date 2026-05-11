@@ -14,23 +14,24 @@
           icon: 'i-heroicons-question-mark-circle',
           to: '/help'
         }, {
-          label: 'Datenexport',
+          label: 'Kontoverwaltung ',
         }]"
           class="self-start"
       />
 
       <UDivider class="my-2" size="sm" />
-      <h2 class="text-3xl font-normal mb-4">Datenexport</h2>
+      <h2 class="text-3xl font-normal mb-4">Kontoverwaltung</h2>
     </div>
 
     <p>
-      Als Admin können Sie die Medikationsdaten einer Studie exportieren.
-      Der Zugang erfolgt ebenfalls über die <em>Studienverwaltung</em>.
-      Wählen Sie im Bereich <em>Studienverwaltung</em> den <em>Datenexport</em> aus.
+      Zur Kontoverwaltung und damit zum User-Management gelangen Sie über die entsprechenden Reiter rechts oben auf der DZDMedLog-Seite.
     </p>
-    <p>
-      Hier können Sie einen Export generieren und anschließend herunterladen.
-    </p>
+
+    <WarningMessage
+      title=""
+      message="Bitte beachten Sie, dass nur Benutzer:innen mit User-Management-Rechten Nutzerkonten anlegen oder verwalten können."
+      class="mt-4"
+    />
   </section>
 </template>
 

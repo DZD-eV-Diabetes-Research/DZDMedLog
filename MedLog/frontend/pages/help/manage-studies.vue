@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const configStore = useConfigStore();
+
 </script>
 
 <template>
@@ -20,12 +20,11 @@ const configStore = useConfigStore();
       />
 
       <UDivider class="my-2" size="sm" />
-      <h2 class="text-3xl font-normal mb-4">Studienverwaltung </h2>
+      <h2 class="text-3xl font-normal mb-4">Studienverwaltung</h2>
     </div>
 
     <p>
-      Zur Studien- und Kontoverwaltung - inklusive Anlage der Interviews als Events -  gelangen Sie über die entsprechenden Reiter rechts oben auf der DZDMedLog Landingpage.
-      Die Landingpage können Sie von überall erreichen, indem Sie auf den Schriftzug <em>{{ configStore.appName }}</em> in der oberen linken Ecke klicken.
+      Zur Studienverwaltung – inklusive Anlage der Interviews als Events – gelangen Sie über den entsprechenden Reiter rechts oben auf der DZDMedLog-Seite.
     </p>
 
     <WarningMessage

@@ -35,6 +35,14 @@ const configStore = useConfigStore();
           </div>
         </UCard>
       </ULink>
+      <ULink to="/help/manage-users">
+        <UCard class="border border-gray-400 hover:bg-gray-100">
+          <div class="flex flex-row items-center gap-2">
+            <UIcon name="i-heroicons-users" class="w-8 h-8" />
+            Kontoverwaltung
+          </div>
+        </UCard>
+      </ULink>
       <ULink to="/help/export">
         <UCard class="border border-gray-400 hover:bg-gray-100">
           <div class="flex flex-row items-center gap-2">
