@@ -103,6 +103,23 @@ async def list_study_permissions(
 
 ############
 @fast_api_permissions_router.get(
+    "/study/{study_id}/permissions/me",
+    response_model=StudyPermissionRead,
+    description=f"Get the permission details for this user for a certain study.",
+)
+async def get_my_permission_for_study(
+    study_access: UserStudyAccess = Security(user_has_study_access),
+    permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
+    current_user: User = Depends(get_current_user),
+) -> StudyPermisson:
+    return await permission_crud.get_by_user_and_study(
+        current_user.id,
+        study_access.study.id,
+    )
+
+
+############
+@fast_api_permissions_router.get(
     "/study/{study_id}/permissions/{user_id}",
     response_model=StudyPermissionRead,
     description=f"Get the permission details for this user for a certain study.",

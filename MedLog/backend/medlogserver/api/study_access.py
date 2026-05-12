@@ -163,6 +163,21 @@ async def user_has_study_access(
     ],
     study_crud: Annotated[StudyCRUD, Depends(StudyCRUD.get_crud)],
 ) -> UserStudyAccess:
+    """_summary_
+
+    Args:
+        study_id (uuid.UUID): _description_
+        user (Annotated[User, Security): _description_
+        study_permisson_crud (Annotated[ StudyPermissonCRUD, Depends): _description_
+        study_crud (Annotated[StudyCRUD, Depends): _description_
+
+    Raises:
+        HTTPException: Study does not exists
+        HTTPException: User has no access to study
+
+    Returns:
+        UserStudyAccess: _description_
+    """
     if isinstance(study_id, str):
         study_id: uuid.UUID = uuid.UUID(study_id)
     access_helper = UserStudyAccessCollection(user=user)
