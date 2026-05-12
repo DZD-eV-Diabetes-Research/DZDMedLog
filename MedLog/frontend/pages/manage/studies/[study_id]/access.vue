@@ -4,7 +4,6 @@ import {
   onMounted,
   ref,
   useDeletePermissions,
-  useGetPermissions,
   useGetPermissionsByStudy,
   usePutPermissions,
   useRoute,
@@ -13,12 +12,12 @@ import {
   useUserStore
 } from "#imports";
 import type {
-  SchemaStudyPermissionDesc,
   SchemaStudyPermissionRead,
   SchemaStudyPermissonUpdate
 } from "#open-fetch-schemas/medlogapi";
 
 const route = useRoute();
+const studyPermissionStore = useStudyPermissionStore();
 const studyStore = useStudyStore();
 const toast = useToast();
 const userStore = useUserStore();
@@ -41,7 +40,6 @@ const usersWithoutAccessOptions = computed(() => {
       });
 });
 
-const availablePermissions = ref<SchemaStudyPermissionDesc[]>([]);
 const loading = ref(true);
 const permissionsToEdit = ref<string[]>();
 const studyPermissions = ref<SchemaStudyPermissionRead[]>([]);
@@ -94,7 +92,7 @@ function onEditPermissions(studyPermissionsId: string) {
 
   userIdToEditPermissionsFor.value = studyPermission.user_ref?.id;
   const permissions: string[] = [];
-  availablePermissions.value.forEach((item) => {
+  studyPermissionStore.availablePermissions.forEach((item) => {
     if (Object.hasOwn(studyPermission, item.study_permission_name)) {
       const studyPermissionName = item.study_permission_name as keyof typeof studyPermission;
       if (studyPermission[studyPermissionName] === true) {
@@ -121,7 +119,6 @@ async function onSavePermissions(data: SchemaStudyPermissonUpdate) {
 }
 
 onMounted(async () => {
-  availablePermissions.value = await useGetPermissions();
   await userStore.loadUsers();
   await loadStudyPermissions();
 });
@@ -185,7 +182,7 @@ onMounted(async () => {
 
     <StudyPermissionManagementEditModal
         v-model="showEditModal"
-        :available-permissions="availablePermissions"
+        :available-permissions="studyPermissionStore.availablePermissions"
         :initial-permissions="permissionsToEdit"
         @cancel="showEditModal = false"
         @save="onSavePermissions"
