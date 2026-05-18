@@ -15,6 +15,7 @@ from utils import (
     authorize_for_access_token,
     dictyfy,
 )
+from statics import ADMIN_USER_NAME, ADMIN_USER_PW
 
 
 def test_endpoint_study_permissions_list():
@@ -411,3 +412,110 @@ def test_full_permission_workflow():
 
     # we now should have 4 events
     assert len(events["items"]) == 4
+
+
+def test_endpoint_study_permissions_me_as_admin_without_db_row():
+    """Admin user with no explicit DB permission row must get a synthetic all-true permission."""
+    study_data = create_test_study(
+        study_name="TestAdminPermsMeNoDBRow", with_events=0
+    )
+    # The default req() uses the admin token; admin has no DB row for this fresh study.
+    result = req(
+        f"/api/study/{study_data.study.id}/permissions/me",
+        method="get",
+    )
+    dict_must_contain(
+        result,
+        required_keys_and_val={
+            "is_study_viewer": True,
+            "is_study_interviewer": True,
+            "is_study_admin": True,
+        },
+        exception_dict_identifier="admin synthetic permission",
+    )
+    assert result["user_id"] is not None
+    assert result["study_id"] == str(study_data.study.id)
+
+
+def test_endpoint_study_permissions_me_as_admin_with_explicit_db_row():
+    """Admin user who also has an explicit DB permission row should still get a valid response."""
+    study_data = create_test_study(
+        study_name="TestAdminPermsMeWithDBRow", with_events=0
+    )
+    # Fetch admin user info via /user/me
+    admin_info = req("/api/user/me", method="get")
+    admin_id = admin_info["id"]
+
+    # Create an explicit (but restricted) DB permission for the admin
+    from medlogserver.model.study_permission import StudyPermissonUpdate
+
+    restricted_perm = StudyPermissonUpdate(
+        is_study_viewer=True, is_study_interviewer=False, is_study_admin=False
+    )
+    req(
+        f"/api/study/{study_data.study.id}/permissions/{admin_id}",
+        method="put",
+        b=dictyfy(restricted_perm),
+    )
+
+    # /permissions/me should return the DB row, not the synthetic all-true one
+    result = req(
+        f"/api/study/{study_data.study.id}/permissions/me",
+        method="get",
+    )
+    dict_must_contain(
+        result,
+        required_keys_and_val={
+            "is_study_viewer": True,
+            "is_study_interviewer": False,
+            "is_study_admin": False,
+        },
+        exception_dict_identifier="admin explicit permission",
+    )
+    assert result["user_id"] == admin_id
+
+
+def test_endpoint_study_permissions_me_as_regular_user():
+    """Regular user with an explicit study permission gets their actual permission record."""
+    study_data = create_test_study(
+        study_name="TestRegularUserPermsMe", with_events=0
+    )
+    user_password = "reguser_pw_9301"
+    test_user = create_test_user(
+        user_name="perms_me_regular_user",
+        password=user_password,
+        email="perms_me_regular@test.com",
+    )
+    test_user_token = authorize_for_access_token(
+        username=test_user.user_name,
+        pw=user_password,
+        set_as_global_default_login=False,
+    )
+
+    from medlogserver.model.study_permission import StudyPermissonUpdate
+
+    # Grant viewer + interviewer, not admin
+    perm = StudyPermissonUpdate(
+        is_study_viewer=True, is_study_interviewer=True, is_study_admin=False
+    )
+    req(
+        f"/api/study/{study_data.study.id}/permissions/{test_user.id}",
+        method="put",
+        b=dictyfy(perm),
+    )
+
+    result = req(
+        f"/api/study/{study_data.study.id}/permissions/me",
+        method="get",
+        access_token=test_user_token,
+    )
+    dict_must_contain(
+        result,
+        required_keys_and_val={
+            "is_study_viewer": True,
+            "is_study_interviewer": True,
+            "is_study_admin": False,
+        },
+        exception_dict_identifier="regular user permission /me",
+    )
+    assert result["user_id"] == str(test_user.id)

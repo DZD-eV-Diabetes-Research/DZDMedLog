@@ -112,10 +112,24 @@ async def get_my_permission_for_study(
     permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
     current_user: User = Depends(get_current_user),
 ) -> StudyPermisson:
-    return await permission_crud.get_by_user_and_study(
+    perm = await permission_crud.get_by_user_and_study(
         current_user.id,
         study_access.study.id,
     )
+    if perm is None and current_user.is_admin():
+        # System admins have implicit full access to all studies with no DB row.
+        # Synthesise a virtual all-true permission so the response serialises correctly.
+        perm = StudyPermisson(
+            id=uuid.uuid4(),
+            user_id=current_user.id,
+            study_id=study_access.study.id,
+            is_study_viewer=True,
+            is_study_interviewer=True,
+            is_study_admin=True,
+        )
+        perm.user_ref = current_user
+        perm.study_ref = study_access.study
+    return perm
 
 
 ############
