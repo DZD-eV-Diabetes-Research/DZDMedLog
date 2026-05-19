@@ -18,7 +18,7 @@ config = Config()
 
 # Rows deleted per transaction. Keeps WAL pressure and lock duration manageable
 # even when cleaning a full drug dataset (100 k+ entries with cascade child rows).
-_DELETE_BATCH_SIZE = 10_000
+_DELETE_BATCH_SIZE = 50_000
 
 
 class DrugDataRemoveObsoleteDrugDataEntries:
