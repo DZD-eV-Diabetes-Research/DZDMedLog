@@ -281,6 +281,172 @@ def test_endpoint_drug_update_workflow():
     # print("list_dispensingtype", list_dispensingtype)
 
 
+def test_drug_data_cleaning_memory_and_correctness():
+    """Regression test for the ObsoleteDrugEntries cleaner.
+
+    Bugs being guarded:
+    1. `DrugDataSetVersion.cleaned_date_datetime_utc = ...` set the *class* attribute
+       instead of the instance — the DB record was never marked cleaned, so every
+       run reprocessed all old datasets from scratch (infinite CPU/disk/OOM loop).
+    2. `select(DrugData)` with `lazy="selectin"` relationships loaded every drug
+       row plus all its attrs/codes into Python memory, exhausting RAM on a full
+       drug dataset (100 k+ entries × multiple attribute tables).
+    """
+    import asyncio
+    import tracemalloc
+    import uuid
+    import datetime as dt
+    from sqlmodel import select
+    from medlogserver.db._session import get_async_session_context
+    from medlogserver.model.drug_data import DrugData, DrugDataSetVersion
+    from medlogserver.worker.tasks.drug_data_remove_obsolete_drug_entries import (
+        DrugDataRemoveObsoleteDrugDataEntries,
+    )
+
+    DRUG_COUNT = 5_000
+
+    async def run():
+        dataset_id = uuid.uuid4()
+
+        # --- Setup: one deactivated dataset with many orphaned drug entries ---
+        async with get_async_session_context() as session:
+            session.add(
+                DrugDataSetVersion(
+                    id=dataset_id,
+                    dataset_version="19000101_memtest",
+                    dataset_source_name="test_memtest",
+                    dataset_link=None,
+                    is_custom_drugs_collection=False,
+                    current_active=False,
+                    cleaned_date_datetime_utc=None,
+                    import_status="done",
+                    import_start_datetime_utc=dt.datetime.now(dt.timezone.utc),
+                )
+            )
+            await session.flush()
+            for i in range(DRUG_COUNT):
+                session.add(
+                    DrugData(
+                        source_dataset_id=dataset_id,
+                        trade_name=f"MemTestDrug{i:05d}",
+                    )
+                )
+            await session.commit()
+
+        # --- Run the cleaner while tracking Python memory allocations ---
+        tracemalloc.start()
+        await DrugDataRemoveObsoleteDrugDataEntries().drug_data_remove_obsolete_drug_entries()
+        _current, peak_bytes = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+
+        # --- Verify correctness: all orphaned drugs must be deleted ---
+        async with get_async_session_context() as session:
+            remaining_drugs = (
+                await session.exec(
+                    select(DrugData).where(DrugData.source_dataset_id == dataset_id)
+                )
+            ).all()
+            dataset_after = (
+                await session.exec(
+                    select(DrugDataSetVersion).where(DrugDataSetVersion.id == dataset_id)
+                )
+            ).one()
+
+        return peak_bytes, len(remaining_drugs), dataset_after.cleaned_date_datetime_utc
+
+    peak_bytes, remaining_count, cleaned_at = asyncio.run(run())
+
+    # All orphaned drugs must have been deleted
+    assert remaining_count == 0, (
+        f"Expected 0 remaining drugs after cleaning, got {remaining_count}. "
+        "The cleaner may not be deleting orphaned entries."
+    )
+
+    # cleaned_date_datetime_utc must be written to the DB instance, not the class.
+    # If it's None the dataset would be re-processed on every future run.
+    assert cleaned_at is not None, (
+        "DrugDataSetVersion.cleaned_date_datetime_utc was not persisted. "
+        "The cleaner is setting the class attribute instead of the instance attribute, "
+        "which causes every run to reprocess all old datasets (infinite OOM loop)."
+    )
+
+    # Peak Python memory must not scale with the number of drug records.
+    # Generous 30 MB cap — the fixed implementation loads no DrugData objects.
+    # The broken implementation would load DRUG_COUNT ORM objects + all their
+    # selectin-loaded relationship collections, which is several hundred MB here
+    # and 16+ GB on a production-sized dataset.
+    peak_mb = peak_bytes / (1024 * 1024)
+    assert peak_mb < 30, (
+        f"Cleaning job used {peak_mb:.1f} MB peak memory for {DRUG_COUNT} drugs "
+        f"(expected < 30 MB). The implementation may be loading drug objects into "
+        f"Python memory instead of using a server-side subquery."
+    )
+
+
+def test_drug_data_cleaning_skips_already_cleaned_datasets():
+    """Cleaner must not re-process datasets that were already cleaned.
+
+    Regression for the class-attribute bug: if cleaned_date_datetime_utc is never
+    persisted the WHERE clause `IS NULL` always matches, causing re-processing.
+    """
+    import asyncio
+    import uuid
+    import datetime as dt
+    from sqlmodel import select
+    from medlogserver.db._session import get_async_session_context
+    from medlogserver.model.drug_data import DrugData, DrugDataSetVersion
+    from medlogserver.worker.tasks.drug_data_remove_obsolete_drug_entries import (
+        DrugDataRemoveObsoleteDrugDataEntries,
+    )
+
+    async def run():
+        dataset_id = uuid.uuid4()
+        already_cleaned = dt.datetime(2020, 1, 1, tzinfo=dt.timezone.utc)
+
+        # Create a dataset already marked as cleaned and add a drug to it
+        async with get_async_session_context() as session:
+            session.add(
+                DrugDataSetVersion(
+                    id=dataset_id,
+                    dataset_version="19000102_skipmtest",
+                    dataset_source_name="test_skipmtest",
+                    dataset_link=None,
+                    is_custom_drugs_collection=False,
+                    current_active=False,
+                    cleaned_date_datetime_utc=already_cleaned,
+                    import_status="done",
+                    import_start_datetime_utc=dt.datetime.now(dt.timezone.utc),
+                )
+            )
+            await session.flush()
+            session.add(
+                DrugData(
+                    source_dataset_id=dataset_id,
+                    trade_name="ShouldNotBeDeleted",
+                )
+            )
+            await session.commit()
+
+        # Run cleaner — should not touch the already-cleaned dataset
+        await DrugDataRemoveObsoleteDrugDataEntries().drug_data_remove_obsolete_drug_entries()
+
+        async with get_async_session_context() as session:
+            remaining = (
+                await session.exec(
+                    select(DrugData).where(DrugData.source_dataset_id == dataset_id)
+                )
+            ).all()
+
+        return len(remaining)
+
+    remaining_count = asyncio.run(run())
+
+    assert remaining_count == 1, (
+        f"Already-cleaned dataset had its drug deleted (got {remaining_count} remaining). "
+        "The cleaner is re-processing datasets that already have cleaned_date_datetime_utc set."
+    )
+
+
 def test_wrong_count_after_upgrade_issue_252():
     from medlogserver.model.drug_data.drug import (
         DrugCustomCreate,
