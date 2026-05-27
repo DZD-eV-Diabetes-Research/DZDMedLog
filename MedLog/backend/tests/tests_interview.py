@@ -11,6 +11,8 @@ from utils import (
     dict_must_contain,
     create_test_study,
     TestDataContainerStudy,
+    create_test_user,
+    authorize_for_access_token,
 )
 
 
@@ -165,6 +167,71 @@ def test_endpoint_study_event_interview_update():
     )
 
 
+def test_endpoint_delete_interview_success():
+    """Test DELETE /api/study/{study_id}/event/{event_id}/interview/{interview_id} - interview with no intakes"""
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestDeleteInterviewNoIntakesStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        proband_count=1,
+        with_intakes=0,
+    )
+    study_id = study_data.study.id
+    event = study_data.events[0]
+    interview = event.interviews[0]
+
+    req(
+        f"api/study/{study_id}/event/{event.event.id}/interview/{interview.interview.id}",
+        method="delete",
+        expected_http_code=204,
+    )
+
+    # Verify the interview is gone
+    remaining = req(
+        f"api/study/{study_id}/event/{event.event.id}/interview",
+        method="get",
+    )
+    interview_ids = [i["id"] for i in remaining]
+    assert str(interview.interview.id) not in interview_ids
+
+
+def test_endpoint_delete_interview_cascades_intakes():
+    """Test DELETE interview also deletes all its intakes"""
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestDeleteInterviewCascadeStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        proband_count=1,
+        with_intakes=2,
+    )
+    study_id = study_data.study.id
+    event = study_data.events[0]
+    interview = event.interviews[0]
+    proband_id = study_data.proband_ids[0]
+
+    # Verify intakes exist before deletion
+    intakes_before = req(
+        f"api/study/{study_id}/proband/{proband_id}/intake",
+        method="get",
+        q={"interview_id": str(interview.interview.id)},
+    )
+    assert intakes_before["count"] == 2
+
+    req(
+        f"api/study/{study_id}/event/{event.event.id}/interview/{interview.interview.id}",
+        method="delete",
+        expected_http_code=204,
+    )
+
+    # Verify intakes are gone after interview deletion
+    intakes_after = req(
+        f"api/study/{study_id}/proband/{proband_id}/intake",
+        method="get",
+        q={"interview_id": str(interview.interview.id)},
+    )
+    assert intakes_after["count"] == 0
+
+
 def test_fix_for_issue_170():
     # https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/170
     # "/study/{study_id}/proband/{proband_id}/interview"
@@ -215,3 +282,121 @@ def test_fix_for_issue_170():
     )
     print(f"count interview_list_study1: {len(interview_list_study1)}")
     assert len(interview_list_study1) == 1
+
+
+def _create_interview_with_token(study_id, event_id, proband_id, access_token):
+    """Helper: create an interview as a specific user and return the interview dict."""
+    return req(
+        f"api/study/{study_id}/event/{event_id}/interview",
+        method="post",
+        b={
+            "proband_external_id": str(proband_id),
+            "interview_start_time_utc": datetime.datetime.now().isoformat(),
+            "interview_end_time_utc": None,
+            "interview_type": "regular",
+            "interview_status": "in_progress",
+            "proband_has_taken_meds": True,
+        },
+        access_token=access_token,
+    )
+
+
+def _grant_study_permission(study_id, user_id, is_interviewer=False, is_admin=False):
+    req(
+        f"/api/study/{study_id}/permissions/{user_id}",
+        method="put",
+        b={"is_study_interviewer": is_interviewer, "is_study_admin": is_admin},
+    )
+
+
+def test_endpoint_delete_interview_non_owner_interviewer_is_blocked():
+    """An interviewer who did NOT create the interview must be blocked (403)."""
+    study_data = create_test_study(
+        study_name="TestDeleteInterviewNonOwnerStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=0,
+        proband_count=1,
+    )
+    study_id = study_data.study.id
+    event = study_data.events[0]
+
+    owner = create_test_user("interview_owner_A", "pw_owner_A", "owner_A@test.de")
+    owner_token = authorize_for_access_token("interview_owner_A", "pw_owner_A")
+    other = create_test_user("interview_other_B", "pw_other_B", "other_B@test.de")
+    other_token = authorize_for_access_token("interview_other_B", "pw_other_B")
+
+    _grant_study_permission(study_id, owner.id, is_interviewer=True)
+    _grant_study_permission(study_id, other.id, is_interviewer=True)
+
+    interview = _create_interview_with_token(
+        study_id, event.event.id, study_data.proband_ids[0], owner_token
+    )
+
+    req(
+        f"api/study/{study_id}/event/{event.event.id}/interview/{interview['id']}",
+        method="delete",
+        expected_http_code=403,
+        access_token=other_token,
+    )
+
+
+def test_endpoint_delete_interview_owner_can_delete():
+    """The interviewer who created the interview must be able to delete it."""
+    study_data = create_test_study(
+        study_name="TestDeleteInterviewOwnerStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=0,
+        proband_count=1,
+    )
+    study_id = study_data.study.id
+    event = study_data.events[0]
+
+    owner = create_test_user("interview_owner_C", "pw_owner_C", "owner_C@test.de")
+    owner_token = authorize_for_access_token("interview_owner_C", "pw_owner_C")
+    _grant_study_permission(study_id, owner.id, is_interviewer=True)
+
+    interview = _create_interview_with_token(
+        study_id, event.event.id, study_data.proband_ids[0], owner_token
+    )
+
+    req(
+        f"api/study/{study_id}/event/{event.event.id}/interview/{interview['id']}",
+        method="delete",
+        expected_http_code=204,
+        access_token=owner_token,
+    )
+
+
+def test_endpoint_delete_interview_study_admin_can_delete_any():
+    """A study admin must be able to delete any interview regardless of ownership."""
+    study_data = create_test_study(
+        study_name="TestDeleteInterviewStudyAdminStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=0,
+        proband_count=1,
+    )
+    study_id = study_data.study.id
+    event = study_data.events[0]
+
+    owner = create_test_user("interview_owner_D", "pw_owner_D", "owner_D@test.de")
+    owner_token = authorize_for_access_token("interview_owner_D", "pw_owner_D")
+    study_admin = create_test_user(
+        "interview_study_admin_E", "pw_sadmin_E", "sadmin_E@test.de"
+    )
+    study_admin_token = authorize_for_access_token(
+        "interview_study_admin_E", "pw_sadmin_E"
+    )
+
+    _grant_study_permission(study_id, owner.id, is_interviewer=True)
+    _grant_study_permission(study_id, study_admin.id, is_interviewer=True, is_admin=True)
+
+    interview = _create_interview_with_token(
+        study_id, event.event.id, study_data.proband_ids[0], owner_token
+    )
+
+    req(
+        f"api/study/{study_id}/event/{event.event.id}/interview/{interview['id']}",
+        method="delete",
+        expected_http_code=204,
+        access_token=study_admin_token,
+    )

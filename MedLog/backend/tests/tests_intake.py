@@ -13,6 +13,8 @@ from utils import (
     list_contains_dict_that_must_contain,
     create_test_study,
     TestDataContainerStudy,
+    create_test_user,
+    authorize_for_access_token,
     dictyfy,
 )
 
@@ -634,4 +636,158 @@ def test_create_intake_with_end_and_start_option_update_issue_228():
         method="post",
         b=intake_data_dict_2,
         expected_http_code=422,
+    )
+
+
+# ── Helpers for permission tests ────────────────────────────────────────────
+
+def _grant_study_permission_intake(
+    study_id, user_id, is_interviewer=False, is_admin=False
+):
+    req(
+        f"/api/study/{study_id}/permissions/{user_id}",
+        method="put",
+        b={"is_study_interviewer": is_interviewer, "is_study_admin": is_admin},
+    )
+
+
+def _create_interview_as_user(study_id, event_id, proband_id, access_token):
+    return req(
+        f"api/study/{study_id}/event/{event_id}/interview",
+        method="post",
+        b={
+            "proband_external_id": str(proband_id),
+            "interview_start_time_utc": datetime.datetime.now().isoformat(),
+            "interview_end_time_utc": None,
+            "interview_type": "regular",
+            "interview_status": "in_progress",
+            "proband_has_taken_meds": True,
+        },
+        access_token=access_token,
+    )
+
+
+def _create_intake_for_interview(study_id, interview_id):
+    """Create an intake using the admin (default) token."""
+    from medlogserver.model.intake import (
+        IntakeCreateAPI,
+        SourceOfDrugInformationAnwers,
+        AdministeredByDoctorAnswers,
+        IntakeRegularOrAsNeededAnswers,
+        ConsumedMedsTodayAnswers,
+    )
+    drug = req("api/drug/search", q={"search_term": "Test"})["items"][0]["drug"]
+    payload = dictyfy(
+        IntakeCreateAPI(
+            drug_id=drug["id"],
+            source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
+            intake_start_date=datetime.date.today().isoformat(),
+            administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
+            intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
+            as_needed_dose_unit=1,
+            consumed_meds_today=ConsumedMedsTodayAnswers.UNKNOWN,
+        )
+    )
+    return req(
+        f"api/study/{study_id}/interview/{interview_id}/intake",
+        method="post",
+        b=payload,
+    )
+
+
+def test_endpoint_delete_intake_non_owner_interviewer_is_blocked():
+    """An interviewer who did NOT create the parent interview must be blocked (403)."""
+    study_data = create_test_study(
+        study_name="TestDeleteIntakeNonOwnerStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=0,
+        proband_count=1,
+    )
+    study_id = study_data.study.id
+    event = study_data.events[0]
+
+    owner = create_test_user("intake_owner_A", "pw_intake_owner_A", "intake_owner_A@test.de")
+    owner_token = authorize_for_access_token("intake_owner_A", "pw_intake_owner_A")
+    other = create_test_user("intake_other_B", "pw_intake_other_B", "intake_other_B@test.de")
+    other_token = authorize_for_access_token("intake_other_B", "pw_intake_other_B")
+
+    _grant_study_permission_intake(study_id, owner.id, is_interviewer=True)
+    _grant_study_permission_intake(study_id, other.id, is_interviewer=True)
+
+    interview = _create_interview_as_user(
+        study_id, event.event.id, study_data.proband_ids[0], owner_token
+    )
+    intake = _create_intake_for_interview(study_id, interview["id"])
+
+    req(
+        f"api/study/{study_id}/interview/{interview['id']}/intake/{intake['id']}",
+        method="delete",
+        expected_http_code=403,
+        access_token=other_token,
+    )
+
+
+def test_endpoint_delete_intake_owner_can_delete():
+    """The interviewer who created the parent interview can delete its intakes."""
+    study_data = create_test_study(
+        study_name="TestDeleteIntakeOwnerStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=0,
+        proband_count=1,
+    )
+    study_id = study_data.study.id
+    event = study_data.events[0]
+
+    owner = create_test_user("intake_owner_C", "pw_intake_owner_C", "intake_owner_C@test.de")
+    owner_token = authorize_for_access_token("intake_owner_C", "pw_intake_owner_C")
+    _grant_study_permission_intake(study_id, owner.id, is_interviewer=True)
+
+    interview = _create_interview_as_user(
+        study_id, event.event.id, study_data.proband_ids[0], owner_token
+    )
+    intake = _create_intake_for_interview(study_id, interview["id"])
+
+    req(
+        f"api/study/{study_id}/interview/{interview['id']}/intake/{intake['id']}",
+        method="delete",
+        expected_http_code=200,
+        access_token=owner_token,
+    )
+
+
+def test_endpoint_delete_intake_study_admin_can_delete_any():
+    """A study admin can delete any intake regardless of interview ownership."""
+    study_data = create_test_study(
+        study_name="TestDeleteIntakeStudyAdminStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=0,
+        proband_count=1,
+    )
+    study_id = study_data.study.id
+    event = study_data.events[0]
+
+    owner = create_test_user("intake_owner_D", "pw_intake_owner_D", "intake_owner_D@test.de")
+    owner_token = authorize_for_access_token("intake_owner_D", "pw_intake_owner_D")
+    study_admin = create_test_user(
+        "intake_study_admin_E", "pw_intake_sadmin_E", "intake_sadmin_E@test.de"
+    )
+    study_admin_token = authorize_for_access_token(
+        "intake_study_admin_E", "pw_intake_sadmin_E"
+    )
+
+    _grant_study_permission_intake(study_id, owner.id, is_interviewer=True)
+    _grant_study_permission_intake(
+        study_id, study_admin.id, is_interviewer=True, is_admin=True
+    )
+
+    interview = _create_interview_as_user(
+        study_id, event.event.id, study_data.proband_ids[0], owner_token
+    )
+    intake = _create_intake_for_interview(study_id, interview["id"])
+
+    req(
+        f"api/study/{study_id}/interview/{interview['id']}/intake/{intake['id']}",
+        method="delete",
+        expected_http_code=200,
+        access_token=study_admin_token,
     )
