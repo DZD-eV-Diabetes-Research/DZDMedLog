@@ -144,19 +144,68 @@ async def update_event(
 
 @fast_api_event_router.delete(
     "/study/{study_id}/event/{event_id}",
-    description="Delete an event. The event must have no interviews attached. Delete all interviews first.",
+    summary="Delete an event",
+    description="""
+Delete a study event permanently.
+
+**Prerequisites**
+
+The event must have **no interviews** attached before it can be deleted.
+If any interviews still exist under this event, the request will be rejected with `409 Conflict`
+and the response body will list all blocking interview IDs — delete those first
+(see `DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`).
+
+**Authorization**
+
+Requires **study admin** role on this study, or a **global admin** account (`medlog-admin` role).
+Plain interviewers and viewers are not allowed to delete events.
+
+**Suggested deletion workflow**
+
+1. List all interviews for the event:
+   `GET /study/{study_id}/event/{event_id}/interview`
+2. Delete each interview (which also removes its intakes):
+   `DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`
+3. Delete the now-empty event:
+   `DELETE /study/{study_id}/event/{event_id}`
+""",
     response_class=Response,
     status_code=204,
     responses={
-        status.HTTP_401_UNAUTHORIZED: {"model": None},
-        status.HTTP_404_NOT_FOUND: {"model": None},
+        status.HTTP_204_NO_CONTENT: {
+            "description": "Event deleted successfully. No response body.",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Not authenticated, or the current user does not have study admin privileges on this study.",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Not authorized to delete event"}
+                }
+            },
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "No event with the given `event_id` exists in this study.",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "No event with id '<uuid>'"}
+                }
+            },
+        },
         status.HTTP_409_CONFLICT: {
-            "description": "Event still has interviews attached.",
+            "description": (
+                "The event still has interviews attached and cannot be deleted. "
+                "The response body lists the IDs of all blocking interviews."
+            ),
             "content": {
                 "application/json": {
                     "example": {
-                        "error": "event not empty",
-                        "following interviews, interview_ids": ["<uuid>"],
+                        "detail": {
+                            "error": "event not empty",
+                            "following interviews, interview_ids": [
+                                "a1b2c3d4-0000-0000-0000-000000000001",
+                                "a1b2c3d4-0000-0000-0000-000000000002",
+                            ],
+                        }
                     }
                 }
             },

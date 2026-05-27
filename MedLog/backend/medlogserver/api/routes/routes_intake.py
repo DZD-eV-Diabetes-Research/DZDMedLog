@@ -224,11 +224,62 @@ async def update_intake(
 ############
 @fast_api_intake_router.delete(
     "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
-    description="Delete intake record. Requires study admin or being the interviewer who created the parent interview.",
+    summary="Delete an intake record",
+    description="""
+Delete a single medication intake record.
+
+**Authorization — two-tier check**
+
+1. The caller must hold at least **interviewer** role on this study (viewers are rejected with `401`).
+2. The caller must additionally be **either**:
+   - the interviewer who originally created the **parent interview** (`interviewer_user_id` on the interview matches), **or**
+   - a **study admin** (or global `medlog-admin`) — admins can delete any intake regardless of ownership.
+
+   Ownership is determined by the **parent interview**, not by who added this particular intake record.
+   If the caller is an interviewer but not the interview owner, the request is rejected with `403`.
+
+**Note**
+
+Deleting an intake does **not** affect the parent interview or event.
+To delete all intakes of an interview at once, delete the interview itself via
+`DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}` (cascade delete).
+""",
     responses={
-        status.HTTP_401_UNAUTHORIZED: {"model": None},
-        status.HTTP_403_FORBIDDEN: {"model": None},
-        status.HTTP_404_NOT_FOUND: {"model": None},
+        status.HTTP_200_OK: {
+            "description": "Intake deleted successfully.",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": (
+                "Not authenticated, or the current user does not have at least "
+                "interviewer-level access on this study."
+            ),
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Not authorized to delete intake"}
+                }
+            },
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "description": (
+                "The current user is an interviewer on this study but did not create the parent interview. "
+                "Only the interviewer who created the parent interview, or a study/global admin, may delete its intakes."
+            ),
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Not authorized to delete this intake. Must be study admin or the interviewer who created the parent interview."
+                    }
+                }
+            },
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "No intake or interview with the given IDs exists within this study.",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "No interview with id '<uuid>'"}
+                }
+            },
+        },
     },
 )
 async def delete_intake(

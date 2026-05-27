@@ -263,13 +263,70 @@ async def update_interview(
 
 @fast_api_interview_router.delete(
     "/study/{study_id}/event/{event_id}/interview/{interview_id}",
-    description="Delete an interview and all its intakes. Requires study admin or being the interviewer who created the interview.",
+    summary="Delete an interview",
+    description="""
+Delete an interview and **all its medication intake records** (cascade delete).
+
+**Cascade behaviour**
+
+All intakes that belong to this interview are deleted automatically.
+There is no need to delete them individually beforehand.
+
+**Authorization — two-tier check**
+
+1. The caller must hold at least **interviewer** role on this study (viewers are rejected with `401`).
+2. The caller must additionally be **either**:
+   - the interviewer who originally created this interview (`interviewer_user_id` matches), **or**
+   - a **study admin** (or global `medlog-admin`) — admins can delete any interview regardless of who created it.
+
+   If the caller is an interviewer but not the owner, the request is rejected with `403`.
+
+**Effect on the parent event**
+
+Deleting an interview does **not** delete the parent event.
+Once all interviews under an event are removed, the event itself can be deleted via
+`DELETE /study/{study_id}/event/{event_id}`.
+""",
     response_class=Response,
     status_code=204,
     responses={
-        status.HTTP_401_UNAUTHORIZED: {"model": None},
-        status.HTTP_403_FORBIDDEN: {"model": None},
-        status.HTTP_404_NOT_FOUND: {"model": None},
+        status.HTTP_204_NO_CONTENT: {
+            "description": "Interview and all its intakes deleted successfully. No response body.",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": (
+                "Not authenticated, or the current user does not have at least "
+                "interviewer-level access on this study."
+            ),
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Not authorized to delete interview"}
+                }
+            },
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "description": (
+                "The current user is an interviewer on this study but did not create this interview. "
+                "Only the interviewer who created it, or a study/global admin, may delete it."
+            ),
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Not authorized to delete this interview. Must be study admin or the interviewer who created it."
+                    }
+                }
+            },
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "No interview with the given `interview_id` exists within this study and event.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "No interview with id '<uuid>' found in this study"
+                    }
+                }
+            },
+        },
     },
 )
 async def delete_interview(
