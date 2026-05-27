@@ -169,7 +169,7 @@ async def delete_event(
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ):
-    if not study_access.user_is_study_interviewer():
+    if not study_access.user_is_study_admin():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to delete event",

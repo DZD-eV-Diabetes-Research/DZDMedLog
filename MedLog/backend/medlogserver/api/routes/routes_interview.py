@@ -263,17 +263,19 @@ async def update_interview(
 
 @fast_api_interview_router.delete(
     "/study/{study_id}/event/{event_id}/interview/{interview_id}",
-    description="Delete an interview and all its intakes.",
+    description="Delete an interview and all its intakes. Requires study admin or being the interviewer who created the interview.",
     response_class=Response,
     status_code=204,
     responses={
         status.HTTP_401_UNAUTHORIZED: {"model": None},
+        status.HTTP_403_FORBIDDEN: {"model": None},
         status.HTTP_404_NOT_FOUND: {"model": None},
     },
 )
 async def delete_interview(
     interview_id: uuid.UUID,
     event_id: uuid.UUID,
+    current_user: Annotated[User, Security(get_current_user)],
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
@@ -291,6 +293,19 @@ async def delete_interview(
             detail=f"No interview with id '{interview_id}' found in this study",
         ),
     )
+    interview = await interview_crud.get(
+        interview_id,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No interview with id '{interview_id}'",
+        ),
+    )
+    is_owner = interview.interviewer_user_id == current_user.id
+    if not (study_access.user_is_study_admin() or is_owner):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to delete this interview. Must be study admin or the interviewer who created it.",
+        )
     await intake_crud.delete_by_interview_id(interview_id)
     await interview_crud.delete(
         id_=interview_id,

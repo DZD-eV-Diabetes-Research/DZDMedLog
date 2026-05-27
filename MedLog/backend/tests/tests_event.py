@@ -12,6 +12,8 @@ from utils import (
     dict_must_contain,
     create_test_study,
     TestDataContainerStudy,
+    create_test_user,
+    authorize_for_access_token,
 )
 
 
@@ -205,3 +207,65 @@ def test_endpoint_study_proband_event_list():
             exception_dict_identifier="proband event item",
         )
         assert event["proband_interview_count"] == 1  # We created 1 interview per event
+
+
+def test_endpoint_delete_event_interviewer_is_blocked():
+    """Interviewers (non-admin) must not be able to delete events — requires study_admin."""
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestDeleteEventInterviewerBlockedStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=0,
+    )
+    event = study_data.events[0]
+
+    interviewer = create_test_user(
+        user_name="interviewer_delete_event_blocked",
+        password="pw_interviewer_del_evt",
+        email="interviewer_del_evt@test.de",
+    )
+    interviewer_token = authorize_for_access_token(
+        username="interviewer_delete_event_blocked", pw="pw_interviewer_del_evt"
+    )
+    req(
+        f"/api/study/{study_data.study.id}/permissions/{interviewer.id}",
+        method="put",
+        b={"is_study_interviewer": True, "is_study_admin": False},
+    )
+
+    req(
+        f"api/study/{study_data.study.id}/event/{event.event.id}",
+        method="delete",
+        expected_http_code=401,
+        access_token=interviewer_token,
+    )
+
+
+def test_endpoint_delete_event_study_admin_can_delete():
+    """Study admin (and global admin) must be able to delete an empty event."""
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestDeleteEventStudyAdminStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=0,
+    )
+    event = study_data.events[0]
+
+    study_admin = create_test_user(
+        user_name="study_admin_delete_event",
+        password="pw_study_admin_del_evt",
+        email="study_admin_del_evt@test.de",
+    )
+    study_admin_token = authorize_for_access_token(
+        username="study_admin_delete_event", pw="pw_study_admin_del_evt"
+    )
+    req(
+        f"/api/study/{study_data.study.id}/permissions/{study_admin.id}",
+        method="put",
+        b={"is_study_interviewer": True, "is_study_admin": True},
+    )
+
+    req(
+        f"api/study/{study_data.study.id}/event/{event.event.id}",
+        method="delete",
+        expected_http_code=204,
+        access_token=study_admin_token,
+    )
