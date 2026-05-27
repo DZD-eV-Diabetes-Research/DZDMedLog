@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from medlogserver.db.interview import InterviewCRUD
 from medlogserver.db.user import User
 from medlogserver.api.auth.security import get_current_user
+from medlogserver.api.base import HTTPErrorResponeRepresentation
 from medlogserver.model.intake import (
     Intake,
     IntakeCreate,
@@ -225,71 +226,44 @@ async def update_intake(
 @fast_api_intake_router.delete(
     "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
     summary="Delete an intake record",
-    description="""
-Delete a single medication intake record.
-
-**Authorization — two-tier check**
-
-1. The caller must hold at least **interviewer** role on this study (viewers are rejected with `401`).
-2. The caller must additionally be **either**:
-   - the interviewer who originally created the **parent interview** (`interviewer_user_id` on the interview matches), **or**
-   - a **study admin** (or global `medlog-admin`) — admins can delete any intake regardless of ownership.
-
-   Ownership is determined by the **parent interview**, not by who added this particular intake record.
-   If the caller is an interviewer but not the interview owner, the request is rejected with `403`.
-
-**Note**
-
-Deleting an intake does **not** affect the parent interview or event.
-To delete all intakes of an interview at once, delete the interview itself via
-`DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}` (cascade delete).
-""",
     responses={
-        status.HTTP_200_OK: {
-            "description": "Intake deleted successfully.",
-        },
+        status.HTTP_200_OK: {"description": "Intake deleted successfully."},
         status.HTTP_401_UNAUTHORIZED: {
-            "description": (
-                "Not authenticated, or the current user does not have at least "
-                "interviewer-level access on this study."
-            ),
-            "content": {
-                "application/json": {
-                    "example": {"detail": "Not authorized to delete intake"}
-                }
-            },
+            "model": HTTPErrorResponeRepresentation,
+            "description": "Not authenticated, or caller has no interviewer-level access on this study.",
         },
         status.HTTP_403_FORBIDDEN: {
+            "model": HTTPErrorResponeRepresentation,
             "description": (
-                "The current user is an interviewer on this study but did not create the parent interview. "
-                "Only the interviewer who created the parent interview, or a study/global admin, may delete its intakes."
+                "Caller is an interviewer but did not create the parent interview. "
+                "Ownership is determined by the parent interview's `interviewer_user_id`, "
+                "not by who added this intake. Only the interview owner or a study/global admin may delete it."
             ),
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "Not authorized to delete this intake. Must be study admin or the interviewer who created the parent interview."
-                    }
-                }
-            },
         },
         status.HTTP_404_NOT_FOUND: {
+            "model": HTTPErrorResponeRepresentation,
             "description": "No intake or interview with the given IDs exists within this study.",
-            "content": {
-                "application/json": {
-                    "example": {"detail": "No interview with id '<uuid>'"}
-                }
-            },
         },
     },
 )
 async def delete_intake(
-    intake_id: uuid.UUID,
-    interview_id: Annotated[uuid.UUID, Path()],
+    intake_id: Annotated[uuid.UUID, Path(description="ID of the intake record to delete.")],
+    interview_id: Annotated[uuid.UUID, Path(description="ID of the interview the intake belongs to.")],
     current_user: Annotated[User, Security(get_current_user)],
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ):
+    """
+    Delete a single medication intake record.
+
+    **Authorization:** caller must have at least interviewer role (`401` otherwise), and must be
+    either the interviewer who created the **parent interview** or a study/global admin (`403` otherwise).
+    Ownership is tied to the interview, not to who added this specific intake.
+
+    To delete all intakes of an interview at once, delete the interview itself
+    (`DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`).
+    """
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -13,7 +13,7 @@ from fastapi import (
     Path,
     Response,
 )
-
+from pydantic import BaseModel, Field, ConfigDict
 
 from fastapi import Depends, APIRouter
 
@@ -38,11 +38,27 @@ from medlogserver.api.study_access import (
     user_has_study_access,
     UserStudyAccess,
 )
+from medlogserver.api.base import HTTPErrorResponeRepresentation
 from medlogserver.api.paginator import (
     PaginatedResponse,
     create_query_params_class,
     QueryParamsInterface,
 )
+
+
+class _EventNotEmptyDetail(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    error: str = Field(default="event not empty", examples=["event not empty"])
+    interview_ids: List[uuid.UUID] = Field(
+        alias="following interviews, interview_ids",
+        description="IDs of all interviews that must be deleted before this event can be removed.",
+        examples=[["a1b2c3d4-0000-0000-0000-000000000001", "a1b2c3d4-0000-0000-0000-000000000002"]],
+    )
+
+
+class EventNotEmptyErrorResponse(BaseModel):
+    detail: _EventNotEmptyDetail
 
 config = Config()
 
@@ -145,79 +161,43 @@ async def update_event(
 @fast_api_event_router.delete(
     "/study/{study_id}/event/{event_id}",
     summary="Delete an event",
-    description="""
-Delete a study event permanently.
-
-**Prerequisites**
-
-The event must have **no interviews** attached before it can be deleted.
-If any interviews still exist under this event, the request will be rejected with `409 Conflict`
-and the response body will list all blocking interview IDs — delete those first
-(see `DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`).
-
-**Authorization**
-
-Requires **study admin** role on this study, or a **global admin** account (`medlog-admin` role).
-Plain interviewers and viewers are not allowed to delete events.
-
-**Suggested deletion workflow**
-
-1. List all interviews for the event:
-   `GET /study/{study_id}/event/{event_id}/interview`
-2. Delete each interview (which also removes its intakes):
-   `DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`
-3. Delete the now-empty event:
-   `DELETE /study/{study_id}/event/{event_id}`
-""",
     response_class=Response,
     status_code=204,
     responses={
-        status.HTTP_204_NO_CONTENT: {
-            "description": "Event deleted successfully. No response body.",
-        },
+        status.HTTP_204_NO_CONTENT: {"description": "Event deleted successfully."},
         status.HTTP_401_UNAUTHORIZED: {
-            "description": "Not authenticated, or the current user does not have study admin privileges on this study.",
-            "content": {
-                "application/json": {
-                    "example": {"detail": "Not authorized to delete event"}
-                }
-            },
+            "model": HTTPErrorResponeRepresentation,
+            "description": "Not authenticated, or caller is not a study admin or global admin.",
         },
         status.HTTP_404_NOT_FOUND: {
+            "model": HTTPErrorResponeRepresentation,
             "description": "No event with the given `event_id` exists in this study.",
-            "content": {
-                "application/json": {
-                    "example": {"detail": "No event with id '<uuid>'"}
-                }
-            },
         },
         status.HTTP_409_CONFLICT: {
+            "model": EventNotEmptyErrorResponse,
             "description": (
-                "The event still has interviews attached and cannot be deleted. "
-                "The response body lists the IDs of all blocking interviews."
+                "The event still has interviews attached. "
+                "The response body lists their IDs under `detail.following interviews, interview_ids`. "
+                "Delete all interviews first, then retry."
             ),
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": {
-                            "error": "event not empty",
-                            "following interviews, interview_ids": [
-                                "a1b2c3d4-0000-0000-0000-000000000001",
-                                "a1b2c3d4-0000-0000-0000-000000000002",
-                            ],
-                        }
-                    }
-                }
-            },
         },
     },
 )
 async def delete_event(
-    event_id: uuid.UUID,
+    event_id: Annotated[uuid.UUID, Path(description="ID of the event to delete.")],
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ):
+    """
+    Delete a study event permanently.
+
+    The event must have **no interviews** attached. If any exist, a `409` is returned with
+    their IDs — delete them first via
+    `DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`.
+
+    Requires **study admin** or global **medlog-admin** role.
+    """
     if not study_access.user_is_study_admin():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

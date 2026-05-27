@@ -44,7 +44,7 @@ from medlogserver.api.study_access import (
     UserStudyAccess,
     UserStudyAccessCollection,
 )
-from medlogserver.api.base import HTTPMessage
+from medlogserver.api.base import HTTPMessage, HTTPErrorResponeRepresentation
 
 config = Config()
 
@@ -264,79 +264,47 @@ async def update_interview(
 @fast_api_interview_router.delete(
     "/study/{study_id}/event/{event_id}/interview/{interview_id}",
     summary="Delete an interview",
-    description="""
-Delete an interview and **all its medication intake records** (cascade delete).
-
-**Cascade behaviour**
-
-All intakes that belong to this interview are deleted automatically.
-There is no need to delete them individually beforehand.
-
-**Authorization — two-tier check**
-
-1. The caller must hold at least **interviewer** role on this study (viewers are rejected with `401`).
-2. The caller must additionally be **either**:
-   - the interviewer who originally created this interview (`interviewer_user_id` matches), **or**
-   - a **study admin** (or global `medlog-admin`) — admins can delete any interview regardless of who created it.
-
-   If the caller is an interviewer but not the owner, the request is rejected with `403`.
-
-**Effect on the parent event**
-
-Deleting an interview does **not** delete the parent event.
-Once all interviews under an event are removed, the event itself can be deleted via
-`DELETE /study/{study_id}/event/{event_id}`.
-""",
     response_class=Response,
     status_code=204,
     responses={
         status.HTTP_204_NO_CONTENT: {
-            "description": "Interview and all its intakes deleted successfully. No response body.",
+            "description": "Interview and all its intakes deleted successfully.",
         },
         status.HTTP_401_UNAUTHORIZED: {
-            "description": (
-                "Not authenticated, or the current user does not have at least "
-                "interviewer-level access on this study."
-            ),
-            "content": {
-                "application/json": {
-                    "example": {"detail": "Not authorized to delete interview"}
-                }
-            },
+            "model": HTTPErrorResponeRepresentation,
+            "description": "Not authenticated, or caller has no interviewer-level access on this study.",
         },
         status.HTTP_403_FORBIDDEN: {
+            "model": HTTPErrorResponeRepresentation,
             "description": (
-                "The current user is an interviewer on this study but did not create this interview. "
-                "Only the interviewer who created it, or a study/global admin, may delete it."
+                "Caller is an interviewer but did not create this interview. "
+                "Only the creating interviewer or a study/global admin may delete it."
             ),
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "Not authorized to delete this interview. Must be study admin or the interviewer who created it."
-                    }
-                }
-            },
         },
         status.HTTP_404_NOT_FOUND: {
+            "model": HTTPErrorResponeRepresentation,
             "description": "No interview with the given `interview_id` exists within this study and event.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "No interview with id '<uuid>' found in this study"
-                    }
-                }
-            },
         },
     },
 )
 async def delete_interview(
-    interview_id: uuid.UUID,
-    event_id: uuid.UUID,
+    interview_id: Annotated[uuid.UUID, Path(description="ID of the interview to delete.")],
+    event_id: Annotated[uuid.UUID, Path(description="ID of the event the interview belongs to.")],
     current_user: Annotated[User, Security(get_current_user)],
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ) -> None:
+    """
+    Delete an interview and **all its intake records** (cascade delete).
+
+    All intakes belonging to this interview are removed automatically — no need to delete them first.
+
+    **Authorization:** caller must have at least interviewer role (`401` otherwise), and must be
+    either the interviewer who created this interview or a study/global admin (`403` otherwise).
+
+    Deleting an interview does not delete the parent event.
+    """
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
