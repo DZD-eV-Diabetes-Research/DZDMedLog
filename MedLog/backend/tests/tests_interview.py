@@ -165,6 +165,71 @@ def test_endpoint_study_event_interview_update():
     )
 
 
+def test_endpoint_delete_interview_success():
+    """Test DELETE /api/study/{study_id}/event/{event_id}/interview/{interview_id} - interview with no intakes"""
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestDeleteInterviewNoIntakesStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        proband_count=1,
+        with_intakes=0,
+    )
+    study_id = study_data.study.id
+    event = study_data.events[0]
+    interview = event.interviews[0]
+
+    req(
+        f"api/study/{study_id}/event/{event.event.id}/interview/{interview.interview.id}",
+        method="delete",
+        expected_http_code=204,
+    )
+
+    # Verify the interview is gone
+    remaining = req(
+        f"api/study/{study_id}/event/{event.event.id}/interview",
+        method="get",
+    )
+    interview_ids = [i["id"] for i in remaining]
+    assert str(interview.interview.id) not in interview_ids
+
+
+def test_endpoint_delete_interview_cascades_intakes():
+    """Test DELETE interview also deletes all its intakes"""
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestDeleteInterviewCascadeStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        proband_count=1,
+        with_intakes=2,
+    )
+    study_id = study_data.study.id
+    event = study_data.events[0]
+    interview = event.interviews[0]
+    proband_id = study_data.proband_ids[0]
+
+    # Verify intakes exist before deletion
+    intakes_before = req(
+        f"api/study/{study_id}/proband/{proband_id}/intake",
+        method="get",
+        q={"interview_id": str(interview.interview.id)},
+    )
+    assert intakes_before["count"] == 2
+
+    req(
+        f"api/study/{study_id}/event/{event.event.id}/interview/{interview.interview.id}",
+        method="delete",
+        expected_http_code=204,
+    )
+
+    # Verify intakes are gone after interview deletion
+    intakes_after = req(
+        f"api/study/{study_id}/proband/{proband_id}/intake",
+        method="get",
+        q={"interview_id": str(interview.interview.id)},
+    )
+    assert intakes_after["count"] == 0
+
+
 def test_fix_for_issue_170():
     # https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/170
     # "/study/{study_id}/proband/{proband_id}/interview"

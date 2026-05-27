@@ -35,6 +35,7 @@ from medlogserver.model.interview import (
 )
 
 from medlogserver.db.interview import InterviewCRUD
+from medlogserver.db.intake import IntakeCRUD
 from medlogserver.model.event import Event
 from medlogserver.db.event import EventCRUD
 from medlogserver.api.study_access import (
@@ -262,11 +263,12 @@ async def update_interview(
 
 @fast_api_interview_router.delete(
     "/study/{study_id}/event/{event_id}/interview/{interview_id}",
-    description=f"Delete existing interview - Not Yet Implented",
+    description="Delete an interview and all its intakes.",
     response_class=Response,
     status_code=204,
     responses={
         status.HTTP_401_UNAUTHORIZED: {"model": None},
+        status.HTTP_404_NOT_FOUND: {"model": None},
     },
 )
 async def delete_interview(
@@ -274,24 +276,26 @@ async def delete_interview(
     event_id: uuid.UUID,
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
+    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ) -> None:
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to update event",
+            detail="Not authorized to delete interview",
         )
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Deleting a event is not implented",
+    await interview_crud.assert_belongs_to_study(
+        interview_id=interview_id,
+        study_id=study_access.study.id,
+        raise_exception_if_not=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No interview with id '{interview_id}' found in this study",
+        ),
     )
-    # not implemented. Do we need that?
-    # That would be a whole process -> delete interviews, intakes. More something for a background task.
-    # "a mark for deletion" property and a grace period of one day. or an validation by email  would make sense to prevent accidentaly deletion.
-    # or a disable option
-    return await event_crud.delete(
-        event_id=event_id,
+    await intake_crud.delete_by_interview_id(interview_id)
+    await interview_crud.delete(
+        id_=interview_id,
         raise_exception_if_not_exists=HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No event with id '{event_id}'",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No interview with id '{interview_id}'",
         ),
     )

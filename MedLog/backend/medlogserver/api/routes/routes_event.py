@@ -144,38 +144,55 @@ async def update_event(
 
 @fast_api_event_router.delete(
     "/study/{study_id}/event/{event_id}",
-    description=f"Delete existing event - Not Yet Implented",
+    description="Delete an event. The event must have no interviews attached. Delete all interviews first.",
     response_class=Response,
     status_code=204,
     responses={
         status.HTTP_401_UNAUTHORIZED: {"model": None},
+        status.HTTP_404_NOT_FOUND: {"model": None},
+        status.HTTP_409_CONFLICT: {
+            "description": "Event still has interviews attached.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": "event not empty",
+                        "following interviews, interview_ids": ["<uuid>"],
+                    }
+                }
+            },
+        },
     },
 )
 async def delete_event(
     event_id: uuid.UUID,
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ):
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to update event",
+            detail="Not authorized to delete event",
         )
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Deleting a event is not implented",
-    )
-    # not implemented. Do we need that?
-    # That would be a whole process -> delete interviews, intakes. More something for a background task.
-    # "a mark for deletion" property and a grace period of one day. or an validation by email  would make sense to prevent accidentaly deletion.
-    # or a disable option
-    return await event_crud.delete(
-        event_id=event_id,
-        raise_exception_if_not_exists=HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+    await event_crud.get(
+        event_id,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No event with id '{event_id}'",
         ),
     )
+    interviews = await interview_crud.list(filter_event_id=event_id)
+    if interviews:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": "event not empty",
+                "following interviews, interview_ids": [
+                    str(i.id) for i in interviews
+                ],
+            },
+        )
+    await event_crud.delete(id_=event_id)
 
 
 @fast_api_event_router.post(
