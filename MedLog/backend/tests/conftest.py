@@ -73,6 +73,24 @@ def set_config_for_test_env():
 # imported during pytest's collection phase.
 set_config_for_test_env()
 
+# ── Postgres docker constants ─────────────────────────────────────────────────
+_PG_CONTAINER = "medlog-testing-postgres"
+_PG_USER = "medlog"
+_PG_PW = "123456"
+_PG_PORT = 5432
+_PG_DB = "medlog"
+_PG_URL = f"postgresql+psycopg://{_PG_USER}:{_PG_PW}@localhost:{_PG_PORT}/{_PG_DB}"
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--db",
+        default="postgres",
+        choices=["postgres", "sqlite"],
+        help="Database backend: 'postgres' (default, Docker) or 'sqlite'",
+    )
+
 _OIDC_TEST_USERS = [
     {
         "sub": "oidc-role-test-user",
@@ -158,6 +176,89 @@ def _stop_oidc_mock():
 MEDLOG_MAIN = BACKEND_DIR / "medlogserver" / "main.py"
 
 
+# ── Database lifecycle helpers ────────────────────────────────────────────────
+
+def _docker(*args) -> subprocess.CompletedProcess:
+    return subprocess.run(["docker", *args], capture_output=True)
+
+
+def _setup_postgres() -> str:
+    if _docker("info").returncode != 0:
+        pytest.exit(
+            "--db=postgres requires Docker. Use --db=sqlite if Docker is unavailable.",
+            returncode=3,
+        )
+    logger.info("Stopping any leftover postgres container...")
+    _docker("stop", _PG_CONTAINER)
+    _docker("rm", _PG_CONTAINER)
+
+    logger.info("Starting postgres container '%s'...", _PG_CONTAINER)
+    result = _docker(
+        "run", "-d",
+        "--name", _PG_CONTAINER,
+        "-e", f"POSTGRES_PASSWORD={_PG_PW}",
+        "-e", f"POSTGRES_USER={_PG_USER}",
+        "-e", f"POSTGRES_DB={_PG_DB}",
+        "-p", f"{_PG_PORT}:5432",
+        "docker.io/library/postgres:12-alpine",
+    )
+    if result.returncode != 0:
+        pytest.exit(
+            f"docker run failed: {result.stderr.decode().strip()}", returncode=3
+        )
+
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        if _docker("exec", _PG_CONTAINER, "pg_isready", "-U", "postgres").returncode == 0:
+            logger.info("Postgres is ready.")
+            return _PG_URL
+        time.sleep(1)
+
+    pytest.exit("Postgres container did not become ready within 30s.", returncode=3)
+
+
+def _teardown_postgres():
+    logger.info("Stopping postgres container (keeping it for inspection)...")
+    _docker("stop", _PG_CONTAINER)
+    logger.info(
+        "To inspect the DB:\n"
+        "  docker start %s\n"
+        "  Connection string: %s",
+        _PG_CONTAINER,
+        _PG_URL,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture(scope="session")
+def database(request):
+    db = request.config.getoption("--db")
+
+    if db == "postgres":
+        url = _setup_postgres()
+    else:
+        from utils import get_dot_env_file_variable
+        reset = os.getenv(
+            "MEDLOG_TESTS_RESET_DB",
+            get_dot_env_file_variable(DOT_ENV_FILE_PATH, "MEDLOG_TESTS_RESET_DB", default="True"),
+        ).lower() in ("true", "1", "t", "y", "yes")
+        if reset:
+            Path(DB_PATH).unlink(missing_ok=True)
+            logger.info("Deleted SQLite DB at %s", DB_PATH)
+        url = f"sqlite+aiosqlite:///{DB_PATH}"
+        logger.info("SQLite DB will persist at %s after the run.", DB_PATH)
+
+    os.environ["SQL_DATABASE_URL"] = url
+    logger.info("Database URL: %s", url.replace(_PG_PW, "***"))
+
+    yield
+
+    if db == "postgres":
+        _teardown_postgres()
+
+
 def _start_subprocess(label: str, cmd: list) -> subprocess.Popen:
     """Start a subprocess and stream its combined stdout+stderr through the logger."""
     proc = subprocess.Popen(
@@ -179,32 +280,14 @@ def _start_subprocess(label: str, cmd: list) -> subprocess.Popen:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def live_server():
+def live_server(database):
     import requests
     import urllib3
     from utils import (
         get_medlogserver_base_url,
-        get_dot_env_file_variable,
         authorize_for_access_token,
         req,
     )
-
-    reset_db = os.getenv(
-        "MEDLOG_TESTS_RESET_DB",
-        get_dot_env_file_variable(
-            DOT_ENV_FILE_PATH, "MEDLOG_TESTS_RESET_DB", default="True"
-        ),
-    ).lower() in ("true", "1", "t", "y", "yes")
-
-    if reset_db:
-        sql_url = os.getenv("SQL_DATABASE_URL", "")
-        if sql_url.startswith("sqlite"):
-            Path(DB_PATH).unlink(missing_ok=True)
-            logger.info("Deleted test DB at %s", DB_PATH)
-        else:
-            logger.warning(
-                "RESET_DB enabled but database is not SQLite — reset must be done externally."
-            )
 
     # Start OIDC mock before server processes so OIDC env vars are in os.environ
     _start_oidc_mock()
