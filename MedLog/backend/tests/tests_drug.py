@@ -17,19 +17,6 @@ from statics import (
 )
 
 
-# import only as IDE Shortcut
-import medlogserver.api.routes.routes_drug
-
-from medlogserver.model.drug_data.drug import (
-    DrugCustomCreate,
-    DrugValApiCreate,
-    DrugCodeApi,
-    DrugValRef,
-    DrugMultiValApiCreate,
-)
-from medlogserver.model.drug_data.drug import DrugData
-
-
 def test_custom_drug_incomplete():
     # import only as IDE Shortcut
     from medlogserver.api.routes.routes_drug import create_custom_drug
@@ -77,8 +64,13 @@ def test_custom_drug_incomplete():
 
 def test_create_custom_drug_with_refs():
     """Test creating a custom drug with reference values"""
-    # import only as IDE Shortcut
     from medlogserver.api.routes.routes_drug import create_custom_drug
+    from medlogserver.model.drug_data.drug import (
+        DrugCustomCreate,
+        DrugValApiCreate,
+        DrugCodeApi,
+        DrugMultiValApiCreate,
+    )
 
     custom_drug_payload = DrugCustomCreate(
         custom_drug_notes="Look mom, my custom Drug!",
@@ -150,6 +142,13 @@ def test_create_custom_drug_with_refs():
 
 def test_create_custom_drug_with_multi_values():
     """Test creating a custom drug with multi-value attributes"""
+    from medlogserver.model.drug_data.drug import (
+        DrugCustomCreate,
+        DrugValApiCreate,
+        DrugCodeApi,
+        DrugMultiValApiCreate,
+    )
+
     search_identifiert_flag = "SEARCHIDENTIFIER23789rgfiewsdh"
     custom_drug = DrugCustomCreate(
         custom_drug_notes="Look mom, my custom Drug!",

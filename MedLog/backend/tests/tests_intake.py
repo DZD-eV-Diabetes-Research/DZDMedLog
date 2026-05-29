@@ -20,10 +20,6 @@ from statics import (
 )
 
 
-# import only as IDE Shortcut
-import medlogserver.api.routes.routes_drug
-
-
 def test_do_drugv2():
     # import only as IDE Shortcut
     from medlogserver.api.routes.routes_drug import create_custom_drug

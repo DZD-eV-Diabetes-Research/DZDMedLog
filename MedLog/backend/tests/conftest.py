@@ -73,15 +73,6 @@ def set_config_for_test_env():
 # imported during pytest's collection phase.
 set_config_for_test_env()
 
-# Pre-import these two modules so sys.modules is fully populated before pytest
-# collects test modules. tests_drug.py imports medlogserver sub-modules at
-# module level, which triggers a db.user → model.__init__ → study_permission
-# → db.user circular import. Importing worker.worker first fully initializes
-# db.user so subsequent imports in test files find it already cached.
-import medlogserver.main  # noqa: E402, F401
-from medlogserver.worker.worker import run_background_worker as _  # noqa: E402, F401
-
-
 _OIDC_TEST_USERS = [
     {
         "sub": "oidc-role-test-user",

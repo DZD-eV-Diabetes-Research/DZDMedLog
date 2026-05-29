@@ -6,16 +6,12 @@ import csv
 import pydantic
 import sqlmodel
 import json
-import inspect
 from pathlib import Path
 import csv
 import io
-import pathlib
 from medlogserver.config import Config
 
-import importlib.util
 import os
-import types
 import random
 import datetime
 from dataclasses import dataclass
@@ -347,36 +343,6 @@ def dictyfy(
     return val
 
 
-def get_test_functions_from_file_or_module(
-    file_or_module: str | Path | types.ModuleType,
-):
-    if isinstance(file_or_module, (str, Path)):
-        if not os.path.isfile(file_or_module):
-            raise FileNotFoundError(f"No such file: {file_or_module}")
-
-        # Derive a module name from the file path
-        module_name = os.path.splitext(os.path.basename(file_or_module))[0]
-
-        # Load the module from the file
-        spec = importlib.util.spec_from_file_location(module_name, file_or_module)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-    else:
-        module = file_or_module
-
-    # Extract all functions starting with "test_"
-    # print("vars(module).items()", vars(module).items())
-    test_functions = [
-        (name, func)
-        for name, func in vars(module).items()
-        if name.startswith("test_")
-        or name.startswith("tests_")
-        and isinstance(func, types.FunctionType)
-    ]
-
-    return test_functions
-
-
 def random_value_from_csv_column(
     file_path, column_name, random_gen: random.Random = None, delimiter: str = ";"
 ):
@@ -671,24 +637,3 @@ def csv_row_matches(csv_string: str, criteria: Dict[str, Any]) -> bool:
     return False
 
 
-def import_test_modules(from_dir: pathlib.Path) -> List[types.ModuleType]:
-    """
-    Imports all Python modules in the current directory whose names start with 'tests_'.
-
-    Returns:
-        A list of imported modules as instances of types.ModuleType.
-    """
-    modules: List[types.ModuleType] = []
-
-    for py_file in from_dir.glob("tests_*.py"):
-        module_name: str = py_file.stem
-        module_spec: importlib.machinery.ModuleSpec | None = (
-            importlib.util.spec_from_file_location(module_name, py_file)
-        )
-
-        if module_spec and module_spec.loader:
-            module: types.ModuleType = importlib.util.module_from_spec(module_spec)
-            module_spec.loader.exec_module(module)
-            modules.append(module)
-
-    return modules
