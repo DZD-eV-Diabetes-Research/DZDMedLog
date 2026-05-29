@@ -112,10 +112,37 @@ async def get_my_permission_for_study(
     permission_crud: StudyPermissonCRUD = Depends(StudyPermissonCRUD.get_crud),
     current_user: User = Depends(get_current_user),
 ) -> StudyPermisson:
-    return await permission_crud.get_by_user_and_study(
+    perm = await permission_crud.get_by_user_and_study(
         current_user.id,
         study_access.study.id,
     )
+    if perm is None and current_user.is_admin():
+        # System admins have implicit full access to all studies with no DB row.
+        # Synthesise a virtual all-true permission so the response serialises correctly.
+        perm = StudyPermisson(
+            id=uuid.uuid4(),
+            user_id=current_user.id,
+            study_id=study_access.study.id,
+            is_study_viewer=True,
+            is_study_interviewer=True,
+            is_study_admin=True,
+        )
+        perm.user_ref = current_user
+        perm.study_ref = study_access.study
+    elif perm is None and current_user.is_usermanager():
+        # Usermanagers have implicit viewer-only access to all studies (no DB row needed).
+        # is_study_admin=False: the flag means study-level admin, not the system usermanager role.
+        perm = StudyPermisson(
+            id=uuid.uuid4(),
+            user_id=current_user.id,
+            study_id=study_access.study.id,
+            is_study_viewer=True,
+            is_study_interviewer=False,
+            is_study_admin=False,
+        )
+        perm.user_ref = current_user
+        perm.study_ref = study_access.study
+    return perm
 
 
 ############
@@ -193,7 +220,12 @@ async def delete_study_permission(
             detail="Not allowed to manage study permissions",
         )
     permission = await permission_crud.get_by_user_and_study(
-        user_id, study_access.study.id
+        user_id,
+        study_access.study.id,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="This user has no permission defined for this study",
+        ),
     )
     log.info(f"Delete permission for user {user_id} on study {study_access.study.id}")
     await permission_crud.delete(id_=permission.id)

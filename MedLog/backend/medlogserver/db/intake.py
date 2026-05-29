@@ -50,7 +50,7 @@ class IntakeCRUD(
         filter_study_id: str = None,
         pagination: Optional[QueryParamsInterface] = None,
     ) -> List[Intake]:
-        query = select(Intake).distinct()
+        query = select(Intake)
         # prepare joins
         if filter_study_id:
             query = query.join(Interview).join(Event)
@@ -247,3 +247,9 @@ class IntakeCRUD(
                 raise raise_exception_if_not
             return False
         return True
+
+    async def delete_by_interview_id(self, interview_id: UUID) -> None:
+        await self.session.exec(
+            delete(Intake).where(Intake.interview_id == interview_id)
+        )
+        await self.session.commit()

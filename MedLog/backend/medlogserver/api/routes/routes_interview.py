@@ -35,6 +35,7 @@ from medlogserver.model.interview import (
 )
 
 from medlogserver.db.interview import InterviewCRUD
+from medlogserver.db.intake import IntakeCRUD
 from medlogserver.model.event import Event
 from medlogserver.db.event import EventCRUD
 from medlogserver.api.study_access import (
@@ -43,7 +44,7 @@ from medlogserver.api.study_access import (
     UserStudyAccess,
     UserStudyAccessCollection,
 )
-from medlogserver.api.base import HTTPMessage
+from medlogserver.api.base import HTTPMessage, HTTPErrorResponeRepresentation
 
 config = Config()
 
@@ -262,36 +263,79 @@ async def update_interview(
 
 @fast_api_interview_router.delete(
     "/study/{study_id}/event/{event_id}/interview/{interview_id}",
-    description=f"Delete existing interview - Not Yet Implented",
+    summary="Delete an interview",
     response_class=Response,
     status_code=204,
     responses={
-        status.HTTP_401_UNAUTHORIZED: {"model": None},
+        status.HTTP_204_NO_CONTENT: {
+            "description": "Interview and all its intakes deleted successfully.",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "Not authenticated, or caller has no interviewer-level access on this study.",
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": (
+                "Caller is an interviewer but did not create this interview. "
+                "Only the creating interviewer or a study/global admin may delete it."
+            ),
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "No interview with the given `interview_id` exists within this study and event.",
+        },
     },
 )
 async def delete_interview(
-    interview_id: uuid.UUID,
-    event_id: uuid.UUID,
+    interview_id: Annotated[uuid.UUID, Path(description="ID of the interview to delete.")],
+    event_id: Annotated[uuid.UUID, Path(description="ID of the event the interview belongs to.")],
+    current_user: Annotated[User, Security(get_current_user)],
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
+    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ) -> None:
+    """
+    Delete an interview and **all its intake records** (cascade delete).
+
+    All intakes belonging to this interview are removed automatically — no need to delete them first.
+
+    **Authorization:** caller must have at least interviewer role (`401` otherwise), and must be
+    either the interviewer who created this interview or a study/global admin (`403` otherwise).
+
+    Deleting an interview does not delete the parent event.
+    """
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to update event",
+            detail="Not authorized to delete interview",
         )
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Deleting a event is not implented",
+    await interview_crud.assert_belongs_to_study(
+        interview_id=interview_id,
+        study_id=study_access.study.id,
+        raise_exception_if_not=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No interview with id '{interview_id}' found in this study",
+        ),
     )
-    # not implemented. Do we need that?
-    # That would be a whole process -> delete interviews, intakes. More something for a background task.
-    # "a mark for deletion" property and a grace period of one day. or an validation by email  would make sense to prevent accidentaly deletion.
-    # or a disable option
-    return await event_crud.delete(
-        event_id=event_id,
+    interview = await interview_crud.get(
+        interview_id,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No interview with id '{interview_id}'",
+        ),
+    )
+    is_owner = interview.interviewer_user_id == current_user.id
+    if not (study_access.user_is_study_admin() or is_owner):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to delete this interview. Must be study admin or the interviewer who created it.",
+        )
+    await intake_crud.delete_by_interview_id(interview_id)
+    await interview_crud.delete(
+        id_=interview_id,
         raise_exception_if_not_exists=HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No event with id '{event_id}'",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No interview with id '{interview_id}'",
         ),
     )
