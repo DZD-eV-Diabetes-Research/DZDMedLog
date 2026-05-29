@@ -1,5 +1,5 @@
 <template>
-  <section v-if="userStore.isAdmin" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
+  <section v-if="studyPermissionStore.currentUserCanManageStudy(studyId)" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
     <div class="flex justify-center break-all mb-4 relative items-center">
       <div class="absolute left-0">
         <UButton
@@ -109,9 +109,9 @@ import type { SchemaEvent } from "#open-fetch-schemas/medlogapi";
 import { object, string } from "yup";
 
 const eventStore = useEventStore();
+const studyPermissionStore = useStudyPermissionStore();
 const studyStore = useStudyStore();
 const toast = useToast();
-const userStore = useUserStore();
 const route = useRoute();
 
 const createEventError = ref();

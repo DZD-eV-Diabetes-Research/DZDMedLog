@@ -24,6 +24,7 @@
 import { computed } from '#imports';
 
 const configStore = useConfigStore();
+const studyPermissionStore = useStudyPermissionStore();
 const userStore = useUserStore();
 
 const menuItems = computed(() => {
@@ -38,7 +39,7 @@ const menuItems = computed(() => {
 
   const rightSideLinks = [];
 
-  if (userStore.isLoggedIn && userStore.isAdmin) {
+  if (userStore.isLoggedIn && (userStore.isAdmin || studyPermissionStore.currentUserCanManageSomeStudy)) {
     rightSideLinks.push({
       label: 'Studienverwaltung',
       labelClass: 'text-base',

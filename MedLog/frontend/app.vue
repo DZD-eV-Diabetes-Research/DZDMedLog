@@ -86,6 +86,7 @@ if (userStore.isLoggedIn) {
     await studyStore.loadAvailableStudies();
     await drugFieldsStore.fetchFields();
     await drugFieldsStore.fetchCodes();
+    await studyPermissionStore.loadStudyPermissionsForCurrentUser();
 
     // Update the status on a regular basis
     if (statusRefreshInterval.value) {

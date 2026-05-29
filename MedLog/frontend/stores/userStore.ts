@@ -19,8 +19,8 @@ export const useUserStore = defineStore('UserStore', {
             this.upsertUser(me);
             this.currentUserId = me.id;
         },
-        async loadUsers() {
-            const users = await useGetUsers(true);
+        async loadUsers(includeDeactivated = true) {
+            const users = await useGetUsers(includeDeactivated);
             for (const user of users) {
                 this.upsertUser(user);
             }

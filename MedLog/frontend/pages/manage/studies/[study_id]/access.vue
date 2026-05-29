@@ -51,8 +51,16 @@ const userIdToEditPermissionsFor = ref();
 
 async function loadStudyPermissions() {
   loading.value = true;
-  studyPermissions.value = await useGetPermissionsByStudy(studyId.value);
-  loading.value = false;
+  try {
+    studyPermissions.value = await useGetPermissionsByStudy(studyId.value);
+  } catch (error) {
+    toast.add({
+      title: "Konnte Berechtigungen nicht laden",
+      description: useGetErrorMessage(error),
+    });
+  } finally {
+    loading.value = false;
+  }
 }
 
 function onAddPermissions() {
@@ -119,13 +127,21 @@ async function onSavePermissions(data: SchemaStudyPermissonUpdate) {
 }
 
 onMounted(async () => {
-  await userStore.loadUsers();
   await loadStudyPermissions();
+  try {
+    await userStore.loadUsers(false);
+  } catch (error) {
+    toast.add({
+      title: "Konnte User nicht laden",
+      description: useGetErrorMessage(error),
+    });
+    return;
+  }
 });
 </script>
 
 <template>
-  <section v-if="userStore.isUserAdmin" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
+  <section v-if="studyPermissionStore.currentUserCanManageUsers(studyId)" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
     <div class="flex justify-center break-all mb-4 relative items-center">
       <div class="absolute left-0">
         <UButton

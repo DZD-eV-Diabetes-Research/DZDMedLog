@@ -3,6 +3,8 @@ import { type InferType, object, string } from "yup";
 import type {FormSubmitEvent} from "#ui/types";
 import type {SchemaStudy} from "#open-fetch-schemas/medlogapi";
 
+const studyPermissionStore = useStudyPermissionStore();
+
 const props = defineProps({
   study: { type: Object as () => SchemaStudy, required: true },
 })
@@ -17,6 +19,10 @@ const schema = object({
 
 type Schema = InferType<typeof schema>
 
+const isAllowedToCallUpProband = computed(() => {
+  return studyPermissionStore.currentUserCanInterview(props.study.id) || studyPermissionStore.currentUserCanExport(props.study.id);
+});
+
 function onSubmit(event: FormSubmitEvent<Schema>) {
   navigateTo(`/studies/${props.study.id}/proband/${event.data.probandId}`)
 }
@@ -25,8 +31,18 @@ function onSubmit(event: FormSubmitEvent<Schema>) {
 <template>
   <UCard>
     <template #header>
-      <div class="text-lg break-words">
-        {{ study.display_name }}
+      <div class="flex flex-row justify-between">
+        <div class="text-lg break-words">
+          {{ study.display_name }}
+        </div>
+        <UButton
+            v-if="studyPermissionStore.currentUserCanExport(study.id)"
+            :to="`/studies/${study.id}/export`"
+            label="Datenexport"
+            icon="i-heroicons-cloud-arrow-down"
+            variant="outline"
+            color="gray"
+        />
       </div>
     </template>
 
@@ -36,9 +52,11 @@ function onSubmit(event: FormSubmitEvent<Schema>) {
           <UInput v-model.trim="state.probandId" autocomplete="off" />
         </UFormGroup>
         <div class="content-end">
-          <UButton type="submit" color="primary">
-            Proband aufrufen
-          </UButton>
+          <UTooltip text="Sie sind nicht berechtigt, Interviews zu führen" :popper="{ arrow: true }" :prevent="isAllowedToCallUpProband">
+            <UButton type="submit" color="primary" :disabled="!isAllowedToCallUpProband">
+              Proband aufrufen
+            </UButton>
+          </UTooltip>
         </div>
       </div>
     </UForm>
