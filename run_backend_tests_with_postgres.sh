@@ -35,7 +35,7 @@ echo "Start tests with Python: $PYTHON_BIN"
 #######################################
 # Start MedLog Tests with Postgres
 #######################################
-"$PYTHON_BIN" ./MedLog/backend/tests/main.py 
+"$PYTHON_BIN" -m pytest MedLog/backend/tests "$@"
 docker stop $POSTGRES_CONTAINER_NAME
 echo "Postgres stopped but not removed. If you want to inspect the db run"
 echo ""
