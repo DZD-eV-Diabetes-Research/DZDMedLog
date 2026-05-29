@@ -60,3 +60,14 @@ search_parent_directories = true
 
 [project.scripts]
 medlogserver = "medlogserver.main:start"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["tests_*.py"]
+python_functions = ["test_*", "tests_*"]
+python_classes = []
+addopts = "-v"
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s  %(levelname)-8s  %(name)s — %(message)s"
+log_cli_date_format = "%H:%M:%S"

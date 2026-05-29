@@ -2,10 +2,6 @@ from typing import List, Dict
 import json
 import datetime
 
-from _single_test_file_runner import run_all_tests_if_test_file_called
-
-if __name__ == "__main__":
-    run_all_tests_if_test_file_called()
 
 from utils import (
     req,
@@ -22,10 +18,6 @@ from statics import (
     ADMIN_USER_EMAIL,
     ADMIN_USER_NAME,
 )
-
-
-# import only as IDE Shortcut
-import medlogserver.api.routes.routes_drug
 
 
 def test_do_drugv2():
