@@ -137,7 +137,7 @@ async def update_study(
 ) -> Study:
     if not study_access.user_is_study_admin():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail=f"You are not allowed to update this study",
         )
     try:

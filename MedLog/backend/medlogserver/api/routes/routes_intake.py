@@ -134,7 +134,7 @@ async def create_intake(
 ) -> Intake:
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to create intake",
         )
     # lets check if the the interview is part of the study. otherwise caller could evade study permissions here by calling a interview id from another study.
@@ -209,8 +209,8 @@ async def update_intake(
 ) -> Intake:
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not allowed to create intake",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not allowed to update intake",
         )
     # lets check if the the interview is part of study. otherwise caller could evade study permissions here by calling a interview id from another study.
     await assert_intake_is_part_of_study(
@@ -230,12 +230,13 @@ async def update_intake(
         status.HTTP_200_OK: {"description": "Intake deleted successfully."},
         status.HTTP_401_UNAUTHORIZED: {
             "model": HTTPErrorResponeRepresentation,
-            "description": "Not authenticated, or caller has no interviewer-level access on this study.",
+            "description": "Not authenticated.",
         },
         status.HTTP_403_FORBIDDEN: {
             "model": HTTPErrorResponeRepresentation,
             "description": (
-                "Caller is an interviewer but did not create the parent interview. "
+                "Caller has no interviewer-level access on this study, or "
+                "is an interviewer but did not create the parent interview. "
                 "Ownership is determined by the parent interview's `interviewer_user_id`, "
                 "not by who added this intake. Only the interview owner or a study/global admin may delete it."
             ),
@@ -257,7 +258,7 @@ async def delete_intake(
     """
     Delete a single medication intake record.
 
-    **Authorization:** caller must have at least interviewer role (`401` otherwise), and must be
+    **Authorization:** caller must have at least interviewer role (`403` otherwise), and must be
     either the interviewer who created the **parent interview** or a study/global admin (`403` otherwise).
     Ownership is tied to the interview, not to who added this specific intake.
 
@@ -266,7 +267,7 @@ async def delete_intake(
     """
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to delete intake",
         )
     # Verify the intake belongs to the given interview and study to prevent cross-study access.

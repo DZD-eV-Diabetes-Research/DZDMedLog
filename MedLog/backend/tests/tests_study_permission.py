@@ -118,7 +118,7 @@ def test_endpoint_study_permissions_get():
         method="post",
         b=dictyfy(interview_create),
         access_token=test_user_access_token,
-        tolerated_error_codes=[401],
+        tolerated_error_codes=[403],
     )
     assert res == {"detail": "User not authorized to create interview in this study"}
 
@@ -322,7 +322,7 @@ def test_full_permission_workflow():
         method="post",
         b=dictyfy(interview_create),
         access_token=test_user_access_token,
-        tolerated_error_codes=[401],
+        tolerated_error_codes=[403],
     )
     assert res == {"detail": "User not authorized to create interview in this study"}
 
@@ -369,7 +369,7 @@ def test_full_permission_workflow():
         method="post",
         b=dictyfy(event),
         access_token=test_user_access_token,
-        tolerated_error_codes=[401],
+        tolerated_error_codes=[403],
     )
     print("res", res)
     assert res == {"detail": "Not authorized to create new event"}

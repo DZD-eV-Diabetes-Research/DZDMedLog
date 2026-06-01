@@ -110,7 +110,7 @@ async def create_event(
 ) -> EventRead:
     if not study_access.user_is_study_admin():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to create new event",
         )
     if event.order_position is None:
@@ -145,7 +145,7 @@ async def update_event(
 ) -> EventRead:
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to update event",
         )
     return await event_crud.update(
@@ -167,7 +167,11 @@ async def update_event(
         status.HTTP_204_NO_CONTENT: {"description": "Event deleted successfully."},
         status.HTTP_401_UNAUTHORIZED: {
             "model": HTTPErrorResponeRepresentation,
-            "description": "Not authenticated, or caller is not a study admin or global admin.",
+            "description": "Not authenticated.",
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "Caller is not a study admin or global admin.",
         },
         status.HTTP_404_NOT_FOUND: {
             "model": HTTPErrorResponeRepresentation,
@@ -200,7 +204,7 @@ async def delete_event(
     """
     if not study_access.user_is_study_admin():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to delete event",
         )
     await event_crud.get(
@@ -239,7 +243,7 @@ async def reorder_events(
 ) -> List[Event]:
     if not study_access.user_is_study_interviewer:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to reorder events",
         )
     event_ids = []

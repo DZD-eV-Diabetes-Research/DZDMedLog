@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.7.post1.dev8+g1f7215594.d20260529"
+    "version": "1.0.7.post1.dev12+gb412a4d3c.d20260601"
   },
   "paths": {
     "/api/health": {
@@ -1638,6 +1638,9 @@
           "401": {
             "description": "Unauthorized"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -1928,7 +1931,17 @@
             "description": "Event deleted successfully."
           },
           "401": {
-            "description": "Not authenticated, or caller is not a study admin or global admin.",
+            "description": "Not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not a study admin or global admin.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2528,7 +2541,7 @@
           "Interview"
         ],
         "summary": "Delete an interview",
-        "description": "Delete an interview and **all its intake records** (cascade delete).\n\nAll intakes belonging to this interview are removed automatically \u2014 no need to delete them first.\n\n**Authorization:** caller must have at least interviewer role (`401` otherwise), and must be\neither the interviewer who created this interview or a study/global admin (`403` otherwise).\n\nDeleting an interview does not delete the parent event.",
+        "description": "Delete an interview and **all its intake records** (cascade delete).\n\nAll intakes belonging to this interview are removed automatically \u2014 no need to delete them first.\n\n**Authorization:** caller must have at least interviewer role (`403` otherwise), and must be\neither the interviewer who created this interview or a study/global admin (`403` otherwise).\n\nDeleting an interview does not delete the parent event.",
         "operationId": "delete_interview_api_study__study_id__event__event_id__interview__interview_id__delete",
         "security": [
           {
@@ -2576,7 +2589,7 @@
             "description": "Interview and all its intakes deleted successfully."
           },
           "401": {
-            "description": "Not authenticated, or caller has no interviewer-level access on this study.",
+            "description": "Not authenticated.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2586,7 +2599,7 @@
             }
           },
           "403": {
-            "description": "Caller is an interviewer but did not create this interview. Only the creating interviewer or a study/global admin may delete it.",
+            "description": "Caller has no interviewer-level access on this study, or is an interviewer but did not create this interview. Only the creating interviewer or a study/global admin may delete it.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2994,7 +3007,7 @@
           "Intake"
         ],
         "summary": "Delete an intake record",
-        "description": "Delete a single medication intake record.\n\n**Authorization:** caller must have at least interviewer role (`401` otherwise), and must be\neither the interviewer who created the **parent interview** or a study/global admin (`403` otherwise).\nOwnership is tied to the interview, not to who added this specific intake.\n\nTo delete all intakes of an interview at once, delete the interview itself\n(`DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`).",
+        "description": "Delete a single medication intake record.\n\n**Authorization:** caller must have at least interviewer role (`403` otherwise), and must be\neither the interviewer who created the **parent interview** or a study/global admin (`403` otherwise).\nOwnership is tied to the interview, not to who added this specific intake.\n\nTo delete all intakes of an interview at once, delete the interview itself\n(`DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`).",
         "operationId": "delete_intake_api_study__study_id__interview__interview_id__intake__intake_id__delete",
         "security": [
           {
@@ -3047,7 +3060,7 @@
             }
           },
           "401": {
-            "description": "Not authenticated, or caller has no interviewer-level access on this study.",
+            "description": "Not authenticated.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3057,7 +3070,7 @@
             }
           },
           "403": {
-            "description": "Caller is an interviewer but did not create the parent interview. Ownership is determined by the parent interview's `interviewer_user_id`, not by who added this intake. Only the interview owner or a study/global admin may delete it.",
+            "description": "Caller has no interviewer-level access on this study, or is an interviewer but did not create the parent interview. Ownership is determined by the parent interview's `interviewer_user_id`, not by who added this intake. Only the interview owner or a study/global admin may delete it.",
             "content": {
               "application/json": {
                 "schema": {
