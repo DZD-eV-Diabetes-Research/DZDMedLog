@@ -1,7 +1,7 @@
 import { useMedlogapi } from "#open-fetch";
-import type { SchemaUser } from "#open-fetch-schemas/medlogapi";
+import type {SchemaUser, SchemaUserUpdateByAdmin} from "#open-fetch-schemas/medlogapi";
 
-export default async function (userId: string, body: any): Promise<SchemaUser> {
+export default async function (userId: string, body: SchemaUserUpdateByAdmin): Promise<SchemaUser> {
     const { data, error } = await useMedlogapi('/api/user/{user_id}', {
         method: "PATCH",
         path: {

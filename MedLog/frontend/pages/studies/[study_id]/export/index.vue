@@ -3,10 +3,19 @@
     <div class="flex justify-center break-all mb-4 relative items-center">
       <div class="absolute left-0">
         <UButton
-            v-if="userStore.isAdmin"
+            v-if="userStore.isAdmin || studyPermissionStore.currentUserCanManageSomeStudy"
             to="/manage/studies"
             label="Zurück"
             title="Zur Studienverwaltung"
+            variant="outline"
+            color="gray"
+            icon="i-heroicons-arrow-left-circle"
+        />
+        <UButton
+            v-else
+            to="/"
+            label="Zurück"
+            title="Zur Startseite"
             variant="outline"
             color="gray"
             icon="i-heroicons-arrow-left-circle"

@@ -24,7 +24,11 @@ const props = defineProps({
   users: { type: Array as () => SchemaUser[], default: () => [] },
 });
 
-defineEmits(['edit-roles']);
+defineEmits<{
+  'activate-user': [ userId: string ]
+  'deactivate-user': [ userId: string ]
+  'edit-roles': [ userId: string ]
+}>();
 
 const sort = ref<{
   column: string;
@@ -56,6 +60,18 @@ const rows = computed(() => {
       />
     </template>
 
+    <template #email-data="{ row }">
+      <div class="flex flex-row gap-1">
+        {{ row.email }}
+        <UTooltip text="Diese Adresse wurde nicht verifiziert">
+          <UIcon
+              name="i-heroicons-exclamation-triangle"
+              class="text-xl text-orange-500"
+          />
+        </UTooltip>
+      </div>
+    </template>
+
     <template #roles-data="{ row }">
       <div v-if="row.roles.length > 0" class="space-x-2" >
         <UBadge v-for="role in row.roles" :key="role" class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg">
@@ -71,7 +87,24 @@ const rows = computed(() => {
           icon="i-heroicons-key-solid"
           variant="outline"
           color="gray"
+          class="mr-2"
           @click="$emit('edit-roles', row.id)"
+      />
+      <UButton
+          v-if="!row.deactivated"
+          label="Deaktivieren"
+          icon="i-heroicons-x-circle-solid"
+          variant="outline"
+          color="gray"
+          @click="$emit('deactivate-user', row.id)"
+      />
+      <UButton
+          v-else-if="row.deactivated"
+          label="Aktivieren"
+          icon="i-heroicons-check-circle-solid"
+          variant="outline"
+          color="gray"
+          @click="$emit('activate-user', row.id)"
       />
     </template>
   </UTable>

@@ -44,10 +44,8 @@ export const useStudyPermissionStore = defineStore('StudyPermissionStore', {
 
                 const userStore = useUserStore();
                 const permissionForStudy = state.studyPermissionsCurrentUser.find(item => item.study_id === studyId)
-                if (!permissionForStudy) {
-                    return false;
-                }
-                return userStore.isAdmin || permissionForStudy.is_study_viewer || permissionForStudy.is_study_admin;
+
+                return userStore.isAdmin || permissionForStudy?.is_study_viewer === true || permissionForStudy?.is_study_admin === true;
             }
         },
         currentUserCanInterview(state) {
@@ -58,14 +56,11 @@ export const useStudyPermissionStore = defineStore('StudyPermissionStore', {
 
                 const userStore = useUserStore();
                 const permissionForStudy = state.studyPermissionsCurrentUser.find(item => item.study_id === studyId)
-                if (!permissionForStudy) {
-                    return false;
-                }
-                return userStore.isAdmin || permissionForStudy.is_study_interviewer || permissionForStudy.is_study_admin;
+
+                return userStore.isAdmin || permissionForStudy?.is_study_interviewer === true || permissionForStudy?.is_study_admin === true;
             }
         },
         currentUserCanManageSomeStudy(state): boolean {
-            console.log("user permissions", state.studyPermissionsCurrentUser);
             return state.studyPermissionsCurrentUser.some(permissionForStudy => permissionForStudy.is_study_admin === true);
         },
         currentUserCanManageStudy(state) {
@@ -76,10 +71,8 @@ export const useStudyPermissionStore = defineStore('StudyPermissionStore', {
 
                 const userStore = useUserStore();
                 const permissionForStudy = state.studyPermissionsCurrentUser.find(item => item.study_id === studyId)
-                if (!permissionForStudy) {
-                    return false;
-                }
-                return userStore.isAdmin || permissionForStudy.is_study_admin;
+
+                return userStore.isAdmin || permissionForStudy?.is_study_admin === true;
             }
         },
         currentUserCanManageUsers(state) {
@@ -90,10 +83,8 @@ export const useStudyPermissionStore = defineStore('StudyPermissionStore', {
 
                 const userStore = useUserStore();
                 const permissionForStudy = state.studyPermissionsCurrentUser.find(item => item.study_id === studyId)
-                if (!permissionForStudy) {
-                    return false;
-                }
-                return userStore.isAdmin || userStore.isUserAdmin || permissionForStudy.is_study_admin;
+
+                return userStore.isAdmin || userStore.isUserAdmin || permissionForStudy?.is_study_admin === true;
             }
         },
         currentUserCanView(state) {
@@ -104,10 +95,8 @@ export const useStudyPermissionStore = defineStore('StudyPermissionStore', {
 
                 const userStore = useUserStore();
                 const permissionForStudy = state.studyPermissionsCurrentUser.find(item => item.study_id === studyId)
-                if (!permissionForStudy) {
-                    return false;
-                }
-                return userStore.isAdmin || permissionForStudy.is_study_viewer || permissionForStudy.is_study_interviewer || permissionForStudy.is_study_admin;
+
+                return userStore.isAdmin || permissionForStudy?.is_study_viewer === true || permissionForStudy?.is_study_interviewer === true || permissionForStudy?.is_study_admin === true;
             }
         },
     },
