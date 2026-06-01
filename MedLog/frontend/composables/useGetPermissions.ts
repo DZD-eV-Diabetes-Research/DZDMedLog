@@ -8,5 +8,9 @@ export default async function (): Promise<SchemaStudyPermissionDesc[]> {
         throw error.value;
     }
 
+    if (!Array.isArray(data.value)) {
+        throw new Error("Permissions endpoint did not provide an array");
+    }
+
     return data.value ?? [];
 }

@@ -4,7 +4,6 @@ import {
   onMounted,
   ref,
   useDeletePermissions,
-  useGetPermissions,
   useGetPermissionsByStudy,
   usePutPermissions,
   useRoute,
@@ -13,12 +12,12 @@ import {
   useUserStore
 } from "#imports";
 import type {
-  SchemaStudyPermissionDesc,
   SchemaStudyPermissionRead,
   SchemaStudyPermissonUpdate
 } from "#open-fetch-schemas/medlogapi";
 
 const route = useRoute();
+const studyPermissionStore = useStudyPermissionStore();
 const studyStore = useStudyStore();
 const toast = useToast();
 const userStore = useUserStore();
@@ -41,7 +40,6 @@ const usersWithoutAccessOptions = computed(() => {
       });
 });
 
-const availablePermissions = ref<SchemaStudyPermissionDesc[]>([]);
 const loading = ref(true);
 const permissionsToEdit = ref<string[]>();
 const studyPermissions = ref<SchemaStudyPermissionRead[]>([]);
@@ -53,8 +51,16 @@ const userIdToEditPermissionsFor = ref();
 
 async function loadStudyPermissions() {
   loading.value = true;
-  studyPermissions.value = await useGetPermissionsByStudy(studyId.value);
-  loading.value = false;
+  try {
+    studyPermissions.value = await useGetPermissionsByStudy(studyId.value);
+  } catch (error) {
+    toast.add({
+      title: "Konnte Berechtigungen nicht laden",
+      description: useGetErrorMessage(error),
+    });
+  } finally {
+    loading.value = false;
+  }
 }
 
 function onAddPermissions() {
@@ -94,7 +100,7 @@ function onEditPermissions(studyPermissionsId: string) {
 
   userIdToEditPermissionsFor.value = studyPermission.user_ref?.id;
   const permissions: string[] = [];
-  availablePermissions.value.forEach((item) => {
+  studyPermissionStore.availablePermissions.forEach((item) => {
     if (Object.hasOwn(studyPermission, item.study_permission_name)) {
       const studyPermissionName = item.study_permission_name as keyof typeof studyPermission;
       if (studyPermission[studyPermissionName] === true) {
@@ -121,14 +127,21 @@ async function onSavePermissions(data: SchemaStudyPermissonUpdate) {
 }
 
 onMounted(async () => {
-  availablePermissions.value = await useGetPermissions();
-  await userStore.loadUsers();
   await loadStudyPermissions();
+  try {
+    await userStore.loadUsers(false);
+  } catch (error) {
+    toast.add({
+      title: "Konnte User nicht laden",
+      description: useGetErrorMessage(error),
+    });
+    return;
+  }
 });
 </script>
 
 <template>
-  <section v-if="userStore.isUserAdmin" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
+  <section v-if="studyPermissionStore.currentUserCanManageUsers(studyId)" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
     <div class="flex justify-center break-all mb-4 relative items-center">
       <div class="absolute left-0">
         <UButton
@@ -185,7 +198,7 @@ onMounted(async () => {
 
     <StudyPermissionManagementEditModal
         v-model="showEditModal"
-        :available-permissions="availablePermissions"
+        :available-permissions="studyPermissionStore.availablePermissions"
         :initial-permissions="permissionsToEdit"
         @cancel="showEditModal = false"
         @save="onSavePermissions"
