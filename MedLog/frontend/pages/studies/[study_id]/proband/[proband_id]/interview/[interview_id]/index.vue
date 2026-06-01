@@ -36,18 +36,21 @@
               </time>
             </span>
             <UButton
-                v-else
+                v-else-if="studyPermissionStore.currentUserCanInterview(studyId)"
                 label="Interview Beenden"
                 color="red"
                 variant="outline"
                 icon="i-heroicons-arrow-right-on-rectangle"
                 @click="endInterview()"
             />
+            <span v-else>
+              Das Interview wurde noch nicht abgeschlossen.
+            </span>
           </div>
         </div>
       </UCard>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div v-if="studyPermissionStore.currentUserCanInterview(studyId)" class="grid grid-cols-2 gap-4">
         <UCard
           class="text-center"
           :class="{
