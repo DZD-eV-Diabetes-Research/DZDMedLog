@@ -201,7 +201,7 @@ async def create_interview(
 ) -> Interview:
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="User not authorized to create interview in this study",
         )
     event: Event = await event_crud.get(
@@ -249,8 +249,8 @@ async def update_interview(
 ) -> User:
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not authorized to create interview in this study",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User not authorized to update interview in this study",
         )
     interview_from_db: Interview = await interview_crud.get(interview_id)
     if interview_from_db is None or interview_from_db.event_id != event_id:
@@ -272,12 +272,13 @@ async def update_interview(
         },
         status.HTTP_401_UNAUTHORIZED: {
             "model": HTTPErrorResponeRepresentation,
-            "description": "Not authenticated, or caller has no interviewer-level access on this study.",
+            "description": "Not authenticated.",
         },
         status.HTTP_403_FORBIDDEN: {
             "model": HTTPErrorResponeRepresentation,
             "description": (
-                "Caller is an interviewer but did not create this interview. "
+                "Caller has no interviewer-level access on this study, or "
+                "is an interviewer but did not create this interview. "
                 "Only the creating interviewer or a study/global admin may delete it."
             ),
         },
@@ -300,14 +301,14 @@ async def delete_interview(
 
     All intakes belonging to this interview are removed automatically — no need to delete them first.
 
-    **Authorization:** caller must have at least interviewer role (`401` otherwise), and must be
+    **Authorization:** caller must have at least interviewer role (`403` otherwise), and must be
     either the interviewer who created this interview or a study/global admin (`403` otherwise).
 
     Deleting an interview does not delete the parent event.
     """
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to delete interview",
         )
     await interview_crud.assert_belongs_to_study(

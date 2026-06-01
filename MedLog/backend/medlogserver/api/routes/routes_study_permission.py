@@ -87,7 +87,7 @@ async def list_study_permissions(
 ) -> PaginatedResponse[StudyPermissionRead]:
     if not study_access.user_can_manage_study_permissions():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to manage study permissions",
         )
     result_items = await permission_crud.list(
@@ -158,7 +158,7 @@ async def get_permission_details(
 ) -> StudyPermisson:
     if not study_access.user_can_manage_study_permissions():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to manage study permissions",
         )
     # bleimehl: SECURITY WARNING: in theory a study admin from one study, who could obtain a permission UUID from another study,
@@ -190,7 +190,7 @@ async def create_or_update_permission(
 ) -> StudyPermisson:
     if not study_access.user_can_manage_study_permissions():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to manage study permissions",
         )
 
@@ -207,6 +207,7 @@ async def create_or_update_permission(
     response_model=None,
     responses={
         status.HTTP_401_UNAUTHORIZED: {"model": None},
+        status.HTTP_403_FORBIDDEN: {"model": None},
     },
 )
 async def delete_study_permission(
@@ -216,7 +217,7 @@ async def delete_study_permission(
 ):
     if not study_access.user_can_manage_study_permissions():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to manage study permissions",
         )
     permission = await permission_crud.get_by_user_and_study(

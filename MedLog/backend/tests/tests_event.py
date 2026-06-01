@@ -231,7 +231,7 @@ def test_endpoint_delete_event_interviewer_is_blocked():
     req(
         f"api/study/{study_data.study.id}/event/{event.event.id}",
         method="delete",
-        expected_http_code=401,
+        expected_http_code=403,
         access_token=interviewer_token,
     )
 

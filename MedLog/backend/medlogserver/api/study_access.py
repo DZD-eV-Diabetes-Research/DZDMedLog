@@ -195,7 +195,7 @@ async def user_has_study_access(
         )
     if not study_access.user_has_access():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail=f"No access to study {study_id}.",
         )
     return study_access

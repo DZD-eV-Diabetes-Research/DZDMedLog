@@ -783,3 +783,61 @@ def test_endpoint_delete_intake_study_admin_can_delete_any():
         expected_http_code=200,
         access_token=study_admin_token,
     )
+
+
+def test_viewer_gets_403_not_401_on_create_intake():
+    """Authenticated viewer must receive 403 (Forbidden), not 401 (Unauthenticated), when trying to create an intake.
+
+    Regression test for https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/302:
+    returning 401 caused the UI to trigger a re-authentication flow instead of showing an
+    'insufficient permissions' message.
+    """
+    study_data = create_test_study(
+        study_name="TestViewerForbiddenIntakeStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        with_intakes=0,
+        proband_count=1,
+    )
+    study_id = study_data.study.id
+    interview_id = study_data.events[0].interviews[0].interview.id
+
+    viewer = create_test_user(
+        "intake_viewer_302", "pw_intake_viewer_302", "intake_viewer_302@test.de"
+    )
+    viewer_token = authorize_for_access_token("intake_viewer_302", "pw_intake_viewer_302")
+    # Grant viewer-only access (no interviewer flag)
+    req(
+        f"/api/study/{study_id}/permissions/{viewer.id}",
+        method="put",
+        b={"is_study_viewer": True, "is_study_interviewer": False, "is_study_admin": False},
+    )
+
+    from medlogserver.model.intake import (
+        IntakeCreateAPI,
+        SourceOfDrugInformationAnwers,
+        AdministeredByDoctorAnswers,
+        IntakeRegularOrAsNeededAnswers,
+        ConsumedMedsTodayAnswers,
+    )
+
+    drug = req("api/drug/search", q={"search_term": "Test"})["items"][0]["drug"]
+    payload = dictyfy(
+        IntakeCreateAPI(
+            drug_id=drug["id"],
+            source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
+            intake_start_date=datetime.date.today().isoformat(),
+            administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
+            intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
+            as_needed_dose_unit=1,
+            consumed_meds_today=ConsumedMedsTodayAnswers.UNKNOWN,
+        )
+    )
+
+    req(
+        f"api/study/{study_id}/interview/{interview_id}/intake",
+        method="post",
+        b=payload,
+        expected_http_code=403,
+        access_token=viewer_token,
+    )
