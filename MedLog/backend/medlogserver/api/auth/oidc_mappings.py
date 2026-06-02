@@ -26,8 +26,26 @@ async def apply_oidc_group_mappings(
     study_crud: "StudyCRUD",
 ) -> User:
     """Re-apply ROLE_MAPPING and STUDY_PERMISSION_MAPPING from the OIDC provider config
-    to the user on every login (issues #273 and #46)."""
+    to the user on every login (issues #273, #46, and #308)."""
     user_groups = userinfo.groups or []
+
+    # --- Issue #308: re-sync profile fields from OIDC userinfo on every login ---
+    new_display_name = userinfo.name or user.display_name
+    new_email = userinfo.email or user.email
+    if (
+        new_display_name != user.display_name
+        or new_email != user.email
+        or userinfo.email_verified != user.is_email_verified
+    ):
+        log.info(f"Updating profile for user '{user.user_name}' via OIDC userinfo sync")
+        user = await user_crud.update(
+            UserUpdateByAdmin(
+                display_name=new_display_name,
+                email=new_email,
+                is_email_verified=userinfo.email_verified,
+            ),
+            user_id=user.id,
+        )
 
     # --- Issue #273: re-apply global role mapping ---
     available_medlog_roles = [config.ADMIN_ROLE_NAME, config.USERMANAGER_ROLE_NAME]

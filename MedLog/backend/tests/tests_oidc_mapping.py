@@ -204,8 +204,7 @@ def test_oidc_userinfo_updated_on_relogin_issue_308():
     Confirms issue #308:
     - display_name is taken from the OIDC provider's display-name attribute (given_name in
       test config) only at account creation time and never updated on subsequent logins.
-    - is_email_verified is never set from OIDC userinfo at all, even though a successful
-      OIDC login is proof that the provider verified the user's email address.
+    - is_email_verified is never read from the standard email_verified OIDC claim.
     """
     if _skip_if_no_oidc():
         return
@@ -213,7 +212,7 @@ def test_oidc_userinfo_updated_on_relogin_issue_308():
     mock_url = os.environ["OIDC_MOCK_SERVER_URL"]
     sub = "oidc-userinfo-update-test-user"
 
-    # First login — register the user with a known display name
+    # First login — register the user with a known display name and verified email
     _requests.put(
         f"{mock_url}/users/{sub}",
         json={
@@ -221,6 +220,7 @@ def test_oidc_userinfo_updated_on_relogin_issue_308():
             "userinfo": {
                 "name": sub,
                 "email": "oidc-userinfo-update-test@test.com",
+                "email_verified": True,
                 "given_name": "Original Display Name",
                 "groups": [],
             },
@@ -235,14 +235,14 @@ def test_oidc_userinfo_updated_on_relogin_issue_308():
     )
     print(f"  ✓ First login: display_name='{me['display_name']}'")
 
-    # OIDC login implies the provider verified the user's email — is_email_verified must be True
+    # is_email_verified must reflect the email_verified claim from the OIDC provider
     assert me["is_email_verified"] is True, (
-        f"Expected is_email_verified=True after OIDC login (provider verified the email), "
+        f"Expected is_email_verified=True because the provider sent email_verified=true, "
         f"got: {me['is_email_verified']}"
     )
     print("  ✓ First login: is_email_verified=True")
 
-    # Change the display name on the mock server
+    # Change the display name on the mock server (email_verified stays True)
     _requests.put(
         f"{mock_url}/users/{sub}",
         json={
@@ -250,6 +250,7 @@ def test_oidc_userinfo_updated_on_relogin_issue_308():
             "userinfo": {
                 "name": sub,
                 "email": "oidc-userinfo-update-test@test.com",
+                "email_verified": True,
                 "given_name": "Updated Display Name",
                 "groups": [],
             },
