@@ -196,3 +196,72 @@ def test_oidc_study_permission_revocation_on_group_removal_issue_305():
         f"'{OIDC_TEST_INTERVIEWER_GROUP}', but got: {perm2}"
     )
     print(f"  ✓ Re-login after group removal: is_study_interviewer revoked")
+
+
+def test_oidc_userinfo_updated_on_relogin_issue_308():
+    """User profile fields sourced from OIDC userinfo must be re-applied on every login.
+
+    Confirms issue #308:
+    - display_name is taken from the OIDC provider's display-name attribute (given_name in
+      test config) only at account creation time and never updated on subsequent logins.
+    - is_email_verified is never set from OIDC userinfo at all, even though a successful
+      OIDC login is proof that the provider verified the user's email address.
+    """
+    if _skip_if_no_oidc():
+        return
+
+    mock_url = os.environ["OIDC_MOCK_SERVER_URL"]
+    sub = "oidc-userinfo-update-test-user"
+
+    # First login — register the user with a known display name
+    _requests.put(
+        f"{mock_url}/users/{sub}",
+        json={
+            "sub": sub,
+            "userinfo": {
+                "name": sub,
+                "email": "oidc-userinfo-update-test@test.com",
+                "given_name": "Original Display Name",
+                "groups": [],
+            },
+        },
+    ).raise_for_status()
+
+    token = oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
+    me = req("api/user/me", access_token=token)
+
+    assert me["display_name"] == "Original Display Name", (
+        f"Expected display_name='Original Display Name' after first OIDC login, got: {me['display_name']}"
+    )
+    print(f"  ✓ First login: display_name='{me['display_name']}'")
+
+    # OIDC login implies the provider verified the user's email — is_email_verified must be True
+    assert me["is_email_verified"] is True, (
+        f"Expected is_email_verified=True after OIDC login (provider verified the email), "
+        f"got: {me['is_email_verified']}"
+    )
+    print("  ✓ First login: is_email_verified=True")
+
+    # Change the display name on the mock server
+    _requests.put(
+        f"{mock_url}/users/{sub}",
+        json={
+            "sub": sub,
+            "userinfo": {
+                "name": sub,
+                "email": "oidc-userinfo-update-test@test.com",
+                "given_name": "Updated Display Name",
+                "groups": [],
+            },
+        },
+    ).raise_for_status()
+
+    # Re-login — display_name must reflect the new value from the OIDC provider (BUG: it does not)
+    token2 = oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
+    me2 = req("api/user/me", access_token=token2)
+
+    assert me2["display_name"] == "Updated Display Name", (
+        f"Expected display_name to be updated to 'Updated Display Name' after re-login "
+        f"with changed OIDC userinfo, but got: '{me2['display_name']}'"
+    )
+    print(f"  ✓ Re-login: display_name updated to '{me2['display_name']}'")
