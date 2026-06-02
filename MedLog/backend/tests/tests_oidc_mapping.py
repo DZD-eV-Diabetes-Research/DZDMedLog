@@ -266,3 +266,159 @@ def test_oidc_userinfo_updated_on_relogin_issue_308():
         f"with changed OIDC userinfo, but got: '{me2['display_name']}'"
     )
     print(f"  ✓ Re-login: display_name updated to '{me2['display_name']}'")
+
+
+# ---------------------------------------------------------------------------
+# Helpers shared by the source-tracking tests below
+# ---------------------------------------------------------------------------
+
+def _get_or_create_study(study_name: str) -> str:
+    """Return study_id, creating the study if it doesn't exist yet."""
+    from medlogserver.model.study import StudyCreateAPI
+
+    resp = req(
+        "api/study",
+        method="post",
+        b=StudyCreateAPI(display_name=study_name).model_dump(exclude_unset=True),
+        tolerated_error_codes=[409],
+    )
+    if "id" in resp:
+        return resp["id"]
+    studies_page = req("api/study")
+    study = next(
+        (s for s in studies_page["items"] if s["display_name"] == study_name), None
+    )
+    assert study is not None, f"Study '{study_name}' not found after 409"
+    return study["id"]
+
+
+def _set_mock_user(mock_url: str, sub: str, groups: list, email_verified: bool = True):
+    _requests.put(
+        f"{mock_url}/users/{sub}",
+        json={
+            "sub": sub,
+            "userinfo": {
+                "name": sub,
+                "email": f"{sub}@test.com",
+                "email_verified": email_verified,
+                "given_name": sub,
+                "groups": groups,
+            },
+        },
+    ).raise_for_status()
+
+
+def test_oidc_manual_flag_outside_oidc_scope_survives_revocation():
+    """A permission flag set manually by a user manager is never touched by OIDC.
+
+    OIDC only owns flags it is configured to manage (from STUDY_PERMISSION_MAPPING).
+    Flags outside that scope — even on the same permission record — must survive when
+    OIDC revokes its own grants.
+
+    Scenario:
+      - OIDC manages is_study_interviewer via group membership.
+      - A user manager also grants is_study_admin manually.
+      - User leaves the OIDC group.
+      - Re-login: is_study_interviewer is revoked; is_study_admin is preserved.
+    """
+    if _skip_if_no_oidc():
+        return
+
+    mock_url = os.environ["OIDC_MOCK_SERVER_URL"]
+    sub = "oidc-perm-source-test-user-a"
+    study_id = _get_or_create_study(OIDC_TEST_STUDY_NAME)
+
+    # First login — user in interviewer group → gets is_study_interviewer via OIDC
+    _set_mock_user(mock_url, sub, groups=[OIDC_TEST_INTERVIEWER_GROUP])
+    token = oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
+    me = req("api/user/me", access_token=token)
+    user_id = me["id"]
+
+    perm = req(f"api/study/{study_id}/permissions/{user_id}")
+    assert perm["is_study_interviewer"] is True
+    assert "is_study_interviewer" in perm["oidc_managed_permissions"]
+    print(f"  ✓ First login: is_study_interviewer=True (OIDC), oidc_managed={perm['oidc_managed_permissions']}")
+
+    # User manager grants is_study_admin manually (not an OIDC-managed flag)
+    req(
+        f"api/study/{study_id}/permissions/{user_id}",
+        method="put",
+        b={"is_study_admin": True},
+    )
+    perm_after_manual = req(f"api/study/{study_id}/permissions/{user_id}")
+    assert perm_after_manual["is_study_admin"] is True
+    # is_study_admin is outside OIDC scope — must NOT appear in oidc_managed_permissions
+    assert "is_study_admin" not in perm_after_manual["oidc_managed_permissions"]
+    print(f"  ✓ Manual grant: is_study_admin=True, oidc_managed still={perm_after_manual['oidc_managed_permissions']}")
+
+    # User leaves the OIDC interviewer group
+    _set_mock_user(mock_url, sub, groups=[])
+    oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
+
+    perm2 = req(f"api/study/{study_id}/permissions/{user_id}")
+    assert perm2["is_study_interviewer"] is False, (
+        f"Expected is_study_interviewer to be revoked by OIDC, got: {perm2}"
+    )
+    assert perm2["is_study_admin"] is True, (
+        f"Expected is_study_admin to be preserved (manually set), got: {perm2}"
+    )
+    print("  ✓ Re-login: is_study_interviewer revoked, is_study_admin preserved")
+
+
+def test_oidc_manual_override_of_oidc_flag_prevents_revocation():
+    """When a user manager explicitly grants a flag that OIDC also manages, OIDC must
+    not revoke it on a future login — the user manager's intent takes precedence.
+
+    This validates the Option-A source-tracking mechanism:
+    oidc_managed_permissions is cleared for any flag a user manager explicitly sets,
+    so OIDC's revocation path skips it.
+
+    Scenario:
+      - OIDC grants is_study_interviewer via group membership.
+      - User manager explicitly grants is_study_interviewer=True (takes ownership).
+      - User leaves the OIDC group.
+      - Re-login: is_study_interviewer must remain True (not revoked).
+    """
+    if _skip_if_no_oidc():
+        return
+
+    mock_url = os.environ["OIDC_MOCK_SERVER_URL"]
+    sub = "oidc-perm-source-test-user-b"
+    study_id = _get_or_create_study(OIDC_TEST_STUDY_NAME)
+
+    # First login — OIDC grants is_study_interviewer
+    _set_mock_user(mock_url, sub, groups=[OIDC_TEST_INTERVIEWER_GROUP])
+    token = oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
+    me = req("api/user/me", access_token=token)
+    user_id = me["id"]
+
+    perm = req(f"api/study/{study_id}/permissions/{user_id}")
+    assert perm["is_study_interviewer"] is True
+    assert "is_study_interviewer" in perm["oidc_managed_permissions"]
+    print(f"  ✓ First login: is_study_interviewer=True (OIDC), oidc_managed={perm['oidc_managed_permissions']}")
+
+    # User manager explicitly grants is_study_interviewer — takes ownership from OIDC
+    req(
+        f"api/study/{study_id}/permissions/{user_id}",
+        method="put",
+        b={"is_study_interviewer": True},
+    )
+    perm_after_override = req(f"api/study/{study_id}/permissions/{user_id}")
+    assert perm_after_override["is_study_interviewer"] is True
+    # OIDC ownership must have been stripped by the user-manager update
+    assert "is_study_interviewer" not in perm_after_override["oidc_managed_permissions"], (
+        f"Expected 'is_study_interviewer' to be removed from oidc_managed_permissions "
+        f"after user-manager override, got: {perm_after_override['oidc_managed_permissions']}"
+    )
+    print(f"  ✓ Manual override: is_study_interviewer=True (user-manager owned), oidc_managed={perm_after_override['oidc_managed_permissions']}")
+
+    # User leaves the OIDC interviewer group
+    _set_mock_user(mock_url, sub, groups=[])
+    oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
+
+    perm2 = req(f"api/study/{study_id}/permissions/{user_id}")
+    assert perm2["is_study_interviewer"] is True, (
+        f"Expected is_study_interviewer to remain True (user-manager ownership), "
+        f"but OIDC revoked it: {perm2}"
+    )
+    print("  ✓ Re-login after group removal: is_study_interviewer preserved (user-manager owns it)")

@@ -113,10 +113,20 @@ class StudyPermissonCRUD(
             user_id=user_id,
         )
         log.debug(("existing_study_permission", existing_study_permission))
+        explicitly_set = set(study_permission.model_dump(exclude_unset=True).keys())
         if existing_study_permission:
             for key, val in study_permission.model_dump(exclude_unset=True).items():
                 if key in StudyPermissonUpdate.model_fields.keys():
                     setattr(existing_study_permission, key, val)
+            # User manager is explicitly setting flags → strip OIDC ownership so OIDC
+            # will not revoke them on a future login.
+            permission_flags = {"is_study_viewer", "is_study_interviewer", "is_study_admin"}
+            flags_taken_over = explicitly_set & permission_flags
+            if flags_taken_over and existing_study_permission.oidc_managed_permissions:
+                existing_study_permission.oidc_managed_permissions = [
+                    p for p in existing_study_permission.oidc_managed_permissions
+                    if p not in flags_taken_over
+                ]
             study_permission = existing_study_permission
         elif isinstance(study_permission, StudyPermissonUpdate):
             study_permission = StudyPermisson(
@@ -128,6 +138,86 @@ class StudyPermissonCRUD(
         await self.session.commit()
         await self.session.refresh(study_permission)
         return study_permission
+
+    async def oidc_set_permissions(
+        self,
+        user_id: uuid.UUID,
+        study_id: uuid.UUID,
+        oidc_managed_flags: set,
+        valid_granted: set,
+    ) -> StudyPermisson | None:
+        """Apply OIDC-derived permissions for one study, preserving manually-set flags.
+
+        oidc_managed_flags: all permission flags OIDC is configured to manage for this study.
+        valid_granted: subset of oidc_managed_flags that OIDC currently wants to grant (True).
+
+        Rules:
+        - A flag is OIDC-owned if it is in oidc_managed_permissions on the existing record.
+        - OIDC can claim a flag (add to oidc_managed_permissions) only if it is currently
+          False — i.e., the user manager has not granted it independently.
+        - OIDC revokes only flags it owns (present in oidc_managed_permissions).
+        - After every change, a record with all flags False is deleted.
+        """
+        existing = await self.get_by_user_and_study(user_id=user_id, study_id=study_id)
+        previously_oidc_owned = set(existing.oidc_managed_permissions if existing else [])
+
+        flags_to_grant: set = set()
+        flags_to_revoke: set = set()
+
+        for flag in oidc_managed_flags:
+            currently_true = existing is not None and getattr(existing, flag, False)
+            oidc_owns = flag in previously_oidc_owned
+            wants_to_grant = flag in valid_granted
+
+            if wants_to_grant:
+                if not currently_true:
+                    # Flag is False — OIDC can claim and set it.
+                    flags_to_grant.add(flag)
+                elif oidc_owns:
+                    # OIDC already owns a True flag — keep claiming it.
+                    flags_to_grant.add(flag)
+                # else: True but user-manager-owned — don't touch.
+            else:
+                if oidc_owns:
+                    # OIDC owned this but the group is gone — revoke.
+                    flags_to_revoke.add(flag)
+                # else: not OIDC's flag — don't touch.
+
+        if not flags_to_grant and not flags_to_revoke:
+            return existing  # Nothing changed.
+
+        new_oidc_owned = (previously_oidc_owned | flags_to_grant) - flags_to_revoke
+
+        if existing is None:
+            if not flags_to_grant:
+                return None
+            record = StudyPermisson(
+                user_id=user_id,
+                study_id=study_id,
+                oidc_managed_permissions=list(new_oidc_owned),
+                **{f: True for f in flags_to_grant},
+            )
+            self.session.add(record)
+            await self.session.commit()
+            await self.session.refresh(record)
+            return record
+
+        for flag in flags_to_grant:
+            setattr(existing, flag, True)
+        for flag in flags_to_revoke:
+            setattr(existing, flag, False)
+        existing.oidc_managed_permissions = list(new_oidc_owned)
+
+        all_permission_flags = {"is_study_viewer", "is_study_interviewer", "is_study_admin"}
+        if not any(getattr(existing, p, False) for p in all_permission_flags):
+            await self.session.delete(existing)
+            await self.session.commit()
+            return None
+
+        self.session.add(existing)
+        await self.session.commit()
+        await self.session.refresh(existing)
+        return existing
 
     # I tested if we can remove this. looks like. todo: remove this func
     async def create_REMOVE_ME(
@@ -193,6 +283,16 @@ class StudyPermissonCRUD(
 
         query = delete(StudyPermisson).where(StudyPermisson.user_id == user_id)
         await self.session.exec(statement=query)
+        return True
+
+    async def delete_by_user_and_study(
+        self, user_id: str | UUID, study_id: str | UUID
+    ) -> bool:
+        query = delete(StudyPermisson).where(
+            and_(StudyPermisson.user_id == user_id, StudyPermisson.study_id == study_id)
+        )
+        await self.session.exec(statement=query)
+        await self.session.commit()
         return True
 
     async def delete_by_study(self, study_id: str | UUID):
