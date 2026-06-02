@@ -416,3 +416,49 @@ def test_wrong_count_issue_252():
     assert paginated_search_response["total_count"] == len(
         paginated_search_response["items"]
     )
+
+
+def test_custom_drug_ensure_created_by_field_issue_303():
+    # import only as IDE Shortcut
+    from medlogserver.api.routes.routes_drug import create_custom_drug
+    from medlogserver.model.drug_data.drug import (
+        DrugCustomCreate,
+        DrugValApiCreate,
+        DrugCodeApi,
+        DrugValRef,
+        DrugValMulti,
+        DrugMultiValApiCreate,
+        DrugVal,
+    )
+    from medlogserver.model.drug_data.drug import DrugData, DrugValMultiRef, DrugValRef
+
+    search_identifiert_flag = "SEARCHIDENTIFIERT328794623342523534"
+    custom_drug_payload = DrugCustomCreate(
+        trade_name=f"Look mom, my custom Drug! {search_identifiert_flag}",
+        attrs_ref=[DrugValRef(field_name="dispensingtype", value=None)],
+    )
+
+    res = req(
+        "api/drug/custom",
+        method="post",
+        b=dictyfy(custom_drug_payload),
+    )
+    me = req("api/user/me", method="get")
+    current_user_uuid = me["id"]
+    dict_must_contain(
+        res,
+        required_keys_and_val={
+            "custom_created_by": current_user_uuid,
+        },
+        exception_dict_identifier="create minimal custom drug object and ensure created user is set",
+    )
+
+    # lets look up our new drug
+    from medlogserver.api.routes.routes_drug import search_drugs
+
+    drug_search_result = req(
+        f"/api/drug/search", method="get", q={"search_term": search_identifiert_flag}
+    )
+    print("drug_search_result", drug_search_result)
+    custom_drug_creator_uuid = drug_search_result["items"][0]["drug"]["custom_created_by"]
+    assert custom_drug_creator_uuid == current_user_uuid
