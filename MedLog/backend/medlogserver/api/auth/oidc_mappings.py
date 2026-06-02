@@ -4,6 +4,7 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model.user import User, UserUpdateByAdmin
 from medlogserver.model.user_info_oidc import UserInfoOidc
+from medlogserver.model.study import StudyCreate
 
 if TYPE_CHECKING:
     from medlogserver.db.user import UserCRUD
@@ -67,10 +68,17 @@ async def apply_oidc_group_mappings(
     for study_name, group_permission_map in provider_config.STUDY_PERMISSION_MAPPING.items():
         study = await study_crud.get_by_name(study_name)
         if study is None:
-            log.warning(
-                f"STUDY_PERMISSION_MAPPING references unknown study '{study_name}' — skipping"
-            )
-            continue
+            if provider_config.AUTO_CREATE_STUDY_FROM_MAPPING:
+                log.info(
+                    f"AUTO_CREATE_STUDY_FROM_MAPPING: creating study '{study_name}'"
+                )
+                study = await study_crud.create(StudyCreate(display_name=study_name))
+            else:
+                log.warning(
+                    f"STUDY_PERMISSION_MAPPING references unknown study '{study_name}' — skipping. "
+                    f"Set AUTO_CREATE_STUDY_FROM_MAPPING=true to create it automatically."
+                )
+                continue
 
         granted_permissions = set()
         for oidc_group, permissions in group_permission_map.items():

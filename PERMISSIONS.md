@@ -104,6 +104,14 @@ Each key under the study name is an OIDC group. Its value is a list of permissio
 
 **OIDC only touches the flags it is configured to manage.** If the mapping for a study only mentions `is_study_interviewer`, the `is_study_admin` and `is_study_viewer` flags are never read or changed by OIDC, regardless of group membership.
 
+#### Multiple groups, same study
+
+A study can appear under multiple OIDC groups. The resulting permissions are the union of all matched groups. A user in both `idp-group-interviewers` and `idp-group-study-admins` gets both `is_study_interviewer` and `is_study_admin`. Losing membership in one group revokes only the flags that group was responsible for; the others remain.
+
+#### Automatic study creation (`AUTO_CREATE_STUDY_FROM_MAPPING`)
+
+By default, if a study named in `STUDY_PERMISSION_MAPPING` does not exist in the database, MedLog logs a warning and skips it. Setting `AUTO_CREATE_STUDY_FROM_MAPPING=true` on the provider instead creates the study automatically the first time any OIDC login triggers that mapping entry. This is convenient when studies are defined entirely through the OIDC configuration and do not need to be created manually beforehand.
+
 ---
 
 ## Manual permissions and OIDC: who wins?

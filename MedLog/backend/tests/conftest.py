@@ -44,6 +44,8 @@ from statics import (
     OIDC_TEST_STUDY_NAME,
     OIDC_TEST_ROLE_GROUP,
     OIDC_TEST_INTERVIEWER_GROUP,
+    OIDC_TEST_STUDY_ADMIN_GROUP,
+    OIDC_TEST_NONEXISTENT_STUDY_NAME,
 )
 
 
@@ -155,10 +157,15 @@ def _start_oidc_mock():
         "USER_MAIL_ATTRIBUTE": "email",
         "USER_GROUPS_ATTRIBUTE": "groups",
         "ROLE_MAPPING": {OIDC_TEST_ROLE_GROUP: ["medlog-admin"]},
+        "AUTO_CREATE_STUDY_FROM_MAPPING": True,
         "STUDY_PERMISSION_MAPPING": {
             OIDC_TEST_STUDY_NAME: {
                 OIDC_TEST_INTERVIEWER_GROUP: ["is_study_interviewer"],
-            }
+                OIDC_TEST_STUDY_ADMIN_GROUP: ["is_study_admin"],
+            },
+            OIDC_TEST_NONEXISTENT_STUDY_NAME: {
+                OIDC_TEST_INTERVIEWER_GROUP: ["is_study_interviewer"],
+            },
         },
     }
     os.environ["AUTH_OIDC_TOKEN_STORAGE_SECRET"] = "oidc-test-storage-secret-42"

@@ -12,6 +12,8 @@ from statics import (
     OIDC_TEST_STUDY_NAME,
     OIDC_TEST_ROLE_GROUP,
     OIDC_TEST_INTERVIEWER_GROUP,
+    OIDC_TEST_STUDY_ADMIN_GROUP,
+    OIDC_TEST_NONEXISTENT_STUDY_NAME,
 )
 
 
@@ -75,9 +77,9 @@ def test_oidc_study_permission_mapping():
 
     sub = "oidc-study-perm-test-user"
 
-    # The study referenced in STUDY_PERMISSION_MAPPING must exist before login
-    study_data = create_test_study(study_name=OIDC_TEST_STUDY_NAME, with_events=0)
-    study_id = study_data.study.id
+    # The study must exist before login. AUTO_CREATE_STUDY_FROM_MAPPING means a
+    # previous test may have already created it, so use get-or-create.
+    study_id = _get_or_create_study(OIDC_TEST_STUDY_NAME)
 
     # First login — user is in OIDC_TEST_INTERVIEWER_GROUP → should get is_study_interviewer
     token = oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
@@ -422,3 +424,151 @@ def test_oidc_manual_override_of_oidc_flag_prevents_revocation():
         f"but OIDC revoked it: {perm2}"
     )
     print("  ✓ Re-login after group removal: is_study_interviewer preserved (user-manager owns it)")
+
+
+def test_oidc_study_permission_partial_downgrade():
+    """When a user loses membership in one OIDC group but keeps another, only the
+    permissions granted exclusively by the lost group are revoked.
+
+    Scenario:
+      - User is in both OIDC_TEST_INTERVIEWER_GROUP and OIDC_TEST_STUDY_ADMIN_GROUP.
+      - Both flags are granted on first login.
+      - User leaves OIDC_TEST_STUDY_ADMIN_GROUP but stays in OIDC_TEST_INTERVIEWER_GROUP.
+      - Re-login: is_study_admin is revoked, is_study_interviewer remains.
+    """
+    if _skip_if_no_oidc():
+        return
+
+    mock_url = os.environ["OIDC_MOCK_SERVER_URL"]
+    sub = "oidc-partial-downgrade-test-user"
+    study_id = _get_or_create_study(OIDC_TEST_STUDY_NAME)
+
+    # First login — user in both groups
+    _set_mock_user(mock_url, sub, groups=[OIDC_TEST_INTERVIEWER_GROUP, OIDC_TEST_STUDY_ADMIN_GROUP])
+    token = oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
+    me = req("api/user/me", access_token=token)
+    user_id = me["id"]
+
+    perm = req(f"api/study/{study_id}/permissions/{user_id}")
+    assert perm["is_study_interviewer"] is True, f"Expected is_study_interviewer=True, got: {perm}"
+    assert perm["is_study_admin"] is True, f"Expected is_study_admin=True, got: {perm}"
+    assert "is_study_interviewer" in perm["oidc_managed_permissions"]
+    assert "is_study_admin" in perm["oidc_managed_permissions"]
+    print(f"  ✓ First login: both flags granted — {perm['oidc_managed_permissions']}")
+
+    # User leaves the admin group, stays in interviewer group
+    _set_mock_user(mock_url, sub, groups=[OIDC_TEST_INTERVIEWER_GROUP])
+    oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
+
+    perm2 = req(f"api/study/{study_id}/permissions/{user_id}")
+    assert perm2["is_study_interviewer"] is True, (
+        f"Expected is_study_interviewer to remain after partial group removal, got: {perm2}"
+    )
+    assert perm2["is_study_admin"] is False, (
+        f"Expected is_study_admin to be revoked after leaving admin group, got: {perm2}"
+    )
+    print("  ✓ Partial downgrade: is_study_admin revoked, is_study_interviewer preserved")
+
+
+def test_oidc_study_permission_multiple_groups_same_study():
+    """Multiple OIDC groups can each contribute permissions to the same study.
+    The resulting permission is the union of all matched groups.
+    """
+    if _skip_if_no_oidc():
+        return
+
+    mock_url = os.environ["OIDC_MOCK_SERVER_URL"]
+    sub = "oidc-multigroup-test-user"
+    study_id = _get_or_create_study(OIDC_TEST_STUDY_NAME)
+
+    # Login with both groups simultaneously
+    _set_mock_user(mock_url, sub, groups=[OIDC_TEST_INTERVIEWER_GROUP, OIDC_TEST_STUDY_ADMIN_GROUP])
+    token = oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
+    me = req("api/user/me", access_token=token)
+    user_id = me["id"]
+
+    perm = req(f"api/study/{study_id}/permissions/{user_id}")
+    assert perm["is_study_interviewer"] is True, (
+        f"Expected is_study_interviewer=True from {OIDC_TEST_INTERVIEWER_GROUP}, got: {perm}"
+    )
+    assert perm["is_study_admin"] is True, (
+        f"Expected is_study_admin=True from {OIDC_TEST_STUDY_ADMIN_GROUP}, got: {perm}"
+    )
+    assert set(perm["oidc_managed_permissions"]) == {"is_study_interviewer", "is_study_admin"}, (
+        f"Expected both flags in oidc_managed_permissions, got: {perm['oidc_managed_permissions']}"
+    )
+    print("  ✓ Both groups contributed their permissions to the same study record")
+
+
+def test_oidc_email_verified_false_is_respected():
+    """When the OIDC provider sends email_verified=false the flag must stay False,
+    and it must be updated to True if the provider later sends email_verified=true.
+    """
+    if _skip_if_no_oidc():
+        return
+
+    mock_url = os.environ["OIDC_MOCK_SERVER_URL"]
+    sub = "oidc-email-unverified-test-user"
+
+    # First login — provider says email is NOT verified
+    _set_mock_user(mock_url, sub, groups=[], email_verified=False)
+    token = oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
+    me = req("api/user/me", access_token=token)
+
+    assert me["is_email_verified"] is False, (
+        f"Expected is_email_verified=False when provider sends email_verified=false, "
+        f"got: {me['is_email_verified']}"
+    )
+    print("  ✓ First login: is_email_verified=False (provider claim respected)")
+
+    # Provider now marks the email as verified
+    _set_mock_user(mock_url, sub, groups=[], email_verified=True)
+    token2 = oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
+    me2 = req("api/user/me", access_token=token2)
+
+    assert me2["is_email_verified"] is True, (
+        f"Expected is_email_verified to update to True after provider changed claim, "
+        f"got: {me2['is_email_verified']}"
+    )
+    print("  ✓ Re-login: is_email_verified updated to True")
+
+
+def test_oidc_auto_creates_study_from_mapping():
+    """When AUTO_CREATE_STUDY_FROM_MAPPING is enabled, a study referenced in
+    STUDY_PERMISSION_MAPPING that does not yet exist in the DB is created
+    automatically on the first login that triggers the mapping.
+
+    The test conftest enables this flag and registers OIDC_TEST_NONEXISTENT_STUDY_NAME
+    in the mapping without pre-creating the study. After login the study must exist
+    and the user must hold the correct permission.
+    """
+    if _skip_if_no_oidc():
+        return
+
+    mock_url = os.environ["OIDC_MOCK_SERVER_URL"]
+    sub = "oidc-auto-create-study-test-user"
+
+    _set_mock_user(mock_url, sub, groups=[OIDC_TEST_INTERVIEWER_GROUP])
+
+    token = oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
+    me = req("api/user/me", access_token=token)
+    assert me["user_name"] == sub
+
+    # The study must now exist (auto-created by oidc_mappings)
+    studies_page = req("api/study")
+    created_study = next(
+        (s for s in studies_page["items"] if s["display_name"] == OIDC_TEST_NONEXISTENT_STUDY_NAME),
+        None,
+    )
+    assert created_study is not None, (
+        f"Expected study '{OIDC_TEST_NONEXISTENT_STUDY_NAME}' to be auto-created on OIDC login, "
+        f"but it was not found in the study list"
+    )
+    print(f"  ✓ Study '{OIDC_TEST_NONEXISTENT_STUDY_NAME}' was auto-created on first OIDC login")
+
+    # And the user must have the mapped permission on it
+    perm = req(f"api/study/{created_study['id']}/permissions/{me['id']}")
+    assert perm["is_study_interviewer"] is True, (
+        f"Expected is_study_interviewer=True on auto-created study, got: {perm}"
+    )
+    print("  ✓ Permission was applied correctly on the auto-created study")

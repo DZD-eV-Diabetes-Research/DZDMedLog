@@ -19,3 +19,7 @@ OIDC_TEST_PROVIDER_SLUG = "localtestoidc"
 OIDC_TEST_STUDY_NAME = "OidcPermissionTestStudy"
 OIDC_TEST_ROLE_GROUP = "oidc-group-admins"
 OIDC_TEST_INTERVIEWER_GROUP = "oidc-group-interviewers"
+OIDC_TEST_STUDY_ADMIN_GROUP = "oidc-group-study-admins"
+# A study name referenced in STUDY_PERMISSION_MAPPING that is intentionally never
+# created in the DB — used to test the "unknown study" warning path.
+OIDC_TEST_NONEXISTENT_STUDY_NAME = "OidcNonexistentTestStudy"
