@@ -63,7 +63,7 @@ const rows = computed(() => {
     <template #email-data="{ row }">
       <div class="flex flex-row gap-1">
         {{ row.email }}
-        <UTooltip text="Diese Adresse wurde nicht verifiziert">
+        <UTooltip v-if="!row.is_email_verified" text="Diese Adresse wurde nicht verifiziert">
           <UIcon
               name="i-heroicons-exclamation-triangle"
               class="text-xl text-orange-500"
