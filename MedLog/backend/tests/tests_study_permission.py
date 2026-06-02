@@ -629,3 +629,119 @@ def test_endpoint_study_permissions_delete_nonexistent_returns_404():
         method="delete",
         expected_http_code=404,
     )
+
+
+def test_study_admin_can_manage_permissions_in_own_study():
+    """A user with is_study_admin on a study can grant and read permissions for
+    other users within that same study, without holding any global role.
+    """
+    study_data = create_test_study(
+        study_name="TestStudyAdminManagesOwnStudy", with_events=0
+    )
+    study_id = study_data.study.id
+
+    # Create the study admin user
+    study_admin_pw = "studyadmin_pw_1847"
+    study_admin = create_test_user(
+        user_name="study_admin_own_study",
+        password=study_admin_pw,
+        email="study_admin_own@test.com",
+    )
+    req(
+        f"/api/study/{study_id}/permissions/{study_admin.id}",
+        method="put",
+        b={"is_study_admin": True},
+    )
+    study_admin_token = authorize_for_access_token(
+        username=study_admin.user_name,
+        pw=study_admin_pw,
+        set_as_global_default_login=False,
+    )
+
+    # Create a second user who has no permissions yet
+    target_user = create_test_user(
+        user_name="study_admin_target_user",
+        password="target_pw_9923",
+        email="study_admin_target@test.com",
+    )
+
+    # Study admin grants the target user viewer access — must succeed
+    result = req(
+        f"/api/study/{study_id}/permissions/{target_user.id}",
+        method="put",
+        b={"is_study_viewer": True},
+        access_token=study_admin_token,
+    )
+    dict_must_contain(
+        result,
+        required_keys_and_val={"is_study_viewer": True},
+        exception_dict_identifier="study admin granted permission",
+    )
+
+    # Study admin can also read the permissions list for their study
+    perm_list = req(
+        f"/api/study/{study_id}/permissions",
+        method="get",
+        access_token=study_admin_token,
+    )
+    assert perm_list["total_count"] >= 2, (
+        f"Expected at least 2 permission records (admin + target), got: {perm_list}"
+    )
+    print("  ✓ Study admin successfully managed permissions in own study")
+
+
+def test_study_admin_cannot_manage_permissions_in_other_study():
+    """A user with is_study_admin on study A must be denied access to the
+    permission management endpoints of study B.
+    """
+    study_a = create_test_study(
+        study_name="TestStudyAdminBoundaryStudyA", with_events=0
+    )
+    study_b = create_test_study(
+        study_name="TestStudyAdminBoundaryStudyB", with_events=0
+    )
+
+    # Create user with study admin rights on study A only
+    admin_pw = "studyadmin_boundary_pw_3321"
+    study_a_admin = create_test_user(
+        user_name="study_admin_boundary_user",
+        password=admin_pw,
+        email="study_admin_boundary@test.com",
+    )
+    req(
+        f"/api/study/{study_a.study.id}/permissions/{study_a_admin.id}",
+        method="put",
+        b={"is_study_admin": True},
+    )
+    admin_token = authorize_for_access_token(
+        username=study_a_admin.user_name,
+        pw=admin_pw,
+        set_as_global_default_login=False,
+    )
+
+    # Create a target user to try to grant permissions to in study B
+    target_user = create_test_user(
+        user_name="study_admin_boundary_target",
+        password="boundary_target_pw_5512",
+        email="study_admin_boundary_target@test.com",
+    )
+
+    # Study A admin tries to grant permissions in study B — must be denied.
+    # The response is 404 (not 403) because the access layer does not reveal
+    # that the study exists to a user who has no access to it at all.
+    req(
+        f"/api/study/{study_b.study.id}/permissions/{target_user.id}",
+        method="put",
+        b={"is_study_viewer": True},
+        access_token=admin_token,
+        expected_http_code=404,
+    )
+
+    # Same for reading the permissions list of study B
+    req(
+        f"/api/study/{study_b.study.id}/permissions",
+        method="get",
+        access_token=admin_token,
+        expected_http_code=404,
+    )
+    print("  ✓ Study admin correctly blocked from managing permissions in a different study")

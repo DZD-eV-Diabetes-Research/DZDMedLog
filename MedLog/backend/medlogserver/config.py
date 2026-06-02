@@ -283,6 +283,16 @@ class Config(BaseSettings):
             default=True,
             description="If a user does not exists in the local database, create the user on first authorization via the OIDC Provider.",
         )
+        AUTO_CREATE_STUDY_FROM_MAPPING: bool = Field(
+            default=False,
+            description=(
+                "If a study referenced in STUDY_PERMISSION_MAPPING does not exist in the "
+                "database, create it automatically on the first OIDC login that triggers "
+                "the mapping. Useful when studies are managed entirely via the OIDC "
+                "configuration. Default is False: missing studies produce a warning and "
+                "are skipped."
+            ),
+        )
         PREFIX_USERNAME_WITH_PROVIDER_SLUG: bool = Field(
             default=False,
             description="To prevent username colliction between different OIDC providers, we can prefix the usernames from the OIDC provider with it slug.",

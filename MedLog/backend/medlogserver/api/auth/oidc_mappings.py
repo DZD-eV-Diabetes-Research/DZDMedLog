@@ -4,7 +4,7 @@ from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model.user import User, UserUpdateByAdmin
 from medlogserver.model.user_info_oidc import UserInfoOidc
-from medlogserver.model.study_permission import StudyPermissonUpdate
+from medlogserver.model.study import StudyCreate
 
 if TYPE_CHECKING:
     from medlogserver.db.user import UserCRUD
@@ -26,8 +26,26 @@ async def apply_oidc_group_mappings(
     study_crud: "StudyCRUD",
 ) -> User:
     """Re-apply ROLE_MAPPING and STUDY_PERMISSION_MAPPING from the OIDC provider config
-    to the user on every login (issues #273 and #46)."""
+    to the user on every login (issues #273, #46, and #308)."""
     user_groups = userinfo.groups or []
+
+    # --- Issue #308: re-sync profile fields from OIDC userinfo on every login ---
+    new_display_name = userinfo.name or user.display_name
+    new_email = userinfo.email or user.email
+    if (
+        new_display_name != user.display_name
+        or new_email != user.email
+        or userinfo.email_verified != user.is_email_verified
+    ):
+        log.info(f"Updating profile for user '{user.user_name}' via OIDC userinfo sync")
+        user = await user_crud.update(
+            UserUpdateByAdmin(
+                display_name=new_display_name,
+                email=new_email,
+                is_email_verified=userinfo.email_verified,
+            ),
+            user_id=user.id,
+        )
 
     # --- Issue #273: re-apply global role mapping ---
     available_medlog_roles = [config.ADMIN_ROLE_NAME, config.USERMANAGER_ROLE_NAME]
@@ -46,41 +64,50 @@ async def apply_oidc_group_mappings(
             user_id=user.id,
         )
 
-    # --- Issue #46: apply study permission mapping ---
+    # --- Issues #46 + #305: apply study permission mapping with source tracking ---
     for study_name, group_permission_map in provider_config.STUDY_PERMISSION_MAPPING.items():
         study = await study_crud.get_by_name(study_name)
         if study is None:
-            log.warning(
-                f"STUDY_PERMISSION_MAPPING references unknown study '{study_name}' — skipping"
-            )
-            continue
+            if provider_config.AUTO_CREATE_STUDY_FROM_MAPPING:
+                log.info(
+                    f"AUTO_CREATE_STUDY_FROM_MAPPING: creating study '{study_name}'"
+                )
+                study = await study_crud.create(StudyCreate(display_name=study_name))
+            else:
+                log.warning(
+                    f"STUDY_PERMISSION_MAPPING references unknown study '{study_name}' — skipping. "
+                    f"Set AUTO_CREATE_STUDY_FROM_MAPPING=true to create it automatically."
+                )
+                continue
 
         granted_permissions = set()
         for oidc_group, permissions in group_permission_map.items():
             if oidc_group in user_groups:
                 granted_permissions.update(permissions)
 
-        if not granted_permissions:
-            continue
-
-        perm_kwargs = {p: True for p in granted_permissions if p in _VALID_STUDY_PERMISSIONS}
+        oidc_managed_flags = {
+            p
+            for permissions in group_permission_map.values()
+            for p in permissions
+            if p in _VALID_STUDY_PERMISSIONS
+        }
         unknown = granted_permissions - _VALID_STUDY_PERMISSIONS
         if unknown:
             log.warning(
                 f"STUDY_PERMISSION_MAPPING for study '{study_name}' contains unknown "
                 f"permission(s) {unknown} — ignoring"
             )
-        if not perm_kwargs:
-            continue
+        valid_granted = granted_permissions & oidc_managed_flags
 
         log.info(
-            f"Applying study permissions {perm_kwargs} for user '{user.user_name}' "
-            f"in study '{study_name}' via OIDC group mapping"
+            f"OIDC permission sync for user '{user.user_name}' in study '{study_name}': "
+            f"managed={oidc_managed_flags} granted={valid_granted}"
         )
-        await study_permission_crud.update_or_create_if_not_exists(
+        await study_permission_crud.oidc_set_permissions(
             user_id=user.id,
             study_id=study.id,
-            study_permission=StudyPermissonUpdate(**perm_kwargs),
+            oidc_managed_flags=oidc_managed_flags,
+            valid_granted=valid_granted,
         )
 
     return user
