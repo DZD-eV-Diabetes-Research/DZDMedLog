@@ -76,6 +76,7 @@ export default defineNuxtConfig({
     },
     openAPITS: {
         rootTypes: true,
+        defaultNonNullable: false,
     },
   },
   nitro: {
