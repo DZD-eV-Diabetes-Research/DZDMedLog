@@ -203,7 +203,7 @@ class DrugCRUD(
         return results.all()
 
     async def create_custom(
-        self, drug_create: DrugCustomCreate, custom_drug_dataset: DrugDataSetVersion
+        self, drug_create: DrugCustomCreate, custom_drug_dataset: DrugDataSetVersion, user_id: Optional[UUID] = None
     ) -> DrugData:
         drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
         drug_importer = drug_importer_class()
@@ -219,6 +219,7 @@ class DrugCRUD(
             id=new_drug_id,
             source_dataset_id=custom_drug_dataset.id,
             is_custom_drug=True,
+            custom_created_by=user_id,
             **drug_create.model_dump(
                 exclude=[
                     "attrs",

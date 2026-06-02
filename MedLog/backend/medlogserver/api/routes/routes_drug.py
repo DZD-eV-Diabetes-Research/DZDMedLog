@@ -470,7 +470,7 @@ async def create_custom_drug(
     custom_drug_dataset = await drug_dataset_crud.get_custom()
     try:
         new_custom_drug = await drug_crud.create_custom(
-            drug_create=custom_drug, custom_drug_dataset=custom_drug_dataset
+            drug_create=custom_drug, custom_drug_dataset=custom_drug_dataset, user_id = user.id
         )
     except DrugWithCodeAllreadyExists as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))

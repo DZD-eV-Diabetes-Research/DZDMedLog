@@ -371,7 +371,6 @@ def test_custom_drug_issue():
             "market_exit_date": None,
             "is_custom_drug": True,
             "custom_drug_notes": custom_drug.custom_drug_notes,
-            "custom_created_by": None,
             "codes": {"ATC": None, "PZN": None},
             "attrs": {
                 "amount": 23.0,
