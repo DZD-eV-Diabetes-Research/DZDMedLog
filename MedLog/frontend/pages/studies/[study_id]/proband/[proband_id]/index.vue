@@ -196,21 +196,37 @@ async function endInterview(eventId: string, interviewId: string) {
 }
 
 function fillInterviewStartSelector() {
-  const sortedEvents = eventsForProband.value.sort((a, b) => a.order_position - b.order_position);
+  const sortedEvents = eventsForProband.value.sort((a, b) => {
+    if (a.order_position === b.order_position) {
+      return 0;
+    }
+    if (a.order_position === null || a.order_position === undefined) {
+      return -1;
+    }
+    if (b.order_position === null || b.order_position === undefined) {
+      return 1;
+    }
+
+    return a.order_position - b.order_position;
+  });
   const untouchedEvents = sortedEvents.filter(item => item.proband_interview_count === 0);
   eventsToStartOptions.value = untouchedEvents.map(event => ({
     value: event.id,
-    label: event.name,
+    label: event.name ?? "",
   }));
 
   if (eventsToStartOptions.value.length > 0) {
     let nextEventId = eventsToStartOptions.value[0].value;
 
     if (lastInterview.value) {
-      const eventForLastInterview = sortedEvents.find(event => event.id === lastInterview.value.event_id)
-      const nextEvent = untouchedEvents.find(event => event.order_position > eventForLastInterview.order_position)
-      if (nextEvent) {
-        nextEventId = nextEvent.id;
+      const eventForLastInterview = sortedEvents.find(event => event.id === lastInterview.value?.event_id)
+      if (eventForLastInterview) {
+        const nextEvent = untouchedEvents.find(event => {
+          return (event.order_position ?? Number.MAX_SAFE_INTEGER) > (eventForLastInterview.order_position ?? Number.MAX_SAFE_INTEGER);
+        })
+        if (nextEvent) {
+          nextEventId = nextEvent.id;
+        }
       }
     }
 

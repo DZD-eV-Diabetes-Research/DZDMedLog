@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { onMounted, reactive } from "#imports";
-import { boolean, type InferType, object, string } from "yup";
+import {boolean, type InferType, object, string} from "yup";
 import type { FormSubmitEvent } from "#ui/types";
+import type { SchemaStudy } from "#open-fetch-schemas/medlogapi";
 
 const props = defineProps<{
-  initialState?: any;
+  initialState?: SchemaStudy;
 }>();
 
 const emit = defineEmits(['cancel', 'save']);
 
-const state = reactive({
+const state = reactive<StudyFormSchema>({
   display_name: "",
   no_permissions: false,
   deactivated: false,
@@ -30,9 +31,9 @@ async function onSubmit(event: FormSubmitEvent<StudyFormSchema>) {
 onMounted(async () => {
   if (props.initialState) {
     // Populate form state with given state
-    for (const key of Object.keys(state)) {
-      if (props.initialState[key]) {
-        state[key] = props.initialState[key];
+    for (const key of Object.keys(state) as Array<keyof typeof state>) {
+      if (props.initialState[key] !== undefined) {
+        (state as Record<string, unknown>)[key] = props.initialState[key];
       }
     }
   }

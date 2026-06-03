@@ -80,12 +80,12 @@ import {
 
 const props = defineProps<{
   drugId?: string;
-  initialState?: { [key: string]: string; };
+  initialState?: { [key: string]: string | number | boolean; };
 }>();
 
 const emit = defineEmits(['cancel', 'save'])
 
-const state = reactive({
+const state = reactive<IntakeFormSchema>({
   administeredByDoctor: administeredByDoctorOptions[0].value,
   dose: 0,
   drugId: "",
@@ -130,7 +130,7 @@ onMounted(async () => {
     // Populate form state with given state
     for (const key of Object.keys(state)) {
       if (props.initialState[key]) {
-        state[key] = props.initialState[key];
+        (state as Record<string, unknown>)[key] = props.initialState[key];
       }
     }
 

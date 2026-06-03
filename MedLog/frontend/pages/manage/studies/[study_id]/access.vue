@@ -30,6 +30,10 @@ const userIdsWithAccess = computed(() => {
 const usersWithoutAccessOptions = computed(() => {
   return userStore.allUsers
       .filter(user => {
+        if (!user.id) {
+          return false;
+        }
+
         return !userIdsWithAccess.value.includes(user.id);
       })
       .map(user => {

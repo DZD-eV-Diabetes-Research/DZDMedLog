@@ -53,8 +53,8 @@ export default defineNuxtConfig({
   },
 
   typescript: {
-    // strict: true,
-    // typeCheck: true, TODO enable as soon as all the typing issues are resolved
+    strict: true,
+    typeCheck: true,
   },
 
   runtimeConfig: {

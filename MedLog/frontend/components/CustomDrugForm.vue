@@ -35,14 +35,14 @@
             multiple
           />
           <UCheckbox
-            v-else-if="getFormInputType(field.fieldDefinition.value_type) === 'checkbox'"
+            v-else-if="getFormInputType(field.fieldDefinition.value_type ?? 'STR') === 'checkbox'"
             v-model="attrState[field.fieldDefinition.field_name] as boolean"
             :name="field.fieldDefinition.field_name"
           />
           <UInput
             v-else
             v-model="attrState[field.fieldDefinition.field_name] as string|number"
-            :type="getFormInputType(field.fieldDefinition.value_type)"
+            :type="getFormInputType(field.fieldDefinition.value_type ?? 'STR')"
           />
         </DZDUIFormGroup>
         <hr>

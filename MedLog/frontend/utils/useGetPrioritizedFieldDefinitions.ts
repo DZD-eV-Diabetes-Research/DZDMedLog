@@ -27,7 +27,7 @@ export default function (fieldDefinitions: SchemaDrugAttrFieldDefinitionContaine
                 return -1;
             }
 
-            return a.fieldDefinition.field_display_sort_order - b.fieldDefinition.field_display_sort_order;
+            return (a.fieldDefinition.field_display_sort_order ?? 0) - (b.fieldDefinition.field_display_sort_order ?? 0);
         });
     }
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { SchemaStudy } from "#open-fetch-schemas/medlogapi";
 import type { StudyFormSchema } from "~/components/StudyManagement/Form.vue";
 
 const route = useRoute();
@@ -9,7 +10,7 @@ const userStore = useUserStore();
 
 const studyId = route.params.study_id as string;
 
-const studyToEdit = ref();
+const studyToEdit = ref<SchemaStudy>();
 
 async function onCancel() {
   await navigateTo('/manage/studies');

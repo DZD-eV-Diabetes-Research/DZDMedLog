@@ -34,7 +34,7 @@ const drugCodeSystems = drugFieldsStore.clientVisibleCodes
         return -1;
       }
 
-      return a.code_display_sort_order - b.code_display_sort_order;
+      return (a.code_display_sort_order ?? 0) - (b.code_display_sort_order ?? 0);
     })
 
 const showDetails = ref(false);
