@@ -25,7 +25,19 @@ dependencies = [
     "Authlib",
     "httpx",
     "bcrypt",
-    "sqlmodel == 0.0.31",  # https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/226
+    # sqlmodel is pinned because 0.0.32+ causes a crash during OpenAPI spec generation:
+    # `TypeError: unhashable type: 'FieldInfoMetadata'` in fastapi/_compat/v2.py when
+    # FastAPI tries to build a set of field annotations for SQLModel `table=True` models
+    # that use `Annotated[..., StringConstraints(...)]` fields.
+    # Root cause: SQLModel's table model processing injects unhashable FieldInfoMetadata
+    # into Annotated types; FastAPI's separate-input/output-schema feature (0.102+) then
+    # tries to hash them in a set comprehension — which fails.
+    # This also means FastAPI's automatic promotion of defaulted fields to `required` in
+    # output schemas does NOT work for our SQLModel table models.
+    # Tested up to sqlmodel 0.0.38 — still broken. SQLModel PR #1889 aimed to fix this
+    # but was closed/abandoned 2026-06-01 without merging. No active upstream fix exists.
+    # See: https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/226
+    "sqlmodel == 0.0.31",
     "sqlalchemy[asyncio]",
     "aiosqlite",
     "pyyaml",
