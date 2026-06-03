@@ -12,6 +12,8 @@ All settings are supplied via **environment variables** or a `.env` file placed 
 
 ## `APP_NAME`
 
+Display name of the application. Used in log output, session cookie names, and health-check responses.
+
 | Property | Value |
 |---|---|
 | Type | str |
@@ -19,9 +21,25 @@ All settings are supplied via **environment variables** or a `.env` file placed 
 | Default | `"DZDMedLog"` |
 | Environment variable | `APP_NAME` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+APP_NAME: DZDMedLog
+```
+
+*Example 2:*
+
+```yaml
+APP_NAME: MyMedLog
+```
+
 ---
 
 ## `DOCKER_MODE`
+
+Set to True when running inside Docker. Adjusts internal path resolution for provisioning files to use the Docker base directory defined by the MEDLOG_DOCKER_BASEDIR environment variable (default: /opt/medlog). The official Dockerfile sets this automatically via ENV DOCKER_MODE=1.
 
 | Property | Value |
 |---|---|
@@ -34,7 +52,7 @@ All settings are supplied via **environment variables** or a `.env` file placed 
 
 ## `FRONTEND_FILES_DIR`
 
-The generated nuxt dir that contains index.html,...
+Path to the built Nuxt frontend output directory that contains index.html and all static assets. This directory is served by the backend as the web client. In development, run `npm run build` inside the frontend directory to generate it.
 
 | Property | Value |
 |---|---|
@@ -43,9 +61,25 @@ The generated nuxt dir that contains index.html,...
 | Default | `"MedLog/frontend/.output/public"` |
 | Environment variable | `FRONTEND_FILES_DIR` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+FRONTEND_FILES_DIR: /opt/medlog/frontend/.output/public
+```
+
+*Example 2:*
+
+```yaml
+FRONTEND_FILES_DIR: ./frontend/.output/public
+```
+
 ---
 
 ## `LOG_LEVEL`
+
+Verbosity of the application logger. DEBUG produces the most output; CRITICAL the least.
 
 | Property | Value |
 |---|---|
@@ -59,7 +93,7 @@ The generated nuxt dir that contains index.html,...
 
 ## `LOG_DISABLE_COLORS`
 
-If set to true, there will be color coding in the logs
+If True, log output will have no ANSI color coding. Useful for log aggregators or terminals that do not support color escape codes.
 
 | Property | Value |
 |---|---|
@@ -72,7 +106,7 @@ If set to true, there will be color coding in the logs
 
 ## `DEMO_MODE`
 
-If set to yes, the database will initiate with some demo data and most config mandatory config vars, like crypto secrets will be set to something random.
+If True, the application starts in demonstration mode: the database is seeded with sample data, and mandatory secrets such as SERVER_SESSION_SECRET are auto-generated if not provided. Do not use in production.
 
 | Property | Value |
 |---|---|
@@ -85,7 +119,7 @@ If set to yes, the database will initiate with some demo data and most config ma
 
 ## `DEBUG_SQL`
 
-If set to true, the sql engine will print out all sql queries to the log.
+If True, the SQLAlchemy engine echoes all generated SQL statements to the log. Useful for debugging database queries.
 
 | Property | Value |
 |---|---|
@@ -98,7 +132,7 @@ If set to true, the sql engine will print out all sql queries to the log.
 
 ## `SERVER_UVICORN_LOG_LEVEL`
 
-The log level of the uvicorn server. If not defined it will be the same as LOG_LEVEL.
+Log level for the Uvicorn ASGI server. Accepts the same values as LOG_LEVEL. If not set, falls back to the value of LOG_LEVEL.
 
 | Property | Value |
 |---|---|
@@ -111,6 +145,8 @@ The log level of the uvicorn server. If not defined it will be the same as LOG_L
 
 ## `SERVER_LISTENING_PORT`
 
+TCP port the Uvicorn server binds to and listens on.
+
 | Property | Value |
 |---|---|
 | Type | int |
@@ -118,9 +154,37 @@ The log level of the uvicorn server. If not defined it will be the same as LOG_L
 | Default | `8888` |
 | Environment variable | `SERVER_LISTENING_PORT` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+SERVER_LISTENING_PORT: 8888
+```
+
+*Example 2:*
+
+```yaml
+SERVER_LISTENING_PORT: 8080
+```
+
+*Example 3:*
+
+```yaml
+SERVER_LISTENING_PORT: 80
+```
+
+*Example 4:*
+
+```yaml
+SERVER_LISTENING_PORT: 443
+```
+
 ---
 
 ## `SERVER_LISTENING_HOST`
+
+Network interface the Uvicorn server binds to. Use '0.0.0.0' to accept connections on all interfaces (required in Docker). Use 'localhost' or '127.0.0.1' to restrict to the local machine only.
 
 | Property | Value |
 |---|---|
@@ -159,7 +223,7 @@ SERVER_LISTENING_HOST: 176.16.8.123
 
 ## `SERVER_HOSTNAME`
 
-The (external) hostname/domainname where the API is available. Usally a FQDN in productive systems. If not defined, it will be automatically detected based on the hostname.
+External hostname or domain name under which the API is publicly reachable. Usually a fully-qualified domain name (FQDN) in production. If not set, the system hostname is used as a fallback. This value is used to build the server URL and OAuth redirect URIs.
 
 | Property | Value |
 |---|---|
@@ -172,20 +236,26 @@ The (external) hostname/domainname where the API is available. Usally a FQDN in 
 *Example 1:*
 
 ```yaml
-SERVER_HOSTNAME: mydomain.com
+SERVER_HOSTNAME: medlog.example.com
 ```
 
 *Example 2:*
 
 ```yaml
-SERVER_HOSTNAME: localhost:8008
+SERVER_HOSTNAME: localhost
+```
+
+*Example 3:*
+
+```yaml
+SERVER_HOSTNAME: 10.0.0.5
 ```
 
 ---
 
 ## `SERVER_PROTOCOL`
 
-The protocol detection can fail in certain reverse proxy situations. This option allows you to manually override the automatic detection
+Protocol used to reach the server from the outside. Automatic detection can fail behind reverse proxies that terminate TLS — set this explicitly to 'https' when serving over SSL.
 
 | Property | Value |
 |---|---|
@@ -195,11 +265,25 @@ The protocol detection can fail in certain reverse proxy situations. This option
 | Allowed values | `http` · `https` |
 | Environment variable | `SERVER_PROTOCOL` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+SERVER_PROTOCOL: http
+```
+
+*Example 2:*
+
+```yaml
+SERVER_PROTOCOL: https
+```
+
 ---
 
 ## `SERVER_SESSION_SECRET`
 
-The secret used to encrypt session state. Provide a long random string.
+Secret key used to sign and encrypt browser session cookies. Must be at least 64 characters long. Use a cryptographically random string and keep it private — rotating this value invalidates all active sessions.
 
 | Property | Value |
 |---|---|
@@ -212,7 +296,7 @@ The secret used to encrypt session state. Provide a long random string.
 
 ## `SET_SESSION_COOKIE_SECURE`
 
-if you want to run the app on a non ssl connection set this to false. e.g for local development.
+If True, session cookies are only sent over HTTPS (the Secure flag is set). Set to False for local development over plain HTTP, but never in production.
 
 | Property | Value |
 |---|---|
@@ -225,7 +309,7 @@ if you want to run the app on a non ssl connection set this to false. e.g for lo
 
 ## `CLIENT_URL`
 
-The URL where the client is hosted. Usualy it comes with the server
+URL where the web client is hosted. Usually the client is bundled with the server and this can be left unset — it is then derived automatically from SERVER_PROTOCOL, SERVER_HOSTNAME, and SERVER_LISTENING_PORT.
 
 | Property | Value |
 |---|---|
@@ -234,11 +318,25 @@ The URL where the client is hosted. Usualy it comes with the server
 | Default | `null` |
 | Environment variable | `CLIENT_URL` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+CLIENT_URL: https://medlog.example.com
+```
+
+*Example 2:*
+
+```yaml
+CLIENT_URL: http://localhost:8888
+```
+
 ---
 
 ## `BRANDING_SUPPORT_EMAIL_ADDRESS`
 
-The email address the webclient will show in the help text to point to user support.
+Support email address displayed in the web client's help text. Leave unset to hide the support contact from the UI.
 
 | Property | Value |
 |---|---|
@@ -246,6 +344,12 @@ The email address the webclient will show in the help text to point to user supp
 | Required | No |
 | Default | `null` |
 | Environment variable | `BRANDING_SUPPORT_EMAIL_ADDRESS` |
+
+**Examples:**
+
+```yaml
+BRANDING_SUPPORT_EMAIL_ADDRESS: support@example.com
+```
 
 ---
 
@@ -255,7 +359,7 @@ The database URL for the application. Only SQLite (via `sqlite+aiosqlite`)
 and PostgreSQL (via `postgresql+psycopg`) URLs are supported.
 
 `sqlite+aiosqlite` and `postgresql+psycopg` specify the async DB drivers used
-by SQLAlchemy’s async engine. They are required so the application can run
+by SQLAlchemy's async engine. They are required so the application can run
 database operations asynchronously.
 
 SQLite URL rules (per SQLAlchemy):
@@ -319,6 +423,8 @@ SQL_DATABASE_URL: postgresql+psycopg://user:pass@localhost:5432/mydb
 
 ## `ADMIN_USER_NAME`
 
+Username for the built-in administrator account created on first startup. Must be between 3 and 128 characters. This account always has full admin privileges regardless of role mappings.
+
 | Property | Value |
 |---|---|
 | Type | str |
@@ -327,9 +433,25 @@ SQL_DATABASE_URL: postgresql+psycopg://user:pass@localhost:5432/mydb
 | Constraints | StringConstraints(strip_whitespace=True, to_upper=None, to_lower=None, strict=None, min_length=3, max_length=128, pattern=None) |
 | Environment variable | `ADMIN_USER_NAME` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+ADMIN_USER_NAME: admin
+```
+
+*Example 2:*
+
+```yaml
+ADMIN_USER_NAME: medlog-admin
+```
+
 ---
 
 ## `ADMIN_USER_PW`
+
+Password for the built-in administrator account. Required unless DEMO_MODE is True (which sets it to 'adminadmin'). Choose a strong password for any non-demo deployment.
 
 | Property | Value |
 |---|---|
@@ -341,6 +463,8 @@ SQL_DATABASE_URL: postgresql+psycopg://user:pass@localhost:5432/mydb
 
 ## `ADMIN_USER_EMAIL`
 
+Email address for the built-in administrator account. Optional.
+
 | Property | Value |
 |---|---|
 | Type | str |
@@ -348,9 +472,17 @@ SQL_DATABASE_URL: postgresql+psycopg://user:pass@localhost:5432/mydb
 | Default | `null` |
 | Environment variable | `ADMIN_USER_EMAIL` |
 
+**Examples:**
+
+```yaml
+ADMIN_USER_EMAIL: admin@example.com
+```
+
 ---
 
 ## `ADMIN_ROLE_NAME`
+
+Name of the application-level administrator role. Users with this role have full access to all studies, user management, and system settings. Change this if your organisation uses a different naming convention, and update any OIDC ROLE_MAPPING accordingly.
 
 | Property | Value |
 |---|---|
@@ -359,9 +491,25 @@ SQL_DATABASE_URL: postgresql+psycopg://user:pass@localhost:5432/mydb
 | Default | `"medlog-admin"` |
 | Environment variable | `ADMIN_ROLE_NAME` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+ADMIN_ROLE_NAME: medlog-admin
+```
+
+*Example 2:*
+
+```yaml
+ADMIN_ROLE_NAME: app-admin
+```
+
 ---
 
 ## `USERMANAGER_ROLE_NAME`
+
+Name of the user-manager role. Users with this role can create, edit, and deactivate user accounts but cannot change system settings. Change this if your organisation uses a different naming convention, and update any OIDC ROLE_MAPPING accordingly.
 
 | Property | Value |
 |---|---|
@@ -370,11 +518,25 @@ SQL_DATABASE_URL: postgresql+psycopg://user:pass@localhost:5432/mydb
 | Default | `"medlog-user-manager"` |
 | Environment variable | `USERMANAGER_ROLE_NAME` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+USERMANAGER_ROLE_NAME: medlog-user-manager
+```
+
+*Example 2:*
+
+```yaml
+USERMANAGER_ROLE_NAME: user-admin
+```
+
 ---
 
 ## `BACKGROUND_WORKER_START_IN_EXTRA_PROCESS`
 
-If set to True the background service will start in an extra Process next to the webserver. If set to False, the backgroundworker will not run. You have to setup an extra instance of the worker.
+If True, the background worker (responsible for drug data imports, provisioning, etc.) is launched automatically alongside the web server in a separate OS process. If False, the worker is not started — you must run a second instance manually using the dedicated worker entry point.
 
 | Property | Value |
 |---|---|
@@ -387,7 +549,7 @@ If set to True the background service will start in an extra Process next to the
 
 ## `BACKGROUND_WORKER_TIDY_UP_FINISHED_JOBS_AFTER_N_MIN`
 
-Jobs like the import of new Arzneimitteldata, are queued in the database. For debuging porposes you might want to keep the job info in the queue table for a while. If set to 'None', finished jobs will remain in the DB forever.
+How many minutes to keep completed background job records in the database before deleting them. Keeping records for a while is useful for debugging. Set to None to retain finished job records indefinitely.
 
 | Property | Value |
 |---|---|
@@ -400,7 +562,7 @@ Jobs like the import of new Arzneimitteldata, are queued in the database. For de
 
 ## `APP_PROVISIONING_DATA_YAML_FILES`
 
-A list if yaml files to serialize and load into MedLog models and into the DB 
+List of absolute paths to YAML files whose content is deserialized into MedLog models and loaded into the database on startup. Use this to pre-populate studies, users, or other entities in a fresh deployment. In DEMO_MODE a sample dataset is added automatically.
 
 | Property | Value |
 |---|---|
@@ -408,11 +570,27 @@ A list if yaml files to serialize and load into MedLog models and into the DB
 | Required | No |
 | Environment variable | `APP_PROVISIONING_DATA_YAML_FILES` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+APP_PROVISIONING_DATA_YAML_FILES:
+- /opt/medlog/provisioning/my_study.yaml
+```
+
+*Example 2:*
+
+```yaml
+APP_PROVISIONING_DATA_YAML_FILES:
+- ./provisioning_data/demo_data/single_study_demo_data.yaml
+```
+
 ---
 
 ## `APP_PROVISIONING_DEFAULT_DATA_YAML_FILE`
 
-Default data like some background jobs and vocabulary that is always loaded in the database. Under normal circustances this is nothing you need to changed. if you need to provision data like a Study into the database use the APP_PROVISIONING_DATA_YAML_FILES param.
+Path to the built-in default data YAML file that is always loaded into the database on startup. It contains baseline background jobs, vocabularies, and system defaults required for the app to function. Under normal circumstances you do not need to change this. To provision custom data such as studies, use APP_PROVISIONING_DATA_YAML_FILES instead.
 
 | Property | Value |
 |---|---|
@@ -425,7 +603,7 @@ Default data like some background jobs and vocabulary that is always loaded in t
 
 ## `APP_STUDY_PERMISSION_SYSTEM_DISABLED_BY_DEFAULT`
 
-If set to True; all user can access all new created studies, edit settings and create and edit interviews. This may be utile on small instances with a trusted userbase where user management is not wanted/needed.
+If True, all users can access all newly created studies and edit interviews without being explicitly granted permissions. Useful for small, trusted deployments where fine-grained access control is not needed. Has no effect on existing studies — only newly created studies inherit this default.
 
 | Property | Value |
 |---|---|
@@ -438,7 +616,7 @@ If set to True; all user can access all new created studies, edit settings and c
 
 ## `AUTH_BASIC_LOGIN_IS_ENABLED`
 
-Local DB users are enabled to login. You could disable this, when having an external OIDC provider.
+Allow users with locally stored credentials (username + password) to log in. Disable when authentication is handled entirely by an external OIDC provider and you want to prevent direct password-based logins.
 
 | Property | Value |
 |---|---|
@@ -451,7 +629,7 @@ Local DB users are enabled to login. You could disable this, when having an exte
 
 ## `AUTH_BASIC_USER_DB_REGISTER_ENABLED`
 
-Self registration of users is not supported yet.
+NOT YET IMPLEMENTED. Placeholder for a future self-registration feature. Self-registration of users is currently not supported; this field is locked to False and cannot be enabled.
 
 | Property | Value |
 |---|---|
@@ -465,7 +643,7 @@ Self registration of users is not supported yet.
 
 ## `API_TOKEN_DEFAULT_EXPIRY_TIME_MINUTES`
 
-If an api access token was created (on login or in token management) they should expire after this time.
+How many minutes an API access token remains valid after it is issued. Applies to tokens created via login or the token management endpoint. Set to None for tokens that never expire (not recommended for production).
 
 | Property | Value |
 |---|---|
@@ -474,11 +652,31 @@ If an api access token was created (on login or in token management) they should
 | Default | `10080` |
 | Environment variable | `API_TOKEN_DEFAULT_EXPIRY_TIME_MINUTES` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+API_TOKEN_DEFAULT_EXPIRY_TIME_MINUTES: 60
+```
+
+*Example 2:*
+
+```yaml
+API_TOKEN_DEFAULT_EXPIRY_TIME_MINUTES: 1440
+```
+
+*Example 3:*
+
+```yaml
+API_TOKEN_DEFAULT_EXPIRY_TIME_MINUTES: 10080
+```
+
 ---
 
 ## `AUTH_MERGE_USERS_FROM_DIFFERENT_PROVIDERS`
 
-OPTION NOT IMPLEMENTED YET! If true, users from different providers with the same name are merged into one user. If false users with same name will cause an error. 
+NOT YET IMPLEMENTED. Placeholder for a future cross-provider user-merge feature. When implemented: if True, a user authenticating via a different provider but with the same username as an existing account will be merged into that account. If False, a duplicate username from a second provider will raise an error. Currently has no effect.
 
 | Property | Value |
 |---|---|
@@ -491,20 +689,20 @@ OPTION NOT IMPLEMENTED YET! If true, users from different providers with the sam
 
 ## `AUTH_OIDC_TOKEN_STORAGE_SECRET`
 
-Random string to encrypt the oidc access and refresh token for storing it in the database.
+Secret string used to encrypt OIDC access and refresh tokens before storing them in the database. Required when AUTH_OIDC_PROVIDERS is non-empty — provide a long random string and keep it stable across restarts. Rotating this value invalidates all stored OIDC tokens and forces all OIDC users to re-authenticate. If no OIDC providers are configured, this value is auto-generated (tokens are never stored in that case).
 
 | Property | Value |
 |---|---|
 | Type | str |
 | Required | No |
-| Default | `"placeholder_until_todo_see_below"` |
+| Default | `null` |
 | Environment variable | `AUTH_OIDC_TOKEN_STORAGE_SECRET` |
 
 ---
 
 ## `AUTH_OIDC_PROVIDERS`
 
-Configure additional/alternative OpenID Connect (OIDC) provider settings for integrating.
+List of OpenID Connect (OIDC) provider configurations for federated authentication. Each entry represents one external identity provider (e.g. Keycloak, Azure AD). Leave empty to use only local username/password login.
 
 | Property | Value |
 |---|---|
@@ -520,7 +718,7 @@ Configure additional/alternative OpenID Connect (OIDC) provider settings for int
 
 ### `AUTH_OIDC_PROVIDERS[*].ENABLED`
 
-Is the provider enabled
+Set to True to activate this OIDC provider. If False, the provider is ignored at startup.
 
 | Property | Value |
 |---|---|
@@ -533,7 +731,7 @@ Is the provider enabled
 
 ### `AUTH_OIDC_PROVIDERS[*].PROVIDER_DISPLAY_NAME`
 
-The unique name of the OpenID Connect provider shown to the user.
+Display name shown on the login page for this provider. Must be unique across all configured OIDC providers.
 
 | Property | Value |
 |---|---|
@@ -542,11 +740,31 @@ The unique name of the OpenID Connect provider shown to the user.
 | Default | `"My OpenID Connect Login"` |
 | Environment variable | `AUTH_OIDC_PROVIDERS[*]__PROVIDER_DISPLAY_NAME` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+PROVIDER_DISPLAY_NAME: Keycloak
+```
+
+*Example 2:*
+
+```yaml
+PROVIDER_DISPLAY_NAME: Azure AD
+```
+
+*Example 3:*
+
+```yaml
+PROVIDER_DISPLAY_NAME: Google
+```
+
 ---
 
 ### `AUTH_OIDC_PROVIDERS[*].AUTO_LOGIN`
 
-If set to true, the client will try to immediatly redirect to this provider instead of showing the login page.
+If True, the client immediately redirects to this provider's login page instead of showing MedLog's own login form. Only meaningful when exactly one OIDC provider is configured.
 
 | Property | Value |
 |---|---|
@@ -559,7 +777,7 @@ If set to true, the client will try to immediatly redirect to this provider inst
 
 ### `AUTH_OIDC_PROVIDERS[*].CONFIGURATION_ENDPOINT`
 
-The discovery endpoint of the OpenID Connect provider.
+OpenID Connect discovery document URL of the provider (the 'well-known' endpoint). MedLog fetches the authorization, token, and JWKS endpoints from this URL automatically.
 
 | Property | Value |
 |---|---|
@@ -567,11 +785,25 @@ The discovery endpoint of the OpenID Connect provider.
 | Required | **Yes** |
 | Environment variable | `AUTH_OIDC_PROVIDERS[*]__CONFIGURATION_ENDPOINT` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+CONFIGURATION_ENDPOINT: https://keycloak.example.com/realms/myrealm/.well-known/openid-configuration
+```
+
+*Example 2:*
+
+```yaml
+CONFIGURATION_ENDPOINT: https://login.microsoftonline.com/{tenant}/v2.0/.well-known/openid-configuration
+```
+
 ---
 
 ### `AUTH_OIDC_PROVIDERS[*].CLIENT_ID`
 
-The client id of the OpenID Connect provider.
+Client ID registered for MedLog in the OIDC provider.
 
 | Property | Value |
 |---|---|
@@ -579,11 +811,25 @@ The client id of the OpenID Connect provider.
 | Required | **Yes** |
 | Environment variable | `AUTH_OIDC_PROVIDERS[*]__CLIENT_ID` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+CLIENT_ID: medlog-client
+```
+
+*Example 2:*
+
+```yaml
+CLIENT_ID: abc123xyz
+```
+
 ---
 
 ### `AUTH_OIDC_PROVIDERS[*].CLIENT_SECRET`
 
-The client secret of the OpenID Connect provider.
+Client secret registered for MedLog in the OIDC provider. Keep this value private.
 
 | Property | Value |
 |---|---|
@@ -595,7 +841,7 @@ The client secret of the OpenID Connect provider.
 
 ### `AUTH_OIDC_PROVIDERS[*].SCOPES`
 
-hint: Scope `offline_access` is needed to get not only a access token but also a refresh token. This enables the application to keep the session alive without the need for the user to relogin.
+OAuth2/OIDC scopes to request from the provider. The 'offline_access' scope requests a refresh token, which keeps the session alive without requiring the user to log in again after the access token expires. Remove it if your provider does not support refresh tokens.
 
 | Property | Value |
 |---|---|
@@ -604,11 +850,21 @@ hint: Scope `offline_access` is needed to get not only a access token but also a
 | Default | `["openid", "profile", "email", "offline_access"]` |
 | Environment variable | `AUTH_OIDC_PROVIDERS[*]__SCOPES` |
 
+**Examples:**
+
+```yaml
+SCOPES:
+- openid
+- profile
+- email
+- offline_access
+```
+
 ---
 
 ### `AUTH_OIDC_PROVIDERS[*].USER_NAME_ATTRIBUTE`
 
-The attribute of the OpenID Connect provider that contains a unique id of the user.
+Claim in the OIDC ID token that contains the unique, stable username used as the MedLog account identifier. This value must be unique per user and must not change over time.
 
 | Property | Value |
 |---|---|
@@ -617,11 +873,31 @@ The attribute of the OpenID Connect provider that contains a unique id of the us
 | Default | `"preferred_username"` |
 | Environment variable | `AUTH_OIDC_PROVIDERS[*]__USER_NAME_ATTRIBUTE` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+USER_NAME_ATTRIBUTE: preferred_username
+```
+
+*Example 2:*
+
+```yaml
+USER_NAME_ATTRIBUTE: sub
+```
+
+*Example 3:*
+
+```yaml
+USER_NAME_ATTRIBUTE: upn
+```
+
 ---
 
 ### `AUTH_OIDC_PROVIDERS[*].USER_DISPLAY_NAME_ATTRIBUTE`
 
-The attribute of the OpenID Connect provider that contains the display name of the user.
+Claim in the OIDC ID token used as the user's display name in the MedLog UI. Note: the default 'display_name' is not a standard OIDC claim — common alternatives are 'name' or 'given_name'.
 
 | Property | Value |
 |---|---|
@@ -630,11 +906,31 @@ The attribute of the OpenID Connect provider that contains the display name of t
 | Default | `"display_name"` |
 | Environment variable | `AUTH_OIDC_PROVIDERS[*]__USER_DISPLAY_NAME_ATTRIBUTE` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+USER_DISPLAY_NAME_ATTRIBUTE: display_name
+```
+
+*Example 2:*
+
+```yaml
+USER_DISPLAY_NAME_ATTRIBUTE: name
+```
+
+*Example 3:*
+
+```yaml
+USER_DISPLAY_NAME_ATTRIBUTE: given_name
+```
+
 ---
 
 ### `AUTH_OIDC_PROVIDERS[*].USER_MAIL_ATTRIBUTE`
 
-The attribute of the OpenID Connect provider that contains a unique id of the user.
+Claim in the OIDC ID token that contains the user's email address.
 
 | Property | Value |
 |---|---|
@@ -643,9 +939,17 @@ The attribute of the OpenID Connect provider that contains a unique id of the us
 | Default | `"email"` |
 | Environment variable | `AUTH_OIDC_PROVIDERS[*]__USER_MAIL_ATTRIBUTE` |
 
+**Examples:**
+
+```yaml
+USER_MAIL_ATTRIBUTE: email
+```
+
 ---
 
 ### `AUTH_OIDC_PROVIDERS[*].USER_GROUPS_ATTRIBUTE`
+
+Claim in the OIDC ID token that contains the list of groups the user belongs to. Used for ROLE_MAPPING and STUDY_PERMISSION_MAPPING. The attribute name varies by provider — common values are 'groups' or 'roles'.
 
 | Property | Value |
 |---|---|
@@ -654,11 +958,31 @@ The attribute of the OpenID Connect provider that contains a unique id of the us
 | Default | `"groups"` |
 | Environment variable | `AUTH_OIDC_PROVIDERS[*]__USER_GROUPS_ATTRIBUTE` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+USER_GROUPS_ATTRIBUTE: groups
+```
+
+*Example 2:*
+
+```yaml
+USER_GROUPS_ATTRIBUTE: roles
+```
+
+*Example 3:*
+
+```yaml
+USER_GROUPS_ATTRIBUTE: cognito:groups
+```
+
 ---
 
 ### `AUTH_OIDC_PROVIDERS[*].AUTO_CREATE_AUTHORIZED_USER`
 
-If a user does not exists in the local database, create the user on first authorization via the OIDC Provider.
+If True, a new MedLog user account is created automatically on the first login via this OIDC provider when no matching local account exists. If False, only users that already have a local account can log in via OIDC.
 
 | Property | Value |
 |---|---|
@@ -684,7 +1008,7 @@ If a study referenced in STUDY_PERMISSION_MAPPING does not exist in the database
 
 ### `AUTH_OIDC_PROVIDERS[*].PREFIX_USERNAME_WITH_PROVIDER_SLUG`
 
-To prevent username colliction between different OIDC providers, we can prefix the usernames from the OIDC provider with it slug.
+If True, the provider's URL-safe slug is prepended to usernames from this provider (e.g. 'keycloak__john.doe'). Prevents username collisions when multiple OIDC providers are configured and users from different providers could share the same username.
 
 | Property | Value |
 |---|---|
@@ -697,7 +1021,7 @@ To prevent username colliction between different OIDC providers, we can prefix t
 
 ### `AUTH_OIDC_PROVIDERS[*].ROLE_MAPPING`
 
-A JSON to map OIDC groups to DZDMedLog Roles. e.g. `{"oidc_appadmins":["medlog-user-manager"],"admins":["medlog-admins"]}`
+Maps OIDC group names to MedLog application roles. Each key is an OIDC group name; the value is a list of MedLog role names to assign. Available built-in roles are defined by ADMIN_ROLE_NAME and USERMANAGER_ROLE_NAME.
 
 | Property | Value |
 |---|---|
@@ -705,11 +1029,21 @@ A JSON to map OIDC groups to DZDMedLog Roles. e.g. `{"oidc_appadmins":["medlog-u
 | Required | No |
 | Environment variable | `AUTH_OIDC_PROVIDERS[*]__ROLE_MAPPING` |
 
+**Examples:**
+
+```yaml
+ROLE_MAPPING:
+  oidc_appadmins:
+  - medlog-admin
+  oidc_usermgrs:
+  - medlog-user-manager
+```
+
 ---
 
 ### `AUTH_OIDC_PROVIDERS[*].STUDY_PERMISSION_MAPPING`
 
-Map study permissions to membership in OIDC groups. Allowed permissions are is_study_interviewer, is_study_viewer, is_study_admin
+Maps OIDC group membership to per-study permissions. Top-level key is the study name; each inner key is an OIDC group name; the value is a list of permissions to grant. Valid permissions: is_study_interviewer, is_study_viewer, is_study_admin.
 
 | Property | Value |
 |---|---|
@@ -736,7 +1070,7 @@ STUDY_PERMISSION_MAPPING: "{\n                            \"MyStudyName\": {\n  
 
 ## `DRUG_IMPORTER_PLUGIN`
 
-Depending on the drug database that is used, we can define an importer.
+Selects the drug data importer plugin. 'DummyDrugImporterV1' uses a small built-in sample dataset, suitable for development and demos. 'MMIPharmindex1_32' imports from the MMI Pharmindex format (version 1.32), used with German GKV Arzneimittelverzeichnis data.
 
 | Property | Value |
 |---|---|
@@ -746,11 +1080,25 @@ Depending on the drug database that is used, we can define an importer.
 | Allowed values | `MMIPharmindex1_32` · `DummyDrugImporterV1` |
 | Environment variable | `DRUG_IMPORTER_PLUGIN` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+DRUG_IMPORTER_PLUGIN: DummyDrugImporterV1
+```
+
+*Example 2:*
+
+```yaml
+DRUG_IMPORTER_PLUGIN: MMIPharmindex1_32
+```
+
 ---
 
 ## `DRUG_IMPORTER_AUTO_UPDATE_DRUG_DB`
 
-If the drug importer plugin, does support it, the drug DB will be updated automaticly. Otherwise it must be manually triggered via the RestApi/WebClient
+If True and the selected DRUG_IMPORTER_PLUGIN supports it, the drug database is updated automatically in the background when a newer version is detected on the remote source. If False, updates must be triggered manually via the REST API or web client.
 
 | Property | Value |
 |---|---|
@@ -763,7 +1111,7 @@ If the drug importer plugin, does support it, the drug DB will be updated automa
 
 ## `DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB`
 
-If the drug importer plugin, does support it, does the REST-API/WebClient allow the usage of the endpoint PUT-`/drug/db/update` to force an update of the drug data
+If True and the selected DRUG_IMPORTER_PLUGIN supports it, the REST API endpoint PUT /drug/db/update is enabled, allowing administrators to trigger a drug data update on demand. Has no effect if the plugin does not support manual updates.
 
 | Property | Value |
 |---|---|
@@ -776,7 +1124,7 @@ If the drug importer plugin, does support it, does the REST-API/WebClient allow 
 
 ## `DRUG_IMPORTER_BATCH_SIZE`
 
-If the drug import supports batching, this is the size per batch. The trade of are some speed bumps, while drug importing, versus memory consumption. On a low memory machine decrease this value.
+Number of drug records processed per batch during a drug data import. Larger batches are faster but consume more memory. Reduce this value on low-memory systems to avoid out-of-memory errors during import.
 
 | Property | Value |
 |---|---|
@@ -785,11 +1133,31 @@ If the drug import supports batching, this is the size per batch. The trade of a
 | Default | `200000` |
 | Environment variable | `DRUG_IMPORTER_BATCH_SIZE` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+DRUG_IMPORTER_BATCH_SIZE: 50000
+```
+
+*Example 2:*
+
+```yaml
+DRUG_IMPORTER_BATCH_SIZE: 100000
+```
+
+*Example 3:*
+
+```yaml
+DRUG_IMPORTER_BATCH_SIZE: 200000
+```
+
 ---
 
 ## `DRUG_IMPORTER_SOURCE_FTP_HOST`
 
-When using MMIPharmindex1_32 auto updater, this is the FTP host to check for available datasets.
+FTP hostname for the MMIPharmindex1_32 auto-update source. Only required when DRUG_IMPORTER_PLUGIN='MMIPharmindex1_32' and DRUG_IMPORTER_AUTO_UPDATE_DRUG_DB=True.
 
 | Property | Value |
 |---|---|
@@ -798,11 +1166,17 @@ When using MMIPharmindex1_32 auto updater, this is the FTP host to check for ava
 | Default | `null` |
 | Environment variable | `DRUG_IMPORTER_SOURCE_FTP_HOST` |
 
+**Examples:**
+
+```yaml
+DRUG_IMPORTER_SOURCE_FTP_HOST: ftp.mmi-pharmindex.de
+```
+
 ---
 
 ## `DRUG_IMPORTER_SOURCE_FTP_PORT`
 
-When using MMIPharmindex1_32 auto updater, this is the FTP port to connect to `DRUG_IMPORTER_SOURCE_FTP_HOST`.
+FTP port for the MMIPharmindex1_32 update source. Only required when DRUG_IMPORTER_SOURCE_FTP_HOST is set. Defaults to the standard FTP port 21.
 
 | Property | Value |
 |---|---|
@@ -811,11 +1185,17 @@ When using MMIPharmindex1_32 auto updater, this is the FTP port to connect to `D
 | Default | `21` |
 | Environment variable | `DRUG_IMPORTER_SOURCE_FTP_PORT` |
 
+**Examples:**
+
+```yaml
+DRUG_IMPORTER_SOURCE_FTP_PORT: 21
+```
+
 ---
 
 ## `DRUG_IMPORTER_SOURCE_FTP_USER`
 
-When using MMIPharmindex1_32 auto updater, authorize with this username against the MMI Pharmindex FTP Server 
+FTP username to authenticate against the MMI Pharmindex FTP server. Only required when DRUG_IMPORTER_PLUGIN='MMIPharmindex1_32' and DRUG_IMPORTER_AUTO_UPDATE_DRUG_DB=True.
 
 | Property | Value |
 |---|---|
@@ -828,7 +1208,7 @@ When using MMIPharmindex1_32 auto updater, authorize with this username against 
 
 ## `DRUG_IMPORTER_REMOTE_VERSION_CHECK_COOLDOWN_TIME_SEC`
 
-What time should we wait until we re-check the remote drug data source if there is an update available. If queried in the cooldown time medlog will return a chached value.
+Minimum time in seconds between consecutive checks of the remote drug data source for a newer version. Within the cooldown window, MedLog returns a cached result instead of querying the remote. Increase this to reduce FTP traffic; decrease it to detect updates more quickly.
 
 | Property | Value |
 |---|---|
@@ -837,11 +1217,25 @@ What time should we wait until we re-check the remote drug data source if there 
 | Default | `3600` |
 | Environment variable | `DRUG_IMPORTER_REMOTE_VERSION_CHECK_COOLDOWN_TIME_SEC` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+DRUG_IMPORTER_REMOTE_VERSION_CHECK_COOLDOWN_TIME_SEC: 3600
+```
+
+*Example 2:*
+
+```yaml
+DRUG_IMPORTER_REMOTE_VERSION_CHECK_COOLDOWN_TIME_SEC: 86400
+```
+
 ---
 
 ## `DRUG_IMPORTER_SOURCE_FTP_PASSWORD`
 
-When using MMIPharmindex1_32 auto updater, authorize with this password against the MMI Pharmindex FTP Server 
+FTP password to authenticate against the MMI Pharmindex FTP server. Only required when DRUG_IMPORTER_PLUGIN='MMIPharmindex1_32' and DRUG_IMPORTER_AUTO_UPDATE_DRUG_DB=True.
 
 | Property | Value |
 |---|---|
@@ -854,7 +1248,7 @@ When using MMIPharmindex1_32 auto updater, authorize with this password against 
 
 ## `DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR`
 
-A directory for storing downloaded drug data sets
+Local directory where downloaded drug data archives are stored before and during import. The directory must be writable by the MedLog process. Use a persistent path (not /tmp) to avoid re-downloading data on every restart.
 
 | Property | Value |
 |---|---|
@@ -863,11 +1257,25 @@ A directory for storing downloaded drug data sets
 | Default | `"/tmp/medlog_drugdata"` |
 | Environment variable | `DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR: /tmp/medlog_drugdata
+```
+
+*Example 2:*
+
+```yaml
+DRUG_IMPORTER_DRUG_DATA_SETS_STORAGE_DIR: /var/lib/medlog/drugdata
+```
+
 ---
 
 ## `DRUG_SEARCHENGINE_CLASS`
 
-The search engine used in the background to answer drug search requests.
+Selects the search engine backend used to answer drug search requests. Currently only 'GenericSQLDrugSearch' is available, which uses SQL-based full-text search. This field exists as an extension point for future alternative search backends.
 
 | Property | Value |
 |---|---|
@@ -881,7 +1289,7 @@ The search engine used in the background to answer drug search requests.
 
 ## `DRUG_TABLE_PROVISIONING_SOURCE_DIR`
 
-If MedLog is booted with an empty drug database, it will check if a source data set of the GKV Arzneimittel Index is located in this dir
+Path to a directory containing a pre-built drug dataset in the expected import format. If MedLog starts with an empty drug database, it will automatically import from this directory. Useful for offline deployments or pre-seeding a fresh database without a remote FTP source.
 
 | Property | Value |
 |---|---|
@@ -890,11 +1298,25 @@ If MedLog is booted with an empty drug database, it will check if a source data 
 | Default | `"MedLog/backend/provisioning_data/dummy_drugset/20241126"` |
 | Environment variable | `DRUG_TABLE_PROVISIONING_SOURCE_DIR` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+DRUG_TABLE_PROVISIONING_SOURCE_DIR: /opt/medlog/drugdata/20241126
+```
+
+*Example 2:*
+
+```yaml
+DRUG_TABLE_PROVISIONING_SOURCE_DIR: /data/gkv_arzneimittel/latest
+```
+
 ---
 
 ## `DRUG_DATA_IMPORT_MAX_ROWS`
 
-For debuging or demo purposes you can limit the amount of drug entries that are parsed and import while the drug importer runs. This speeds up the import process massivly but you will not have all drug entries.
+Limit the number of drug entries imported in a single run. Useful for debugging or demos where a full import would take too long. Set to None (default) to import all available entries.
 
 | Property | Value |
 |---|---|
@@ -902,6 +1324,20 @@ For debuging or demo purposes you can limit the amount of drug entries that are 
 | Required | No |
 | Default | `null` |
 | Environment variable | `DRUG_DATA_IMPORT_MAX_ROWS` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+DRUG_DATA_IMPORT_MAX_ROWS: 1000
+```
+
+*Example 2:*
+
+```yaml
+DRUG_DATA_IMPORT_MAX_ROWS: 50000
+```
 
 ---
 
@@ -916,11 +1352,32 @@ Restrict drug data imports to specific hours of the day (UTC, 0-23). Useful when
 | Default | `null` |
 | Environment variable | `DRUG_DATA_IMPORT_ALLOWED_HOURS` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+DRUG_DATA_IMPORT_ALLOWED_HOURS:
+- 2
+- 3
+- 4
+- 5
+```
+
+*Example 2:*
+
+```yaml
+DRUG_DATA_IMPORT_ALLOWED_HOURS:
+- 0
+- 1
+- 2
+```
+
 ---
 
 ## `EXPORT_CACHE_DIR`
 
-The directory to store the result of export jobs (CSV files, JSON files,...).
+Directory where completed export jobs store their output files (CSV, JSON, etc.). The directory is created automatically if it does not exist. Use an absolute path in production to avoid ambiguity.
 
 | Property | Value |
 |---|---|
@@ -929,11 +1386,25 @@ The directory to store the result of export jobs (CSV files, JSON files,...).
 | Default | `"./export_cache"` |
 | Environment variable | `EXPORT_CACHE_DIR` |
 
+**Examples:**
+
+*Example 1:*
+
+```yaml
+EXPORT_CACHE_DIR: ./export_cache
+```
+
+*Example 2:*
+
+```yaml
+EXPORT_CACHE_DIR: /var/lib/medlog/exports
+```
+
 ---
 
 ## `PROBAND_IDS_CASE_SENSETIVE`
 
-If set to true a proband with the ID '1A' will be different from '1a'.
+Controls whether proband (subject) IDs are treated as case-sensitive. If False (default), IDs '1A' and '1a' refer to the same proband. If True, they are treated as distinct probands. Note: the variable name contains a known typo ('SENSETIVE' instead of 'SENSITIVE') that is preserved for backward compatibility with existing deployments.
 
 | Property | Value |
 |---|---|
@@ -945,6 +1416,8 @@ If set to true a proband with the ID '1A' will be different from '1a'.
 ---
 
 ## `SYSTEM_ANNOUNCEMENTS`
+
+List of system-wide announcement banners displayed in the web client. Public announcements are shown to all visitors; non-public ones only to logged-in users. Pass as a JSON array string when setting via environment variable.
 
 | Property | Value |
 |---|---|
@@ -967,7 +1440,7 @@ SYSTEM_ANNOUNCEMENTS: '''[{"type": "info", "public": true, "message": "This is a
 
 ### `SYSTEM_ANNOUNCEMENTS[*].public`
 
-Should this announcement be shown to non logged in users as well.
+If True, this announcement is also shown to unauthenticated (not logged-in) users.
 
 | Property | Value |
 |---|---|
@@ -980,7 +1453,7 @@ Should this announcement be shown to non logged in users as well.
 
 ### `SYSTEM_ANNOUNCEMENTS[*].type`
 
-Which type the announcement is.
+Visual style of the announcement banner: 'info' is neutral, 'warning' is yellow, 'alert' is red.
 
 | Property | Value |
 |---|---|
@@ -994,10 +1467,18 @@ Which type the announcement is.
 
 ### `SYSTEM_ANNOUNCEMENTS[*].message`
 
+Text content of the announcement displayed in the web client.
+
 | Property | Value |
 |---|---|
 | Type | str |
 | Required | **Yes** |
 | Environment variable | `SYSTEM_ANNOUNCEMENTS[*]__MESSAGE` |
+
+**Examples:**
+
+```yaml
+message: Scheduled maintenance on 2025-01-15 from 02:00 to 04:00 UTC.
+```
 
 ---
