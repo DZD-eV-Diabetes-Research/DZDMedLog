@@ -60,7 +60,7 @@ tests = [
     "memory_profiler",
     "pyftpdlib",
 ]
-docs = ["mkdocs", "mkdocstrings[python]", "mkdocs-autorefs", "mkdocs-material"]
+docs = ["mkdocs", "mkdocstrings[python]", "mkdocs-autorefs", "mkdocs-material", "psyplus"]
 
 [tool.setuptools.packages.find]
 include = ['medlogserver', 'provisioning_data']
