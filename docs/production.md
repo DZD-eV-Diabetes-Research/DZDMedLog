@@ -13,6 +13,17 @@ MedLog requires a drug database. The built-in **dummy dataset** is sufficient fo
 
 See [Drug Database](drug-database.md) for details.
 
+### Authentication / OIDC
+
+> [!IMPORTANT]
+> MedLog requires an external **OIDC/OAuth2 identity provider** for production use (Keycloak, Authentik, Azure AD, …).
+>
+> A built-in local user system exists but is intentionally limited: there is no self-registration UI and no plans to add one. Local accounts are only meant for the initial admin setup and development. Do not rely on them as the sole authentication method in a production deployment.
+>
+> If full local-user management without an external IdP is important to you, [open an issue](https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues).
+
+See [Configuration → OIDC](configuration.md#oidc) for how to wire up your identity provider.
+
 ### Database
 
 For production use **PostgreSQL**. SQLite is only supported for development and testing.

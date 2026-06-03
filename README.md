@@ -61,7 +61,7 @@ Then open **http://localhost:8888** and log in as `admin` / `adminadmin`.
 | Backend | Python 3.14, FastAPI, SQLModel, SQLAlchemy (async), Alembic, Uvicorn |
 | Frontend | Nuxt 3, Vue 3, TypeScript |
 | Database | PostgreSQL (production) / SQLite (development) |
-| Auth | Local users + OpenID Connect (OIDC) |
+| Auth | OpenID Connect / OAuth2 (required) + local admin accounts (dev/bootstrap only) |
 | Packaging | Docker (multi-stage build: Bun → Python) |
 
 ---

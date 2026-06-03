@@ -53,12 +53,18 @@ Custom / off-label drugs that are not in the drug database can be entered as fre
 
 ## Authentication
 
-MedLog supports two login methods that can be used in parallel:
+> [!IMPORTANT]
+> **MedLog requires an external OIDC/OAuth2 provider for production use.**
+> A built-in local user system exists, but it is intentionally incomplete: there is no self-registration UI and no plans to add one. Local accounts are intended for development and initial admin bootstrapping only — not as a standalone auth solution.
+>
+> If you have a strong need for full local-user management without an external identity provider, [open an issue](https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues) and let us know.
 
-- **Local accounts** — username + password stored in the MedLog database. Always available unless disabled via `AUTH_BASIC_LOGIN_IS_ENABLED=false`.
-- **OIDC providers** — one or more OpenID Connect providers (Keycloak, Authentik, Azure AD, …). Configured via `AUTH_OIDC_PROVIDERS`. Role and study permissions can be derived automatically from OIDC group membership on every login.
+MedLog supports two login methods:
 
-For OIDC details see [Configuration](configuration.md#oidc).
+- **OIDC providers** *(required for production)* — one or more OpenID Connect providers (Keycloak, Authentik, Azure AD, …). Configured via `AUTH_OIDC_PROVIDERS`. Roles and study permissions are derived automatically from OIDC group membership on every login.
+- **Local accounts** *(development / bootstrapping only)* — username + password stored in the MedLog database. No self-registration. Accounts can only be created manually by an admin. Can be disabled entirely via `AUTH_BASIC_LOGIN_IS_ENABLED=false` once an OIDC provider is configured.
+
+For OIDC setup details see [Configuration](configuration.md#oidc).
 
 ---
 
