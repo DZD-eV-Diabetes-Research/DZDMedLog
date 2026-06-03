@@ -87,7 +87,7 @@ const prioritizedFieldDefinitions = computed(() => {
   return Array.of(...fieldDefinitions[1], ...fieldDefinitions[2], ...fieldDefinitions[3]);
 });
 
-function validate(state: any): FormError[] {
+function validate(state: { customName: string }): FormError[] {
   const errors = []
 
   if (!state.customName) {
