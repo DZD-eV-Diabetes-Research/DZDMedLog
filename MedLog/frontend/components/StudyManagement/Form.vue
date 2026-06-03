@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, useTemplateRef } from "#imports";
+import { onMounted, reactive } from "#imports";
 import { boolean, type InferType, object, string } from "yup";
 import type { FormSubmitEvent } from "#ui/types";
 
@@ -8,8 +8,6 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['cancel', 'save']);
-
-const studyForm = useTemplateRef('study-form');
 
 const state = reactive({
   display_name: "",
@@ -37,18 +35,12 @@ onMounted(async () => {
         state[key] = props.initialState[key];
       }
     }
-
-    try {
-      await studyForm.value?.validate();
-    } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
-      // Swallow error, the result is shown directly in the form
-    }
   }
 })
 </script>
 
 <template>
-  <UForm ref="study-form" :state="state" :schema="schema" class="space-y-4" @submit="onSubmit">
+  <UForm :state="state" :schema="schema" class="space-y-4" @submit="onSubmit">
     <UFormGroup label="Name" name="display_name">
       <UInput v-model="state.display_name" type="text" />
     </UFormGroup>

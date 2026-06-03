@@ -1,6 +1,6 @@
 <!-- This is the main drug intake form component that is used to create or edit intakes -->
 <template>
-  <UForm ref="intakeForm" :state="state" :schema="schema" class="space-y-4" :validate-on="['blur', 'submit']" @submit="onSubmit">
+  <UForm :state="state" :schema="schema" class="space-y-4" :validate-on="['blur', 'submit']" @submit="onSubmit">
     <UFormGroup
         label="Wirkstoff äquivalent, abweichender Produkt-Code"
         description="Das gewählte Präparat entspricht in Wirkstoff und Wirkstoffmenge dem eingenommenen, die PZN ist unbekannt."
@@ -68,7 +68,6 @@ import type { FormSubmitEvent } from "#ui/types";
 import {
   onMounted,
   reactive,
-  useTemplateRef,
   watch
 } from "#imports";
 import {
@@ -85,8 +84,6 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['cancel', 'save'])
-
-const intakeForm = useTemplateRef('intakeForm')
 
 const state = reactive({
   administeredByDoctor: administeredByDoctorOptions[0].value,
@@ -141,12 +138,6 @@ onMounted(async () => {
       // Exit before validation. This initial state does not represent a full record and was only used to set
       // the "active ingredient is equivalent" directly from the search results.
       return;
-    }
-
-    try {
-      await intakeForm.value?.validate();
-    } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
-      // Swallow error, the result is shown directly in the form
     }
   }
 })
