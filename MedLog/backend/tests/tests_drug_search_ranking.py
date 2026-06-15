@@ -1,11 +1,8 @@
 from typing import Any, List, Dict, cast
 import json
-from _single_test_file_runner import run_all_tests_if_test_file_called
 import time
 import datetime
 
-if __name__ == "__main__":
-    run_all_tests_if_test_file_called()
 
 from utils import (
     req,

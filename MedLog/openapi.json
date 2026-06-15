@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.2.post1.dev0+g3567c5ce5.d20260427"
+    "version": "1.0.8b1.post1.dev2+g5f59f21b4.d20260603"
   },
   "paths": {
     "/api/health": {
@@ -1378,6 +1378,7 @@
                 "is_study_admin",
                 "study_id",
                 "user_id",
+                "oidc_managed_permissions",
                 "id"
               ],
               "type": "string",
@@ -1406,6 +1407,55 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaginatedResponse_StudyPermissionRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/study/{study_id}/permissions/me": {
+      "get": {
+        "tags": [
+          "Study Permissions"
+        ],
+        "summary": "Get My Permission For Study",
+        "description": "Get the permission details for this user for a certain study.",
+        "operationId": "get_my_permission_for_study_api_study__study_id__permissions_me_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyPermissionRead"
                 }
               }
             }
@@ -1588,6 +1638,9 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "422": {
             "description": "Validation Error",
@@ -1842,8 +1895,8 @@
         "tags": [
           "Event"
         ],
-        "summary": "Delete Event",
-        "description": "Delete existing event - Not Yet Implented",
+        "summary": "Delete an event",
+        "description": "Delete a study event permanently.\n\nThe event must have **no interviews** attached. If any exist, a `409` is returned with\ntheir IDs \u2014 delete them first via\n`DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`.\n\nRequires **study admin** or global **medlog-admin** role.",
         "operationId": "delete_event_api_study__study_id__event__event_id__delete",
         "security": [
           {
@@ -1858,8 +1911,10 @@
             "schema": {
               "type": "string",
               "format": "uuid",
+              "description": "ID of the event to delete.",
               "title": "Event Id"
-            }
+            },
+            "description": "ID of the event to delete."
           },
           {
             "name": "study_id",
@@ -1874,10 +1929,47 @@
         ],
         "responses": {
           "204": {
-            "description": "Successful Response"
+            "description": "Event deleted successfully."
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not a study admin or global admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No event with the given `event_id` exists in this study.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The event still has interviews attached. The response body lists their IDs under `detail.following interviews, interview_ids`. Delete all interviews first, then retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventNotEmptyErrorResponse"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -2449,8 +2541,8 @@
         "tags": [
           "Interview"
         ],
-        "summary": "Delete Interview",
-        "description": "Delete existing interview - Not Yet Implented",
+        "summary": "Delete an interview",
+        "description": "Delete an interview and **all its intake records** (cascade delete).\n\nAll intakes belonging to this interview are removed automatically \u2014 no need to delete them first.\n\n**Authorization:** caller must have at least interviewer role (`403` otherwise), and must be\neither the interviewer who created this interview or a study/global admin (`403` otherwise).\n\nDeleting an interview does not delete the parent event.",
         "operationId": "delete_interview_api_study__study_id__event__event_id__interview__interview_id__delete",
         "security": [
           {
@@ -2465,8 +2557,10 @@
             "schema": {
               "type": "string",
               "format": "uuid",
+              "description": "ID of the interview to delete.",
               "title": "Interview Id"
-            }
+            },
+            "description": "ID of the interview to delete."
           },
           {
             "name": "event_id",
@@ -2475,8 +2569,10 @@
             "schema": {
               "type": "string",
               "format": "uuid",
+              "description": "ID of the event the interview belongs to.",
               "title": "Event Id"
-            }
+            },
+            "description": "ID of the event the interview belongs to."
           },
           {
             "name": "study_id",
@@ -2491,10 +2587,37 @@
         ],
         "responses": {
           "204": {
-            "description": "Successful Response"
+            "description": "Interview and all its intakes deleted successfully."
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller has no interviewer-level access on this study, or is an interviewer but did not create this interview. Only the creating interviewer or a study/global admin may delete it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No interview with the given `interview_id` exists within this study and event.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -2884,8 +3007,8 @@
         "tags": [
           "Intake"
         ],
-        "summary": "Delete Intake",
-        "description": "Delete intake record. user must have at least 'interviewer'-permissions on study.",
+        "summary": "Delete an intake record",
+        "description": "Delete a single medication intake record.\n\n**Authorization:** caller must have at least interviewer role (`403` otherwise), and must be\neither the interviewer who created the **parent interview** or a study/global admin (`403` otherwise).\nOwnership is tied to the interview, not to who added this specific intake.\n\nTo delete all intakes of an interview at once, delete the interview itself\n(`DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`).",
         "operationId": "delete_intake_api_study__study_id__interview__interview_id__intake__intake_id__delete",
         "security": [
           {
@@ -2900,8 +3023,10 @@
             "schema": {
               "type": "string",
               "format": "uuid",
+              "description": "ID of the intake record to delete.",
               "title": "Intake Id"
-            }
+            },
+            "description": "ID of the intake record to delete."
           },
           {
             "name": "interview_id",
@@ -2910,8 +3035,10 @@
             "schema": {
               "type": "string",
               "format": "uuid",
+              "description": "ID of the interview the intake belongs to.",
               "title": "Interview Id"
-            }
+            },
+            "description": "ID of the interview the intake belongs to."
           },
           {
             "name": "study_id",
@@ -2926,10 +3053,40 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Intake deleted successfully.",
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller has no interviewer-level access on this study, or is an interviewer but did not create the parent interview. Ownership is determined by the parent interview's `interviewer_user_id`, not by who added this intake. Only the interview owner or a study/global admin may delete it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No intake or interview with the given IDs exists within this study.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
               }
             }
           },
@@ -6748,6 +6905,18 @@
         "type": "object",
         "title": "EventCreateAPI"
       },
+      "EventNotEmptyErrorResponse": {
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/_EventNotEmptyDetail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "EventNotEmptyErrorResponse"
+      },
       "EventRead": {
         "properties": {
           "created_at": {
@@ -6945,6 +7114,22 @@
           "created_at"
         ],
         "title": "ExportJob"
+      },
+      "HTTPErrorResponeRepresentation": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "HTTPErrorResponeRepresentation",
+        "example": {
+          "detail": "HTTPException raised."
+        }
       },
       "HTTPValidationError": {
         "properties": {
@@ -8703,6 +8888,14 @@
             "format": "uuid",
             "title": "User Id"
           },
+          "oidc_managed_permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Oidc Managed Permissions",
+            "description": "Permission flags currently owned by OIDC group mapping. OIDC will only revoke a flag if it appears here. Manually granted flags are absent from this list and are never revoked by OIDC."
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -9301,6 +9494,38 @@
           "success"
         ],
         "title": "WorkerJobState"
+      },
+      "_EventNotEmptyDetail": {
+        "properties": {
+          "error": {
+            "type": "string",
+            "title": "Error",
+            "default": "event not empty",
+            "examples": [
+              "event not empty"
+            ]
+          },
+          "following interviews, interview_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Following Interviews, Interview Ids",
+            "description": "IDs of all interviews that must be deleted before this event can be removed.",
+            "examples": [
+              [
+                "a1b2c3d4-0000-0000-0000-000000000001",
+                "a1b2c3d4-0000-0000-0000-000000000002"
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "following interviews, interview_ids"
+        ],
+        "title": "_EventNotEmptyDetail"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValHersteller__1": {
         "properties": {

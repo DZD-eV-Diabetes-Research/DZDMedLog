@@ -2,6 +2,7 @@
 import type { StudyFormSchema } from "~/components/StudyManagement/Form.vue";
 
 const route = useRoute();
+const studyPermissionStore = useStudyPermissionStore();
 const studyStore = useStudyStore();
 const toast = useToast();
 const userStore = useUserStore();
@@ -33,7 +34,7 @@ onBeforeMount(async () => {
 </script>
 
 <template>
-  <section v-if="userStore.isAdmin" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
+  <section v-if="userStore.isAdmin || studyPermissionStore.currentUserCanManageStudy(studyId)" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
     <h1 class="text-4xl font-normal text-center mb-4">Studie bearbeiten</h1>
 
     <StudyManagementForm

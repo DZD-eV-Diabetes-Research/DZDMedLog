@@ -14,13 +14,17 @@ export const useUserStore = defineStore('UserStore', {
         users: [],
     }),
     actions: {
+        async setActive(userId: string, active: boolean): Promise<void> {
+            const updatedUser = await usePatchUser(userId, { deactivated: !active });
+            this.upsertUser(updatedUser);
+        },
         async setUserInfo() {
             const me = await useGetUserMe();
             this.upsertUser(me);
             this.currentUserId = me.id;
         },
-        async loadUsers() {
-            const users = await useGetUsers(true);
+        async loadUsers(includeDeactivated = true) {
+            const users = await useGetUsers(includeDeactivated);
             for (const user of users) {
                 this.upsertUser(user);
             }

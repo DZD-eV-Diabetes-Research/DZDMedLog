@@ -36,18 +36,21 @@
               </time>
             </span>
             <UButton
-                v-else
+                v-else-if="studyPermissionStore.currentUserCanInterview(studyId)"
                 label="Interview Beenden"
                 color="red"
                 variant="outline"
                 icon="i-heroicons-arrow-right-on-rectangle"
                 @click="endInterview()"
             />
+            <span v-else>
+              Das Interview wurde noch nicht abgeschlossen.
+            </span>
           </div>
         </div>
       </UCard>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div v-if="studyPermissionStore.currentUserCanInterview(studyId)" class="grid grid-cols-2 gap-4">
         <UCard
           class="text-center"
           :class="{
@@ -122,8 +125,8 @@
 
       <IntakeHistory
         :intakes="intakes"
-        :can-edit="userStore.isAdmin"
-        :can-delete="userStore.isAdmin"
+        :can-edit="studyPermissionStore.currentUserCanInterview(studyId)"
+        :can-delete="studyPermissionStore.currentUserCanInterview(studyId)"
         title="Eingenommene Medikamente (dieses Interview)"
         @edit-intake="(intakeId: string) => openEditModal(intakeId)"
         @delete-intake="(row: object) => openDeleteModal(row)"
@@ -190,7 +193,6 @@ import {
   useRoute,
   useStudyStore,
   useToast,
-  useUserStore,
 } from "#imports";
 import type {SchemaIntakeCreateApi, SchemaIntakeDetailListItem, SchemaInterview} from "#open-fetch-schemas/medlogapi";
 
@@ -198,9 +200,9 @@ const route = useRoute();
 const dayjs = useDayjs();
 const eventStore = useEventStore();
 const interviewStore = useInterviewStore();
+const studyPermissionStore = useStudyPermissionStore();
 const studyStore = useStudyStore();
 const toast = useToast();
-const userStore = useUserStore();
 const { $medlogapi } = useNuxtApp();
 
 dayjs.extend(localizedFormat);

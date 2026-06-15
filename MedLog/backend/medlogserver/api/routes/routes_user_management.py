@@ -79,9 +79,8 @@ async def create_user(
     )
     if not current_user_is_usermanager:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Missing role",
-            headers={"WWW-Authenticate": "Bearer"},
         )
     user_create: User = await user_crud.create(
         user_create,
@@ -120,7 +119,7 @@ async def list_users(
 ) -> PaginatedResponse[User]:
     if not is_user_manager:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Needs usermanager role"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Needs usermanager role"
         )
     users = await user_crud.list(show_deactivated=incl_deactivated)
     return PaginatedResponse(

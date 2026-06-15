@@ -35,7 +35,14 @@
           <div class="w-1/2 flex flex-col gap-4 items-center">
             <span class="font-semibold">Interview starten</span>
             <UAlert
-                v-if="currentInterview"
+                v-if="!studyPermissionStore.currentUserCanInterview(studyId)"
+                title="Keine Berechtigung"
+                description="Ihnen fehlt die Berechtigung zum Starten neuer Interviews."
+                color="orange"
+                variant="subtle"
+            />
+            <UAlert
+                v-else-if="currentInterview"
                 title="Laufendes Interview"
                 color="orange"
                 variant="subtle"
@@ -129,6 +136,7 @@ const dayjs = useDayjs();
 const route = useRoute()
 const eventStore = useEventStore()
 const interviewStore = useInterviewStore()
+const studyPermissionStore = useStudyPermissionStore()
 const toast = useToast();
 
 dayjs.extend(localizedFormat);

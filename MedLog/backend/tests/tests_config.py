@@ -1,11 +1,8 @@
 from typing import List, Dict
 import json
-from _single_test_file_runner import run_all_tests_if_test_file_called
 import os
 from statics import SYSTEM_ANNOUNCEMENTS
 
-if __name__ == "__main__":
-    run_all_tests_if_test_file_called()
 
 from utils import req, dict_must_contain
 

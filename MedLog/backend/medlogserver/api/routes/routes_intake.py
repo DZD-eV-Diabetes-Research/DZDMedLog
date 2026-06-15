@@ -15,6 +15,9 @@ import uuid
 from fastapi.responses import JSONResponse, Response
 from pydantic import ValidationError
 from medlogserver.db.interview import InterviewCRUD
+from medlogserver.db.user import User
+from medlogserver.api.auth.security import get_current_user
+from medlogserver.api.base import HTTPErrorResponeRepresentation
 from medlogserver.model.intake import (
     Intake,
     IntakeCreate,
@@ -131,7 +134,7 @@ async def create_intake(
 ) -> Intake:
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to create intake",
         )
     # lets check if the the interview is part of the study. otherwise caller could evade study permissions here by calling a interview id from another study.
@@ -206,8 +209,8 @@ async def update_intake(
 ) -> Intake:
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not allowed to create intake",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not allowed to update intake",
         )
     # lets check if the the interview is part of study. otherwise caller could evade study permissions here by calling a interview id from another study.
     await assert_intake_is_part_of_study(
@@ -222,26 +225,71 @@ async def update_intake(
 ############
 @fast_api_intake_router.delete(
     "/study/{study_id}/interview/{interview_id}/intake/{intake_id}",
-    description=f"Delete intake record. user must have at least 'interviewer'-permissions on study.",
+    summary="Delete an intake record",
+    responses={
+        status.HTTP_200_OK: {"description": "Intake deleted successfully."},
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "Not authenticated.",
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": (
+                "Caller has no interviewer-level access on this study, or "
+                "is an interviewer but did not create the parent interview. "
+                "Ownership is determined by the parent interview's `interviewer_user_id`, "
+                "not by who added this intake. Only the interview owner or a study/global admin may delete it."
+            ),
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "No intake or interview with the given IDs exists within this study.",
+        },
+    },
 )
 async def delete_intake(
-    intake_id: uuid.UUID,
-    interview_id: Annotated[uuid.UUID, Path()],
+    intake_id: Annotated[uuid.UUID, Path(description="ID of the intake record to delete.")],
+    interview_id: Annotated[uuid.UUID, Path(description="ID of the interview the intake belongs to.")],
+    current_user: Annotated[User, Security(get_current_user)],
     study_access: UserStudyAccess = Security(user_has_study_access),
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ):
+    """
+    Delete a single medication intake record.
+
+    **Authorization:** caller must have at least interviewer role (`403` otherwise), and must be
+    either the interviewer who created the **parent interview** or a study/global admin (`403` otherwise).
+    Ownership is tied to the interview, not to who added this specific intake.
+
+    To delete all intakes of an interview at once, delete the interview itself
+    (`DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`).
+    """
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not allowed to create intake",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to delete intake",
         )
-    # lets check if the the interview is part of study. otherwise caller could evade study permissions here by calling a interview id from another study.
+    # Verify the intake belongs to the given interview and study to prevent cross-study access.
     await assert_intake_is_part_of_study(
         study_id=study_access.study.id,
         intake_id=intake_id,
         intake_crud=intake_crud,
         interview_id=interview_id,
     )
+    interview = await interview_crud.get(
+        interview_id,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No interview with id '{interview_id}'",
+        ),
+    )
+    is_owner = interview.interviewer_user_id == current_user.id
+    if not (study_access.user_is_study_admin() or is_owner):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to delete this intake. Must be study admin or the interviewer who created the parent interview.",
+        )
     log.warning("ToDo: The med record are not deleted yet")
     return await intake_crud.delete(intake_id)
 

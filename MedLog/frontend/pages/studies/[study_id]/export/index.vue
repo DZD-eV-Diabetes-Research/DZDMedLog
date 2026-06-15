@@ -3,9 +3,19 @@
     <div class="flex justify-center break-all mb-4 relative items-center">
       <div class="absolute left-0">
         <UButton
+            v-if="userStore.isAdmin || studyPermissionStore.currentUserCanManageSomeStudy"
             to="/manage/studies"
             label="Zurück"
             title="Zur Studienverwaltung"
+            variant="outline"
+            color="gray"
+            icon="i-heroicons-arrow-left-circle"
+        />
+        <UButton
+            v-else
+            to="/"
+            label="Zurück"
+            title="Zur Startseite"
             variant="outline"
             color="gray"
             icon="i-heroicons-arrow-left-circle"
@@ -78,6 +88,7 @@ import type {SchemaWorkerJobState} from "#open-fetch-schemas/medlogapi";
 
 const dayjs = useDayjs();
 const route = useRoute();
+const studyPermissionStore = useStudyPermissionStore();
 const studyStore = useStudyStore();
 const { $medlogapi } = useNuxtApp();
 const toast = useToast();
@@ -116,8 +127,7 @@ const downloads = ref<Download[]>([]);
 let downloadCheckInterval: NodeJS.Timeout | null = null;
 
 const isAllowedToExport = computed(() => {
-  // TODO check for study-specific rights
-  return userStore.isAdmin;
+  return studyPermissionStore.currentUserCanExport(studyId.value);
 });
 
 const studyId = computed(() => {

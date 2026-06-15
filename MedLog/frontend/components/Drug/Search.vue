@@ -35,7 +35,7 @@
                   <li>Wörter, die am Anfang des Namens stehen, erhöhen die Relevanz</li>
                   <li>Treffende Groß-/Kleinschreibung erhöht die Relevanz</li>
                 </ul>
-                Eine ausführliche Beschreibung ist in der <ULink to="/help#suche" target="_blank" class="underline">Hilfe</ULink> zu finden.
+                Eine ausführliche Beschreibung ist in der <ULink to="/help/search" target="_blank" class="underline">Hilfe</ULink> zu finden.
               </div>
             </template>
           </UPopover>

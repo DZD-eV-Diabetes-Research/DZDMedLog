@@ -67,6 +67,14 @@ class StudyPermissonBase(StudyPermissonUpdate, table=False):
         default=False,
         description="Study admins can give access to the study to new users.",
     )
+    oidc_managed_permissions: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Permission flags currently owned by OIDC group mapping. "
+            "OIDC will only revoke a flag if it appears here. "
+            "Manually granted flags are absent from this list and are never revoked by OIDC."
+        ),
+    )
 
     @field_validator("user_id", "study_id")
     @classmethod
@@ -86,6 +94,10 @@ class StudyPermisson(StudyPermissonBase, BaseTable, table=True):
         UniqueConstraint(
             "study_id", "user_id", name="One permission entry per user/study only"
         ),
+    )
+    oidc_managed_permissions: List[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON),
     )
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,

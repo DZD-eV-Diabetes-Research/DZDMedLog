@@ -24,6 +24,7 @@ class UserInfoOidc(BaseModel):
     provider_slug: str
     sub: str
     email: str
+    email_verified: bool = False
     _preferred_username: Optional[str] = None
     _name: Optional[str] = None
     groups: Optional[List[str]] = Field(default_factory=list)
@@ -50,8 +51,14 @@ class UserInfoOidc(BaseModel):
         email = get_value_from_first_dict_with_key(
             raw_userinfo, oidc_config.USER_MAIL_ATTRIBUTE, None
         )
+        email_verified = bool(
+            get_value_from_first_dict_with_key(raw_userinfo, "email_verified", False)
+        )
         userinfo = UserInfoOidc(
-            provider_slug=oidc_config.get_provider_name_slug(), sub=sub, email=email
+            provider_slug=oidc_config.get_provider_name_slug(),
+            sub=sub,
+            email=email,
+            email_verified=email_verified,
         )
         userinfo._preferred_username = get_value_from_first_dict_with_key(
             raw_userinfo, oidc_config.USER_NAME_ATTRIBUTE, None

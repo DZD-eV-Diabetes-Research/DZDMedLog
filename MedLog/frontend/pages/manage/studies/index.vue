@@ -1,5 +1,5 @@
 <template>
-  <section v-if="userStore.isAdmin" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
+  <section v-if="userStore.isAdmin || studyPermissionStore.currentUserCanManageSomeStudy" class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
     <h1 class="text-4xl font-normal text-center mb-4">Studienverwaltung</h1>
 
     <p class="my-4 text-center text-gray-500">
@@ -40,6 +40,7 @@ import {
 } from "#imports";
 
 const userStore = useUserStore();
+const studyPermissionStore = useStudyPermissionStore();
 const studyStore = useStudyStore();
 
 const createStudyModalVisible = ref(false);

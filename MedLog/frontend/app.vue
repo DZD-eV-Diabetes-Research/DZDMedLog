@@ -11,6 +11,7 @@ const drugDbUpdaterStore = useDrugDbUpdaterStore();
 const drugFieldsStore = useDrugFields();
 const healthCheckStore = useHealthCheckStore();
 const roleStore = useRoleStore();
+const studyPermissionStore = useStudyPermissionStore();
 const studyStore = useStudyStore();
 const systemAnnouncementsStore = useSystemAnnouncementsStore();
 const toast = useToast();
@@ -61,6 +62,7 @@ try {
 
 try {
   await roleStore.loadRoles()
+  await studyPermissionStore.loadPermissions();
   await userStore.setUserInfo()
 } catch (error) {
   // Swallow 401 errors, they are handled separately
@@ -84,6 +86,7 @@ if (userStore.isLoggedIn) {
     await studyStore.loadAvailableStudies();
     await drugFieldsStore.fetchFields();
     await drugFieldsStore.fetchCodes();
+    await studyPermissionStore.loadStudyPermissionsForCurrentUser();
 
     // Update the status on a regular basis
     if (statusRefreshInterval.value) {

@@ -13,7 +13,7 @@ from fastapi import (
     Path,
     Response,
 )
-
+from pydantic import BaseModel, Field, ConfigDict
 
 from fastapi import Depends, APIRouter
 
@@ -38,11 +38,27 @@ from medlogserver.api.study_access import (
     user_has_study_access,
     UserStudyAccess,
 )
+from medlogserver.api.base import HTTPErrorResponeRepresentation
 from medlogserver.api.paginator import (
     PaginatedResponse,
     create_query_params_class,
     QueryParamsInterface,
 )
+
+
+class _EventNotEmptyDetail(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    error: str = Field(default="event not empty", examples=["event not empty"])
+    interview_ids: List[uuid.UUID] = Field(
+        alias="following interviews, interview_ids",
+        description="IDs of all interviews that must be deleted before this event can be removed.",
+        examples=[["a1b2c3d4-0000-0000-0000-000000000001", "a1b2c3d4-0000-0000-0000-000000000002"]],
+    )
+
+
+class EventNotEmptyErrorResponse(BaseModel):
+    detail: _EventNotEmptyDetail
 
 config = Config()
 
@@ -94,7 +110,7 @@ async def create_event(
 ) -> EventRead:
     if not study_access.user_is_study_admin():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to create new event",
         )
     if event.order_position is None:
@@ -129,7 +145,7 @@ async def update_event(
 ) -> EventRead:
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to update event",
         )
     return await event_crud.update(
@@ -144,38 +160,72 @@ async def update_event(
 
 @fast_api_event_router.delete(
     "/study/{study_id}/event/{event_id}",
-    description=f"Delete existing event - Not Yet Implented",
+    summary="Delete an event",
     response_class=Response,
     status_code=204,
     responses={
-        status.HTTP_401_UNAUTHORIZED: {"model": None},
+        status.HTTP_204_NO_CONTENT: {"description": "Event deleted successfully."},
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "Not authenticated.",
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "Caller is not a study admin or global admin.",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "No event with the given `event_id` exists in this study.",
+        },
+        status.HTTP_409_CONFLICT: {
+            "model": EventNotEmptyErrorResponse,
+            "description": (
+                "The event still has interviews attached. "
+                "The response body lists their IDs under `detail.following interviews, interview_ids`. "
+                "Delete all interviews first, then retry."
+            ),
+        },
     },
 )
 async def delete_event(
-    event_id: uuid.UUID,
+    event_id: Annotated[uuid.UUID, Path(description="ID of the event to delete.")],
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
+    interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ):
-    if not study_access.user_is_study_interviewer():
+    """
+    Delete a study event permanently.
+
+    The event must have **no interviews** attached. If any exist, a `409` is returned with
+    their IDs — delete them first via
+    `DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`.
+
+    Requires **study admin** or global **medlog-admin** role.
+    """
+    if not study_access.user_is_study_admin():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to update event",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to delete event",
         )
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Deleting a event is not implented",
-    )
-    # not implemented. Do we need that?
-    # That would be a whole process -> delete interviews, intakes. More something for a background task.
-    # "a mark for deletion" property and a grace period of one day. or an validation by email  would make sense to prevent accidentaly deletion.
-    # or a disable option
-    return await event_crud.delete(
-        event_id=event_id,
-        raise_exception_if_not_exists=HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+    await event_crud.get(
+        event_id,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No event with id '{event_id}'",
         ),
     )
+    interviews = await interview_crud.list(filter_event_id=event_id)
+    if interviews:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": "event not empty",
+                "following interviews, interview_ids": [
+                    str(i.id) for i in interviews
+                ],
+            },
+        )
+    await event_crud.delete(id_=event_id)
 
 
 @fast_api_event_router.post(
@@ -193,7 +243,7 @@ async def reorder_events(
 ) -> List[Event]:
     if not study_access.user_is_study_interviewer:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to reorder events",
         )
     event_ids = []

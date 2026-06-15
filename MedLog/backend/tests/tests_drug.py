@@ -3,10 +3,6 @@ import json
 import time
 import uuid
 
-from _single_test_file_runner import run_all_tests_if_test_file_called
-
-if __name__ == "__main__":
-    run_all_tests_if_test_file_called()
 from utils import (
     req,
     dict_must_contain,
@@ -19,19 +15,6 @@ from statics import (
     ADMIN_USER_EMAIL,
     ADMIN_USER_NAME,
 )
-
-
-# import only as IDE Shortcut
-import medlogserver.api.routes.routes_drug
-
-from medlogserver.model.drug_data.drug import (
-    DrugCustomCreate,
-    DrugValApiCreate,
-    DrugCodeApi,
-    DrugValRef,
-    DrugMultiValApiCreate,
-)
-from medlogserver.model.drug_data.drug import DrugData
 
 
 def test_custom_drug_incomplete():
@@ -81,8 +64,13 @@ def test_custom_drug_incomplete():
 
 def test_create_custom_drug_with_refs():
     """Test creating a custom drug with reference values"""
-    # import only as IDE Shortcut
     from medlogserver.api.routes.routes_drug import create_custom_drug
+    from medlogserver.model.drug_data.drug import (
+        DrugCustomCreate,
+        DrugValApiCreate,
+        DrugCodeApi,
+        DrugMultiValApiCreate,
+    )
 
     custom_drug_payload = DrugCustomCreate(
         custom_drug_notes="Look mom, my custom Drug!",
@@ -154,6 +142,13 @@ def test_create_custom_drug_with_refs():
 
 def test_create_custom_drug_with_multi_values():
     """Test creating a custom drug with multi-value attributes"""
+    from medlogserver.model.drug_data.drug import (
+        DrugCustomCreate,
+        DrugValApiCreate,
+        DrugCodeApi,
+        DrugMultiValApiCreate,
+    )
+
     search_identifiert_flag = "SEARCHIDENTIFIER23789rgfiewsdh"
     custom_drug = DrugCustomCreate(
         custom_drug_notes="Look mom, my custom Drug!",
@@ -376,7 +371,6 @@ def test_custom_drug_issue():
             "market_exit_date": None,
             "is_custom_drug": True,
             "custom_drug_notes": custom_drug.custom_drug_notes,
-            "custom_created_by": None,
             "codes": {"ATC": None, "PZN": None},
             "attrs": {
                 "amount": 23.0,
@@ -421,3 +415,49 @@ def test_wrong_count_issue_252():
     assert paginated_search_response["total_count"] == len(
         paginated_search_response["items"]
     )
+
+
+def test_custom_drug_ensure_created_by_field_issue_303():
+    # import only as IDE Shortcut
+    from medlogserver.api.routes.routes_drug import create_custom_drug
+    from medlogserver.model.drug_data.drug import (
+        DrugCustomCreate,
+        DrugValApiCreate,
+        DrugCodeApi,
+        DrugValRef,
+        DrugValMulti,
+        DrugMultiValApiCreate,
+        DrugVal,
+    )
+    from medlogserver.model.drug_data.drug import DrugData, DrugValMultiRef, DrugValRef
+
+    search_identifiert_flag = "SEARCHIDENTIFIERT328794623342523534"
+    custom_drug_payload = DrugCustomCreate(
+        trade_name=f"Look mom, my custom Drug! {search_identifiert_flag}",
+        attrs_ref=[DrugValRef(field_name="dispensingtype", value=None)],
+    )
+
+    res = req(
+        "api/drug/custom",
+        method="post",
+        b=dictyfy(custom_drug_payload),
+    )
+    me = req("api/user/me", method="get")
+    current_user_uuid = me["id"]
+    dict_must_contain(
+        res,
+        required_keys_and_val={
+            "custom_created_by": current_user_uuid,
+        },
+        exception_dict_identifier="create minimal custom drug object and ensure created user is set",
+    )
+
+    # lets look up our new drug
+    from medlogserver.api.routes.routes_drug import search_drugs
+
+    drug_search_result = req(
+        f"/api/drug/search", method="get", q={"search_term": search_identifiert_flag}
+    )
+    print("drug_search_result", drug_search_result)
+    custom_drug_creator_uuid = drug_search_result["items"][0]["drug"]["custom_created_by"]
+    assert custom_drug_creator_uuid == current_user_uuid

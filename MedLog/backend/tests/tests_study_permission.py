@@ -1,10 +1,6 @@
 from typing import List, Dict
 import json
 import uuid
-from _single_test_file_runner import run_all_tests_if_test_file_called
-
-if __name__ == "__main__":
-    run_all_tests_if_test_file_called()
 
 from utils import (
     req,
@@ -15,6 +11,7 @@ from utils import (
     authorize_for_access_token,
     dictyfy,
 )
+from statics import ADMIN_USER_NAME, ADMIN_USER_PW
 
 
 def test_endpoint_study_permissions_list():
@@ -121,7 +118,7 @@ def test_endpoint_study_permissions_get():
         method="post",
         b=dictyfy(interview_create),
         access_token=test_user_access_token,
-        tolerated_error_codes=[401],
+        tolerated_error_codes=[403],
     )
     assert res == {"detail": "User not authorized to create interview in this study"}
 
@@ -325,7 +322,7 @@ def test_full_permission_workflow():
         method="post",
         b=dictyfy(interview_create),
         access_token=test_user_access_token,
-        tolerated_error_codes=[401],
+        tolerated_error_codes=[403],
     )
     assert res == {"detail": "User not authorized to create interview in this study"}
 
@@ -372,7 +369,7 @@ def test_full_permission_workflow():
         method="post",
         b=dictyfy(event),
         access_token=test_user_access_token,
-        tolerated_error_codes=[401],
+        tolerated_error_codes=[403],
     )
     print("res", res)
     assert res == {"detail": "Not authorized to create new event"}
@@ -411,3 +408,340 @@ def test_full_permission_workflow():
 
     # we now should have 4 events
     assert len(events["items"]) == 4
+
+
+def test_endpoint_study_permissions_me_as_admin_without_db_row():
+    """Admin user with no explicit DB permission row must get a synthetic all-true permission."""
+    study_data = create_test_study(
+        study_name="TestAdminPermsMeNoDBRow", with_events=0
+    )
+    # The default req() uses the admin token; admin has no DB row for this fresh study.
+    result = req(
+        f"/api/study/{study_data.study.id}/permissions/me",
+        method="get",
+    )
+    dict_must_contain(
+        result,
+        required_keys_and_val={
+            "is_study_viewer": True,
+            "is_study_interviewer": True,
+            "is_study_admin": True,
+        },
+        exception_dict_identifier="admin synthetic permission",
+    )
+    assert result["user_id"] is not None
+    assert result["study_id"] == str(study_data.study.id)
+
+
+def test_endpoint_study_permissions_me_as_admin_with_explicit_db_row():
+    """Admin user who also has an explicit DB permission row should still get a valid response."""
+    study_data = create_test_study(
+        study_name="TestAdminPermsMeWithDBRow", with_events=0
+    )
+    # Fetch admin user info via /user/me
+    admin_info = req("/api/user/me", method="get")
+    admin_id = admin_info["id"]
+
+    # Create an explicit (but restricted) DB permission for the admin
+    from medlogserver.model.study_permission import StudyPermissonUpdate
+
+    restricted_perm = StudyPermissonUpdate(
+        is_study_viewer=True, is_study_interviewer=False, is_study_admin=False
+    )
+    req(
+        f"/api/study/{study_data.study.id}/permissions/{admin_id}",
+        method="put",
+        b=dictyfy(restricted_perm),
+    )
+
+    # /permissions/me should return the DB row, not the synthetic all-true one
+    result = req(
+        f"/api/study/{study_data.study.id}/permissions/me",
+        method="get",
+    )
+    dict_must_contain(
+        result,
+        required_keys_and_val={
+            "is_study_viewer": True,
+            "is_study_interviewer": False,
+            "is_study_admin": False,
+        },
+        exception_dict_identifier="admin explicit permission",
+    )
+    assert result["user_id"] == admin_id
+
+
+def test_endpoint_study_permissions_me_as_regular_user():
+    """Regular user with an explicit study permission gets their actual permission record."""
+    study_data = create_test_study(
+        study_name="TestRegularUserPermsMe", with_events=0
+    )
+    user_password = "reguser_pw_9301"
+    test_user = create_test_user(
+        user_name="perms_me_regular_user",
+        password=user_password,
+        email="perms_me_regular@test.com",
+    )
+    test_user_token = authorize_for_access_token(
+        username=test_user.user_name,
+        pw=user_password,
+        set_as_global_default_login=False,
+    )
+
+    from medlogserver.model.study_permission import StudyPermissonUpdate
+
+    # Grant viewer + interviewer, not admin
+    perm = StudyPermissonUpdate(
+        is_study_viewer=True, is_study_interviewer=True, is_study_admin=False
+    )
+    req(
+        f"/api/study/{study_data.study.id}/permissions/{test_user.id}",
+        method="put",
+        b=dictyfy(perm),
+    )
+
+    result = req(
+        f"/api/study/{study_data.study.id}/permissions/me",
+        method="get",
+        access_token=test_user_token,
+    )
+    dict_must_contain(
+        result,
+        required_keys_and_val={
+            "is_study_viewer": True,
+            "is_study_interviewer": True,
+            "is_study_admin": False,
+        },
+        exception_dict_identifier="regular user permission /me",
+    )
+    assert result["user_id"] == str(test_user.id)
+
+
+def test_endpoint_study_permissions_me_as_usermanager_without_db_row():
+    """Usermanager with no explicit DB permission row gets a synthetic viewer-only permission."""
+    from medlogserver.config import Config as _Config
+
+    _config = _Config()
+    study_data = create_test_study(
+        study_name="TestUsermanagerPermsMeNoDBRow", with_events=0
+    )
+    user_password = "umgr_pw_4821"
+    um_user = create_test_user(
+        user_name="perms_me_usermanager",
+        password=user_password,
+        email="perms_me_usermanager@test.com",
+    )
+    # Elevate to usermanager role (no admin)
+    req(
+        f"/api/user/{um_user.id}",
+        method="patch",
+        b={"roles": [_config.USERMANAGER_ROLE_NAME]},
+    )
+    um_token = authorize_for_access_token(
+        username=um_user.user_name,
+        pw=user_password,
+        set_as_global_default_login=False,
+    )
+
+    result = req(
+        f"/api/study/{study_data.study.id}/permissions/me",
+        method="get",
+        access_token=um_token,
+    )
+    # Usermanagers get implicit viewer access only — no interviewer or study-admin rights
+    dict_must_contain(
+        result,
+        required_keys_and_val={
+            "is_study_viewer": True,
+            "is_study_interviewer": False,
+            "is_study_admin": False,
+        },
+        exception_dict_identifier="usermanager synthetic permission",
+    )
+    assert result["user_id"] == str(um_user.id)
+    assert result["study_id"] == str(study_data.study.id)
+
+
+def test_endpoint_study_permissions_me_as_usermanager_with_explicit_db_row():
+    """Usermanager who also has an explicit DB permission row gets that row back."""
+    from medlogserver.config import Config as _Config
+    from medlogserver.model.study_permission import StudyPermissonUpdate
+
+    _config = _Config()
+    study_data = create_test_study(
+        study_name="TestUsermanagerPermsMeWithDBRow", with_events=0
+    )
+    user_password = "umgr_pw_2954"
+    um_user = create_test_user(
+        user_name="perms_me_usermanager_dbrow",
+        password=user_password,
+        email="perms_me_usermanager_dbrow@test.com",
+    )
+    req(
+        f"/api/user/{um_user.id}",
+        method="patch",
+        b={"roles": [_config.USERMANAGER_ROLE_NAME]},
+    )
+    um_token = authorize_for_access_token(
+        username=um_user.user_name,
+        pw=user_password,
+        set_as_global_default_login=False,
+    )
+
+    # Give an explicit interviewer permission via admin
+    explicit_perm = StudyPermissonUpdate(is_study_interviewer=True)
+    req(
+        f"/api/study/{study_data.study.id}/permissions/{um_user.id}",
+        method="put",
+        b=dictyfy(explicit_perm),
+    )
+
+    result = req(
+        f"/api/study/{study_data.study.id}/permissions/me",
+        method="get",
+        access_token=um_token,
+    )
+    # Should return the DB row, not the synthetic viewer-only one
+    dict_must_contain(
+        result,
+        required_keys_and_val={
+            "is_study_viewer": True,
+            "is_study_interviewer": True,
+        },
+        exception_dict_identifier="usermanager explicit permission",
+    )
+    assert result["user_id"] == str(um_user.id)
+
+
+def test_endpoint_study_permissions_delete_nonexistent_returns_404():
+    """Deleting a permission that does not exist must return 404, not crash."""
+    study_data = create_test_study(
+        study_name="TestDeleteNonexistentPermission", with_events=0
+    )
+    # Create a user but give them no study permission
+    no_perm_user = create_test_user(
+        user_name="delete_perm_no_perm_user",
+        password="delperm_pw_7731",
+        email="delete_perm_noperm@test.com",
+    )
+    req(
+        f"/api/study/{study_data.study.id}/permissions/{no_perm_user.id}",
+        method="delete",
+        expected_http_code=404,
+    )
+
+
+def test_study_admin_can_manage_permissions_in_own_study():
+    """A user with is_study_admin on a study can grant and read permissions for
+    other users within that same study, without holding any global role.
+    """
+    study_data = create_test_study(
+        study_name="TestStudyAdminManagesOwnStudy", with_events=0
+    )
+    study_id = study_data.study.id
+
+    # Create the study admin user
+    study_admin_pw = "studyadmin_pw_1847"
+    study_admin = create_test_user(
+        user_name="study_admin_own_study",
+        password=study_admin_pw,
+        email="study_admin_own@test.com",
+    )
+    req(
+        f"/api/study/{study_id}/permissions/{study_admin.id}",
+        method="put",
+        b={"is_study_admin": True},
+    )
+    study_admin_token = authorize_for_access_token(
+        username=study_admin.user_name,
+        pw=study_admin_pw,
+        set_as_global_default_login=False,
+    )
+
+    # Create a second user who has no permissions yet
+    target_user = create_test_user(
+        user_name="study_admin_target_user",
+        password="target_pw_9923",
+        email="study_admin_target@test.com",
+    )
+
+    # Study admin grants the target user viewer access — must succeed
+    result = req(
+        f"/api/study/{study_id}/permissions/{target_user.id}",
+        method="put",
+        b={"is_study_viewer": True},
+        access_token=study_admin_token,
+    )
+    dict_must_contain(
+        result,
+        required_keys_and_val={"is_study_viewer": True},
+        exception_dict_identifier="study admin granted permission",
+    )
+
+    # Study admin can also read the permissions list for their study
+    perm_list = req(
+        f"/api/study/{study_id}/permissions",
+        method="get",
+        access_token=study_admin_token,
+    )
+    assert perm_list["total_count"] >= 2, (
+        f"Expected at least 2 permission records (admin + target), got: {perm_list}"
+    )
+    print("  ✓ Study admin successfully managed permissions in own study")
+
+
+def test_study_admin_cannot_manage_permissions_in_other_study():
+    """A user with is_study_admin on study A must be denied access to the
+    permission management endpoints of study B.
+    """
+    study_a = create_test_study(
+        study_name="TestStudyAdminBoundaryStudyA", with_events=0
+    )
+    study_b = create_test_study(
+        study_name="TestStudyAdminBoundaryStudyB", with_events=0
+    )
+
+    # Create user with study admin rights on study A only
+    admin_pw = "studyadmin_boundary_pw_3321"
+    study_a_admin = create_test_user(
+        user_name="study_admin_boundary_user",
+        password=admin_pw,
+        email="study_admin_boundary@test.com",
+    )
+    req(
+        f"/api/study/{study_a.study.id}/permissions/{study_a_admin.id}",
+        method="put",
+        b={"is_study_admin": True},
+    )
+    admin_token = authorize_for_access_token(
+        username=study_a_admin.user_name,
+        pw=admin_pw,
+        set_as_global_default_login=False,
+    )
+
+    # Create a target user to try to grant permissions to in study B
+    target_user = create_test_user(
+        user_name="study_admin_boundary_target",
+        password="boundary_target_pw_5512",
+        email="study_admin_boundary_target@test.com",
+    )
+
+    # Study A admin tries to grant permissions in study B — must be denied.
+    # The response is 404 (not 403) because the access layer does not reveal
+    # that the study exists to a user who has no access to it at all.
+    req(
+        f"/api/study/{study_b.study.id}/permissions/{target_user.id}",
+        method="put",
+        b={"is_study_viewer": True},
+        access_token=admin_token,
+        expected_http_code=404,
+    )
+
+    # Same for reading the permissions list of study B
+    req(
+        f"/api/study/{study_b.study.id}/permissions",
+        method="get",
+        access_token=admin_token,
+        expected_http_code=404,
+    )
+    print("  ✓ Study admin correctly blocked from managing permissions in a different study")

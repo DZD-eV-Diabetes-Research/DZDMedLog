@@ -2,16 +2,14 @@ from typing import List, Dict
 import json
 import uuid
 import requests
-from _single_test_file_runner import run_all_tests_if_test_file_called
-
-if __name__ == "__main__":
-    run_all_tests_if_test_file_called()
 
 from utils import (
     req,
     dict_must_contain,
+    authorize_for_access_token,
     authorize_for_session,
     oidc_login_get_session,
+    create_test_user,
 )
 from statics import (
     ADMIN_USER_EMAIL,
@@ -113,3 +111,48 @@ def test_oidc_session_logout():
 
     # Protected endpoint must now reject the old session
     req("api/user/me", session=oidc_session, expected_http_code=401)
+
+
+def test_deactivated_user_cannot_log_in():
+    """A deactivated account must be rejected at login. Reactivating it must
+    restore the ability to log in.
+    """
+    password = "deact_test_pw_6641"
+    user = create_test_user(
+        user_name="deactivation_test_user",
+        password=password,
+        email="deactivation_test@test.com",
+    )
+
+    # Freshly created user can log in
+    token = authorize_for_access_token(
+        username=user.user_name, pw=password, set_as_global_default_login=False
+    )
+    assert token, "Expected a token for active user"
+    me = req("api/user/me", access_token=token)
+    assert me["user_name"] == user.user_name
+
+    # Deactivate the user via admin
+    req(f"/api/user/{user.id}", method="patch", b={"deactivated": True})
+
+    # Login must now be rejected
+    import requests as _requests
+    from utils import get_medlogserver_base_url
+
+    resp = _requests.post(
+        f"{get_medlogserver_base_url()}/api/auth/basic/login/token",
+        data={"username": user.user_name, "password": password},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert resp.status_code in (401, 403), (
+        f"Expected 401/403 for deactivated user login, got {resp.status_code}: {resp.text}"
+    )
+    print(f"  ✓ Deactivated user login rejected with {resp.status_code}")
+
+    # Reactivate and verify login works again
+    req(f"/api/user/{user.id}", method="patch", b={"deactivated": False})
+    token2 = authorize_for_access_token(
+        username=user.user_name, pw=password, set_as_global_default_login=False
+    )
+    assert token2, "Expected a token after reactivation"
+    print("  ✓ Reactivated user can log in again")
