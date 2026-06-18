@@ -86,10 +86,12 @@ async def list_studies(
     # so everything is fine...
     all_studies = await study_crud.list(show_deactivated=show_deactived)
     allowed_studies: List[Study] = []
-
-    for study in all_studies:
-        if study_permissions_helper.user_has_access_to(study_id=study.id):
-            allowed_studies.append(study)
+    if current_user.is_admin or current_user.is_usermanager:
+        allowed_studies = all_studies
+    else:
+        for study in all_studies:
+            if study_permissions_helper.user_has_access_to(study_id=study.id):
+                allowed_studies.append(study)
     allowed_studies = pagination.order(allowed_studies)
     pageinated_allowed_studies = allowed_studies[pagination.offset : pagination.limit]
     return PaginatedResponse[Study](
