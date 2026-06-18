@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict
 from pathlib import Path, PurePath
 import asyncio
+import datetime
 import multiprocessing
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -151,6 +152,12 @@ async def _inital_setup_scheduled_background_tasks() -> AsyncIOScheduler:
                 "instant_run": True,
             },
             trigger=IntervalTrigger(**b_job.interval_params),
+            # APScheduler's IntervalTrigger schedules the first run one full interval
+            # into the future. For long intervals (e.g. the drug data auto-updater runs
+            # every 1 day) that means a fresh instance would not poll the remote source
+            # until a day after startup. Force an initial run at startup so interval jobs
+            # execute once immediately and then continue on their interval.
+            next_run_time=datetime.datetime.now(),
         )
     return scheduler
 
