@@ -140,6 +140,12 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
     async def build_index(self, force_rebuild: bool = False):
         # tables will be created with build in MedLog/backend/medlogserver/db/_init_db.py -> init_db() we do not need to take care here.
         target_drug_dataset_version = await self._get_current_dataset_version()
+        if target_drug_dataset_version is None:
+            log.info(
+                "Skip build_index for 'GenericSQLDrugSearchEngine'-Engine: "
+                "no active drug dataset version available yet (no drug data loaded)."
+            )
+            return
         custom_drug_dataset_version = await self._get_custom_drugs_dataset_version()
         state = await self._get_state()
         if state.index_build_up_in_process:

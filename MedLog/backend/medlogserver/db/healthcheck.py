@@ -21,6 +21,8 @@ from medlogserver.db.drug_data.drug_dataset_version import (
     DrugDataSetVersionCRUD,
     DrugDataSetVersion,
 )
+from medlogserver.db.worker_job import WorkerJobCRUD
+from medlogserver.model.worker_job import WorkerJobState
 from medlogserver.db._session import get_async_session_context
 
 from medlogserver.db._base_crud import DatabaseInteractionBase
@@ -51,7 +53,7 @@ class HealthcheckRead(DatabaseInteractionBase):
             version=get_version(),
             db_working=False,
             drugs_imported=False,
-            last_worker_run_succesfull=True,  # not yet implemented. always true
+            last_worker_run_succesfull=True,
             drug_search_index_working=False,
         )
         # basic db check
@@ -71,4 +73,13 @@ class HealthcheckRead(DatabaseInteractionBase):
         # drug search check
         async with get_drug_search_context(self.session) as drug_search:
             healthcheck.drug_search_index_working = await drug_search.healthy()
+        # last worker run check
+        async with WorkerJobCRUD.crud_context(self.session) as worker_job_crud:
+            interval_jobs = await worker_job_crud.list(filter_intervalled_job=True)
+            completed_jobs = [j for j in interval_jobs if j.run_finished_at is not None]
+            if completed_jobs:
+                latest_job = max(completed_jobs, key=lambda j: j.run_finished_at)
+                healthcheck.last_worker_run_succesfull = (
+                    latest_job.get_state() != WorkerJobState.FAILED
+                )
         return healthcheck
