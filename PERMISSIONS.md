@@ -47,10 +47,10 @@ Study permissions can be set:
 | Action | Plain user | Study admin | User manager | Admin |
 |---|:---:|:---:|:---:|:---:|
 | View study data | own studies only | own studies only | all studies | all studies |
-| Create interviews | if `is_study_interviewer` | if `is_study_interviewer` | no | yes |
+| Create interviews | if `is_study_interviewer` | yes | no | yes |
 | Manage study memberships | no | own study | all studies | all studies |
 | Create / deactivate users | no | no | yes | yes |
-| Assign global roles | no | no | no | yes |
+| Assign global roles | no | no | yes | yes |
 | Access all studies without explicit permission | no | no | view only | yes |
 
 ---
