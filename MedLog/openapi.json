@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.0.post1.dev0+d20260618"
+    "version": "1.0.8b1.post1.dev13+g3a37f0232.d20260727"
   },
   "paths": {
     "/api/health": {
@@ -1088,6 +1088,9 @@
                 "created_at",
                 "display_name",
                 "no_permissions",
+                "proband_external_id_pattern",
+                "proband_external_id_pattern_error_text",
+                "proband_external_id_normalization",
                 "deactivated",
                 "id"
               ],
@@ -1267,6 +1270,65 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/study/{study_id}/proband-external-id/validate": {
+      "post": {
+        "tags": [
+          "Study"
+        ],
+        "summary": "Validate Proband External Id",
+        "description": "Validate a proband external ID against this study's configured pattern and normalization, without creating anything. Backs the frontend pre-submit check and the study-configuration test field. The backend stays authoritative on interview creation. Returns the normalized value and, if invalid, the study's human-readable error text.",
+        "operationId": "validate_proband_external_id_api_study__study_id__proband_external_id_validate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Study Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_validate_proband_external_id_api_study__study_id__proband_external_id_validate_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProbandIdValidationResult"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -5352,6 +5414,19 @@
         ],
         "title": "Body_set_user_password_api_user__user_id__password_put"
       },
+      "Body_validate_proband_external_id_api_study__study_id__proband_external_id_validate_post": {
+        "properties": {
+          "proband_external_id": {
+            "type": "string",
+            "title": "Proband External Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "proband_external_id"
+        ],
+        "title": "Body_validate_proband_external_id_api_study__study_id__proband_external_id_validate_post"
+      },
       "BrandingData": {
         "properties": {
           "support_email": {
@@ -8233,6 +8308,45 @@
         ],
         "title": "PaginatedResponse[User]"
       },
+      "ProbandExternalIdNormalization": {
+        "type": "string",
+        "enum": [
+          "none",
+          "uppercase",
+          "lowercase"
+        ],
+        "title": "ProbandExternalIdNormalization",
+        "description": "How a proband external ID is normalized before it is validated, stored and matched.\n\nApplied per study. Replaces the former global ``PROBAND_IDS_CASE_SENSETIVE`` flag."
+      },
+      "ProbandIdValidationResult": {
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "normalized_proband_external_id": {
+            "type": "string",
+            "title": "Normalized Proband External Id"
+          },
+          "error_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "valid",
+          "normalized_proband_external_id"
+        ],
+        "title": "ProbandIdValidationResult"
+      },
       "SourceOfDrugInformationAnwers": {
         "type": "string",
         "enum": [
@@ -8277,6 +8391,43 @@
             "description": "If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study. Admin access still need to be allocated explicit.",
             "default": false
           },
+          "proband_external_id_pattern": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern",
+            "description": "Optional regular expression a proband external ID must fully match to be accepted for this study. If unset (default), any proband ID is accepted (status quo). The pattern is validated (compiled) when the study is saved.",
+            "examples": [
+              "^[A-Z]{3}[0-9]{4}$"
+            ]
+          },
+          "proband_external_id_pattern_error_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern Error Text",
+            "description": "Human-readable error text shown when a proband ID does not match 'proband_external_id_pattern'. Should describe the expected format in plain language instead of exposing the raw regular expression. A generic fallback text is used when unset.",
+            "examples": [
+              "Expected 3 uppercase letters followed by 4 digits, e.g. AAA1111"
+            ]
+          },
+          "proband_external_id_normalization": {
+            "$ref": "#/components/schemas/ProbandExternalIdNormalization",
+            "description": "How proband external IDs are normalized before validation, storage and matching for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag.",
+            "default": "none"
+          },
           "deactivated": {
             "type": "boolean",
             "title": "Deactivated",
@@ -8314,6 +8465,43 @@
             "title": "No Permissions",
             "description": "If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study. Admin access still need to be allocated explicit.",
             "default": false
+          },
+          "proband_external_id_pattern": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern",
+            "description": "Optional regular expression a proband external ID must fully match to be accepted for this study. If unset (default), any proband ID is accepted (status quo). The pattern is validated (compiled) when the study is saved.",
+            "examples": [
+              "^[A-Z]{3}[0-9]{4}$"
+            ]
+          },
+          "proband_external_id_pattern_error_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern Error Text",
+            "description": "Human-readable error text shown when a proband ID does not match 'proband_external_id_pattern'. Should describe the expected format in plain language instead of exposing the raw regular expression. A generic fallback text is used when unset.",
+            "examples": [
+              "Expected 3 uppercase letters followed by 4 digits, e.g. AAA1111"
+            ]
+          },
+          "proband_external_id_normalization": {
+            "$ref": "#/components/schemas/ProbandExternalIdNormalization",
+            "description": "How proband external IDs are normalized before validation, storage and matching for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag.",
+            "default": "none"
           }
         },
         "type": "object",
@@ -8453,6 +8641,43 @@
             "title": "No Permissions",
             "description": "If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study. Admin access still need to be allocated explicit.",
             "default": false
+          },
+          "proband_external_id_pattern": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern",
+            "description": "Optional regular expression a proband external ID must fully match to be accepted for this study. If unset (default), any proband ID is accepted (status quo). The pattern is validated (compiled) when the study is saved.",
+            "examples": [
+              "^[A-Z]{3}[0-9]{4}$"
+            ]
+          },
+          "proband_external_id_pattern_error_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern Error Text",
+            "description": "Human-readable error text shown when a proband ID does not match 'proband_external_id_pattern'. Should describe the expected format in plain language instead of exposing the raw regular expression. A generic fallback text is used when unset.",
+            "examples": [
+              "Expected 3 uppercase letters followed by 4 digits, e.g. AAA1111"
+            ]
+          },
+          "proband_external_id_normalization": {
+            "$ref": "#/components/schemas/ProbandExternalIdNormalization",
+            "description": "How proband external IDs are normalized before validation, storage and matching for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag.",
+            "default": "none"
           },
           "deactivated": {
             "type": "boolean",
