@@ -48,6 +48,11 @@ from medlogserver.api.study_access import (
     user_has_study_access,
 )
 from medlogserver.utils import handle_integrity_error
+from medlogserver.api.proband_id import (
+    assert_valid_proband_id_pattern,
+    check_proband_id,
+    ProbandIdValidationResult,
+)
 
 from medlogserver.config import Config
 
@@ -112,6 +117,9 @@ async def create_study(
     current_user_is_admin: User = Security(user_is_admin),
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
 ) -> Study:
+    # Reject a broken proband-ID regex up front so it can never be stored and later
+    # break interview creation.
+    assert_valid_proband_id_pattern(study.proband_external_id_pattern)
     study_create = StudyCreate(**study.model_dump(exclude_unset=True))
     return await study_crud.create(
         study_create,
@@ -142,10 +150,35 @@ async def update_study(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"You are not allowed to update this study",
         )
+    assert_valid_proband_id_pattern(study.proband_external_id_pattern)
     try:
         return await study_crud.update(id_=study_id, update_obj=study)
     except Exception as e:
         handle_integrity_error(e)
+
+
+@fast_api_study_router.post(
+    "/study/{study_id}/proband-external-id/validate",
+    response_model=ProbandIdValidationResult,
+    description=(
+        "Validate a proband external ID against this study's configured pattern and "
+        "normalization, without creating anything. Backs the frontend pre-submit check and the "
+        "study-configuration test field. The backend stays authoritative on interview creation. "
+        "Returns the normalized value and, if invalid, the study's human-readable error text."
+    ),
+)
+async def validate_proband_external_id(
+    proband_external_id: Annotated[str, Body(embed=True)],
+    study_access: UserStudyAccess = Security(user_has_study_access),
+) -> ProbandIdValidationResult:
+    valid, normalized, error_text = check_proband_id(
+        study_access.study, proband_external_id
+    )
+    return ProbandIdValidationResult(
+        valid=valid,
+        normalized_proband_external_id=normalized,
+        error_text=error_text,
+    )
 
 
 @fast_api_study_router.delete(

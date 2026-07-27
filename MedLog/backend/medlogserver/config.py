@@ -721,16 +721,10 @@ class Config(BaseSettings):
         examples=["./export_cache", "/var/lib/medlog/exports"],
     )
 
-    PROBAND_IDS_CASE_SENSETIVE: bool = Field(
-        default=False,
-        description=(
-            "Controls whether proband (subject) IDs are treated as case-sensitive. "
-            "If False (default), IDs '1A' and '1a' refer to the same proband. "
-            "If True, they are treated as distinct probands. "
-            "Note: the variable name contains a known typo ('SENSETIVE' instead of 'SENSITIVE') "
-            "that is preserved for backward compatibility with existing deployments."
-        ),
-    )
+    # Removed in favor of the per-study 'proband_external_id_normalization' setting
+    # (see medlogserver.model.study.ProbandExternalIdNormalization). The former global
+    # PROBAND_IDS_CASE_SENSETIVE value is migrated onto existing studies by the Alembic
+    # migration that introduces the per-study columns.
 
     class SystemAnnouncement(BaseSettings):
         public: bool = Field(

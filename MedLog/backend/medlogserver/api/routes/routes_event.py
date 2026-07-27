@@ -279,6 +279,7 @@ async def list_events_per_proband(
         proband_id=proband_id,
         exlude_empty_events=exlude_empty_events,
         filter_study_id=study_access.study.id,
+        proband_external_id_normalization=study_access.study.proband_external_id_normalization,
         pagination=pagination,
     )
     return PaginatedResponse(

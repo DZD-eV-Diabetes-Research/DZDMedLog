@@ -21,6 +21,8 @@ from medlogserver.model.event import (
 )
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.db.interview import Interview
+from medlogserver.model.study import ProbandExternalIdNormalization
+from medlogserver.db.proband_id import build_proband_external_id_filter
 from medlogserver.api.paginator import QueryParamsInterface
 from medlogserver.db._base_crud import CRUDBase
 
@@ -61,16 +63,18 @@ class EventCRUD(create_crud_base(Event, EventRead, EventCreate, EventUpdate)):
         proband_id: str = None,
         exlude_empty_events: bool = False,
         filter_study_id: UUID = None,
+        proband_external_id_normalization: ProbandExternalIdNormalization = ProbandExternalIdNormalization.NONE,
         pagination: Optional[QueryParamsInterface] = None,
     ) -> List[EventReadPerProband]:
         """List all events that a proband participated"""
         query = select(Event, func.count(col(Interview.id))).join(Interview)
-        if config.PROBAND_IDS_CASE_SENSETIVE:
-            query = query.where(Interview.proband_external_id == proband_id)
-        else:
-            query = query.where(
-                func.lower(Interview.proband_external_id) == func.lower(proband_id)
+        query = query.where(
+            build_proband_external_id_filter(
+                Interview.proband_external_id,
+                proband_id,
+                proband_external_id_normalization,
             )
+        )
 
         if filter_study_id:
             query = query.where(Event.study_id == filter_study_id)
