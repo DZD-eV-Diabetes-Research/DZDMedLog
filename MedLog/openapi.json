@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.8b1.post1.dev14+g0cfccb7da.d20260727"
+    "version": "1.0.8b1.post1.dev15+g56204902f.d20260727"
   },
   "paths": {
     "/api/health": {
@@ -1362,7 +1362,7 @@
           "Study"
         ],
         "summary": "Validate Proband External Id Pattern",
-        "description": "Stateless helper for the study-configuration UI: validate a 'sample' proband ID against an *unsaved* 'pattern' + 'normalization', so a live test field can be offered before the study is saved. Touches no database. Returns whether the sample is valid, the normalized sample actually tested, an error text, and 'pattern_compiles' (false when the entered regex does not compile). Requires an authenticated user (intended for study administrators).",
+        "description": "Stateless helper for the study-configuration UI: validate a 'sample' proband ID against an *unsaved* 'pattern' + 'normalization', so a live test field can be offered before the study is saved. Touches no database. Returns whether the sample is valid, the normalized sample actually tested, an error text, 'pattern_compiles' (false when the entered regex does not compile) and 'pattern_safe' (false when the regex compiles but is rejected as prone to catastrophic backtracking). Restricted to study administrators (or instance admins).",
         "operationId": "validate_proband_external_id_pattern_api_proband_external_id_validate_pattern_post",
         "requestBody": {
           "content": {
@@ -5478,6 +5478,7 @@
         "properties": {
           "proband_external_id": {
             "type": "string",
+            "maxLength": 256,
             "title": "Proband External Id"
           }
         },
@@ -7597,6 +7598,7 @@
           },
           "proband_external_id": {
             "type": "string",
+            "maxLength": 256,
             "title": "Proband External Id",
             "description": "A unique ID given to the proband from the studies external proband management system"
           },
@@ -7652,6 +7654,7 @@
           },
           "proband_external_id": {
             "type": "string",
+            "maxLength": 256,
             "title": "Proband External Id",
             "description": "A unique ID given to the proband from the studies external proband management system"
           }
@@ -8383,7 +8386,8 @@
           "pattern": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 1024
               },
               {
                 "type": "null"
@@ -8397,6 +8401,7 @@
           },
           "sample": {
             "type": "string",
+            "maxLength": 256,
             "title": "Sample"
           }
         },
@@ -8405,7 +8410,7 @@
           "sample"
         ],
         "title": "ProbandIdPatternTestRequest",
-        "description": "Body of the stateless 'test this pattern' endpoint."
+        "description": "Body of the stateless 'test this pattern' endpoint.\n\n``pattern`` and ``sample`` are caller-supplied and fed straight into a regex match, so\nboth carry hard length caps (item 6): they bound the input feeding the matcher. The\npattern is additionally screened for catastrophic-backtracking shapes inside\n``core_check_proband_id`` before any match runs."
       },
       "ProbandIdPatternTestResult": {
         "properties": {
@@ -8431,6 +8436,11 @@
           "pattern_compiles": {
             "type": "boolean",
             "title": "Pattern Compiles"
+          },
+          "pattern_safe": {
+            "type": "boolean",
+            "title": "Pattern Safe",
+            "default": true
           }
         },
         "type": "object",
@@ -8466,6 +8476,11 @@
           "pattern_compiles": {
             "type": "boolean",
             "title": "Pattern Compiles",
+            "default": true
+          },
+          "pattern_safe": {
+            "type": "boolean",
+            "title": "Pattern Safe",
             "default": true
           },
           "proband_external_id_example": {

@@ -155,6 +155,31 @@ async def user_has_studies_access_map(
     return access_helper
 
 
+async def user_is_study_admin_somewhere(
+    access_map: Annotated[
+        UserStudyAccessCollection, Security(user_has_studies_access_map)
+    ],
+) -> User:
+    """Authorize an endpoint that has no single study to scope to, but should still be
+    restricted to study administrators (e.g. the stateless proband-ID pattern test).
+
+    Passes for an instance admin or for any user who is study-admin of at least one study.
+    Rejects plain viewers/interviewers and users with no study-admin rights. This is a
+    least-privilege control (issue #318, item 6) for a path where the caller supplies the
+    regex itself.
+    """
+    user = access_map.user
+    if user.is_admin():
+        return user
+    for study_access in access_map.studies_access.values():
+        if study_access.user_is_study_admin():
+            return user
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="This endpoint is restricted to study administrators.",
+    )
+
+
 async def user_has_study_access(
     study_id: uuid.UUID,
     user: Annotated[User, Security(get_current_user)],

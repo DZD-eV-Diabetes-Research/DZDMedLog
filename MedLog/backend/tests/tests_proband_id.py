@@ -11,10 +11,14 @@ Covers:
 - re.fullmatch anchoring (partial matches rejected)
 - fail-closed check_proband_id on an uncompilable stored pattern (unit)
 - migration e5f6a7b8c9d0 upgrade/backfill (lightweight sqlite alembic check)
+- item 6 (ReDoS hardening): catastrophic-backtracking pattern rejection at save time,
+  at match time (fail-closed), and on the stateless test endpoint; input/pattern length
+  caps; and least-privilege authorization on the stateless test endpoint
 """
 
 import datetime
 import importlib.util
+import time
 from pathlib import Path
 
 import sqlalchemy as sa
@@ -22,6 +26,9 @@ import sqlalchemy as sa
 from utils import (
     req,
     create_test_study,
+    create_test_user,
+    authorize_for_access_token,
+    dictyfy,
 )
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -760,3 +767,226 @@ def test_example_migration_upgrade_and_downgrade(tmp_path):
     with engine.connect() as conn:
         cols = [r[1] for r in conn.execute(sa.text("PRAGMA table_info(study)"))]
         assert "proband_external_id_example" not in cols
+
+
+# ══════════════════ item 6: ReDoS / resource-exhaustion hardening ═════════════
+#
+# A pattern such as (a+)+ backtracks catastrophically: empirically it blows up at ~30
+# characters of input and — because Python's re has no timeout and does not usefully
+# release the GIL during a match — a single request can starve the whole async event
+# loop. The mitigation is structural: never *run* a match against such a pattern. It is
+# rejected (a) at save time, (b) at match time as a fail-closed backstop, and (c) on the
+# stateless test endpoint. Length caps bound the input feeding any match, and the test
+# endpoint is additionally restricted to study administrators.
+
+# A textbook catastrophic-backtracking pattern (nested unbounded quantifiers).
+CATASTROPHIC_PATTERN = "(a+)+$"
+# An input that would take many seconds against CATASTROPHIC_PATTERN if it ever ran.
+REDOS_ATTACK_INPUT = "a" * 40 + "!"
+
+
+# ── save-time rejection ──────────────────────────────────────────────────────
+
+
+def test_catastrophic_pattern_rejected_on_create():
+    from medlogserver.model.study import StudyCreateAPI
+
+    body = dictyfy(
+        StudyCreateAPI(
+            display_name="probandid_redos_create",
+            proband_external_id_pattern=CATASTROPHIC_PATTERN,
+        )
+    )
+    res = req("api/study", method="post", b=body, expected_http_code=422)
+    # the rejection must explain *why* (not a generic compile error)
+    detail = res["detail"]
+    detail_text = detail if isinstance(detail, str) else str(detail)
+    assert "backtrack" in detail_text.lower(), res
+
+
+def test_catastrophic_pattern_rejected_on_update():
+    study_id, _ = _setup_study("probandid_redos_update")
+    req(
+        f"api/study/{study_id}",
+        method="patch",
+        b={"proband_external_id_pattern": "(.*)*x"},
+        expected_http_code=422,
+    )
+
+
+def test_various_catastrophic_shapes_rejected_but_safe_patterns_allowed():
+    from medlogserver.model.study import StudyCreateAPI
+
+    # These must all be rejected at save time.
+    for i, pat in enumerate(["(a*)*", "(a+)+", "([a-z]+)*@", "(.*)+", "((ab)+)+"]):
+        body = dictyfy(
+            StudyCreateAPI(
+                display_name=f"probandid_redos_bad_{i}",
+                proband_external_id_pattern=pat,
+            )
+        )
+        req("api/study", method="post", b=body, expected_http_code=422)
+
+    # These realistic proband-ID patterns must NOT be falsely rejected.
+    for i, pat in enumerate(
+        ["^[A-Z]{3}[0-9]{4}$", "[A-Za-z0-9_-]{1,20}", r"\d{4}-\d{2}", "[A-Z]+[0-9]+"]
+    ):
+        body = dictyfy(
+            StudyCreateAPI(
+                display_name=f"probandid_redos_good_{i}",
+                proband_external_id_pattern=pat,
+            )
+        )
+        created = req("api/study", method="post", b=body)
+        assert created["proband_external_id_pattern"] == pat, created
+
+
+# ── stateless test endpoint: rejection is fast (does not hang) ────────────────
+
+
+def test_validate_pattern_rejects_catastrophic_without_hanging():
+    start = time.monotonic()
+    res = _validate_pattern(CATASTROPHIC_PATTERN, REDOS_ATTACK_INPUT)
+    elapsed = time.monotonic() - start
+    # The dangerous match must never run -> the response is effectively instant. If the
+    # guard regressed and the match ran, this would take many seconds (or hang).
+    assert elapsed < 2.0, f"validate-pattern took {elapsed:.2f}s (guard regressed?)"
+    assert res["pattern_compiles"] is True, res  # it DOES compile...
+    assert res["pattern_safe"] is False, res  # ...but is rejected as unsafe
+    assert res["valid"] is False, res
+    assert res["error_text"], res
+
+
+def test_validate_pattern_safe_pattern_reports_pattern_safe_true():
+    res = _validate_pattern(PATTERN, "AAA1111")
+    assert res["pattern_safe"] is True, res
+    assert res["valid"] is True, res
+
+
+# ── match-time fail-closed backstop for a stored unsafe pattern (unit) ────────
+
+
+def test_check_proband_id_fails_closed_on_unsafe_stored_pattern():
+    # Mirrors the uncompilable-pattern fail-closed test: a stored pattern that compiles
+    # but is unsafe must reject the ID with an admin-facing message and never run the
+    # pathological match. (Save-time rejection prevents new such rows; this backstops
+    # migrated / directly-written ones.)
+    from medlogserver.api.proband_id import check_proband_id
+    from medlogserver.model.study import Study, ProbandExternalIdNormalization
+
+    study = Study(
+        display_name="unsafe_pattern_study",
+        proband_external_id_pattern=CATASTROPHIC_PATTERN,
+        proband_external_id_normalization=ProbandExternalIdNormalization.NONE,
+    )
+    start = time.monotonic()
+    valid, normalized, error_text = check_proband_id(study, REDOS_ATTACK_INPUT)
+    elapsed = time.monotonic() - start
+    assert elapsed < 2.0, f"check_proband_id took {elapsed:.2f}s (match ran?)"
+    assert valid is False, (valid, error_text)
+    assert error_text and "administrator" in error_text.lower(), error_text
+
+
+# ── input / pattern length caps ──────────────────────────────────────────────
+
+
+def test_interview_proband_id_length_cap_enforced():
+    # No pattern, but an absurdly long proband ID is still rejected at the API boundary
+    # (bounds the input that could feed a matcher on any study).
+    study_id, event_id = _setup_study("probandid_len_cap_interview")
+    _create_interview(study_id, event_id, "a" * 300, expected_http_code=422)
+
+
+def test_validate_endpoint_length_cap_enforced():
+    study_id, _ = _setup_study("probandid_len_cap_validate", pattern=PATTERN)
+    req(
+        f"api/study/{study_id}/proband-external-id/validate",
+        method="post",
+        b={"proband_external_id": "a" * 300},
+        expected_http_code=422,
+    )
+
+
+def test_validate_pattern_length_caps_enforced():
+    # oversized sample -> 422
+    req(
+        "api/proband-external-id/validate-pattern",
+        method="post",
+        b={"pattern": PATTERN, "sample": "a" * 300},
+        expected_http_code=422,
+    )
+    # oversized pattern -> 422
+    req(
+        "api/proband-external-id/validate-pattern",
+        method="post",
+        b={"pattern": "a" * 2000, "sample": "AAA1111"},
+        expected_http_code=422,
+    )
+
+
+# ── least-privilege authorization on the stateless test endpoint ─────────────
+
+
+def test_validate_pattern_forbidden_for_non_study_admin():
+    # A freshly created user with no study-admin rights (and not an instance admin) must
+    # be rejected: the endpoint runs a caller-supplied regex and is admin-only.
+    pw = "redos-authz-pw-1"
+    user = create_test_user(
+        user_name="probandid_redos_plain",
+        password=pw,
+        email="probandid_redos_plain@test.com",
+    )
+    token = authorize_for_access_token(
+        username=user.user_name, pw=pw, set_as_global_default_login=False
+    )
+    req(
+        "api/proband-external-id/validate-pattern",
+        method="post",
+        b={"pattern": PATTERN, "sample": "AAA1111"},
+        access_token=token,
+        tolerated_error_codes=[403],
+    )
+
+
+def test_validate_pattern_forbidden_for_study_viewer_but_allowed_for_study_admin():
+    from medlogserver.model.study_permission import StudyPermissonUpdate
+
+    study_id, _ = _setup_study("probandid_redos_authz_study")
+
+    pw = "redos-authz-pw-2"
+    user = create_test_user(
+        user_name="probandid_redos_viewer",
+        password=pw,
+        email="probandid_redos_viewer@test.com",
+    )
+    token = authorize_for_access_token(
+        username=user.user_name, pw=pw, set_as_global_default_login=False
+    )
+
+    # viewer-only permission -> still forbidden
+    req(
+        f"/api/study/{study_id}/permissions/{user.id}",
+        method="put",
+        b=dictyfy(StudyPermissonUpdate(is_study_viewer=1)),
+    )
+    req(
+        "api/proband-external-id/validate-pattern",
+        method="post",
+        b={"pattern": PATTERN, "sample": "AAA1111"},
+        access_token=token,
+        tolerated_error_codes=[403],
+    )
+
+    # promote to study admin -> now allowed
+    req(
+        f"/api/study/{study_id}/permissions/{user.id}",
+        method="put",
+        b=dictyfy(StudyPermissonUpdate(is_study_admin=1)),
+    )
+    res = req(
+        "api/proband-external-id/validate-pattern",
+        method="post",
+        b={"pattern": PATTERN, "sample": "AAA1111"},
+        access_token=token,
+    )
+    assert res["valid"] is True, res

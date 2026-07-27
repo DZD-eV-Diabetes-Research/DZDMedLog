@@ -17,6 +17,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import Depends, APIRouter
+from sqlmodel import Field
 
 from medlogserver.api.paginator import (
     QueryParamsInterface,
@@ -58,11 +59,15 @@ from medlogserver.model._base_model import MedLogBaseModel
 from medlogserver.utils import handle_integrity_error
 from medlogserver.api.proband_id import (
     assert_valid_proband_id_pattern,
-    check_proband_id,
     core_check_proband_id,
     ProbandIdValidationResult,
     ProbandIdPatternTestResult,
+    STORED_PATTERN_BROKEN_ERROR_TEXT,
+    STORED_PATTERN_UNSAFE_ERROR_TEXT,
+    MAX_PROBAND_ID_LENGTH,
+    MAX_PROBAND_ID_PATTERN_LENGTH,
 )
+from medlogserver.api.study_access import user_is_study_admin_somewhere
 
 from medlogserver.config import Config
 
@@ -218,28 +223,52 @@ async def update_study(
     ),
 )
 async def validate_proband_external_id(
-    proband_external_id: Annotated[str, Body(embed=True)],
+    proband_external_id: Annotated[
+        str, Body(embed=True, max_length=MAX_PROBAND_ID_LENGTH)
+    ],
     study_access: UserStudyAccess = Security(user_has_study_access),
 ) -> ProbandIdValidationResult:
-    valid, normalized, error_text = check_proband_id(
-        study_access.study, proband_external_id
+    study = study_access.study
+    result = core_check_proband_id(
+        study.proband_external_id_pattern,
+        study.proband_external_id_normalization,
+        study.proband_external_id_pattern_error_text,
+        proband_external_id,
     )
+    # Fail-closed messaging for a *saved* study: never surface the raw regex error, and map
+    # a broken / unsafe stored pattern to the admin-facing texts (item 6).
+    if not result.pattern_compiles:
+        valid, error_text = False, STORED_PATTERN_BROKEN_ERROR_TEXT
+    elif not result.pattern_safe:
+        valid, error_text = False, STORED_PATTERN_UNSAFE_ERROR_TEXT
+    else:
+        valid, error_text = result.valid, result.error_text
     return ProbandIdValidationResult(
         valid=valid,
-        normalized_proband_external_id=normalized,
+        normalized_proband_external_id=result.normalized,
         error_text=error_text,
-        proband_external_id_example=study_access.study.proband_external_id_example,
+        pattern_compiles=result.pattern_compiles,
+        pattern_safe=result.pattern_safe,
+        proband_external_id_example=study.proband_external_id_example,
     )
 
 
 class ProbandIdPatternTestRequest(MedLogBaseModel):
-    """Body of the stateless 'test this pattern' endpoint."""
+    """Body of the stateless 'test this pattern' endpoint.
 
-    pattern: Optional[str] = None
+    ``pattern`` and ``sample`` are caller-supplied and fed straight into a regex match, so
+    both carry hard length caps (item 6): they bound the input feeding the matcher. The
+    pattern is additionally screened for catastrophic-backtracking shapes inside
+    ``core_check_proband_id`` before any match runs.
+    """
+
+    pattern: Optional[str] = Field(
+        default=None, max_length=MAX_PROBAND_ID_PATTERN_LENGTH
+    )
     normalization: ProbandExternalIdNormalization = (
         ProbandExternalIdNormalization.NONE
     )
-    sample: str
+    sample: str = Field(max_length=MAX_PROBAND_ID_LENGTH)
 
 
 @fast_api_study_router.post(
@@ -249,18 +278,25 @@ class ProbandIdPatternTestRequest(MedLogBaseModel):
         "Stateless helper for the study-configuration UI: validate a 'sample' proband ID "
         "against an *unsaved* 'pattern' + 'normalization', so a live test field can be "
         "offered before the study is saved. Touches no database. Returns whether the sample "
-        "is valid, the normalized sample actually tested, an error text, and "
-        "'pattern_compiles' (false when the entered regex does not compile). "
-        f"Requires an authenticated user (intended for study administrators)."
+        "is valid, the normalized sample actually tested, an error text, "
+        "'pattern_compiles' (false when the entered regex does not compile) and "
+        "'pattern_safe' (false when the regex compiles but is rejected as prone to "
+        "catastrophic backtracking). "
+        f"Restricted to study administrators (or instance admins)."
     ),
 )
 async def validate_proband_external_id_pattern(
     body: Annotated[ProbandIdPatternTestRequest, Body()],
-    current_user: User = Security(get_current_user),
+    current_user: User = Security(user_is_study_admin_somewhere),
 ) -> ProbandIdPatternTestResult:
-    # Stateless by design: no study is loaded and nothing is persisted. Auth is only a
-    # generic authenticated-user check because there is no per-study resource to scope to;
-    # this endpoint merely compiles a regex and runs fullmatch on a sample string.
+    # Stateless by design: no study is loaded and nothing is persisted. The pattern here is
+    # *caller-supplied* (unlike the interview / saved-study paths where it is admin-authored
+    # and screened at save time), so this is the sharpest ReDoS surface. Two controls apply:
+    #   1. Authorization is restricted to study administrators (item 6 / least privilege) —
+    #      the intended audience — instead of any authenticated user, shrinking the attacker
+    #      set for the one path where the caller brings their own regex.
+    #   2. core_check_proband_id enforces the pattern length cap + nested-unbounded-quantifier
+    #      rejection *before* any match runs, and the request model caps pattern/sample length.
     result = core_check_proband_id(
         pattern=body.pattern,
         normalization=body.normalization,
@@ -272,6 +308,7 @@ async def validate_proband_external_id_pattern(
         normalized_sample=result.normalized,
         error_text=result.error_text,
         pattern_compiles=result.pattern_compiles,
+        pattern_safe=result.pattern_safe,
     )
 
 
