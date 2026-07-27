@@ -45,9 +45,15 @@ def normalize_proband_external_id(
 
     Pure/side-effect free so it can be shared between the write path, the lookup
     path and the validation endpoint (single source of truth). ``None`` in -> ``None`` out.
+
+    Leading/trailing whitespace is *always* stripped, independent of the case rule
+    (including ``NONE``). This happens before validation, storage and matching so that a
+    value like ``"AAA1111 "`` can never be stored-with-space and then silently fail to
+    match later exact-value lookups.
     """
     if value is None:
         return None
+    value = value.strip()
     if normalization == ProbandExternalIdNormalization.UPPERCASE:
         return value.upper()
     if normalization == ProbandExternalIdNormalization.LOWERCASE:
@@ -99,6 +105,16 @@ class StudyCreateAPI(MedLogBaseModel, table=False):
             "How proband external IDs are normalized before validation, storage and matching "
             "for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag."
         ),
+    )
+    proband_external_id_example: Optional[str] = Field(
+        default=None,
+        max_length=1024,
+        description=(
+            "Optional positive example of a valid proband external ID for this study "
+            "(e.g. 'AAA1111'), so the frontend can proactively show 'e.g. …' next to the "
+            "input. Purely informational — it is not validated against the pattern."
+        ),
+        schema_extra={"examples": ["AAA1111"]},
     )
 
 

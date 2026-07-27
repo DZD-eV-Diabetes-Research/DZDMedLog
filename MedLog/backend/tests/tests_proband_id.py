@@ -142,15 +142,18 @@ def test_invalid_id_rejected_with_configured_error_text():
         "probandid_invalid_422", pattern=PATTERN, error_text=ERROR_TEXT
     )
     body = _create_interview(study_id, event_id, "not-matching", expected_http_code=422)
-    assert body["detail"] == ERROR_TEXT, body
+    # item 3: detail is now a structured object {message, normalized_proband_external_id}
+    assert body["detail"]["message"] == ERROR_TEXT, body
+    assert body["detail"]["normalized_proband_external_id"] == "not-matching", body
 
 
 def test_invalid_id_rejected_generic_fallback_when_no_error_text():
     study_id, event_id = _setup_study("probandid_invalid_generic", pattern=PATTERN)
     body = _create_interview(study_id, event_id, "xxx", expected_http_code=422)
     # generic fallback text (not None, not empty)
-    assert isinstance(body["detail"], str) and body["detail"], body
-    assert "format" in body["detail"].lower(), body
+    msg = body["detail"]["message"]
+    assert isinstance(msg, str) and msg, body
+    assert "format" in msg.lower(), body
 
 
 # ─────────────────────────── normalization ──────────────────────────────────
@@ -365,11 +368,23 @@ def test_fullmatch_anchors_even_without_explicit_anchors():
     assert _validate(study_id, "XABC1234")["valid"] is False
 
 
-def test_fullmatch_rejects_trailing_newline():
-    # Classic `$`-vs-`\Z` trap: "$" can match before a trailing newline, but
-    # re.fullmatch must reject the newline because it is not consumed.
+def test_trailing_newline_is_trimmed_then_accepted():
+    # Since item 1, leading/trailing whitespace (incl. "\n") is trimmed BEFORE validation,
+    # so "AAA1111\n" normalizes to "AAA1111" and is accepted. This supersedes the former
+    # "$-vs-\\Z trailing-newline is rejected" expectation: the newline never reaches the
+    # matcher. Internal newlines are still rejected (see below).
     study_id, _ = _setup_study("probandid_fullmatch_newline", pattern=PATTERN)
-    assert _validate(study_id, "AAA1111\n")["valid"] is False
+    res = _validate(study_id, "AAA1111\n")
+    assert res["valid"] is True, res
+    assert res["normalized_proband_external_id"] == "AAA1111", res
+
+
+def test_fullmatch_rejects_internal_newline():
+    # Anchoring trap that trimming cannot rescue: a newline in the MIDDLE of the value.
+    # "$" in multiline-less mode still would not help; re.fullmatch requires the whole
+    # (trimmed) string to match, so an embedded newline is rejected.
+    study_id, _ = _setup_study("probandid_fullmatch_internal_nl", pattern=PATTERN)
+    assert _validate(study_id, "AAA\n1111")["valid"] is False
 
 
 # ─────────────── fail-closed on uncompilable stored pattern (unit) ───────────
@@ -388,6 +403,241 @@ def test_check_proband_id_fails_closed_on_bad_stored_pattern():
     assert valid is False, (valid, error_text)
     assert normalized == "AAA1111"
     assert error_text and "administrator" in error_text.lower(), error_text
+
+
+# ─────────────────────────── item 1: whitespace trimming ────────────────────
+
+
+def _validate_pattern(pattern, sample, normalization=None):
+    body = {"sample": sample}
+    if pattern is not None:
+        body["pattern"] = pattern
+    if normalization is not None:
+        body["normalization"] = normalization
+    return req(
+        "api/proband-external-id/validate-pattern", method="post", b=body
+    )
+
+
+def test_trailing_whitespace_trimmed_with_pattern():
+    # "AAA1111 " (trailing space) must be accepted and stored WITHOUT the space,
+    # even though the pattern itself has no allowance for whitespace.
+    study_id, event_id = _setup_study(
+        "probandid_trim_pattern", pattern=PATTERN, normalization="none"
+    )
+    interview = _create_interview(study_id, event_id, "AAA1111 ")
+    assert interview["proband_external_id"] == "AAA1111", interview
+    # leading space too
+    interview2 = _create_interview(study_id, event_id, "  BBB2222", completed=True)
+    assert interview2["proband_external_id"] == "BBB2222", interview2
+
+
+def test_whitespace_variants_resolve_to_same_value_without_pattern():
+    # With no pattern and normalization=none, "AAA1111 " and "AAA1111" must resolve to the
+    # same stored/lookup value (else a space would silently break later lookups).
+    study_id, event_id = _setup_study("probandid_trim_nopattern", normalization="none")
+    interview = _create_interview(study_id, event_id, "AAA1111 ", completed=True)
+    assert interview["proband_external_id"] == "AAA1111", interview
+
+    # lookup by the un-spaced value finds it
+    listed = req(f"api/study/{study_id}/proband/AAA1111/interview", method="get")
+    assert len(listed) == 1, listed
+    # lookup by the spaced value also finds it (input is trimmed before matching)
+    listed_spaced = req(
+        f"api/study/{study_id}/proband/AAA1111%20/interview", method="get"
+    )
+    assert len(listed_spaced) == 1, listed_spaced
+
+    # a second interview with the spaced value collapses onto the same proband (409 guard)
+    _create_interview(study_id, event_id, "AAA1111 ", expected_http_code=409)
+
+
+def test_validate_endpoint_trims_whitespace():
+    study_id, _ = _setup_study("probandid_trim_validate", pattern=PATTERN)
+    res = _validate(study_id, " AAA1111 ")
+    assert res["valid"] is True, res
+    assert res["normalized_proband_external_id"] == "AAA1111", res
+
+
+# ─────────────────── item 2: stateless validate-pattern endpoint ─────────────
+
+
+def test_validate_pattern_bad_regex_reports_pattern_compiles_false():
+    res = _validate_pattern("[unclosed", "AAA1111")
+    assert res["pattern_compiles"] is False, res
+    assert res["valid"] is False, res
+    assert res["error_text"], res
+
+
+def test_validate_pattern_partial_match_rejected_fullmatch():
+    # fullmatch semantics: a partial match must be rejected even though re.match would pass.
+    res_ok = _validate_pattern(PATTERN, "AAA1111")
+    assert res_ok["valid"] is True and res_ok["pattern_compiles"] is True, res_ok
+    res_bad = _validate_pattern(PATTERN, "AAA1111X")
+    assert res_bad["valid"] is False and res_bad["pattern_compiles"] is True, res_bad
+
+
+def test_validate_pattern_applies_normalization_to_sample():
+    res = _validate_pattern(PATTERN, "aaa1111", normalization="uppercase")
+    assert res["valid"] is True, res
+    assert res["normalized_sample"] == "AAA1111", res
+
+
+def test_validate_pattern_no_pattern_accepts_anything():
+    res = _validate_pattern(None, "literally anything")
+    assert res["valid"] is True, res
+    assert res["pattern_compiles"] is True, res
+
+
+def test_validate_pattern_trims_sample():
+    res = _validate_pattern(PATTERN, "  AAA1111  ")
+    assert res["valid"] is True, res
+    assert res["normalized_sample"] == "AAA1111", res
+
+
+def test_validate_pattern_requires_auth():
+    # No bearer token -> 401/403 (endpoint requires an authenticated user).
+    req(
+        "api/proband-external-id/validate-pattern",
+        method="post",
+        b={"pattern": PATTERN, "sample": "AAA1111"},
+        suppress_auth=True,
+        tolerated_error_codes=[401, 403],
+    )
+
+
+# ─────────────── item 3: structured error surfaces normalized value ──────────
+
+
+def test_interview_422_surfaces_normalized_value():
+    # aaa1111 is uppercased to AAA1111 which still does not match a digits-only pattern.
+    study_id, event_id = _setup_study(
+        "probandid_norm_surface", pattern="^[0-9]{7}$", normalization="uppercase"
+    )
+    body = _create_interview(study_id, event_id, "aaa1111", expected_http_code=422)
+    assert body["detail"]["normalized_proband_external_id"] == "AAA1111", body
+    assert body["detail"]["message"], body
+
+
+def test_validate_endpoint_surfaces_normalized_value_on_reject():
+    study_id, _ = _setup_study(
+        "probandid_norm_surface_validate",
+        pattern="^[0-9]{7}$",
+        normalization="uppercase",
+    )
+    res = _validate(study_id, "aaa1111")
+    assert res["valid"] is False, res
+    assert res["normalized_proband_external_id"] == "AAA1111", res
+
+
+def test_validate_pattern_surfaces_normalized_sample_on_reject():
+    res = _validate_pattern("^[0-9]{7}$", "aaa1111", normalization="uppercase")
+    assert res["valid"] is False, res
+    assert res["normalized_sample"] == "AAA1111", res
+
+
+# ─────────────────────── item 4: positive example field ──────────────────────
+
+
+def test_example_round_trips_on_create_and_update():
+    from medlogserver.model.study import StudyCreateAPI
+    from utils import dictyfy
+
+    body = dictyfy(
+        StudyCreateAPI(
+            display_name="probandid_example_create",
+            proband_external_id_example="AAA1111",
+        )
+    )
+    created = req("api/study", method="post", b=body)
+    assert created["proband_external_id_example"] == "AAA1111", created
+
+    # present in study GET (list)
+    listed = req("api/study", method="get")
+    from utils import find_first_dict_in_list
+
+    study_in_list = find_first_dict_in_list(
+        listed["items"], required_keys_and_val={"id": created["id"]}
+    )
+    assert study_in_list["proband_external_id_example"] == "AAA1111", study_in_list
+
+    # update it
+    updated = req(
+        f"api/study/{created['id']}",
+        method="patch",
+        b={"proband_external_id_example": "BBB2222"},
+    )
+    assert updated["proband_external_id_example"] == "BBB2222", updated
+
+
+def test_example_included_in_validate_response():
+    study_id, _ = _setup_study("probandid_example_validate", pattern=PATTERN)
+    req(
+        f"api/study/{study_id}",
+        method="patch",
+        b={"proband_external_id_example": "AAA1111"},
+    )
+    res = _validate(study_id, "ABC1234")
+    assert res["proband_external_id_example"] == "AAA1111", res
+
+
+# ─────────── item 5: guard normalization change on a populated study ─────────
+
+
+def test_normalization_change_blocked_on_populated_study():
+    study_id, event_id = _setup_study(
+        "probandid_normguard_blocked", normalization="none"
+    )
+    _create_interview(study_id, event_id, "AAA1111")
+    # attempt to switch normalization -> 409 without confirmation
+    body = req(
+        f"api/study/{study_id}",
+        method="patch",
+        b={"proband_external_id_normalization": "uppercase"},
+        expected_http_code=409,
+    )
+    assert body["detail"]["affected_interview_count"] == 1, body
+
+
+def test_normalization_change_allowed_with_confirmation():
+    study_id, event_id = _setup_study(
+        "probandid_normguard_confirmed", normalization="none"
+    )
+    _create_interview(study_id, event_id, "AAA1111")
+    updated = req(
+        f"api/study/{study_id}?confirm_normalization_change=true",
+        method="patch",
+        b={"proband_external_id_normalization": "uppercase"},
+    )
+    assert updated["proband_external_id_normalization"] == "uppercase", updated
+
+
+def test_normalization_change_allowed_when_no_interviews():
+    study_id, _ = _setup_study("probandid_normguard_empty", normalization="none")
+    # no interviews -> change goes through without confirmation
+    updated = req(
+        f"api/study/{study_id}",
+        method="patch",
+        b={"proband_external_id_normalization": "uppercase"},
+    )
+    assert updated["proband_external_id_normalization"] == "uppercase", updated
+
+
+def test_same_normalization_update_not_blocked_on_populated_study():
+    # PATCHing other fields (or the same normalization value) must NOT trip the guard.
+    study_id, event_id = _setup_study(
+        "probandid_normguard_noop", normalization="uppercase"
+    )
+    _create_interview(study_id, event_id, "AAA1111")
+    updated = req(
+        f"api/study/{study_id}",
+        method="patch",
+        b={
+            "proband_external_id_normalization": "uppercase",
+            "proband_external_id_example": "AAA1111",
+        },
+    )
+    assert updated["proband_external_id_example"] == "AAA1111", updated
 
 
 # ─────────────────────────── migration e5f6a7b8c9d0 ─────────────────────────
@@ -477,3 +727,36 @@ def test_migration_downgrade_removes_columns(tmp_path, monkeypatch):
         cols = [r[1] for r in conn.execute(sa.text("PRAGMA table_info(study)"))]
         assert "proband_external_id_pattern" not in cols
         assert "proband_external_id_normalization" not in cols
+
+
+# ─────────────────────────── migration f6a7b8c9d0e1 (item 4) ─────────────────
+
+
+def _load_example_migration_module():
+    mig_path = (
+        BACKEND_DIR
+        / "medlogserver/db_migrations/versions/"
+        "f6a7b8c9d0e1_add_proband_external_id_example_to_study.py"
+    )
+    spec = importlib.util.spec_from_file_location("mig_f6a7b8c9d0e1", mig_path)
+    mig = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mig)
+    return mig
+
+
+def test_example_migration_upgrade_and_downgrade(tmp_path):
+    mig = _load_example_migration_module()
+    engine = sa.create_engine(f"sqlite:///{tmp_path / 'mig_example.db'}")
+    _prepare_study_table(engine)
+
+    with engine.begin() as conn:
+        _run_migration_func(mig, "upgrade", conn)
+    with engine.connect() as conn:
+        cols = [r[1] for r in conn.execute(sa.text("PRAGMA table_info(study)"))]
+        assert "proband_external_id_example" in cols
+
+    with engine.begin() as conn:
+        _run_migration_func(mig, "downgrade", conn)
+    with engine.connect() as conn:
+        cols = [r[1] for r in conn.execute(sa.text("PRAGMA table_info(study)"))]
+        assert "proband_external_id_example" not in cols

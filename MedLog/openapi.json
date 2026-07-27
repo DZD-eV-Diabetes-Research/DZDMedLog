@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.8b1.post1.dev13+g3a37f0232.d20260727"
+    "version": "1.0.8b1.post1.dev14+g0cfccb7da.d20260727"
   },
   "paths": {
     "/api/health": {
@@ -1091,6 +1091,7 @@
                 "proband_external_id_pattern",
                 "proband_external_id_pattern_error_text",
                 "proband_external_id_normalization",
+                "proband_external_id_example",
                 "deactivated",
                 "id"
               ],
@@ -1205,6 +1206,18 @@
               "format": "uuid",
               "title": "Study Id"
             }
+          },
+          {
+            "name": "confirm_normalization_change",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Must be set to true to change 'proband_external_id_normalization' on a study that already has interviews. Changing the normalization re-folds how proband IDs are matched, which can silently merge or split existing probands in lookups. Without this flag such a change is rejected with 409.",
+              "default": false,
+              "title": "Confirm Normalization Change"
+            },
+            "description": "Must be set to true to change 'proband_external_id_normalization' on a study that already has interviews. Changing the normalization re-folds how proband IDs are matched, which can silently merge or split existing probands in lookups. Without this flag such a change is rejected with 409."
           }
         ],
         "requestBody": {
@@ -1341,6 +1354,53 @@
             }
           }
         }
+      }
+    },
+    "/api/proband-external-id/validate-pattern": {
+      "post": {
+        "tags": [
+          "Study"
+        ],
+        "summary": "Validate Proband External Id Pattern",
+        "description": "Stateless helper for the study-configuration UI: validate a 'sample' proband ID against an *unsaved* 'pattern' + 'normalization', so a live test field can be offered before the study is saved. Touches no database. Returns whether the sample is valid, the normalized sample actually tested, an error text, and 'pattern_compiles' (false when the entered regex does not compile). Requires an authenticated user (intended for study administrators).",
+        "operationId": "validate_proband_external_id_pattern_api_proband_external_id_validate_pattern_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProbandIdPatternTestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProbandIdPatternTestResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/study/permissions/available": {
@@ -8318,6 +8378,70 @@
         "title": "ProbandExternalIdNormalization",
         "description": "How a proband external ID is normalized before it is validated, stored and matched.\n\nApplied per study. Replaces the former global ``PROBAND_IDS_CASE_SENSETIVE`` flag."
       },
+      "ProbandIdPatternTestRequest": {
+        "properties": {
+          "pattern": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pattern"
+          },
+          "normalization": {
+            "$ref": "#/components/schemas/ProbandExternalIdNormalization",
+            "default": "none"
+          },
+          "sample": {
+            "type": "string",
+            "title": "Sample"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sample"
+        ],
+        "title": "ProbandIdPatternTestRequest",
+        "description": "Body of the stateless 'test this pattern' endpoint."
+      },
+      "ProbandIdPatternTestResult": {
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "normalized_sample": {
+            "type": "string",
+            "title": "Normalized Sample"
+          },
+          "error_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Text"
+          },
+          "pattern_compiles": {
+            "type": "boolean",
+            "title": "Pattern Compiles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "valid",
+          "normalized_sample",
+          "pattern_compiles"
+        ],
+        "title": "ProbandIdPatternTestResult",
+        "description": "Response model of the stateless ``/validate-pattern`` endpoint.\n\nLets the study-config UI offer a live 'test this pattern' field against an unsaved\n``pattern`` + ``normalization`` before the study is saved. ``pattern_compiles`` is\n``False`` (with ``valid=False``) when the entered regex does not compile."
+      },
       "ProbandIdValidationResult": {
         "properties": {
           "valid": {
@@ -8338,6 +8462,22 @@
               }
             ],
             "title": "Error Text"
+          },
+          "pattern_compiles": {
+            "type": "boolean",
+            "title": "Pattern Compiles",
+            "default": true
+          },
+          "proband_external_id_example": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Example"
           }
         },
         "type": "object",
@@ -8345,7 +8485,8 @@
           "valid",
           "normalized_proband_external_id"
         ],
-        "title": "ProbandIdValidationResult"
+        "title": "ProbandIdValidationResult",
+        "description": "Response model of the saved-study ``/validate`` endpoint.\n\n``normalized_proband_external_id`` is always the value the backend actually tried\n(e.g. it uppercased ``aaa1111`` to ``AAA1111``) so a rejecting frontend can show the\nuser exactly what was checked. ``proband_external_id_example`` mirrors the study's\noptional positive example for convenient display."
       },
       "SourceOfDrugInformationAnwers": {
         "type": "string",
@@ -8428,6 +8569,22 @@
             "description": "How proband external IDs are normalized before validation, storage and matching for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag.",
             "default": "none"
           },
+          "proband_external_id_example": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Example",
+            "description": "Optional positive example of a valid proband external ID for this study (e.g. 'AAA1111'), so the frontend can proactively show 'e.g. \u2026' next to the input. Purely informational \u2014 it is not validated against the pattern.",
+            "examples": [
+              "AAA1111"
+            ]
+          },
           "deactivated": {
             "type": "boolean",
             "title": "Deactivated",
@@ -8502,6 +8659,22 @@
             "$ref": "#/components/schemas/ProbandExternalIdNormalization",
             "description": "How proband external IDs are normalized before validation, storage and matching for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag.",
             "default": "none"
+          },
+          "proband_external_id_example": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Example",
+            "description": "Optional positive example of a valid proband external ID for this study (e.g. 'AAA1111'), so the frontend can proactively show 'e.g. \u2026' next to the input. Purely informational \u2014 it is not validated against the pattern.",
+            "examples": [
+              "AAA1111"
+            ]
           }
         },
         "type": "object",
@@ -8678,6 +8851,22 @@
             "$ref": "#/components/schemas/ProbandExternalIdNormalization",
             "description": "How proband external IDs are normalized before validation, storage and matching for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag.",
             "default": "none"
+          },
+          "proband_external_id_example": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Example",
+            "description": "Optional positive example of a valid proband external ID for this study (e.g. 'AAA1111'), so the frontend can proactively show 'e.g. \u2026' next to the input. Purely informational \u2014 it is not validated against the pattern.",
+            "examples": [
+              "AAA1111"
+            ]
           },
           "deactivated": {
             "type": "boolean",
