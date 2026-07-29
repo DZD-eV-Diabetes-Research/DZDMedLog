@@ -72,10 +72,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from "#imports";
 import type {SchemaDrugCustomCreate} from "#open-fetch-schemas/medlogapi";
+import type {IntakeFormSchema} from "~/components/Intake/Form.vue";
 
 const props = defineProps({
   isDrugEditable: { type: Boolean, default: true },
-  initialState: { type: Object, default: null },
+  initialState: { type: Object as () => Partial<IntakeFormSchema>, default: null },
 });
 
 defineEmits(['cancel', 'save'])
@@ -83,7 +84,7 @@ defineEmits(['cancel', 'save'])
 const createCustomDrugError = ref();
 const customDrugModalVisibility = ref(false);
 const intakeDrugId = ref<string>('');
-const intakeFormInitialState = ref();
+const intakeFormInitialState = ref<Partial<IntakeFormSchema>>();
 
 function onDrugSelected(newDrugId: string, activeIngredientOnly?: boolean) {
   intakeDrugId.value = newDrugId;
