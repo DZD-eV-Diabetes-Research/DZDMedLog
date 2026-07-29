@@ -4,6 +4,7 @@
 FROM oven/bun AS medlog-frontend-build
 RUN mkdir /frontend_build
 WORKDIR /frontend_build
+COPY MedLog/openapi.json /openapi.json
 COPY MedLog/frontend /frontend_build
 RUN rm -rf /frontend_build/.nuxt
 RUN rm -rf /frontend_build/.output
