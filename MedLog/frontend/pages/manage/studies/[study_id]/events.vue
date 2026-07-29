@@ -148,7 +148,7 @@ function cancelReordering() {
 
 async function endReordering() {
   try {
-    await useCreateEventOrder(studyId.value, myEvents.value.map(event => event.id));
+    await useCreateEventOrder(studyId.value, myEvents.value.map(event => event.id ?? ''));
     await loadEvents();
     await eventStore.loadAllEventsForStudy(studyId.value);
     sortingMode.value = false;

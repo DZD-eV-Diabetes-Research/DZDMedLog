@@ -19,15 +19,15 @@ interface FastAPIError {
 }
 
 export function isMultiValueField(fieldDefinition: FieldDefinition, _fields?: object): _fields is SchemaMedlogserverModelDrugDataApiDrugModelFactoryAttrsMulti_1 {
-    return fieldDefinition.is_multi_val_field && !fieldDefinition.is_reference_list_field;
+    return fieldDefinition.is_multi_val_field === true && !fieldDefinition.is_reference_list_field;
 }
 
 export function isMultiRefField(fieldDefinition: FieldDefinition, _fields?: object): _fields is SchemaMultiAttrRefs {
-    return fieldDefinition.is_multi_val_field && fieldDefinition.is_reference_list_field;
+    return fieldDefinition.is_multi_val_field === true && fieldDefinition.is_reference_list_field === true;
 }
 
 export function isSingleRefField(fieldDefinition: FieldDefinition, _fields?: object): _fields is SchemaMedlogserverModelDrugDataApiDrugModelFactoryAttrRefs_1 {
-    return !fieldDefinition.is_multi_val_field && fieldDefinition.is_reference_list_field;
+    return !fieldDefinition.is_multi_val_field && fieldDefinition.is_reference_list_field === true;
 }
 
 export function isFastAPIError(error: unknown): error is FastAPIError {

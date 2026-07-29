@@ -62,7 +62,7 @@ async function onEditUserRoles(userId: string) {
   try {
     const user = await useGetUser(userId);
     userIdForEditModal.value = userId;
-    rolesForEditModal.value = user.roles;
+    rolesForEditModal.value = user.roles ?? [];
     roleModalOpen.value = true;
   } catch (error) {
     toast.add({

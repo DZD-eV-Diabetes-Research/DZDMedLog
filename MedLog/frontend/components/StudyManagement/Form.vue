@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { onMounted, reactive, useTemplateRef } from "#imports";
-import { boolean, type InferType, object, string } from "yup";
+import { onMounted, reactive } from "#imports";
+import {boolean, type InferType, object, string} from "yup";
 import type { FormSubmitEvent } from "#ui/types";
+import type { SchemaStudy } from "#open-fetch-schemas/medlogapi";
 
 const props = defineProps<{
-  initialState?: any;
+  initialState?: SchemaStudy;
 }>();
 
 const emit = defineEmits(['cancel', 'save']);
 
-const studyForm = useTemplateRef('study-form');
-
-const state = reactive({
+const state = reactive<StudyFormSchema>({
   display_name: "",
   no_permissions: false,
   deactivated: false,
@@ -32,23 +31,17 @@ async function onSubmit(event: FormSubmitEvent<StudyFormSchema>) {
 onMounted(async () => {
   if (props.initialState) {
     // Populate form state with given state
-    for (const key of Object.keys(state)) {
-      if (props.initialState[key]) {
-        state[key] = props.initialState[key];
+    for (const key of Object.keys(state) as Array<keyof typeof state>) {
+      if (props.initialState[key] !== undefined) {
+        (state as Record<string, unknown>)[key] = props.initialState[key];
       }
-    }
-
-    try {
-      await studyForm.value?.validate();
-    } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
-      // Swallow error, the result is shown directly in the form
     }
   }
 })
 </script>
 
 <template>
-  <UForm ref="study-form" :state="state" :schema="schema" class="space-y-4" @submit="onSubmit">
+  <UForm :state="state" :schema="schema" class="space-y-4" @submit="onSubmit">
     <UFormGroup label="Name" name="display_name">
       <UInput v-model="state.display_name" type="text" />
     </UFormGroup>
