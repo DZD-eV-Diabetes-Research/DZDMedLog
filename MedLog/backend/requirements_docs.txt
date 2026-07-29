@@ -119,6 +119,10 @@ mkdocstrings[python]==1.0.3
     #   mkdocstrings-python
 mkdocstrings-python==2.0.3
     # via mkdocstrings
+psyplus==1.0.0
+    # via medlogserver (MedLog/backend/pyproject.toml)
+ruamel-yaml==0.19.1
+    # via psyplus
 packaging==26.0
     # via
     #   mkdocs

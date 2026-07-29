@@ -148,7 +148,7 @@ class UserCreate(_UserWithName, UserUpdateByAdmin, table=False):
         userdata["user_name"] = user_name
         userdata["display_name"] = oidc_userinfo.name
         userdata["email"] = oidc_userinfo.email
-        userdata["roles"] = roles
+        userdata["roles"] = list(set(roles))
         return cls(**userdata)
 
 

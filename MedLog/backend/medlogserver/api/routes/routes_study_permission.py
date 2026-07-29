@@ -136,7 +136,7 @@ async def get_my_permission_for_study(
             id=uuid.uuid4(),
             user_id=current_user.id,
             study_id=study_access.study.id,
-            is_study_viewer=True,
+            is_study_viewer=False,
             is_study_interviewer=False,
             is_study_admin=False,
         )

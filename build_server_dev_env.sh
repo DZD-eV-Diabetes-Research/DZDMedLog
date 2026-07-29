@@ -34,12 +34,61 @@ install_uv() {
     fi
 }
 
+ensure_python() {
+    # Make sure a *stable* CPython matching $PYTHON_VERSION is installed via uv.
+    # Without this, `uv venv --python 3.14` happily reuses a previously installed
+    # pre-release (e.g. 3.14.0rc2) because it already satisfies the request.
+    echo "Ensuring a stable CPython $PYTHON_VERSION is installed via uv..."
+    uv python install "$PYTHON_VERSION"
+}
+
+# Prints "<major.minor> <releaselevel>" for the interpreter in the venv,
+# e.g. "3.14 final" or "3.14 candidate". Empty if the venv is unusable.
+env_python_info() {
+    "$ENV_DIR/bin/python" -c \
+        'import sys; print("%d.%d %s" % (sys.version_info.major, sys.version_info.minor, sys.version_info.releaselevel))' \
+        2>/dev/null || true
+}
+
+# Returns 0 (true) if the existing venv must be torn down and recreated.
+needs_rebuild() {
+    [[ -x "$ENV_DIR/bin/python" ]] || return 0
+    local info major_minor level
+    info=$(env_python_info)
+    [[ -n "$info" ]] || { echo "Existing env is broken → rebuilding."; return 0; }
+    major_minor=${info% *}
+    level=${info#* }
+    if [[ "$major_minor" != "$PYTHON_VERSION" ]]; then
+        echo "Existing env is Python $major_minor, expected $PYTHON_VERSION → rebuilding."
+        return 0
+    fi
+    if [[ "$level" != "final" ]]; then
+        echo "Existing env uses a pre-release Python ($info) → rebuilding."
+        return 0
+    fi
+    return 1
+}
+
 create_env() {
-    if [[ -d "$ENV_DIR" ]]; then
-        echo "Environment already exists at $ENV_DIR. Skipping creation."
-    else
+    ensure_python
+    if needs_rebuild; then
         echo "Creating virtual environment with Python $PYTHON_VERSION..."
+        rm -rf "$ENV_DIR"
         uv venv --python "$PYTHON_VERSION" "$ENV_DIR"
+    else
+        echo "Environment at $ENV_DIR already matches stable Python $PYTHON_VERSION. Skipping creation."
+    fi
+
+    # Stubborn final check: never proceed on a pre-release interpreter.
+    local level
+    level=$(env_python_info)
+    level=${level#* }
+    if [[ "$level" != "final" ]]; then
+        echo "❌ venv still on a pre-release Python ($(env_python_info))."
+        echo "   A stray pre-release is shadowing the stable build. Remove it and retry:"
+        echo "       uv python list --only-installed"
+        echo "       uv python uninstall <the rc/beta version>"
+        return 1
     fi
 }
 

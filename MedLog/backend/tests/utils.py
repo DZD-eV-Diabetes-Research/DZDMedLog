@@ -468,7 +468,7 @@ def create_test_study(
         Path(__file__).parent.parent,
         "provisioning_data/dummy_drugset/20251228/drugs.csv",
     )
-    proband_ids = [str(random_gen.randint(0, 1000)) for _ in range(proband_count)]
+    proband_ids = [str(x) for x in random_gen.sample(range(0, 10000), proband_count)]
 
     from medlogserver.model.study import StudyCreateAPI, Study
     from medlogserver.api.routes.routes_study import create_study
