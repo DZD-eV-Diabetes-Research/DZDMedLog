@@ -10,7 +10,7 @@
 - Git
 - Python 3.11 or higher (the setup script manages the exact version via `uv`)
 - Docker (for PostgreSQL dev containers and running tests against Postgres)
-- [bun](https://bun.sh) or npm/node (the setup script installs bun automatically)
+- npm/node (the setup script installs nvm and the required Node version automatically)
 
 ---
 
@@ -64,13 +64,13 @@ pip install -r MedLog/backend/requirements_tests.txt
 ./build_client_dev_env.sh
 ```
 
-This installs bun (or updates it if present) and runs `bun install` in `MedLog/frontend/`.
+This installs [nvm](https://github.com/nvm-sh/nvm/) (or updates it if present), sets up Node.js and runs `npm install` in `MedLog/frontend/`.
 
 If you prefer a different package manager:
 
 ```bash
 cd MedLog/frontend
-npm install   # or: yarn install / pnpm install
+yarn install   # or: pnpm install / bun install
 ```
 
 ---
@@ -134,7 +134,7 @@ In a second terminal (with the backend already running):
 
 ```bash
 cd MedLog/frontend
-bun run dev
+npm run dev
 ```
 
 The Nuxt dev server starts on **http://localhost:3000** with hot-reload.
@@ -217,7 +217,7 @@ make frontend
 ./build_static_client.sh
 ```
 
-Uses a Docker container with bun — no local bun installation needed.
+Uses a Docker container with node — no local node installation needed.
 
 ### Build the Docker image
 

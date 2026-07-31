@@ -59,10 +59,10 @@ Then open **http://localhost:8888** and log in as `admin` / `adminadmin`.
 | Layer | Technology |
 |---|---|
 | Backend | Python 3.14, FastAPI, SQLModel, SQLAlchemy (async), Alembic, Uvicorn |
-| Frontend | Nuxt 3, Vue 3, TypeScript |
+| Frontend | Nuxt 3, Nuxt UI 2, Vue 3, TypeScript |
 | Database | PostgreSQL (production) / SQLite (development) |
 | Auth | OpenID Connect / OAuth2 (required) + local admin accounts (dev/bootstrap only) |
-| Packaging | Docker (multi-stage build: Bun → Python) |
+| Packaging | Docker (multi-stage build: npm → Python) |
 
 ---
 
