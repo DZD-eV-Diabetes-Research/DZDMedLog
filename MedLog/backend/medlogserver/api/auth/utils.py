@@ -20,6 +20,7 @@ from medlogserver.model.user_auth import (
     UserAuth,
     UserAuthCreate,
     AllowedAuthSchemeType,
+    OidcTokenDecryptionError,
 )
 from medlogserver.db.user_auth import (
     UserAuthCRUD,
@@ -91,7 +92,15 @@ async def oidc_refresh_access_token(
     log.debug("REFRESH OIDC TOKEN")
     # sanity check
     assert user_session.user_auth_id == user_auth.id
-    old_token = user_auth.get_decrypted_oidc_token()
+    try:
+        old_token = user_auth.get_decrypted_oidc_token()
+    except OidcTokenDecryptionError as e:
+        # The stored token is unrecoverable (storage secret changed). Treat this as
+        # "not authenticated" instead of a server error, so the client can log in again.
+        log.warning(f"OIDC token refresh failed: {e}")
+        if raise_custom_expection_if_fails:
+            raise raise_custom_expection_if_fails
+        raise e
     refresh_token = old_token.get("refresh_token")
     if not refresh_token:
         log.warning("OIDC token refresh failed: no refresh_token stored for this session")
