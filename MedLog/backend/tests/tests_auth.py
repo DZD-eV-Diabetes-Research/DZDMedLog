@@ -156,3 +156,63 @@ def test_deactivated_user_cannot_log_in():
     )
     assert token2, "Expected a token after reactivation"
     print("  ✓ Reactivated user can log in again")
+
+
+def test_undecryptable_oidc_token_results_in_401():
+    """An OIDC token that can not be decrypted must end the session with 401.
+
+    Happens when AUTH_OIDC_TOKEN_STORAGE_SECRET is added/rotated while the
+    database is kept: every stored token becomes garbage. The client must get
+    a 401 (and therefore a chance to log in again) instead of a 500 loop.
+    """
+    import os
+
+    if not os.environ.get("OIDC_MOCK_SERVER_URL"):
+        print("SKIP: OIDC mock server not running, skipping OIDC token decryption test")
+        return
+
+    import asyncio
+    from cryptography.fernet import Fernet
+    from sqlmodel import select
+    from medlogserver.db._session import get_async_session_context
+    from medlogserver.model.user_auth import UserAuth
+    from medlogserver.model.user_session import UserSession
+
+    sub = "oidc-undecryptable-token-user"
+    oidc_session = oidc_login_get_session(OIDC_TEST_PROVIDER_SLUG, sub)
+    assert req("api/user/me", session=oidc_session)["user_name"] == sub
+
+    session_id = uuid.UUID(
+        next(
+            val
+            for name, val in oidc_session.cookies.get_dict().items()
+            if name.startswith("session_")
+        )
+    )
+
+    async def spoil_stored_token():
+        """Re-encrypt the token with a foreign key and expire it, so the next
+        request runs into the refresh path."""
+        foreign_fernet = Fernet(Fernet.generate_key())
+        async with get_async_session_context() as db_session:
+            user_session: UserSession = (
+                await db_session.exec(
+                    select(UserSession).where(UserSession.id == session_id)
+                )
+            ).one()
+            user_auth: UserAuth = (
+                await db_session.exec(
+                    select(UserAuth).where(UserAuth.id == user_session.user_auth_id)
+                )
+            ).one()
+            user_auth.oidc_token_encrypted = foreign_fernet.encrypt(
+                json.dumps({"access_token": "x", "refresh_token": "y"}).encode()
+            ).decode()
+            user_auth.expires_at_epoch_time = 1
+            db_session.add(user_auth)
+            await db_session.commit()
+
+    asyncio.run(spoil_stored_token())
+
+    req("api/user/me", session=oidc_session, expected_http_code=401)
+    print("  ✓ Undecryptable OIDC token rejected with 401 instead of 500")

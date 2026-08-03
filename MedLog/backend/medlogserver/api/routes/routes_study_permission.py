@@ -130,8 +130,9 @@ async def get_my_permission_for_study(
         perm.user_ref = current_user
         perm.study_ref = study_access.study
     elif perm is None and current_user.is_usermanager():
-        # Usermanagers have implicit viewer-only access to all studies (no DB row needed).
-        # is_study_admin=False: the flag means study-level admin, not the system usermanager role.
+        # Usermanagers may list all studies (for permission management) but hold no
+        # study-level permission of their own, so every flag is False here. The flags
+        # mean study-level roles, not the system usermanager role.
         perm = StudyPermisson(
             id=uuid.uuid4(),
             user_id=current_user.id,
