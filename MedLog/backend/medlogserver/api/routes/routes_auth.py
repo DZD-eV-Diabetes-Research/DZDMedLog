@@ -34,6 +34,7 @@ from medlogserver.model.user_auth import (
     UserAuth,
     UserAuthCreate,
     AllowedAuthSchemeType,
+    OidcTokenDecryptionError,
 )
 
 from medlogserver.model.user_session import UserSession, UserSessionCreate
@@ -425,8 +426,13 @@ async def logout(
             await user_auth_crud.delete(user_auth.id)
 
             if user_auth.auth_source_type == AllowedAuthSchemeType.oidc:
-                oidc_token = user_auth.get_decrypted_oidc_token()
-                id_token = oidc_token.get("id_token")
+                try:
+                    id_token = user_auth.get_decrypted_oidc_token().get("id_token")
+                except OidcTokenDecryptionError as e:
+                    # Local logout already happened above. Without the id_token we can
+                    # still send the user to the provider, just without an id_token_hint.
+                    log.warning(f"Logout without id_token_hint: {e}")
+                    id_token = None
                 oauth_client = oauth_clients[user_auth.oidc_provider_slug]
                 server_metadata = await oauth_client.client.load_server_metadata()
                 end_session_endpoint = server_metadata.get("end_session_endpoint")

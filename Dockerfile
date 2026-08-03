@@ -1,14 +1,11 @@
 #FRONTEND BUILD STAGE
-
-
-FROM oven/bun AS medlog-frontend-build
-RUN mkdir /frontend_build
+FROM node:24.18 AS medlog-frontend-build
 WORKDIR /frontend_build
-COPY MedLog/frontend /frontend_build
-RUN rm -rf /frontend_build/.nuxt
-RUN rm -rf /frontend_build/.output
-RUN rm -rf /frontend_build/node_modules
-RUN bun install && bun run build && bunx nuxi generate
+COPY MedLog/frontend/package.json MedLog/frontend/package-lock.json .
+RUN npm ci --no-audit
+COPY MedLog/frontend .
+COPY MedLog/openapi.json /openapi.json
+RUN npm run generate
 
 # BACKEND BUILD AND RUN STAGE
 FROM python:3.14 AS medlog-backend

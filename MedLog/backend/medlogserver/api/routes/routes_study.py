@@ -106,7 +106,9 @@ async def list_studies(
     # so everything is fine...
     all_studies = await study_crud.list(show_deactivated=show_deactived)
     allowed_studies: List[Study] = []
-    if current_user.is_admin or current_user.is_usermanager:
+    # `is_admin`/`is_usermanager` are methods, they must be called. Without the
+    # parentheses the bound method object is always truthy and every user sees every study.
+    if current_user.is_admin() or current_user.is_usermanager():
         allowed_studies = all_studies
     else:
         for study in all_studies:

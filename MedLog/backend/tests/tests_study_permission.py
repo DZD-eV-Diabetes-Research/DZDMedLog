@@ -518,7 +518,11 @@ def test_endpoint_study_permissions_me_as_regular_user():
 
 
 def test_endpoint_study_permissions_me_as_usermanager_without_db_row():
-    """Usermanager with no explicit DB permission row gets a synthetic viewer-only permission."""
+    """Usermanager with no explicit DB permission row gets an all-false synthetic permission.
+
+    A usermanager may list every study to manage its permissions, but that is not a
+    study-level role: /permissions/me must not report them as a viewer of the study.
+    """
     from medlogserver.config import Config as _Config
 
     _config = _Config()
@@ -548,11 +552,11 @@ def test_endpoint_study_permissions_me_as_usermanager_without_db_row():
         method="get",
         access_token=um_token,
     )
-    # Usermanagers get implicit viewer access only — no interviewer or study-admin rights
+    # The usermanager role grants no study-level permission of its own
     dict_must_contain(
         result,
         required_keys_and_val={
-            "is_study_viewer": True,
+            "is_study_viewer": False,
             "is_study_interviewer": False,
             "is_study_admin": False,
         },

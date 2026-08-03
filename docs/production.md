@@ -150,7 +150,7 @@ docker run \
 
 **Requirements:**
 - Python 3.11+
-- bun or npm
+- npm
 
 Install Python dependencies:
 
@@ -161,11 +161,7 @@ pip install -U -r MedLog/backend/requirements.txt
 Build the frontend (static files served by the backend):
 
 ```bash
-# with bun
-cd MedLog/frontend && bun install && bunx nuxi generate
-
-# with npm
-cd MedLog/frontend && npm install && npx nuxi generate
+cd MedLog/frontend && npm install && npm run generate
 ```
 
 Set required environment variables and start the server:

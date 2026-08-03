@@ -1,7 +1,7 @@
 # Basics
 from typing import AsyncGenerator, List, Optional, Literal, Sequence, Self, Dict
 import secrets
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
@@ -93,6 +93,17 @@ def _generate_fernet_key(input_str: str) -> bytes:
 
 
 fernet = Fernet(_generate_fernet_key(config.AUTH_OIDC_TOKEN_STORAGE_SECRET))
+
+
+class OidcTokenDecryptionError(Exception):
+    """A stored OIDC token could not be decrypted.
+
+    In practice this always means the current `AUTH_OIDC_TOKEN_STORAGE_SECRET`
+    differs from the one that was in effect when the token was stored (secret
+    added, rotated or auto-generated while the database was kept). The stored
+    token is unrecoverable; the affected session/user auth must be wiped and
+    the user has to log in again.
+    """
 
 
 class AllowedAuthSchemeType(str, enum.Enum):
@@ -308,7 +319,21 @@ class UserAuth(_UserAuthBase, TimestampModel, table=True):
         self.set_oidc_token(old_token)
 
     def get_decrypted_oidc_token(self) -> dict:
-        return json.loads(fernet.decrypt(self.oidc_token_encrypted).decode())
+        if self.oidc_token_encrypted is None:
+            raise OidcTokenDecryptionError(
+                f"No OIDC token stored for user auth '{self.id}'"
+            )
+        try:
+            return json.loads(fernet.decrypt(self.oidc_token_encrypted).decode())
+        except (InvalidToken, ValueError) as e:
+            log.warning(
+                f"Could not decrypt the stored OIDC token of user auth '{self.id}'. "
+                "This usually means AUTH_OIDC_TOKEN_STORAGE_SECRET was changed, added or "
+                "auto-generated after the token was stored. The affected user needs to log in again."
+            )
+            raise OidcTokenDecryptionError(
+                f"Could not decrypt the stored OIDC token of user auth '{self.id}'"
+            ) from e
 
     def is_expired(self, leeway_sec: int = 30):
         if self.revoked:
