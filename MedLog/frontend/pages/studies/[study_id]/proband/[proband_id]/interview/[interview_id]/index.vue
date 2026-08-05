@@ -270,7 +270,7 @@ async function saveIntake(data: IntakeFormSchema) {
   if (error.value) {
     toast.add({
       title: "Konnte Einnahme nicht anlegen",
-      description: useGetErrorMessage(error),
+      description: useGetErrorMessage(error.value),
     });
     return;
   }

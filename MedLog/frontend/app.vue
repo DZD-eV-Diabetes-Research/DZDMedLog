@@ -2,6 +2,7 @@
   <LayoutHeader />
   <NuxtPage id="content-wrap" />
   <LayoutFooter />
+  <UModals />
   <UNotifications />
 </template>
 

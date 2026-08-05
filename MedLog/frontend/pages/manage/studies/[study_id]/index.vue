@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import type { SchemaStudy } from "#open-fetch-schemas/medlogapi";
 import type { StudyFormSchema } from "~/components/StudyManagement/Form.vue";
+import { isNormalizationChangeError } from "~/type-helper";
+import { ConfirmationModal } from "#components";
 
+const modal = useModal();
 const route = useRoute();
 const studyPermissionStore = useStudyPermissionStore();
 const studyStore = useStudyStore();
@@ -16,12 +19,24 @@ async function onCancel() {
   await navigateTo('/manage/studies');
 }
 
-async function onSubmit(data: StudyFormSchema) {
+async function onSubmit(data: StudyFormSchema, forceUpdate: boolean = false): Promise<void> {
   try {
-    const updatedStudy = await usePatchStudy(studyId, data);
+    const updatedStudy = await usePatchStudy(studyId, data, forceUpdate);
     studyStore.upsertStudy(updatedStudy);
     await navigateTo('/manage/studies')
   } catch (error) {
+    if (isNormalizationChangeError(error)) {
+      modal.open(ConfirmationModal, {
+        onCancel: modal.close,
+        onConfirm: async () => {
+          await modal.close();
+          await onSubmit(data, true);
+        },
+          description: `Das Ändern der Normalisierung kann dazu führen, dass Probanden bei Suchvorgängen stillschweigend zusammengeführt oder aufgeteilt werden. Rückwirkend findet keine Anpassung der Probanden-IDs statt. Es wurden bereits ${error.data.detail.affected_interview_count} Interviews für diese Studie geführt.`,
+        isDangerousToConfirm: true,
+      })
+      return;
+    }
     toast.add({
       title: "Fehler beim Speichern",
       description: useGetErrorMessage(error),

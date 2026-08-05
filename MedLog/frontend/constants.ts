@@ -5,6 +5,7 @@ import type {
     SchemaIntakeRegularOrAsNeededAnswers,
     SchemaIntakeStartDateOption,
     SchemaIntervalOfDailyDoseAnswers,
+    SchemaProbandExternalIdNormalization,
     SchemaSourceOfDrugInformationAnwers
 } from "#open-fetch-schemas/medlogapi";
 
@@ -101,5 +102,20 @@ export const endDateOptions: { value: SchemaIntakeEndDateOption; label: string }
     {
         value: "unknown",
         label: "Unbekannt",
+    },
+];
+
+export const probandExternalIdNormalizationOptions: { value: SchemaProbandExternalIdNormalization; label: string }[] = [
+    {
+        value: "none",
+        label: "Keine Normalisierung",
+    },
+    {
+        value: "lowercase",
+        label: "Kleinbuchstaben erzwingen",
+    },
+    {
+        value: "uppercase",
+        label: "Großbuchstaben erzwingen",
     },
 ];

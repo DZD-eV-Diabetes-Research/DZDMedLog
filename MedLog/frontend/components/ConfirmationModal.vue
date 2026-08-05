@@ -21,7 +21,7 @@ defineEmits(['cancel', 'confirm'])
       </template>
 
       <slot name="description">
-        <p v-if="description" class="break-all">
+        <p v-if="description" class="break-words">
           {{ description }}
         </p>
       </slot>
