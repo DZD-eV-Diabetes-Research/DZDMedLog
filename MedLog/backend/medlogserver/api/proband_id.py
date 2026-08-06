@@ -205,6 +205,7 @@ def core_check_proband_id(
     implied even if the stored pattern omits them).
     """
     normalized = normalize_proband_external_id(raw_proband_external_id, normalization)
+    pattern = pattern.strip()
     if pattern in (None, ""):
         # No pattern -> nothing is evaluated, so no ReDoS surface and no length cap needed.
         return ProbandIdCheckResult(
