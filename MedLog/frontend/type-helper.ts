@@ -6,6 +6,7 @@ import type {
     SchemaMultiAttrRefs,
 } from "#open-fetch-schemas/medlogapi";
 import type { FetchError } from "ofetch";
+import { type H3Error, isError } from "h3";
 
 // use ElementType<ValueOf<T>> to determine the type of items from an array type T
 export type ValueOf<T> = T[keyof T];
@@ -16,6 +17,17 @@ export type FieldDefinition = ElementUnionOfArrayProps<SchemaDrugAttrFieldDefini
 
 interface FastAPIError {
     detail: string | { [key: string]: string; };
+}
+
+interface NormalizationChangeError extends H3Error {
+    data: {
+        detail: {
+            affected_interview_count: number
+            current_normalization: string
+            message: string
+            requested_normalization: string
+        }
+    }
 }
 
 export function isMultiValueField(fieldDefinition: FieldDefinition, _fields?: object): _fields is SchemaMedlogserverModelDrugDataApiDrugModelFactoryAttrsMulti_1 {
@@ -52,4 +64,20 @@ export function isFetchError(error: unknown): error is FetchError {
         && 'request' in error
         && 'response' in error
         && 'data' in error;
+}
+
+export function isNormalizationChangeError(error: unknown): error is NormalizationChangeError {
+    return isError(error)
+        && error !== null
+        && error.statusCode === 409
+        && 'data' in error
+        && typeof error.data === 'object'
+        && error.data !== null
+        && 'detail' in error.data
+        && typeof error.data.detail === 'object'
+        && error.data.detail !== null
+        && 'affected_interview_count' in error.data.detail
+        && 'current_normalization' in error.data.detail
+        && 'message' in error.data.detail
+        && 'requested_normalization' in error.data.detail;
 }

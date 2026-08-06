@@ -18,7 +18,7 @@ The application is built by the [German Center for Diabetes Research (DZD)](http
 | [Production Deployment](docs/production.md) | Run MedLog with Docker or from source |
 | [Configuration Reference](docs/configuration.md) | All environment variables and settings |
 | [Application Logic](docs/application-logic.md) | How Studies, Events, Interviews and Intakes work |
-| [Permissions](PERMISSIONS.md) | User roles and study-level permission system |
+| [Permissions](docs/PERMISSIONS.md) | User roles and study-level permission system |
 | [Drug Database](docs/drug-database.md) | Drug data requirements, MMI Pharmindex, custom plugins |
 | [Development Guide](docs/development.md) | Local setup, dev scripts, testing, branching |
 

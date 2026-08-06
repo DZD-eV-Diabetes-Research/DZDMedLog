@@ -16,6 +16,8 @@ from medlogserver.log import get_logger
 from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 from medlogserver.model.event import Event
 from medlogserver.model.interview import Interview
+from medlogserver.model.study import ProbandExternalIdNormalization
+from medlogserver.db.proband_id import build_proband_external_id_filter
 from medlogserver.model.intake import (
     Intake,
     IntakeCreate,
@@ -48,6 +50,7 @@ class IntakeCRUD(
         filter_interview_id: str = None,
         filter_proband_external_id: str = None,
         filter_study_id: str = None,
+        proband_external_id_normalization: ProbandExternalIdNormalization = ProbandExternalIdNormalization.NONE,
         pagination: Optional[QueryParamsInterface] = None,
     ) -> List[Intake]:
         query = select(Intake)
@@ -62,15 +65,13 @@ class IntakeCRUD(
         if filter_event_id:
             query = query.where(Interview.event_id == filter_event_id)
         if filter_proband_external_id:
-            if config.PROBAND_IDS_CASE_SENSETIVE:
-                query = query.where(
-                    Interview.proband_external_id == filter_proband_external_id
+            query = query.where(
+                build_proband_external_id_filter(
+                    Interview.proband_external_id,
+                    filter_proband_external_id,
+                    proband_external_id_normalization,
                 )
-            else:
-                query = query.where(
-                    func.lower(Interview.proband_external_id)
-                    == func.lower(filter_proband_external_id)
-                )
+            )
         if filter_interview_id:
             query = query.where(Intake.interview_id == filter_interview_id)
         if pagination:
@@ -84,6 +85,7 @@ class IntakeCRUD(
         filter_interview_id: str = None,
         filter_proband_external_id: str = None,
         filter_study_id: str = None,
+        proband_external_id_normalization: ProbandExternalIdNormalization = ProbandExternalIdNormalization.NONE,
     ) -> int:
         # Todo that is stupid. we need a batter way to return total count for pagination, then repeat the query.
         return len(
@@ -92,6 +94,7 @@ class IntakeCRUD(
                 filter_interview_id=filter_interview_id,
                 filter_proband_external_id=filter_proband_external_id,
                 filter_study_id=filter_study_id,
+                proband_external_id_normalization=proband_external_id_normalization,
             )
         )
 
@@ -101,6 +104,7 @@ class IntakeCRUD(
         filter_interview_id: str = None,
         filter_proband_external_id: str = None,
         filter_study_id: str = None,
+        proband_external_id_normalization: ProbandExternalIdNormalization = ProbandExternalIdNormalization.NONE,
         pagination: Optional[QueryParamsInterface] = None,
     ) -> List[IntakeDetailListItem]:
         query = select(Intake, Interview, Event).select_from(Intake)
@@ -111,15 +115,13 @@ class IntakeCRUD(
         if filter_event_id:
             query = query.where(Interview.event_id == filter_event_id)
         if filter_proband_external_id:
-            if config.PROBAND_IDS_CASE_SENSETIVE:
-                query = query.where(
-                    Interview.proband_external_id == filter_proband_external_id
+            query = query.where(
+                build_proband_external_id_filter(
+                    Interview.proband_external_id,
+                    filter_proband_external_id,
+                    proband_external_id_normalization,
                 )
-            else:
-                query = query.where(
-                    func.lower(Interview.proband_external_id)
-                    == func.lower(filter_proband_external_id)
-                )
+            )
         if filter_interview_id:
             query = query.where(Intake.interview_id == filter_interview_id)
         if pagination:
@@ -149,25 +151,20 @@ class IntakeCRUD(
         study_id: str | uuid.UUID,
         proband_external_id: str,
         raise_exception_if_no_last_interview: Exception = None,
+        proband_external_id_normalization: ProbandExternalIdNormalization = ProbandExternalIdNormalization.NONE,
         pagination: Optional[QueryParamsInterface] = None,
     ) -> List[Intake]:
         last_interview_query = select(Interview).join(Event)
-        if config.PROBAND_IDS_CASE_SENSETIVE:
-            last_interview_query = last_interview_query.where(
-                and_(
-                    Interview.proband_external_id == proband_external_id,
-                    Event.study_id == study_id,
-                )
+        last_interview_query = last_interview_query.where(
+            and_(
+                build_proband_external_id_filter(
+                    Interview.proband_external_id,
+                    proband_external_id,
+                    proband_external_id_normalization,
+                ),
+                Event.study_id == study_id,
             )
-
-        else:
-            last_interview_query = last_interview_query.where(
-                and_(
-                    func.lower(Interview.proband_external_id)
-                    == func.lower(proband_external_id),
-                    Event.study_id == study_id,
-                )
-            )
+        )
         last_interview_query = last_interview_query.order_by(
             desc(Interview.interview_end_time_utc)
         ).limit(1)

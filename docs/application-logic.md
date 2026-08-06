@@ -75,7 +75,7 @@ MedLog has a two-layer permission model:
 - **Global roles** — `medlog-admin` and `medlog-user-manager`, controlling system-wide capabilities.
 - **Study permissions** — per-user, per-study flags: `is_study_viewer`, `is_study_interviewer`, `is_study_admin`.
 
-Full documentation: [PERMISSIONS.md](../PERMISSIONS.md)
+Full documentation: [PERMISSIONS.md](docs/PERMISSIONS.md)
 
 ---
 

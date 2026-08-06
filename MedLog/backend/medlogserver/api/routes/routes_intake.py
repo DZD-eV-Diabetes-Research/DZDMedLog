@@ -313,6 +313,7 @@ async def list_all_intakes(
         filter_study_id=study_access.study.id,
         filter_proband_external_id=proband_id,
         filter_interview_id=interview_id,
+        proband_external_id_normalization=study_access.study.proband_external_id_normalization,
         pagination=pagination,
     )
     return PaginatedResponse(
@@ -320,6 +321,7 @@ async def list_all_intakes(
             filter_study_id=study_access.study.id,
             filter_proband_external_id=proband_id,
             filter_interview_id=interview_id,
+            proband_external_id_normalization=study_access.study.proband_external_id_normalization,
         ),
         offset=pagination.offset,
         count=len(intakes),
@@ -346,6 +348,7 @@ async def list_all_intakes_detailed(
         filter_study_id=study_access.study.id,
         filter_proband_external_id=proband_id,
         filter_interview_id=interview_id,
+        proband_external_id_normalization=study_access.study.proband_external_id_normalization,
         pagination=pagination,
     )
     return PaginatedResponse(
@@ -353,6 +356,7 @@ async def list_all_intakes_detailed(
             filter_study_id=study_access.study.id,
             filter_proband_external_id=proband_id,
             filter_interview_id=interview_id,
+            proband_external_id_normalization=study_access.study.proband_external_id_normalization,
         ),
         offset=pagination.offset,
         count=len(intakes),
@@ -384,13 +388,17 @@ async def list_all_intakes_of_last_completed_interview(
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Intake]:
     last_completed_interview = await interview_crud.get_last_by_proband(
-        study_id=study_access.study.id, proband_external_id=proband_id, completed=True
+        study_id=study_access.study.id,
+        proband_external_id=proband_id,
+        completed=True,
+        proband_external_id_normalization=study_access.study.proband_external_id_normalization,
     )
     if last_completed_interview:
         return await intake_crud.list(
             filter_study_id=study_access.study.id,
             filter_proband_external_id=proband_id,
             filter_interview_id=last_completed_interview.id,
+            proband_external_id_normalization=study_access.study.proband_external_id_normalization,
         )
     else:
         return Response(
@@ -424,13 +432,17 @@ async def list_all_intakes_of_last_completed_interview_detailed(
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[IntakeDetailListItem]:
     last_completed_interview = await interview_crud.get_last_by_proband(
-        study_id=study_access.study.id, proband_external_id=proband_id, completed=True
+        study_id=study_access.study.id,
+        proband_external_id=proband_id,
+        completed=True,
+        proband_external_id_normalization=study_access.study.proband_external_id_normalization,
     )
     if last_completed_interview:
         return await intake_crud.list_detailed(
             filter_study_id=study_access.study.id,
             filter_proband_external_id=proband_id,
             filter_interview_id=last_completed_interview.id,
+            proband_external_id_normalization=study_access.study.proband_external_id_normalization,
         )
     else:
         return Response(
@@ -464,13 +476,17 @@ async def list_all_intakes_of_last_uncompleted_interview(
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Intake] | Response:
     last_uncompleted_interview = await interview_crud.get_last_by_proband(
-        study_id=study_access.study.id, proband_external_id=proband_id, completed=False
+        study_id=study_access.study.id,
+        proband_external_id=proband_id,
+        completed=False,
+        proband_external_id_normalization=study_access.study.proband_external_id_normalization,
     )
     if last_uncompleted_interview:
         return await intake_crud.list(
             filter_study_id=study_access.study.id,
             filter_proband_external_id=proband_id,
             filter_interview_id=last_uncompleted_interview.id,
+            proband_external_id_normalization=study_access.study.proband_external_id_normalization,
         )
     else:
         return Response(
@@ -504,13 +520,17 @@ async def list_all_intakes_of_last_uncompleted_interview_detailed(
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> IntakeDetailListItem:
     last_incompleted_interview = await interview_crud.get_last_by_proband(
-        study_id=study_access.study.id, proband_external_id=proband_id, completed=False
+        study_id=study_access.study.id,
+        proband_external_id=proband_id,
+        completed=False,
+        proband_external_id_normalization=study_access.study.proband_external_id_normalization,
     )
     if last_incompleted_interview:
         return await intake_crud.list_detailed(
             filter_study_id=study_access.study.id,
             filter_proband_external_id=proband_id,
             filter_interview_id=last_incompleted_interview.id,
+            proband_external_id_normalization=study_access.study.proband_external_id_normalization,
         )
     else:
         return Response(
