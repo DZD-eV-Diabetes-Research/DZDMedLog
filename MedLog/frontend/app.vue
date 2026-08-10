@@ -1,4 +1,8 @@
 <template>
+  <div v-if="showWarningHeader" class="warning h-6 text-center">
+    <span class="bg-white p-2 font-semibold">Testumgebung &ndash; Keine Echtdaten eintragen!</span>
+  </div>
+
   <LayoutHeader />
   <NuxtPage id="content-wrap" />
   <LayoutFooter />
@@ -31,6 +35,15 @@ useHead(() => ({
     lang: 'de',
   },
 }))
+
+const showWarningHeader = computed(() => {
+  return configStore.versionInfo.branch === 'dev' || (
+      configStore.versionInfo.branch === 'HEAD' && (
+          (configStore.versionInfo.version ?? '').includes('beta') ||
+          (configStore.versionInfo.version ?? '').includes('dev')
+      )
+  );
+});
 
 async function refreshStatus() {
   try {
@@ -107,3 +120,15 @@ if (userStore.isLoggedIn) {
 }
 
 </script>
+
+<style scoped>
+.warning {
+  background-image: repeating-linear-gradient(
+      -45deg,
+      yellow,
+      yellow 20px,
+      black 20px,
+      black 40px
+  );
+}
+</style>
