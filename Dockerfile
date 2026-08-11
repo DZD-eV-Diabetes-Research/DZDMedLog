@@ -5,6 +5,7 @@ COPY MedLog/frontend/package.json MedLog/frontend/package-lock.json .
 RUN npm ci --no-audit
 COPY MedLog/frontend .
 COPY MedLog/openapi.json /openapi.json
+RUN rm -rf .nuxt && npm run postinstall
 RUN npm run generate
 
 # BACKEND BUILD AND RUN STAGE
