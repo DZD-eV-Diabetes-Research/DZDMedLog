@@ -1,9 +1,10 @@
 <template>
-  <div v-if="showWarningHeader" class="warning h-6 text-center">
-    <span class="bg-white p-2 font-semibold">Testumgebung &ndash; Keine Echtdaten eintragen!</span>
-  </div>
-
   <LayoutHeader />
+  <div v-if="showWarningHeader" class="warning h-11 text-center my-6 flex flex-col justify-center items-center">
+    <span class="bg-white bg-opaci1ty-90 p-1 font-semibold align-middle rounded-lg border border-black">
+      Testumgebung &ndash; Keine Echtdaten eintragen!
+    </span>
+  </div>
   <NuxtPage id="content-wrap" />
   <LayoutFooter />
   <UModals />
