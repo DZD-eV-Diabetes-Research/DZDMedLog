@@ -32,7 +32,7 @@ TRAEFIK_HEADERS = {
 }
 
 
-def _probe_client(peer: str, trusted_proxies, forced_scheme):
+def _probe_client(peer: str, trusted_proxies, forced_scheme, forced_host=None):
     async def callback(request):
         return JSONResponse({})
 
@@ -52,6 +52,7 @@ def _probe_client(peer: str, trusted_proxies, forced_scheme):
         ExternalUrlMiddleware,
         trusted_proxies=trusted_proxies,
         forced_scheme=forced_scheme,
+        forced_host=forced_host,
     )
     return TestClient(app, base_url="http://testserver", client=(peer, 5000))
 
@@ -69,6 +70,43 @@ def test_server_protocol_https_forces_https_urls():
     result = client.get("/probe").json()
     assert result["url_for"].startswith("https://"), result
     assert result["base_url"].startswith("https://"), result
+
+
+def test_explicit_public_url_forces_scheme_and_host():
+    """An explicitly configured PUBLIC_URL is authoritative for host and scheme."""
+    client = _probe_client(
+        "10.33.0.200",
+        trusted_proxies=["127.0.0.1", "::1"],
+        forced_scheme="https",
+        forced_host="gds.medlog.dzd-ev.org",
+    )
+    result = client.get("/probe").json()
+    assert result["url_for"] == "https://gds.medlog.dzd-ev.org/cb", result
+    assert result["base_url"] == "https://gds.medlog.dzd-ev.org/", result
+
+
+def test_derived_public_url_never_forces_host():
+    """A PUBLIC_URL derived from the deprecated settings may carry the machine
+    name from socket.gethostname(), so it must not be forced onto URLs."""
+    client = _probe_client(
+        "10.33.0.200",
+        trusted_proxies=["127.0.0.1", "::1"],
+        forced_scheme="https",
+        forced_host=None,
+    )
+    result = client.get("/probe").json()
+    assert result["url_for"] == "https://testserver/cb", result
+
+
+def test_public_url_with_non_default_port_is_preserved():
+    client = _probe_client(
+        "10.33.0.200",
+        trusted_proxies=["127.0.0.1", "::1"],
+        forced_scheme="https",
+        forced_host="medlog.example.com:8443",
+    )
+    result = client.get("/probe").json()
+    assert result["url_for"] == "https://medlog.example.com:8443/cb", result
 
 
 def test_forwarded_proto_from_trusted_proxy_is_honoured():

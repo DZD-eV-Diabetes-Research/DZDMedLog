@@ -4,15 +4,18 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 from pydantic import (
     Field,
+    PrivateAttr,
     SecretStr,
     field_validator,
     StringConstraints,
     model_validator,
 )
+from urllib.parse import urlparse
 import inspect
 from pathlib import Path, PurePath
 import socket
 from textwrap import dedent
+from medlogserver import config_deprecations
 from medlogserver.utils import (
     get_random_string,
     val_means_true,
@@ -131,27 +134,47 @@ class Config(BaseSettings):
         ),
         examples=["0.0.0.0", "localhost", "127.0.0.1", "176.16.8.123"],
     )
-    # ToDo: Read https://fastapi.tiangolo.com/advanced/behind-a-proxy/ if that is of any help for better hostname/FQDN detection
+    PUBLIC_URL: Optional[str] = Field(
+        default=None,
+        description=(
+            "The URL under which the application is reachable from the outside, including "
+            "the scheme and any non-default port. This is the single source of truth for "
+            "every generated absolute URL: the OIDC redirect URI, the post-logout redirect "
+            "URI and the login endpoints handed to the web client. "
+            "Set it to your public address when a reverse proxy terminates TLS in front of "
+            "the app - the app only ever sees the plaintext hop from the proxy and cannot "
+            "detect the external scheme or hostname on its own. "
+            "It is unrelated to SERVER_LISTENING_HOST and SERVER_LISTENING_PORT, which only "
+            "say where the process binds its socket. "
+            "If left unset it is derived from the deprecated SERVER_PROTOCOL, SERVER_HOSTNAME "
+            "and SERVER_LISTENING_PORT settings."
+        ),
+        examples=[
+            "https://medlog.example.com",
+            "http://localhost:8888",
+            "https://medlog.example.com:8443",
+        ],
+    )
+
+    # DEPRECATED: replaced by PUBLIC_URL. See medlogserver/config_deprecations.py
+    # for the removal checklist.
     SERVER_HOSTNAME: Optional[str] = Field(
         default_factory=socket.gethostname,
         description=(
+            "DEPRECATED - use PUBLIC_URL instead. "
             "External hostname or domain name under which the API is publicly reachable. "
-            "Usually a fully-qualified domain name (FQDN) in production. "
-            "If not set, the system hostname is used as a fallback. "
-            "This value is used to build the server URL and OAuth redirect URIs."
+            "Still honoured when PUBLIC_URL is unset, and ignored when it is set."
         ),
         examples=["medlog.example.com", "localhost", "10.0.0.5"],
     )
+    # DEPRECATED: replaced by PUBLIC_URL. See medlogserver/config_deprecations.py
+    # for the removal checklist.
     SERVER_PROTOCOL: Optional[Literal["http", "https"]] = Field(
         default="http",
         description=(
+            "DEPRECATED - use PUBLIC_URL instead. "
             "Protocol used to reach the server from the outside. "
-            "Set this to 'https' when a reverse proxy terminates TLS in front of the app: "
-            "the app itself only ever sees the plaintext hop from the proxy and cannot "
-            "detect this on its own. "
-            "When set to 'https' it is authoritative for every generated absolute URL "
-            "(OIDC redirect URI, post-logout redirect URI, login endpoints), regardless "
-            "of the scheme the incoming request arrived with."
+            "Still honoured when PUBLIC_URL is unset, and ignored when it is set."
         ),
         examples=["http", "https"],
     )
@@ -167,9 +190,9 @@ class Config(BaseSettings):
             "proxy container's address on the shared network, not '127.0.0.1'. "
             "The wildcard '*' trusts every peer and must not be used in production, "
             "because then any client can dictate the host and scheme of generated URLs. "
-            "Note that setting SERVER_PROTOCOL='https' already fixes the scheme without "
-            "trusting anyone; this setting additionally corrects the hostname and the "
-            "client IP recorded on user sessions."
+            "Note that PUBLIC_URL already fixes the scheme and hostname without trusting "
+            "anyone; this setting additionally corrects the client IP recorded on user "
+            "sessions, and lets a proxy serve the app under more than one hostname."
         ),
         examples=[["127.0.0.1", "::1"], ["10.33.0.200"], ["10.33.0.0/24"]],
     )
@@ -192,18 +215,74 @@ class Config(BaseSettings):
         ),
     )
 
-    def get_server_url(self) -> str:
-        if self.SERVER_PROTOCOL is not None:
-            proto = self.SERVER_PROTOCOL
-        elif self.SERVER_LISTENING_PORT == 443:
-            proto = "https"
-        else:
-            proto = "http"
+    # True when PUBLIC_URL was configured explicitly rather than derived from the
+    # deprecated settings. Only an explicit value is authoritative for the
+    # hostname; a derived one may carry the machine name from socket.gethostname().
+    _public_url_is_explicit: bool = PrivateAttr(default=False)
+    _config_deprecation_warnings: List[str] = PrivateAttr(default_factory=list)
 
-        port = ""
-        if self.SERVER_LISTENING_PORT not in [80, 443]:
-            port = f":{self.SERVER_LISTENING_PORT}"
-        return f"{proto}://{self.SERVER_HOSTNAME}{port}"
+    @model_validator(mode="after")
+    def resolve_public_url(self: Self):
+        """Settle the external URL once, so nothing downstream has to guess."""
+        # Capture this before assigning below: pydantic adds any attribute we set
+        # here to model_fields_set, which would make a derived value look explicit.
+        self._public_url_is_explicit = "PUBLIC_URL" in self.model_fields_set
+
+        if self._public_url_is_explicit:
+            self.PUBLIC_URL = self.PUBLIC_URL.rstrip("/")
+        else:
+            # DEPRECATED branch - delete together with config_deprecations.py and
+            # make PUBLIC_URL a required field.
+            self.PUBLIC_URL = config_deprecations.public_url_from_deprecated_settings(
+                self
+            )
+
+        self._config_deprecation_warnings = (
+            config_deprecations.collect_deprecation_warnings(
+                self, public_url_is_explicit=self._public_url_is_explicit
+            )
+        )
+        return self
+
+    @field_validator("PUBLIC_URL")
+    @classmethod
+    def validate_public_url(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        parsed = urlparse(value)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError(
+                f"PUBLIC_URL must start with 'http://' or 'https://', got '{value}'"
+            )
+        if not parsed.netloc:
+            raise ValueError(f"PUBLIC_URL must include a hostname, got '{value}'")
+        if parsed.path.rstrip("/"):
+            raise ValueError(
+                f"PUBLIC_URL must not contain a path, got '{value}'. "
+                f"Serving the app under a sub-path is not supported."
+            )
+        return value
+
+    def get_server_url(self) -> str:
+        """The externally visible base URL, without a trailing slash."""
+        return self.PUBLIC_URL
+
+    def get_public_hostname(self) -> Optional[str]:
+        """Host (with port, if non-default) of the external URL, or None if derived.
+
+        Returns None when PUBLIC_URL was not configured explicitly: a derived
+        value can contain socket.gethostname(), which must never be forced onto
+        generated URLs.
+        """
+        if not self._public_url_is_explicit:
+            return None
+        return urlparse(self.PUBLIC_URL).netloc
+
+    def get_public_scheme(self) -> str:
+        return urlparse(self.PUBLIC_URL).scheme
+
+    def get_config_deprecation_warnings(self) -> List[str]:
+        return list(self._config_deprecation_warnings)
 
     CLIENT_URL: Optional[str] = Field(
         default=None,

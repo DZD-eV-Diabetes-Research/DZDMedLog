@@ -17,10 +17,11 @@ authority:
 1. `X-Forwarded-Proto` / `X-Forwarded-Host` / `X-Forwarded-For`, but only when
    the immediate peer is listed in `SERVER_TRUSTED_PROXIES`. Any client can
    send these headers, so they are worthless unless we know who sent them.
-2. `SERVER_PROTOCOL`, which the operator sets to declare how the app is
-   reached from outside. It defaults to `http`, so it only ever upgrades a
-   request when someone explicitly configured `https`. Plain local
-   development on `http://localhost:<port>` is never touched.
+2. `PUBLIC_URL`, which the operator sets to declare how the app is reached
+   from outside. Its scheme only ever upgrades a request when it is `https`,
+   and its host is applied only when `PUBLIC_URL` was configured explicitly
+   rather than derived from the deprecated settings. Plain local development
+   on `http://localhost:<port>` is never touched.
 """
 
 from __future__ import annotations
@@ -107,12 +108,14 @@ class ExternalUrlMiddleware:
         app: ASGIApp,
         trusted_proxies: Sequence[str],
         forced_scheme: Optional[str] = None,
+        forced_host: Optional[str] = None,
     ):
         self.app = app
         self.trusted_proxies = TrustedProxies(trusted_proxies)
         # Only an explicit "https" is authoritative. Forcing "http" would
         # downgrade a deployment whose proxy correctly announced https.
         self.forced_scheme = forced_scheme if forced_scheme == "https" else None
+        self.forced_host = forced_host
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] in ("http", "websocket"):
@@ -121,6 +124,8 @@ class ExternalUrlMiddleware:
                 self._apply_forwarded_headers(scope)
             if self.forced_scheme == "https":
                 scope["scheme"] = self._SECURE_SCHEME.get(scope["scheme"], "https")
+            if self.forced_host:
+                _replace_header(scope, b"host", self.forced_host.encode("latin-1"))
         await self.app(scope, receive, send)
 
     def _apply_forwarded_headers(self, scope: Scope) -> None:
