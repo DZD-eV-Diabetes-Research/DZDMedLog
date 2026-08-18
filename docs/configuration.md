@@ -221,9 +221,42 @@ SERVER_LISTENING_HOST: 176.16.8.123
 
 ---
 
+## `PUBLIC_URL`
+
+The URL under which the application is reachable from the outside, including the scheme and any non-default port. This is the single source of truth for every generated absolute URL: the OIDC redirect URI, the post-logout redirect URI and the login endpoints handed to the web client. Set it to your public address when a reverse proxy terminates TLS in front of the app - the app only ever sees the plaintext hop from the proxy and cannot detect the external scheme or hostname on its own. It is unrelated to SERVER_LISTENING_HOST and SERVER_LISTENING_PORT, which only say where the process binds its socket. If left unset it is derived from the deprecated SERVER_PROTOCOL, SERVER_HOSTNAME and SERVER_LISTENING_PORT settings.
+
+| Property | Value |
+|---|---|
+| Type | str |
+| Required | No |
+| Default | `null` |
+| Environment variable | `PUBLIC_URL` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+PUBLIC_URL: https://medlog.example.com
+```
+
+*Example 2:*
+
+```yaml
+PUBLIC_URL: http://localhost:8888
+```
+
+*Example 3:*
+
+```yaml
+PUBLIC_URL: https://medlog.example.com:8443
+```
+
+---
+
 ## `SERVER_HOSTNAME`
 
-External hostname or domain name under which the API is publicly reachable. Usually a fully-qualified domain name (FQDN) in production. If not set, the system hostname is used as a fallback. This value is used to build the server URL and OAuth redirect URIs.
+DEPRECATED - use PUBLIC_URL instead. External hostname or domain name under which the API is publicly reachable. Still honoured when PUBLIC_URL is unset, and ignored when it is set.
 
 | Property | Value |
 |---|---|
@@ -255,7 +288,7 @@ SERVER_HOSTNAME: 10.0.0.5
 
 ## `SERVER_PROTOCOL`
 
-Protocol used to reach the server from the outside. Automatic detection can fail behind reverse proxies that terminate TLS — set this explicitly to 'https' when serving over SSL.
+DEPRECATED - use PUBLIC_URL instead. Protocol used to reach the server from the outside. Still honoured when PUBLIC_URL is unset, and ignored when it is set.
 
 | Property | Value |
 |---|---|
@@ -277,6 +310,43 @@ SERVER_PROTOCOL: http
 
 ```yaml
 SERVER_PROTOCOL: https
+```
+
+---
+
+## `SERVER_TRUSTED_PROXIES`
+
+Peer addresses whose 'X-Forwarded-Proto', 'X-Forwarded-Host' and 'X-Forwarded-For' headers are honoured when building externally visible URLs such as the OIDC redirect URI. Accepts single addresses and CIDR networks. Set this to the address of your reverse proxy - in Docker that is the proxy container's address on the shared network, not '127.0.0.1'. The wildcard '*' trusts every peer and must not be used in production, because then any client can dictate the host and scheme of generated URLs. Note that PUBLIC_URL already fixes the scheme and hostname without trusting anyone; this setting additionally corrects the client IP recorded on user sessions, and lets a proxy serve the app under more than one hostname.
+
+| Property | Value |
+|---|---|
+| Type | List of str |
+| Required | No |
+| Default | `["127.0.0.1", "::1"]` |
+| Environment variable | `SERVER_TRUSTED_PROXIES` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+SERVER_TRUSTED_PROXIES:
+- 127.0.0.1
+- ::1
+```
+
+*Example 2:*
+
+```yaml
+SERVER_TRUSTED_PROXIES:
+- 10.33.0.200
+```
+
+*Example 3:*
+
+```yaml
+SERVER_TRUSTED_PROXIES:
+- 10.33.0.0/24
 ```
 
 ---
@@ -1399,19 +1469,6 @@ EXPORT_CACHE_DIR: ./export_cache
 ```yaml
 EXPORT_CACHE_DIR: /var/lib/medlog/exports
 ```
-
----
-
-## `PROBAND_IDS_CASE_SENSETIVE`
-
-Controls whether proband (subject) IDs are treated as case-sensitive. If False (default), IDs '1A' and '1a' refer to the same proband. If True, they are treated as distinct probands. Note: the variable name contains a known typo ('SENSETIVE' instead of 'SENSITIVE') that is preserved for backward compatibility with existing deployments.
-
-| Property | Value |
-|---|---|
-| Type | bool |
-| Required | No |
-| Default | `false` |
-| Environment variable | `PROBAND_IDS_CASE_SENSETIVE` |
 
 ---
 
