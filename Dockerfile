@@ -68,7 +68,6 @@ WORKDIR $BASEDIR/$MODULENAME
 ENV SERVER_LISTENING_HOST=0.0.0.0
 ENV APP_PROVISIONING_DATA_YAML_FILES='[]'
 ENV DRUG_TABLE_PROVISIONING_SOURCE_DIR=/data/provisioning/dummy_drugset
-ENV SERVER_HOSTNAME=localhost
 ENV EXPORT_CACHE_DIR=/data/export
 ENV SQL_DATABASE_URL="sqlite+aiosqlite:////data/db/medlog.db"
 ENTRYPOINT ["python", "./main.py"]
