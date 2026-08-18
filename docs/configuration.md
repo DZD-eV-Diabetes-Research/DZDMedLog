@@ -256,12 +256,13 @@ PUBLIC_URL: https://medlog.example.com:8443
 
 ## `SERVER_HOSTNAME`
 
-DEPRECATED - use PUBLIC_URL instead. External hostname or domain name under which the API is publicly reachable. Still honoured when PUBLIC_URL is unset, and ignored when it is set.
+DEPRECATED - use PUBLIC_URL instead. External hostname or domain name under which the API is publicly reachable. Still honoured when PUBLIC_URL is unset, and ignored when it is set. Falls back to 'localhost' when neither is configured.
 
 | Property | Value |
 |---|---|
 | Type | str |
 | Required | No |
+| Default | `null` |
 | Environment variable | `SERVER_HOSTNAME` |
 
 **Examples:**
@@ -379,7 +380,7 @@ If True, session cookies are only sent over HTTPS (the Secure flag is set). Set 
 
 ## `CLIENT_URL`
 
-URL where the web client is hosted. Usually the client is bundled with the server and this can be left unset — it is then derived automatically from SERVER_PROTOCOL, SERVER_HOSTNAME, and SERVER_LISTENING_PORT.
+URL where the web client is hosted. Usually the client is bundled with the server and this can be left unset — it is then derived automatically from PUBLIC_URL.
 
 | Property | Value |
 |---|---|

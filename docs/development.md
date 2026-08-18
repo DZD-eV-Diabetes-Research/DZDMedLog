@@ -120,7 +120,7 @@ If you need more control:
 export LOG_LEVEL=DEBUG
 export SERVER_SESSION_SECRET=IAMASTUPIDDUMMYANDTHATSOKSDEALWITHITINEEDTOBE64CHARSLONGTHATWHYIKEEPTALKING
 export ADMIN_USER_PW=password123
-export SERVER_HOSTNAME=localhost
+export PUBLIC_URL=http://localhost:8888
 export DEMO_MODE=true
 
 python MedLog/backend/medlogserver/main.py

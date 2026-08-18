@@ -22,7 +22,7 @@ from statics import OIDC_TEST_PROVIDER_SLUG
 
 
 # ── Unit tests on the middleware ──────────────────────────────────────────────
-# These cover the SERVER_PROTOCOL branch, which cannot be exercised against the
+# These cover the PUBLIC_URL branch, which cannot be exercised against the
 # shared live test server without restarting it with a different environment.
 
 TRAEFIK_HEADERS = {
@@ -58,7 +58,7 @@ def _probe_client(peer: str, trusted_proxies, forced_scheme, forced_host=None):
 
 
 def test_server_protocol_https_forces_https_urls():
-    """SERVER_PROTOCOL=https is authoritative even with no forwarded headers.
+    """An https PUBLIC_URL is authoritative even with no forwarded headers.
 
     This is the exact production case: traefik sits at 10.33.0.200 and is not
     in the default trusted-proxy list, so nothing but the config can tell the
@@ -83,6 +83,23 @@ def test_explicit_public_url_forces_scheme_and_host():
     result = client.get("/probe").json()
     assert result["url_for"] == "https://gds.medlog.dzd-ev.org/cb", result
     assert result["base_url"] == "https://gds.medlog.dzd-ev.org/", result
+
+
+def test_explicit_public_url_outranks_forwarded_headers():
+    """A declared PUBLIC_URL wins over what even a trusted proxy claims.
+
+    Multi-hostname deployments are served by leaving PUBLIC_URL unset instead.
+    """
+    client = _probe_client(
+        "10.33.0.200",
+        trusted_proxies=["10.33.0.0/24"],
+        forced_scheme="https",
+        forced_host="canonical.example.com",
+    )
+    result = client.get("/probe", headers=TRAEFIK_HEADERS).json()
+    assert result["url_for"] == "https://canonical.example.com/cb", result
+    # The client IP still comes from the proxy, that part is not a URL question
+    assert result["client"] == "203.0.113.9", result
 
 
 def test_derived_public_url_never_forces_host():

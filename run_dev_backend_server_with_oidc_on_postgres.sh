@@ -52,7 +52,7 @@ export SERVER_SESSION_SECRET=IAMASTUPIDDUMMYANDTHATSOKSDEALWITHITINEEDTOBE64CHAR
 export SERVER_LISTENING_PORT=8888
 export ADMIN_USER_PW=password123
 export ADMIN_USER_EMAIL=user@test.de
-export SERVER_HOSTNAME=localhost
+export PUBLIC_URL=http://localhost:8888
 
 
 #######################################

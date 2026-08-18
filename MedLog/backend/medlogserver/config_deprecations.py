@@ -31,10 +31,13 @@ When the deprecated style is declared out of order:
    the `config_deprecations` import, and the deprecation branch of
    `resolve_public_url()` (marked with `# DEPRECATED`), leaving `PUBLIC_URL`
    required.
-3. In `app.py`, delete the `log_config_deprecations()` call.
-4. Delete `ENV SERVER_HOSTNAME=localhost` from the `Dockerfile`.
-5. Drop the deprecation tests in `tests/tests_public_url.py` (they are grouped
+3. In `app.py`, delete the `get_config_deprecation_warnings()` loop, and in
+   `config.py` the method itself plus the `_config_deprecation_warnings` attr.
+4. Drop the deprecation tests in `tests/tests_public_url.py` (they are grouped
    under a single marked section).
+
+Note that `PUBLIC_URL` then becomes required: the `localhost` fallback in
+`public_url_from_deprecated_settings()` disappears with this module.
 
 Nothing else in the codebase reads the deprecated settings: every consumer goes
 through `Config.PUBLIC_URL` or `Config.get_server_url()`.
@@ -73,7 +76,12 @@ def public_url_from_deprecated_settings(config: "Config") -> str:
     if config.SERVER_LISTENING_PORT not in [80, 443]:
         port = f":{config.SERVER_LISTENING_PORT}"
 
-    return f"{protocol}://{config.SERVER_HOSTNAME}{port}"
+    # The Docker image used to pin SERVER_HOSTNAME=localhost so that a bare
+    # `docker run` produced usable URLs. That ENV is gone, so the fallback lives
+    # here instead and keeps the same result.
+    hostname = config.SERVER_HOSTNAME or "localhost"
+
+    return f"{protocol}://{hostname}{port}"
 
 
 def collect_deprecation_warnings(config: "Config", public_url_is_explicit: bool) -> List[str]:
@@ -84,16 +92,17 @@ def collect_deprecation_warnings(config: "Config", public_url_is_explicit: bool)
     """
     messages: List[str] = []
     settings_in_use = [
-        name for name in DEPRECATED_SETTINGS if name in config.model_fields_set
+        name
+        for name in DEPRECATED_SETTINGS
+        if name in config.model_fields_set and getattr(config, name) is not None
     ]
     if not settings_in_use:
         return messages
 
     if public_url_is_explicit:
-        # Already migrated: the deprecated settings are inert, PUBLIC_URL wins and
-        # the effective value is logged at startup either way. Staying quiet here
-        # matters because the Docker image itself sets SERVER_HOSTNAME, so warning
-        # would nag every migrated container about a value it never chose.
+        # Already migrated: the deprecated settings are inert, PUBLIC_URL wins,
+        # and the effective value is logged at startup either way. Warning here
+        # would only nag about values that no longer affect anything.
         return messages
 
     listed = ", ".join(sorted(settings_in_use))

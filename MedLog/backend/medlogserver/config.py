@@ -13,7 +13,6 @@ from pydantic import (
 from urllib.parse import urlparse
 import inspect
 from pathlib import Path, PurePath
-import socket
 from textwrap import dedent
 from medlogserver import config_deprecations
 from medlogserver.utils import (
@@ -159,11 +158,12 @@ class Config(BaseSettings):
     # DEPRECATED: replaced by PUBLIC_URL. See medlogserver/config_deprecations.py
     # for the removal checklist.
     SERVER_HOSTNAME: Optional[str] = Field(
-        default_factory=socket.gethostname,
+        default=None,
         description=(
             "DEPRECATED - use PUBLIC_URL instead. "
             "External hostname or domain name under which the API is publicly reachable. "
-            "Still honoured when PUBLIC_URL is unset, and ignored when it is set."
+            "Still honoured when PUBLIC_URL is unset, and ignored when it is set. "
+            "Falls back to 'localhost' when neither is configured."
         ),
         examples=["medlog.example.com", "localhost", "10.0.0.5"],
     )
@@ -217,7 +217,7 @@ class Config(BaseSettings):
 
     # True when PUBLIC_URL was configured explicitly rather than derived from the
     # deprecated settings. Only an explicit value is authoritative for the
-    # hostname; a derived one may carry the machine name from socket.gethostname().
+    # hostname; a derived one is only a guess and must never be forced.
     _public_url_is_explicit: bool = PrivateAttr(default=False)
     _config_deprecation_warnings: List[str] = PrivateAttr(default_factory=list)
 
@@ -271,8 +271,8 @@ class Config(BaseSettings):
         """Host (with port, if non-default) of the external URL, or None if derived.
 
         Returns None when PUBLIC_URL was not configured explicitly: a derived
-        value can contain socket.gethostname(), which must never be forced onto
-        generated URLs.
+        value is only a guess at the external hostname, which must never be
+        forced onto generated URLs.
         """
         if not self._public_url_is_explicit:
             return None
@@ -289,7 +289,7 @@ class Config(BaseSettings):
         description=(
             "URL where the web client is hosted. "
             "Usually the client is bundled with the server and this can be left unset — "
-            "it is then derived automatically from SERVER_PROTOCOL, SERVER_HOSTNAME, and SERVER_LISTENING_PORT."
+            "it is then derived automatically from PUBLIC_URL."
         ),
         examples=["https://medlog.example.com", "http://localhost:8888"],
     )

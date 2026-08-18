@@ -121,8 +121,22 @@ def test_deprecated_settings_keep_splicing_the_listening_port():
     assert config.get_server_url() == "http://medlog.example.com:8888"
 
 
+def test_unconfigured_falls_back_to_localhost():
+    """A bare `docker run` must keep producing http://localhost:<port> URLs.
+
+    The image used to pin SERVER_HOSTNAME=localhost for this; the fallback now
+    lives in the deprecation shim so the image no longer ships a deprecated var.
+    """
+    config = build_config(
+        SERVER_HOSTNAME=None, SERVER_PROTOCOL=None, SERVER_LISTENING_PORT=8888
+    )
+    assert config.get_server_url() == "http://localhost:8888"
+    assert config.get_public_hostname() is None
+    assert config.get_config_deprecation_warnings() == []
+
+
 def test_deprecated_settings_do_not_force_the_hostname():
-    """SERVER_HOSTNAME defaults to the machine name, so it is never forced."""
+    """A derived public URL is only a guess, so its host is never forced."""
     config = build_config(
         SERVER_PROTOCOL="https", SERVER_HOSTNAME="gds.medlog.dzd-ev.org"
     )

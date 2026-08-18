@@ -37,7 +37,7 @@ All settings are supplied via environment variables. See [Configuration](configu
 | `SERVER_SESSION_SECRET` | Random string ≥ 64 characters. Generate once, keep secret. |
 | `ADMIN_USER_PW` | Password for the built-in admin account. |
 | `SQL_DATABASE_URL` | PostgreSQL connection string. |
-| `SERVER_HOSTNAME` | The external hostname where MedLog is reachable. |
+| `PUBLIC_URL` | The external URL where MedLog is reachable, e.g. `https://medlog.example.com`. |
 
 ---
 
@@ -246,8 +246,7 @@ If both styles are set, `PUBLIC_URL` wins.
 
 `PUBLIC_URL` fixes the scheme and hostname on its own, without trusting anything
 the proxy sends. Listing your proxy in `SERVER_TRUSTED_PROXIES` additionally
-records the **real client IP** on user sessions instead of the proxy's, and lets
-a proxy serve the app under more than one hostname:
+records the **real client IP** on user sessions instead of the proxy's:
 
 ```yaml
 SERVER_TRUSTED_PROXIES: '["10.33.0.200"]'   # or a network: ["10.33.0.0/24"]
@@ -260,6 +259,11 @@ which covers a proxy running directly on the host.
 `X-Forwarded-*` headers can be forged by any client, so they are honoured only
 for peers on this list. Never set it to `*` in production: that lets any client
 dictate the host and scheme of generated URLs.
+
+An explicit `PUBLIC_URL` outranks `X-Forwarded-Proto` and `X-Forwarded-Host`, so
+the generated URLs are the same no matter which hostname a request arrived on.
+To serve the app under several hostnames and have each request keep its own,
+leave `PUBLIC_URL` unset and let the trusted proxy supply the host per request.
 
 ### What the proxy has to send
 
@@ -290,8 +294,8 @@ location / {
 
 ### Local development
 
-Plain HTTP development is unaffected. With nothing configured the public URL is
-derived as `http://<hostname>:<listening port>`, so nothing is ever silently
+Plain HTTP development is unaffected. With nothing configured the public URL
+falls back to `http://localhost:<listening port>`, so nothing is ever silently
 upgraded to `https` and `http://localhost:8888` keeps working as before.
 
 ---
