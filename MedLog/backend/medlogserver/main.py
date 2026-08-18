@@ -126,6 +126,11 @@ def start():
         log_level=get_uvicorn_loglevel(),
         log_config=uvicorn_log_config,
         lifespan="on",
+        # Forwarded headers are handled by ExternalUrlMiddleware instead, so
+        # that there is one trusted-proxy list and the behaviour is identical
+        # under any ASGI server. Leaving uvicorn's handler on would give a
+        # second, differently configured list.
+        proxy_headers=False,
     )
     uvicorn_server = uvicorn.Server(config=uvicorn_config)
 

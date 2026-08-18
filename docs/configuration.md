@@ -255,7 +255,7 @@ SERVER_HOSTNAME: 10.0.0.5
 
 ## `SERVER_PROTOCOL`
 
-Protocol used to reach the server from the outside. Automatic detection can fail behind reverse proxies that terminate TLS — set this explicitly to 'https' when serving over SSL.
+Protocol used to reach the server from the outside. Set this to 'https' when a reverse proxy terminates TLS in front of the app: the app itself only ever sees the plaintext hop from the proxy and cannot detect this on its own. When set to 'https' it is authoritative for every generated absolute URL (OIDC redirect URI, post-logout redirect URI, login endpoints), regardless of the scheme the incoming request arrived with.
 
 | Property | Value |
 |---|---|
@@ -277,6 +277,43 @@ SERVER_PROTOCOL: http
 
 ```yaml
 SERVER_PROTOCOL: https
+```
+
+---
+
+## `SERVER_TRUSTED_PROXIES`
+
+Peer addresses whose 'X-Forwarded-Proto', 'X-Forwarded-Host' and 'X-Forwarded-For' headers are honoured when building externally visible URLs such as the OIDC redirect URI. Accepts single addresses and CIDR networks. Set this to the address of your reverse proxy - in Docker that is the proxy container's address on the shared network, not '127.0.0.1'. The wildcard '*' trusts every peer and must not be used in production, because then any client can dictate the host and scheme of generated URLs. Note that setting SERVER_PROTOCOL='https' already fixes the scheme without trusting anyone; this setting additionally corrects the hostname and the client IP recorded on user sessions.
+
+| Property | Value |
+|---|---|
+| Type | List of str |
+| Required | No |
+| Default | `["127.0.0.1", "::1"]` |
+| Environment variable | `SERVER_TRUSTED_PROXIES` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+SERVER_TRUSTED_PROXIES:
+- 127.0.0.1
+- ::1
+```
+
+*Example 2:*
+
+```yaml
+SERVER_TRUSTED_PROXIES:
+- 10.33.0.200
+```
+
+*Example 3:*
+
+```yaml
+SERVER_TRUSTED_PROXIES:
+- 10.33.0.0/24
 ```
 
 ---
@@ -1399,19 +1436,6 @@ EXPORT_CACHE_DIR: ./export_cache
 ```yaml
 EXPORT_CACHE_DIR: /var/lib/medlog/exports
 ```
-
----
-
-## `PROBAND_IDS_CASE_SENSETIVE`
-
-Controls whether proband (subject) IDs are treated as case-sensitive. If False (default), IDs '1A' and '1a' refer to the same proband. If True, they are treated as distinct probands. Note: the variable name contains a known typo ('SENSETIVE' instead of 'SENSITIVE') that is preserved for backward compatibility with existing deployments.
-
-| Property | Value |
-|---|---|
-| Type | bool |
-| Required | No |
-| Default | `false` |
-| Environment variable | `PROBAND_IDS_CASE_SENSETIVE` |
 
 ---
 

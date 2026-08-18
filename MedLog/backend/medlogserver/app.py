@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
+from medlogserver.api.proxy_headers import ExternalUrlMiddleware
 from medlogserver.api.routers_map import mount_fast_api_routers
 from pathlib import Path
 
@@ -125,6 +126,17 @@ class FastApiAppContainer:
         self.app.add_middleware(
             SessionMiddleware,
             secret_key=config.SERVER_SESSION_SECRET.get_secret_value(),
+        )
+        # Added last, so it ends up outermost: every middleware and route below
+        # sees a scope that already describes the externally visible request.
+        log.info(
+            f"External URL scheme: {config.SERVER_PROTOCOL}, "
+            f"trusted proxies: {config.SERVER_TRUSTED_PROXIES}"
+        )
+        self.app.add_middleware(
+            ExternalUrlMiddleware,
+            trusted_proxies=config.SERVER_TRUSTED_PROXIES,
+            forced_scheme=config.SERVER_PROTOCOL,
         )
 
     def _mount_routers(self):

@@ -183,6 +183,73 @@ MedLog should be placed behind a reverse proxy (nginx, Caddy, Traefik, …) that
 - Set `SERVER_HOSTNAME` to your public domain name
 - Set `SET_SESSION_COOKIE_SECURE=true` (this is the default)
 
+### Why `SERVER_PROTOCOL` matters
+
+The proxy terminates TLS and then speaks plain HTTP to the container, so the app
+only ever sees an `http://` request. Without being told otherwise it would build
+every absolute URL with `http://`, including the OIDC `redirect_uri`. That would
+force your identity provider to whitelist a plaintext callback, and the
+authorization code would travel one hop on a cleartext request line before the
+proxy upgrades it.
+
+Setting `SERVER_PROTOCOL=https` is therefore not cosmetic: it is the
+authoritative declaration of how the app is reached from outside, and it fixes
+the scheme of every generated URL without the app having to trust anything the
+proxy sends.
+
+### Trusting forwarded headers (optional)
+
+`SERVER_PROTOCOL` fixes the scheme. To also let the proxy correct the **hostname**
+and the **client IP recorded on user sessions**, list the proxy's address in
+`SERVER_TRUSTED_PROXIES`:
+
+```yaml
+SERVER_TRUSTED_PROXIES: '["10.33.0.200"]'   # or a network: ["10.33.0.0/24"]
+```
+
+This is the address the proxy connects *from*, which in Docker is its address on
+the shared network, **not** `127.0.0.1`. The default is `["127.0.0.1", "::1"]`,
+which covers a proxy running directly on the host.
+
+`X-Forwarded-*` headers can be forged by any client, so they are honoured only
+for peers on this list. Never set it to `*` in production: that lets any client
+dictate the host and scheme of the generated OIDC redirect URI.
+
+### What the proxy has to send
+
+Both examples below assume the app listens on port `443` inside the container.
+
+**Traefik v3** sets `X-Forwarded-Proto`, `X-Forwarded-Host` and `X-Forwarded-For`
+automatically. No extra configuration is needed beyond routing to the TLS
+entrypoint:
+
+```yaml
+labels:
+  - traefik.enable=true
+  - traefik.http.services.srv-medlog.loadbalancer.server.port=443
+  - traefik.http.routers.rt-medlog.rule=Host(`medlog.example.com`)
+  - traefik.http.routers.rt-medlog.entrypoints=webtls
+  - traefik.http.routers.rt-medlog.tls=true
+```
+
+**nginx** must be told explicitly:
+
+```nginx
+location / {
+    proxy_pass         http://medlog:443;
+    proxy_set_header   Host              $host;
+    proxy_set_header   X-Forwarded-Proto $scheme;
+    proxy_set_header   X-Forwarded-Host  $host;
+    proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+}
+```
+
+### Local development
+
+Plain HTTP development is unaffected. `SERVER_PROTOCOL` defaults to `http`, so
+nothing is ever silently upgraded to `https`, and `http://localhost:<port>`
+keeps working as before.
+
 ---
 
 ## Database Migrations

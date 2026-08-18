@@ -146,10 +146,32 @@ class Config(BaseSettings):
         default="http",
         description=(
             "Protocol used to reach the server from the outside. "
-            "Automatic detection can fail behind reverse proxies that terminate TLS — "
-            "set this explicitly to 'https' when serving over SSL."
+            "Set this to 'https' when a reverse proxy terminates TLS in front of the app: "
+            "the app itself only ever sees the plaintext hop from the proxy and cannot "
+            "detect this on its own. "
+            "When set to 'https' it is authoritative for every generated absolute URL "
+            "(OIDC redirect URI, post-logout redirect URI, login endpoints), regardless "
+            "of the scheme the incoming request arrived with."
         ),
         examples=["http", "https"],
+    )
+
+    SERVER_TRUSTED_PROXIES: List[str] = Field(
+        default=["127.0.0.1", "::1"],
+        description=(
+            "Peer addresses whose 'X-Forwarded-Proto', 'X-Forwarded-Host' and "
+            "'X-Forwarded-For' headers are honoured when building externally visible "
+            "URLs such as the OIDC redirect URI. "
+            "Accepts single addresses and CIDR networks. "
+            "Set this to the address of your reverse proxy - in Docker that is the "
+            "proxy container's address on the shared network, not '127.0.0.1'. "
+            "The wildcard '*' trusts every peer and must not be used in production, "
+            "because then any client can dictate the host and scheme of generated URLs. "
+            "Note that setting SERVER_PROTOCOL='https' already fixes the scheme without "
+            "trusting anyone; this setting additionally corrects the hostname and the "
+            "client IP recorded on user sessions."
+        ),
+        examples=[["127.0.0.1", "::1"], ["10.33.0.200"], ["10.33.0.0/24"]],
     )
 
     SERVER_SESSION_SECRET: SecretStr = Field(
@@ -175,6 +197,8 @@ class Config(BaseSettings):
             proto = self.SERVER_PROTOCOL
         elif self.SERVER_LISTENING_PORT == 443:
             proto = "https"
+        else:
+            proto = "http"
 
         port = ""
         if self.SERVER_LISTENING_PORT not in [80, 443]:
