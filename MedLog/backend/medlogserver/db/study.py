@@ -6,6 +6,7 @@ import contextlib
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel
+from sqlalchemy.exc import IntegrityError
 
 import uuid
 from uuid import UUID
@@ -13,7 +14,13 @@ from uuid import UUID
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
-from medlogserver.model.study import Study, StudyCreate, StudyUpdate
+from medlogserver.model.study import (
+    Study,
+    StudyCreate,
+    StudyCreateAPI,
+    StudyUpdate,
+)
+from medlogserver.model.event import Event, EventCreate
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
@@ -74,6 +81,68 @@ class StudyCRUD(
         if study is None and raise_exception_if_none:
             raise raise_exception_if_none
         return study
+
+    async def clone(
+        self,
+        source_study: Study,
+        new_display_name: str,
+        raise_custom_exception_if_exists: Optional[Exception] = None,
+    ) -> Study:
+        """Create a new study from an existing one: same configuration, same event structure.
+
+        Copied is everything that makes up the *setup* of the source study - all
+        `StudyCreateAPI` fields (proband ID pattern/error text/normalization/example and
+        the `no_permissions` flag) plus one new event per source event, keeping name and
+        `order_position`. Deriving the copied fields from `StudyCreateAPI` (instead of an
+        explicit list) means future study-setup fields are cloned automatically.
+
+        Explicitly *not* copied: collected data (interviews, intakes) and study
+        permissions - a clone starts empty and, like a freshly created study, is only
+        accessible to instance admins until permissions are granted. The clone is always
+        created as active, even when the source study is deactivated.
+
+        Study and events are written in a single transaction, so a name collision can not
+        leave a half-cloned study behind.
+        """
+        cloned_setup = source_study.model_dump(
+            include=set(StudyCreateAPI.model_fields.keys())
+        )
+        cloned_setup["display_name"] = new_display_name
+        new_study = Study.model_validate(StudyCreate(**cloned_setup))
+        self.session.add(new_study)
+
+        source_events_query = (
+            select(Event)
+            .where(Event.study_id == source_study.id)
+            .order_by(Event.order_position)
+        )
+        source_events: List[Event] = (
+            await self.session.exec(source_events_query)
+        ).all()
+        for source_event in source_events:
+            self.session.add(
+                Event.model_validate(
+                    EventCreate(
+                        name=source_event.name,
+                        order_position=source_event.order_position,
+                        study_id=new_study.id,
+                    )
+                )
+            )
+
+        try:
+            await self.session.commit()
+        except IntegrityError as err:
+            await self.session.rollback()
+            if raise_custom_exception_if_exists:
+                raise raise_custom_exception_if_exists
+            raise err
+        await self.session.refresh(new_study)
+        log.debug(
+            f"Cloned study '{source_study.display_name}' ({source_study.id}) into "
+            f"'{new_study.display_name}' ({new_study.id}) with {len(source_events)} event(s)"
+        )
+        return new_study
 
     async def disable(
         self,

@@ -118,6 +118,25 @@ class StudyCreateAPI(MedLogBaseModel, table=False):
     )
 
 
+class StudyCloneAPI(MedLogBaseModel, table=False):
+    """Request body for cloning the setup of an existing study into a new one.
+
+    Only the name is provided by the caller. Everything else that makes up the *setup*
+    of the source study (all :class:`StudyCreateAPI` fields, e.g. the proband-ID pattern)
+    plus its event structure is copied by the backend. See ``POST /study/{study_id}/clone``.
+    """
+
+    display_name: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=128),
+    ] = Field(
+        description=(
+            "Name of the new study. Must be unique across all studies, like any study name."
+        ),
+        schema_extra={"examples": ["BARIA-DDZ-Studie (Follow-Up)"]},
+    )
+
+
 class StudyUpdate(StudyCreateAPI):
     pass
 

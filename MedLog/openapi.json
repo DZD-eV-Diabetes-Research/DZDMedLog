@@ -1183,6 +1183,98 @@
         }
       }
     },
+    "/api/study/{study_id}/clone": {
+      "post": {
+        "tags": [
+          "Study"
+        ],
+        "summary": "Clone the setup of an existing study into a new study",
+        "description": "Create a new study that reuses the setup of an existing one. Copied are the study configuration (proband ID pattern, its error text, normalization and example, plus the 'no_permissions' flag) and the complete event structure (one new event per source event, keeping name and 'order_position'). Only the new name is supplied by the caller. **Not** copied: interviews, intakes and study permissions - the clone starts empty and, like a freshly created study, is only accessible to instance admins until permissions are granted. The clone is always active, even when the source study is deactivated. Needs admin role.",
+        "operationId": "clone_study_api_study__study_id__clone_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID of the study to clone (the template).",
+              "title": "Study Id"
+            },
+            "description": "ID of the study to clone (the template)."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudyCloneAPI",
+                "description": "Name of the new study."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Study"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not a global medlog-admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No study with the given `study_id` exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A study with the requested `display_name` already exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The source study's stored proband ID pattern is not (or no longer) valid and must be fixed in the source study before it can be cloned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/study/{study_id}": {
       "patch": {
         "tags": [
@@ -8613,6 +8705,26 @@
         },
         "type": "object",
         "title": "Study"
+      },
+      "StudyCloneAPI": {
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Display Name",
+            "description": "Name of the new study. Must be unique across all studies, like any study name.",
+            "examples": [
+              "BARIA-DDZ-Studie (Follow-Up)"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name"
+        ],
+        "title": "StudyCloneAPI",
+        "description": "Request body for cloning the setup of an existing study into a new one.\n\nOnly the name is provided by the caller. Everything else that makes up the *setup*\nof the source study (all :class:`StudyCreateAPI` fields, e.g. the proband-ID pattern)\nplus its event structure is copied by the backend. See ``POST /study/{study_id}/clone``."
       },
       "StudyCreateAPI": {
         "properties": {
