@@ -141,6 +141,26 @@ The Nuxt dev server starts on **http://localhost:3000** with hot-reload.
 
 The backend API is proxied automatically. The interactive API docs are at **http://localhost:8888/docs**.
 
+### Point logins back at the dev server
+
+By default the backend sends you to its own origin after login, where it serves
+the last static build rather than your hot-reloading dev server. Set `CLIENT_URL`
+to the Nuxt dev server when starting the backend:
+
+```bash
+CLIENT_URL=http://localhost:3000 ./run_dev_backend_server_with_oidc.sh
+```
+
+`CLIENT_URL` is where the **web client** lives; `PUBLIC_URL` stays the
+**backend's** own address, because the OIDC callback has to reach the backend.
+Do not set `PUBLIC_URL=http://localhost:3000`: that would point the OIDC
+`redirect_uri` at the Nuxt dev server, which has no callback endpoint.
+
+> [!NOTE]
+> The `run_dev_backend_server_with_oidc*.sh` scripts `export` these variables,
+> and an exported variable takes precedence over a `.env` file. Override them on
+> the command line as shown above rather than in `.env`.
+
 ---
 
 ## 6. Dev Login: Test Users

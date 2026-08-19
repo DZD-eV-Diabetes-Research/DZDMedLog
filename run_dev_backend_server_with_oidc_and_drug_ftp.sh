@@ -26,7 +26,13 @@ export SERVER_SESSION_SECRET=IAMASTUPIDDUMMYANDTHATSOKSDEALWITHITINEEDTOBE64CHAR
 export SERVER_LISTENING_PORT=8888
 export ADMIN_USER_PW=password123
 export ADMIN_USER_EMAIL=user@test.de
-export PUBLIC_URL=http://localhost:8888
+# Exported values beat anything in a .env file, so allow an override from the
+# calling shell: PUBLIC_URL=... ./this_script.sh
+export PUBLIC_URL=${PUBLIC_URL:-http://localhost:8888}
+# Frontend development: the Nuxt dev server runs on :3000 and the backend only
+# serves a static build. Point the post-login redirect at the dev server with
+#   CLIENT_URL=http://localhost:3000 ./this_script.sh
+export CLIENT_URL=${CLIENT_URL:-$PUBLIC_URL}
 export DRUG_IMPORTER_SOURCE_FTP_HOST=localhost 
 export DRUG_IMPORTER_SOURCE_FTP_USER=readonly
 export DRUG_IMPORTER_SOURCE_FTP_PASSWORD=readonly123
