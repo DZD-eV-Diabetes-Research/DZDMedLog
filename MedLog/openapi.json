@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "0.0.post1.dev0+d20260811"
+    "version": "1.0.10b3.post1.dev10+g00de6635a.d20260819"
   },
   "paths": {
     "/api/health": {
@@ -7018,14 +7018,15 @@
           "dose_per_day": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "number",
+                "minimum": 0.0
               },
               {
                 "type": "null"
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day."
+            "description": "Number of doses taken per day. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -7169,14 +7170,15 @@
           "dose_per_day": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "number",
+                "minimum": 0.0
               },
               {
                 "type": "null"
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day."
+            "description": "Number of doses taken per day. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -7310,14 +7312,15 @@
           "dose_per_day": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "number",
+                "minimum": 0.0
               },
               {
                 "type": "null"
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day."
+            "description": "Number of doses taken per day. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -7505,14 +7508,15 @@
           "dose_per_day": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "number",
+                "minimum": 0.0
               },
               {
                 "type": "null"
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day."
+            "description": "Number of doses taken per day. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [

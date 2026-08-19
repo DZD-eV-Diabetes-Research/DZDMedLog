@@ -841,3 +841,109 @@ def test_viewer_gets_403_not_401_on_create_intake():
         expected_http_code=403,
         access_token=viewer_token,
     )
+
+
+def test_create_intake_with_fractional_dose_issue_337():
+    """Half and quarter tablets must be storable in `dose_per_day` (issue #337)."""
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestFractionalDoseStudy337",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        with_intakes=0,
+        proband_count=1,
+    )
+
+    study_id = study_data.study.id
+    interview = study_data.events[0].interviews[0]
+    interview_id = interview.interview.id
+
+    from medlogserver.model.intake import (
+        IntakeCreateAPI,
+        SourceOfDrugInformationAnwers,
+        AdministeredByDoctorAnswers,
+        IntakeRegularOrAsNeededAnswers,
+        IntervalOfDailyDoseAnswers,
+        ConsumedMedsTodayAnswers,
+    )
+
+    drug = req("api/drug/search", q={"search_term": "Test"})["items"][0]["drug"]
+
+    def _payload(dose_per_day) -> Dict:
+        payload = dictyfy(
+            IntakeCreateAPI(
+                drug_id=drug["id"],
+                source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
+                intake_start_date=datetime.date.today().isoformat(),
+                administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
+                intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.REGULAR,
+                regular_intervall_of_daily_dose=IntervalOfDailyDoseAnswers.DAILY,
+                consumed_meds_today=ConsumedMedsTodayAnswers.UNKNOWN,
+            )
+        )
+        # set directly, so an invalid value is rejected by the API and not
+        # already by the model instantiation above
+        payload["dose_per_day"] = dose_per_day
+        return payload
+
+    # values from the user feedback of issue #337, plus a whole dose to make
+    # sure the old integer behaviour still works
+    for dose in [0.25, 1.25, 0.2, 0.5, 3]:
+        new_intake = req(
+            f"api/study/{study_id}/interview/{interview_id}/intake",
+            method="post",
+            b=_payload(dose),
+        )
+        dict_must_contain(
+            new_intake,
+            required_keys_and_val={"dose_per_day": dose},
+            exception_dict_identifier=f"create intake with dose_per_day={dose}",
+        )
+        # ...and it must survive the round trip through the database
+        reread_intake = req(
+            f"api/study/{study_id}/interview/{interview_id}/intake/{new_intake['id']}",
+        )
+        dict_must_contain(
+            reread_intake,
+            required_keys_and_val={"dose_per_day": dose},
+            exception_dict_identifier=f"get intake with dose_per_day={dose}",
+        )
+
+    # more than 2 decimal places can not be stored exactly -> reject instead of
+    # silently rounding
+    req(
+        f"api/study/{study_id}/interview/{interview_id}/intake",
+        method="post",
+        b=_payload(0.333),
+        expected_http_code=422,
+    )
+
+    # negative doses are nonsense
+    req(
+        f"api/study/{study_id}/interview/{interview_id}/intake",
+        method="post",
+        b=_payload(-1),
+        expected_http_code=422,
+    )
+
+    # a fractional dose must also be settable via PATCH
+    new_intake = req(
+        f"api/study/{study_id}/interview/{interview_id}/intake",
+        method="post",
+        b=_payload(1),
+    )
+    updated_intake = req(
+        f"api/study/{study_id}/interview/{interview_id}/intake/{new_intake['id']}",
+        method="patch",
+        b={"dose_per_day": 0.75},
+    )
+    dict_must_contain(
+        updated_intake,
+        required_keys_and_val={"dose_per_day": 0.75},
+        exception_dict_identifier="patch intake with fractional dose_per_day",
+    )
+    req(
+        f"api/study/{study_id}/interview/{interview_id}/intake/{new_intake['id']}",
+        method="patch",
+        b={"dose_per_day": 0.333},
+        expected_http_code=422,
+    )
