@@ -372,6 +372,10 @@ class IntakeCreateAPI(IntakeUpdate, table=False):
         description="ID of the drug as returned from the drug search.",
         default=None,
         foreign_key="drug.id",
+        # Without this index PostgreSQL runs a sequential referential integrity
+        # check per deleted drug row, and the obsolete drug cleanup cannot use an
+        # index for its "drug is not referenced by any intake" anti-join.
+        index=True,
     )
 
     consumed_meds_today: ConsumedMedsTodayAnswers = Field()

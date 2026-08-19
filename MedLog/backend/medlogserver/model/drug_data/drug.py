@@ -47,7 +47,11 @@ class DrugData(DrugModelTableBase, table=True):
     }
     id: uuid.UUID = Field(primary_key=True, default_factory=uuid.uuid4)
     source_dataset_id: uuid.UUID = Field(
-        foreign_key="drug_dataset_version.id", ondelete="CASCADE"
+        foreign_key="drug_dataset_version.id",
+        ondelete="CASCADE",
+        # Needed by the obsolete drug cleanup, which selects its delete batches
+        # per dataset version. Without it every batch full-scans `drug`.
+        index=True,
     )
     trade_name: str = Field(index=True)
     market_access_date: Optional[datetime.date] = Field(default=None)

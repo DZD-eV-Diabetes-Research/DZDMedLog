@@ -24,7 +24,13 @@ class DrugCode(DrugModelTableBase, DrugCodeApi, table=True):
     }
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     drug_id: uuid.UUID = Field(
-        primary_key=True, foreign_key="drug.id", ondelete="CASCADE"
+        primary_key=True,
+        foreign_key="drug.id",
+        ondelete="CASCADE",
+        # The primary key is (id, drug_id, code_system_id). `id` is leftmost, so the
+        # PK index is useless for drug_id lookups and the cascade/cleanup delete would
+        # scan the whole table per drug. See issue #331.
+        index=True,
     )
     code_system_id: str = Field(primary_key=True, foreign_key="drug_code_system.id")
     code: str = Field()
