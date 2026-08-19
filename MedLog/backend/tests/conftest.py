@@ -63,7 +63,9 @@ def set_config_for_test_env():
     os.environ["SERVER_SESSION_SECRET"] = (
         "asdöghjsekrhsergl669823jsakdgl!32kgsadefghs5gakljghlkej5h30985zu0awgh0j34g093a4jgh09ajg09j340tgjhj45po"
     )
-    os.environ["CLIENT_URL"] = "https://localhost:8888"
+    # The test server speaks plain http on this port. This is now load-bearing:
+    # post-login redirects are absolute URLs built from CLIENT_URL.
+    os.environ["CLIENT_URL"] = "http://localhost:8888"
     os.environ["BRANDING_SUPPORT_EMAIL_ADDRESS"] = "mytest@test.de"
     os.environ["DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB"] = str(
         DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB

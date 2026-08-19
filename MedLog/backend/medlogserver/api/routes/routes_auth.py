@@ -54,6 +54,39 @@ log = get_logger()
 config = Config()
 
 
+def is_safe_target_path(target_path: str) -> bool:
+    """True for a site-root-relative path that cannot leave this deployment.
+
+    "//evil.com" and "/\\evil.com" start with a slash but are protocol-relative
+    URLs that a browser resolves to an external origin, so a startswith("/")
+    check alone is not enough to prevent an open redirect.
+    """
+    if not target_path.startswith("/"):
+        return False
+    if target_path.startswith("//") or target_path.startswith("/\\"):
+        return False
+    return True
+
+
+def client_redirect_url(target_path: Optional[str]) -> str:
+    """Absolute URL on the web client to send the browser to after login.
+
+    When this runs the browser sits on the *server's* origin: either the login
+    form posted there, or the OIDC provider redirected there. A bare path would
+    therefore resolve against the server. In a split deployment - a Nuxt dev
+    server on :3000 in front of the backend on :8888 - that drops the user on
+    the wrong app, serving whatever stale bundle the backend has on disk.
+
+    CLIENT_URL is the web client's origin and defaults to the server's own URL,
+    so bundled deployments are unaffected.
+    """
+    if not target_path or not is_safe_target_path(target_path):
+        if target_path:
+            log.warning(f"Refused unsafe login target path: '{target_path}'")
+        target_path = "/"
+    return f"{str(config.CLIENT_URL).rstrip('/')}{target_path}"
+
+
 NEEDS_ADMIN_API_INFO = "Needs admin role."
 NEEDS_USERMAN_API_INFO = "Needs admin or user-manager role."
 
@@ -171,7 +204,7 @@ async def auth_basic_login_session_based(
     )
     user_session: UserSession = await user_session_crud.create(new_session)
     response = RedirectResponse(
-        url="/" if not target_path else target_path,
+        url=client_redirect_url(target_path),
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
@@ -317,10 +350,6 @@ async def auth_oidc_callback(
 ):
     # Retrieve the original path from session
     target_path: str = request.session.pop("target_path", "/")
-    # target_path sanity check. must be a local root path ("/thing/bla..."). Not an external ("http://..."" or an relativ "path/blaa/..")
-    if target_path and not target_path.startswith("/"):
-        log.warning(f"Weird auth_oidc_callback target path: '{target_path}'")
-        target_path = "/"
 
     login_type: Literal["token", "session"] = request.session.pop("login_type", "token")
     oauth_client = oauth_clients[provider_slug].client
@@ -394,7 +423,7 @@ async def auth_oidc_callback(
 
     elif login_type == "session":
         # Set a session cookie (here, just user ID as session token)
-        response = RedirectResponse(url="/" if not target_path else target_path)
+        response = RedirectResponse(url=client_redirect_url(target_path))
         response.set_cookie(
             key=SESSION_COOKIE_NAME,
             value=str(user_session.id),
@@ -438,7 +467,9 @@ async def logout(
                 end_session_endpoint = server_metadata.get("end_session_endpoint")
 
                 if end_session_endpoint:
-                    params = {"post_logout_redirect_uri": str(request.base_url)}
+                    params = {
+                        "post_logout_redirect_uri": f"{str(config.CLIENT_URL).rstrip('/')}/"
+                    }
                     if id_token:
                         params["id_token_hint"] = id_token
                     end_session_url = f"{end_session_endpoint}?{urlencode(params)}"
