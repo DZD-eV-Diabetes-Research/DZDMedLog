@@ -143,6 +143,15 @@ function myOptions(row: ElementType<ValueOf<typeof rows>>) {
   return [options];
 }
 
+function getDosePerDayString(value: number | null | undefined) {
+  if (!value && value !== 0) {
+    return "";
+  }
+
+  // Enforce german format as long as the rest of the application is german only.
+  return value.toLocaleString('de-DE');
+}
+
 const rows = computed(() => {
   if (!props.intakes) {
     return [];
@@ -153,7 +162,7 @@ const rows = computed(() => {
     intake: item,
     pzn: item.is_activeingredient_equivalent_choice ? '' : item.drug.codes?.PZN,
     name: item.drug.trade_name,
-    dose: item.dose_per_day === 0 ? "-/-" : item.dose_per_day,
+    dose: getDosePerDayString(item.dose_per_day),
     intervall: useGetLabelForValue(doseIntervalOptions, item.regular_intervall_of_daily_dose),
     time: getIntakeDurationString(item),
     intakeId: item.id,

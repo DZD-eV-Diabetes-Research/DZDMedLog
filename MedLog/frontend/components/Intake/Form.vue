@@ -21,7 +21,7 @@
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
         <UFormGroup label="Dosis pro Tag der Einnahme" style="border-color: red" name="dose">
-          <UInput v-model="state.dose" type="number" min="0" :disabled="state.frequency !== 'regular'"/>
+          <UInput v-model="state.dose" type="number" min="0" step="any" :disabled="state.frequency !== 'regular'"/>
         </UFormGroup>
       </div>
       <div class="flex-1">
@@ -102,7 +102,12 @@ const state = reactive<IntakeFormSchema>({
 
 const schema = object({
   administeredByDoctor: string().oneOf(administeredByDoctorOptions.map(item => item.value)),
-  dose: number().min(0, "Required"),
+  dose: number().min(0, "Die Dosis muss 0 oder eine positive Zahl sein").test(
+      'two-decimal-places',
+      'Maximal zwei Dezimalstellen angeben',
+      (value) => {
+        return String(value).match(/^\d+([.,]\d{1,2})?$/) !== null;
+      }),
   drugId: string().required("Kein Medikament ausgewählt"),
   drugSource: string().oneOf(drugSourceOptions.map(item => item.value)).required("Required"),
   endDate: string().when('endDateOption', { is: undefined, then: (schema) => schema.required(), otherwise: (schema) => schema.optional() }),
