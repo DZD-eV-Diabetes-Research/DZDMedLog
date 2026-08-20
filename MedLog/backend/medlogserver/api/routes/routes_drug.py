@@ -457,6 +457,11 @@ async def get_drug_code_details(
     "/drug/custom",
     response_model=CustomDrugAPIRead,
     description=f"Add a custom drug to the drug database. Should be used as a last resort if the user can not find a specific drug in the search.",
+    responses={
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "The drug search index is not available. </br>Either it is still being build or no search engine is configured. </br>A custom drug can only be created when the user was able to search the drug index for an existing drug beforehand."
+        },
+    },
 )
 async def create_custom_drug(
     custom_drug: DrugCustomCreate,
@@ -467,6 +472,21 @@ async def create_custom_drug(
     drug_crud: DrugCRUD = Depends(DrugCRUD.get_crud),
     drug_search: DrugSearch = Depends(get_drug_search),
 ) -> CustomDrugAPIRead:
+    # Creating a custom drug is only a valid fallback if the user was able to search
+    # the drug index first. Check the index upfront, otherwise we would commit the new
+    # drug and only afterwards fail to insert it into the (not yet existing) index.
+    try:
+        await drug_search._preflight()
+    except SearchEngineNotReadyException:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The search index is not ready yet. A custom drug can not be created at the moment. Please try it later",
+        )
+    except SearchEngineNotConfiguredException:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The search index is not configured. Please contact the admin.",
+        )
     custom_drug_dataset = await drug_dataset_crud.get_custom()
     try:
         new_custom_drug = await drug_crud.create_custom(
@@ -478,6 +498,5 @@ async def create_custom_drug(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
         )
-    await drug_search._preflight()
     await drug_search.search_engine.insert_drug_to_index(new_custom_drug)
     return await drug_to_drugAPI_obj(new_custom_drug)
