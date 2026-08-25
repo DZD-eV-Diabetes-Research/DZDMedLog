@@ -117,11 +117,12 @@ const schema = object({
       .typeError('Eingabe ist keine gültige Zahl')
       .min(0, "Die Dosis muss 0 oder eine positive Zahl sein")
       .test(
-      'two-decimal-places',
-      'Maximal zwei Dezimalstellen angeben',
-      (value) => {
-        return String(value).match(/^\d+([.,]\d{1,2})?$/) !== null;
-      }),
+        'two-decimal-places',
+        'Maximal zwei Dezimalstellen angeben',
+        (value) => {
+          return String(value).match(/^\d+([.,]\d{1,2})?$/) !== null;
+        }
+      ),
   drugId: string().required("Kein Medikament ausgewählt"),
   drugSource: string().oneOf(drugSourceOptions.map(item => item.value)).required("Required"),
   endDate: string().when('endDateOption', { is: undefined, then: (schema) => schema.required(), otherwise: (schema) => schema.optional() }),
