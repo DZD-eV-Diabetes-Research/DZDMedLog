@@ -149,7 +149,7 @@ function getDosePerDayString(value: number | null | undefined) {
   }
 
   // Enforce german format as long as the rest of the application is german only.
-  return value.toLocaleString('de-DE');
+  return value.toLocaleString('de-DE', { useGrouping: false });
 }
 
 const rows = computed(() => {
