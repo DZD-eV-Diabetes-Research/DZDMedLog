@@ -21,7 +21,7 @@
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
         <UFormGroup label="Dosis pro Tag der Einnahme" style="border-color: red" name="dose">
-          <UInput v-model="state.dose" type="number" min="0" step="any" :disabled="state.frequency !== 'regular'"/>
+          <UInput v-model.trim="state.dose" type="text" inputmode="decimal" :disabled="state.frequency !== 'regular'"/>
         </UFormGroup>
       </div>
       <div class="flex-1">
@@ -102,7 +102,21 @@ const state = reactive<IntakeFormSchema>({
 
 const schema = object({
   administeredByDoctor: string().oneOf(administeredByDoctorOptions.map(item => item.value)),
-  dose: number().min(0, "Die Dosis muss 0 oder eine positive Zahl sein").test(
+  dose: number()
+      .transform((value, originalValue, schema) => {
+        if (schema.isType(value)) {
+          return value;
+        }
+
+        if (originalValue === '') {
+          return NaN;
+        }
+
+        return Number(String(originalValue).replace(',', '.'));
+      })
+      .typeError('Eingabe ist keine gültige Zahl')
+      .min(0, "Die Dosis muss 0 oder eine positive Zahl sein")
+      .test(
       'two-decimal-places',
       'Maximal zwei Dezimalstellen angeben',
       (value) => {
