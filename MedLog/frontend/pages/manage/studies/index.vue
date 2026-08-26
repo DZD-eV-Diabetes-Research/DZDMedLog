@@ -34,7 +34,6 @@
 import {
   onMounted,
   ref,
-  useCreateStudy,
   useStudyStore,
   useUserStore
 } from "#imports";
@@ -56,9 +55,9 @@ async function createStudy(name: string, cloneFromId?: string) {
     if (cloneFromId) {
       await studyStore.cloneStudy(cloneFromId, name);
     } else {
-      const newStudy = await useCreateStudy(name);
-      studyStore.upsertStudy(newStudy);
+      await studyStore.createStudy(name);
     }
+
     createStudyModalVisible.value = false;
   } catch (error) {
     createStudyError.value = error;
