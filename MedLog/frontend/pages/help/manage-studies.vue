@@ -24,7 +24,7 @@
     </div>
 
     <p>
-      Zur Studienverwaltung – inklusive Anlage der Interviews als Events – gelangen Sie über den entsprechenden Reiter rechts oben auf der DZDMedLog-Seite.
+      Zur Studienverwaltung – inklusive Anlage der Interviews als Events – gelangen Sie über den Reiter <em>Studienverwaltung</em> rechts oben auf der DZDMedLog-Seite.
     </p>
 
     <WarningMessage
@@ -32,6 +32,17 @@
       message="Bitte beachten Sie, dass nur Benutzer:innen mit Admin-Rechten neue Studien und Interviews anlegen können."
       class="mt-4"
     />
+
+    <h3 class="text-xl mt-4 mb-2">Neue Studie anlegen</h3>
+    <p>
+      Um eine neue Studie anzulegen, klicken Sie auf den Button <em>Studie anlegen</em>.
+      Verpflichtend ist hier nur die Angabe eines Namens für die Studie, welcher eindeutig sein muss.
+    </p>
+    <p>
+      Optional können Sie die allgemeinen Einstellungen (v.a. Regeln für die Probanden-ID) und die Struktur (v.a. Events) einer bestehenden Studie übernehmen.
+      Daten aus den Interviews werden dabei explizit nicht übernommen.
+      Ebenso müssen die individuellen Berechtigungen für die Studie neu vergeben werden.
+    </p>
   </section>
 </template>
 

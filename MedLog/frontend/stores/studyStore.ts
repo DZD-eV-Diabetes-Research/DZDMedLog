@@ -14,6 +14,26 @@ export const useStudyStore = defineStore('StudyStore', {
         studies: [],
     }),
     actions: {
+        async cloneStudy(existingStudyId: string, newName: string) {
+            const { data, error } = await useMedlogapi("/api/study/{study_id}/clone", {
+                method: "POST",
+                path: {
+                    study_id: existingStudyId,
+                },
+                body: {
+                    display_name: newName,
+                }
+            })
+            if (error.value) {
+                throw error.value;
+            }
+
+            if (!data.value) {
+                throw new Error('Study clone endpoint did not return a new study');
+            }
+
+            this.upsertStudy(data.value)
+        },
         getStudy(id: string) {
             return this.studies.find(item => item.id === id)
         },

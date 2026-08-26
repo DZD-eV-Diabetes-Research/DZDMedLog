@@ -51,10 +51,14 @@ async function openStudyModal() {
   createStudyError.value = ""
 }
 
-async function createStudy(name: string) {
+async function createStudy(name: string, cloneFromId?: string) {
   try {
-    const newStudy = await useCreateStudy(name);
-    studyStore.upsertStudy(newStudy);
+    if (cloneFromId) {
+      await studyStore.cloneStudy(cloneFromId, name);
+    } else {
+      const newStudy = await useCreateStudy(name);
+      studyStore.upsertStudy(newStudy);
+    }
     createStudyModalVisible.value = false;
   } catch (error) {
     createStudyError.value = error;
