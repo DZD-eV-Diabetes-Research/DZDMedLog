@@ -29,7 +29,9 @@ const availableStudiesOptions = computed(() => {
           label: study.display_name ?? 'N/A',
           value: study.id,
         };
-      }));
+      })
+      .sort((a, b) => a.label.localeCompare(b.label))
+  );
 });
 
 const state = reactive({
