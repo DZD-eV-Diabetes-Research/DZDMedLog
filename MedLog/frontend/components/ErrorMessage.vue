@@ -3,11 +3,11 @@
       color="red"
       icon="i-heroicons-exclamation-circle"
       :title="titleString"
-      :ui="{ description: 'mt-1 text-sm leading-4 break-words' }"
+      :ui="{ description: 'mt-1 text-sm leading-4 break-words', title: 'font-semibold' }"
   >
     <template #description>
       <p>{{ messageString }}</p>
-      <details v-if="detailsString" class="mt-3">
+      <details v-if="detailsString && detailsString !== messageString" class="mt-3">
         <summary>Details</summary>
         <div class="bg-gray-200 text-black p-2 rounded">
           <code>
@@ -24,6 +24,8 @@
 </template>
 
 <script setup lang="ts">
+import { isFastAPIError } from "~/type-helper";
+
 const props = defineProps<{
   error?: unknown;
   title?: string
@@ -37,7 +39,7 @@ const titleString = computed(() => {
   }
 
   if (props.error) {
-    return isNuxtError(props.error) ? props.error.statusMessage : "Fehler";
+    return isNuxtError(props.error) ? props.error.statusText : "Fehler";
   }
 
   return "";
@@ -58,6 +60,10 @@ const messageString = computed(() => {
 const detailsString = computed(() => {
   if (props.details) {
     return props.details;
+  }
+
+  if (isNuxtError(props.error) && isFastAPIError(props.error.data)) {
+    return props.error.data.detail;
   }
 
   if (props.error && isNuxtError(props.error)) {

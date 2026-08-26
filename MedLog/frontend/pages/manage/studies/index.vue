@@ -60,7 +60,11 @@ async function createStudy(name: string, cloneFromId?: string) {
 
     createStudyModalVisible.value = false;
   } catch (error) {
-    createStudyError.value = error;
+    if (isNuxtError(error) && error.status === 409) {
+      createStudyError.value = "Eine Studie mit diesem Namen existiert bereits";
+    } else {
+      createStudyError.value = error;
+    }
   }
 }
 

@@ -56,10 +56,10 @@
         <dd>{{ error.message }}</dd>
 
         <dt>Fehlerdetails:</dt>
-        <dd><code>{{ error.cause }}</code></dd>
+        <dd><code>{{ errorDetails ?? "" }}</code></dd>
 
         <dt>Statuscode / -nachricht:</dt>
-        <dd>{{ error.statusCode }} / {{ error.statusMessage }}</dd>
+        <dd>{{ error.status }} / {{ error.statusText }}</dd>
 
         <dt>Version:</dt>
         <dd>{{ configStore.versionInfo.version ?? "N/A" }}</dd>
@@ -89,6 +89,7 @@
 
 <script setup lang="ts">
 import type { NuxtError } from '#app';
+import { isFastAPIError, isFetchError } from "~/type-helper";
 
 const configStore = useConfigStore();
 
@@ -101,8 +102,20 @@ const props = defineProps({
 
 const fetchError = ref();
 
+const errorDetails = computed(() => {
+  if(props.error?.cause) {
+    if (isFetchError(props.error?.cause) && isFastAPIError(props.error?.cause.data)) {
+      return props.error?.cause.data.detail;
+    }
+
+    return props.error?.cause;
+  }
+
+  return "";
+});
+
 const is404 = computed(() => {
-  return props.error.statusCode === 404
+  return props.error.status === 404
 });
 
 onMounted(async () => {
