@@ -2,7 +2,7 @@
 
 import { useMedlogapi } from "#open-fetch";
 import type { SchemaStudy } from "#open-fetch-schemas/medlogapi";
-import { defineStore } from '#imports'
+import { defineStore, useCreateStudy } from '#imports'
 
 interface StudyState {
     studies: SchemaStudy[],
@@ -14,6 +14,32 @@ export const useStudyStore = defineStore('StudyStore', {
         studies: [],
     }),
     actions: {
+        async cloneStudy(existingStudyId: string, newName: string): Promise<SchemaStudy> {
+            const { data, error } = await useMedlogapi("/api/study/{study_id}/clone", {
+                method: "POST",
+                path: {
+                    study_id: existingStudyId,
+                },
+                body: {
+                    display_name: newName,
+                }
+            })
+            if (error.value) {
+                throw error.value;
+            }
+
+            if (!data.value) {
+                throw new Error('Study clone endpoint did not return a new study');
+            }
+
+            this.upsertStudy(data.value)
+            return data.value
+        },
+        async createStudy(name: string): Promise<SchemaStudy> {
+            const newStudy = await useCreateStudy(name);
+            this.upsertStudy(newStudy);
+            return newStudy;
+        },
         getStudy(id: string) {
             return this.studies.find(item => item.id === id)
         },

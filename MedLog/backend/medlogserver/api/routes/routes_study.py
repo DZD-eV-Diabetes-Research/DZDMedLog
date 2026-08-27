@@ -43,6 +43,7 @@ from medlogserver.model.study import (
     StudyUpdate,
     StudyCreate,
     StudyCreateAPI,
+    StudyCloneAPI,
     ProbandExternalIdNormalization,
 )
 from medlogserver.db.study import StudyCRUD
@@ -55,6 +56,7 @@ from medlogserver.api.study_access import (
     UserStudyAccess,
     user_has_study_access,
 )
+from medlogserver.api.base import HTTPErrorResponeRepresentation
 from medlogserver.model._base_model import MedLogBaseModel
 from medlogserver.utils import handle_integrity_error
 from medlogserver.api.proband_id import (
@@ -144,6 +146,100 @@ async def create_study(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Study with name '{study.display_name}' allready exists",
         ),
+    )
+
+
+@fast_api_study_router.post(
+    "/study/{study_id}/clone",
+    response_model=Study,
+    summary="Clone the setup of an existing study into a new study",
+    description=(
+        "Create a new study that reuses the setup of an existing one. Copied are the "
+        "study configuration (proband ID pattern, its error text, normalization and "
+        "example, plus the 'no_permissions' flag) and the complete event structure "
+        "(one new event per source event, keeping name and 'order_position'). "
+        "Only the new name is supplied by the caller. "
+        "**Not** copied: interviews, intakes and study permissions - the clone starts "
+        "empty and, like a freshly created study, is only accessible to instance admins "
+        "until permissions are granted. The clone is always active, even when the source "
+        "study is deactivated. "
+        f"{NEEDS_ADMIN_API_INFO}"
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "Caller is not a global medlog-admin.",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "No study with the given `study_id` exists.",
+        },
+        status.HTTP_409_CONFLICT: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "A study with the requested `display_name` already exists.",
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": (
+                "The source study's stored proband ID pattern is not (or no longer) valid "
+                "and must be fixed in the source study before it can be cloned."
+            ),
+        },
+    },
+)
+async def clone_study(
+    study_id: Annotated[
+        uuid.UUID, Path(description="ID of the study to clone (the template).")
+    ],
+    clone_request: Annotated[
+        StudyCloneAPI, Body(description="Name of the new study.")
+    ],
+    current_user_is_admin: User = Security(user_is_admin),
+    study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
+) -> Study:
+    # Deactivated studies stay clonable on purpose: an archived study is a perfectly
+    # good template for the next one.
+    source_study = await study_crud.get(
+        study_id=study_id,
+        show_deactivated=True,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No study with id '{study_id}'",
+        ),
+    )
+
+    # A pattern that passed validation when the source study was saved can be rejected by
+    # today's rules (e.g. the backtracking screening added later). Refuse to carry such a
+    # pattern into a new study instead of silently spreading it - same fail-closed stance
+    # as create/update, just with an admin-facing hint at the actual source.
+    try:
+        assert_valid_proband_id_pattern(source_study.proband_external_id_pattern)
+    except HTTPException as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "The proband ID validation pattern of the study to be cloned is not (or no "
+                f"longer) valid, so it can not be cloned: {e.detail} "
+                "Please fix the pattern in the source study first."
+            ),
+        )
+
+    name_conflict_exception = HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=f"Study with name '{clone_request.display_name}' allready exists",
+    )
+    # Explicit pre-check for a clean error message; the CRUD still maps the unique
+    # constraint violation to the same 409 in case of a race.
+    existing_study_with_same_name = await study_crud.get_by_name(
+        study_name=clone_request.display_name, show_deactivated=True
+    )
+    if existing_study_with_same_name is not None:
+        raise name_conflict_exception
+
+    return await study_crud.clone(
+        source_study=source_study,
+        new_display_name=clone_request.display_name,
+        raise_custom_exception_if_exists=name_conflict_exception,
     )
 
 

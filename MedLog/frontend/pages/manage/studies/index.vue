@@ -34,7 +34,6 @@
 import {
   onMounted,
   ref,
-  useCreateStudy,
   useStudyStore,
   useUserStore
 } from "#imports";
@@ -51,13 +50,21 @@ async function openStudyModal() {
   createStudyError.value = ""
 }
 
-async function createStudy(name: string) {
+async function createStudy(name: string, cloneFromId?: string) {
   try {
-    const newStudy = await useCreateStudy(name);
-    studyStore.upsertStudy(newStudy);
+    if (cloneFromId) {
+      await studyStore.cloneStudy(cloneFromId, name);
+    } else {
+      await studyStore.createStudy(name);
+    }
+
     createStudyModalVisible.value = false;
   } catch (error) {
-    createStudyError.value = error;
+    if (isNuxtError(error) && error.status === 409) {
+      createStudyError.value = "Eine Studie mit diesem Namen existiert bereits";
+    } else {
+      createStudyError.value = error;
+    }
   }
 }
 

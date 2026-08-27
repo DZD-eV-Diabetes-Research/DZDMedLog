@@ -16,6 +16,8 @@ Study
 
 A **Study** is the top-level container. All data lives inside a study. An instance of MedLog can host multiple studies simultaneously. Each study has its own set of users and permissions (see [Permissions](../PERMISSIONS.md)).
 
+A study can be **cloned** (`POST /api/study/{study_id}/clone`, admins only): the clone gets its own name but reuses the setup of the source study, meaning its proband-ID configuration (pattern, error text, normalization, example) and a copy of its complete event structure. Collected data (interviews, intakes) and study permissions are never copied, so a clone starts empty like a freshly created study.
+
 ### Event
 
 An **Event** represents a timepoint or visit within a study — for example `Baseline`, `Visit-1`, `Month-6`. Events are ordered and define the structure of data collection over time.
