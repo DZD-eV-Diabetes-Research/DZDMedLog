@@ -58,12 +58,13 @@ export default defineNuxtConfig({
     tsConfig: {
       // Keep eslint.config.mjs out of the vue-tsc program. It is the only file
       // importing ./.nuxt/eslint.config.mjs, whose type declaration
-      // (.nuxt/eslint.config.d.mts) is rewritten by @nuxt/eslint on every
-      // `builder:generateApp` in a fire-and-forget (un-awaited) fs.writeFile.
-      // The write truncates the file first, so a type check running at that
-      // moment intermittently reads it as empty and fails the build with
-      // "TS2306: File .nuxt/eslint.config.d.mts is not a module".
-      // ESLint itself still reads and applies eslint.config.mjs as usual.
+      // (.nuxt/eslint.config.d.mts) is rewritten by @nuxt/eslint's writeConfigFile()
+      // on every `builder:generateApp`. fs.writeFile() truncates the file before
+      // writing the new content (not an atomic rename), and the type checker runs
+      // as an independent process/watcher with no synchronization to that hook.
+      // A type check that reads the file in that truncate-then-write window sees
+      // it as empty and fails the build with "TS2306: File .nuxt/eslint.config.d.mts
+      // is not a module". ESLint itself still reads and applies eslint.config.mjs as usual.
       exclude: ["../eslint.config.mjs"],
     },
   },
