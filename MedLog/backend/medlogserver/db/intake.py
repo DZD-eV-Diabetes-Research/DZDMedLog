@@ -7,6 +7,7 @@ from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc, and_, func
 from datetime import datetime, timezone
+from types import SimpleNamespace
 import uuid
 from uuid import UUID
 
@@ -23,6 +24,10 @@ from medlogserver.model.intake import (
     IntakeCreate,
     IntakeUpdate,
     IntakeDetailListItem,
+)
+from medlogserver.model.intake_rules import (
+    INTAKE_PLAUSIBILITY_FIELDS,
+    validate_intake_plausibility,
 )
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.api_drug_model_factory import (
@@ -44,6 +49,74 @@ class IntakeCRUD(
         update_model=IntakeUpdate,
     )
 ):
+    async def create(
+        self,
+        obj: IntakeCreate,
+        exists_ok: bool = False,
+        raise_custom_exception_if_exists: Optional[Exception] = None,
+        skip_plausibility_checks: bool = False,
+    ) -> Intake:
+        """Create an intake after checking it against the plausibility rules.
+
+        The checks live here and not in the route so that every writer is
+        covered by the same rules. `skip_plausibility_checks` exists for bulk
+        imports of pre-existing data (provisioning), which must not be rejected
+        for contradictions that were allowed when the data was recorded.
+        """
+        if not skip_plausibility_checks:
+            validate_intake_plausibility(obj)
+        return await super().create(
+            obj,
+            exists_ok=exists_ok,
+            raise_custom_exception_if_exists=raise_custom_exception_if_exists,
+        )
+
+    async def update(
+        self,
+        update_obj: IntakeUpdate | Intake,
+        id_: Optional[UUID] = None,
+        raise_exception_if_not_exists: Optional[Exception] = None,
+        skip_plausibility_checks: bool = False,
+    ) -> Intake:
+        """Update an intake after checking the *merged* record.
+
+        The generic `update()` merges the payload field by field onto the row
+        without revalidating, so a PATCH that only sends `intake_end_date` would
+        never be checked against the start date already stored. The merged view
+        is built here and handed to the rules.
+
+        Only rules that concern a field the request actually sent are enforced,
+        see `validate_intake_plausibility()`.
+        """
+        if not skip_plausibility_checks:
+            merge_id = id_ if id_ is not None else getattr(update_obj, "id", None)
+            if merge_id is None:
+                raise ValueError("No id_ (primary key) provided. Could not update")
+            current = await self._get(
+                id_=merge_id, raise_exception_if_none=raise_exception_if_not_exists
+            )
+            if current is not None:
+                # Mirror what the generic update() will actually write.
+                changed = {
+                    k: v
+                    for k, v in update_obj.model_dump(exclude_unset=True).items()
+                    if k in IntakeUpdate.model_fields
+                }
+                # A plain namespace instead of a copy of the ORM object, so the
+                # merged view can never end up attached to the session.
+                merged = SimpleNamespace(
+                    **{
+                        field: changed.get(field, getattr(current, field, None))
+                        for field in INTAKE_PLAUSIBILITY_FIELDS
+                    }
+                )
+                validate_intake_plausibility(merged, restrict_to_fields=changed.keys())
+        return await super().update(
+            update_obj=update_obj,
+            id_=id_,
+            raise_exception_if_not_exists=raise_exception_if_not_exists,
+        )
+
     async def list(
         self,
         filter_event_id: str = None,

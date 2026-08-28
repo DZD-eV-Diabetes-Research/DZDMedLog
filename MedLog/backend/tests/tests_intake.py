@@ -570,7 +570,8 @@ def test_create_intake_with_end_and_start_option_update_issue_228():
         "is_activeingredient_equivalent_choice": False,
         "administered_by_doctor": "prescribed",
         "intake_regular_or_as_needed": "regular",
-        "dose_per_day": 0,
+        # a dose of 0 is rejected by the `dose_per_day_not_positive` rule
+        "dose_per_day": 1,
         "regular_intervall_of_daily_dose": "Unknown",
         "consumed_meds_today": "Yes",
         "as_needed_dose_unit": None,
@@ -591,7 +592,7 @@ def test_create_intake_with_end_and_start_option_update_issue_228():
         "intake_start_date": None,
         "intake_end_date": tomorrow_date_string,
         "administered_by_doctor": "prescribed",
-        "dose_per_day": 0,
+        "dose_per_day": 1,
         "as_needed_dose_unit": None,
     }
     dict_must_contain(

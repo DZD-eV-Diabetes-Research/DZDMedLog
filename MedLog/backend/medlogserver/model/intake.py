@@ -54,7 +54,25 @@ config = Config()
 
 
 class IntakeValidationError(ValueError):
-    pass
+    """Raised for every intake rule violation.
+
+    `rule_id` and `fields` are set for the plausibility rules in
+    `medlogserver/model/intake_rules.py` so the API can tell the client which
+    rule broke and which fields to highlight. They stay `None`/empty for the
+    field-presence and mutual-exclusivity errors raised below, which are raised
+    from inside pydantic validators and get wrapped in a `ValidationError`
+    anyway, losing any extra attributes.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        rule_id: Optional[str] = None,
+        fields: Sequence[str] = (),
+    ):
+        super().__init__(message)
+        self.rule_id = rule_id
+        self.fields = tuple(fields)
 
 
 # `dose_per_day` is stored as NUMERIC(6, 2): fractional tablets down to a
@@ -214,9 +232,8 @@ class IntakeUpdate(MedLogBaseModel, table=False):
     )
     dose_per_day: Optional[float] = Field(
         default=None,
-        ge=0,
         description=(
-            "Number of doses taken per day. "
+            "Number of doses taken per day. Must be greater than 0. "
             "Fractional doses (half or quarter tablets) are allowed with at most "
             "2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
         ),
@@ -248,7 +265,7 @@ class IntakeUpdate(MedLogBaseModel, table=False):
     as_needed_dose_unit: Optional[int] = Field(
         default=None,
         description=(
-            "Dose unit for as-needed intake. "
+            "Dose unit for as-needed intake. Must be greater than 0. "
             "Required when `intake_regular_or_as_needed` is `AS_NEEDED`. "
             "Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
         ),

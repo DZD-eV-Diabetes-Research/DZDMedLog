@@ -563,6 +563,17 @@ def create_test_study(
 
                     from medlogserver.api.routes.routes_intake import create_intake
 
+                    random_consumed_meds_today = random_gen.choice(
+                        list(ConsumedMedsTodayAnswers)
+                    )
+                    if (
+                        random_enddate is not None
+                        and random_consumed_meds_today == ConsumedMedsTodayAnswers.YES
+                    ):
+                        # An intake that already ended cannot have been taken
+                        # today. The backend rejects that combination, so the
+                        # random generator must not produce it.
+                        random_consumed_meds_today = ConsumedMedsTodayAnswers.NO
                     intake_data = req(
                         f"api/study/{study_id}/interview/{interview_id}/intake",
                         method="post",
@@ -571,9 +582,7 @@ def create_test_study(
                                 drug_id=drug_data["id"],
                                 intake_start_date=random_startdate,
                                 intake_end_date=random_enddate,
-                                consumed_meds_today=random_gen.choice(
-                                    list(ConsumedMedsTodayAnswers)
-                                ),
+                                consumed_meds_today=random_consumed_meds_today,
                                 as_needed_dose_unit=None,
                             )
                         ),

@@ -51,6 +51,90 @@ log = get_logger()
 fast_api_intake_router: APIRouter = APIRouter()
 
 
+def _intake_validation_error_detail(
+    exception: IntakeValidationError | ValidationError,
+) -> dict | str:
+    """Build the 422 body for a rejected intake.
+
+    Violations of the plausibility rules carry the rule that broke and the
+    fields it concerns, so the frontend can put the hint on the right input
+    instead of showing a generic message. The older field-presence and mutual
+    exclusivity errors are raised inside pydantic validators, get wrapped in a
+    `ValidationError` and keep their plain string detail.
+    """
+    rule_id = getattr(exception, "rule_id", None)
+    if rule_id is None:
+        return str(exception)
+    return {
+        "rule": rule_id,
+        "fields": list(getattr(exception, "fields", ())),
+        "msg": str(exception),
+    }
+
+
+INTAKE_422_RESPONSE_DOC = {
+    "description": (
+        "**UNPROCESSABLE ENTITY** — Returned when the request body violates one of the following validation rules:\n\n"
+        "**Start Date (exactly one required)**\n"
+        "- Both `intake_start_date` and `intake_start_date_option` are set — only one may be provided.\n"
+        "- Neither `intake_start_date` nor `intake_start_date_option` is set — exactly one must be provided.\n\n"
+        "**End Date (at most one allowed)**\n"
+        "- Both `intake_end_date` and `intake_end_date_option` are set — only one may be provided. "
+        "If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n"
+        "**Intake Mode (mutually exclusive dose fields)**\n"
+        "- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n"
+        "- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n"
+        "**Plausibility (combinations that cannot be true)**\n"
+        "These are checked against the server's current UTC date, with one day of tolerance in "
+        "both directions to absorb the offset between stored UTC and the interviewer's local time. "
+        "They are checked on the record as it will be stored, so a PATCH is validated against the "
+        "merged record, not just the payload. A PATCH only triggers the rules that concern a field "
+        "it actually sends.\n"
+        "- `end_date_before_start_date` — `intake_end_date` is before `intake_start_date`. "
+        "The same day for both is allowed.\n"
+        "- `start_date_in_future` — `intake_start_date` lies in the future.\n"
+        "- `end_date_in_future` — `intake_end_date` lies in the future.\n"
+        "- `consumed_today_with_past_end_date` — `consumed_meds_today` is `Yes` while "
+        "`intake_end_date` lies in the past.\n"
+        "- `consumed_today_with_future_start_date` — `consumed_meds_today` is `Yes` while "
+        "`intake_start_date` lies in the future.\n"
+        "- `dose_per_day_not_positive` — `dose_per_day` is not greater than 0.\n"
+        "- `as_needed_dose_unit_not_positive` — `as_needed_dose_unit` is not greater than 0.\n"
+        "- `start_date_implausibly_old` / `end_date_implausibly_old` — the date is before 1900-01-01.\n\n"
+        "Rules that need an exact date are skipped when `intake_start_date_option` / "
+        "`intake_end_date_option` is set instead of a date, because the option carries no date to "
+        "compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\n"
+        "A plausibility violation returns an object as `detail`, carrying the `rule` that broke and "
+        "the `fields` it concerns. The other rules above return a plain string."
+    ),
+    "content": {
+        "application/json": {
+            "examples": {
+                "field_presence": {
+                    "summary": "Mutually exclusive fields",
+                    "value": {
+                        "detail": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set."
+                    },
+                },
+                "plausibility": {
+                    "summary": "Plausibility rule violated",
+                    "value": {
+                        "detail": {
+                            "rule": "consumed_today_with_past_end_date",
+                            "fields": ["consumed_meds_today", "intake_end_date"],
+                            "msg": (
+                                "'consumed_meds_today' cannot be 'Yes' when 'intake_end_date' is in "
+                                "the past. The intake had already ended."
+                            ),
+                        }
+                    },
+                },
+            }
+        }
+    },
+}
+
+
 IntakeQueryParams: Type[QueryParamsInterface] = create_query_params_class(
     Intake, default_order_by_attr="created_at"
 )
@@ -95,35 +179,7 @@ async def get_intake(
     - `REGULAR`: `as_needed_dose_unit` must be `null`  
     - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`  
     """,
-    responses={
-        status.HTTP_422_UNPROCESSABLE_CONTENT: {
-            "description": (
-                "**UNPROCESSABLE ENTITY** — Returned when the request body violates one of the following validation rules:\n\n"
-                "**Start Date (exactly one required)**\n"
-                "- Both `intake_start_date` and `intake_start_date_option` are set — only one may be provided.\n"
-                "- Neither `intake_start_date` nor `intake_start_date_option` is set — exactly one must be provided.\n\n"
-                "**End Date (at most one allowed)**\n"
-                "- Both `intake_end_date` and `intake_end_date_option` are set — only one may be provided. "
-                "If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n"
-                "**Intake Mode (mutually exclusive dose fields)**\n"
-                "- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n"
-                "- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`."
-            ),
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": [
-                            {
-                                "loc": ["body"],
-                                "msg": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set.",
-                                "type": "value_error",
-                            }
-                        ]
-                    }
-                }
-            },
-        },
-    },
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: INTAKE_422_RESPONSE_DOC},
 )
 async def create_intake(
     intake: Annotated[IntakeCreateAPI, Body()],
@@ -149,11 +205,12 @@ async def create_intake(
     # interview_id = uuid.UUID(interview_id)
     try:
         intake_create = IntakeCreate(interview_id=interview_id, **intake.model_dump())
+        return await intake_crud.create(intake_create)
     except (IntakeValidationError, ValidationError) as e:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e)
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=_intake_validation_error_detail(e),
         )
-    return await intake_crud.create(intake_create)
 
 
 ############
@@ -170,35 +227,7 @@ async def create_intake(
     - `REGULAR`: `as_needed_dose_unit` must be `null`  
     - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`  
     """,
-    responses={
-        status.HTTP_422_UNPROCESSABLE_CONTENT: {
-            "description": (
-                "**UNPROCESSABLE ENTITY** — Returned when the request body violates one of the following validation rules:\n\n"
-                "**Start Date (exactly one required)**\n"
-                "- Both `intake_start_date` and `intake_start_date_option` are set — only one may be provided.\n"
-                "- Neither `intake_start_date` nor `intake_start_date_option` is set — exactly one must be provided.\n\n"
-                "**End Date (at most one allowed)**\n"
-                "- Both `intake_end_date` and `intake_end_date_option` are set — only one may be provided. "
-                "If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n"
-                "**Intake Mode (mutually exclusive dose fields)**\n"
-                "- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n"
-                "- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`."
-            ),
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": [
-                            {
-                                "loc": ["body"],
-                                "msg": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set.",
-                                "type": "value_error",
-                            }
-                        ]
-                    }
-                }
-            },
-        },
-    },
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: INTAKE_422_RESPONSE_DOC},
 )
 async def update_intake(
     intake_id: uuid.UUID,
@@ -219,7 +248,13 @@ async def update_intake(
         intake_crud=intake_crud,
         interview_id=interview_id,
     )
-    return await intake_crud.update(update_obj=intake, id_=intake_id)
+    try:
+        return await intake_crud.update(update_obj=intake, id_=intake_id)
+    except (IntakeValidationError, ValidationError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=_intake_validation_error_detail(e),
+        )
 
 
 ############

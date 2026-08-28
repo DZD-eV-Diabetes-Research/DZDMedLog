@@ -40,6 +40,48 @@ An **Intake** is a single medication entry within an interview. It records:
 
 Custom / off-label drugs that are not in the drug database can be entered as free-text entries.
 
+#### Plausibility rules
+
+Beyond checking which fields are present and which are mutually exclusive, the backend
+rejects combinations of values that cannot be true. A violation returns **422** with a
+`detail` object naming the `rule` that broke and the `fields` it concerns, so the client
+can show a hint on the right input.
+
+All date checks compare against the server's current UTC date. Timestamps are stored as
+naive UTC while interviewers work in local time, so every comparison gets one day of
+tolerance in both directions: a date one day off "today" is never rejected.
+
+| Rule | Rejected because |
+| --- | --- |
+| `end_date_before_start_date` | `intake_end_date` is before `intake_start_date`. Both on the same day is a valid one-day intake. |
+| `start_date_in_future` | The intake has not begun yet, so it cannot be recorded. |
+| `end_date_in_future` | The intake cannot have ended yet. |
+| `consumed_today_with_past_end_date` | `consumed_meds_today` is `Yes` although the intake already ended. |
+| `consumed_today_with_future_start_date` | `consumed_meds_today` is `Yes` although the intake has not begun. |
+| `dose_per_day_not_positive` | `dose_per_day` is not greater than 0. |
+| `as_needed_dose_unit_not_positive` | `as_needed_dose_unit` is not greater than 0. |
+| `start_date_implausibly_old`, `end_date_implausibly_old` | The date is before 1900-01-01, which catches typos such as year `0202`. |
+
+These combinations are explicitly **allowed**:
+
+- `consumed_meds_today` of `No` or `UNKNOWN` with any date combination. Not having taken
+  the medication today does not contradict an ongoing intake.
+- `intake_end_date_option = ONGOING` with any `consumed_meds_today` answer.
+- `intake_start_date_option` / `intake_end_date_option` set instead of an exact date. The
+  option carries no date, so the rules that need one are skipped.
+- Start and end date on the same day.
+
+The rules are collected in `MedLog/backend/medlogserver/model/intake_rules.py` and are
+enforced in `IntakeCRUD`, which every write goes through. On **PATCH** they are evaluated
+against the *merged* record (stored row plus payload), so a partial update that only sends
+`intake_end_date` is still checked against the stored start date. A PATCH only triggers the
+rules that concern a field it actually sends: because the reference date is "now", a record
+that was correct when it was entered can become contradictory purely through the passage of
+time, and correcting an unrelated field weeks later must not be blocked by that.
+
+Existing rows are **not** migrated. The rules apply to new writes only, so contradictory
+records created before this validation existed stay as they are.
+
 ---
 
 ## Workflow
