@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.10b3.post1.dev10+g00de6635a.d20260819"
+    "version": "1.0.10b5.post1.dev9+gb4bf00dbe.d20260828"
   },
   "paths": {
     "/api/health": {
@@ -4612,6 +4612,9 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "The drug search index is not available. </br>Either it is still being build or no search engine is configured. </br>A custom drug can only be created when the user was able to search the drug index for an existing drug beforehand."
           },
           "422": {
             "description": "Validation Error",
