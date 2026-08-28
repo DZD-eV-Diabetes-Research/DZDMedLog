@@ -40,6 +40,13 @@ class UserStudyAccess:
         self,
         as_role: Literal[None, "admin", "viewer", "interviewer"] = "viewer",
     ):
+        if self.study.deactivated and as_role == "interviewer":
+            # A deactivated study is closed for data collection: no interviews, intakes or
+            # events can be created or changed through the interviewer role, not even by an
+            # instance admin. Viewing stays possible (the study and its data remain
+            # readable) and so does study administration, which is what allows an admin to
+            # reactivate the study. See issue #348 and the open questions in issue #197.
+            return False
         if self.user.is_admin():
             return True
         elif self.user.is_usermanager() and as_role in (None, "viewer"):
@@ -100,7 +107,13 @@ class UserStudyAccessCollection:
         """
 
         if study_id:
-            studies_data = [await study_crud.get(study_id)]
+            # `show_deactivated=True` mirrors the list branch below: a deactivated study must
+            # still resolve here, otherwise no access entry is built for it and every
+            # per-study endpoint answers 404 "study does not exist" - even though the study
+            # list reports the study to the caller (issue #348). What a deactivated study
+            # still allows is decided in `UserStudyAccess.user_has_access()`, not by hiding
+            # the study from the access layer.
+            studies_data = [await study_crud.get(study_id, show_deactivated=True)]
         else:
             studies_data = await study_crud.list(show_deactivated=True)
         if self.user.is_usermanager():
