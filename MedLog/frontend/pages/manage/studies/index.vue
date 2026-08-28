@@ -14,7 +14,7 @@
           @click="openStudyModal()" />
     </div>
 
-    <StudyManagementTable :studies="studyStore.studies"/>
+    <StudyManagementTable :studies="studyStore.allStudies"/>
 
     <CreateStudyModal v-model="createStudyModalVisible" class="w-[1000px] !important" @create-study="createStudy">
       <template #error>

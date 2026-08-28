@@ -23,7 +23,7 @@ const availableStudiesOptions = computed(() => {
     label: string;
     value?: string;
   }[] = [{ label: 'Keine Auswahl', value: "" }];
-  return options.concat(studyStore.studies
+  return options.concat(studyStore.allStudies
       .map(study => {
         return {
           label: study.display_name ?? 'N/A',
