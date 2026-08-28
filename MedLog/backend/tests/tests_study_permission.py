@@ -749,3 +749,49 @@ def test_study_admin_cannot_manage_permissions_in_other_study():
         expected_http_code=404,
     )
     print("  ✓ Study admin correctly blocked from managing permissions in a different study")
+
+
+def test_endpoint_study_permissions_me_as_admin_on_deactivated_study():
+    """Issue #348: a global admin must be able to read /permissions/me for a deactivated study.
+
+    The frontend bootstrap lists all studies (including deactivated ones) and then asks
+    for the caller's permissions per study. `UserStudyAccessCollection.init()` resolves a
+    single study via `StudyCRUD.get()` without `show_deactivated=True`, so for a
+    deactivated study no access entry is built and `user_has_study_access` answers
+    404 "Study ... does not exist" - the bootstrap error in the issue.
+    """
+    study_data = create_test_study(
+        study_name="TestAdminPermsMeDeactivatedStudy", with_events=0
+    )
+    study_id = str(study_data.study.id)
+
+    # Deactivate the study (as admin, while it is still active and thus reachable)
+    deactivated_study = req(
+        f"/api/study/{study_id}",
+        method="patch",
+        b={"deactivated": True},
+    )
+    assert deactivated_study["deactivated"] is True
+
+    # The bootstrap lists deactivated studies too, so the frontend knows this study id
+    studies = req("/api/study", method="get", q={"show_deactived": True})
+    assert study_id in [
+        s["id"] for s in studies["items"]
+    ], "deactivated study is not listed for an admin - test setup is wrong"
+
+    # ... and then asks for its own permissions for every listed study. This is the
+    # call that currently fails with 404.
+    result = req(
+        f"/api/study/{study_id}/permissions/me",
+        method="get",
+    )
+    dict_must_contain(
+        result,
+        required_keys_and_val={
+            "is_study_viewer": True,
+            "is_study_interviewer": True,
+            "is_study_admin": True,
+        },
+        exception_dict_identifier="admin synthetic permission on deactivated study",
+    )
+    assert result["study_id"] == study_id
