@@ -53,8 +53,9 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
   <UCard>
     <template #header>
       <div class="flex flex-row justify-between">
-        <div class="text-lg break-words">
+        <div class="inline-flex text-lg break-words">
           {{ study.display_name }}
+          <UBadge v-if="study.deactivated" icon="i-heroicons-archive-box" label="Deaktiviert" color="gray" size="md" class="ml-2"/>
         </div>
         <UButton
             v-if="studyPermissionStore.currentUserCanExport(study.id)"

@@ -387,8 +387,15 @@ async function deleteIntake() {
 }
 
 async function endInterview() {
-  await interviewStore.endInterview(studyId.value, eventId.value, interviewId.value);
-  await navigateTo(`/studies/${studyId.value}/proband/${probandId.value}`);
+  try {
+    await interviewStore.endInterview(studyId.value, eventId.value, interviewId.value);
+    await navigateTo(`/studies/${studyId.value}/proband/${probandId.value}`);
+  } catch (error) {
+    toast.add({
+      title: "Konnte Interview nicht beenden",
+      description: useGetErrorMessage(error),
+    })
+  }
 }
 
 async function loadIntakeList() {

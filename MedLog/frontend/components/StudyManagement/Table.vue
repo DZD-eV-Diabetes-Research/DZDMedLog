@@ -58,7 +58,7 @@ const sort = ref<{
           variant="outline"
           color="gray"
           class="mr-2"
-          :disabled="row.deactivated || !studyPermissionStore.currentUserCanManageStudy(row.id)"
+          :disabled="!studyPermissionStore.currentUserCanManageStudy(row.id)"
       />
       <UButton
           :to="`/manage/studies/${row.id}/events`"
@@ -67,7 +67,7 @@ const sort = ref<{
           variant="outline"
           color="gray"
           class="mr-2"
-          :disabled="row.deactivated || !studyPermissionStore.currentUserCanManageStudy(row.id)"
+          :disabled="!studyPermissionStore.currentUserCanManageStudy(row.id)"
       />
       <UButton
           :to="`/manage/studies/${row.id}/access`"
@@ -76,7 +76,7 @@ const sort = ref<{
           variant="outline"
           color="gray"
           class="mr-2"
-          :disabled="row.deactivated  || !studyPermissionStore.currentUserCanManageUsers(row.id)"
+          :disabled="!studyPermissionStore.currentUserCanManageUsers(row.id)"
       />
       <UButton
           :to="`/studies/${row.id}/export`"
@@ -84,7 +84,7 @@ const sort = ref<{
           icon="i-heroicons-cloud-arrow-down"
           variant="outline"
           color="gray"
-          :disabled="row.deactivated || !studyPermissionStore.currentUserCanExport(row.id)"
+          :disabled="!studyPermissionStore.currentUserCanExport(row.id)"
       />
     </template>
   </UTable>

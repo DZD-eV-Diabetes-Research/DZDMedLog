@@ -68,12 +68,29 @@ export const useStudyStore = defineStore('StudyStore', {
         activeStudies(state: StudyState) {
             return state.studies.filter(study => study.deactivated === false);
         },
+        allStudies(state: StudyState) {
+            return state.studies;
+        },
+        deactivatedStudies(state: StudyState) {
+            return state.studies.filter(study => study.deactivated === true);
+        },
+        isStudyActive() {
+            return (studyId: string) => {
+                const study = this.studyById(studyId);
+                return study && study.deactivated === false;
+            };
+        },
         nameForStudy(state: StudyState) {
             return (studyId: string) => {
                 const study = state.studies.find(item => item.id === studyId);
 
                 return study ? study.display_name : undefined;
             };
-        }
+        },
+        studyById(state: StudyState) {
+            return (studyId: string): SchemaStudy|undefined => {
+                return state.studies.find(item => item.id === studyId);
+            };
+        },
     },
 })

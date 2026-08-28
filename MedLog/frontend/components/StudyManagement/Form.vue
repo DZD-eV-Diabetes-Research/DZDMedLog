@@ -184,8 +184,8 @@ onMounted(async () => {
             name="deactivated"
         >
           <template #description>
-            Versteckt die Studie außerhalb der Studienverwaltung.
-            <span class="text-red-500">Kann derzeit nicht rückgängig gemacht werden!</span>
+            Auf die Studie kann noch zugegriffen werden, jedoch können keine Interviews mehr angelegt oder verändert werden.
+            Diese Aktion ist umkehrbar.
           </template>
 
           <UToggle v-model="state.deactivated" />
