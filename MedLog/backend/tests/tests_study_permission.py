@@ -774,7 +774,10 @@ def test_endpoint_study_permissions_me_as_admin_on_deactivated_study():
     assert deactivated_study["deactivated"] is True
 
     # The bootstrap lists deactivated studies too, so the frontend knows this study id
-    studies = req("/api/study", method="get", q={"show_deactived": True})
+    # (a generous limit: the test suite leaves more than one page of studies behind)
+    studies = req(
+        "/api/study", method="get", q={"show_deactived": True, "limit": 10000}
+    )
     assert study_id in [
         s["id"] for s in studies["items"]
     ], "deactivated study is not listed for an admin - test setup is wrong"

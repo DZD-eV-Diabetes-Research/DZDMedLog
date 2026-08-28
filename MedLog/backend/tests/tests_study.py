@@ -324,3 +324,88 @@ def test_endpoint_study_clone_deactivated_source():
     assert clone["deactivated"] is False
     clone_events = req(f"api/study/{clone['id']}/event", method="get")["items"]
     assert len(clone_events) == 2
+
+
+def test_deactivated_study_stays_readable_but_closed_for_data_entry():
+    """Issue #348: a deactivated study must not vanish from the per-study endpoints.
+
+    Before the fix `UserStudyAccessCollection.init()` resolved a single study without
+    `show_deactivated=True`, so every endpoint behind `user_has_study_access` answered
+    404 "study does not exist" for a deactivated study - including
+    `/study/{id}/permissions/me`, which broke the frontend bootstrap for admins.
+
+    A deactivated study is now readable and administrable, but closed for data
+    collection: the interviewer role is denied, so no interviews/intakes can be created.
+    """
+    study_data = create_test_study(
+        study_name="TestDeactivatedStudyAccess", with_events=1
+    )
+    study_id = str(study_data.study.id)
+    event_id = str(study_data.events[0].event.id)
+
+    req(f"api/study/{study_id}", method="patch", b={"deactivated": True})
+
+    # Readable: events of a deactivated study can still be listed
+    events = req(f"api/study/{study_id}/event", method="get")
+    assert len(events["items"]) == 1
+
+    # Closed for data entry: no new interviews, not even for an instance admin
+    req(
+        f"api/study/{study_id}/event/{event_id}/interview",
+        method="post",
+        b={"proband_external_id": "deact-proband-1", "proband_has_taken_meds": True},
+        expected_http_code=403,
+    )
+
+    # Administrable: the study can be reactivated again (impossible while it 404ed)
+    reactivated = req(
+        f"api/study/{study_id}", method="patch", b={"deactivated": False}
+    )
+    assert reactivated["deactivated"] is False
+
+    # ... and data entry works again afterwards
+    interview = req(
+        f"api/study/{study_id}/event/{event_id}/interview",
+        method="post",
+        b={"proband_external_id": "deact-proband-1", "proband_has_taken_meds": True},
+    )
+    assert interview["proband_external_id"] == "deact-proband-1"
+
+
+def test_deactivated_study_permissions_me_for_study_member():
+    """A user with a study permission row can still read /permissions/me after deactivation.
+
+    The synthetic-permission branches for admins/usermanagers are covered in
+    tests_study_permission.py; this checks the plain DB-row path (issue #348).
+    """
+    study_data = create_test_study(
+        study_name="TestDeactivatedStudyMemberPerms", with_events=0
+    )
+    study_id = str(study_data.study.id)
+    user_password = "deact_member_pw_7731"
+    member = create_test_user(
+        user_name="deactivated_study_member",
+        password=user_password,
+        email="deactivated_study_member@test.com",
+    )
+    req(
+        f"api/study/{study_id}/permissions/{member.id}",
+        method="put",
+        b={"is_study_viewer": True, "is_study_interviewer": True},
+    )
+    member_token = authorize_for_access_token(
+        username=member.user_name,
+        pw=user_password,
+        set_as_global_default_login=False,
+    )
+
+    req(f"api/study/{study_id}", method="patch", b={"deactivated": True})
+
+    result = req(
+        f"api/study/{study_id}/permissions/me",
+        method="get",
+        access_token=member_token,
+    )
+    assert result["study_id"] == study_id
+    assert result["user_id"] == str(member.id)
+    assert result["is_study_viewer"] is True
