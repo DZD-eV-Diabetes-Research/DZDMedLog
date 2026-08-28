@@ -109,7 +109,6 @@ class StudyCRUD(
         )
         cloned_setup["display_name"] = new_display_name
         new_study = Study.model_validate(StudyCreate(**cloned_setup))
-        self.session.add(new_study)
 
         source_events_query = (
             select(Event)
@@ -119,21 +118,33 @@ class StudyCRUD(
         source_events: List[Event] = (
             await self.session.exec(source_events_query)
         ).all()
-        for source_event in source_events:
-            self.session.add(
-                Event.model_validate(
-                    EventCreate(
-                        name=source_event.name,
-                        order_position=source_event.order_position,
-                        study_id=new_study.id,
-                    )
-                )
-            )
 
         try:
+            self.session.add(new_study)
+            # Write the study row before the events that reference it. There is no ORM
+            # relationship between Study and Event, so the unit of work does not know
+            # that the event rows depend on the study row and is free to emit the event
+            # INSERTs first - which a database that actually enforces the foreign key
+            # rejects. The flush stays inside the transaction, so a later failure still
+            # rolls the study back together with its events.
+            await self.session.flush()
+            for source_event in source_events:
+                self.session.add(
+                    Event.model_validate(
+                        EventCreate(
+                            name=source_event.name,
+                            order_position=source_event.order_position,
+                            study_id=new_study.id,
+                        )
+                    )
+                )
             await self.session.commit()
         except IntegrityError as err:
             await self.session.rollback()
+            # Only a duplicate study name is an expected conflict here. Anything else
+            # (e.g. a foreign key violation) would be misreported as "name already
+            # exists", so log the original before it is translated.
+            log.error(f"Cloning study '{source_study.id}' failed: {err}")
             if raise_custom_exception_if_exists:
                 raise raise_custom_exception_if_exists
             raise err
