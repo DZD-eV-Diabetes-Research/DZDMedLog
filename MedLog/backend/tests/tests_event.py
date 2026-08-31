@@ -265,3 +265,112 @@ def test_endpoint_delete_event_study_admin_can_delete():
         expected_http_code=204,
         access_token=study_admin_token,
     )
+
+
+def test_deactivated_study_blocks_event_changes_issue_197():
+    """Issue #197: a deactivated study must not be changed - events included.
+
+    Deactivation closes a study for data collection: interviews and intakes are already
+    denied because they run through the interviewer role, which
+    `UserStudyAccess.user_has_access()` refuses for a deactivated study. The event
+    structure, however, is study *setup* and is gated on the study-admin role, which
+    stays open so an admin can reactivate the study. That left creating, renaming,
+    reordering and deleting events possible on a deactivated study.
+
+    The study itself (including the `deactivated` flag) must stay patchable - that is how
+    a study is reactivated - and reading the events must keep working.
+    """
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestDeactivatedStudyEventChanges", with_events=2
+    )
+    study_id = str(study_data.study.id)
+    first_event_id = str(study_data.events[0].event.id)
+    second_event_id = str(study_data.events[1].event.id)
+
+    req(f"api/study/{study_id}", method="patch", b={"deactivated": True})
+
+    # Reading the event structure stays possible
+    events = req(f"api/study/{study_id}/event", method="get")
+    assert events["count"] == 2
+
+    # ... but nothing about it may be changed, not even by an instance admin
+    req(
+        f"api/study/{study_id}/event",
+        method="post",
+        b={"name": "Event added after deactivation", "order_position": 30},
+        expected_http_code=403,
+    )
+    req(
+        f"api/study/{study_id}/event/{first_event_id}",
+        method="patch",
+        b={"name": "Renamed after deactivation"},
+        expected_http_code=403,
+    )
+    req(
+        f"api/study/{study_id}/event/order",
+        method="post",
+        b=[second_event_id, first_event_id],
+        expected_http_code=403,
+    )
+    req(
+        f"api/study/{study_id}/event/{second_event_id}",
+        method="delete",
+        expected_http_code=403,
+    )
+
+    # Nothing slipped through
+    events_after = req(f"api/study/{study_id}/event", method="get")
+    assert events_after["count"] == 2
+    assert [e["name"] for e in events_after["items"]] == ["Event0", "Event1"]
+
+    # Reactivating the study opens the event structure up again
+    req(f"api/study/{study_id}", method="patch", b={"deactivated": False})
+    new_event = req(
+        f"api/study/{study_id}/event",
+        method="post",
+        b={"name": "Event added after reactivation", "order_position": 30},
+    )
+    assert new_event["name"] == "Event added after reactivation"
+    req(
+        f"api/study/{study_id}/event/order",
+        method="post",
+        b=[second_event_id, first_event_id, str(new_event["id"])],
+    )
+    req(f"api/study/{study_id}/event/{new_event['id']}", method="delete", expected_http_code=204)
+
+
+def test_endpoint_reorder_events_viewer_is_blocked():
+    """A plain study viewer must not be able to reorder events.
+
+    The role check in `reorder_events` read `if not study_access.user_is_study_interviewer:`
+    - the bound method instead of its result. That is always truthy, so `not` was always
+    false and the check never fired: every user with plain read access to the study could
+    rewrite the event order.
+    """
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestReorderEventsViewerBlockedStudy", with_events=2
+    )
+    study_id = str(study_data.study.id)
+    event_ids = [str(e.event.id) for e in study_data.events]
+
+    viewer = create_test_user(
+        user_name="viewer_reorder_events_blocked",
+        password="pw_viewer_reorder_evt",
+        email="viewer_reorder_evt@test.de",
+    )
+    viewer_token = authorize_for_access_token(
+        username="viewer_reorder_events_blocked", pw="pw_viewer_reorder_evt"
+    )
+    req(
+        f"/api/study/{study_id}/permissions/{viewer.id}",
+        method="put",
+        b={"is_study_viewer": True, "is_study_interviewer": False, "is_study_admin": False},
+    )
+
+    req(
+        f"api/study/{study_id}/event/order",
+        method="post",
+        b=list(reversed(event_ids)),
+        expected_http_code=403,
+        access_token=viewer_token,
+    )

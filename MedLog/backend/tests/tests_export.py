@@ -277,3 +277,59 @@ def test_export_multi_ref_code_values():
         },
     )
     # dict_must_contain(res,required_keys_and_val=)
+
+
+def _wait_for_export(study_id: str, export_id: str, timeout_sec: int = 60) -> Dict:
+    """Poll an export job until it leaves the queued/running states."""
+    deadline = time.time() + timeout_sec
+    res = req(f"api/study/{study_id}/export/{export_id}", method="get")
+    while res["state"] in ["queued", "running"]:
+        assert time.time() < deadline, (
+            f"Export job {export_id} did not finish within {timeout_sec}s: {res}"
+        )
+        time.sleep(1)
+        res = req(f"api/study/{study_id}/export/{export_id}", method="get")
+    return res
+
+
+def test_export_of_deactivated_study_issue_353():
+    """Issue #353: an export of a deactivated study must run through and be downloadable.
+
+    A deactivated study is closed for data collection but stays readable, and exporting
+    an archived study is exactly what one wants at the end of a study. Two places looked
+    the study up without `show_deactivated=True` and therefore got `None`:
+
+    * the export worker (`StudyDataExporter._get_study_data`) - the job died with
+      "'NoneType' object has no attribute 'model_dump'" and the export never finished,
+    * the download endpoint, which builds the attachment file name from the study's
+      display name - it blew up with a 500 for the same reason.
+    """
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestExportDeactivatedStudy",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        with_intakes=1,
+        proband_count=1,
+    )
+    study_id = str(study_data.study.id)
+
+    req(f"api/study/{study_id}", method="patch", b={"deactivated": True})
+
+    # Creating an export job on a deactivated study stays allowed (issue #197)
+    export_job = req(f"api/study/{study_id}/export", method="post", q={"format": "csv"})
+
+    finished_job = _wait_for_export(study_id, export_job["export_id"])
+    dict_must_contain(
+        finished_job,
+        required_keys_and_val={"error": None, "state": "success"},
+        required_keys=["download_file_path"],
+        exception_dict_identifier="export job of a deactivated study",
+    )
+
+    # ... and the result can actually be downloaded
+    export_download: bytes = req(finished_job["download_file_path"], method="get")
+    assert is_valid_csv_with_rows(export_download.decode(), expected_row_count=1)
+    csv_row_matches(
+        csv_string=export_download.decode(),
+        criteria={"study_display_name": "TestExportDeactivatedStudy"},
+    )

@@ -150,7 +150,13 @@ class StudyDataExporter:
         async with get_async_session_context() as session:
             async with StudyCRUD.crud_context(session) as study_crud:
                 study_crud: StudyCRUD = study_crud
-                study: Study = await study_crud.get(study_id=self.study_id)
+                # `show_deactivated=True`: a deactivated study is closed for data
+                # collection but stays exportable (issue #197). Without it the lookup
+                # returned None and the export job died with
+                # "'NoneType' object has no attribute 'model_dump'" (issue #353).
+                study: Study = await study_crud.get(
+                    study_id=self.study_id, show_deactivated=True
+                )
         return StudyExport(**study.model_dump())
 
     async def _get_event_data(self, event_id: uuid.UUID) -> EventExport:

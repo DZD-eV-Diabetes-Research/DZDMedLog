@@ -217,7 +217,10 @@ async def download_export(
         )
         raise exception_job_not_existing
     """
-    study = await study_crud.get(study_id=study_id)
+    # `show_deactivated=True`: the export of a deactivated study stays downloadable
+    # (issue #353). The study is only read here to build the attachment file name, and
+    # without the flag it was None, which turned the download into a 500.
+    study = await study_crud.get(study_id=study_id, show_deactivated=True)
     media_type = (
         "text/csv" if worker_job.task_params["format_"] == "csv" else "application/json"
     )
