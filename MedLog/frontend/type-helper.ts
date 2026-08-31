@@ -19,6 +19,14 @@ interface FastAPIError {
     detail: string | { [key: string]: string; };
 }
 
+interface FastAPIPlausibilityError {
+    detail: {
+        rule: string
+        fields: string[]
+        msg: string
+    }
+}
+
 interface NormalizationChangeError extends H3Error {
     data: {
         detail: {
@@ -44,6 +52,19 @@ export function isSingleRefField(fieldDefinition: FieldDefinition, _fields?: obj
 
 export function isFastAPIError(error: unknown): error is FastAPIError {
     return typeof error === "object" && error !== null && 'detail' in error && !!error.detail;
+}
+
+export function isFastAPIPlausibilityError(error: unknown): error is FastAPIPlausibilityError {
+    if (!isFastAPIError(error)) {
+        return false;
+    }
+
+    return typeof error.detail === 'object'
+        && error.detail !== null
+        && 'rule' in error.detail
+        && 'fields' in error.detail
+        && Array.isArray(error.detail.fields)
+        && 'msg' in error.detail;
 }
 
 export function isFastAPIValidationError(error: unknown): error is SchemaHttpValidationError {
