@@ -24,7 +24,7 @@
         v-if="!studyIsActive"
         class="mb-4"
         icon="i-heroicons-archive-box"
-        color="gray"
+        color="orange"
         variant="outline"
         title="Studie ist deaktiviert"
         description="Die Events einer deaktivierten Studie können nicht geändert werden. Reaktivieren Sie die Studie, um Events anzulegen, umzubenennen oder umzusortieren."
