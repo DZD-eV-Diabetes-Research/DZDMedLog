@@ -72,6 +72,27 @@ class UserStudyAccess:
                 return self.user_study_perm.is_study_admin
         return False
 
+    def assert_study_is_not_deactivated(self, what: str = "this study"):
+        """Refuse a modifying request because the study is deactivated.
+
+        Deactivation closes a study for changes (issue #197). Data collection is already
+        covered by `user_has_access()` denying the interviewer role, but the study
+        *setup* - its events - is gated on the study-admin role, which deliberately stays
+        open so an admin can reactivate the study. Endpoints that change such setup call
+        this explicitly.
+
+        Deliberately exempt: patching the study itself, which is what carries the
+        reactivation, and everything read-only (listing events, exports, downloads).
+        """
+        if self.study.deactivated:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    f"Study '{self.study.display_name}' is deactivated. "
+                    f"Reactivate the study to change {what}."
+                ),
+            )
+
     def user_is_study_interviewer(self) -> bool:
         return self.user_has_access(as_role="interviewer")
 

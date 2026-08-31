@@ -108,6 +108,7 @@ async def create_event(
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
 ) -> EventRead:
+    study_access.assert_study_is_not_deactivated("its events")
     if not study_access.user_is_study_admin():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -143,6 +144,7 @@ async def update_event(
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
 ) -> EventRead:
+    study_access.assert_study_is_not_deactivated("its events")
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -202,6 +204,7 @@ async def delete_event(
 
     Requires **study admin** or global **medlog-admin** role.
     """
+    study_access.assert_study_is_not_deactivated("its events")
     if not study_access.user_is_study_admin():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -241,7 +244,11 @@ async def reorder_events(
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
 ) -> List[Event]:
-    if not study_access.user_is_study_interviewer:
+    study_access.assert_study_is_not_deactivated("the order of its events")
+    # `user_is_study_interviewer` is a method: without the parentheses the bound method
+    # object is always truthy, `not ...` always False, and the check never fired - every
+    # user with plain read access to the study could rewrite the event order.
+    if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to reorder events",

@@ -20,6 +20,16 @@
       Events bilden Termine wie Visiten oder Interviews ab.
     </p>
 
+    <UAlert
+        v-if="!studyIsActive"
+        class="mb-4"
+        icon="i-heroicons-archive-box"
+        color="gray"
+        variant="outline"
+        title="Studie ist deaktiviert"
+        description="Die Events einer deaktivierten Studie können nicht geändert werden. Reaktivieren Sie die Studie, um Events anzulegen, umzubenennen oder umzusortieren."
+    />
+
     <UProgress v-if="loading" animation="carousel" />
     <div v-else class="w-3/6 mx-auto">
       <div v-if="myEvents.length === 0">
@@ -30,7 +40,7 @@
         />
       </div>
       <div v-else class="flex flex-col text-lg">
-        <div class="flex flex-row justify-end">
+        <div v-if="studyIsActive" class="flex flex-row justify-end">
           <UButton
               v-if="sortingMode"
               label="Abbrechen"
@@ -69,7 +79,7 @@
         </Draggable>
       </div>
 
-      <div class="mt-4 text-center">
+      <div v-if="studyIsActive" class="mt-4 text-center">
         <UButton
             label="Event anlegen"
             icon="i-heroicons-plus"
@@ -121,6 +131,12 @@ const sortingMode = ref(false);
 
 const studyId = computed(() => {
   return route.params.study_id as string;
+});
+
+// A deactivated study is closed for changes, events included (issue #197). The backend
+// answers 403 on every event mutation, so do not offer the actions in the first place.
+const studyIsActive = computed(() => {
+  return studyStore.isStudyActive(studyId.value);
 });
 
 const myEvents = ref<SchemaEvent[]>([])
