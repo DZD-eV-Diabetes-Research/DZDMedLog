@@ -16,7 +16,24 @@
       </div>
     </div>
 
-    <UHorizontalNavigation :links="menuItems" class="mt-4" />
+    <div class="flex items-center mt-4">
+      <UHorizontalNavigation :links="menuItems" class="flex-1" />
+      <UDropdown
+        v-if="userStore.isLoggedIn"
+        :items="userMenuItems"
+        :popper="{ placement: 'bottom-end' }"
+      >
+        <UButton
+          class="group text-base py-3.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          color="gray"
+          variant="ghost"
+          icon="i-heroicons-user-circle"
+          trailing-icon="i-heroicons-chevron-down-20-solid"
+          :label="currentUserDisplayName"
+          :ui="{icon: { base: 'text-gray-400 dark:text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-200'}}"
+        />
+      </UDropdown>
+    </div>
   </header>
 </template>
 
@@ -64,14 +81,7 @@ const menuItems = computed(() => {
     to: '/help',
   });
 
-  if (userStore.isLoggedIn) {
-    rightSideLinks.push({
-      label: 'Logout',
-      labelClass: 'text-base',
-      icon: 'i-heroicons-power',
-      to: '/logout'
-    });
-  } else {
+  if (!userStore.isLoggedIn) {
     rightSideLinks.push({
       label: 'Login',
       labelClass: 'text-base',
@@ -84,6 +94,19 @@ const menuItems = computed(() => {
 
   return links;
 });
+
+const currentUserDisplayName = computed(() =>
+  userStore.currentUser?.display_name ?? userStore.currentUser?.user_name ?? ''
+);
+
+const userMenuItems = computed(() => [[
+  {
+    label: 'Logout',
+    labelClass: 'text-base',
+    icon: 'i-heroicons-power',
+    to: '/logout',
+  },
+]]);
 </script>
 
 <style scoped>
