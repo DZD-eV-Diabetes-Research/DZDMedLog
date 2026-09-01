@@ -11,6 +11,7 @@ from utils import (
     is_valid_csv_with_rows,
     csv_row_matches,
     dictyfy,
+    utc_today_iso,
 )
 from statics import (
     ADMIN_USER_EMAIL,
@@ -68,7 +69,7 @@ def test_export_contains_with_custom_drug_issue_263():
     intake_data = IntakeCreateAPI(
         drug_id=custom_drug_data["id"],
         source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
-        intake_start_date=datetime.date.today().isoformat(),
+        intake_start_date=utc_today_iso(),
         administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
         intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
         as_needed_dose_unit=1,
@@ -213,7 +214,7 @@ def test_export_multi_ref_code_values():
     intake_data = IntakeCreateAPI(
         drug_id=custom_drug_data["id"],
         source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
-        intake_start_date=datetime.date.today().isoformat(),
+        intake_start_date=utc_today_iso(),
         administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
         intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
         as_needed_dose_unit=1,

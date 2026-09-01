@@ -24,9 +24,9 @@ from utils import (
 
 # ── date helpers ───────────────────────────────────────────────────────────
 #
-# The rules compare against the server's *UTC* date with one day of tolerance in
-# both directions. The test machine's local date can differ from the server's
-# UTC date, so every offset used here is comfortably outside that window.
+# The rules compare against the server's *UTC* date, so every offset here is
+# built from the UTC date too. The test machine's local date can be a day off
+# that, which would make the exact "tomorrow is a future date" assertion flaky.
 
 _FAR_FUTURE_DAYS = 10
 _FAR_PAST_DAYS = 30
@@ -34,12 +34,20 @@ _FAR_PAST_DAYS = 30
 _TYPO_DATE = datetime.date(202, 1, 1)
 
 
+def _today() -> datetime.date:
+    return datetime.datetime.now(datetime.timezone.utc).date()
+
+
 def _day_offset(days: int) -> str:
-    return (datetime.date.today() + datetime.timedelta(days=days)).isoformat()
+    return (_today() + datetime.timedelta(days=days)).isoformat()
 
 
 def _future() -> str:
     return _day_offset(_FAR_FUTURE_DAYS)
+
+
+def _tomorrow() -> str:
+    return _day_offset(1)
 
 
 def _past() -> str:
@@ -65,9 +73,38 @@ def _context() -> Dict[str, Any]:
         _CONTEXT.update(
             study_id=study_data.study.id,
             interview_id=study_data.events[0].interviews[0].interview.id,
+            proband_id=study_data.proband_ids[0],
             drug_id=drug_search_result["items"][0]["drug"]["id"],
         )
     return _CONTEXT
+
+
+def _interview_started_days_ago(days: int) -> str:
+    """An interview whose start lies `days` days in the past.
+
+    Only one interview per proband per event is allowed, so every backdated
+    interview gets its own event.
+    """
+    ctx = _context()
+    event = req(
+        f"api/study/{ctx['study_id']}/event",
+        method="post",
+        b={"name": f"PlausibilityEvent{len(_CONTEXT.get('backdated_events', []))}"},
+    )
+    _CONTEXT.setdefault("backdated_events", []).append(event["id"])
+    start = datetime.datetime.now(datetime.timezone.utc).replace(
+        tzinfo=None
+    ) - datetime.timedelta(days=days)
+    interview = req(
+        f"api/study/{ctx['study_id']}/event/{event['id']}/interview",
+        method="post",
+        b={
+            "proband_external_id": ctx["proband_id"],
+            "proband_has_taken_meds": True,
+            "interview_start_time_utc": start.isoformat(),
+        },
+    )
+    return interview["id"]
 
 
 def _payload(**overrides) -> Dict[str, Any]:
@@ -115,10 +152,15 @@ def _payload(**overrides) -> Dict[str, Any]:
     return payload
 
 
-def _post(payload: Dict[str, Any], expected_http_code: int = None) -> Dict[str, Any]:
+def _post(
+    payload: Dict[str, Any],
+    expected_http_code: int = None,
+    interview_id: str = None,
+) -> Dict[str, Any]:
     ctx = _context()
+    interview_id = interview_id if interview_id is not None else ctx["interview_id"]
     return req(
-        f"api/study/{ctx['study_id']}/interview/{ctx['interview_id']}/intake",
+        f"api/study/{ctx['study_id']}/interview/{interview_id}/intake",
         method="post",
         b=payload,
         expected_http_code=expected_http_code,
@@ -126,11 +168,15 @@ def _post(payload: Dict[str, Any], expected_http_code: int = None) -> Dict[str, 
 
 
 def _patch(
-    intake_id: str, payload: Dict[str, Any], expected_http_code: int = None
+    intake_id: str,
+    payload: Dict[str, Any],
+    expected_http_code: int = None,
+    interview_id: str = None,
 ) -> Dict[str, Any]:
     ctx = _context()
+    interview_id = interview_id if interview_id is not None else ctx["interview_id"]
     return req(
-        f"api/study/{ctx['study_id']}/interview/{ctx['interview_id']}/intake/{intake_id}",
+        f"api/study/{ctx['study_id']}/interview/{interview_id}/intake/{intake_id}",
         method="patch",
         b=payload,
         expected_http_code=expected_http_code,
@@ -149,6 +195,18 @@ def _assert_rejected_by(response: Dict[str, Any], *allowed_rule_ids: str) -> Non
     )
     assert detail["fields"], "A plausibility error must name the fields it concerns"
     assert detail["msg"]
+    # the date the rule compared against travels with the error, so the client
+    # can build its own translated message
+    assert set(detail["context"]) == {
+        "today",
+        "interview_date",
+        "earliest_plausible_date",
+    }
+    if detail["reference"] is not None:
+        assert detail["reference"] in detail["context"]
+        assert detail["reference_date"] == detail["context"][detail["reference"]]
+    else:
+        assert detail["reference_date"] is None
 
 
 # ── unit tests: the rules and the PATCH gating ─────────────────────────────
@@ -160,44 +218,109 @@ def _intake(**fields) -> SimpleNamespace:
     return SimpleNamespace(**{f: fields.get(f) for f in INTAKE_PLAUSIBILITY_FIELDS})
 
 
+def _reference(today: datetime.date, interview_date: datetime.date = None):
+    """The two reference dates the rules use, see `IntakeReference`."""
+    from medlogserver.model.intake_rules import IntakeReference
+
+    return IntakeReference(
+        today=today,
+        interview_date=interview_date if interview_date is not None else today,
+    )
+
+
 def test_rule_ids_are_unique():
     from medlogserver.model.intake_rules import INTAKE_PLAUSIBILITY_RULES
 
+    from medlogserver.model.intake_rules import IntakeReference
+
     rule_ids = [rule.id for rule in INTAKE_PLAUSIBILITY_RULES]
     assert len(rule_ids) == len(set(rule_ids))
+    known_references = IntakeReference(
+        today=datetime.date(2026, 6, 15), interview_date=datetime.date(2026, 6, 15)
+    ).as_context()
     for rule in INTAKE_PLAUSIBILITY_RULES:
         assert rule.fields, f"rule {rule.id} must name the fields it concerns"
+        assert rule.reference is None or rule.reference in known_references, (
+            f"rule {rule.id} names an unknown reference date {rule.reference!r}"
+        )
 
 
-def test_reference_date_tolerance_is_symmetric():
-    """A date one day off "today" is never rejected.
+def test_interview_date_tolerance_is_symmetric():
+    """A date one day off the interview date never breaks the "taken today" rules.
 
-    Timestamps are stored as naive UTC while interviewers work in local time, so
-    around midnight a correctly entered date can land one day on either side of
-    the server's UTC date.
+    The interview start time is stored as a naive UTC timestamp while
+    interviewers work in local time, so the interview's local day can land one
+    day on either side of the UTC day it is stored on.
     """
     from medlogserver.model.intake import ConsumedMedsTodayAnswers
     from medlogserver.model.intake_rules import validate_intake_plausibility
 
-    reference = datetime.date(2026, 6, 15)
+    interview_date = datetime.date(2026, 6, 15)
+    # "today" is well past the interview, the case of an entry corrected later
+    today = datetime.date(2026, 6, 30)
     for offset in (-1, 0, 1):
-        day = reference + datetime.timedelta(days=offset)
+        day = interview_date + datetime.timedelta(days=offset)
         validate_intake_plausibility(
             _intake(
                 intake_start_date=day,
                 intake_end_date=day,
                 consumed_meds_today=ConsumedMedsTodayAnswers.YES,
             ),
-            reference_date=reference,
+            reference=_reference(today=today, interview_date=interview_date),
         )
 
 
-def test_patch_gating_skips_rules_for_untouched_fields():
-    """An intake that went stale stays editable in the fields it still needs.
+def test_tomorrow_is_a_future_date():
+    """The "not in the future" rules have no tolerance (issue #338 review)."""
+    import pytest
 
-    With the server date as reference, a record that was correct when it was
-    entered can become contradictory just by time passing. Correcting an
-    unrelated field weeks later must not be blocked by that.
+    from medlogserver.model.intake import (
+        ConsumedMedsTodayAnswers,
+        IntakeValidationError,
+    )
+    from medlogserver.model.intake_rules import validate_intake_plausibility
+
+    today = datetime.date(2026, 6, 15)
+    tomorrow = today + datetime.timedelta(days=1)
+
+    with pytest.raises(IntakeValidationError) as start_err:
+        validate_intake_plausibility(
+            _intake(
+                intake_start_date=tomorrow,
+                consumed_meds_today=ConsumedMedsTodayAnswers.NO,
+            ),
+            reference=_reference(today=today),
+        )
+    assert start_err.value.rule_id == "start_date_in_future"
+
+    with pytest.raises(IntakeValidationError) as end_err:
+        validate_intake_plausibility(
+            _intake(
+                intake_start_date=today - datetime.timedelta(days=5),
+                intake_end_date=tomorrow,
+                consumed_meds_today=ConsumedMedsTodayAnswers.NO,
+            ),
+            reference=_reference(today=today),
+        )
+    assert end_err.value.rule_id == "end_date_in_future"
+
+    # today itself stays allowed
+    validate_intake_plausibility(
+        _intake(
+            intake_start_date=today,
+            intake_end_date=today,
+            consumed_meds_today=ConsumedMedsTodayAnswers.YES,
+        ),
+        reference=_reference(today=today),
+    )
+
+
+def test_taken_today_is_measured_against_the_interview_date():
+    """An interview that ran days ago keeps its own "today".
+
+    Reported in the review of issue #338: editing an older entry of an interview
+    that was open for several days was rejected because "today" was read as the
+    current date.
     """
     import pytest
 
@@ -207,7 +330,63 @@ def test_patch_gating_skips_rules_for_untouched_fields():
     )
     from medlogserver.model.intake_rules import validate_intake_plausibility
 
-    reference = datetime.date(2026, 6, 15)
+    interview_date = datetime.date(2026, 6, 15)
+    reference = _reference(
+        today=datetime.date(2026, 6, 30), interview_date=interview_date
+    )
+
+    # the intake ended on the day of the interview: consistent with "taken today"
+    validate_intake_plausibility(
+        _intake(
+            intake_start_date=datetime.date(2026, 6, 1),
+            intake_end_date=interview_date,
+            consumed_meds_today=ConsumedMedsTodayAnswers.YES,
+        ),
+        reference=reference,
+    )
+
+    # it ended well before the interview: still a contradiction
+    with pytest.raises(IntakeValidationError) as err:
+        validate_intake_plausibility(
+            _intake(
+                intake_start_date=datetime.date(2026, 6, 1),
+                intake_end_date=datetime.date(2026, 6, 5),
+                consumed_meds_today=ConsumedMedsTodayAnswers.YES,
+            ),
+            reference=reference,
+        )
+    assert err.value.rule_id == "consumed_today_with_past_end_date"
+    # the interviewer cannot know which day is being compared against unless we
+    # say it, so the date travels with the error, named and ready to be put into
+    # a translated message
+    assert err.value.reference == "interview_date"
+    assert err.value.reference_date == "2026-06-15"
+    assert err.value.context == {
+        "today": "2026-06-30",
+        "interview_date": "2026-06-15",
+        "earliest_plausible_date": "1900-01-01",
+    }
+    assert "2026-06-15" in str(err.value)
+
+
+def test_patch_gating_skips_rules_for_untouched_fields():
+    """An intake that went stale stays editable in the fields it still needs.
+
+    A record that was correct when it was entered can become contradictory just
+    by time passing. Correcting an unrelated field weeks later must not be
+    blocked by that.
+    """
+    import pytest
+
+    from medlogserver.model.intake import (
+        ConsumedMedsTodayAnswers,
+        IntakeValidationError,
+    )
+    from medlogserver.model.intake_rules import validate_intake_plausibility
+
+    reference = _reference(
+        today=datetime.date(2026, 6, 15), interview_date=datetime.date(2026, 6, 10)
+    )
     stale = _intake(
         intake_start_date=datetime.date(2026, 1, 1),
         intake_end_date=datetime.date(2026, 2, 1),
@@ -217,20 +396,20 @@ def test_patch_gating_skips_rules_for_untouched_fields():
 
     # touching only the dose leaves the stale contradiction alone
     validate_intake_plausibility(
-        stale, reference_date=reference, restrict_to_fields=["dose_per_day"]
+        stale, reference=reference, restrict_to_fields=["dose_per_day"]
     )
 
     # touching one of the conflicting fields does evaluate the rule, even though
     # the other half of the contradiction comes from the stored record
     with pytest.raises(IntakeValidationError) as err:
         validate_intake_plausibility(
-            stale, reference_date=reference, restrict_to_fields=["intake_end_date"]
+            stale, reference=reference, restrict_to_fields=["intake_end_date"]
         )
     assert err.value.rule_id == "consumed_today_with_past_end_date"
 
     # and without a restriction every rule applies
     with pytest.raises(IntakeValidationError):
-        validate_intake_plausibility(stale, reference_date=reference)
+        validate_intake_plausibility(stale, reference=reference)
 
 
 def test_rules_are_skipped_when_a_date_option_is_set():
@@ -245,7 +424,7 @@ def test_rules_are_skipped_when_a_date_option_is_set():
             consumed_meds_today=ConsumedMedsTodayAnswers.YES,
             dose_per_day=1,
         ),
-        reference_date=datetime.date(2026, 6, 15),
+        reference=_reference(today=datetime.date(2026, 6, 15)),
     )
 
 
@@ -326,6 +505,33 @@ def test_start_date_in_future_rejected_on_patch():
     )
 
 
+def test_tomorrow_is_rejected_as_a_future_start_date():
+    """No tolerance on the future rules: tomorrow is a future date."""
+    from medlogserver.model.intake import ConsumedMedsTodayAnswers
+
+    response = _post(
+        _payload(
+            intake_start_date=_tomorrow(),
+            consumed_meds_today=ConsumedMedsTodayAnswers.NO.value,
+        ),
+        expected_http_code=422,
+    )
+    _assert_rejected_by(response, "start_date_in_future")
+
+
+def test_today_is_accepted_as_start_and_end_date():
+    from medlogserver.model.intake import ConsumedMedsTodayAnswers
+
+    today = _day_offset(0)
+    _post(
+        _payload(
+            intake_start_date=today,
+            intake_end_date=today,
+            consumed_meds_today=ConsumedMedsTodayAnswers.YES.value,
+        )
+    )
+
+
 # ── rule 3: end date in the future ─────────────────────────────────────────
 
 
@@ -342,6 +548,19 @@ def test_end_date_in_future_rejected_on_patch():
     response = _patch(
         intake["id"],
         {"intake_end_date": _future()},
+        expected_http_code=422,
+    )
+    _assert_rejected_by(response, "end_date_in_future")
+
+
+def test_tomorrow_is_rejected_as_a_future_end_date():
+    from medlogserver.model.intake import ConsumedMedsTodayAnswers
+
+    response = _post(
+        _payload(
+            intake_end_date=_tomorrow(),
+            consumed_meds_today=ConsumedMedsTodayAnswers.NO.value,
+        ),
         expected_http_code=422,
     )
     _assert_rejected_by(response, "end_date_in_future")
@@ -435,35 +654,45 @@ def test_consumed_today_with_future_start_date_rejected_on_patch():
     )
 
 
-# ── rule 6: non-positive doses ─────────────────────────────────────────────
+# ── rule 6: negative doses ─────────────────────────────────────────────────
+#
+# `0` is *not* rejected: the interviewers use it as "the dose is unknown"
+# (reported in the review of issue #338).
 
 
-def test_non_positive_dose_per_day_rejected_on_post():
-    for dose in (0, -1):
-        response = _post(_payload(dose_per_day=dose), expected_http_code=422)
-        _assert_rejected_by(response, "dose_per_day_not_positive")
+def test_negative_dose_per_day_rejected_on_post():
+    response = _post(_payload(dose_per_day=-1), expected_http_code=422)
+    _assert_rejected_by(response, "dose_per_day_negative")
 
 
-def test_non_positive_dose_per_day_rejected_on_patch():
+def test_negative_dose_per_day_rejected_on_patch():
     intake = _post(_payload())
-    response = _patch(intake["id"], {"dose_per_day": 0}, expected_http_code=422)
-    _assert_rejected_by(response, "dose_per_day_not_positive")
+    response = _patch(intake["id"], {"dose_per_day": -1}, expected_http_code=422)
+    _assert_rejected_by(response, "dose_per_day_negative")
 
 
-def test_non_positive_as_needed_dose_unit_rejected_on_post():
+def test_dose_per_day_zero_accepted():
+    """`0` doses a day means "unknown", not an implausible value."""
+    intake = _post(_payload(dose_per_day=0))
+    assert intake["dose_per_day"] == 0
+    updated = _patch(intake["id"], {"dose_per_day": 0})
+    assert updated["dose_per_day"] == 0
+
+
+def test_negative_as_needed_dose_unit_rejected_on_post():
     from medlogserver.model.intake import IntakeRegularOrAsNeededAnswers
 
     response = _post(
         _payload(
             intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED.value,
-            as_needed_dose_unit=0,
+            as_needed_dose_unit=-1,
         ),
         expected_http_code=422,
     )
-    _assert_rejected_by(response, "as_needed_dose_unit_not_positive")
+    _assert_rejected_by(response, "as_needed_dose_unit_negative")
 
 
-def test_non_positive_as_needed_dose_unit_rejected_on_patch():
+def test_negative_as_needed_dose_unit_rejected_on_patch():
     from medlogserver.model.intake import IntakeRegularOrAsNeededAnswers
 
     intake = _post(
@@ -472,10 +701,20 @@ def test_non_positive_as_needed_dose_unit_rejected_on_patch():
             as_needed_dose_unit=2,
         )
     )
-    response = _patch(
-        intake["id"], {"as_needed_dose_unit": 0}, expected_http_code=422
+    response = _patch(intake["id"], {"as_needed_dose_unit": -1}, expected_http_code=422)
+    _assert_rejected_by(response, "as_needed_dose_unit_negative")
+
+
+def test_as_needed_dose_unit_zero_accepted():
+    from medlogserver.model.intake import IntakeRegularOrAsNeededAnswers
+
+    intake = _post(
+        _payload(
+            intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED.value,
+            as_needed_dose_unit=0,
+        )
     )
-    _assert_rejected_by(response, "as_needed_dose_unit_not_positive")
+    assert intake["as_needed_dose_unit"] == 0
 
 
 def test_fractional_dose_still_accepted():
@@ -516,6 +755,72 @@ def test_implausibly_old_end_date_rejected_on_patch():
     _assert_rejected_by(
         response, "end_date_implausibly_old", "end_date_before_start_date"
     )
+
+
+# ── the reference for "taken today" is the interview, not the server date ──
+#
+# Reported in the review of issue #338: an interview that stayed open for several
+# days rejected every edit of an older entry, because "today" was read as the
+# current date instead of the day the interview was held.
+
+
+def test_taken_today_is_checked_against_the_interview_that_owns_the_intake():
+    from medlogserver.model.intake import ConsumedMedsTodayAnswers
+
+    interview_id = _interview_started_days_ago(5)
+    # the intake ended on the day of that interview, five days ago
+    intake = _post(
+        _payload(
+            intake_start_date=_day_offset(-30),
+            intake_end_date=_day_offset(-5),
+            consumed_meds_today=ConsumedMedsTodayAnswers.YES.value,
+        ),
+        interview_id=interview_id,
+    )
+    # and editing it days later is still allowed
+    updated = _patch(
+        intake["id"],
+        {"intake_end_date": _day_offset(-5)},
+        interview_id=interview_id,
+    )
+    assert updated["intake_end_date"] == _day_offset(-5)
+
+
+def test_taken_today_still_rejected_before_the_interview_date():
+    from medlogserver.model.intake import ConsumedMedsTodayAnswers
+
+    interview_id = _interview_started_days_ago(5)
+    response = _post(
+        _payload(
+            intake_start_date=_day_offset(-30),
+            intake_end_date=_day_offset(-15),
+            consumed_meds_today=ConsumedMedsTodayAnswers.YES.value,
+        ),
+        expected_http_code=422,
+        interview_id=interview_id,
+    )
+    _assert_rejected_by(response, "consumed_today_with_past_end_date")
+    # the interview date is reported as the reference of the broken rule, so the
+    # client can name the day the answer was checked against in its own language
+    assert response["detail"]["reference"] == "interview_date"
+    assert response["detail"]["reference_date"] == _day_offset(-5)
+    assert _day_offset(-5) in response["detail"]["msg"]
+
+
+def test_implausibly_old_date_reports_the_floor_as_reference():
+    """The client can render "before {reference_date}" for this rule too."""
+    from medlogserver.model.intake import ConsumedMedsTodayAnswers
+
+    response = _post(
+        _payload(
+            intake_start_date=_TYPO_DATE.isoformat(),
+            consumed_meds_today=ConsumedMedsTodayAnswers.NO.value,
+        ),
+        expected_http_code=422,
+    )
+    _assert_rejected_by(response, "start_date_implausibly_old")
+    assert response["detail"]["reference"] == "earliest_plausible_date"
+    assert response["detail"]["reference_date"] == "1900-01-01"
 
 
 # ── explicitly allowed combinations ────────────────────────────────────────

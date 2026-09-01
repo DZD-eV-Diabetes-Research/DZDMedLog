@@ -56,9 +56,10 @@ def _intake_validation_error_detail(
 ) -> dict | str:
     """Build the 422 body for a rejected intake.
 
-    Violations of the plausibility rules carry the rule that broke and the
-    fields it concerns, so the frontend can put the hint on the right input
-    instead of showing a generic message. The older field-presence and mutual
+    Violations of the plausibility rules carry the rule that broke, the fields it
+    concerns and the date the check was made against, so the frontend can put the
+    hint on the right input and build its own translated message instead of
+    falling back to the English `msg`. The older field-presence and mutual
     exclusivity errors are raised inside pydantic validators, get wrapped in a
     `ValidationError` and keep their plain string detail.
     """
@@ -69,6 +70,9 @@ def _intake_validation_error_detail(
         "rule": rule_id,
         "fields": list(getattr(exception, "fields", ())),
         "msg": str(exception),
+        "reference": getattr(exception, "reference", None),
+        "reference_date": getattr(exception, "reference_date", None),
+        "context": dict(getattr(exception, "context", {})),
     }
 
 
@@ -85,27 +89,40 @@ INTAKE_422_RESPONSE_DOC = {
         "- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n"
         "- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n"
         "**Plausibility (combinations that cannot be true)**\n"
-        "These are checked against the server's current UTC date, with one day of tolerance in "
-        "both directions to absorb the offset between stored UTC and the interviewer's local time. "
-        "They are checked on the record as it will be stored, so a PATCH is validated against the "
-        "merged record, not just the payload. A PATCH only triggers the rules that concern a field "
-        "it actually sends.\n"
+        "Two reference dates are used. The \"not in the future\" rules compare against the "
+        "server's current UTC date, without tolerance: tomorrow is a future date. The "
+        "\"taken today\" rules compare against the day the parent interview was started, "
+        "because that is the day the proband answered the question. That keeps an interview "
+        "that stays open across midnight, a retroactively entered interview and a later "
+        "correction of an entry from turning a correct answer into a contradiction. Those "
+        "comparisons get one day of tolerance in both directions, to absorb the offset between "
+        "the stored UTC timestamp and the interviewer's local time.\n"
+        "The rules are checked on the record as it will be stored, so a PATCH is validated "
+        "against the merged record, not just the payload. A PATCH only triggers the rules that "
+        "concern a field it actually sends.\n"
         "- `end_date_before_start_date` — `intake_end_date` is before `intake_start_date`. "
         "The same day for both is allowed.\n"
-        "- `start_date_in_future` — `intake_start_date` lies in the future.\n"
-        "- `end_date_in_future` — `intake_end_date` lies in the future.\n"
+        "- `start_date_in_future` — `intake_start_date` lies after the current date.\n"
+        "- `end_date_in_future` — `intake_end_date` lies after the current date.\n"
         "- `consumed_today_with_past_end_date` — `consumed_meds_today` is `Yes` while "
-        "`intake_end_date` lies in the past.\n"
+        "`intake_end_date` lies before the interview date.\n"
         "- `consumed_today_with_future_start_date` — `consumed_meds_today` is `Yes` while "
-        "`intake_start_date` lies in the future.\n"
-        "- `dose_per_day_not_positive` — `dose_per_day` is not greater than 0.\n"
-        "- `as_needed_dose_unit_not_positive` — `as_needed_dose_unit` is not greater than 0.\n"
+        "`intake_start_date` lies after the interview date.\n"
+        "- `dose_per_day_negative` — `dose_per_day` is negative. `0` is allowed and means the "
+        "daily dose is unknown.\n"
+        "- `as_needed_dose_unit_negative` — `as_needed_dose_unit` is negative. `0` is allowed "
+        "and means the dose is unknown.\n"
         "- `start_date_implausibly_old` / `end_date_implausibly_old` — the date is before 1900-01-01.\n\n"
         "Rules that need an exact date are skipped when `intake_start_date_option` / "
         "`intake_end_date_option` is set instead of a date, because the option carries no date to "
         "compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\n"
-        "A plausibility violation returns an object as `detail`, carrying the `rule` that broke and "
-        "the `fields` it concerns. The other rules above return a plain string."
+        "A plausibility violation returns an object as `detail`, carrying the `rule` that broke "
+        "and the `fields` it concerns. For a translated, client-side message it also carries "
+        "`reference_date`, the ISO date the broken rule compared against (`null` for a rule that "
+        "compares no date), and `reference`, naming which date that is: `today`, "
+        "`interview_date` or `earliest_plausible_date`. `context` holds all three dates, for a "
+        "message that needs more than the one the rule used. The other rules above return a "
+        "plain string."
     ),
     "content": {
         "application/json": {
@@ -123,9 +140,18 @@ INTAKE_422_RESPONSE_DOC = {
                             "rule": "consumed_today_with_past_end_date",
                             "fields": ["consumed_meds_today", "intake_end_date"],
                             "msg": (
-                                "'consumed_meds_today' cannot be 'Yes' when 'intake_end_date' is in "
-                                "the past. The intake had already ended."
+                                "'consumed_meds_today' is 'Yes', but 'intake_end_date' is before "
+                                "2026-06-15, the day this interview was started. 'Today' refers to "
+                                "the day of the interview, and an intake that had already ended "
+                                "cannot have been taken on that day."
                             ),
+                            "reference": "interview_date",
+                            "reference_date": "2026-06-15",
+                            "context": {
+                                "today": "2026-06-20",
+                                "interview_date": "2026-06-15",
+                                "earliest_plausible_date": "1900-01-01",
+                            },
                         }
                     },
                 },

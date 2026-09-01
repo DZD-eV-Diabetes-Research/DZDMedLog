@@ -362,6 +362,16 @@ def random_value_from_csv_column(
     return random_gen.choice(values)
 
 
+def utc_today_iso() -> str:
+    """Today's date as the backend sees it.
+
+    The intake plausibility rules compare against the server's *UTC* date, so a
+    date built from the local date can be a day off and turn a test flaky around
+    midnight.
+    """
+    return datetime.datetime.now(datetime.timezone.utc).date().isoformat()
+
+
 def random_past_date(
     min_date: datetime.date = None, random_gen: random.Random = None
 ) -> datetime.date:

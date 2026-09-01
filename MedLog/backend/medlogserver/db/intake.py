@@ -27,6 +27,7 @@ from medlogserver.model.intake import (
 )
 from medlogserver.model.intake_rules import (
     INTAKE_PLAUSIBILITY_FIELDS,
+    IntakeReference,
     validate_intake_plausibility,
 )
 from medlogserver.model.drug_data.drug import DrugData
@@ -49,6 +50,27 @@ class IntakeCRUD(
         update_model=IntakeUpdate,
     )
 ):
+    async def _plausibility_reference(
+        self, interview_id: Optional[UUID]
+    ) -> IntakeReference:
+        """Build the reference dates for the rules from the parent interview.
+
+        The "was this taken today?" rules are checked against the day the
+        interview was started, not against the server date, so an interview that
+        stays open across midnight or an entry that is corrected on a later day
+        does not turn a correct answer into a contradiction (issue #338).
+        """
+        interview: Optional[Interview] = None
+        if interview_id is not None:
+            interview = (
+                await self.session.exec(
+                    select(Interview).where(Interview.id == interview_id)
+                )
+            ).one_or_none()
+        return IntakeReference.for_interview_start(
+            getattr(interview, "interview_start_time_utc", None)
+        )
+
     async def create(
         self,
         obj: IntakeCreate,
@@ -64,7 +86,12 @@ class IntakeCRUD(
         for contradictions that were allowed when the data was recorded.
         """
         if not skip_plausibility_checks:
-            validate_intake_plausibility(obj)
+            validate_intake_plausibility(
+                obj,
+                reference=await self._plausibility_reference(
+                    getattr(obj, "interview_id", None)
+                ),
+            )
         return await super().create(
             obj,
             exists_ok=exists_ok,
@@ -110,7 +137,13 @@ class IntakeCRUD(
                         for field in INTAKE_PLAUSIBILITY_FIELDS
                     }
                 )
-                validate_intake_plausibility(merged, restrict_to_fields=changed.keys())
+                validate_intake_plausibility(
+                    merged,
+                    reference=await self._plausibility_reference(
+                        getattr(current, "interview_id", None)
+                    ),
+                    restrict_to_fields=changed.keys(),
+                )
         return await super().update(
             update_obj=update_obj,
             id_=id_,

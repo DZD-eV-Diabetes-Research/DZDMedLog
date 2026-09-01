@@ -44,23 +44,57 @@ Custom / off-label drugs that are not in the drug database can be entered as fre
 
 Beyond checking which fields are present and which are mutually exclusive, the backend
 rejects combinations of values that cannot be true. A violation returns **422** with a
-`detail` object naming the `rule` that broke and the `fields` it concerns, so the client
-can show a hint on the right input.
+`detail` object naming the `rule` that broke and the `fields` it concerns, so the client can
+show a hint on the right input:
 
-All date checks compare against the server's current UTC date. Timestamps are stored as
-naive UTC while interviewers work in local time, so every comparison gets one day of
-tolerance in both directions: a date one day off "today" is never rejected.
+```json
+{
+  "detail": {
+    "rule": "consumed_today_with_past_end_date",
+    "fields": ["consumed_meds_today", "intake_end_date"],
+    "msg": "'consumed_meds_today' is 'Yes', but 'intake_end_date' is before 2026-06-15, ...",
+    "reference": "interview_date",
+    "reference_date": "2026-06-15",
+    "context": {
+      "today": "2026-06-20",
+      "interview_date": "2026-06-15",
+      "earliest_plausible_date": "1900-01-01"
+    }
+  }
+}
+```
 
-| Rule | Rejected because |
-| --- | --- |
-| `end_date_before_start_date` | `intake_end_date` is before `intake_start_date`. Both on the same day is a valid one-day intake. |
-| `start_date_in_future` | The intake has not begun yet, so it cannot be recorded. |
-| `end_date_in_future` | The intake cannot have ended yet. |
-| `consumed_today_with_past_end_date` | `consumed_meds_today` is `Yes` although the intake already ended. |
-| `consumed_today_with_future_start_date` | `consumed_meds_today` is `Yes` although the intake has not begun. |
-| `dose_per_day_not_positive` | `dose_per_day` is not greater than 0. |
-| `as_needed_dose_unit_not_positive` | `as_needed_dose_unit` is not greater than 0. |
-| `start_date_implausibly_old`, `end_date_implausibly_old` | The date is before 1900-01-01, which catches typos such as year `0202`. |
+`reference_date` is the date the broken rule compared against and `reference` names which
+date that is, so a client can put it into its own translated message ("Das Interview wurde
+am 15.06.2026 begonnen ...") instead of falling back to the English `msg`. It is `null` for
+the rules that compare no date (the ordering and dose rules). `context` holds every
+reference date, for a message that needs more than the one the rule used.
+
+Two moving reference dates are used (the 1900-01-01 floor below is the third, constant one):
+
+- **The current UTC date** for the "not in the future" rules. Nothing can be recorded for a
+  day that has not happened yet, so these have no tolerance: tomorrow is a future date. The
+  server has no way of knowing the interviewer's timezone, so in a deployment east of UTC
+  the local date is rejected during the first hours of the local day (in Germany between
+  00:00 and 01:00 or 02:00 local time), when it is still "tomorrow" in UTC.
+- **The day the parent interview was started** (`interview_start_time_utc`) for the "taken
+  today" rules. "Today" in the question "was this medication taken today?" is the day the
+  proband answered it. Using the server date instead would turn a correct answer into a
+  contradiction as soon as an interview stays open across midnight, an interview is entered
+  retroactively, or an entry is corrected on a later day. The interview timestamp is stored
+  as naive UTC while interviewers work in local time, so these comparisons get one day of
+  tolerance in both directions.
+
+| Rule | Rejected because | `reference` |
+| --- | --- | --- |
+| `end_date_before_start_date` | `intake_end_date` is before `intake_start_date`. Both on the same day is a valid one-day intake. | `null` |
+| `start_date_in_future` | The intake has not begun yet, so it cannot be recorded. | `today` |
+| `end_date_in_future` | The intake cannot have ended yet. | `today` |
+| `consumed_today_with_past_end_date` | `consumed_meds_today` is `Yes` although the intake had already ended on the day of the interview. | `interview_date` |
+| `consumed_today_with_future_start_date` | `consumed_meds_today` is `Yes` although the intake had not begun on the day of the interview. | `interview_date` |
+| `dose_per_day_negative` | `dose_per_day` is negative. `0` is allowed and is used when the daily dose is unknown. | `null` |
+| `as_needed_dose_unit_negative` | `as_needed_dose_unit` is negative. `0` is allowed and is used when the dose is unknown. | `null` |
+| `start_date_implausibly_old`, `end_date_implausibly_old` | The date is before 1900-01-01, which catches typos such as year `0202`. | `earliest_plausible_date` |
 
 These combinations are explicitly **allowed**:
 
@@ -75,9 +109,9 @@ The rules are collected in `MedLog/backend/medlogserver/model/intake_rules.py` a
 enforced in `IntakeCRUD`, which every write goes through. On **PATCH** they are evaluated
 against the *merged* record (stored row plus payload), so a partial update that only sends
 `intake_end_date` is still checked against the stored start date. A PATCH only triggers the
-rules that concern a field it actually sends: because the reference date is "now", a record
-that was correct when it was entered can become contradictory purely through the passage of
-time, and correcting an unrelated field weeks later must not be blocked by that.
+rules that concern a field it actually sends: a record that was correct when it was entered
+can become contradictory purely through the passage of time, and correcting an unrelated
+field weeks later must not be blocked by that.
 
 Existing rows are **not** migrated. The rules apply to new writes only, so contradictory
 records created before this validation existed stay as they are.
