@@ -108,6 +108,7 @@ onMounted(async () => {
         :loading="usersPending"
         :roles="roleStore.availableRoles"
         :users="userStore.allUsers"
+        :current-user="userStore.currentUser"
         @edit-roles="onEditUserRoles"
         @activate-user="onActivateUser"
         @deactivate-user="onDeactivateUser"

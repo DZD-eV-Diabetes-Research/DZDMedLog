@@ -22,6 +22,7 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   roles: { type: Array as () => SchemaUserRoleApiRead[], default: () => [] },
   users: { type: Array as () => SchemaUser[], default: () => [] },
+  currentUser: { type: Object as () => SchemaUser | null, required: false, default: () => undefined },
 });
 
 defineEmits<{
@@ -49,7 +50,10 @@ const rows = computed(() => {
 <template>
   <UTable :rows="rows" :columns="columns" :loading="loading" :sort="sort">
     <template #name-data="{ row }">
-      {{ row.display_name ?? row.user_name }}
+      <div class="flex flex-row items-center gap-2">
+        {{ row.display_name ?? row.user_name }}
+        <UBadge v-if="row.id === currentUser?.id" label="Das sind Sie" color="sky" variant="subtle" icon="i-heroicons-user-circle-solid" />
+      </div>
       <small v-if="row.display_name" class="block">{{ row.user_name }}</small>
     </template>
     <template #active-data="{ row }">
