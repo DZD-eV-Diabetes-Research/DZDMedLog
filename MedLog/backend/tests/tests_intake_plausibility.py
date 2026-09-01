@@ -218,6 +218,13 @@ def _intake(**fields) -> SimpleNamespace:
     return SimpleNamespace(**{f: fields.get(f) for f in INTAKE_PLAUSIBILITY_FIELDS})
 
 
+def _earliest_plausible_date() -> str:
+    """The configured floor, never a literal: it has been moved once already."""
+    from medlogserver.model.intake_rules import EARLIEST_PLAUSIBLE_DATE
+
+    return EARLIEST_PLAUSIBLE_DATE.isoformat()
+
+
 def _reference(today: datetime.date, interview_date: datetime.date = None):
     """The two reference dates the rules use, see `IntakeReference`."""
     from medlogserver.model.intake_rules import IntakeReference
@@ -364,7 +371,7 @@ def test_taken_today_is_measured_against_the_interview_date():
     assert err.value.context == {
         "today": "2026-06-30",
         "interview_date": "2026-06-15",
-        "earliest_plausible_date": "1900-01-01",
+        "earliest_plausible_date": _earliest_plausible_date(),
     }
     assert "2026-06-15" in str(err.value)
 
@@ -820,7 +827,7 @@ def test_implausibly_old_date_reports_the_floor_as_reference():
     )
     _assert_rejected_by(response, "start_date_implausibly_old")
     assert response["detail"]["reference"] == "earliest_plausible_date"
-    assert response["detail"]["reference_date"] == "1900-01-01"
+    assert response["detail"]["reference_date"] == _earliest_plausible_date()
 
 
 # ── explicitly allowed combinations ────────────────────────────────────────

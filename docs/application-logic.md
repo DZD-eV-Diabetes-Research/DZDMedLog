@@ -58,7 +58,7 @@ show a hint on the right input:
     "context": {
       "today": "2026-06-20",
       "interview_date": "2026-06-15",
-      "earliest_plausible_date": "1900-01-01"
+      "earliest_plausible_date": "1950-01-01"
     }
   }
 }
@@ -70,7 +70,7 @@ am 15.06.2026 begonnen ...") instead of falling back to the English `msg`. It is
 the rules that compare no date (the ordering and dose rules). `context` holds every
 reference date, for a message that needs more than the one the rule used.
 
-Two moving reference dates are used (the 1900-01-01 floor below is the third, constant one):
+Two moving reference dates are used (the date floor below is the third, constant one):
 
 - **The current UTC date** for the "not in the future" rules. Nothing can be recorded for a
   day that has not happened yet, so these have no tolerance: tomorrow is a future date. The
@@ -94,7 +94,7 @@ Two moving reference dates are used (the 1900-01-01 floor below is the third, co
 | `consumed_today_with_future_start_date` | `consumed_meds_today` is `Yes` although the intake had not begun on the day of the interview. | `interview_date` |
 | `dose_per_day_negative` | `dose_per_day` is negative. `0` is allowed and is used when the daily dose is unknown. | `null` |
 | `as_needed_dose_unit_negative` | `as_needed_dose_unit` is negative. `0` is allowed and is used when the dose is unknown. | `null` |
-| `start_date_implausibly_old`, `end_date_implausibly_old` | The date is before 1900-01-01, which catches typos such as year `0202`. | `earliest_plausible_date` |
+| `start_date_implausibly_old`, `end_date_implausibly_old` | The date is before the floor `EARLIEST_PLAUSIBLE_DATE` (currently 1950-01-01), which catches typos such as year `0202`. | `earliest_plausible_date` |
 
 These combinations are explicitly **allowed**:
 

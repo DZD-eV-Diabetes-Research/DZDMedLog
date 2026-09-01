@@ -27,6 +27,7 @@ from medlogserver.model.intake import (
     IntakeValidationError,
 )
 from medlogserver.db.intake import IntakeCRUD
+from medlogserver.model.intake_rules import EARLIEST_PLAUSIBLE_DATE
 from medlogserver.api.study_access import (
     user_has_studies_access_map,
     user_has_study_access,
@@ -112,7 +113,8 @@ INTAKE_422_RESPONSE_DOC = {
         "daily dose is unknown.\n"
         "- `as_needed_dose_unit_negative` — `as_needed_dose_unit` is negative. `0` is allowed "
         "and means the dose is unknown.\n"
-        "- `start_date_implausibly_old` / `end_date_implausibly_old` — the date is before 1900-01-01.\n\n"
+        "- `start_date_implausibly_old` / `end_date_implausibly_old` — the date is before "
+        f"{EARLIEST_PLAUSIBLE_DATE.isoformat()}.\n\n"
         "Rules that need an exact date are skipped when `intake_start_date_option` / "
         "`intake_end_date_option` is set instead of a date, because the option carries no date to "
         "compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\n"
@@ -150,7 +152,7 @@ INTAKE_422_RESPONSE_DOC = {
                             "context": {
                                 "today": "2026-06-20",
                                 "interview_date": "2026-06-15",
-                                "earliest_plausible_date": "1900-01-01",
+                                "earliest_plausible_date": EARLIEST_PLAUSIBLE_DATE.isoformat(),
                             },
                         }
                     },
