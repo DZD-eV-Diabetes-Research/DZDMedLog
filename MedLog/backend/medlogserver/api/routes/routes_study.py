@@ -40,6 +40,7 @@ from medlogserver.api.routes.routes_auth import (
 
 from medlogserver.model.study import (
     Study,
+    StudyApiRead,
     StudyUpdate,
     StudyCreate,
     StudyCreateAPI,
@@ -87,7 +88,7 @@ StudyQueryParams: Type[QueryParamsInterface] = create_query_params_class(Study)
 
 @fast_api_study_router.get(
     "/study",
-    response_model=PaginatedResponse[Study],
+    response_model=PaginatedResponse[StudyApiRead],
     description=f"List all studies the user has access too.",
 )
 async def list_studies(
@@ -98,7 +99,7 @@ async def list_studies(
     ),
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
     pagination: QueryParamsInterface = Depends(StudyQueryParams),
-) -> PaginatedResponse[Study]:
+) -> PaginatedResponse[StudyApiRead]:
 
     # ToDo: This is a pretty cost intensive endpoint/query. Would be a good candiate for some kind of cache. UPDATE: now all logic is in Security(user_has_study_access_map) fix/cache that
 
@@ -118,40 +119,43 @@ async def list_studies(
                 allowed_studies.append(study)
     allowed_studies = pagination.order(allowed_studies)
     pageinated_allowed_studies = allowed_studies[pagination.offset : pagination.limit]
-    return PaginatedResponse[Study](
+    # Enriched only after ordering and slicing, so a large study list does not pay for
+    # pages it never returns. The enrichment is pure config lookup - no extra DB query.
+    return PaginatedResponse[StudyApiRead](
         total_count=len(allowed_studies),
         offset=pagination.offset,
         count=len(pageinated_allowed_studies),
-        items=pageinated_allowed_studies,
+        items=[StudyApiRead.from_study(study) for study in pageinated_allowed_studies],
     )
 
 
 @fast_api_study_router.post(
     "/study",
-    response_model=Study,
+    response_model=StudyApiRead,
     description=f"Create a new study. {NEEDS_ADMIN_API_INFO}",
 )
 async def create_study(
     study: StudyCreateAPI,
     current_user_is_admin: User = Security(user_is_admin),
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
-) -> Study:
+) -> StudyApiRead:
     # Reject a broken proband-ID regex up front so it can never be stored and later
     # break interview creation.
     assert_valid_proband_id_pattern(study.proband_external_id_pattern)
     study_create = StudyCreate(**study.model_dump(exclude_unset=True))
-    return await study_crud.create(
+    new_study = await study_crud.create(
         study_create,
         raise_custom_exception_if_exists=HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Study with name '{study.display_name}' allready exists",
         ),
     )
+    return StudyApiRead.from_study(new_study)
 
 
 @fast_api_study_router.post(
     "/study/{study_id}/clone",
-    response_model=Study,
+    response_model=StudyApiRead,
     summary="Clone the setup of an existing study into a new study",
     description=(
         "Create a new study that reuses the setup of an existing one. Copied are the "
@@ -196,7 +200,7 @@ async def clone_study(
     ],
     current_user_is_admin: User = Security(user_is_admin),
     study_crud: StudyCRUD = Depends(StudyCRUD.get_crud),
-) -> Study:
+) -> StudyApiRead:
     # Deactivated studies stay clonable on purpose: an archived study is a perfectly
     # good template for the next one.
     source_study = await study_crud.get(
@@ -236,16 +240,17 @@ async def clone_study(
     if existing_study_with_same_name is not None:
         raise name_conflict_exception
 
-    return await study_crud.clone(
+    cloned_study = await study_crud.clone(
         source_study=source_study,
         new_display_name=clone_request.display_name,
         raise_custom_exception_if_exists=name_conflict_exception,
     )
+    return StudyApiRead.from_study(cloned_study)
 
 
 @fast_api_study_router.patch(
     "/study/{study_id}",
-    response_model=Study,
+    response_model=StudyApiRead,
     description=f"Update existing study",
 )
 async def update_study(
@@ -269,7 +274,7 @@ async def update_study(
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
     study_access: UserStudyAccess = Security(user_has_study_access),
     current_user: User = Security(get_current_user),
-) -> Study:
+) -> StudyApiRead:
     if not study_access.user_is_study_admin():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -305,7 +310,9 @@ async def update_study(
             )
 
     try:
-        return await study_crud.update(id_=study_id, update_obj=study)
+        return StudyApiRead.from_study(
+            await study_crud.update(id_=study_id, update_obj=study)
+        )
     except Exception as e:
         handle_integrity_error(e)
 

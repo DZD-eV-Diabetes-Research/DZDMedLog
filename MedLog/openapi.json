@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.10b5.post1.dev9+gb4bf00dbe.d20260828"
+    "version": "1.0.10b5.post1.dev23+g649134a40.d20260902"
   },
   "paths": {
     "/api/health": {
@@ -1120,7 +1120,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_Study_"
+                  "$ref": "#/components/schemas/PaginatedResponse_StudyApiRead_"
                 }
               }
             }
@@ -1165,7 +1165,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Study"
+                  "$ref": "#/components/schemas/StudyApiRead"
                 }
               }
             }
@@ -1227,7 +1227,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Study"
+                  "$ref": "#/components/schemas/StudyApiRead"
                 }
               }
             }
@@ -1329,7 +1329,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Study"
+                  "$ref": "#/components/schemas/StudyApiRead"
                 }
               }
             }
@@ -5596,6 +5596,12 @@
             ],
             "title": "Support Email",
             "description": "The email address for user suport"
+          },
+          "disable_ui_permission_management": {
+            "type": "boolean",
+            "title": "Disable Ui Permission Management",
+            "description": "If true the web client hides its role and permission management controls, because roles are managed outside of MedLog (OIDC group mapping).",
+            "default": false
           }
         },
         "type": "object",
@@ -8299,6 +8305,63 @@
         ],
         "title": "PaginatedResponse[MedLogSearchEngineResult]"
       },
+      "PaginatedResponse_StudyApiRead_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database.",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "default": 0,
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StudyApiRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[StudyApiRead]"
+      },
       "PaginatedResponse_StudyPermissionRead_": {
         "properties": {
           "total_count": {
@@ -8355,63 +8418,6 @@
           "items"
         ],
         "title": "PaginatedResponse[StudyPermissionRead]"
-      },
-      "PaginatedResponse_Study_": {
-        "properties": {
-          "total_count": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total Count",
-            "description": "Total number of items in the database.",
-            "examples": [
-              300
-            ]
-          },
-          "offset": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Offset",
-            "description": "Starting position index of the returned items in the dataset.",
-            "default": 0,
-            "examples": [
-              299
-            ]
-          },
-          "count": {
-            "type": "integer",
-            "title": "Count",
-            "description": "Number of items returned in the response",
-            "examples": [
-              1
-            ]
-          },
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/Study"
-            },
-            "type": "array",
-            "title": "Items",
-            "description": "List of items returned in the response following given criteria"
-          }
-        },
-        "type": "object",
-        "required": [
-          "count",
-          "items"
-        ],
-        "title": "PaginatedResponse[Study]"
       },
       "PaginatedResponse_User_": {
         "properties": {
@@ -8712,6 +8718,120 @@
         },
         "type": "object",
         "title": "Study"
+      },
+      "StudyApiRead": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "examples": [
+              "Pr\u00e4diabetes-Lebensstil-Interventions-Studie (PLIS)",
+              "BARIA-DDZ-Studie"
+            ]
+          },
+          "no_permissions": {
+            "type": "boolean",
+            "title": "No Permissions",
+            "description": "If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study. Admin access still need to be allocated explicit.",
+            "default": false
+          },
+          "proband_external_id_pattern": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern",
+            "description": "Optional regular expression a proband external ID must fully match to be accepted for this study. If unset (default), any proband ID is accepted (status quo). The pattern is validated (compiled) when the study is saved.",
+            "examples": [
+              "^[A-Z]{3}[0-9]{4}$"
+            ]
+          },
+          "proband_external_id_pattern_error_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern Error Text",
+            "description": "Human-readable error text shown when a proband ID does not match 'proband_external_id_pattern'. Should describe the expected format in plain language instead of exposing the raw regular expression. A generic fallback text is used when unset.",
+            "examples": [
+              "Expected 3 uppercase letters followed by 4 digits, e.g. AAA1111"
+            ]
+          },
+          "proband_external_id_normalization": {
+            "$ref": "#/components/schemas/ProbandExternalIdNormalization",
+            "description": "How proband external IDs are normalized before validation, storage and matching for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag.",
+            "default": "none"
+          },
+          "proband_external_id_example": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Example",
+            "description": "Optional positive example of a valid proband external ID for this study (e.g. 'AAA1111'), so the frontend can proactively show 'e.g. \u2026' next to the input. Purely informational \u2014 it is not validated against the pattern.",
+            "examples": [
+              "AAA1111"
+            ]
+          },
+          "deactivated": {
+            "type": "boolean",
+            "title": "Deactivated",
+            "default": false
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "oidc_managed_permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Oidc Managed Permissions",
+            "description": "Study permission flags managed by an OIDC group mapping for this study (STUDY_PERMISSION_MAPPING). These flags are re-applied on every login of a mapped user, so changing them in the UI has no lasting effect. Empty when the study is not referenced by any mapping."
+          },
+          "is_oidc_permission_managed": {
+            "type": "boolean",
+            "title": "Is Oidc Permission Managed",
+            "description": "Convenience flag: true when oidc_managed_permissions is non-empty. Clients should hide the study's permission management and warn before renaming the study, because the mapping is keyed by the study's display name.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "StudyApiRead",
+        "description": "Study as returned by the API: the stored study plus config-derived OIDC facts.\n\n``Study`` is ``table=True``, so computed API-only fields can not be added to it.\nThis read model mirrors the existing ``StudyExport`` pattern instead."
       },
       "StudyCloneAPI": {
         "properties": {

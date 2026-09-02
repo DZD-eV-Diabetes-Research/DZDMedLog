@@ -67,7 +67,10 @@ async def get_version_info() -> AppVersion:
     description="Provides some branding data like support email address.",
 )
 async def get_branding_data() -> BrandingData:
-    return BrandingData(support_email=config.BRANDING_SUPPORT_EMAIL_ADDRESS)
+    return BrandingData(
+        support_email=config.BRANDING_SUPPORT_EMAIL_ADDRESS,
+        disable_ui_permission_management=config.is_ui_permission_management_disabled(),
+    )
 
 
 @fast_api_config_router.get(

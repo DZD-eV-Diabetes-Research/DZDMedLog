@@ -155,6 +155,18 @@ _OIDC_TEST_USERS = [
             "groups": [OIDC_TEST_INTERVIEWER_GROUP],
         },
     },
+    {
+        # Dedicated account for the "a deactivated user can not log in via OIDC" test.
+        # It gets its own sub and no groups so that deactivating it can never leak into
+        # another test that shares the account.
+        "sub": "oidc-deactivated-test-user",
+        "userinfo": {
+            "name": "oidc-deactivated-test-user",
+            "email": "oidc-deactivated-test@test.com",
+            "given_name": "OIDC Deactivated Test",
+            "groups": [],
+        },
+    },
 ]
 
 _oidc_mock_ctx = None

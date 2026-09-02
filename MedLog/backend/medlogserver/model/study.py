@@ -160,6 +160,50 @@ class Study(StudyCreate, BaseTable, TimestampModel, table=True):
     )
 
 
+class StudyApiRead(StudyCreate, BaseTable, TimestampModel, table=False):
+    """Study as returned by the API: the stored study plus config-derived OIDC facts.
+
+    ``Study`` is ``table=True``, so computed API-only fields can not be added to it.
+    This read model mirrors the existing ``StudyExport`` pattern instead.
+    """
+
+    # `StudyCreate` declares `id` as `Optional[uuid.UUID]`; `Study` re-declares it as
+    # required. A read model built on `StudyCreate` inherits the Optional version, so
+    # without this override all four study endpoints would start advertising a nullable
+    # `id` in the OpenAPI schema. Harmless at runtime, but a visible contract change for
+    # any generated client, so keep `id` required.
+    id: uuid.UUID
+
+    oidc_managed_permissions: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Study permission flags managed by an OIDC group mapping for this study "
+            "(STUDY_PERMISSION_MAPPING). These flags are re-applied on every login of a "
+            "mapped user, so changing them in the UI has no lasting effect. Empty when the "
+            "study is not referenced by any mapping."
+        ),
+    )
+    is_oidc_permission_managed: bool = Field(
+        default=False,
+        description=(
+            "Convenience flag: true when oidc_managed_permissions is non-empty. Clients "
+            "should hide the study's permission management and warn before renaming the "
+            "study, because the mapping is keyed by the study's display name."
+        ),
+    )
+
+    @classmethod
+    def from_study(cls, study: "Study") -> "StudyApiRead":
+        managed = config.get_oidc_managed_study_permissions(study.display_name)
+        return cls.model_validate(
+            study,
+            update={
+                "oidc_managed_permissions": managed,
+                "is_oidc_permission_managed": bool(managed),
+            },
+        )
+
+
 class StudyExport(StudyCreate, BaseTable, table=False):
     deactivated: bool = Field(exclude=True)
     no_permissions: bool = Field(exclude=True)

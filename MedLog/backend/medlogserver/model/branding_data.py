@@ -19,3 +19,10 @@ class BrandingData(MedLogBaseModel):
     support_email: Optional[str] = Field(
         default=None, description="The email address for user suport"
     )
+    disable_ui_permission_management: bool = Field(
+        default=False,
+        description=(
+            "If true the web client hides its role and permission management controls, "
+            "because roles are managed outside of MedLog (OIDC group mapping)."
+        ),
+    )

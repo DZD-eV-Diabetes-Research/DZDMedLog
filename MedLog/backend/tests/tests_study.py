@@ -35,7 +35,17 @@ def test_endpoint_study_list():
     for study in response["items"]:
         dict_must_contain(
             study,
-            required_keys=["id", "display_name", "created_at", "deactivated"],
+            required_keys=[
+                "id",
+                "display_name",
+                "created_at",
+                "deactivated",
+                # Issue #344: every study reports whether its permissions come from an
+                # OIDC group mapping, so the client can hide the permission controls and
+                # warn before a rename (the mapping is keyed by the display name).
+                "is_oidc_permission_managed",
+                "oidc_managed_permissions",
+            ],
             exception_dict_identifier="study item",
         )
 
@@ -409,3 +419,60 @@ def test_deactivated_study_permissions_me_for_study_member():
     assert result["study_id"] == study_id
     assert result["user_id"] == str(member.id)
     assert result["is_study_viewer"] is True
+
+
+def test_endpoint_study_oidc_signal_for_an_unmapped_study():
+    """A study that no STUDY_PERMISSION_MAPPING references reports the empty signal.
+
+    Issue #344. Studies created by the test suite are not part of the OIDC mapping, so
+    both fields must stay at their "nothing is OIDC-managed here" values on create,
+    update and list. The mapped counterpart is covered in tests_oidc_mapping.py, since
+    that study only exists after an OIDC login.
+    """
+    from medlogserver.model.study import StudyCreateAPI
+
+    study_name = "test_study_oidc_signal_unmapped"
+    created = req(
+        "api/study",
+        method="post",
+        b=dictyfy(StudyCreateAPI(display_name=study_name)),
+    )
+    dict_must_contain(
+        created,
+        required_keys_and_val={
+            "is_oidc_permission_managed": False,
+            "oidc_managed_permissions": [],
+        },
+        exception_dict_identifier="create study response",
+    )
+
+    updated = req(
+        f"api/study/{created['id']}",
+        method="patch",
+        b={"display_name": f"{study_name}_renamed"},
+    )
+    dict_must_contain(
+        updated,
+        required_keys_and_val={
+            "is_oidc_permission_managed": False,
+            "oidc_managed_permissions": [],
+        },
+        exception_dict_identifier="update study response",
+    )
+
+    # A high limit: the suite creates well over a page worth of studies before this
+    # test runs, and the study just created would otherwise not be on the first page.
+    listed = req("api/study", method="get", q={"limit": 10000})
+    study = next(
+        (s for s in listed["items"] if s["id"] == created["id"]),
+        None,
+    )
+    assert study is not None, f"Study '{study_name}' not found in the study listing"
+    dict_must_contain(
+        study,
+        required_keys_and_val={
+            "is_oidc_permission_managed": False,
+            "oidc_managed_permissions": [],
+        },
+        exception_dict_identifier="listed study",
+    )
