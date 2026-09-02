@@ -886,3 +886,225 @@ def test_unrelated_patch_on_valid_intake_still_accepted():
     intake = _post(_payload())
     updated = _patch(intake["id"], {"dose_per_day": 3})
     assert updated["dose_per_day"] == 3
+
+
+# ── "copy from last interview" ─────────────────────────────────────────────
+#
+# The copy dialog (`components/CopyPreviousDrugs`) reads the intakes of the
+# proband's last *completed* interview and re-POSTs them one by one into the
+# current interview. Those POSTs go through the plausibility rules like any
+# other create, while the copied entries carry the dates of the older interview.
+# That makes this flow the most likely thing to break, which is why the issue
+# asks for it explicitly (#338, acceptance criteria).
+
+# The fields the copy dialog puts into its POST body, verbatim from
+# `CopyPreviousDrugs/index.vue`. Spelled out instead of copying the whole listed
+# intake, so this test breaks the same way the dialog would.
+_COPY_FIELDS = (
+    "drug_id",
+    "is_activeingredient_equivalent_choice",
+    "source_of_drug_information",
+    "intake_start_date",
+    "intake_start_date_option",
+    "intake_end_date",
+    "intake_end_date_option",
+    "administered_by_doctor",
+    "intake_regular_or_as_needed",
+    "dose_per_day",
+    "regular_intervall_of_daily_dose",
+    "as_needed_dose_unit",
+    "consumed_meds_today",
+)
+
+
+def _copy_body(previous_intake: Dict[str, Any]) -> Dict[str, Any]:
+    """The POST body the copy dialog builds from one listed previous intake."""
+    return {field: previous_intake.get(field) for field in _COPY_FIELDS}
+
+
+def _copy_flow_study(
+    study_name: str, source_interview_days_ago: int = 0
+) -> SimpleNamespace:
+    """A study with an interview to copy from and an open one to copy into.
+
+    Both interviews need their own event, only one interview per proband per
+    event is allowed. The source interview is left open here, it is completed by
+    `_complete_source_interview()` once its intakes are in place.
+    """
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name=study_name,
+        with_events=2,
+        with_interviews_per_event_per_proband=0,
+        with_intakes=0,
+        proband_count=1,
+    )
+    study_id = study_data.study.id
+    proband_id = study_data.proband_ids[0]
+    source_event_id = study_data.events[0].event.id
+    target_event_id = study_data.events[1].event.id
+    source_start = datetime.datetime.now(datetime.timezone.utc).replace(
+        tzinfo=None
+    ) - datetime.timedelta(days=source_interview_days_ago)
+
+    def _create_interview(event_id, start: datetime.datetime = None) -> str:
+        body = {
+            "proband_external_id": proband_id,
+            "proband_has_taken_meds": True,
+        }
+        if start is not None:
+            body["interview_start_time_utc"] = start.isoformat()
+        return req(
+            f"api/study/{study_id}/event/{event_id}/interview",
+            method="post",
+            b=body,
+        )["id"]
+
+    return SimpleNamespace(
+        study_id=study_id,
+        proband_id=proband_id,
+        source_event_id=source_event_id,
+        source_interview_id=_create_interview(source_event_id, source_start),
+        # the interview being copied into is always the one held today
+        target_interview_id=_create_interview(target_event_id),
+    )
+
+
+def _complete_source_interview(flow: SimpleNamespace) -> None:
+    """Only a *completed* interview is offered as the one to copy from."""
+    end = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    req(
+        f"api/study/{flow.study_id}/event/{flow.source_event_id}"
+        f"/interview/{flow.source_interview_id}",
+        method="patch",
+        b={"interview_end_time_utc": end.isoformat()},
+    )
+
+
+def _previous_intakes(flow: SimpleNamespace) -> Any:
+    """What the copy dialog lists, i.e. the intakes offered for copying."""
+    return req(
+        f"api/study/{flow.study_id}/proband/{flow.proband_id}"
+        f"/interview/last/intake/details",
+        method="get",
+    )
+
+
+def _post_into(
+    flow: SimpleNamespace,
+    interview_id: str,
+    payload: Dict[str, Any],
+    expected_http_code: int = None,
+) -> Dict[str, Any]:
+    return req(
+        f"api/study/{flow.study_id}/interview/{interview_id}/intake",
+        method="post",
+        b=payload,
+        expected_http_code=expected_http_code,
+    )
+
+
+def test_copy_from_last_interview_still_works():
+    """The whole flow, from the previous interview to the copied entries."""
+    from medlogserver.model.intake import (
+        ConsumedMedsTodayAnswers,
+        IntakeEndDateOption,
+        IntakeStartDateOption,
+    )
+
+    flow = _copy_flow_study("TestIntakeCopyFlowStudy")
+    # a realistic medication list: an ongoing intake, one that ended before the
+    # interview, and one without an exact start date
+    sources = [
+        _payload(
+            intake_start_date=_day_offset(-30),
+            intake_end_date_option=IntakeEndDateOption.ONGOING.value,
+            consumed_meds_today=ConsumedMedsTodayAnswers.YES.value,
+        ),
+        _payload(
+            intake_start_date=_day_offset(-30),
+            intake_end_date=_day_offset(-10),
+            consumed_meds_today=ConsumedMedsTodayAnswers.NO.value,
+        ),
+        _payload(
+            intake_start_date_option=IntakeStartDateOption.AT_LEAST_12_MONTHS.value,
+            intake_end_date_option=IntakeEndDateOption.ONGOING.value,
+            consumed_meds_today=ConsumedMedsTodayAnswers.YES.value,
+        ),
+    ]
+    for payload in sources:
+        _post_into(flow, flow.source_interview_id, payload)
+    _complete_source_interview(flow)
+
+    previous = _previous_intakes(flow)
+    assert len(previous) == len(sources)
+
+    for previous_intake in previous:
+        copied = _post_into(flow, flow.target_interview_id, _copy_body(previous_intake))
+        assert str(copied["interview_id"]) == str(flow.target_interview_id)
+        # the copy keeps the dates of the previous interview, that is the point
+        # of it and what makes the rules relevant here
+        for field in _COPY_FIELDS:
+            assert str(copied[field]) == str(previous_intake[field]), (
+                f"'{field}' did not survive the copy: "
+                f"{previous_intake[field]!r} became {copied[field]!r}"
+            )
+
+
+def test_copy_from_last_interview_rejects_a_contradictory_entry():
+    """One entry of the copy set is a contradiction in the new interview.
+
+    "Taken today" with an intake that ended on the day of the *previous*
+    interview is valid where it was recorded and a contradiction once it is
+    copied into today's interview, so the 422 is correct. What this test pins
+    down is that the rejection is per entry: the rest of the copy set still goes
+    through afterwards, so a client can collect the failures instead of stopping
+    at the first one.
+    """
+    from medlogserver.model.intake import (
+        ConsumedMedsTodayAnswers,
+        IntakeEndDateOption,
+    )
+
+    flow = _copy_flow_study(
+        "TestIntakeCopyFlowContradictionStudy", source_interview_days_ago=5
+    )
+    # ended on the day of the previous interview, which is why it was accepted
+    # there, and is taken today according to the proband
+    _post_into(
+        flow,
+        flow.source_interview_id,
+        _payload(
+            intake_start_date=_day_offset(-30),
+            intake_end_date=_day_offset(-5),
+            consumed_meds_today=ConsumedMedsTodayAnswers.YES.value,
+        ),
+    )
+    _post_into(
+        flow,
+        flow.source_interview_id,
+        _payload(
+            intake_start_date=_day_offset(-30),
+            intake_end_date_option=IntakeEndDateOption.ONGOING.value,
+            consumed_meds_today=ConsumedMedsTodayAnswers.YES.value,
+        ),
+    )
+    _complete_source_interview(flow)
+
+    previous = _previous_intakes(flow)
+    ended = [i for i in previous if i["intake_end_date"] is not None]
+    ongoing = [i for i in previous if i["intake_end_date"] is None]
+    assert len(ended) == 1 and len(ongoing) == 1
+
+    response = _post_into(
+        flow,
+        flow.target_interview_id,
+        _copy_body(ended[0]),
+        expected_http_code=422,
+    )
+    _assert_rejected_by(response, "consumed_today_with_past_end_date")
+    # the client can name the day the copy was checked against
+    assert response["detail"]["reference"] == "interview_date"
+    assert response["detail"]["reference_date"] == _day_offset(0)
+
+    copied = _post_into(flow, flow.target_interview_id, _copy_body(ongoing[0]))
+    assert str(copied["interview_id"]) == str(flow.target_interview_id)
