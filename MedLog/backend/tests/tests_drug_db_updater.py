@@ -10,6 +10,7 @@ from utils import (
     dictyfy,
     create_test_study,
     TestDataContainerStudy,
+    utc_today_iso,
 )
 
 
@@ -97,7 +98,7 @@ def test_endpoint_drug_update_workflow():
     intake_data = IntakeCreateAPI(
         drug_id=drug_to_prove_inital_dataset["id"],
         source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
-        intake_start_date=datetime.date.today().isoformat(),
+        intake_start_date=utc_today_iso(),
         administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
         intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
         as_needed_dose_unit=1,

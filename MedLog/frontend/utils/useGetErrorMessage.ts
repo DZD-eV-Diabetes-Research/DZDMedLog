@@ -1,4 +1,4 @@
-import {isFastAPIError, isFastAPIValidationError, isFetchError} from "~/type-helper";
+import {isFastAPIError, isFastAPIPlausibilityError, isFastAPIValidationError, isFetchError} from "~/type-helper";
 
 export default function (errorObject: unknown): string {
     const error = isRef(errorObject) ? errorObject.value : errorObject;
@@ -8,6 +8,8 @@ export default function (errorObject: unknown): string {
             return error.data.detail.map(item => {
                 return `[${item.loc.join('/')}] ${item.msg}`;
             }).join(', ');
+        } else if (isFastAPIPlausibilityError(error.data)) {
+            return error.data.detail.msg;
         } else if (isFastAPIError(error.data)) {
             if (typeof error.data.detail == 'object' && 'message' in error.data.detail) {
                 return String(error.data.detail.message);

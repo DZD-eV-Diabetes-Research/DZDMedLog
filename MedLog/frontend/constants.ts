@@ -119,3 +119,42 @@ export const probandExternalIdNormalizationOptions: { value: SchemaProbandExtern
         label: "Großbuchstaben erzwingen",
     },
 ];
+
+export const plausibilityErrorMessages: { rule: string, message: string, messageTemplate?: string }[] = [
+    {
+        rule: "end_date_before_start_date",
+        message: "Enddatum liegt vor Startdatum"
+    },
+    {
+        rule: "start_date_in_future",
+        message: "Startdatum liegt in der Zukunft"
+    },
+    {
+        rule: "end_date_in_future",
+        message: "Enddatum liegt in der Zukunft"
+    },
+    {
+        rule: "consumed_today_with_future_start_date",
+        message: "Heute eingenommen, aber Einnahme noch nicht begonnen",
+        messageTemplate: "Einnahme am Tag der Untersuchung (%s) ist nicht möglich, wenn der Einnahmezeitraum erst danach beginnt",
+    },
+    {
+        rule: "consumed_today_with_past_end_date",
+        message: "Einnahme beendet, aber heute eingenommen",
+        messageTemplate: "Einnahme am Tag der Untersuchung (%s) ist nicht möglich, wenn der Einnahmezeitraum bereits zuvor endete",
+    },
+    {
+        rule: "dose_per_day_negative",
+        message: "Tagesdosis muss 0 oder positive Zahl sein"
+    },
+    {
+        rule: "start_date_implausibly_old",
+        message: "Startdatum unrealistisch lange her",
+        messageTemplate: "Das Datum darf nicht vor %s liegen"
+    },
+    {
+        rule: "end_date_implausibly_old",
+        message: "Enddatum unrealistisch lange her",
+        messageTemplate: "Das Datum darf nicht vor %s liegen"
+    },
+];

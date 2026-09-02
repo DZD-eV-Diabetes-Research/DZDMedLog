@@ -19,6 +19,23 @@ interface FastAPIError {
     detail: string | { [key: string]: string; };
 }
 
+export type PlausibilityReference = 'today' | 'interview_date' | 'earliest_plausible_date'
+
+export interface FastAPIPlausibilityError {
+    detail: {
+        rule: string
+        fields: string[]
+        msg: string
+        reference: PlausibilityReference | null
+        reference_date: string | null
+        context?: {
+            today: string
+            interview_date: string
+            earliest_plausible_date: string
+        }
+    }
+}
+
 interface NormalizationChangeError extends H3Error {
     data: {
         detail: {
@@ -44,6 +61,18 @@ export function isSingleRefField(fieldDefinition: FieldDefinition, _fields?: obj
 
 export function isFastAPIError(error: unknown): error is FastAPIError {
     return typeof error === "object" && error !== null && 'detail' in error && !!error.detail;
+}
+
+export function isFastAPIPlausibilityError(error: unknown): error is FastAPIPlausibilityError {
+    if (!isFastAPIError(error)) {
+        return false;
+    }
+
+    return typeof error.detail === 'object'
+        && error.detail !== null
+        && 'rule' in error.detail && typeof error.detail.rule === 'string'
+        && 'fields' in error.detail && Array.isArray(error.detail.fields) && error.detail.fields.every(value => typeof value === 'string')
+        && 'msg' in error.detail && typeof error.detail.msg === 'string';
 }
 
 export function isFastAPIValidationError(error: unknown): error is SchemaHttpValidationError {

@@ -54,7 +54,35 @@ config = Config()
 
 
 class IntakeValidationError(ValueError):
-    pass
+    """Raised for every intake rule violation.
+
+    Everything but `message` is set for the plausibility rules in
+    `medlogserver/model/intake_rules.py`, so the API can tell the client which
+    rule broke, which fields to highlight and which date the check was made
+    against. `reference_date` is the date the broken rule compared against and
+    `reference` names which date that is, so a client can drop the date into its
+    own translated message without knowing the semantics of every rule.
+    `context` carries all reference dates, for a message that needs more than
+    one. They stay `None`/empty for the field-presence and mutual-exclusivity
+    errors raised below, which are raised from inside pydantic validators and get
+    wrapped in a `ValidationError` anyway, losing any extra attributes.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        rule_id: Optional[str] = None,
+        fields: Sequence[str] = (),
+        reference: Optional[str] = None,
+        reference_date: Optional[str] = None,
+        context: Optional[Dict[str, str]] = None,
+    ):
+        super().__init__(message)
+        self.rule_id = rule_id
+        self.fields = tuple(fields)
+        self.reference = reference
+        self.reference_date = reference_date
+        self.context = dict(context) if context else {}
 
 
 # `dose_per_day` is stored as NUMERIC(6, 2): fractional tablets down to a
@@ -214,9 +242,9 @@ class IntakeUpdate(MedLogBaseModel, table=False):
     )
     dose_per_day: Optional[float] = Field(
         default=None,
-        ge=0,
         description=(
-            "Number of doses taken per day. "
+            "Number of doses taken per day. Must not be negative; `0` is allowed "
+            "and is used when the daily dose is unknown. "
             "Fractional doses (half or quarter tablets) are allowed with at most "
             "2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
         ),
@@ -248,7 +276,8 @@ class IntakeUpdate(MedLogBaseModel, table=False):
     as_needed_dose_unit: Optional[int] = Field(
         default=None,
         description=(
-            "Dose unit for as-needed intake. "
+            "Dose unit for as-needed intake. Must not be negative; `0` is allowed "
+            "and is used when the dose is unknown. "
             "Required when `intake_regular_or_as_needed` is `AS_NEEDED`. "
             "Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
         ),
