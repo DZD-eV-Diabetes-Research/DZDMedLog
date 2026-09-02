@@ -42,9 +42,36 @@ class DrugDataSetImporterCapabilities:
     can_be_triggered_for_manual_update: bool = False
 
 
+@dataclass
+class MarketAccessabilityDefinition:
+    """Declares how an importer expresses "is this drug still obtainable".
+
+    `DrugData.market_exit_date` alone is not enough for every source. MMI
+    Pharmindex keeps packages that the supplier stopped distributing in its live
+    catalog without giving them an exit date, and marks them only through a
+    reference attribute (issue #360). An importer that has such an attribute
+    points at it here; the search index then combines both signals.
+
+    Attributes:
+        field_name: Name of the `attrs_ref` field carrying the market status.
+        accessable_values: The values of that field which mean "still on the
+            market". Every other value counts as not accessible. A drug without
+            a value for the field keeps counting as accessible, so custom drugs
+            and partial imports do not silently disappear from search results.
+    """
+
+    field_name: str
+    accessable_values: List[str]
+
+
 # TODO: define as  Abstract Base Classes to be more of an correct interface
 # at the moment its a "stub"-class (for lack of a better word)
 class DrugDataSetImporterBase:
+    # Importers that can tell market availability apart from the exit date override
+    # this. None means: judge availability by market_exit_date alone. Declared on the
+    # class, not in __init__, because subclasses here do not call super().__init__().
+    market_accessability: Optional[MarketAccessabilityDefinition] = None
+
     def __init__(self):
         self.dataset_name: str = "Base Example"
         self.dataset_link: Optional[str] = None

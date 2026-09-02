@@ -41,6 +41,7 @@ from medlogserver.model.drug_data.drug_attr_field_lov_item import (
 from medlogserver.db.drug_data.importers._base import (
     DrugDataSetImporterBase,
     DrugDataSetImporterCapabilities,
+    MarketAccessabilityDefinition,
 )
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug import DrugData
@@ -725,6 +726,17 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
             )
         )
         self._ensured_dataset_version: DrugDataSetVersion = None
+        # PACKAGE.CSV keeps packages the supplier no longer delivers ("F", Außer
+        # Vertrieb: remaining pharmacy stock may still be dispensed) and gives them
+        # no OFFMARKETDATE. Only packages moved to ARCHIVE_PACKAGE.CSV ("D"/"R") get
+        # one. So market availability needs the sales status on top of the exit
+        # date, otherwise ~26k "Außer Vertrieb" packages pass as on-market (#360).
+        # Catalog 116: N=Im Vertrieb, F=Außer Vertrieb, D=Wegfall, R=Rückruf,
+        # Z=Zurückgezogen.
+        self.market_accessability = MarketAccessabilityDefinition(
+            field_name="vertriebsstatus",
+            accessable_values=["N"],
+        )
         self.batch_size = config.DRUG_IMPORTER_BATCH_SIZE
         self._attr_def_cache = {}
         self._db_session: AsyncSession | None = None
