@@ -12,13 +12,13 @@
 </template>
 
 <script setup lang="ts">
-import type {SchemaStudy} from "#open-fetch-schemas/medlogapi";
+import type {SchemaStudyApiRead} from "#open-fetch-schemas/medlogapi";
 
 const studyStore = useStudyStore();
 const userStore = useUserStore()
 
 const myStudies = computed(() => {
-  function sortStudiesByName(a: SchemaStudy, b: SchemaStudy) {
+  function sortStudiesByName(a: SchemaStudyApiRead, b: SchemaStudyApiRead) {
     return a.display_name!.localeCompare(b.display_name!);
   }
 

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { type InferType, object, string } from "yup";
 import type {FormSubmitEvent} from "#ui/types";
-import type {SchemaStudy} from "#open-fetch-schemas/medlogapi";
+import type {SchemaStudyApiRead} from "#open-fetch-schemas/medlogapi";
 
 const studyPermissionStore = useStudyPermissionStore();
 
 const props = defineProps({
-  study: { type: Object as () => SchemaStudy, required: true },
+  study: { type: Object as () => SchemaStudyApiRead, required: true },
 })
 
 const probandIdValidationError = ref('')
@@ -29,7 +29,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
   const { data, error } = await useMedlogapi('/api/study/{study_id}/proband-external-id/validate', {
     method: 'POST',
     path: {
-      study_id: props.study.id ?? ''
+      study_id: props.study.id
     },
     body: {
       proband_external_id: event.data.probandId

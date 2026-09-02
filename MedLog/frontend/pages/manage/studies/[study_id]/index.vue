@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SchemaStudy } from "#open-fetch-schemas/medlogapi";
+import type { SchemaStudyApiRead } from "#open-fetch-schemas/medlogapi";
 import type { StudyFormSchema } from "~/components/StudyManagement/Form.vue";
 import { isNormalizationChangeError } from "~/type-helper";
 import { ConfirmationModal } from "#components";
@@ -13,7 +13,7 @@ const userStore = useUserStore();
 
 const studyId = route.params.study_id as string;
 
-const studyToEdit = ref<SchemaStudy>();
+const studyToEdit = ref<SchemaStudyApiRead>();
 
 async function onCancel() {
   await navigateTo('/manage/studies');

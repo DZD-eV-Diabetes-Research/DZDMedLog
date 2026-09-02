@@ -2,14 +2,17 @@
 import { onMounted, reactive } from "#imports";
 import {boolean, type InferType, object, string} from "yup";
 import type { FormSubmitEvent } from "#ui/types";
-import type { SchemaProbandExternalIdNormalization, SchemaStudy } from "#open-fetch-schemas/medlogapi";
+import type {
+  SchemaProbandExternalIdNormalization,
+  SchemaStudyApiRead
+} from "#open-fetch-schemas/medlogapi";
 import { probandExternalIdNormalizationOptions } from "~/constants";
 import { StudyManagementRegExCheckModal } from "#components";
 
 const modal = useModal();
 
 const props = defineProps<{
-  initialState?: SchemaStudy;
+  initialState?: SchemaStudyApiRead;
 }>();
 
 const emit = defineEmits<{

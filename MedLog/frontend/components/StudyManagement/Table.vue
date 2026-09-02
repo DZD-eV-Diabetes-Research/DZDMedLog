@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SchemaStudy } from '#open-fetch-schemas/medlogapi'
+import type { SchemaStudyApiRead } from '#open-fetch-schemas/medlogapi'
 
 const studyPermissionStore = useStudyPermissionStore()
 
@@ -20,7 +20,7 @@ const columns = [{
 
 defineProps({
   loading: { type: Boolean, default: false },
-  studies: { type: Array as () => SchemaStudy[], default: () => [] },
+  studies: { type: Array as () => SchemaStudyApiRead[], default: () => [] },
 });
 
 const sort = ref<{

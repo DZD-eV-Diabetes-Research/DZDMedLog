@@ -1,7 +1,7 @@
 import {useMedlogapi} from "#open-fetch";
-import type { SchemaStudy } from "#open-fetch-schemas/medlogapi";
+import type {SchemaStudyApiRead} from "#open-fetch-schemas/medlogapi";
 
-export default async function (name:string): Promise<SchemaStudy>{
+export default async function (name:string): Promise<SchemaStudyApiRead>{
     const { data, error } = await useMedlogapi("/api/study", {
         method: "POST",
         body: {
