@@ -19,11 +19,20 @@ interface FastAPIError {
     detail: string | { [key: string]: string; };
 }
 
-interface FastAPIPlausibilityError {
+export type PlausibilityReference = 'today' | 'interview_date' | 'earliest_plausible_date'
+
+export interface FastAPIPlausibilityError {
     detail: {
         rule: string
         fields: string[]
         msg: string
+        reference: PlausibilityReference | null
+        reference_date: string | null
+        context?: {
+            today: string
+            interview_date: string
+            earliest_plausible_date: string
+        }
     }
 }
 
@@ -61,10 +70,9 @@ export function isFastAPIPlausibilityError(error: unknown): error is FastAPIPlau
 
     return typeof error.detail === 'object'
         && error.detail !== null
-        && 'rule' in error.detail
-        && 'fields' in error.detail
-        && Array.isArray(error.detail.fields)
-        && 'msg' in error.detail;
+        && 'rule' in error.detail && typeof error.detail.rule === 'string'
+        && 'fields' in error.detail && Array.isArray(error.detail.fields) && error.detail.fields.every(value => typeof value === 'string')
+        && 'msg' in error.detail && typeof error.detail.msg === 'string';
 }
 
 export function isFastAPIValidationError(error: unknown): error is SchemaHttpValidationError {

@@ -85,8 +85,16 @@ import {
   plausibilityErrorMessages,
   startDateOptions
 } from "~/constants";
-import {isFastAPIPlausibilityError, isFastAPIValidationError, isFetchError} from "~/type-helper";
+import {
+  type FastAPIPlausibilityError,
+  isFastAPIPlausibilityError,
+  isFastAPIValidationError,
+  isFetchError
+} from "~/type-helper";
 import type { UForm } from "#components";
+import { useDayjs } from "#dayjs";
+
+const dayjs = useDayjs();
 
 const props = defineProps<{
   drugId?: string;
@@ -160,7 +168,7 @@ async function onSubmit(event: FormSubmitEvent<IntakeFormSchema>) {
         errors = error.data.detail.fields.map(field => {
           return {
             path: field,
-            message: plausibilityErrorMessages.find((value) => value.rule === error.data.detail.rule)?.message ?? error.data.detail.msg,
+            message: getLocalizedPlausibilityErrorMessage(error.data),
           }
         }) ?? [];
       } else if (isFastAPIValidationError(error.data) && error.data.detail) {
@@ -181,6 +189,21 @@ async function onSubmit(event: FormSubmitEvent<IntakeFormSchema>) {
       throw error;
     }
   }
+}
+
+function getLocalizedPlausibilityErrorMessage(error: FastAPIPlausibilityError): string {
+  const localizationInfo = plausibilityErrorMessages.find((value) => value.rule === error.detail.rule);
+  if (!localizationInfo) {
+    return error.detail.msg;
+  }
+
+  let message = localizationInfo.message;
+
+  if (localizationInfo.messageTemplate && error.detail.reference && error.detail.reference_date && /^\d{4}-\d{2}-\d{2}$/.test(error.detail.reference_date)) {
+   message = localizationInfo.messageTemplate.replace('%s', dayjs.utc(error.detail.reference_date).format('L'));
+  }
+
+  return message
 }
 
 watch(() => props.drugId, async (newDrugId?: string) => {
