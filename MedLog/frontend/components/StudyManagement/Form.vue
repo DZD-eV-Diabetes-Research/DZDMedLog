@@ -11,9 +11,14 @@ import { StudyManagementRegExCheckModal } from "#components";
 
 const modal = useModal();
 
-const props = defineProps<{
+interface Props {
   initialState?: SchemaStudyApiRead;
-}>();
+  isNoPermissionBlocked?: boolean;
+}
+const props = withDefaults(defineProps<Props>(), {
+  initialState: undefined,
+  isNoPermissionBlocked: false,
+});
 
 const emit = defineEmits<{
   cancel: []
@@ -179,7 +184,14 @@ onMounted(async () => {
             name="no_permissions"
             description="Eingeloggte Nutzende benötigen keine gesonderte Freigabe für die Studie, um Interviews zu führen. Adminrechte müssen weiterhin explizit vergeben werden."
         >
-          <UToggle v-model="state.no_permissions" />
+          <UTooltip
+              text="Die Rechte werden außerhalb von DZDMedLog verwaltet und sind daher für die Bearbeitung gesperrt."
+              :popper="{ arrow: true }"
+              :prevent="!isNoPermissionBlocked"
+              :ui="{ width: 'max-w-4xl' }"
+          >
+            <UToggle v-model="state.no_permissions" :disabled="isNoPermissionBlocked" />
+          </UTooltip>
         </UFormGroup>
 
         <UFormGroup
