@@ -39,6 +39,17 @@ def test_endpoint_config_branding_get():
         exception_dict_identifier="version response",
     )
 
+    # Issue #344: the client hides its permission management when roles come from OIDC.
+    # DISABLE_UI_PERMISSION_MANAGEMENT is unset in the test environment, so the value is
+    # the derived one: true exactly when the suite runs with the OIDC mock provider
+    # (its ROLE_MAPPING is non-empty, see conftest._start_oidc_mock).
+    expected_disabled = bool(os.environ.get("OIDC_MOCK_SERVER_URL"))
+    dict_must_contain(
+        response,
+        required_keys_and_val={"disable_ui_permission_management": expected_disabled},
+        exception_dict_identifier="branding response",
+    )
+
 
 def test_endpoint_config_system_announcements():
     """Test GET /api/config/announcements"""

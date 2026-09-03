@@ -1,7 +1,7 @@
 import { useMedlogapi } from "#open-fetch";
-import type { SchemaStudy, SchemaStudyUpdate } from "#open-fetch-schemas/medlogapi";
+import type { SchemaStudyApiRead, SchemaStudyUpdate } from "#open-fetch-schemas/medlogapi";
 
-export default async function (studyId: string, body: SchemaStudyUpdate, confirmNormalizationChange: boolean = false): Promise<SchemaStudy> {
+export default async function (studyId: string, body: SchemaStudyUpdate, confirmNormalizationChange: boolean = false): Promise<SchemaStudyApiRead> {
     let query: { confirm_normalization_change?: boolean } = {};
 
     if (confirmNormalizationChange) {

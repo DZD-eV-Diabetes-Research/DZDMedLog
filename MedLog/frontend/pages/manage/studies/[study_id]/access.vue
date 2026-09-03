@@ -16,12 +16,16 @@ import type {
   SchemaStudyPermissonUpdate
 } from "#open-fetch-schemas/medlogapi";
 
+const configStore = useConfigStore();
 const route = useRoute();
 const studyPermissionStore = useStudyPermissionStore();
 const studyStore = useStudyStore();
 const toast = useToast();
 const userStore = useUserStore();
 
+const isStudyAccessManaged = computed(() => {
+  return configStore.branding.disableUiPermissionManagement || currentStudy.value?.is_oidc_permission_managed === true
+})
 const currentStudy = computed(() => studyStore.getStudy(studyId.value));
 const studyId = computed(() => route.params.study_id as string);
 const userIdsWithAccess = computed(() => {
@@ -132,14 +136,16 @@ async function onSavePermissions(data: SchemaStudyPermissonUpdate) {
 
 onMounted(async () => {
   await loadStudyPermissions();
-  try {
-    await userStore.loadUsers(false);
-  } catch (error) {
-    toast.add({
-      title: "Konnte User nicht laden",
-      description: useGetErrorMessage(error),
-    });
-    return;
+  if (!isStudyAccessManaged.value) {
+    try {
+      await userStore.loadUsers(false);
+    } catch (error) {
+      toast.add({
+        title: "Konnte User nicht laden",
+        description: useGetErrorMessage(error),
+      });
+      return;
+    }
   }
 });
 </script>
@@ -168,9 +174,16 @@ onMounted(async () => {
         message="Alle Nutzer haben das Recht, für diese Studie Interviews zu führen, auch wenn sie hier nicht aufgeführt sind."
         class="mb-4"
     />
+    <WarningMessage
+        v-if="isStudyAccessManaged"
+        title="Externe Rechteverwaltung aktiv"
+        message="Für diese Studie werden die individuellen Zugriffsrechte automatisch auf Basis von OIDC-Gruppen vergeben."
+        class="mb-4"
+    />
 
     <StudyPermissionManagementTable
         :permissions="studyPermissions"
+        :is-study-access-managed="isStudyAccessManaged"
         :loading="loading"
         @edit-permissions="onEditPermissions"
         @delete-permissions="onDeletePermissions"
@@ -178,11 +191,11 @@ onMounted(async () => {
 
     <hr class="m-8">
 
-    <div class="flex flex-row items-center justify-center text-xl font-normal mb-4">
+    <div v-if="!isStudyAccessManaged" class="flex flex-row items-center justify-center text-xl font-normal mb-4">
       <UIcon name="i-heroicons-user-plus-solid" class="mr-2" />
       <h2>Rechte vergeben</h2>
     </div>
-    <div class="flex flex-col w-6/12 mx-auto">
+    <div v-if="!isStudyAccessManaged" class="flex flex-col w-6/12 mx-auto">
       <UAlert
           v-if="usersWithoutAccessOptions.length === 0"
           description="Für alle Benutzer wurden bereits Rechte festgelegt."

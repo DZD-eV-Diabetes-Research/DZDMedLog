@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { SchemaUser, SchemaUserRoleApiRead } from '#open-fetch-schemas/medlogapi'
 
+const configStore = useConfigStore()
+
 const columns = [{
   key: 'name',
   label: 'Name',
@@ -49,14 +51,14 @@ const rows = computed(() => {
 
 <template>
   <UTable :rows="rows" :columns="columns" :loading="loading" :sort="sort">
-    <template #name-data="{ row }">
+    <template #name-data="{ row } : { row: (SchemaUser & { name: string } )}">
       <div class="flex flex-row items-center gap-2">
         {{ row.display_name ?? row.user_name }}
         <UBadge v-if="row.id === currentUser?.id" label="Das sind Sie" color="sky" variant="subtle" icon="i-heroicons-user-circle-solid" />
       </div>
       <small v-if="row.display_name" class="block">{{ row.user_name }}</small>
     </template>
-    <template #active-data="{ row }">
+    <template #active-data="{ row } : { row: (SchemaUser & { name: string } )}">
       <UIcon
           :name="row.deactivated ? 'i-heroicons-x-circle-solid' : 'i-heroicons-check-circle-solid'"
           class="text-xl"
@@ -64,7 +66,7 @@ const rows = computed(() => {
       />
     </template>
 
-    <template #email-data="{ row }">
+    <template #email-data="{ row } : { row: (SchemaUser & { name: string } )}">
       <div class="flex flex-row gap-1">
         {{ row.email }}
         <UTooltip v-if="!row.is_email_verified" text="Diese Adresse wurde nicht verifiziert">
@@ -76,23 +78,36 @@ const rows = computed(() => {
       </div>
     </template>
 
-    <template #roles-data="{ row }">
-      <div v-if="row.roles.length > 0" class="space-x-2" >
-        <UBadge v-for="role in row.roles" :key="role" class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg">
-          {{ role }}
-        </UBadge>
+    <template #roles-data="{ row } : { row: (SchemaUser & { name: string } )}">
+      <div v-if="row.roles && row.roles.length > 0" class="space-x-2" >
+        <UTooltip
+            text="Die Rollen werden außerhalb von DZDMedLog verwaltet und sind daher für die Bearbeitung gesperrt."
+            :popper="{ arrow: true }"
+            :prevent="!configStore.branding.disableUiPermissionManagement"
+            :ui="{ width: 'max-w-4xl' }"
+        >
+          <UBadge
+              v-for="role in row.roles"
+              :key="role"
+              class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg"
+              :icon="configStore.branding.disableUiPermissionManagement ? 'i-heroicons-lock-closed-solid' : ''"
+          >
+            {{ role }}
+          </UBadge>
+        </UTooltip>
       </div>
       <div v-else>&mdash;</div>
     </template>
 
-    <template #actions-data="{ row }">
+    <template #actions-data="{ row } : { row: (SchemaUser & { name: string } )}">
       <UButton
+          v-if="!configStore.branding.disableUiPermissionManagement"
           label="Rollen bearbeiten"
           icon="i-heroicons-key-solid"
           variant="outline"
           color="gray"
           class="mr-2"
-          @click="$emit('edit-roles', row.id)"
+          @click="$emit('edit-roles', row.id!)"
       />
       <UButton
           v-if="!row.deactivated"
@@ -100,7 +115,7 @@ const rows = computed(() => {
           icon="i-heroicons-x-circle-solid"
           variant="outline"
           color="gray"
-          @click="$emit('deactivate-user', row.id)"
+          @click="$emit('deactivate-user', row.id!)"
       />
       <UButton
           v-else-if="row.deactivated"
@@ -108,7 +123,7 @@ const rows = computed(() => {
           icon="i-heroicons-check-circle-solid"
           variant="outline"
           color="gray"
-          @click="$emit('activate-user', row.id)"
+          @click="$emit('activate-user', row.id!)"
       />
     </template>
   </UTable>
