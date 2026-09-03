@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.10b5.post1.dev23+g649134a40.d20260902"
+    "version": "1.0.10b5.post1.dev18+ga226648d7.d20260901"
   },
   "paths": {
     "/api/health": {
@@ -1120,7 +1120,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_StudyApiRead_"
+                  "$ref": "#/components/schemas/PaginatedResponse_Study_"
                 }
               }
             }
@@ -1165,7 +1165,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StudyApiRead"
+                  "$ref": "#/components/schemas/Study"
                 }
               }
             }
@@ -1227,7 +1227,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StudyApiRead"
+                  "$ref": "#/components/schemas/Study"
                 }
               }
             }
@@ -1329,7 +1329,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StudyApiRead"
+                  "$ref": "#/components/schemas/Study"
                 }
               }
             }
@@ -3198,19 +3198,36 @@
             }
           },
           "422": {
-            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.",
+            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n**Plausibility (combinations that cannot be true)**\nTwo reference dates are used. The \"not in the future\" rules compare against the server's current UTC date, without tolerance: tomorrow is a future date. The \"taken today\" rules compare against the day the parent interview was started, because that is the day the proband answered the question. That keeps an interview that stays open across midnight, a retroactively entered interview and a later correction of an entry from turning a correct answer into a contradiction. Those comparisons get one day of tolerance in both directions, to absorb the offset between the stored UTC timestamp and the interviewer's local time.\nThe rules are checked on the record as it will be stored, so a PATCH is validated against the merged record, not just the payload. A PATCH only triggers the rules that concern a field it actually sends.\n- `end_date_before_start_date` \u2014 `intake_end_date` is before `intake_start_date`. The same day for both is allowed.\n- `start_date_in_future` \u2014 `intake_start_date` lies after the current date.\n- `end_date_in_future` \u2014 `intake_end_date` lies after the current date.\n- `consumed_today_with_past_end_date` \u2014 `consumed_meds_today` is `Yes` while `intake_end_date` lies before the interview date.\n- `consumed_today_with_future_start_date` \u2014 `consumed_meds_today` is `Yes` while `intake_start_date` lies after the interview date.\n- `dose_per_day_negative` \u2014 `dose_per_day` is negative. `0` is allowed and means the daily dose is unknown.\n- `as_needed_dose_unit_negative` \u2014 `as_needed_dose_unit` is negative. `0` is allowed and means the dose is unknown.\n- `start_date_implausibly_old` / `end_date_implausibly_old` \u2014 the date is before 1950-01-01.\n\nRules that need an exact date are skipped when `intake_start_date_option` / `intake_end_date_option` is set instead of a date, because the option carries no date to compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\nA plausibility violation returns an object as `detail`, carrying the `rule` that broke and the `fields` it concerns. For a translated, client-side message it also carries `reference_date`, the ISO date the broken rule compared against (`null` for a rule that compares no date), and `reference`, naming which date that is: `today`, `interview_date` or `earliest_plausible_date`. `context` holds all three dates, for a message that needs more than the one the rule used. The other rules above return a plain string.",
             "content": {
               "application/json": {
-                "example": {
-                  "detail": [
-                    {
-                      "loc": [
-                        "body"
-                      ],
-                      "msg": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set.",
-                      "type": "value_error"
+                "examples": {
+                  "field_presence": {
+                    "summary": "Mutually exclusive fields",
+                    "value": {
+                      "detail": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set."
                     }
-                  ]
+                  },
+                  "plausibility": {
+                    "summary": "Plausibility rule violated",
+                    "value": {
+                      "detail": {
+                        "rule": "consumed_today_with_past_end_date",
+                        "fields": [
+                          "consumed_meds_today",
+                          "intake_end_date"
+                        ],
+                        "msg": "'consumed_meds_today' is 'Yes', but 'intake_end_date' is before 2026-06-15, the day this interview was started. 'Today' refers to the day of the interview, and an intake that had already ended cannot have been taken on that day.",
+                        "reference": "interview_date",
+                        "reference_date": "2026-06-15",
+                        "context": {
+                          "today": "2026-06-20",
+                          "interview_date": "2026-06-15",
+                          "earliest_plausible_date": "1950-01-01"
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -3374,19 +3391,36 @@
             }
           },
           "422": {
-            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.",
+            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n**Plausibility (combinations that cannot be true)**\nTwo reference dates are used. The \"not in the future\" rules compare against the server's current UTC date, without tolerance: tomorrow is a future date. The \"taken today\" rules compare against the day the parent interview was started, because that is the day the proband answered the question. That keeps an interview that stays open across midnight, a retroactively entered interview and a later correction of an entry from turning a correct answer into a contradiction. Those comparisons get one day of tolerance in both directions, to absorb the offset between the stored UTC timestamp and the interviewer's local time.\nThe rules are checked on the record as it will be stored, so a PATCH is validated against the merged record, not just the payload. A PATCH only triggers the rules that concern a field it actually sends.\n- `end_date_before_start_date` \u2014 `intake_end_date` is before `intake_start_date`. The same day for both is allowed.\n- `start_date_in_future` \u2014 `intake_start_date` lies after the current date.\n- `end_date_in_future` \u2014 `intake_end_date` lies after the current date.\n- `consumed_today_with_past_end_date` \u2014 `consumed_meds_today` is `Yes` while `intake_end_date` lies before the interview date.\n- `consumed_today_with_future_start_date` \u2014 `consumed_meds_today` is `Yes` while `intake_start_date` lies after the interview date.\n- `dose_per_day_negative` \u2014 `dose_per_day` is negative. `0` is allowed and means the daily dose is unknown.\n- `as_needed_dose_unit_negative` \u2014 `as_needed_dose_unit` is negative. `0` is allowed and means the dose is unknown.\n- `start_date_implausibly_old` / `end_date_implausibly_old` \u2014 the date is before 1950-01-01.\n\nRules that need an exact date are skipped when `intake_start_date_option` / `intake_end_date_option` is set instead of a date, because the option carries no date to compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\nA plausibility violation returns an object as `detail`, carrying the `rule` that broke and the `fields` it concerns. For a translated, client-side message it also carries `reference_date`, the ISO date the broken rule compared against (`null` for a rule that compares no date), and `reference`, naming which date that is: `today`, `interview_date` or `earliest_plausible_date`. `context` holds all three dates, for a message that needs more than the one the rule used. The other rules above return a plain string.",
             "content": {
               "application/json": {
-                "example": {
-                  "detail": [
-                    {
-                      "loc": [
-                        "body"
-                      ],
-                      "msg": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set.",
-                      "type": "value_error"
+                "examples": {
+                  "field_presence": {
+                    "summary": "Mutually exclusive fields",
+                    "value": {
+                      "detail": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set."
                     }
-                  ]
+                  },
+                  "plausibility": {
+                    "summary": "Plausibility rule violated",
+                    "value": {
+                      "detail": {
+                        "rule": "consumed_today_with_past_end_date",
+                        "fields": [
+                          "consumed_meds_today",
+                          "intake_end_date"
+                        ],
+                        "msg": "'consumed_meds_today' is 'Yes', but 'intake_end_date' is before 2026-06-15, the day this interview was started. 'Today' refers to the day of the interview, and an intake that had already ended cannot have been taken on that day.",
+                        "reference": "interview_date",
+                        "reference_date": "2026-06-15",
+                        "context": {
+                          "today": "2026-06-20",
+                          "interview_date": "2026-06-15",
+                          "earliest_plausible_date": "1950-01-01"
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -5596,12 +5630,6 @@
             ],
             "title": "Support Email",
             "description": "The email address for user suport"
-          },
-          "disable_ui_permission_management": {
-            "type": "boolean",
-            "title": "Disable Ui Permission Management",
-            "description": "If true the web client hides its role and permission management controls, because roles are managed outside of MedLog (OIDC group mapping).",
-            "default": false
           }
         },
         "type": "object",
@@ -7119,15 +7147,14 @@
           "dose_per_day": {
             "anyOf": [
               {
-                "type": "number",
-                "minimum": 0.0
+                "type": "number"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
+            "description": "Number of doses taken per day. Must not be negative; `0` is allowed and is used when the daily dose is unknown. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -7150,7 +7177,7 @@
               }
             ],
             "title": "As Needed Dose Unit",
-            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
+            "description": "Dose unit for as-needed intake. Must not be negative; `0` is allowed and is used when the dose is unknown. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
@@ -7271,15 +7298,14 @@
           "dose_per_day": {
             "anyOf": [
               {
-                "type": "number",
-                "minimum": 0.0
+                "type": "number"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
+            "description": "Number of doses taken per day. Must not be negative; `0` is allowed and is used when the daily dose is unknown. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -7302,7 +7328,7 @@
               }
             ],
             "title": "As Needed Dose Unit",
-            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
+            "description": "Dose unit for as-needed intake. Must not be negative; `0` is allowed and is used when the dose is unknown. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
@@ -7413,15 +7439,14 @@
           "dose_per_day": {
             "anyOf": [
               {
-                "type": "number",
-                "minimum": 0.0
+                "type": "number"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
+            "description": "Number of doses taken per day. Must not be negative; `0` is allowed and is used when the daily dose is unknown. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -7444,7 +7469,7 @@
               }
             ],
             "title": "As Needed Dose Unit",
-            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
+            "description": "Dose unit for as-needed intake. Must not be negative; `0` is allowed and is used when the dose is unknown. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
@@ -7609,15 +7634,14 @@
           "dose_per_day": {
             "anyOf": [
               {
-                "type": "number",
-                "minimum": 0.0
+                "type": "number"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
+            "description": "Number of doses taken per day. Must not be negative; `0` is allowed and is used when the daily dose is unknown. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -7640,7 +7664,7 @@
               }
             ],
             "title": "As Needed Dose Unit",
-            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
+            "description": "Dose unit for as-needed intake. Must not be negative; `0` is allowed and is used when the dose is unknown. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "anyOf": [
@@ -8305,63 +8329,6 @@
         ],
         "title": "PaginatedResponse[MedLogSearchEngineResult]"
       },
-      "PaginatedResponse_StudyApiRead_": {
-        "properties": {
-          "total_count": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total Count",
-            "description": "Total number of items in the database.",
-            "examples": [
-              300
-            ]
-          },
-          "offset": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Offset",
-            "description": "Starting position index of the returned items in the dataset.",
-            "default": 0,
-            "examples": [
-              299
-            ]
-          },
-          "count": {
-            "type": "integer",
-            "title": "Count",
-            "description": "Number of items returned in the response",
-            "examples": [
-              1
-            ]
-          },
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/StudyApiRead"
-            },
-            "type": "array",
-            "title": "Items",
-            "description": "List of items returned in the response following given criteria"
-          }
-        },
-        "type": "object",
-        "required": [
-          "count",
-          "items"
-        ],
-        "title": "PaginatedResponse[StudyApiRead]"
-      },
       "PaginatedResponse_StudyPermissionRead_": {
         "properties": {
           "total_count": {
@@ -8418,6 +8385,63 @@
           "items"
         ],
         "title": "PaginatedResponse[StudyPermissionRead]"
+      },
+      "PaginatedResponse_Study_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database.",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "default": 0,
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Study"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[Study]"
       },
       "PaginatedResponse_User_": {
         "properties": {
@@ -8718,120 +8742,6 @@
         },
         "type": "object",
         "title": "Study"
-      },
-      "StudyApiRead": {
-        "properties": {
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 128
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display Name",
-            "examples": [
-              "Pr\u00e4diabetes-Lebensstil-Interventions-Studie (PLIS)",
-              "BARIA-DDZ-Studie"
-            ]
-          },
-          "no_permissions": {
-            "type": "boolean",
-            "title": "No Permissions",
-            "description": "If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study. Admin access still need to be allocated explicit.",
-            "default": false
-          },
-          "proband_external_id_pattern": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 1024
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Proband External Id Pattern",
-            "description": "Optional regular expression a proband external ID must fully match to be accepted for this study. If unset (default), any proband ID is accepted (status quo). The pattern is validated (compiled) when the study is saved.",
-            "examples": [
-              "^[A-Z]{3}[0-9]{4}$"
-            ]
-          },
-          "proband_external_id_pattern_error_text": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 1024
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Proband External Id Pattern Error Text",
-            "description": "Human-readable error text shown when a proband ID does not match 'proband_external_id_pattern'. Should describe the expected format in plain language instead of exposing the raw regular expression. A generic fallback text is used when unset.",
-            "examples": [
-              "Expected 3 uppercase letters followed by 4 digits, e.g. AAA1111"
-            ]
-          },
-          "proband_external_id_normalization": {
-            "$ref": "#/components/schemas/ProbandExternalIdNormalization",
-            "description": "How proband external IDs are normalized before validation, storage and matching for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag.",
-            "default": "none"
-          },
-          "proband_external_id_example": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 1024
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Proband External Id Example",
-            "description": "Optional positive example of a valid proband external ID for this study (e.g. 'AAA1111'), so the frontend can proactively show 'e.g. \u2026' next to the input. Purely informational \u2014 it is not validated against the pattern.",
-            "examples": [
-              "AAA1111"
-            ]
-          },
-          "deactivated": {
-            "type": "boolean",
-            "title": "Deactivated",
-            "default": false
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "oidc_managed_permissions": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Oidc Managed Permissions",
-            "description": "Study permission flags managed by an OIDC group mapping for this study (STUDY_PERMISSION_MAPPING). These flags are re-applied on every login of a mapped user, so changing them in the UI has no lasting effect. Empty when the study is not referenced by any mapping."
-          },
-          "is_oidc_permission_managed": {
-            "type": "boolean",
-            "title": "Is Oidc Permission Managed",
-            "description": "Convenience flag: true when oidc_managed_permissions is non-empty. Clients should hide the study's permission management and warn before renaming the study, because the mapping is keyed by the study's display name.",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "id"
-        ],
-        "title": "StudyApiRead",
-        "description": "Study as returned by the API: the stored study plus config-derived OIDC facts.\n\n``Study`` is ``table=True``, so computed API-only fields can not be added to it.\nThis read model mirrors the existing ``StudyExport`` pattern instead."
       },
       "StudyCloneAPI": {
         "properties": {
