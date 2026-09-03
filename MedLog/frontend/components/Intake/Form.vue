@@ -1,58 +1,64 @@
 <!-- This is the main drug intake form component that is used to create or edit intakes -->
 <template>
-  <UForm :state="state" :schema="schema" class="space-y-4" :validate-on="['blur', 'submit']" @submit="onSubmit">
+  <UForm ref="intakeForm" :state="state" :schema="schema" class="space-y-4" :validate-on="['blur', 'submit']" @submit="onSubmit">
     <UFormGroup
         label="Wirkstoff äquivalent, abweichender Produkt-Code"
         description="Das gewählte Präparat entspricht in Wirkstoff und Wirkstoffmenge dem eingenommenen, die PZN ist unbekannt."
+        name="is_activeingredient_equivalent_choice"
     >
-      <UToggle v-model="state.isActiveIngredientEquivalentChoice" />
+      <UToggle v-model="state.is_activeingredient_equivalent_choice" />
     </UFormGroup>
 
-    <UFormGroup label="Quelle der Arzneimittelangabe" name="drugSource">
-      <USelect v-model="state.drugSource" :options="drugSourceOptions" />
+    <UFormGroup label="Quelle der Arzneimittelangabe" name="source_of_drug_information">
+      <USelect v-model="state.source_of_drug_information" :options="drugSourceOptions" />
     </UFormGroup>
 
-    <UFormGroup label="Vom Arzt verordnet?" name="administeredByDoctor">
-      <USelect v-model="state.administeredByDoctor" :options="administeredByDoctorOptions" />
+    <UFormGroup label="Vom Arzt verordnet?" name="administered_by_doctor">
+      <USelect v-model="state.administered_by_doctor" :options="administeredByDoctorOptions" />
     </UFormGroup>
-    <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?" name="frequency">
-      <USelect v-model="state.frequency" :options="frequencyOptions" />
+    <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?" name="intake_regular_or_as_needed">
+      <USelect v-model="state.intake_regular_or_as_needed" :options="frequencyOptions" />
     </UFormGroup>
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
-        <UFormGroup label="Dosis pro Tag der Einnahme" style="border-color: red" name="dose">
-          <UInput v-model.trim="state.dose" type="text" inputmode="decimal" :disabled="state.frequency !== 'regular'"/>
+        <UFormGroup label="Dosis pro Tag der Einnahme" style="border-color: red" name="dose_per_day">
+          <UInput v-model.trim="state.dose_per_day" type="text" inputmode="decimal" :disabled="state.intake_regular_or_as_needed !== 'regular'"/>
         </UFormGroup>
       </div>
       <div class="flex-1">
-        <UFormGroup label="Intervall der Tagesdosen" name="intervall">
-          <USelect v-model="state.intervall" :options="doseIntervalOptions" :disabled="state.frequency !== 'regular'" />
+        <UFormGroup label="Intervall der Tagesdosen" name="regular_intervall_of_daily_dose">
+          <USelect v-model="state.regular_intervall_of_daily_dose" :options="doseIntervalOptions" :disabled="state.intake_regular_or_as_needed !== 'regular'" />
         </UFormGroup>
       </div>
     </div>
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
-        <UFormGroup label="Einnahme Beginn (Datum)" name="startDate">
+        <UFormGroup label="Einnahme Beginn (Datum)" name="intake_start_date">
           <DatePickerWithOptions
-              v-model:date="state.startDate"
+              v-model:date="state.intake_start_date"
               v-model:option="state.startDateOption"
               :options="startDateOptions"
+              earliest-date="1900-01-01"
           />
         </UFormGroup>
       </div>
       <div class="flex-1">
-        <UFormGroup label="Einnahme Ende (Datum)" name="endDate">
+        <UFormGroup label="Einnahme Ende (Datum)" name="intake_end_date">
           <DatePickerWithOptions
-              v-model:date="state.endDate"
+              v-model:date="state.intake_end_date"
               v-model:option="state.endDateOption"
               :options="endDateOptions"
+              earliest-date="1900-01-01"
           />
         </UFormGroup>
       </div>
     </div>
-    <URadioGroup
-        v-model="state.medsTakenToday" legend="Wurde dieses Medikament heute eingenommen?" name="medsTakenToday"
-        :options="medsTakenTodayOptions" />
+    <UFormGroup name="consumed_meds_today">
+      <URadioGroup
+          v-model="state.consumed_meds_today"
+          legend="Wurde dieses Medikament heute eingenommen?"
+          :options="medsTakenTodayOptions" />
+    </UFormGroup>
     <hr>
     <div class="flex justify-between">
       <UButton label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
@@ -64,7 +70,7 @@
 <script setup lang="ts">
 
 import { object, number, string, type InferType, boolean } from "yup";
-import type { FormSubmitEvent } from "#ui/types";
+import type { FormError, FormSubmitEvent } from "#ui/types";
 import {
   onMounted,
   reactive,
@@ -75,34 +81,49 @@ import {
   doseIntervalOptions,
   drugSourceOptions, endDateOptions,
   frequencyOptions,
-  medsTakenTodayOptions, startDateOptions
+  medsTakenTodayOptions,
+  plausibilityErrorMessages,
+  startDateOptions
 } from "~/constants";
+import {
+  type FastAPIPlausibilityError,
+  isFastAPIPlausibilityError,
+  isFastAPIValidationError,
+  isFetchError
+} from "~/type-helper";
+import type { UForm } from "#components";
+import { useDayjs } from "#dayjs";
+
+const dayjs = useDayjs();
 
 const props = defineProps<{
   drugId?: string;
   initialState?: { [key: string]: string | number | boolean; };
+  submitCallback: (data: IntakeFormSchema) => Promise<void>;
 }>();
 
-const emit = defineEmits(['cancel', 'save'])
+defineEmits(['cancel'])
+
+const form = useTemplateRef<typeof UForm>('intakeForm')
 
 const state = reactive<IntakeFormSchema>({
-  administeredByDoctor: administeredByDoctorOptions[0].value,
-  dose: 0,
+  administered_by_doctor: administeredByDoctorOptions[0].value,
+  dose_per_day: 0,
   drugId: "",
-  drugSource: drugSourceOptions[0].value,
-  endDate: undefined,
+  source_of_drug_information: drugSourceOptions[0].value,
+  intake_end_date: undefined,
   endDateOption: undefined,
-  frequency: frequencyOptions[0].value,
-  intervall: doseIntervalOptions[0].value,
-  isActiveIngredientEquivalentChoice: false,
-  medsTakenToday: medsTakenTodayOptions[0].value,
-  startDate: undefined,
+  intake_regular_or_as_needed: frequencyOptions[0].value,
+  regular_intervall_of_daily_dose: doseIntervalOptions[0].value,
+  is_activeingredient_equivalent_choice: false,
+  consumed_meds_today: medsTakenTodayOptions[0].value,
+  intake_start_date: undefined,
   startDateOption: undefined,
 });
 
 const schema = object({
-  administeredByDoctor: string().oneOf(administeredByDoctorOptions.map(item => item.value)),
-  dose: number()
+  administered_by_doctor: string().oneOf(administeredByDoctorOptions.map(item => item.value)),
+  dose_per_day: number()
       .transform((value, originalValue, schema) => {
         if (schema.isType(value)) {
           return value;
@@ -124,21 +145,65 @@ const schema = object({
         }
       ),
   drugId: string().required("Kein Medikament ausgewählt"),
-  drugSource: string().oneOf(drugSourceOptions.map(item => item.value)).required("Required"),
-  endDate: string().when('endDateOption', { is: undefined, then: (schema) => schema.required(), otherwise: (schema) => schema.optional() }),
+  source_of_drug_information: string().oneOf(drugSourceOptions.map(item => item.value)).required("Required"),
+  intake_end_date: string().when('endDateOption', { is: undefined, then: (schema) => schema.required(), otherwise: (schema) => schema.optional() }),
   endDateOption: string().oneOf(endDateOptions.map(item => item.value)).optional(),
-  frequency: string().oneOf(frequencyOptions.map(item => item.value)).required("Required"),
-  intervall: string().oneOf(doseIntervalOptions.map(item => item.value)),
-  isActiveIngredientEquivalentChoice: boolean().required(),
-  medsTakenToday: string().oneOf(medsTakenTodayOptions.map(item => item.value)).required("Required"),
-  startDate: string().when('startDateOption', { is: undefined, then: (schema) => schema.required(), otherwise: (schema) => schema.optional() }),
+  intake_regular_or_as_needed: string().oneOf(frequencyOptions.map(item => item.value)).required("Required"),
+  regular_intervall_of_daily_dose: string().oneOf(doseIntervalOptions.map(item => item.value)),
+  is_activeingredient_equivalent_choice: boolean().required(),
+  consumed_meds_today: string().oneOf(medsTakenTodayOptions.map(item => item.value)).required("Required"),
+  intake_start_date: string().when('startDateOption', { is: undefined, then: (schema) => schema.required(), otherwise: (schema) => schema.optional() }),
   startDateOption: string().oneOf(startDateOptions.map(item => item.value)).optional(),
 });
 
 export type IntakeFormSchema = InferType<typeof schema>;
 
 async function onSubmit(event: FormSubmitEvent<IntakeFormSchema>) {
-  emit('save', event.data);
+  try {
+    await props.submitCallback(event.data)
+  } catch (error) {
+    if (form.value && (isFetchError(error) || isNuxtError(error))) {
+      let errors: FormError[] = [];
+      if (isFastAPIPlausibilityError(error.data)) {
+        errors = error.data.detail.fields.map(field => {
+          return {
+            path: field,
+            message: getLocalizedPlausibilityErrorMessage(error.data),
+          }
+        }) ?? [];
+      } else if (isFastAPIValidationError(error.data) && error.data.detail) {
+        errors = error.data.detail.filter(value => {
+          return value.loc.every(value => typeof value === 'string') && value.loc.length === 2 && value.loc[0] === 'body';
+        }).map(value => {
+          return {
+            path: value.loc[1] as string,
+            message: value.msg,
+          };
+        })
+      }
+      if (errors.length === 0) {
+        throw error;
+      }
+      form.value.setErrors(errors);
+    } else {
+      throw error;
+    }
+  }
+}
+
+function getLocalizedPlausibilityErrorMessage(error: FastAPIPlausibilityError): string {
+  const localizationInfo = plausibilityErrorMessages.find((value) => value.rule === error.detail.rule);
+  if (!localizationInfo) {
+    return error.detail.msg;
+  }
+
+  let message = localizationInfo.message;
+
+  if (localizationInfo.messageTemplate && error.detail.reference && error.detail.reference_date && /^\d{4}-\d{2}-\d{2}$/.test(error.detail.reference_date)) {
+   message = localizationInfo.messageTemplate.replace('%s', dayjs.utc(error.detail.reference_date).format('L'));
+  }
+
+  return message
 }
 
 watch(() => props.drugId, async (newDrugId?: string) => {
@@ -154,7 +219,7 @@ onMounted(async () => {
       }
     }
 
-    if (Object.hasOwn(props.initialState, 'isActiveIngredientEquivalentChoice') && Object.keys(props.initialState).length === 1) {
+    if (Object.hasOwn(props.initialState, 'is_activeingredient_equivalent_choice') && Object.keys(props.initialState).length === 1) {
       // Exit before validation. This initial state does not represent a full record and was only used to set
       // the "active ingredient is equivalent" directly from the search results.
       return;

@@ -153,8 +153,8 @@
           v-if="createIntakeModalVisible"
           v-model="createIntakeModalVisible"
           :ui="{ width: 'w-full sm:max-w-3xl' }"
+          :form-submit-callback="saveIntake"
           prevent-close
-          @save="saveIntake"
           @cancel="() => { createIntakeModalVisible = false }"
       />
       <IntakeModal
@@ -162,9 +162,9 @@
           v-model="editModalVisible"
           :initial-state="intakeToEdit"
           :is-drug-editable="false"
+          :form-submit-callback="saveEditIntake"
           :ui="{ width: 'w-full sm:max-w-3xl' }"
           prevent-close
-          @save="saveEditIntake"
           @cancel="() => { editModalVisible = false }"
       />
     </div>
@@ -172,7 +172,6 @@
 </template>
 
 <script setup lang="ts">
-import { useMedlogapi } from '#open-fetch'
 import type { IntakeFormSchema } from "~/components/Intake/Form.vue";
 import { useDayjs } from '#dayjs'
 import localizedFormat from 'dayjs/plugin/localizedFormat'
@@ -238,19 +237,19 @@ function openCreateIntakeModal() {
 
 async function saveIntake(data: IntakeFormSchema) {
   const body: SchemaIntakeCreateApi = {
-    administered_by_doctor: data.administeredByDoctor,
+    administered_by_doctor: data.administered_by_doctor,
     as_needed_dose_unit: null,
-    consumed_meds_today: data.medsTakenToday,
-    dose_per_day: data.dose,
+    consumed_meds_today: data.consumed_meds_today,
+    dose_per_day: data.dose_per_day,
     drug_id: data.drugId,
-    intake_end_date: data.endDate ? dayjs(data.endDate).format("YYYY-MM-DD") : null,
+    intake_end_date: data.intake_end_date ? dayjs(data.intake_end_date).format("YYYY-MM-DD") : null,
     intake_end_date_option: data.endDateOption ?? null,
-    intake_regular_or_as_needed: data.frequency,
-    intake_start_date: data.startDate ? dayjs(data.startDate).format("YYYY-MM-DD") : null,
+    intake_regular_or_as_needed: data.intake_regular_or_as_needed,
+    intake_start_date: data.intake_start_date ? dayjs(data.intake_start_date).format("YYYY-MM-DD") : null,
     intake_start_date_option: data.startDateOption ?? null,
-    is_activeingredient_equivalent_choice: data.isActiveIngredientEquivalentChoice,
-    regular_intervall_of_daily_dose: data.intervall,
-    source_of_drug_information: data.drugSource
+    is_activeingredient_equivalent_choice: data.is_activeingredient_equivalent_choice,
+    regular_intervall_of_daily_dose: data.regular_intervall_of_daily_dose,
+    source_of_drug_information: data.source_of_drug_information
   };
 
   if (body.intake_regular_or_as_needed === 'as needed') {
@@ -258,7 +257,7 @@ async function saveIntake(data: IntakeFormSchema) {
     delete body.regular_intervall_of_daily_dose;
   }
 
-  const { error } = await useMedlogapi("/api/study/{study_id}/interview/{interview_id}/intake", {
+  await $medlogapi("/api/study/{study_id}/interview/{interview_id}/intake", {
     method: "POST",
     body: body,
     path: {
@@ -266,14 +265,6 @@ async function saveIntake(data: IntakeFormSchema) {
       interview_id: interviewId.value
     }
   });
-
-  if (error.value) {
-    toast.add({
-      title: "Konnte Einnahme nicht anlegen",
-      description: useGetErrorMessage(error.value),
-    });
-    return;
-  }
 
   createIntakeModalVisible.value = false;
   await loadIntakeList();
@@ -293,17 +284,17 @@ async function openEditModal(intakeId: string) {
     const intake = await useGetIntake(studyId.value, interviewId.value, intakeIdToEdit.value);
 
     intakeToEdit.value = {
-      administeredByDoctor: intake.administered_by_doctor === null ? undefined : intake.administered_by_doctor,
-      dose: intake.dose_per_day === null ? undefined : intake.dose_per_day,
+      administered_by_doctor: intake.administered_by_doctor === null ? undefined : intake.administered_by_doctor,
+      dose_per_day: intake.dose_per_day === null ? undefined : intake.dose_per_day,
       drugId: intake.drug_id ?? "",
-      drugSource: intake.source_of_drug_information === null ? undefined : intake.source_of_drug_information,
-      endDate: intake.intake_end_date ?? undefined,
+      source_of_drug_information: intake.source_of_drug_information === null ? undefined : intake.source_of_drug_information,
+      intake_end_date: intake.intake_end_date ?? undefined,
       endDateOption: intake.intake_end_date_option ?? undefined,
-      frequency: intake.intake_regular_or_as_needed === null ? undefined : intake.intake_regular_or_as_needed,
-      intervall: intake.regular_intervall_of_daily_dose === null ? undefined : intake.regular_intervall_of_daily_dose,
-      isActiveIngredientEquivalentChoice: intake.is_activeingredient_equivalent_choice,
-      medsTakenToday: intake.consumed_meds_today,
-      startDate: intake.intake_start_date ?? undefined,
+      intake_regular_or_as_needed: intake.intake_regular_or_as_needed === null ? undefined : intake.intake_regular_or_as_needed,
+      regular_intervall_of_daily_dose: intake.regular_intervall_of_daily_dose === null ? undefined : intake.regular_intervall_of_daily_dose,
+      is_activeingredient_equivalent_choice: intake.is_activeingredient_equivalent_choice,
+      consumed_meds_today: intake.consumed_meds_today,
+      intake_start_date: intake.intake_start_date ?? undefined,
       startDateOption: intake.intake_start_date_option ?? undefined,
     }
   } catch (error) {
@@ -319,19 +310,19 @@ async function openEditModal(intakeId: string) {
 
 async function saveEditIntake(data: IntakeFormSchema) {
   const body = {
-    administered_by_doctor: data.administeredByDoctor,
+    administered_by_doctor: data.administered_by_doctor,
     as_needed_dose_unit: null,
-    consumed_meds_today: data.medsTakenToday,
-    dose_per_day: data.dose,
+    consumed_meds_today: data.consumed_meds_today,
+    dose_per_day: data.dose_per_day,
     drug_id: data.drugId,
-    intake_end_date: data.endDate ? dayjs(data.endDate).format("YYYY-MM-DD") : null,
+    intake_end_date: data.intake_end_date ? dayjs(data.intake_end_date).format("YYYY-MM-DD") : null,
     intake_end_date_option: data.endDateOption ?? null,
-    intake_regular_or_as_needed: data.frequency,
-    intake_start_date: data.startDate ? dayjs(data.startDate).format("YYYY-MM-DD") : null,
+    intake_regular_or_as_needed: data.intake_regular_or_as_needed,
+    intake_start_date: data.intake_start_date ? dayjs(data.intake_start_date).format("YYYY-MM-DD") : null,
     intake_start_date_option: data.startDateOption ?? null,
-    is_activeingredient_equivalent_choice: data.isActiveIngredientEquivalentChoice,
-    regular_intervall_of_daily_dose: data.intervall,
-    source_of_drug_information: data.drugSource
+    is_activeingredient_equivalent_choice: data.is_activeingredient_equivalent_choice,
+    regular_intervall_of_daily_dose: data.regular_intervall_of_daily_dose,
+    source_of_drug_information: data.source_of_drug_information
   };
 
   if (body.intake_regular_or_as_needed === 'as needed') {
@@ -339,7 +330,7 @@ async function saveEditIntake(data: IntakeFormSchema) {
     delete body.regular_intervall_of_daily_dose;
   }
 
-  const { error } = await useMedlogapi('/api/study/{study_id}/interview/{interview_id}/intake/{intake_id}',
+  await $medlogapi('/api/study/{study_id}/interview/{interview_id}/intake/{intake_id}',
       {
         method: "PATCH",
         body: body,
@@ -350,14 +341,6 @@ async function saveEditIntake(data: IntakeFormSchema) {
         }
       }
   );
-
-  if (error.value) {
-    toast.add({
-      title: "Konnte Einnahme nicht speichern",
-      description: useGetErrorMessage(error),
-    });
-    return;
-  }
 
   editModalVisible.value = false;
   await loadIntakeList();

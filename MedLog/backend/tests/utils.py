@@ -362,6 +362,16 @@ def random_value_from_csv_column(
     return random_gen.choice(values)
 
 
+def utc_today_iso() -> str:
+    """Today's date as the backend sees it.
+
+    The intake plausibility rules compare against the server's *UTC* date, so a
+    date built from the local date can be a day off and turn a test flaky around
+    midnight.
+    """
+    return datetime.datetime.now(datetime.timezone.utc).date().isoformat()
+
+
 def random_past_date(
     min_date: datetime.date = None, random_gen: random.Random = None
 ) -> datetime.date:
@@ -563,6 +573,17 @@ def create_test_study(
 
                     from medlogserver.api.routes.routes_intake import create_intake
 
+                    random_consumed_meds_today = random_gen.choice(
+                        list(ConsumedMedsTodayAnswers)
+                    )
+                    if (
+                        random_enddate is not None
+                        and random_consumed_meds_today == ConsumedMedsTodayAnswers.YES
+                    ):
+                        # An intake that already ended cannot have been taken
+                        # today. The backend rejects that combination, so the
+                        # random generator must not produce it.
+                        random_consumed_meds_today = ConsumedMedsTodayAnswers.NO
                     intake_data = req(
                         f"api/study/{study_id}/interview/{interview_id}/intake",
                         method="post",
@@ -571,9 +592,7 @@ def create_test_study(
                                 drug_id=drug_data["id"],
                                 intake_start_date=random_startdate,
                                 intake_end_date=random_enddate,
-                                consumed_meds_today=random_gen.choice(
-                                    list(ConsumedMedsTodayAnswers)
-                                ),
+                                consumed_meds_today=random_consumed_meds_today,
                                 as_needed_dose_unit=None,
                             )
                         ),

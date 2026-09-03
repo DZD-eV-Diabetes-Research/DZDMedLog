@@ -29,6 +29,7 @@ from utils import (
     create_test_user,
     authorize_for_access_token,
     dictyfy,
+    utc_today_iso,
 )
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -94,7 +95,7 @@ def _create_intake(study_id, interview_id):
         method="post",
         b={
             "drug_id": drug_id,
-            "intake_start_date": datetime.date.today().isoformat(),
+            "intake_start_date": utc_today_iso(),
             "intake_end_date": None,
             "consumed_meds_today": "No",
             "as_needed_dose_unit": None,

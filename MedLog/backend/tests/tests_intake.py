@@ -12,6 +12,7 @@ from utils import (
     create_test_user,
     authorize_for_access_token,
     dictyfy,
+    utc_today_iso,
 )
 
 from statics import (
@@ -187,7 +188,7 @@ def test_create_intake():
     intake_data = IntakeCreateAPI(
         drug_id=drug["id"],
         source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
-        intake_start_date=datetime.date.today().isoformat(),
+        intake_start_date=utc_today_iso(),
         administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
         intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
         as_needed_dose_unit=1,
@@ -480,14 +481,17 @@ def test_create_intake_with_end_and_start_option_update_issue_228():
         exception_dict_identifier="create intake with empty start time response",
     )
 
-    # Send a PATCH request to set start and end dates (omit options)
-    today_date_string = datetime.date.today().isoformat()
-    tomorrow_date_string = (
-        datetime.date.today() + datetime.timedelta(days=1)
-    ).isoformat()
+    # Send a PATCH request to set start and end dates (omit options).
+    # Dates are built from the *UTC* date, because that is what the plausibility
+    # rules compare against, and they stay in the past: a future end date is
+    # rejected (see tests_intake_plausibility.py).
+    utc_today = datetime.datetime.now(datetime.timezone.utc).date()
+    today_date_string = utc_today.isoformat()
+    start_date_string = (utc_today - datetime.timedelta(days=2)).isoformat()
+    end_date_string = (utc_today - datetime.timedelta(days=1)).isoformat()
     intake_data_update_dict = {
-        "intake_start_date": today_date_string,
-        "intake_end_date": tomorrow_date_string,
+        "intake_start_date": start_date_string,
+        "intake_end_date": end_date_string,
     }
 
     updated_intake_resp = req(
@@ -500,8 +504,8 @@ def test_create_intake_with_end_and_start_option_update_issue_228():
     dict_must_contain(
         updated_intake_resp,
         required_keys_and_val={
-            "intake_start_date": today_date_string,
-            "intake_end_date": tomorrow_date_string,
+            "intake_start_date": start_date_string,
+            "intake_end_date": end_date_string,
             "intake_start_date_option": None,
             "intake_end_date_option": None,
         },
@@ -520,7 +524,7 @@ def test_create_intake_with_end_and_start_option_update_issue_228():
         updated_intake_resp,
         required_keys_and_val={
             "intake_start_date": None,
-            "intake_end_date": tomorrow_date_string,
+            "intake_end_date": end_date_string,
             "intake_start_date_option": IntakeStartDateOption.AT_LEAST_12_MONTHS.value,
             "intake_end_date_option": None,
         },
@@ -570,7 +574,9 @@ def test_create_intake_with_end_and_start_option_update_issue_228():
         "is_activeingredient_equivalent_choice": False,
         "administered_by_doctor": "prescribed",
         "intake_regular_or_as_needed": "regular",
-        "dose_per_day": 0,
+        # `as_needed_dose_unit` has to be null for a regular intake, that is what
+        # the payload above is rejected for
+        "dose_per_day": 1,
         "regular_intervall_of_daily_dose": "Unknown",
         "consumed_meds_today": "Yes",
         "as_needed_dose_unit": None,
@@ -589,9 +595,9 @@ def test_create_intake_with_end_and_start_option_update_issue_228():
         "regular_intervall_of_daily_dose": "Unknown",
         "consumed_meds_today": "Yes",
         "intake_start_date": None,
-        "intake_end_date": tomorrow_date_string,
+        "intake_end_date": end_date_string,
         "administered_by_doctor": "prescribed",
-        "dose_per_day": 0,
+        "dose_per_day": 1,
         "as_needed_dose_unit": None,
     }
     dict_must_contain(
@@ -673,7 +679,7 @@ def _create_intake_for_interview(study_id, interview_id):
         IntakeCreateAPI(
             drug_id=drug["id"],
             source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
-            intake_start_date=datetime.date.today().isoformat(),
+            intake_start_date=utc_today_iso(),
             administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
             intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
             as_needed_dose_unit=1,
@@ -826,7 +832,7 @@ def test_viewer_gets_403_not_401_on_create_intake():
         IntakeCreateAPI(
             drug_id=drug["id"],
             source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
-            intake_start_date=datetime.date.today().isoformat(),
+            intake_start_date=utc_today_iso(),
             administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
             intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED,
             as_needed_dose_unit=1,
@@ -873,7 +879,7 @@ def test_create_intake_with_fractional_dose_issue_337():
             IntakeCreateAPI(
                 drug_id=drug["id"],
                 source_of_drug_information=SourceOfDrugInformationAnwers.DRUG_LEAFLET,
-                intake_start_date=datetime.date.today().isoformat(),
+                intake_start_date=utc_today_iso(),
                 administered_by_doctor=AdministeredByDoctorAnswers.PRESCRIBED,
                 intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.REGULAR,
                 regular_intervall_of_daily_dose=IntervalOfDailyDoseAnswers.DAILY,
