@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.10b6.post1.dev22+g8e918ce1b.d20260916"
+    "version": "1.0.10b6.post1.dev24+g756f03737.d20260916"
   },
   "paths": {
     "/api/health": {
@@ -9436,16 +9436,11 @@
       "StudyCreateAPI": {
         "properties": {
           "display_name": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 128
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
             "title": "Display Name",
+            "description": "Name of the study. Required and must be unique across all studies.",
             "examples": [
               "Pr\u00e4diabetes-Lebensstil-Interventions-Studie (PLIS)",
               "BARIA-DDZ-Studie"
@@ -9512,6 +9507,9 @@
           }
         },
         "type": "object",
+        "required": [
+          "display_name"
+        ],
         "title": "StudyCreateAPI"
       },
       "StudyPermissionDesc": {
@@ -9631,17 +9629,15 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 128
+                "maxLength": 128,
+                "minLength": 1
               },
               {
                 "type": "null"
               }
             ],
             "title": "Display Name",
-            "examples": [
-              "Pr\u00e4diabetes-Lebensstil-Interventions-Studie (PLIS)",
-              "BARIA-DDZ-Studie"
-            ]
+            "description": "New name of the study. Omit to keep the current name; it can not be removed."
           },
           "no_permissions": {
             "type": "boolean",
