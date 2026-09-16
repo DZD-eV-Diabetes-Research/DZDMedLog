@@ -366,7 +366,15 @@ async def auth_oidc_callback(
     userinfo = await get_userinfo_from_token_or_endpoint(
         token, oauth_client, oauth_config
     )
-    user = await user_crud.get_by_user_name(user_name=userinfo.preferred_username)
+    user = await user_crud.get_by_user_name(
+        user_name=userinfo.preferred_username, show_deactivated=True
+    )
+    if user is not None and user.deactivated:
+        # Deactivation is a local decision the IdP knows nothing about, so it has to be
+        # enforced here. Without show_deactivated=True the lookup returns None and the
+        # auto-create branch below would try to recreate the user, which dies on the
+        # unique user_name constraint (500 instead of 401).
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     if user is None and oauth_config.AUTO_CREATE_AUTHORIZED_USER:
         try:
             user_create = UserCreate.from_oidc_userinfo(userinfo)

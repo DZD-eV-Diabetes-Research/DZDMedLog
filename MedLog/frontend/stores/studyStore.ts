@@ -1,11 +1,11 @@
 // Store to handle to current studies
 
 import { useMedlogapi } from "#open-fetch";
-import type { SchemaStudy } from "#open-fetch-schemas/medlogapi";
+import type { SchemaStudyApiRead } from "#open-fetch-schemas/medlogapi";
 import { defineStore, useCreateStudy } from '#imports'
 
 interface StudyState {
-    studies: SchemaStudy[],
+    studies: SchemaStudyApiRead[],
 }
 
 export const useStudyStore = defineStore('StudyStore', {
@@ -14,7 +14,7 @@ export const useStudyStore = defineStore('StudyStore', {
         studies: [],
     }),
     actions: {
-        async cloneStudy(existingStudyId: string, newName: string): Promise<SchemaStudy> {
+        async cloneStudy(existingStudyId: string, newName: string): Promise<SchemaStudyApiRead> {
             const { data, error } = await useMedlogapi("/api/study/{study_id}/clone", {
                 method: "POST",
                 path: {
@@ -35,7 +35,7 @@ export const useStudyStore = defineStore('StudyStore', {
             this.upsertStudy(data.value)
             return data.value
         },
-        async createStudy(name: string): Promise<SchemaStudy> {
+        async createStudy(name: string): Promise<SchemaStudyApiRead> {
             const newStudy = await useCreateStudy(name);
             this.upsertStudy(newStudy);
             return newStudy;
@@ -55,7 +55,7 @@ export const useStudyStore = defineStore('StudyStore', {
 
             this.studies = data.value?.items ?? [];
         },
-        upsertStudy(studyToUpsert: SchemaStudy) {
+        upsertStudy(studyToUpsert: SchemaStudyApiRead) {
             const indexOfExistingStudy = this.studies.findIndex(study => study.id === studyToUpsert.id);
             if (indexOfExistingStudy !== -1) {
                 this.studies[indexOfExistingStudy] = studyToUpsert;
@@ -88,7 +88,7 @@ export const useStudyStore = defineStore('StudyStore', {
             };
         },
         studyById(state: StudyState) {
-            return (studyId: string): SchemaStudy|undefined => {
+            return (studyId: string): SchemaStudyApiRead|undefined => {
                 return state.studies.find(item => item.id === studyId);
             };
         },

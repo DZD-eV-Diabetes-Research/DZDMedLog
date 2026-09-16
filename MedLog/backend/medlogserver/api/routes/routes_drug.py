@@ -171,7 +171,7 @@ class DrugAttrFieldDefinitionContainer(BaseModel):
     description=f"Search for drug in the drug database.",
     responses={
         status.HTTP_425_TOO_EARLY: {
-            "description": "Index in build up error </br>The Index is still busy being build and therefore no search is available at the moment. </br>The Error detail message will be: `The search index is not ready yet. Please try it later`"
+            "description": "Index in build up error </br>The Index is still busy being build, or was not yet rebuilt after a drug dataset update, and therefore no search is available at the moment. </br>The Error detail message will be: `The search index is not ready yet. Please try it later`"
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
             "description": "No search engine configured. </br>This can happen if the config is borked. By default search engine settings it wont.</br> The Error detail message will be: `The search index is not configured. Please contact the admin.`"

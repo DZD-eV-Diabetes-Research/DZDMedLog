@@ -1,4 +1,4 @@
-from typing import List, Annotated, Optional, Literal, Dict
+from typing import List, Annotated, Optional, Literal, Dict, Tuple
 from typing_extensions import Self
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
@@ -23,6 +23,15 @@ from medlogserver.utils import (
 )
 
 env_file_path = os.environ.get("MEDLOG_DOT_ENV_FILE", Path(__file__).parent / ".env")
+
+# The study permission flags that STUDY_PERMISSION_MAPPING may reference.
+# Lives here (and not in the model layer) so config-level helpers can validate a
+# mapping without importing the model layer, which imports Config itself.
+VALID_STUDY_PERMISSION_FLAGS: Tuple[str, ...] = (
+    "is_study_viewer",
+    "is_study_interviewer",
+    "is_study_admin",
+)
 
 
 class Config(BaseSettings):
@@ -300,6 +309,20 @@ class Config(BaseSettings):
             "Leave unset to hide the support contact from the UI."
         ),
         examples=["support@example.com"],
+    )
+    DISABLE_UI_PERMISSION_MANAGEMENT: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Hide the role and permission management controls in the web client. "
+            "Useful when roles and study permissions are managed via OIDC group mappings, "
+            "where in-app changes are overwritten on the user's next login. "
+            "Leave unset (default) to derive the value automatically: it is then true as soon "
+            "as any configured OIDC provider has a non-empty ROLE_MAPPING. "
+            "Set it explicitly to true or false to override that. "
+            "This only affects what the web client offers; the API keeps accepting "
+            "role and permission changes."
+        ),
+        examples=[True],
     )
 
     @model_validator(mode="after")
@@ -682,6 +705,53 @@ class Config(BaseSettings):
                 f"AUTH_OIDC_PROVIDERS config error. `PROVIDER_DISPLAY_NAME` must result in unique slugs accross all OIDC-provider entries. OIDC Provider Slugs:  {names}"
             )
         return AUTH_OIDC_PROVIDERS
+
+    # Both OIDC helpers below intentionally ignore `OpenIDConnectProvider.ENABLED`:
+    # that flag currently only narrows the CORS origins (app.py), while the login route
+    # and apply_oidc_group_mappings() act on every *configured* provider. The flags
+    # answer "will OIDC overwrite this?", so they must follow the mappings that are
+    # actually applied.
+    def oidc_role_mapping_is_configured(self) -> bool:
+        """True if any OIDC provider maps groups to global MedLog roles."""
+        return any(
+            bool(provider.ROLE_MAPPING)
+            for provider in (self.AUTH_OIDC_PROVIDERS or [])
+        )
+
+    def is_ui_permission_management_disabled(self) -> bool:
+        """Resolved value of DISABLE_UI_PERMISSION_MANAGEMENT.
+
+        An explicitly configured value always wins; otherwise it is derived from
+        oidc_role_mapping_is_configured(). This is a hint for the web client only -
+        the API keeps accepting role and permission changes.
+        """
+        if self.DISABLE_UI_PERMISSION_MANAGEMENT is not None:
+            return self.DISABLE_UI_PERMISSION_MANAGEMENT
+        return self.oidc_role_mapping_is_configured()
+
+    def get_oidc_managed_study_permissions(
+        self, study_display_name: str
+    ) -> List[str]:
+        """Permission flags OIDC manages for the study with this display name.
+
+        Union across all providers, restricted to VALID_STUDY_PERMISSION_FLAGS, sorted
+        for a stable API response. An empty list means the study is not OIDC-managed.
+        Matching is exact on the display name, mirroring StudyCRUD.get_by_name: a
+        renamed study silently detaches from its mapping, which is why the client is
+        told to warn before a rename.
+        """
+        managed: set[str] = set()
+        for provider in self.AUTH_OIDC_PROVIDERS or []:
+            group_permission_map = provider.STUDY_PERMISSION_MAPPING.get(
+                study_display_name
+            )
+            if not group_permission_map:
+                continue
+            for permissions in group_permission_map.values():
+                managed.update(
+                    p for p in permissions if p in VALID_STUDY_PERMISSION_FLAGS
+                )
+        return sorted(managed)
 
     # Available modules live in MedLog/backend/medlogserver/model/drug_data/importers/__init__.py
     DRUG_IMPORTER_PLUGIN: Literal["MMIPharmindex1_32", "DummyDrugImporterV1"] = Field(

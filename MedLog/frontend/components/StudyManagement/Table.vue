@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import type { SchemaStudy } from '#open-fetch-schemas/medlogapi'
+import type { SchemaStudyApiRead } from '#open-fetch-schemas/medlogapi'
 
+const configStore = useConfigStore()
 const studyPermissionStore = useStudyPermissionStore()
 
 const columns = [{
@@ -20,7 +21,7 @@ const columns = [{
 
 defineProps({
   loading: { type: Boolean, default: false },
-  studies: { type: Array as () => SchemaStudy[], default: () => [] },
+  studies: { type: Array as () => SchemaStudyApiRead[], default: () => [] },
 });
 
 const sort = ref<{
@@ -30,11 +31,15 @@ const sort = ref<{
   column: 'display_name',
   direction: 'asc'
 })
+
+function isStudyAccessManaged(study: SchemaStudyApiRead) {
+  return configStore.branding.disableUiPermissionManagement === true || study.is_oidc_permission_managed === true
+}
 </script>
 
 <template>
   <UTable :rows="studies" :columns="columns" :loading="loading" :sort="sort">
-    <template #active-data="{ row }">
+    <template #active-data="{ row } : { row: SchemaStudyApiRead }">
       <UIcon
           :name="row.deactivated ? 'i-heroicons-x-circle-solid' : 'i-heroicons-check-circle-solid'"
           class="text-xl"
@@ -42,7 +47,7 @@ const sort = ref<{
       />
     </template>
 
-    <template #protection-data="{ row }">
+    <template #protection-data="{ row } : { row: SchemaStudyApiRead }">
       <UIcon
           :name="row.no_permissions ? 'i-heroicons-lock-open-solid' : 'i-heroicons-lock-closed-solid'"
           :title="row.no_permissions ? 'Interviews können von allen angemeldeten Nutzenden durchgeführt werden' : 'Jeglicher Zugriff muss geregelt werden'"
@@ -50,7 +55,7 @@ const sort = ref<{
       />
     </template>
 
-    <template #actions-data="{ row }">
+    <template #actions-data="{ row } : { row: SchemaStudyApiRead }">
       <UButton
           :to="`/manage/studies/${row.id}`"
           label="Bearbeiten"
@@ -71,7 +76,7 @@ const sort = ref<{
       />
       <UButton
           :to="`/manage/studies/${row.id}/access`"
-          label="Zugriff bearbeiten"
+          :label="isStudyAccessManaged(row) ? 'Zugriff ansehen' : 'Zugriff bearbeiten'"
           icon="i-heroicons-key-solid"
           variant="outline"
           color="gray"

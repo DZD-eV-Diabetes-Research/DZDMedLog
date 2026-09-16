@@ -4,6 +4,7 @@ import { useMedlogapi } from '#open-fetch';
 interface ConfigStore {
     branding: {
         supportEmail?: string,
+        disableUiPermissionManagement: boolean,
     },
     versionInfo: {
         branch?: string,
@@ -21,6 +22,7 @@ export const useConfigStore = defineStore('config', {
     state: (): ConfigStore => ({
         branding: {
             supportEmail: undefined,
+            disableUiPermissionManagement: false,
         },
         versionInfo: {
             branch: undefined,
@@ -50,6 +52,7 @@ export const useConfigStore = defineStore('config', {
             }
 
             this.branding.supportEmail = data.value?.support_email ?? undefined;
+            this.branding.disableUiPermissionManagement = data.value?.disable_ui_permission_management === true;
         },
         async fetchVersionConfig() {
             const { data, error } = await useMedlogapi("/api/config/version")

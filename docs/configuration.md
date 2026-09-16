@@ -424,6 +424,25 @@ BRANDING_SUPPORT_EMAIL_ADDRESS: support@example.com
 
 ---
 
+## `DISABLE_UI_PERMISSION_MANAGEMENT`
+
+Hide the role and permission management controls in the web client. Useful when roles and study permissions are managed via OIDC group mappings, where in-app changes are overwritten on the user's next login. Leave unset (default) to derive the value automatically: it is then true as soon as any configured OIDC provider has a non-empty ROLE_MAPPING. Set it explicitly to true or false to override that. This only affects what the web client offers; the API keeps accepting role and permission changes.
+
+| Property | Value |
+|---|---|
+| Type | bool |
+| Required | No |
+| Default | `null` |
+| Environment variable | `DISABLE_UI_PERMISSION_MANAGEMENT` |
+
+**Examples:**
+
+```yaml
+DISABLE_UI_PERMISSION_MANAGEMENT: true
+```
+
+---
+
 ## `SQL_DATABASE_URL`
 
 The database URL for the application. Only SQLite (via `sqlite+aiosqlite`)

@@ -82,6 +82,13 @@ class DrugCRUD(
     async def append_current_and_custom_drugs_dataset_version_where_clause(
         self, query: sqlEpression.Select[Any]
     ) -> sqlEpression.Select[Any]:
+        """Restrict `query` to drugs of the current drug dataset and the custom drugs collection.
+
+        Drugs of older, deactivated dataset versions are left out. Use this where users
+        pick drugs (listing, counting, search). Do not use it to resolve a drug by id:
+        stored intakes can still point to a drug of an old dataset version (the obsolete
+        drug cleanup keeps those drugs on purpose), see `get()`.
+        """
         drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
         drug_importer = drug_importer_class()
         # todo: this probably can be optimized...
@@ -89,8 +96,11 @@ class DrugCRUD(
         sub_query_current_drugdataset = (
             select(DrugDataSetVersion.id)
             .where(
-                DrugDataSetVersion.dataset_source_name == drug_importer.dataset_name
-                and DrugDataSetVersion.is_custom_drugs_collection == False
+                and_(
+                    DrugDataSetVersion.dataset_source_name
+                    == drug_importer.dataset_name,
+                    DrugDataSetVersion.is_custom_drugs_collection == False,
+                )
             )
             .order_by(desc(DrugDataSetVersion.current_active))
             .order_by(desc(DrugDataSetVersion.dataset_version))
@@ -100,13 +110,16 @@ class DrugCRUD(
         sub_query_custom_drugset = (
             select(DrugDataSetVersion.id)
             .where(
-                DrugDataSetVersion.dataset_source_name == drug_importer.dataset_name
-                and DrugDataSetVersion.is_custom_drugs_collection == True
+                and_(
+                    DrugDataSetVersion.dataset_source_name
+                    == drug_importer.dataset_name,
+                    DrugDataSetVersion.is_custom_drugs_collection == True,
+                )
             )
             .limit(1)
             .scalar_subquery()
         )
-        query.where(
+        query = query.where(
             or_(
                 DrugData.source_dataset_id == sub_query_current_drugdataset,
                 DrugData.source_dataset_id == sub_query_custom_drugset,
@@ -168,10 +181,9 @@ class DrugCRUD(
                 ),
                 selectinload(DrugData.codes).selectinload(DrugCode.code_system),
             )
+        # No dataset version filter here: an intake can reference a drug of an older,
+        # deactivated dataset version and must still be able to resolve it (issue #364).
         query = query.where(DrugData.id == id_)
-        query = await self.append_current_and_custom_drugs_dataset_version_where_clause(
-            query
-        )
         results = await self.session.exec(statement=query)
         drug = results.one_or_none()
         if drug is None and raise_exception_if_none:
@@ -200,6 +212,37 @@ class DrugCRUD(
             db_map = {obj.id: obj for obj in results.all()}
             return [db_map[drug_id] for drug_id in ids if drug_id in db_map]
         # Just return the items as returned by the query
+        return results.all()
+
+    async def list_by_ids_with_relations_any_dataset_version(
+        self,
+        ids: Sequence[UUID],
+    ) -> List[DrugData]:
+        """Load drugs by id together with all their attributes and codes.
+
+        Like `get()`, and unlike `get_multiple()`, this deliberately does not restrict
+        the result to the current and the custom drug dataset: an intake can reference a
+        drug of a deactivated dataset version (the obsolete drug cleanup keeps those
+        drugs for exactly that reason) and it must still show up in e.g. an export.
+
+        All relations are loaded with `selectinload`, so the query count per call is
+        fixed and does not depend on the number of ids. The caller has to chunk `ids`
+        to stay below the bound parameter limit of the database.
+        """
+        query = (
+            select(DrugData)
+            .where(col(DrugData.id).in_(ids))
+            .options(
+                selectinload(DrugData.attrs),
+                selectinload(DrugData.attrs_ref).selectinload(DrugValRef.lov_item),
+                selectinload(DrugData.attrs_multi),
+                selectinload(DrugData.attrs_multi_ref).selectinload(
+                    DrugValMultiRef.lov_item
+                ),
+                selectinload(DrugData.codes).selectinload(DrugCode.code_system),
+            )
+        )
+        results = await self.session.exec(statement=query)
         return results.all()
 
     async def create_custom(

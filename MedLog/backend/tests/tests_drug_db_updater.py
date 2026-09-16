@@ -60,6 +60,9 @@ def test_endpoint_drug_update_workflow():
     from medlogserver.api.routes.routes_drug import DrugAPIRead
 
     assert drug_to_prove_inital_dataset["trade_name"] == "DrugToProveIntialDataset1"
+    # issue #364: the drug API reports which dataset version a drug comes from
+    assert drug_to_prove_inital_dataset["source_dataset_version"] == "20241126"
+    assert drug_to_prove_inital_dataset["source_dataset_is_current"] is True
     drug_search_response: Dict[str, Any] = req(
         "api/drug/search",
         method="get",
@@ -242,6 +245,38 @@ def test_endpoint_drug_update_workflow():
             expected_http_code=200,
         ),
     )
+    # issue #364: the kept drug is marked as coming from an older dataset version,
+    # so the intake dialog can show a hint
+    assert (
+        response_post_cleaner_drug_to_prove_inital_dataset["source_dataset_version"]
+        == "20241126"
+    )
+    assert (
+        response_post_cleaner_drug_to_prove_inital_dataset["source_dataset_is_current"]
+        is False
+    )
+
+    # issue #364: the intake that references the old drug still resolves its drug
+    proband_id = interview.interview.proband_external_id
+    intake_details = req(
+        f"api/study/{study_id}/proband/{proband_id}/intake/details",
+        method="get",
+    )
+    intake_detail = next(
+        item for item in intake_details["items"] if item["id"] == new_intake["id"]
+    )
+    assert intake_detail["drug"]["id"] == drug_to_prove_inital_dataset["id"]
+    assert intake_detail["drug"]["source_dataset_is_current"] is False
+
+    # issue #364: the search only offers drugs of the current dataset and custom drugs,
+    # so the old drug can not be picked for new intakes anymore
+    drug_search_after_update: Dict[str, Any] = req(
+        "api/drug/search", method="get", q={"search_term": "DrugToProveIntialDataset1"}
+    )
+    assert drug_to_prove_inital_dataset["id"] not in [
+        item["drug"]["id"] for item in drug_search_after_update["items"]
+    ]
+
     # this drug is from an obsolete dataset and was never used. Therefore it must be deleted by the cleaning job
     response_post_cleaner_drug_to_prove_inital_dataset_was_cleaned: Dict[str, Any] = (
         cast(
@@ -480,6 +515,9 @@ def test_wrong_count_after_upgrade_issue_252():
     )
 
     print("paginated_search_response", paginated_search_response)
+    # issue #364: custom drugs belong to the custom drugs collection, which is always current
+    assert res["source_dataset_version"] == "Custom"
+    assert res["source_dataset_is_current"] is True
     assert paginated_search_response["total_count"] == len(
         paginated_search_response["items"]
     )
