@@ -12,6 +12,7 @@ from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select, delete, func, and_, or_
 from uuid import UUID
+import datetime
 
 
 from medlogserver.config import Config
@@ -187,6 +188,17 @@ class UserCRUD(
         # TODO: this generated a circular import we need to seperate model and crud classes
         # UserAuthRefreshTokenCRUD(self.session).disable_by_user_id(user_id=user_id)
         return user
+
+    async def set_last_oidc_login_at(
+        self, user_id: str | UUID, login_at: datetime.datetime
+    ) -> None:
+        """Remember when the user last logged in via OIDC, see `User.last_oidc_login_at`."""
+        user = await self.get(user_id=user_id, show_deactivated=True)
+        if user is None:
+            return
+        user.last_oidc_login_at = login_at
+        self.session.add(user)
+        await self.session.commit()
 
     async def update(
         self,

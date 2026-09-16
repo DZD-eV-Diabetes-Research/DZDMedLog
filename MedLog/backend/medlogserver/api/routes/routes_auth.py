@@ -1,6 +1,8 @@
-from typing import Optional, Union, List, Annotated
+from typing import Optional, Union, List, Annotated, Literal
+import uuid
+from urllib.parse import urlencode
 from pydantic import BaseModel, Field, ValidationError
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import FastAPI, Request, Depends, Response, HTTPException, status
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlmodel import SQLModel, Session, create_engine, select
@@ -43,11 +45,13 @@ from medlogserver.api.auth.security import (
     oauth_clients,
     get_current_user,
     api_token_security,
+    not_authenticated_exception,
 )
 from medlogserver.api.auth.utils import (
     get_userinfo_from_token_or_endpoint,
     get_access_token_expires_at_value_from_token,
     generate_client_session_id,
+    validate_api_token,
 )
 
 log = get_logger()
@@ -362,7 +366,6 @@ async def auth_oidc_callback(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Auth error can not fetch access token from {oauth_client.access_token_url}. Error: {e}",
         )
-    log.debug(f"Token {token}")
     userinfo = await get_userinfo_from_token_or_endpoint(
         token, oauth_client, oauth_config
     )
@@ -393,6 +396,11 @@ async def auth_oidc_callback(
         user_crud=user_crud,
         study_permission_crud=study_permission_crud,
         study_crud=study_crud,
+    )
+    # Managed api tokens of OIDC users pause when this gets too old
+    # (API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS)
+    await user_crud.set_last_oidc_login_at(
+        user.id, datetime.now(tz=timezone.utc).replace(tzinfo=None)
     )
     user_auth = await user_auth_crud.create(
         UserAuthCreate(
@@ -453,16 +461,22 @@ async def logout(
     session_cookie = request.cookies.get(SESSION_COOKIE_NAME)
     if session_cookie:
         try:
-            session = await user_session_crud.get(uuid.UUID(session_cookie))
-        except Exception:
+            session_id = uuid.UUID(session_cookie)
+        except ValueError:
             session = None
+        else:
+            session = await user_session_crud.get(session_id)
 
         if session:
             user_auth = await user_auth_crud.get(session.user_auth_id)
             await user_session_crud.delete(session.id)
-            await user_auth_crud.delete(user_auth.id)
-
-            if user_auth.auth_source_type == AllowedAuthSchemeType.oidc:
+            # An OIDC login belongs to this one session and goes with it. A basic login
+            # is the user's password record and must survive the logout.
+            if (
+                user_auth is not None
+                and user_auth.auth_source_type == AllowedAuthSchemeType.oidc
+            ):
+                await user_auth_crud.delete(user_auth.id)
                 try:
                     id_token = user_auth.get_decrypted_oidc_token().get("id_token")
                 except OidcTokenDecryptionError as e:
@@ -494,17 +508,18 @@ async def logout(
         response.delete_cookie(SESSION_COOKIE_NAME)
         return response
 
-    # API token-based logout: delete only the token record itself
+    # API token-based logout: delete only the token record itself. The token id is not a
+    # secret (the token management lists it), so the secret has to be verified first.
     if api_token:
-        token = api_token.credentials
         try:
-            token_id = token.split(".", maxsplit=1)[0]
-            token_user_auth = await user_auth_crud.get_api_token_by_id(
-                token_id=token_id
+            token_user_auth = await validate_api_token(
+                token=api_token.credentials,
+                not_authenticated_exception=not_authenticated_exception,
+                user_auth_crud=user_auth_crud,
             )
-            if token_user_auth:
-                await user_auth_crud.delete(id=token_user_auth.id)
-        except Exception:
-            pass
+        except HTTPException:
+            token_user_auth = None
+        if token_user_auth is not None:
+            await user_auth_crud.delete(id=token_user_auth.id)
 
     return JSONResponse(content={"message": "Logged out successfully"})

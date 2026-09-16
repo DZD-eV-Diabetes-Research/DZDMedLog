@@ -5,6 +5,8 @@ Rules (see issue #202):
 - API tokens are deleted when they are revoked or expired, or when their source login
   (`api_token_source_user_auth_id`) is gone, revoked or expired. `get_current_user_auth`
   rejects all of them, and API token requests never refresh an OIDC login.
+  Tokens from the token management (issue #198) have no source login, they are bound to
+  the user and only deleted when revoked or expired.
 - OIDC logins are deleted when they are revoked, or when their access token expired
   more than `AUTH_OIDC_EXPIRED_LOGIN_RETENTION_MINUTES` ago. Until then a browser
   session may still renew the access token via the refresh token, so an expired

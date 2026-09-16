@@ -169,6 +169,8 @@ async def validate_api_token(
         token,
         raise_exception_if_wrong=not_authenticated_exception,
     )
+    if user_auth_crud is not None:
+        await user_auth_crud.record_api_token_use(token_user_auth, token)
     return token_user_auth
 
 
@@ -183,7 +185,6 @@ async def wipe_expired_user_session_or_user_auth(
 
 def get_access_token_expires_at_value_from_token(token: dict) -> int:
     raw_userinfo: Dict | None = None
-    log.debug(f"get_access_token_expires_at_value_from_token token {token}")
     if "userinfo" in token and "exp" in token["userinfo"]:
         return token["userinfo"]["exp"]
     if "expire_at" in token:

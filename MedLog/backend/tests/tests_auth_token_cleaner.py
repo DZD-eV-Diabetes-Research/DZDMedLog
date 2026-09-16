@@ -135,7 +135,12 @@ async def _seed(session, with_orphan_session: bool) -> Dict[str, uuid.UUID]:
             user, token, api_token_source_user_auth_id=basic.id, expires_at_epoch_time=NOW + HOUR
         ),
         "keep_token_no_expiry": _auth(user, token, api_token_source_user_auth_id=basic.id),
+        # tokens without source come from the token management (issue #198)
         "keep_token_without_source": _auth(user, token, expires_at_epoch_time=NOW + HOUR),
+        "del_token_without_source_expired": _auth(
+            user, token, expires_at_epoch_time=NOW - 1
+        ),
+        "del_token_without_source_revoked": _auth(user, token, revoked=True),
         "keep_token_of_valid_oidc": _auth(
             user, token, api_token_source_user_auth_id=oidc_valid.id
         ),
@@ -221,7 +226,7 @@ def test_token_cleaner_removes_only_obsolete_auth_records(isolated_db):
         assert deleted == {
             "sessions": expected_session_count,
             "oidc_logins": 3,
-            "api_tokens": 8,
+            "api_tokens": 10,
         }, deleted
 
         # a second run has nothing left to do

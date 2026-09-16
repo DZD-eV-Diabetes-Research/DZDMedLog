@@ -71,6 +71,9 @@ def set_config_for_test_env():
         DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB
     )
     os.environ["SYSTEM_ANNOUNCEMENTS"] = json.dumps(SYSTEM_ANNOUNCEMENTS)
+    # Off by default. The live suite needs it on, the "switched off" behaviour is
+    # covered in-process in tests_api_token_management.py.
+    os.environ["API_TOKEN_MANAGEMENT_ENABLED"] = "true"
 
 
 # Set env vars at module level so they're in place before any test module is
@@ -164,6 +167,16 @@ _OIDC_TEST_USERS = [
             "name": "oidc-deactivated-test-user",
             "email": "oidc-deactivated-test@test.com",
             "given_name": "OIDC Deactivated Test",
+            "groups": [],
+        },
+    },
+    {
+        # Dedicated account for the api token management tests (issue #198).
+        "sub": "oidc-api-token-test-user",
+        "userinfo": {
+            "name": "oidc-api-token-test-user",
+            "email": "oidc-api-token-test@test.com",
+            "given_name": "OIDC Api Token Test",
             "groups": [],
         },
     },

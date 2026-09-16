@@ -2,7 +2,17 @@ from typing import Annotated, Sequence, List, Type
 from datetime import datetime, timedelta, timezone
 import uuid
 
-from fastapi import Depends, Security, FastAPI, HTTPException, status, Query, Body, Form
+from fastapi import (
+    Depends,
+    Security,
+    FastAPI,
+    HTTPException,
+    status,
+    Query,
+    Body,
+    Form,
+    Response,
+)
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from typing import Annotated
@@ -38,6 +48,7 @@ from medlogserver.api.auth.security import (
     NEEDS_ADMIN_API_INFO,
     NEEDS_USERMAN_API_INFO,
 )
+from medlogserver.model.api_only.api_token import ApiTokenRead
 
 
 from medlogserver.config import Config
@@ -237,3 +248,50 @@ async def create_user(
             has_usermanager_permissions=True,
         ),
     ]
+
+
+# Available regardless of API_TOKEN_MANAGEMENT_ENABLED, so a user manager can still clean
+# up after the feature was switched off.
+@fast_api_user_manage_router.get(
+    "/user/{user_id}/api-token",
+    response_model=List[ApiTokenRead],
+    description=f"List the API tokens of a user, newest first. The secret part of a token can not be recalled. {NEEDS_USERMAN_API_INFO}",
+)
+async def list_api_tokens_of_user(
+    user_id: uuid.UUID,
+    current_user_is_user_manager: bool = Security(user_is_usermanager),
+    user_crud: UserCRUD = Depends(UserCRUD.get_crud),
+    user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
+) -> List[ApiTokenRead]:
+    await user_crud.get(
+        user_id,
+        show_deactivated=True,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        ),
+    )
+    tokens = await user_auth_crud.list_api_tokens_by_user_id(user_id)
+    return [ApiTokenRead.from_user_auth(token) for token in tokens]
+
+
+@fast_api_user_manage_router.delete(
+    "/user/{user_id}/api-token/{api_token_id}",
+    response_class=Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    description=f"Revoke an API token of a user, e.g. when it leaked. It stops working immediately. {NEEDS_USERMAN_API_INFO}",
+)
+async def revoke_api_token_of_user(
+    user_id: uuid.UUID,
+    api_token_id: uuid.UUID,
+    current_user_is_user_manager: bool = Security(user_is_usermanager),
+    user_auth_crud: UserAuthCRUD = Depends(UserAuthCRUD.get_crud),
+):
+    token = await user_auth_crud.get_api_token_of_user(user_id, api_token_id)
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="API token not found.",
+        )
+    await user_auth_crud.delete(token.id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -28,19 +28,20 @@ log = get_logger()
 config = Config()
 
 
-# API tokens are hashed using PBKDF2HMAC from cryptography library (replaces passlib)
-def _hash_api_token(token: str, salt: bytes, iterations: int = 100000) -> str:
-    """
-    Hash an API token using PBKDF2HMAC-SHA256.
+# API tokens are long random strings (`secrets.token_urlsafe(40)`, 320 bit). Brute forcing
+# them is infeasible even against a single SHA-256, so they do not need a slow KDF like
+# user chosen passwords do. A fast hash matters here: every API request verifies one.
+API_TOKEN_SHA256_HEX_LENGTH = 64
 
-    Args:
-        token (str): The API token to hash
-        salt (bytes): Salt for the hash
-        iterations (int): Number of iterations (default: 100000 for security)
 
-    Returns:
-        str: Base64-encoded hash
-    """
+def _hash_api_token(token: str) -> str:
+    """Hash the secret part of an API token with SHA-256 (hex digest)."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _hash_api_token_legacy_pbkdf2(token: str, salt: bytes, iterations: int = 100000) -> str:
+    """The former API token hash (PBKDF2HMAC-SHA256, base64). Only used to verify tokens
+    hashed before the switch to SHA-256. They are rehashed on their next successful use."""
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
@@ -51,26 +52,31 @@ def _hash_api_token(token: str, salt: bytes, iterations: int = 100000) -> str:
     return base64.b64encode(hashed).decode()
 
 
-def _verify_api_token(
-    token: str, hashed: str, salt: bytes, iterations: int = 100000
-) -> bool:
-    """
-    Verify an API token against its hash using PBKDF2HMAC-SHA256.
+def _is_legacy_api_token_hash(hashed: str) -> bool:
+    # a PBKDF2 hash is 44 base64 chars, a SHA-256 hex digest is 64 hex chars
+    return len(hashed) != API_TOKEN_SHA256_HEX_LENGTH
 
-    Args:
-        token (str): The API token to verify
-        hashed (str): The stored hash (base64-encoded)
-        salt (bytes): Salt used for the hash
-        iterations (int): Number of iterations (must match hash generation)
 
-    Returns:
-        bool: True if token matches, False otherwise
-    """
+def _verify_api_token(token: str, hashed: str | None, salt: bytes) -> bool:
+    """Constant time check of the secret part of an API token against its stored hash."""
+    if not token or not hashed:
+        return False
     try:
-        new_hash = _hash_api_token(token, salt, iterations)
+        if _is_legacy_api_token_hash(hashed):
+            new_hash = _hash_api_token_legacy_pbkdf2(token, salt)
+        else:
+            new_hash = _hash_api_token(token)
         return secrets.compare_digest(new_hash, hashed)
     except Exception:
         return False
+
+
+def split_api_token(token: str) -> tuple[str | None, str]:
+    """Split `<api_token_id>.<secret>` into its parts. The id is None if there is no dot."""
+    if "." in token:
+        token_id, secret = token.split(".", maxsplit=1)
+        return token_id, secret
+    return None, token
 
 
 def _generate_fernet_key(input_str: str) -> bytes:
@@ -106,6 +112,9 @@ class OidcTokenDecryptionError(Exception):
     """
 
 
+API_TOKEN_NAME_MAX_LENGTH = 128
+
+
 class AllowedAuthSchemeType(str, enum.Enum):
     basic = "basic"
     oidc = "oidc"
@@ -123,11 +132,18 @@ class _UserAuthBase(BaseTable, table=False):
     oidc_provider_slug: Optional[str] = Field(index=True, default=None)
     api_token_id: Optional[str] = Field(
         default=None,
+        index=True,
+        unique=True,
         description="A non hashed/encrypted clear text identifier that is attached to the hashed token. This makes it easier to look up the hased token later",
     )
     api_token_source_user_auth_id: Optional[uuid.UUID] = Field(
         default=None,
-        description="The UserAuth that was used to create the api_token. This is used to revoke the token if the parent AuthSource is becoming invalid.",
+        description="The UserAuth that was used to create the api_token. This is used to revoke the token if the parent AuthSource is becoming invalid. `None` for tokens created via the token management endpoints, which are bound to the user instead of a login.",
+    )
+    api_token_name: Optional[str] = Field(
+        default=None,
+        max_length=API_TOKEN_NAME_MAX_LENGTH,
+        description="A user given name for an api token created via the token management endpoints.",
     )
     expires_at_epoch_time: Optional[int] = Field(
         description="A local password can be attached an experation date after it which the password does not work anymore. If the UserAuth is an oidc token, this is the access_tokens expiration date.",
@@ -163,11 +179,12 @@ class UserAuthCreate(_UserAuthBase, UserAuthUpdate, table=False):
     )
 
     def generate_api_token(self):
-        self.api_token = secrets.token_urlsafe(40)
+        # SecretStr keeps the plain token out of reprs, e.g. in log lines or tracebacks
+        self.api_token = SecretStr(secrets.token_urlsafe(40))
         self.api_token_id = secrets.token_urlsafe(12)
 
-    def get_api_token(self):
-        return f"{self.api_token_id}.{self.api_token}"
+    def get_api_token(self) -> str:
+        return f"{self.api_token_id}.{self.api_token.get_secret_value()}"
 
 
 class UserAuth(_UserAuthBase, TimestampModel, table=True):
@@ -210,6 +227,22 @@ class UserAuth(_UserAuthBase, TimestampModel, table=True):
         description="Salt for hashing basic passwords and api tokens",
     )
     oidc_token_encrypted: Optional[str] = Field(default=None)
+    api_token_last_used_at: Optional[datetime.datetime] = Field(
+        default=None,
+        description="Last time (UTC) the api token was presented with the correct secret. Written at most once per `API_TOKEN_LAST_USED_WRITE_INTERVAL`.",
+    )
+
+    @property
+    def is_managed_api_token(self) -> bool:
+        """An api token created via the token management endpoints (issue #198).
+
+        Tokens from the token login endpoints are bound to the login they were created
+        with (`api_token_source_user_auth_id`), managed tokens are bound to the user.
+        """
+        return (
+            self.auth_source_type == AllowedAuthSchemeType.api_token
+            and self.api_token_source_user_auth_id is None
+        )
 
     @classmethod
     def from_update_or_create_object(
@@ -225,7 +258,6 @@ class UserAuth(_UserAuthBase, TimestampModel, table=True):
         if user_id:
             input_obj_raw = input_obj_raw | {"user_id": user_id}
         result_obj: UserAuth = UserAuth.model_validate(input_obj_raw)
-        log.debug(f"input_obj: {input_obj}")
         result_obj.update_secrets(input_obj)
         return result_obj
 
@@ -256,9 +288,11 @@ class UserAuth(_UserAuthBase, TimestampModel, table=True):
         token = token_unencrypted
         if isinstance(token, SecretStr):
             token = token_unencrypted.get_secret_value()
-        self.api_token_hashed = _hash_api_token(
-            token,
-            self.salt,
+        self.api_token_hashed = _hash_api_token(token)
+
+    def api_token_hash_is_legacy(self) -> bool:
+        return self.api_token_hashed is not None and _is_legacy_api_token_hash(
+            self.api_token_hashed
         )
 
     def verify_password(
@@ -286,9 +320,7 @@ class UserAuth(_UserAuthBase, TimestampModel, table=True):
             token: str = api_token.get_secret_value()
         else:
             token = api_token
-        log.debug(f"TOKEN {token}")
-        if "." in token:
-            token = token.split(".", maxsplit=1)[1]  # remove the token id
+        _, token = split_api_token(token)  # remove the token id
         token_correct = _verify_api_token(token, self.api_token_hashed, self.salt)
         if not token_correct and raise_exception_if_wrong:
             log.debug("Token verification failed")

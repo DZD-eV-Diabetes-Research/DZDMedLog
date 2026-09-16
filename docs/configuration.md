@@ -520,7 +520,7 @@ Username for the built-in administrator account created on first startup. Must b
 | Type | str |
 | Required | No |
 | Default | `"admin"` |
-| Constraints | StringConstraints(strip_whitespace=True, to_upper=None, to_lower=None, strict=None, min_length=3, max_length=128, pattern=None) |
+| Constraints | StringConstraints(strip_whitespace=True, to_upper=None, to_lower=None, strict=None, min_length=3, max_length=128, pattern=None, ascii_only=None) |
 | Environment variable | `ADMIN_USER_NAME` |
 
 **Examples:**
@@ -733,7 +733,7 @@ NOT YET IMPLEMENTED. Placeholder for a future self-registration feature. Self-re
 
 ## `API_TOKEN_DEFAULT_EXPIRY_TIME_MINUTES`
 
-How many minutes an API access token remains valid after it is issued. Applies to tokens created via login or the token management endpoint. Set to None for tokens that never expire (not recommended for production).
+How many minutes an API access token remains valid after it is issued. Applies to tokens created via the token login endpoints (`/api/auth/basic/login/token`). Tokens created in the token management UI use `API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS` and `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS` instead. Set to None for tokens that never expire (not recommended for production).
 
 | Property | Value |
 |---|---|
@@ -760,6 +760,143 @@ API_TOKEN_DEFAULT_EXPIRY_TIME_MINUTES: 1440
 
 ```yaml
 API_TOKEN_DEFAULT_EXPIRY_TIME_MINUTES: 10080
+```
+
+---
+
+## `API_TOKEN_MANAGEMENT_ENABLED`
+
+Allow logged-in users to create, list and revoke their own long-lived API tokens (endpoints under `/api/user/me/api-token`), e.g. to use the MedLog API from external scripts. The tokens are bound to the user, not to the login they were created with, so they keep working after a logout and for OIDC users. They stop working when they expire, get revoked (by the user or a user manager) or the user is deactivated. Switching this off again also rejects all tokens created while it was on, until it is switched back on. Tokens can only be managed from a browser session, never with an API token. Does not affect the token login endpoints.
+
+| Property | Value |
+|---|---|
+| Type | bool |
+| Required | No |
+| Default | `false` |
+| Environment variable | `API_TOKEN_MANAGEMENT_ENABLED` |
+
+---
+
+## `API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS`
+
+Lifetime in days a managed API token gets when the user does not choose one. Must not exceed `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS`. Set to None to create non-expiring tokens by default, which requires `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS` to be None as well.
+
+| Property | Value |
+|---|---|
+| Type | int |
+| Required | No |
+| Default | `30` |
+| Constraints | Ge(ge=1), Le(le=3650) |
+| Environment variable | `API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS: 7
+```
+
+*Example 2:*
+
+```yaml
+API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS: 30
+```
+
+*Example 3:*
+
+```yaml
+API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS: 90
+```
+
+---
+
+## `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS`
+
+The longest lifetime in days a user may choose for a managed API token. Set to None to allow tokens without any expiry date (not recommended for production). Even then a chosen lifetime can not exceed 3650 days.
+
+| Property | Value |
+|---|---|
+| Type | int |
+| Required | No |
+| Default | `365` |
+| Constraints | Ge(ge=1), Le(le=3650) |
+| Environment variable | `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS: 90
+```
+
+*Example 2:*
+
+```yaml
+API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS: 365
+```
+
+---
+
+## `API_TOKEN_MANAGEMENT_MAX_TOKENS_PER_USER`
+
+How many unexpired managed API tokens one user may have at the same time. Tokens from the token login endpoints do not count. Set to None for no limit.
+
+| Property | Value |
+|---|---|
+| Type | int |
+| Required | No |
+| Default | `20` |
+| Constraints | Ge(ge=1) |
+| Environment variable | `API_TOKEN_MANAGEMENT_MAX_TOKENS_PER_USER` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+API_TOKEN_MANAGEMENT_MAX_TOKENS_PER_USER: 5
+```
+
+*Example 2:*
+
+```yaml
+API_TOKEN_MANAGEMENT_MAX_TOKENS_PER_USER: 20
+```
+
+---
+
+## `API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS`
+
+Managed API tokens of a user who logs in via OpenID Connect stop authenticating when the user's last OIDC login is older than this many days. They work again after the next login. Roles and study permissions of OIDC users are only synced from the provider at login, and MedLog does not learn when a user is removed from the provider. Without this limit a token would keep the access the user had at the last login until the token expires. Set to None to disable the check (tokens then keep working until they expire, are revoked or the user is deactivated in MedLog). Users without any OIDC login are not affected.
+
+| Property | Value |
+|---|---|
+| Type | int |
+| Required | No |
+| Default | `30` |
+| Constraints | Ge(ge=1) |
+| Environment variable | `API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS: 7
+```
+
+*Example 2:*
+
+```yaml
+API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS: 30
+```
+
+*Example 3:*
+
+```yaml
+API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS: 90
 ```
 
 ---
