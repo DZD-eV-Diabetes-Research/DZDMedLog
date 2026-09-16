@@ -409,6 +409,7 @@ def test_market_status_sql_is_dialect_neutral(is_pg):
         searchable_multi=[],
         searchable_ref=[],
         searchable_multi_ref=[],
+        searchable_codes=[],
         is_pg=is_pg,
         market_accessability=MarketAccessabilityDefinition(
             field_name=MARKET_FIELD,
@@ -426,6 +427,7 @@ def test_market_status_sql_is_dialect_neutral(is_pg):
         searchable_multi=[],
         searchable_ref=[],
         searchable_multi_ref=[],
+        searchable_codes=[],
         is_pg=is_pg,
         market_accessability=None,
     )

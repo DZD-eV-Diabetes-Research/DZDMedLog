@@ -331,6 +331,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         searchable_multi = [f.field_name for f in all_defs.get("attrs_multi", []) if f.searchable]
         searchable_ref = [f.field_name for f in all_defs.get("attrs_ref", []) if f.searchable]
         searchable_multi_ref = [f.field_name for f in all_defs.get("attrs_multi_ref", []) if f.searchable]
+        searchable_codes = [c.id for c in all_defs.get("codes", []) if c.searchable]
 
         is_pg = get_db_type(config.SQL_DATABASE_URL) == "postgres"
         sql = self._build_index_insert_sql(
@@ -338,6 +339,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             searchable_multi=searchable_multi,
             searchable_ref=searchable_ref,
             searchable_multi_ref=searchable_multi_ref,
+            searchable_codes=searchable_codes,
             is_pg=is_pg,
             market_accessability=self._get_market_accessability_definition(),
         )
@@ -360,6 +362,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         searchable_multi: List[str],
         searchable_ref: List[str],
         searchable_multi_ref: List[str],
+        searchable_codes: List[str],
         is_pg: bool,
         market_accessability: Optional[MarketAccessabilityDefinition] = None,
     ) -> str:
@@ -483,21 +486,27 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                 "         ELSE FALSE END"
             )
 
-        # Codes contribute to search_index_content (value only) and search_cache_codes (system:code)
-        agg_codes_content = _agg("code")
-        agg_codes = _agg("code_system_id || ':' || code", sep="'|'")
-        ctes.append(
-            "ac AS (\n"
-            "    SELECT drug_id,\n"
-            "           " + agg_codes_content + " AS agg_codes_content,\n"
-            "           " + agg_codes + " AS agg_codes\n"
-            "    FROM drug_code\n"
-            "    WHERE drug_id IN (SELECT id FROM filtered_drugs)\n"
-            "    GROUP BY drug_id\n"
-            ")"
-        )
-        joins.append("LEFT JOIN ac ON ac.drug_id = d.id")
-        content_parts.append("COALESCE(' ' || ac.agg_codes_content, '')")
+        # Searchable codes contribute to search_index_content (value only) and
+        # search_cache_codes (system:code)
+        codes_expr = "''"
+        if searchable_codes:
+            names = _quoted_names(searchable_codes)
+            agg_codes_content = _agg("code")
+            agg_codes = _agg("code_system_id || ':' || code", sep="'|'")
+            ctes.append(
+                "ac AS (\n"
+                "    SELECT drug_id,\n"
+                "           " + agg_codes_content + " AS agg_codes_content,\n"
+                "           " + agg_codes + " AS agg_codes\n"
+                "    FROM drug_code\n"
+                "    WHERE drug_id IN (SELECT id FROM filtered_drugs)\n"
+                "      AND code_system_id IN (" + names + ")\n"
+                "    GROUP BY drug_id\n"
+                ")"
+            )
+            joins.append("LEFT JOIN ac ON ac.drug_id = d.id")
+            content_parts.append("COALESCE(' ' || ac.agg_codes_content, '')")
+            codes_expr = "COALESCE(ac.agg_codes, '')"
 
         raw_content = " || ".join(content_parts)
         if is_pg:
@@ -523,7 +532,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             "SELECT\n"
             "    d.id,\n"
             "    " + content_expr + ",\n"
-            "    COALESCE(ac.agg_codes, ''),\n"
+            "    " + codes_expr + ",\n"
             "    d.market_exit_date,\n"
             "    " + market_accessable_expr + ",\n"
             "    d.is_custom_drug\n"
@@ -547,9 +556,18 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             searchable_drug_fields_names_by_type[attr_type_name] = [
                 dd.field_name for dd in field_defintions if dd.searchable == True
             ]
+        searchable_code_system_ids = [
+            c.id for c in drug_attr_field_defs_all.get("codes", []) if c.searchable
+        ]
+        searchable_codes = [
+            c for c in drug.codes if c.code_system_id in searchable_code_system_ids
+        ]
         field_values_aggregated = drug.trade_name
         for attr in drug.attrs:
-            if attr.field_name in searchable_drug_fields_names_by_type["attrs"]:
+            if (
+                attr.field_name in searchable_drug_fields_names_by_type["attrs"]
+                and attr.value is not None
+            ):
                 field_values_aggregated += f" {attr.value}"
         for attr_multi in drug.attrs_multi:
             if (
@@ -575,10 +593,12 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                             )
                 else:
                     lov_item = attr_ref.lov_item
+                # like the bulk index build: the value counts even without a LOV item
+                field_values_aggregated += f" {attr_ref.value}"
                 if lov_item:
-                    field_values_aggregated += f" {attr_ref.value} {lov_item.display}"
+                    field_values_aggregated += f" {lov_item.display}"
 
-        for code in drug.codes:
+        for code in searchable_codes:
             field_values_aggregated += f" {code.code}"
 
         for attr_multi_ref in drug.attrs_multi_ref:
@@ -600,7 +620,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                                 value=attr_multi_ref.value,
                             )
 
-                field_values_aggregated += f" {attr_multi_ref.value} {lov_item.display}"
+                field_values_aggregated += f" {attr_multi_ref.value}"
+                if lov_item:
+                    field_values_aggregated += f" {lov_item.display}"
         field_values_aggregated = (
             field_values_aggregated[:MAX_INDEXABLE_LENGTH]
             if field_values_aggregated
@@ -610,7 +632,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             id=drug.id,
             search_index_content=self.remove_trademark_symbols(field_values_aggregated),
             search_cache_codes="|".join(
-                [f"{c.code_system_id}:{c.code}" for c in drug.codes]
+                [f"{c.code_system_id}:{c.code}" for c in searchable_codes]
             ),
             market_exit_date=drug.market_exit_date,
             market_accessable=self._drug_market_accessable(drug),

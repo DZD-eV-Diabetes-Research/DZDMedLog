@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.10b6.post1.dev12+g47dd35523.d20260916"
+    "version": "1.0.10b6.post1.dev14+gcf082d5f1.d20260916"
   },
   "paths": {
     "/api/health": {
@@ -6355,6 +6355,12 @@
             "title": "Client Visible",
             "description": "Should the code be shown in the UI. Some IDs are internal and are not interesting for the client.",
             "default": true
+          },
+          "searchable": {
+            "type": "boolean",
+            "title": "Searchable",
+            "description": "If this code will be taken into account while using /drug/search endpoint.",
+            "default": false
           },
           "importer_name": {
             "type": "string",

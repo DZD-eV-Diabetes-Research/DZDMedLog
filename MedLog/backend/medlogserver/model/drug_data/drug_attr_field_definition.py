@@ -220,7 +220,7 @@ class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
 
     searchable: bool = Field(
         default=False,
-        description="If this field is will be take into account while using /drug/search endpoint.",
+        description="If this field will be taken into account while using /drug/search endpoint.",
     )
     pre_parser: str | None = Field(
         default=None,

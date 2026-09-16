@@ -65,4 +65,8 @@ class DrugCodeSystem(DrugModelTableBase, table=True):
         default=True,
         description="Should the code be shown in the UI. Some IDs are internal and are not interesting for the client.",
     )
+    searchable: bool = Field(
+        default=False,
+        description="If this code will be taken into account while using /drug/search endpoint.",
+    )
     importer_name: str = Field()
