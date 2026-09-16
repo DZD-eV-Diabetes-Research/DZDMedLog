@@ -54,6 +54,7 @@ from medlogserver.model.drug_data.api_drug_model_factory import (
 from medlogserver.model.drug_data.drug import DrugCustomCreate
 from medlogserver.db.drug_data.drug import (
     DrugWithCodeAllreadyExists,
+    DrugWithNameAllreadyExists,
     CustomDrugAttrNotValid,
 )
 from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
@@ -461,6 +462,9 @@ async def get_drug_code_details(
         status.HTTP_503_SERVICE_UNAVAILABLE: {
             "description": "The drug search index is not available. </br>Either it is still being build or no search engine is configured. </br>A custom drug can only be created when the user was able to search the drug index for an existing drug beforehand."
         },
+        status.HTTP_409_CONFLICT: {
+            "description": "A drug with the same name (case-insensitive) or the same unique drug code allready exists in the current drug dataset or in the custom drugs."
+        },
     },
 )
 async def create_custom_drug(
@@ -492,7 +496,7 @@ async def create_custom_drug(
         new_custom_drug = await drug_crud.create_custom(
             drug_create=custom_drug, custom_drug_dataset=custom_drug_dataset, user_id = user.id
         )
-    except DrugWithCodeAllreadyExists as e:
+    except (DrugWithCodeAllreadyExists, DrugWithNameAllreadyExists) as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except CustomDrugAttrNotValid as e:
         raise HTTPException(

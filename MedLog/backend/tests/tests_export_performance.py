@@ -127,9 +127,7 @@ def session_db(monkeypatch):
     asyncio.run(engine.dispose())
 
 
-def _create_custom_drug_with_multi_ref(
-    trade_name: str = "Export performance test drug with refs",
-) -> uuid.UUID:
+def _create_custom_drug_with_multi_ref(trade_name: str) -> uuid.UUID:
     """A drug with multi reference values, the most complex export column type."""
     drug = req(
         "api/drug/custom",
@@ -320,7 +318,12 @@ def test_export_output_identical_to_pre_issue_362_exporter(
     session_db, tmp_path, format_: ExportFormat
 ):
     drug_ids = _pick_imported_drug_ids(session_db, minimum=10)
-    drug_ids.append(_create_custom_drug_with_multi_ref())
+    # custom drug names must be unique (issue #37), so every test uses its own name
+    drug_ids.append(
+        _create_custom_drug_with_multi_ref(
+            f"Export performance test drug with refs {format_}"
+        )
+    )
     study = _seed_study(
         session_db,
         name=f"Export identical output issue 362 {format_}",
@@ -350,7 +353,7 @@ def test_export_output_identical_to_pre_issue_362_exporter(
             # guard against comparing two empty or trivial files
             assert seeded.distinct_drug_count == len(drug_ids)
             assert "producing_country" in old_text
-            assert "Export performance test drug with refs" in old_text
+            assert f"Export performance test drug with refs {format_}" in old_text
         assert new_text == old_text, (
             f"{format_} export of study with {seeded.intake_count} intakes differs "
             f"from the pre-#362 exporter. Compare {old_file} and {new_file}"
@@ -361,7 +364,9 @@ def test_json_export_is_valid_json_with_reference_codes_only_on_ref_attrs(
     session_db, tmp_path
 ):
     """Before #362 the JSON export failed for every study that had intakes."""
-    drug_id = _create_custom_drug_with_multi_ref()
+    drug_id = _create_custom_drug_with_multi_ref(
+        "Export performance test drug with refs valid json"
+    )
     seeded = _seed_study(
         session_db, name="Export JSON issue 362", intake_count=2, drug_ids=[drug_id]
     )
@@ -373,7 +378,7 @@ def test_json_export_is_valid_json_with_reference_codes_only_on_ref_attrs(
     attrs = {a["drug_attr_name"]: a for a in export["intakes"][0]["drug_attrs"]}
     assert attrs["trade_name"] == {
         "drug_attr_name": "trade_name",
-        "drug_attr_value": "Export performance test drug with refs",
+        "drug_attr_value": "Export performance test drug with refs valid json",
     }
     assert attrs["producing_country"]["drug_attr_value"] == ["Germany", "United Kingdom"]
     assert attrs["producing_country"]["drug_attr_reference_code"] == ["DE", "UK"]
