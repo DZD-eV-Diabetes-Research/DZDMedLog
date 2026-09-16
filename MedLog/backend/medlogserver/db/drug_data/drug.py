@@ -202,6 +202,37 @@ class DrugCRUD(
         # Just return the items as returned by the query
         return results.all()
 
+    async def list_by_ids_with_relations_any_dataset_version(
+        self,
+        ids: Sequence[UUID],
+    ) -> List[DrugData]:
+        """Load drugs by id together with all their attributes and codes.
+
+        Unlike `get()` and `get_multiple()` this deliberately does not restrict the
+        result to the current and the custom drug dataset: an intake can reference a
+        drug of a deactivated dataset version (the obsolete drug cleanup keeps those
+        drugs for exactly that reason) and it must still show up in e.g. an export.
+
+        All relations are loaded with `selectinload`, so the query count per call is
+        fixed and does not depend on the number of ids. The caller has to chunk `ids`
+        to stay below the bound parameter limit of the database.
+        """
+        query = (
+            select(DrugData)
+            .where(col(DrugData.id).in_(ids))
+            .options(
+                selectinload(DrugData.attrs),
+                selectinload(DrugData.attrs_ref).selectinload(DrugValRef.lov_item),
+                selectinload(DrugData.attrs_multi),
+                selectinload(DrugData.attrs_multi_ref).selectinload(
+                    DrugValMultiRef.lov_item
+                ),
+                selectinload(DrugData.codes).selectinload(DrugCode.code_system),
+            )
+        )
+        results = await self.session.exec(statement=query)
+        return results.all()
+
     async def create_custom(
         self, drug_create: DrugCustomCreate, custom_drug_dataset: DrugDataSetVersion, user_id: Optional[UUID] = None
     ) -> DrugData:
