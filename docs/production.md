@@ -39,6 +39,46 @@ All settings are supplied via environment variables. See [Configuration](configu
 | `SQL_DATABASE_URL` | PostgreSQL connection string. |
 | `PUBLIC_URL` | The external URL where MedLog is reachable, e.g. `https://medlog.example.com`. |
 
+### Secrets (Docker secrets)
+
+Instead of environment variables, any setting can be supplied as a file, which keeps secrets out of `docker inspect` and the compose file. The file name is the setting name, its content the value. MedLog reads these files from `/run/secrets`, where Docker mounts secrets, or from the directory in `MEDLOG_SECRETS_DIR`. If `MEDLOG_SECRETS_DIR` is set, the directory must exist or MedLog refuses to start.
+
+An environment variable with the same name takes precedence over the file, so do not set both.
+
+`AUTH_OIDC_PROVIDERS` is a JSON list, so its entries cannot be split into separate environment variables. To keep the client secret out of that JSON, omit `CLIENT_SECRET` there and provide it as a file named `AUTH_OIDC_PROVIDERS__<list index>__CLIENT_SECRET` instead. This works for every provider setting and only applies when the JSON does not contain that setting.
+
+```yaml
+services:
+  medlog:
+    image: dzdde/dzdmedlog
+    environment:
+      PUBLIC_URL: "https://medlog.example.com"
+      AUTH_OIDC_PROVIDERS: |
+        [{"PROVIDER_DISPLAY_NAME": "Keycloak",
+          "CONFIGURATION_ENDPOINT": "https://keycloak.example.com/realms/myrealm/.well-known/openid-configuration",
+          "CLIENT_ID": "medlog"}]
+    secrets:
+      - SERVER_SESSION_SECRET
+      - ADMIN_USER_PW
+      - SQL_DATABASE_URL
+      - AUTH_OIDC_TOKEN_STORAGE_SECRET
+      - AUTH_OIDC_PROVIDERS__0__CLIENT_SECRET
+
+secrets:
+  SERVER_SESSION_SECRET:
+    file: ./secrets/server_session_secret.txt
+  ADMIN_USER_PW:
+    file: ./secrets/admin_user_pw.txt
+  SQL_DATABASE_URL:
+    file: ./secrets/sql_database_url.txt
+  AUTH_OIDC_TOKEN_STORAGE_SECRET:
+    file: ./secrets/oidc_token_storage_secret.txt
+  AUTH_OIDC_PROVIDERS__0__CLIENT_SECRET:
+    file: ./secrets/oidc_client_secret.txt
+```
+
+Secret names are case-insensitive, and a trailing newline in the file is ignored.
+
 ### API tokens (optional)
 
 If users need to access the API from scripts, enable the token management with `API_TOKEN_MANAGEMENT_ENABLED=true` and review its lifetime limits. For OIDC users, managed tokens pause when the user has not logged in for `API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS` (default 30 days). See [API Tokens](api-tokens.md).

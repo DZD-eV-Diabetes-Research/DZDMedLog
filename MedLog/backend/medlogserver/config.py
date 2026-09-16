@@ -1,6 +1,11 @@
 from typing import List, Annotated, Optional, Literal, Dict, Tuple
 from typing_extensions import Self
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+    PydanticBaseSettingsSource,
+    SettingsError,
+)
 import os
 from pydantic import (
     Field,
@@ -23,6 +28,30 @@ from medlogserver.utils import (
 )
 
 env_file_path = os.environ.get("MEDLOG_DOT_ENV_FILE", Path(__file__).parent / ".env")
+
+# Docker (and Kubernetes via a volume mount) provide secrets as files, one file per
+# secret. A file named like a setting (e.g. /run/secrets/SERVER_SESSION_SECRET)
+# provides that setting's value. Environment variables and the .env file still win.
+DEFAULT_SECRETS_DIR = "/run/secrets"
+
+
+def resolve_secrets_dir() -> Optional[Path]:
+    """The directory to read secret files from, or None if there is none.
+
+    MEDLOG_SECRETS_DIR overrides the Docker default. An explicitly configured directory
+    must exist, so a typo fails loudly instead of silently ignoring every secret. The
+    default directory is optional because it only exists when secrets are mounted.
+    """
+    configured = os.environ.get("MEDLOG_SECRETS_DIR")
+    if not configured:
+        default_dir = Path(DEFAULT_SECRETS_DIR)
+        return default_dir if default_dir.is_dir() else None
+    secrets_dir = Path(configured).expanduser()
+    if not secrets_dir.is_dir():
+        raise SettingsError(
+            f"MEDLOG_SECRETS_DIR is set to '{configured}', which is not a directory."
+        )
+    return secrets_dir
 
 # The study permission flags that STUDY_PERMISSION_MAPPING may reference.
 # Lives here (and not in the model layer) so config-level helpers can validate a
@@ -777,6 +806,40 @@ class Config(BaseSettings):
         default_factory=list,
     )
 
+    @model_validator(mode="before")
+    def oidc_provider_values_from_secret_files(self_data: dict):
+        """Fill unset OIDC provider values from secret files.
+
+        AUTH_OIDC_PROVIDERS is a list, and pydantic-settings can only read a list as one
+        JSON value. To keep e.g. CLIENT_SECRET out of that JSON, a single provider value
+        can come from a secret file named `AUTH_OIDC_PROVIDERS__<list index>__<FIELD>`,
+        e.g. `AUTH_OIDC_PROVIDERS__0__CLIENT_SECRET`. A value present in the JSON wins.
+        """
+        providers = self_data.get("AUTH_OIDC_PROVIDERS")
+        if not isinstance(providers, list):
+            return self_data
+        secrets_dir = resolve_secrets_dir()
+        if secrets_dir is None:
+            return self_data
+        # Setting names are case-insensitive, like the environment variables.
+        secret_files = {
+            f.name.upper(): f for f in secrets_dir.iterdir() if f.is_file()
+        }
+        for index, provider in enumerate(providers):
+            if not isinstance(provider, dict):
+                continue
+            for field_name in Config.OpenIDConnectProvider.model_fields:
+                if field_name in provider:
+                    continue
+                secret_file = secret_files.get(
+                    f"AUTH_OIDC_PROVIDERS__{index}__{field_name}"
+                )
+                if secret_file is not None:
+                    provider[field_name] = secret_file.read_text(
+                        encoding="utf-8"
+                    ).strip()
+        return self_data
+
     @model_validator(mode="after")
     def validate_oidc_token_storage_secret(self: Self):
         if self.AUTH_OIDC_TOKEN_STORAGE_SECRET is None:
@@ -1021,6 +1084,21 @@ class Config(BaseSettings):
     # you could call it a "meta config" class
     # if you dont know what this is you can ignore it.
     # https://docs.pydantic.dev/latest/api/base_model/#pydantic.main.BaseModel.model_config
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+        # Resolved per instantiation (unlike env_file, which is fixed at import) so the
+        # directory check runs against the environment the app actually starts in.
+        if file_secret_settings.secrets_dir is None:
+            file_secret_settings.secrets_dir = resolve_secrets_dir()
+        return init_settings, env_settings, dotenv_settings, file_secret_settings
 
     class Config:
         env_nested_delimiter = "__"
