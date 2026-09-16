@@ -159,6 +159,35 @@ def test_create_duplicate_study_name():
     )
 
 
+def test_endpoint_study_create_without_name_issue_177():
+    """A study can not be created without a name, nor have its name removed later."""
+    for body in [{}, {"display_name": None}, {"display_name": ""}, {"display_name": "   "}]:
+        req("api/study", method="post", b=body, expected_http_code=422)
+
+    study = req(
+        "api/study",
+        method="post",
+        b={"display_name": "  test_study_name_issue_177  "},
+    )
+    assert study["display_name"] == "test_study_name_issue_177"
+
+    for body in [{"display_name": None}, {"display_name": ""}, {"display_name": "   "}]:
+        req(
+            f"api/study/{study['id']}",
+            method="patch",
+            b=body,
+            expected_http_code=422,
+        )
+
+    # A PATCH that does not touch the name keeps it.
+    updated = req(
+        f"api/study/{study['id']}",
+        method="patch",
+        b={"proband_external_id_example": "AAA1111"},
+    )
+    assert updated["display_name"] == "test_study_name_issue_177"
+
+
 def test_endpoint_study_issue_190():
     """Test DELETE /api/study/{study_id}/permissions/{user_id} endpoint"""
     study_data = create_test_study(study_name="TestIssue190", with_events=1)

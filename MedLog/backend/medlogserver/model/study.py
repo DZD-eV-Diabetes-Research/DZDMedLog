@@ -61,7 +61,16 @@ def normalize_proband_external_id(
     return value
 
 
-class StudyCreateAPI(MedLogBaseModel, table=False):
+# A study name as accepted from API clients: surrounding whitespace is stripped and an
+# empty (or whitespace-only) name is rejected (issue #177). The DB column itself stays
+# nullable, so studies stored without a name before this rule existed can still be loaded.
+StudyDisplayName = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=128),
+]
+
+
+class StudyBase(MedLogBaseModel, table=False):
     display_name: Optional[str] = Field(
         default=None,
         index=True,
@@ -118,6 +127,18 @@ class StudyCreateAPI(MedLogBaseModel, table=False):
     )
 
 
+class StudyCreateAPI(StudyBase, table=False):
+    display_name: StudyDisplayName = Field(
+        description="Name of the study. Required and must be unique across all studies.",
+        schema_extra={
+            "examples": [
+                "Prädiabetes-Lebensstil-Interventions-Studie (PLIS)",
+                "BARIA-DDZ-Studie",
+            ]
+        },
+    )
+
+
 class StudyCloneAPI(MedLogBaseModel, table=False):
     """Request body for cloning the setup of an existing study into a new one.
 
@@ -126,10 +147,7 @@ class StudyCloneAPI(MedLogBaseModel, table=False):
     plus its event structure is copied by the backend. See ``POST /study/{study_id}/clone``.
     """
 
-    display_name: Annotated[
-        str,
-        StringConstraints(strip_whitespace=True, min_length=1, max_length=128),
-    ] = Field(
+    display_name: StudyDisplayName = Field(
         description=(
             "Name of the new study. Must be unique across all studies, like any study name."
         ),
@@ -137,13 +155,25 @@ class StudyCloneAPI(MedLogBaseModel, table=False):
     )
 
 
-class StudyUpdate(StudyCreateAPI):
-    pass
-
+class StudyUpdate(StudyBase, table=False):
+    display_name: Optional[StudyDisplayName] = Field(
+        default=None,
+        description="New name of the study. Omit to keep the current name; it can not be removed.",
+    )
     deactivated: bool = Field(default=False)
 
+    @field_validator("display_name")
+    @classmethod
+    def display_name_not_null(cls, value: Optional[str]) -> str:
+        # Only runs when the client sends the field, so a PATCH without a name keeps the
+        # current one. An explicit null would wipe the name, which is not allowed (#177).
+        if value is None:
+            raise ValueError("A study must have a name")
+        return value
 
-class StudyCreate(StudyUpdate):
+
+class StudyCreate(StudyBase, table=False):
+    deactivated: bool = Field(default=False)
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4)
 
 
