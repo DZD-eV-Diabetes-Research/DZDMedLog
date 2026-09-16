@@ -143,6 +143,22 @@ async def get_my_permission_for_study(
         )
         perm.user_ref = current_user
         perm.study_ref = study_access.study
+    if study_access.study.no_permissions and not current_user.is_admin():
+        # A `no_permissions` study makes every user a viewer and interviewer without a DB
+        # row (issue #194). Report these effective roles, so the client offers interviews.
+        # Built as a new object: the DB row itself must not be altered. Study admin is not
+        # implied by the flag and is taken from the row only.
+        effective_perm = StudyPermisson(
+            id=perm.id if perm else uuid.uuid4(),
+            user_id=current_user.id,
+            study_id=study_access.study.id,
+            is_study_viewer=True,
+            is_study_interviewer=True,
+            is_study_admin=perm.is_study_admin if perm else False,
+        )
+        effective_perm.user_ref = current_user
+        effective_perm.study_ref = study_access.study
+        perm = effective_perm
     return perm
 
 

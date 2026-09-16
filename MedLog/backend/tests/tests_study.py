@@ -476,3 +476,18 @@ def test_endpoint_study_oidc_signal_for_an_unmapped_study():
         },
         exception_dict_identifier="listed study",
     )
+
+
+def test_endpoint_study_list_pagination():
+    """`limit` is a page size: a second page must not come back empty."""
+    create_test_study(study_name="TestListPaginationStudy1", with_events=0)
+    create_test_study(study_name="TestListPaginationStudy2", with_events=0)
+
+    all_studies = req("api/study", method="get", q={"limit": 10000})
+    assert all_studies["total_count"] >= 2
+    all_ids = [s["id"] for s in all_studies["items"]]
+
+    second_page = req("api/study", method="get", q={"offset": 1, "limit": 1})
+    assert second_page["count"] == 1
+    assert second_page["total_count"] == all_studies["total_count"]
+    assert [s["id"] for s in second_page["items"]] == all_ids[1:2]
