@@ -2,6 +2,16 @@
   <USkeleton v-if="loading"/>
   <UAlert v-else-if="errorMessage" color="red" title="Fehler beim Laden des Medikaments" :description="errorMessage"/>
   <UAlert v-else :actions="actions" :title="title" class="bg-blue-100">
+    <template #title>
+      {{ title }}
+      <UTooltip
+          v-if="outdatedDatasetVersion !== null"
+          :text="`Präparat aus älterer Datenbankversion (${outdatedDatasetVersion}), in der Suche nicht mehr verfügbar`"
+          :popper="{ arrow: true, placement: 'top' }"
+      >
+        <UIcon name="i-heroicons-clock" class="text-amber-500 align-middle" />
+      </UTooltip>
+    </template>
     <template #description>
       <div v-if="keyValuePills" class="flex flex-row">
         <KeyValuePill
@@ -53,6 +63,7 @@ const keyValuePills = computed(() =>  {
 const loading = ref<boolean>(false);
 const errorMessage = ref<string>('');
 const title = ref<string>('');
+const outdatedDatasetVersion = ref<string | null>(null);
 const codes = ref<SchemaMedlogserverModelDrugDataApiDrugModelFactoryCodes_2>({});
 
 async function loadDrug(drugId: string) {
@@ -72,6 +83,9 @@ async function loadDrug(drugId: string) {
 
   title.value = data.value?.trade_name ?? 'Kein Name';
   codes.value = data.value?.codes ?? {};
+  outdatedDatasetVersion.value = data.value?.source_dataset_is_current === false
+    ? data.value.source_dataset_version ?? 'unbekannt'
+    : null;
 
   loading.value = false;
 }

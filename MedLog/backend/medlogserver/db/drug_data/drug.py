@@ -82,6 +82,13 @@ class DrugCRUD(
     async def append_current_and_custom_drugs_dataset_version_where_clause(
         self, query: sqlEpression.Select[Any]
     ) -> sqlEpression.Select[Any]:
+        """Restrict `query` to drugs of the current drug dataset and the custom drugs collection.
+
+        Drugs of older, deactivated dataset versions are left out. Use this where users
+        pick drugs (listing, counting, search). Do not use it to resolve a drug by id:
+        stored intakes can still point to a drug of an old dataset version (the obsolete
+        drug cleanup keeps those drugs on purpose), see `get()`.
+        """
         drug_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
         drug_importer = drug_importer_class()
         # todo: this probably can be optimized...
@@ -89,8 +96,11 @@ class DrugCRUD(
         sub_query_current_drugdataset = (
             select(DrugDataSetVersion.id)
             .where(
-                DrugDataSetVersion.dataset_source_name == drug_importer.dataset_name
-                and DrugDataSetVersion.is_custom_drugs_collection == False
+                and_(
+                    DrugDataSetVersion.dataset_source_name
+                    == drug_importer.dataset_name,
+                    DrugDataSetVersion.is_custom_drugs_collection == False,
+                )
             )
             .order_by(desc(DrugDataSetVersion.current_active))
             .order_by(desc(DrugDataSetVersion.dataset_version))
@@ -100,13 +110,16 @@ class DrugCRUD(
         sub_query_custom_drugset = (
             select(DrugDataSetVersion.id)
             .where(
-                DrugDataSetVersion.dataset_source_name == drug_importer.dataset_name
-                and DrugDataSetVersion.is_custom_drugs_collection == True
+                and_(
+                    DrugDataSetVersion.dataset_source_name
+                    == drug_importer.dataset_name,
+                    DrugDataSetVersion.is_custom_drugs_collection == True,
+                )
             )
             .limit(1)
             .scalar_subquery()
         )
-        query.where(
+        query = query.where(
             or_(
                 DrugData.source_dataset_id == sub_query_current_drugdataset,
                 DrugData.source_dataset_id == sub_query_custom_drugset,
@@ -168,10 +181,9 @@ class DrugCRUD(
                 ),
                 selectinload(DrugData.codes).selectinload(DrugCode.code_system),
             )
+        # No dataset version filter here: an intake can reference a drug of an older,
+        # deactivated dataset version and must still be able to resolve it (issue #364).
         query = query.where(DrugData.id == id_)
-        query = await self.append_current_and_custom_drugs_dataset_version_where_clause(
-            query
-        )
         results = await self.session.exec(statement=query)
         drug = results.one_or_none()
         if drug is None and raise_exception_if_none:
@@ -208,8 +220,8 @@ class DrugCRUD(
     ) -> List[DrugData]:
         """Load drugs by id together with all their attributes and codes.
 
-        Unlike `get()` and `get_multiple()` this deliberately does not restrict the
-        result to the current and the custom drug dataset: an intake can reference a
+        Like `get()`, and unlike `get_multiple()`, this deliberately does not restrict
+        the result to the current and the custom drug dataset: an intake can reference a
         drug of a deactivated dataset version (the obsolete drug cleanup keeps those
         drugs for exactly that reason) and it must still show up in e.g. an export.
 
