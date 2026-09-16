@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.10b6.post1.dev16+g0a62148a0.d20260916"
+    "version": "1.0.10b6.post1.dev22+g8e918ce1b.d20260916"
   },
   "paths": {
     "/api/health": {
@@ -113,6 +113,28 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DrugDataConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config/api-token": {
+      "get": {
+        "tags": [
+          "Config"
+        ],
+        "summary": "Get Api Token Management Config",
+        "description": "Provides the settings the web client needs to render the API token management of the user account (`/api/user/me/api-token`).",
+        "operationId": "get_api_token_management_config_api_config_api_token_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiTokenManagementConfig"
                 }
               }
             }
@@ -653,6 +675,124 @@
         ]
       }
     },
+    "/api/user/me/api-token": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "List My Api Tokens",
+        "description": "List my API tokens, newest first. The secret part of a token can not be recalled. Needs `API_TOKEN_MANAGEMENT_ENABLED` and a browser session login, API tokens can not manage API tokens. See `/api/config/api-token`.",
+        "operationId": "list_my_api_tokens_api_user_me_api_token_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ApiTokenRead"
+                  },
+                  "type": "array",
+                  "title": "Response List My Api Tokens Api User Me Api Token Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Create My Api Token",
+        "description": "Create a new API token for my account. The response contains the complete token, it is shown only once. The token is bound to my account, not to my current login, so it keeps working after logout until it expires or gets revoked. Answers 409 if the user already has `max_tokens_per_user` unexpired tokens. Needs `API_TOKEN_MANAGEMENT_ENABLED` and a browser session login, API tokens can not manage API tokens. See `/api/config/api-token`.",
+        "operationId": "create_my_api_token_api_user_me_api_token_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiTokenCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiTokenCreated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/user/me/api-token/{api_token_id}": {
+      "delete": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Revoke My Api Token",
+        "description": "Revoke one of my API tokens. It stops working immediately. Needs `API_TOKEN_MANAGEMENT_ENABLED` and a browser session login, API tokens can not manage API tokens. See `/api/config/api-token`.",
+        "operationId": "revoke_my_api_token_api_user_me_api_token__api_token_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "api_token_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Api Token Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/user": {
       "post": {
         "tags": [
@@ -782,7 +922,8 @@
                 "roles",
                 "deactivated",
                 "is_email_verified",
-                "user_name"
+                "user_name",
+                "last_oidc_login_at"
               ],
               "type": "string",
               "description": "Order the result set by this attribute",
@@ -1022,6 +1163,111 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/api/user/{user_id}/api-token": {
+      "get": {
+        "tags": [
+          "User Admin"
+        ],
+        "summary": "List Api Tokens Of User",
+        "description": "List the API tokens of a user, newest first. The secret part of a token can not be recalled. Need usermanager role",
+        "operationId": "list_api_tokens_of_user_api_user__user_id__api_token_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApiTokenRead"
+                  },
+                  "title": "Response List Api Tokens Of User Api User  User Id  Api Token Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/{user_id}/api-token/{api_token_id}": {
+      "delete": {
+        "tags": [
+          "User Admin"
+        ],
+        "summary": "Revoke Api Token Of User",
+        "description": "Revoke an API token of a user, e.g. when it leaked. It stops working immediately. Need usermanager role",
+        "operationId": "revoke_api_token_of_user_api_user__user_id__api_token__api_token_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "api_token_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Api Token Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/study": {
@@ -5416,6 +5662,299 @@
         ],
         "title": "AllowedAuthSchemeType"
       },
+      "ApiTokenCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "description": "A name that helps to recognise the token later, e.g. the script or machine that uses it.",
+            "examples": [
+              "Nightly export script"
+            ]
+          },
+          "expires_in_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3650.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires In Days",
+            "description": "Lifetime of the token in days. Omit it to get `default_expiry_days` from `/api/config/api-token`. Must not exceed `max_expiry_days`. An explicit `null` creates a token that never expires, which is only allowed if `max_expiry_days` is `null`.",
+            "examples": [
+              30
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ApiTokenCreate"
+      },
+      "ApiTokenCreated": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identifies the token in the token management endpoints, e.g. to revoke it."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "The name given on creation. `null` for tokens created via a token login endpoint."
+          },
+          "token_prefix": {
+            "type": "string",
+            "title": "Token Prefix",
+            "description": "The public first part of the token (everything before the dot). Lets users match a token they have in use to this entry. The secret part can not be recalled."
+          },
+          "created_via": {
+            "type": "string",
+            "enum": [
+              "token_management",
+              "login"
+            ],
+            "title": "Created Via",
+            "description": "`token_management`: created by the user in the token management. `login`: issued by a token login endpoint (`/api/auth/basic/login/token` or the OIDC token login); such a token is bound to that login and stops working with it."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation time (UTC)."
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At",
+            "description": "Expiry time (UTC). `null` if the token never expires on its own."
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At",
+            "description": "Last time (UTC) the token was used, accurate to about a minute. `null` if it was never used."
+          },
+          "token": {
+            "type": "string",
+            "title": "Token",
+            "description": "The complete token to send as `Authorization: Bearer <token>`. It is only shown in this response and can not be recalled later."
+          },
+          "expired": {
+            "type": "boolean",
+            "title": "Expired",
+            "description": "`true` if the token reached its expiry time. Expired tokens are removed by a background job after a while.",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "token_prefix",
+          "created_via",
+          "created_at",
+          "expires_at",
+          "last_used_at",
+          "token",
+          "expired"
+        ],
+        "title": "ApiTokenCreated"
+      },
+      "ApiTokenManagementConfig": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Is the api token management available. If `false` the client should hide the token management UI, all `/api/user/me/api-token` endpoints answer with 403 and tokens created while it was enabled do not authenticate."
+          },
+          "default_expiry_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Expiry Days",
+            "description": "The lifetime a new token gets if `expires_in_days` is omitted on creation. `null` means such tokens never expire."
+          },
+          "max_expiry_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Expiry Days",
+            "description": "The longest lifetime a user may choose for a new token. `null` means there is no limit and `expires_in_days` may be `null` to create a token that never expires."
+          },
+          "max_tokens_per_user": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tokens Per User",
+            "description": "How many unexpired tokens a user may have at the same time. `null` means no limit."
+          },
+          "oidc_login_max_age_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oidc Login Max Age Days",
+            "description": "Tokens of a user who logs in via OpenID Connect pause when the last OIDC login is older than this many days, and work again after the next login. `null` means they do not pause."
+          },
+          "name_max_length": {
+            "type": "integer",
+            "title": "Name Max Length",
+            "description": "Maximum length of a token name.",
+            "default": 128
+          },
+          "requires_session_login": {
+            "type": "boolean",
+            "title": "Requires Session Login",
+            "description": "The token management endpoints can only be used with a browser session, never with an API token.",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "default_expiry_days",
+          "max_expiry_days",
+          "max_tokens_per_user",
+          "oidc_login_max_age_days"
+        ],
+        "title": "ApiTokenManagementConfig",
+        "description": "Everything the web client needs to render the api token management UI."
+      },
+      "ApiTokenRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identifies the token in the token management endpoints, e.g. to revoke it."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "The name given on creation. `null` for tokens created via a token login endpoint."
+          },
+          "token_prefix": {
+            "type": "string",
+            "title": "Token Prefix",
+            "description": "The public first part of the token (everything before the dot). Lets users match a token they have in use to this entry. The secret part can not be recalled."
+          },
+          "created_via": {
+            "type": "string",
+            "enum": [
+              "token_management",
+              "login"
+            ],
+            "title": "Created Via",
+            "description": "`token_management`: created by the user in the token management. `login`: issued by a token login endpoint (`/api/auth/basic/login/token` or the OIDC token login); such a token is bound to that login and stops working with it."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation time (UTC)."
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At",
+            "description": "Expiry time (UTC). `null` if the token never expires on its own."
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At",
+            "description": "Last time (UTC) the token was used, accurate to about a minute. `null` if it was never used."
+          },
+          "expired": {
+            "type": "boolean",
+            "title": "Expired",
+            "description": "`true` if the token reached its expiry time. Expired tokens are removed by a background job after a while.",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "token_prefix",
+          "created_via",
+          "created_at",
+          "expires_at",
+          "last_used_at",
+          "expired"
+        ],
+        "title": "ApiTokenRead"
+      },
       "AppVersion": {
         "properties": {
           "version": {
@@ -9287,6 +9826,19 @@
               "clara.immerwahr",
               "titor.extern.times"
             ]
+          },
+          "last_oidc_login_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Oidc Login At",
+            "description": "Last time (UTC) the user logged in via an OpenID Connect provider. Roles and study permissions of OIDC users are synced from the provider at login. `null` if the user never logged in via OIDC."
           }
         },
         "type": "object",

@@ -38,6 +38,7 @@ from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
 from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.model.branding_data import BrandingData
 from medlogserver.model.drug_data_config import DrugDataConfig
+from medlogserver.model.api_only.api_token import ApiTokenManagementConfig
 from medlogserver.model.api_only.system_accouncement import SystemAnnouncement
 from medlogserver.config import Config
 from medlogserver.log import get_logger
@@ -88,6 +89,21 @@ async def get_drug_data_config() -> DrugDataConfig:
         supports_scheduled_auto_update=config.DRUG_IMPORTER_AUTO_UPDATE_DRUG_DB
         and drug_importer_dummy.capabilities.can_download_remote_updates
         and drug_importer_dummy.capabilities.can_check_for_remote_updates,
+    )
+
+
+@fast_api_config_router.get(
+    "/config/api-token",
+    response_model=ApiTokenManagementConfig,
+    description="Provides the settings the web client needs to render the API token management of the user account (`/api/user/me/api-token`).",
+)
+async def get_api_token_management_config() -> ApiTokenManagementConfig:
+    return ApiTokenManagementConfig(
+        enabled=config.API_TOKEN_MANAGEMENT_ENABLED,
+        default_expiry_days=config.API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS,
+        max_expiry_days=config.API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS,
+        max_tokens_per_user=config.API_TOKEN_MANAGEMENT_MAX_TOKENS_PER_USER,
+        oidc_login_max_age_days=config.API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS,
     )
 
 

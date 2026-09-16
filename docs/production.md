@@ -39,6 +39,10 @@ All settings are supplied via environment variables. See [Configuration](configu
 | `SQL_DATABASE_URL` | PostgreSQL connection string. |
 | `PUBLIC_URL` | The external URL where MedLog is reachable, e.g. `https://medlog.example.com`. |
 
+### API tokens (optional)
+
+If users need to access the API from scripts, enable the token management with `API_TOKEN_MANAGEMENT_ENABLED=true` and review its lifetime limits. For OIDC users, managed tokens pause when the user has not logged in for `API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS` (default 30 days). See [API Tokens](api-tokens.md).
+
 ---
 
 ## Option A: Prebuild Container from Docker Hub

@@ -19,6 +19,7 @@ The application is built by the [German Center for Diabetes Research (DZD)](http
 | [Configuration Reference](docs/configuration.md) | All environment variables and settings |
 | [Application Logic](docs/application-logic.md) | How Studies, Events, Interviews and Intakes work |
 | [Permissions](docs/PERMISSIONS.md) | User roles and study-level permission system |
+| [API Tokens](docs/api-tokens.md) | Tokens for scripts, token management and revocation |
 | [Drug Database](docs/drug-database.md) | Drug data requirements, MMI Pharmindex, custom plugins |
 | [Development Guide](docs/development.md) | Local setup, dev scripts, testing, branching |
 

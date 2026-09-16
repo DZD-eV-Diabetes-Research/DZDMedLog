@@ -75,6 +75,52 @@ def test_session_based_logout():
     res = req("api/auth/logout", session=new_user_session, expected_http_code=200)
 
 
+def _replay_session_cookie(session: requests.Session) -> int:
+    """Request /api/user/me with the cookie values a session had, bypassing the cookie jar."""
+    from utils import get_medlogserver_base_url
+
+    cookies = "; ".join(f"{k}={v}" for k, v in session.cookies.get_dict().items())
+    return requests.get(
+        f"{get_medlogserver_base_url()}/api/user/me", headers={"Cookie": cookies}
+    ).status_code
+
+
+def test_logout_invalidates_the_session_server_side():
+    """Logout must delete the session, not only clear the cookie in the browser.
+
+    It never did: `uuid` was not imported in routes_auth.py, the NameError was swallowed and
+    the session kept working for anyone replaying the cookie. The password login must survive
+    the logout, the user has to be able to log in again.
+    """
+    password = "logout_replay_pw_1234"
+    user = create_test_user(
+        user_name="logout_replay_user",
+        password=password,
+        email="logout_replay@test.com",
+    )
+    session = authorize_for_session(username=user.user_name, pw=password)
+    stale_session = requests.Session()
+    stale_session.cookies.update(session.cookies.get_dict())
+    assert _replay_session_cookie(stale_session) == 200
+
+    req("api/auth/logout", method="post", session=session, expected_http_code=200)
+    assert _replay_session_cookie(stale_session) == 401
+
+    new_session = authorize_for_session(username=user.user_name, pw=password)
+    assert req("api/user/me", session=new_session)["user_name"] == user.user_name
+
+
+def test_oidc_logout_invalidates_the_session_server_side():
+    sub = "oidc-relogin-test-user"
+    oidc_session = oidc_login_get_session(OIDC_TEST_PROVIDER_SLUG, sub)
+    stale_session = requests.Session()
+    stale_session.cookies.update(oidc_session.cookies.get_dict())
+    assert _replay_session_cookie(stale_session) == 200
+
+    req("api/auth/logout", method="post", session=oidc_session, expected_http_code=200)
+    assert _replay_session_cookie(stale_session) == 401
+
+
 def test_oidc_session_logout():
     """OIDC session login sets a cookie; logout invalidates it.
 
@@ -100,9 +146,12 @@ def test_oidc_session_logout():
     logout_res = req(
         "api/auth/logout", method="post", session=oidc_session, expected_http_code=200
     )
-    assert logout_res == {"message": "Logged out successfully"}, (
-        f"Expected 'end_session_url' in OIDC logout response, got: {logout_res}"
-    )
+    assert logout_res["message"] == "Logged out successfully"
+    end_session_url = logout_res.get("end_session_url", "")
+    assert end_session_url.startswith(
+        f"{os.environ['OIDC_MOCK_SERVER_URL']}/oauth2/end_session?"
+    ), f"Expected 'end_session_url' in OIDC logout response, got: {logout_res}"
+    assert "id_token_hint=" in end_session_url
 
     # Cookie must be cleared after logout
     assert not oidc_session.cookies.get_dict(), (

@@ -14,6 +14,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel
 
 import uuid
+import datetime
 from uuid import UUID
 
 from medlogserver.config import Config
@@ -164,4 +165,8 @@ class User(_UserWithName, UserUpdateByAdmin, TimestampModel, table=True):
         nullable=False,
         unique=True,
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
+    )
+    last_oidc_login_at: Optional[datetime.datetime] = Field(
+        default=None,
+        description="Last time (UTC) the user logged in via an OpenID Connect provider. Roles and study permissions of OIDC users are synced from the provider at login. `null` if the user never logged in via OIDC.",
     )

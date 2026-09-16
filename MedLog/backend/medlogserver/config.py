@@ -496,11 +496,88 @@ class Config(BaseSettings):
         default=60 * 24 * 7,  # one week
         description=(
             "How many minutes an API access token remains valid after it is issued. "
-            "Applies to tokens created via login or the token management endpoint. "
+            "Applies to tokens created via the token login endpoints (`/api/auth/basic/login/token`). "
+            "Tokens created in the token management UI use `API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS` "
+            "and `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS` instead. "
             "Set to None for tokens that never expire (not recommended for production)."
         ),
         examples=[60, 1440, 10080],
     )
+
+    API_TOKEN_MANAGEMENT_ENABLED: bool = Field(
+        default=False,
+        description=(
+            "Allow logged-in users to create, list and revoke their own long-lived API tokens "
+            "(endpoints under `/api/user/me/api-token`), e.g. to use the MedLog API from external scripts. "
+            "The tokens are bound to the user, not to the login they were created with, "
+            "so they keep working after a logout and for OIDC users. "
+            "They stop working when they expire, get revoked (by the user or a user manager) or the user is deactivated. "
+            "Switching this off again also rejects all tokens created while it was on, until it is switched back on. "
+            "Tokens can only be managed from a browser session, never with an API token. "
+            "Does not affect the token login endpoints."
+        ),
+    )
+
+    API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS: Optional[int] = Field(
+        default=30,
+        ge=1,
+        le=3650,
+        description=(
+            "Lifetime in days a managed API token gets when the user does not choose one. "
+            "Must not exceed `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS`. "
+            "Set to None to create non-expiring tokens by default, "
+            "which requires `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS` to be None as well."
+        ),
+        examples=[7, 30, 90],
+    )
+
+    API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS: Optional[int] = Field(
+        default=365,
+        ge=1,
+        le=3650,
+        description=(
+            "The longest lifetime in days a user may choose for a managed API token. "
+            "Set to None to allow tokens without any expiry date (not recommended for production). "
+            "Even then a chosen lifetime can not exceed 3650 days."
+        ),
+        examples=[90, 365],
+    )
+
+    API_TOKEN_MANAGEMENT_MAX_TOKENS_PER_USER: Optional[int] = Field(
+        default=20,
+        ge=1,
+        description=(
+            "How many unexpired managed API tokens one user may have at the same time. "
+            "Tokens from the token login endpoints do not count. Set to None for no limit."
+        ),
+        examples=[5, 20],
+    )
+
+    API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS: Optional[int] = Field(
+        default=30,
+        ge=1,
+        description=(
+            "Managed API tokens of a user who logs in via OpenID Connect stop authenticating when "
+            "the user's last OIDC login is older than this many days. They work again after the next login. "
+            "Roles and study permissions of OIDC users are only synced from the provider at login, and "
+            "MedLog does not learn when a user is removed from the provider. Without this limit a token "
+            "would keep the access the user had at the last login until the token expires. "
+            "Set to None to disable the check (tokens then keep working until they expire, are revoked "
+            "or the user is deactivated in MedLog). Users without any OIDC login are not affected."
+        ),
+        examples=[7, 30, 90],
+    )
+
+    @model_validator(mode="after")
+    def validate_api_token_management_expiry(self: Self):
+        max_days = self.API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS
+        default_days = self.API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS
+        if max_days is not None and (default_days is None or default_days > max_days):
+            raise ValueError(
+                f"API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS ({default_days}) must not exceed "
+                f"API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS ({max_days})."
+            )
+        return self
 
     AUTH_OIDC_EXPIRED_LOGIN_RETENTION_MINUTES: int = Field(
         default=60 * 24 * 30,  # 30 days

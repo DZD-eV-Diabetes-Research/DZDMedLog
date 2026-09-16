@@ -51,6 +51,7 @@ Study permissions can be set:
 | Manage study memberships | no | own study | all studies | all studies |
 | Create / deactivate users | no | no | yes | yes |
 | Assign global roles | no | no | no | yes |
+| Revoke API tokens of other users | no | no | yes | yes |
 | Access all studies without explicit permission | no | no | view only | yes |
 
 ---

@@ -144,6 +144,10 @@ MedLog supports two login methods:
 
 For OIDC setup details see [Configuration](configuration.md#oidc).
 
+Scripts and other programs authenticate with **API tokens** instead of a browser session. Users can create long-lived, named tokens for their own account if `API_TOKEN_MANAGEMENT_ENABLED` is set, and user managers can revoke the tokens of any user.
+
+Full documentation: [API Tokens](api-tokens.md)
+
 ---
 
 ## Users, Roles & Permissions
@@ -177,7 +181,7 @@ A background worker process runs alongside the web server and handles:
 
 - Importing / updating the drug database
 - Running export jobs
-- Cleaning up expired API tokens and old job records
+- Cleaning up expired API tokens, stale logins and old job records
 
 By default the worker runs in a second OS process spawned automatically. For containerised deployments with multiple replicas it can be separated: set `BACKGROUND_WORKER_START_IN_EXTRA_PROCESS=false` on the web server instances and run a dedicated worker container with `python main.py --run_worker_only`.
 
