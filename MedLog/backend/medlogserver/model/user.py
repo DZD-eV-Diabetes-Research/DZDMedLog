@@ -100,7 +100,10 @@ class _UserWithName(UserBase, table=False):
         ),
     ] = Field(
         index=True,
-        unique=True,
+        # Not unique on DB level: databases created through the migrations never
+        # got this index, so adding a unique one could fail on existing data.
+        # UserCRUD.create checks for an existing user_name instead.
+        unique=False,
         schema_extra={"examples": ["clara.immerwahr", "titor.extern.times"]},
     )
 

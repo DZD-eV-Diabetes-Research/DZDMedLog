@@ -9,7 +9,7 @@ from pydantic import (
 )
 
 from sqlalchemy.orm import RelationshipProperty
-from sqlmodel import Field, SQLModel, Relationship, JSON, Enum, Column, UniqueConstraint
+from sqlmodel import Field, SQLModel, Relationship, JSON, Enum, Column
 from pydantic_core import PydanticUndefined
 from sqlalchemy import String, Integer, Column, SmallInteger
 import datetime
@@ -174,11 +174,8 @@ class DrugAttrMultiRefFieldDefinitionAPIRead(
 class DrugAttrFieldDefinition(DrugAttrFieldDefinitionAPIRead, table=True):
     __tablename__ = "drug_attr_field_definition"
     __table_args__ = (
-        UniqueConstraint(
-            "field_name",
-            "importer_name",
-            name="uq_drug_attr_field_definition__field__importer",
-        ),
+        # (field_name, importer_name) is the primary key, which already enforces
+        # uniqueness. A separate UniqueConstraint on the same columns was redundant.
         {
             "comment": "Definition of dataset specific fields and lookup fields. this is a read only table. The attribute field definitons are defined in code. Any changes on the SQL table rows/values will be overwriten."
         },

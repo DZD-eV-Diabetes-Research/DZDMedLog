@@ -576,7 +576,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             return [
                 field_def.field
                 for field_def in code_attr_definitions
-                if field_def.field.name == by_id
+                if field_def.field.id == by_id
             ]
         return [field_def.field for field_def in code_attr_definitions]
 
