@@ -502,6 +502,20 @@ class Config(BaseSettings):
         examples=[60, 1440, 10080],
     )
 
+    AUTH_OIDC_EXPIRED_LOGIN_RETENTION_MINUTES: int = Field(
+        default=60 * 24 * 30,  # 30 days
+        ge=0,
+        description=(
+            "How many minutes an OpenID Connect login is kept after its access token expired. "
+            "While it is kept, a browser session can still renew the access token with the stored refresh token, "
+            "so the user stays logged in. After that the background token cleaner deletes the login, its sessions "
+            "and the API tokens derived from it, and the user has to log in again. "
+            "Set this to at least the refresh token lifetime of your OIDC provider. "
+            "`0` deletes a login as soon as its access token expired, so users have to log in again whenever that happens."
+        ),
+        examples=[60 * 24, 60 * 24 * 30],
+    )
+
     AUTH_MERGE_USERS_FROM_DIFFERENT_PROVIDERS: bool = Field(
         default=True,
         description=(

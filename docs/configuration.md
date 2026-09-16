@@ -764,6 +764,34 @@ API_TOKEN_DEFAULT_EXPIRY_TIME_MINUTES: 10080
 
 ---
 
+## `AUTH_OIDC_EXPIRED_LOGIN_RETENTION_MINUTES`
+
+How many minutes an OpenID Connect login is kept after its access token expired. While it is kept, a browser session can still renew the access token with the stored refresh token, so the user stays logged in. After that the background token cleaner deletes the login, its sessions and the API tokens derived from it, and the user has to log in again. Set this to at least the refresh token lifetime of your OIDC provider. `0` deletes a login as soon as its access token expired, so users have to log in again whenever that happens.
+
+| Property | Value |
+|---|---|
+| Type | int |
+| Required | No |
+| Default | `43200` |
+| Constraints | Ge(ge=0) |
+| Environment variable | `AUTH_OIDC_EXPIRED_LOGIN_RETENTION_MINUTES` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+AUTH_OIDC_EXPIRED_LOGIN_RETENTION_MINUTES: 1440
+```
+
+*Example 2:*
+
+```yaml
+AUTH_OIDC_EXPIRED_LOGIN_RETENTION_MINUTES: 43200
+```
+
+---
+
 ## `AUTH_MERGE_USERS_FROM_DIFFERENT_PROVIDERS`
 
 NOT YET IMPLEMENTED. Placeholder for a future cross-provider user-merge feature. When implemented: if True, a user authenticating via a different provider but with the same username as an existing account will be merged into that account. If False, a duplicate username from a second provider will raise an error. Currently has no effect.
