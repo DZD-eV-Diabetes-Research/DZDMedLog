@@ -37,9 +37,18 @@ PREAMBLE = """\
 > This file is auto-generated from [`MedLog/backend/medlogserver/config.py`](../MedLog/backend/medlogserver/config.py).
 > Run `./build_config_docs.sh` from the repo root to regenerate it.
 
-All settings are supplied via **environment variables** or a `.env` file placed at
-`MedLog/backend/medlogserver/.env`. Nested settings use `__` as the delimiter
-(e.g. `AUTH_OIDC_PROVIDERS__0__ENABLED`).
+All settings are supplied via **environment variables**, a `.env` file placed at
+`MedLog/backend/medlogserver/.env`, or **secret files** (e.g. Docker secrets).
+List settings such as `AUTH_OIDC_PROVIDERS` are passed as one JSON value.
+
+A secret file is named like the setting and holds its value (surrounding whitespace is
+stripped), e.g. `/run/secrets/SERVER_SESSION_SECRET`. MedLog reads secret files from
+`/run/secrets`, or from the directory set in `MEDLOG_SECRETS_DIR`. Environment variables
+and the `.env` file take precedence over secret files. A single OIDC provider value can
+be kept out of the `AUTH_OIDC_PROVIDERS` JSON with a secret file named
+`AUTH_OIDC_PROVIDERS__<list index>__<SETTING>`, e.g. `AUTH_OIDC_PROVIDERS__0__CLIENT_SECRET`.
+A value present in the JSON takes precedence. See
+[Production → Secrets](production.md#secrets-docker-secrets) for an example.
 
 ---
 
