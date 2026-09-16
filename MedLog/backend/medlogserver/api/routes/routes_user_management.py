@@ -142,7 +142,14 @@ async def get_user(
     current_user: bool = Security(user_is_usermanager),
     user_crud: UserCRUD = Depends(UserCRUD.get_crud),
 ) -> User:
-    return await user_crud.get(user_id)
+    return await user_crud.get(
+        user_id,
+        show_deactivated=True,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        ),
+    )
 
 
 @fast_api_user_manage_router.patch(

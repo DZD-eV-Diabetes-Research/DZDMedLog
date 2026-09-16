@@ -1,5 +1,6 @@
 from typing import List, Dict
 import json
+import uuid
 
 import requests
 from utils import (
@@ -125,3 +126,26 @@ def test_set_other_user_password_as_admin():
 
 # def run_all_tests_users():
 #    test_user_create_with_no_password()
+
+
+def test_get_deactivated_user():
+    # regression test for issue #192
+    from medlogserver.model.user import UserCreate, User
+
+    user_name = f"test_get_deactivated_user_{uuid.uuid4().hex[:8]}"
+    user_raw = req(
+        "api/user",
+        method="post",
+        b=dictyfy(UserCreate(user_name=user_name, email=f"{user_name}@t.com")),
+    )
+    user = User.model_validate(user_raw)
+
+    req(f"api/user/{user.id}", method="patch", b={"deactivated": True})
+    res = req(f"api/user/{user.id}")
+    dict_must_contain(
+        res,
+        {"id": str(user.id), "user_name": user_name, "deactivated": True},
+        exception_dict_identifier="deactivated user",
+    )
+
+    req(f"api/user/{uuid.uuid4()}", expected_http_code=404)
