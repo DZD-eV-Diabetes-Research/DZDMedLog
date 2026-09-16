@@ -935,7 +935,7 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
             return [
                 field_def.field
                 for field_def in self._attr_def_cache["code_attr_definitions"]
-                if field_def.field.field_name == by_id
+                if field_def.field.id == by_id
             ]
         return [
             field_def.field

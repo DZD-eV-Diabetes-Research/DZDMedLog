@@ -221,7 +221,9 @@ class DrugDataSetImporterBase:
     ) -> List[DrugAttrFieldDefinition]:
         raise NotImplementedError()
 
-    async def get_code_definitions(self) -> List[DrugCodeSystem]:
+    async def get_code_definitions(
+        self, by_id: Optional[str] = None
+    ) -> List[DrugCodeSystem]:
         raise NotImplementedError()
 
     async def get_drug_items(self) -> AsyncIterator[DrugData]:

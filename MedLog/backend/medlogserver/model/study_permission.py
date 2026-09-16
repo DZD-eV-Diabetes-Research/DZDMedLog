@@ -29,7 +29,7 @@ from medlogserver.db._session import get_async_session, get_async_session_contex
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
-from medlogserver.db.user import User
+from medlogserver.model.user import User
 from medlogserver.model.study import Study
 
 
