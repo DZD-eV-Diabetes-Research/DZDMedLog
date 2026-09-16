@@ -565,9 +565,17 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
 
     async def index_ready(self) -> bool:
         state = await self._get_state()
+        if state.index_build_up_in_process or state.last_index_build_at is None:
+            return False
+        # After a drug dataset update the new dataset is active before the index is
+        # rebuilt. Until then the index still lists drugs of the old dataset, which the
+        # search result lookup filters out, so the result would not match its
+        # `total_count` (issue #364). Treat such an outdated index as not ready.
+        current_dataset_version = await self._get_current_dataset_version()
         return (
-            not state.index_build_up_in_process
-            and state.last_index_build_at is not None
+            current_dataset_version is not None
+            and state.last_index_build_based_on_drug_datasetversion_id
+            == current_dataset_version.id
         )
 
     async def insert_drug_to_index(self, drug: DrugData):

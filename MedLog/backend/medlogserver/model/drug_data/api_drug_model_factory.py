@@ -15,6 +15,7 @@ from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
 # from medlogserver.model.drug_data.drug_attr import DrugAttrApiReadBase
 from medlogserver.config import Config
 from medlogserver.model.drug_data.drug import DrugData
+from medlogserver.model.drug_data.drug_dataset_version import DrugDataSetVersion
 from medlogserver.model.drug_data.drug_attr import (
     DrugVal,
     DrugValRef,
@@ -107,6 +108,22 @@ class DrugApiReadClassFactory:
                 db_drug_field.annotation,
                 Field(**pydantic_field_attrs),
             )
+
+        attrs["source_dataset_version"] = (
+            Optional[str],
+            Field(
+                default=None,
+                description="Version string of the drug dataset this drug comes from (e.g. '20241126'). 'Custom' for custom drugs.",
+                examples=["20241126"],
+            ),
+        )
+        attrs["source_dataset_is_current"] = (
+            bool,
+            Field(
+                default=True,
+                description="`False` if the drug belongs to an older, deactivated drug dataset version. Such drugs are kept because stored intakes still reference them, but they are not offered by the drug search anymore.",
+            ),
+        )
 
         codes_container_class = await self._get_codes_container_class(importer)
         attrs["codes"] = (codes_container_class, Field(default_factory=dict))
@@ -456,6 +473,12 @@ async def drug_to_drugAPI_obj(
             for mrval in multi_ref_vals
         ]
 
+    source_dataset: DrugDataSetVersion | None = drug.source_dataset
+    if source_dataset is not None:
+        vals["source_dataset_version"] = source_dataset.dataset_version
+        vals["source_dataset_is_current"] = bool(
+            source_dataset.is_custom_drugs_collection or source_dataset.current_active
+        )
     vals["codes"] = drug_codes
     vals["attrs"] = drug_attrs
     vals["attrs_ref"] = drug_attrs_ref

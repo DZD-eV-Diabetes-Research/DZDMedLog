@@ -93,4 +93,8 @@ class DrugData(DrugModelTableBase, table=True):
         sa_relationship_kwargs={"lazy": "selectin"},
         cascade_delete=True,
     )
-    source_dataset: DrugDataSetVersion = Relationship()
+    source_dataset: DrugDataSetVersion = Relationship(
+        # eager, because the drug API read model reports the dataset version and
+        # lazy loading is not possible in async sessions
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
