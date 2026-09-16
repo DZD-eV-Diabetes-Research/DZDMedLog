@@ -6,10 +6,15 @@
       {{ title }}
       <UTooltip
           v-if="outdatedDatasetVersion !== null"
-          :text="`Präparat aus älterer Datenbankversion (${outdatedDatasetVersion}), in der Suche nicht mehr verfügbar`"
           :popper="{ arrow: true, placement: 'top' }"
+          :ui="{ base: 'h-auto text-clip whitespace-normal', width: 'max-w-sm' }"
       >
         <UIcon name="i-heroicons-clock" class="text-amber-500 align-middle" />
+        <template #text>
+          <span class="block font-semibold">Präparat aus älterer Datenbankversion</span>
+          <span class="block break-words">{{ outdatedDatasetVersion }}</span>
+          <span class="block">In der Suche nicht mehr verfügbar.</span>
+        </template>
       </UTooltip>
     </template>
     <template #description>
