@@ -71,6 +71,10 @@ class DrugWithCodeAllreadyExists(Exception):
     pass
 
 
+class DrugWithNameAllreadyExists(Exception):
+    pass
+
+
 class DrugCRUD(
     create_crud_base(
         table_model=DrugData,
@@ -254,6 +258,28 @@ class DrugCRUD(
         if current_dataset is None:
             raise NotFoundErr(
                 "No Drug Dataset loaded yet or at the moment. Can not create custom drug."
+            )
+        # A custom drug is the fallback for a drug the user could not find. If a drug with
+        # the same name exists, the user most likely overlooked it (or another user created
+        # it already). Compare case-insensitive and ignore surrounding whitespace.
+        existing_name_query = (
+            select(DrugData)
+            .where(
+                func.lower(func.trim(DrugData.trade_name))
+                == func.lower(func.trim(drug_create.trade_name))
+            )
+            .limit(1)
+        )
+        existing_name_query = (
+            await self.append_current_and_custom_drugs_dataset_version_where_clause(
+                existing_name_query
+            )
+        )
+        existing_name_res = await self.session.exec(existing_name_query)
+        existing_name_drug = existing_name_res.one_or_none()
+        if existing_name_drug is not None:
+            raise DrugWithNameAllreadyExists(
+                f"A {'custom ' if existing_name_drug.is_custom_drug else ''}drug with the name '{existing_name_drug.trade_name}' allready exists (Drug.id: '{existing_name_drug.id}')"
             )
         new_objects = []
         new_drug_id = uuid.uuid4()
