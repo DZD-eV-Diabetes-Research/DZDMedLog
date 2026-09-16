@@ -53,10 +53,11 @@ class UserStudyAccess:
             # user-managers can view/list all studies for permission-management purposes;
             # elevated roles (interviewer, admin) still require explicit study permissions
             return True
-        elif self.study.no_permissions:
-            # the study has access permission switched off. all user have access
+        if self.study.no_permissions and as_role in (None, "viewer", "interviewer"):
+            # the study has access permission switched off: all users are interviewers.
+            # Study admin access still has to be granted explicitly (see `Study.no_permissions`)
             return True
-        elif self.user_study_perm:
+        if self.user_study_perm:
             if as_role is None or as_role == "viewer":
                 return (
                     self.user_study_perm.is_study_admin
@@ -137,13 +138,15 @@ class UserStudyAccessCollection:
             studies_data = [await study_crud.get(study_id, show_deactivated=True)]
         else:
             studies_data = await study_crud.list(show_deactivated=True)
-        if self.user.is_usermanager():
-            # Pre-populate all studies with no-perm access so usermanagers can list/view all studies
-            for study in studies_data:
-                if study is not None:
-                    self.studies_access[study.id] = UserStudyAccess(
-                        self.user, study, None
-                    )
+        # Pre-populate studies without a permission row: usermanagers can list/view all
+        # studies, and a `no_permissions` study is open to every user (issue #194).
+        # Without an entry here `user_has_access()` is never asked and the study stays
+        # hidden (list) or answers 404 (per-study endpoints).
+        for study in studies_data:
+            if study is not None and (
+                self.user.is_usermanager() or study.no_permissions
+            ):
+                self.studies_access[study.id] = UserStudyAccess(self.user, study, None)
 
         # Load actual study permissions for all users (including usermanagers) so
         # elevated roles (interviewer, study-admin) are honoured even for usermanagers

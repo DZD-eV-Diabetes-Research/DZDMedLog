@@ -118,7 +118,12 @@ async def list_studies(
             if study_permissions_helper.user_has_access_to(study_id=study.id):
                 allowed_studies.append(study)
     allowed_studies = pagination.order(allowed_studies)
-    pageinated_allowed_studies = allowed_studies[pagination.offset : pagination.limit]
+    # `limit` is a page size, not an end index. A falsy limit means "no limit", matching
+    # `QueryParamsInterface.append_to_query()`.
+    offset = pagination.offset or 0
+    pageinated_allowed_studies = allowed_studies[
+        offset : offset + pagination.limit if pagination.limit else None
+    ]
     # Enriched only after ordering and slicing, so a large study list does not pay for
     # pages it never returns. The enrichment is pure config lookup - no extra DB query.
     return PaginatedResponse[StudyApiRead](
