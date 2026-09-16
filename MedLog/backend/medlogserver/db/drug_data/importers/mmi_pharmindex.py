@@ -303,6 +303,7 @@ def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 importer_name=importername,
                 code_display_sort_order=1,
                 client_visible=True,
+                searchable=True,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["codes.PZN"],
         ),
@@ -317,6 +318,9 @@ def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 importer_name=importername,
                 code_display_sort_order=2,
                 client_visible=False,
+                # Internal ID, invisible to users. Indexing it only produced noise
+                # hits for number queries (e.g. "250" matching a product ID).
+                searchable=False,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["codes.MMIP"],
         ),
