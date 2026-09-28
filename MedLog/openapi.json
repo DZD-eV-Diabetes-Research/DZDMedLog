@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.8b1.post1.dev2+g5f59f21b4.d20260603"
+    "version": "1.0.10b6.post1.dev24+g756f03737.d20260916"
   },
   "paths": {
     "/api/health": {
@@ -113,6 +113,28 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DrugDataConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config/api-token": {
+      "get": {
+        "tags": [
+          "Config"
+        ],
+        "summary": "Get Api Token Management Config",
+        "description": "Provides the settings the web client needs to render the API token management of the user account (`/api/user/me/api-token`).",
+        "operationId": "get_api_token_management_config_api_config_api_token_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiTokenManagementConfig"
                 }
               }
             }
@@ -653,6 +675,124 @@
         ]
       }
     },
+    "/api/user/me/api-token": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "List My Api Tokens",
+        "description": "List my API tokens, newest first. The secret part of a token can not be recalled. Needs `API_TOKEN_MANAGEMENT_ENABLED` and a browser session login, API tokens can not manage API tokens. See `/api/config/api-token`.",
+        "operationId": "list_my_api_tokens_api_user_me_api_token_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ApiTokenRead"
+                  },
+                  "type": "array",
+                  "title": "Response List My Api Tokens Api User Me Api Token Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Create My Api Token",
+        "description": "Create a new API token for my account. The response contains the complete token, it is shown only once. The token is bound to my account, not to my current login, so it keeps working after logout until it expires or gets revoked. Answers 409 if the user already has `max_tokens_per_user` unexpired tokens. Needs `API_TOKEN_MANAGEMENT_ENABLED` and a browser session login, API tokens can not manage API tokens. See `/api/config/api-token`.",
+        "operationId": "create_my_api_token_api_user_me_api_token_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiTokenCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiTokenCreated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/user/me/api-token/{api_token_id}": {
+      "delete": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Revoke My Api Token",
+        "description": "Revoke one of my API tokens. It stops working immediately. Needs `API_TOKEN_MANAGEMENT_ENABLED` and a browser session login, API tokens can not manage API tokens. See `/api/config/api-token`.",
+        "operationId": "revoke_my_api_token_api_user_me_api_token__api_token_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "api_token_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Api Token Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/user": {
       "post": {
         "tags": [
@@ -782,7 +922,8 @@
                 "roles",
                 "deactivated",
                 "is_email_verified",
-                "user_name"
+                "user_name",
+                "last_oidc_login_at"
               ],
               "type": "string",
               "description": "Order the result set by this attribute",
@@ -1024,6 +1165,111 @@
         ]
       }
     },
+    "/api/user/{user_id}/api-token": {
+      "get": {
+        "tags": [
+          "User Admin"
+        ],
+        "summary": "List Api Tokens Of User",
+        "description": "List the API tokens of a user, newest first. The secret part of a token can not be recalled. Need usermanager role",
+        "operationId": "list_api_tokens_of_user_api_user__user_id__api_token_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApiTokenRead"
+                  },
+                  "title": "Response List Api Tokens Of User Api User  User Id  Api Token Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/{user_id}/api-token/{api_token_id}": {
+      "delete": {
+        "tags": [
+          "User Admin"
+        ],
+        "summary": "Revoke Api Token Of User",
+        "description": "Revoke an API token of a user, e.g. when it leaked. It stops working immediately. Need usermanager role",
+        "operationId": "revoke_api_token_of_user_api_user__user_id__api_token__api_token_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "api_token_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Api Token Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/study": {
       "get": {
         "tags": [
@@ -1088,6 +1334,10 @@
                 "created_at",
                 "display_name",
                 "no_permissions",
+                "proband_external_id_pattern",
+                "proband_external_id_pattern_error_text",
+                "proband_external_id_normalization",
+                "proband_external_id_example",
                 "deactivated",
                 "id"
               ],
@@ -1116,7 +1366,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_Study_"
+                  "$ref": "#/components/schemas/PaginatedResponse_StudyApiRead_"
                 }
               }
             }
@@ -1161,7 +1411,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Study"
+                  "$ref": "#/components/schemas/StudyApiRead"
                 }
               }
             }
@@ -1172,6 +1422,98 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/study/{study_id}/clone": {
+      "post": {
+        "tags": [
+          "Study"
+        ],
+        "summary": "Clone the setup of an existing study into a new study",
+        "description": "Create a new study that reuses the setup of an existing one. Copied are the study configuration (proband ID pattern, its error text, normalization and example, plus the 'no_permissions' flag) and the complete event structure (one new event per source event, keeping name and 'order_position'). Only the new name is supplied by the caller. **Not** copied: interviews, intakes and study permissions - the clone starts empty and, like a freshly created study, is only accessible to instance admins until permissions are granted. The clone is always active, even when the source study is deactivated. Needs admin role.",
+        "operationId": "clone_study_api_study__study_id__clone_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID of the study to clone (the template).",
+              "title": "Study Id"
+            },
+            "description": "ID of the study to clone (the template)."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudyCloneAPI",
+                "description": "Name of the new study."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyApiRead"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not a global medlog-admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No study with the given `study_id` exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A study with the requested `display_name` already exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The source study's stored proband ID pattern is not (or no longer) valid and must be fixed in the source study before it can be cloned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
                 }
               }
             }
@@ -1202,6 +1544,18 @@
               "format": "uuid",
               "title": "Study Id"
             }
+          },
+          {
+            "name": "confirm_normalization_change",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Must be set to true to change 'proband_external_id_normalization' on a study that already has interviews. Changing the normalization re-folds how proband IDs are matched, which can silently merge or split existing probands in lookups. Without this flag such a change is rejected with 409.",
+              "default": false,
+              "title": "Confirm Normalization Change"
+            },
+            "description": "Must be set to true to change 'proband_external_id_normalization' on a study that already has interviews. Changing the normalization re-folds how proband IDs are matched, which can silently merge or split existing probands in lookups. Without this flag such a change is rejected with 409."
           }
         ],
         "requestBody": {
@@ -1221,7 +1575,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Study"
+                  "$ref": "#/components/schemas/StudyApiRead"
                 }
               }
             }
@@ -1279,6 +1633,112 @@
             }
           }
         }
+      }
+    },
+    "/api/study/{study_id}/proband-external-id/validate": {
+      "post": {
+        "tags": [
+          "Study"
+        ],
+        "summary": "Validate Proband External Id",
+        "description": "Validate a proband external ID against this study's configured pattern and normalization, without creating anything. Backs the frontend pre-submit check and the study-configuration test field. The backend stays authoritative on interview creation. Returns the normalized value and, if invalid, the study's human-readable error text.",
+        "operationId": "validate_proband_external_id_api_study__study_id__proband_external_id_validate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Study Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_validate_proband_external_id_api_study__study_id__proband_external_id_validate_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProbandIdValidationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/proband-external-id/validate-pattern": {
+      "post": {
+        "tags": [
+          "Study"
+        ],
+        "summary": "Validate Proband External Id Pattern",
+        "description": "Stateless helper for the study-configuration UI: validate a 'sample' proband ID against an *unsaved* 'pattern' + 'normalization', so a live test field can be offered before the study is saved. Touches no database. Returns whether the sample is valid, the normalized sample actually tested, an error text, 'pattern_compiles' (false when the entered regex does not compile) and 'pattern_safe' (false when the regex compiles but is rejected as prone to catastrophic backtracking). Restricted to study administrators (or instance admins).",
+        "operationId": "validate_proband_external_id_pattern_api_proband_external_id_validate_pattern_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProbandIdPatternTestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProbandIdPatternTestResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/study/permissions/available": {
@@ -2984,19 +3444,36 @@
             }
           },
           "422": {
-            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.",
+            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n**Plausibility (combinations that cannot be true)**\nTwo reference dates are used. The \"not in the future\" rules compare against the server's current UTC date, without tolerance: tomorrow is a future date. The \"taken today\" rules compare against the day the parent interview was started, because that is the day the proband answered the question. That keeps an interview that stays open across midnight, a retroactively entered interview and a later correction of an entry from turning a correct answer into a contradiction. Those comparisons get one day of tolerance in both directions, to absorb the offset between the stored UTC timestamp and the interviewer's local time.\nThe rules are checked on the record as it will be stored, so a PATCH is validated against the merged record, not just the payload. A PATCH only triggers the rules that concern a field it actually sends.\n- `end_date_before_start_date` \u2014 `intake_end_date` is before `intake_start_date`. The same day for both is allowed.\n- `start_date_in_future` \u2014 `intake_start_date` lies after the current date.\n- `end_date_in_future` \u2014 `intake_end_date` lies after the current date.\n- `consumed_today_with_past_end_date` \u2014 `consumed_meds_today` is `Yes` while `intake_end_date` lies before the interview date.\n- `consumed_today_with_future_start_date` \u2014 `consumed_meds_today` is `Yes` while `intake_start_date` lies after the interview date.\n- `dose_per_day_negative` \u2014 `dose_per_day` is negative. `0` is allowed and means the daily dose is unknown.\n- `as_needed_dose_unit_negative` \u2014 `as_needed_dose_unit` is negative. `0` is allowed and means the dose is unknown.\n- `start_date_implausibly_old` / `end_date_implausibly_old` \u2014 the date is before 1950-01-01.\n\nRules that need an exact date are skipped when `intake_start_date_option` / `intake_end_date_option` is set instead of a date, because the option carries no date to compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\nA plausibility violation returns an object as `detail`, carrying the `rule` that broke and the `fields` it concerns. For a translated, client-side message it also carries `reference_date`, the ISO date the broken rule compared against (`null` for a rule that compares no date), and `reference`, naming which date that is: `today`, `interview_date` or `earliest_plausible_date`. `context` holds all three dates, for a message that needs more than the one the rule used. The other rules above return a plain string.",
             "content": {
               "application/json": {
-                "example": {
-                  "detail": [
-                    {
-                      "loc": [
-                        "body"
-                      ],
-                      "msg": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set.",
-                      "type": "value_error"
+                "examples": {
+                  "field_presence": {
+                    "summary": "Mutually exclusive fields",
+                    "value": {
+                      "detail": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set."
                     }
-                  ]
+                  },
+                  "plausibility": {
+                    "summary": "Plausibility rule violated",
+                    "value": {
+                      "detail": {
+                        "rule": "consumed_today_with_past_end_date",
+                        "fields": [
+                          "consumed_meds_today",
+                          "intake_end_date"
+                        ],
+                        "msg": "'consumed_meds_today' is 'Yes', but 'intake_end_date' is before 2026-06-15, the day this interview was started. 'Today' refers to the day of the interview, and an intake that had already ended cannot have been taken on that day.",
+                        "reference": "interview_date",
+                        "reference_date": "2026-06-15",
+                        "context": {
+                          "today": "2026-06-20",
+                          "interview_date": "2026-06-15",
+                          "earliest_plausible_date": "1950-01-01"
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -3160,19 +3637,36 @@
             }
           },
           "422": {
-            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.",
+            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n**Plausibility (combinations that cannot be true)**\nTwo reference dates are used. The \"not in the future\" rules compare against the server's current UTC date, without tolerance: tomorrow is a future date. The \"taken today\" rules compare against the day the parent interview was started, because that is the day the proband answered the question. That keeps an interview that stays open across midnight, a retroactively entered interview and a later correction of an entry from turning a correct answer into a contradiction. Those comparisons get one day of tolerance in both directions, to absorb the offset between the stored UTC timestamp and the interviewer's local time.\nThe rules are checked on the record as it will be stored, so a PATCH is validated against the merged record, not just the payload. A PATCH only triggers the rules that concern a field it actually sends.\n- `end_date_before_start_date` \u2014 `intake_end_date` is before `intake_start_date`. The same day for both is allowed.\n- `start_date_in_future` \u2014 `intake_start_date` lies after the current date.\n- `end_date_in_future` \u2014 `intake_end_date` lies after the current date.\n- `consumed_today_with_past_end_date` \u2014 `consumed_meds_today` is `Yes` while `intake_end_date` lies before the interview date.\n- `consumed_today_with_future_start_date` \u2014 `consumed_meds_today` is `Yes` while `intake_start_date` lies after the interview date.\n- `dose_per_day_negative` \u2014 `dose_per_day` is negative. `0` is allowed and means the daily dose is unknown.\n- `as_needed_dose_unit_negative` \u2014 `as_needed_dose_unit` is negative. `0` is allowed and means the dose is unknown.\n- `start_date_implausibly_old` / `end_date_implausibly_old` \u2014 the date is before 1950-01-01.\n\nRules that need an exact date are skipped when `intake_start_date_option` / `intake_end_date_option` is set instead of a date, because the option carries no date to compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\nA plausibility violation returns an object as `detail`, carrying the `rule` that broke and the `fields` it concerns. For a translated, client-side message it also carries `reference_date`, the ISO date the broken rule compared against (`null` for a rule that compares no date), and `reference`, naming which date that is: `today`, `interview_date` or `earliest_plausible_date`. `context` holds all three dates, for a message that needs more than the one the rule used. The other rules above return a plain string.",
             "content": {
               "application/json": {
-                "example": {
-                  "detail": [
-                    {
-                      "loc": [
-                        "body"
-                      ],
-                      "msg": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set.",
-                      "type": "value_error"
+                "examples": {
+                  "field_presence": {
+                    "summary": "Mutually exclusive fields",
+                    "value": {
+                      "detail": "Only one of 'intake_start_date' or 'intake_start_date_option' may be set."
                     }
-                  ]
+                  },
+                  "plausibility": {
+                    "summary": "Plausibility rule violated",
+                    "value": {
+                      "detail": {
+                        "rule": "consumed_today_with_past_end_date",
+                        "fields": [
+                          "consumed_meds_today",
+                          "intake_end_date"
+                        ],
+                        "msg": "'consumed_meds_today' is 'Yes', but 'intake_end_date' is before 2026-06-15, the day this interview was started. 'Today' refers to the day of the interview, and an intake that had already ended cannot have been taken on that day.",
+                        "reference": "interview_date",
+                        "reference_date": "2026-06-15",
+                        "context": {
+                          "today": "2026-06-20",
+                          "interview_date": "2026-06-15",
+                          "earliest_plausible_date": "1950-01-01"
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -3868,55 +4362,7 @@
             "description": "'null': List all drugs, 'true': List only drug that are currently available on the market. 'false': List only drugs that are not market accessable anymore."
           },
           {
-            "name": "filter_darreichungsform",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Filter Darreichungsform"
-            }
-          },
-          {
-            "name": "filter_vertriebsstatus",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Filter Vertriebsstatus"
-            }
-          },
-          {
-            "name": "filter_normgroesse",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Filter Normgroesse"
-            }
-          },
-          {
-            "name": "filter_abgabestatus",
+            "name": "filter_dispensingtype",
             "in": "query",
             "required": false,
             "schema": {
@@ -3928,55 +4374,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Filter Abgabestatus"
-            }
-          },
-          {
-            "name": "filter_lebensmittel",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Filter Lebensmittel"
-            }
-          },
-          {
-            "name": "filter_diaetetikum",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Filter Diaetetikum"
-            }
-          },
-          {
-            "name": "filter_hersteller",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Filter Hersteller"
+              "title": "Filter Dispensingtype"
             }
           },
           {
@@ -4023,6 +4421,8 @@
                 "is_custom_drug",
                 "custom_drug_notes",
                 "custom_created_by",
+                "source_dataset_version",
+                "source_dataset_is_current",
                 "codes",
                 "attrs",
                 "attrs_multi"
@@ -4058,7 +4458,7 @@
             }
           },
           "425": {
-            "description": "Index in build up error </br>The Index is still busy being build and therefore no search is available at the moment. </br>The Error detail message will be: `The search index is not ready yet. Please try it later`"
+            "description": "Index in build up error </br>The Index is still busy being build, or was not yet rebuilt after a drug dataset update, and therefore no search is available at the moment. </br>The Error detail message will be: `The search index is not ready yet. Please try it later`"
           },
           "503": {
             "description": "No search engine configured. </br>This can happen if the config is borked. By default search engine settings it wont.</br> The Error detail message will be: `The search index is not configured. Please contact the admin.`"
@@ -4494,6 +4894,12 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "The drug search index is not available. </br>Either it is still being build or no search engine is configured. </br>A custom drug can only be created when the user was able to search the drug index for an existing drug beforehand."
+          },
+          "409": {
+            "description": "A drug with the same name (case-insensitive) or the same unique drug code allready exists in the current drug dataset or in the custom drugs."
           },
           "422": {
             "description": "Validation Error",
@@ -5256,6 +5662,299 @@
         ],
         "title": "AllowedAuthSchemeType"
       },
+      "ApiTokenCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "description": "A name that helps to recognise the token later, e.g. the script or machine that uses it.",
+            "examples": [
+              "Nightly export script"
+            ]
+          },
+          "expires_in_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3650.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires In Days",
+            "description": "Lifetime of the token in days. Omit it to get `default_expiry_days` from `/api/config/api-token`. Must not exceed `max_expiry_days`. An explicit `null` creates a token that never expires, which is only allowed if `max_expiry_days` is `null`.",
+            "examples": [
+              30
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ApiTokenCreate"
+      },
+      "ApiTokenCreated": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identifies the token in the token management endpoints, e.g. to revoke it."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "The name given on creation. `null` for tokens created via a token login endpoint."
+          },
+          "token_prefix": {
+            "type": "string",
+            "title": "Token Prefix",
+            "description": "The public first part of the token (everything before the dot). Lets users match a token they have in use to this entry. The secret part can not be recalled."
+          },
+          "created_via": {
+            "type": "string",
+            "enum": [
+              "token_management",
+              "login"
+            ],
+            "title": "Created Via",
+            "description": "`token_management`: created by the user in the token management. `login`: issued by a token login endpoint (`/api/auth/basic/login/token` or the OIDC token login); such a token is bound to that login and stops working with it."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation time (UTC)."
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At",
+            "description": "Expiry time (UTC). `null` if the token never expires on its own."
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At",
+            "description": "Last time (UTC) the token was used, accurate to about a minute. `null` if it was never used."
+          },
+          "token": {
+            "type": "string",
+            "title": "Token",
+            "description": "The complete token to send as `Authorization: Bearer <token>`. It is only shown in this response and can not be recalled later."
+          },
+          "expired": {
+            "type": "boolean",
+            "title": "Expired",
+            "description": "`true` if the token reached its expiry time. Expired tokens are removed by a background job after a while.",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "token_prefix",
+          "created_via",
+          "created_at",
+          "expires_at",
+          "last_used_at",
+          "token",
+          "expired"
+        ],
+        "title": "ApiTokenCreated"
+      },
+      "ApiTokenManagementConfig": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Is the api token management available. If `false` the client should hide the token management UI, all `/api/user/me/api-token` endpoints answer with 403 and tokens created while it was enabled do not authenticate."
+          },
+          "default_expiry_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Expiry Days",
+            "description": "The lifetime a new token gets if `expires_in_days` is omitted on creation. `null` means such tokens never expire."
+          },
+          "max_expiry_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Expiry Days",
+            "description": "The longest lifetime a user may choose for a new token. `null` means there is no limit and `expires_in_days` may be `null` to create a token that never expires."
+          },
+          "max_tokens_per_user": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tokens Per User",
+            "description": "How many unexpired tokens a user may have at the same time. `null` means no limit."
+          },
+          "oidc_login_max_age_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oidc Login Max Age Days",
+            "description": "Tokens of a user who logs in via OpenID Connect pause when the last OIDC login is older than this many days, and work again after the next login. `null` means they do not pause."
+          },
+          "name_max_length": {
+            "type": "integer",
+            "title": "Name Max Length",
+            "description": "Maximum length of a token name.",
+            "default": 128
+          },
+          "requires_session_login": {
+            "type": "boolean",
+            "title": "Requires Session Login",
+            "description": "The token management endpoints can only be used with a browser session, never with an API token.",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "default_expiry_days",
+          "max_expiry_days",
+          "max_tokens_per_user",
+          "oidc_login_max_age_days"
+        ],
+        "title": "ApiTokenManagementConfig",
+        "description": "Everything the web client needs to render the api token management UI."
+      },
+      "ApiTokenRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identifies the token in the token management endpoints, e.g. to revoke it."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "The name given on creation. `null` for tokens created via a token login endpoint."
+          },
+          "token_prefix": {
+            "type": "string",
+            "title": "Token Prefix",
+            "description": "The public first part of the token (everything before the dot). Lets users match a token they have in use to this entry. The secret part can not be recalled."
+          },
+          "created_via": {
+            "type": "string",
+            "enum": [
+              "token_management",
+              "login"
+            ],
+            "title": "Created Via",
+            "description": "`token_management`: created by the user in the token management. `login`: issued by a token login endpoint (`/api/auth/basic/login/token` or the OIDC token login); such a token is bound to that login and stops working with it."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation time (UTC)."
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At",
+            "description": "Expiry time (UTC). `null` if the token never expires on its own."
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At",
+            "description": "Last time (UTC) the token was used, accurate to about a minute. `null` if it was never used."
+          },
+          "expired": {
+            "type": "boolean",
+            "title": "Expired",
+            "description": "`true` if the token reached its expiry time. Expired tokens are removed by a background job after a while.",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "token_prefix",
+          "created_via",
+          "created_at",
+          "expires_at",
+          "last_used_at",
+          "expired"
+        ],
+        "title": "ApiTokenRead"
+      },
       "AppVersion": {
         "properties": {
           "version": {
@@ -5275,320 +5974,6 @@
           "branch"
         ],
         "title": "AppVersion"
-      },
-      "AttrRefValAbgabestatus": {
-        "properties": {
-          "value": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          },
-          "display": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display"
-          },
-          "ref_list": {
-            "type": "string",
-            "const": "/api/drug/field_def/abgabestatus/refs",
-            "title": "Ref List",
-            "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/abgabestatus/refs"
-          }
-        },
-        "type": "object",
-        "title": "AttrRefValAbgabestatus"
-      },
-      "AttrRefValDarreichungsform": {
-        "properties": {
-          "value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          },
-          "display": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display"
-          },
-          "ref_list": {
-            "type": "string",
-            "const": "/api/drug/field_def/darreichungsform/refs",
-            "title": "Ref List",
-            "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/darreichungsform/refs"
-          }
-        },
-        "type": "object",
-        "title": "AttrRefValDarreichungsform"
-      },
-      "AttrRefValDiaetetikum": {
-        "properties": {
-          "value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          },
-          "display": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display"
-          },
-          "ref_list": {
-            "type": "string",
-            "const": "/api/drug/field_def/diaetetikum/refs",
-            "title": "Ref List",
-            "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/diaetetikum/refs"
-          }
-        },
-        "type": "object",
-        "title": "AttrRefValDiaetetikum"
-      },
-      "AttrRefValLebensmittel": {
-        "properties": {
-          "value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          },
-          "display": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display"
-          },
-          "ref_list": {
-            "type": "string",
-            "const": "/api/drug/field_def/lebensmittel/refs",
-            "title": "Ref List",
-            "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/lebensmittel/refs"
-          }
-        },
-        "type": "object",
-        "title": "AttrRefValLebensmittel"
-      },
-      "AttrRefValNormgroesse": {
-        "properties": {
-          "value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          },
-          "display": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display"
-          },
-          "ref_list": {
-            "type": "string",
-            "const": "/api/drug/field_def/normgroesse/refs",
-            "title": "Ref List",
-            "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/normgroesse/refs"
-          }
-        },
-        "type": "object",
-        "title": "AttrRefValNormgroesse"
-      },
-      "Attrs": {
-        "properties": {
-          "amount": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Amount",
-            "description": "Menge in der Produktpackung",
-            "examples": [
-              "3.5 g",
-              "2x100 ml",
-              "60 st"
-            ]
-          },
-          "ist_verhuetungsmittel": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ist Verhuetungsmittel",
-            "description": "Ist das Produkt ein Verh\u00fctungsmittel",
-            "examples": [
-              true,
-              false
-            ]
-          },
-          "ist_kosmetikum": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ist Kosmetikum",
-            "description": "Ist das Produkt ein Kosmetikum",
-            "examples": [
-              true,
-              false
-            ]
-          },
-          "ist_nahrungsergaenzungsmittel": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ist Nahrungsergaenzungsmittel",
-            "description": "Ist das Produkt ein Nahrungserg\u00e4nzungsmittel",
-            "examples": [
-              true,
-              false
-            ]
-          },
-          "ist_pflanzlich": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ist Pflanzlich",
-            "description": "Ist das Produkt Pflanzlich",
-            "examples": [
-              true,
-              false
-            ]
-          },
-          "ist_generikum": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ist Generikum",
-            "description": "Ist das Produkt ein Generikum",
-            "examples": [
-              true,
-              false
-            ]
-          },
-          "ist_homoeopathisch": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ist Homoeopathisch",
-            "description": "Ist das Produkt Hom\u00f6opathisch",
-            "examples": [
-              true,
-              false
-            ]
-          }
-        },
-        "type": "object",
-        "title": "Attrs"
-      },
-      "AttrsMulti": {
-        "properties": {
-          "ATC": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Atc",
-            "description": "Anatomical Therapeutic Chemical code. A unique code assigned to a medicine according to the organ or system it works on and how it works. The classification system is maintained by the World Health Organization (WHO). ",
-            "examples": [
-              [
-                "D04AA04",
-                "V60A"
-              ]
-            ]
-          }
-        },
-        "type": "object",
-        "title": "AttrsMulti"
       },
       "AuthSchemeInfo": {
         "properties": {
@@ -5762,6 +6147,20 @@
         ],
         "title": "Body_set_user_password_api_user__user_id__password_put"
       },
+      "Body_validate_proband_external_id_api_study__study_id__proband_external_id_validate_post": {
+        "properties": {
+          "proband_external_id": {
+            "type": "string",
+            "maxLength": 256,
+            "title": "Proband External Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "proband_external_id"
+        ],
+        "title": "Body_validate_proband_external_id_api_study__study_id__proband_external_id_validate_post"
+      },
       "BrandingData": {
         "properties": {
           "support_email": {
@@ -5775,6 +6174,12 @@
             ],
             "title": "Support Email",
             "description": "The email address for user suport"
+          },
+          "disable_ui_permission_management": {
+            "type": "boolean",
+            "title": "Disable Ui Permission Management",
+            "description": "If true the web client hides its role and permission management controls, because roles are managed outside of MedLog (OIDC group mapping).",
+            "default": false
           }
         },
         "type": "object",
@@ -6492,6 +6897,12 @@
             "title": "Client Visible",
             "description": "Should the code be shown in the UI. Some IDs are internal and are not interesting for the client.",
             "default": true
+          },
+          "searchable": {
+            "type": "boolean",
+            "title": "Searchable",
+            "description": "If this code will be taken into account while using /drug/search endpoint.",
+            "default": false
           },
           "importer_name": {
             "type": "string",
@@ -7292,14 +7703,14 @@
           "dose_per_day": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "number"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day."
+            "description": "Number of doses taken per day. Must not be negative; `0` is allowed and is used when the daily dose is unknown. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -7322,7 +7733,7 @@
               }
             ],
             "title": "As Needed Dose Unit",
-            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
+            "description": "Dose unit for as-needed intake. Must not be negative; `0` is allowed and is used when the dose is unknown. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
@@ -7443,14 +7854,14 @@
           "dose_per_day": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "number"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day."
+            "description": "Number of doses taken per day. Must not be negative; `0` is allowed and is used when the daily dose is unknown. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -7473,7 +7884,7 @@
               }
             ],
             "title": "As Needed Dose Unit",
-            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
+            "description": "Dose unit for as-needed intake. Must not be negative; `0` is allowed and is used when the dose is unknown. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
@@ -7584,14 +7995,14 @@
           "dose_per_day": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "number"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day."
+            "description": "Number of doses taken per day. Must not be negative; `0` is allowed and is used when the daily dose is unknown. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -7614,7 +8025,7 @@
               }
             ],
             "title": "As Needed Dose Unit",
-            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
+            "description": "Dose unit for as-needed intake. Must not be negative; `0` is allowed and is used when the dose is unknown. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "$ref": "#/components/schemas/ConsumedMedsTodayAnswers"
@@ -7779,14 +8190,14 @@
           "dose_per_day": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "number"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day."
+            "description": "Number of doses taken per day. Must not be negative; `0` is allowed and is used when the daily dose is unknown. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -7809,7 +8220,7 @@
               }
             ],
             "title": "As Needed Dose Unit",
-            "description": "Dose unit for as-needed intake. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
+            "description": "Dose unit for as-needed intake. Must not be negative; `0` is allowed and is used when the dose is unknown. Required when `intake_regular_or_as_needed` is `AS_NEEDED`. Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
           },
           "consumed_meds_today": {
             "anyOf": [
@@ -7872,6 +8283,7 @@
           },
           "proband_external_id": {
             "type": "string",
+            "maxLength": 256,
             "title": "Proband External Id",
             "description": "A unique ID given to the proband from the studies external proband management system"
           },
@@ -7927,6 +8339,7 @@
           },
           "proband_external_id": {
             "type": "string",
+            "maxLength": 256,
             "title": "Proband External Id",
             "description": "A unique ID given to the proband from the studies external proband management system"
           }
@@ -8016,42 +8429,7 @@
         ],
         "title": "MedLogSearchEngineResult"
       },
-      "MultiAttrRefValApplikationsart": {
-        "properties": {
-          "value": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          },
-          "display": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display"
-          },
-          "ref_list": {
-            "type": "string",
-            "const": "/api/drug/field_def/applikationsart/refs",
-            "title": "Ref List",
-            "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/applikationsart/refs"
-          }
-        },
-        "type": "object",
-        "title": "MultiAttrRefValApplikationsart"
-      },
-      "MultiAttrRefValIcd10": {
+      "MultiAttrRefValProducing_country": {
         "properties": {
           "value": {
             "anyOf": [
@@ -8077,57 +8455,22 @@
           },
           "ref_list": {
             "type": "string",
-            "const": "/api/drug/field_def/icd10/refs",
+            "const": "/api/drug/field_def/producing_country/refs",
             "title": "Ref List",
             "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/icd10/refs"
+            "default": "/api/drug/field_def/producing_country/refs"
           }
         },
         "type": "object",
-        "title": "MultiAttrRefValIcd10"
-      },
-      "MultiAttrRefValKeywords": {
-        "properties": {
-          "value": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          },
-          "display": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display"
-          },
-          "ref_list": {
-            "type": "string",
-            "const": "/api/drug/field_def/keywords/refs",
-            "title": "Ref List",
-            "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/keywords/refs"
-          }
-        },
-        "type": "object",
-        "title": "MultiAttrRefValKeywords"
+        "title": "MultiAttrRefValProducing_country"
       },
       "MultiAttrRefs": {
         "properties": {
-          "applikationsart": {
+          "producing_country": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/MultiAttrRefValApplikationsart"
+                  "$ref": "#/components/schemas/MultiAttrRefValProducing_country"
                 },
                 "type": "array"
               },
@@ -8135,40 +8478,8 @@
                 "type": "null"
               }
             ],
-            "title": "Applikationsart",
-            "description": "Art und Weise wie ein Arzneimittel verabreicht wird",
-            "default": []
-          },
-          "keywords": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/MultiAttrRefValKeywords"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Keywords",
-            "description": "Stichw\u00f6rter",
-            "default": []
-          },
-          "icd10": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/MultiAttrRefValIcd10"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Icd10",
-            "description": "Einordnung der Pr\u00e4parate nach ICD-10-Schl\u00fcssel",
+            "title": "Producing Country",
+            "description": "Country in which the manufacturer produces this drug",
             "default": []
           }
         },
@@ -8574,6 +8885,63 @@
         ],
         "title": "PaginatedResponse[MedLogSearchEngineResult]"
       },
+      "PaginatedResponse_StudyApiRead_": {
+        "properties": {
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count",
+            "description": "Total number of items in the database.",
+            "examples": [
+              300
+            ]
+          },
+          "offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offset",
+            "description": "Starting position index of the returned items in the dataset.",
+            "default": 0,
+            "examples": [
+              299
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of items returned in the response",
+            "examples": [
+              1
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StudyApiRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of items returned in the response following given criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "items"
+        ],
+        "title": "PaginatedResponse[StudyApiRead]"
+      },
       "PaginatedResponse_StudyPermissionRead_": {
         "properties": {
           "total_count": {
@@ -8630,63 +8998,6 @@
           "items"
         ],
         "title": "PaginatedResponse[StudyPermissionRead]"
-      },
-      "PaginatedResponse_Study_": {
-        "properties": {
-          "total_count": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total Count",
-            "description": "Total number of items in the database.",
-            "examples": [
-              300
-            ]
-          },
-          "offset": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Offset",
-            "description": "Starting position index of the returned items in the dataset.",
-            "default": 0,
-            "examples": [
-              299
-            ]
-          },
-          "count": {
-            "type": "integer",
-            "title": "Count",
-            "description": "Number of items returned in the response",
-            "examples": [
-              1
-            ]
-          },
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/Study"
-            },
-            "type": "array",
-            "title": "Items",
-            "description": "List of items returned in the response following given criteria"
-          }
-        },
-        "type": "object",
-        "required": [
-          "count",
-          "items"
-        ],
-        "title": "PaginatedResponse[Study]"
       },
       "PaginatedResponse_User_": {
         "properties": {
@@ -8745,6 +9056,138 @@
         ],
         "title": "PaginatedResponse[User]"
       },
+      "ProbandExternalIdNormalization": {
+        "type": "string",
+        "enum": [
+          "none",
+          "uppercase",
+          "lowercase"
+        ],
+        "title": "ProbandExternalIdNormalization",
+        "description": "How a proband external ID is normalized before it is validated, stored and matched.\n\nApplied per study. Replaces the former global ``PROBAND_IDS_CASE_SENSETIVE`` flag."
+      },
+      "ProbandIdPatternTestRequest": {
+        "properties": {
+          "pattern": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pattern"
+          },
+          "normalization": {
+            "$ref": "#/components/schemas/ProbandExternalIdNormalization",
+            "default": "none"
+          },
+          "sample": {
+            "type": "string",
+            "maxLength": 256,
+            "title": "Sample"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sample"
+        ],
+        "title": "ProbandIdPatternTestRequest",
+        "description": "Body of the stateless 'test this pattern' endpoint.\n\n``pattern`` and ``sample`` are caller-supplied and fed straight into a regex match, so\nboth carry hard length caps (item 6): they bound the input feeding the matcher. The\npattern is additionally screened for catastrophic-backtracking shapes inside\n``core_check_proband_id`` before any match runs."
+      },
+      "ProbandIdPatternTestResult": {
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "normalized_sample": {
+            "type": "string",
+            "title": "Normalized Sample"
+          },
+          "error_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Text"
+          },
+          "pattern_compiles": {
+            "type": "boolean",
+            "title": "Pattern Compiles"
+          },
+          "pattern_safe": {
+            "type": "boolean",
+            "title": "Pattern Safe",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "valid",
+          "normalized_sample",
+          "pattern_compiles"
+        ],
+        "title": "ProbandIdPatternTestResult",
+        "description": "Response model of the stateless ``/validate-pattern`` endpoint.\n\nLets the study-config UI offer a live 'test this pattern' field against an unsaved\n``pattern`` + ``normalization`` before the study is saved. ``pattern_compiles`` is\n``False`` (with ``valid=False``) when the entered regex does not compile."
+      },
+      "ProbandIdValidationResult": {
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "normalized_proband_external_id": {
+            "type": "string",
+            "title": "Normalized Proband External Id"
+          },
+          "error_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Text"
+          },
+          "pattern_compiles": {
+            "type": "boolean",
+            "title": "Pattern Compiles",
+            "default": true
+          },
+          "pattern_safe": {
+            "type": "boolean",
+            "title": "Pattern Safe",
+            "default": true
+          },
+          "proband_external_id_example": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Example"
+          }
+        },
+        "type": "object",
+        "required": [
+          "valid",
+          "normalized_proband_external_id"
+        ],
+        "title": "ProbandIdValidationResult",
+        "description": "Response model of the saved-study ``/validate`` endpoint.\n\n``normalized_proband_external_id`` is always the value the backend actually tried\n(e.g. it uppercased ``aaa1111`` to ``AAA1111``) so a rejecting frontend can show the\nuser exactly what was checked. ``proband_external_id_example`` mirrors the study's\noptional positive example for convenient display."
+      },
       "SourceOfDrugInformationAnwers": {
         "type": "string",
         "enum": [
@@ -8789,6 +9232,59 @@
             "description": "If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study. Admin access still need to be allocated explicit.",
             "default": false
           },
+          "proband_external_id_pattern": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern",
+            "description": "Optional regular expression a proband external ID must fully match to be accepted for this study. If unset (default), any proband ID is accepted (status quo). The pattern is validated (compiled) when the study is saved.",
+            "examples": [
+              "^[A-Z]{3}[0-9]{4}$"
+            ]
+          },
+          "proband_external_id_pattern_error_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern Error Text",
+            "description": "Human-readable error text shown when a proband ID does not match 'proband_external_id_pattern'. Should describe the expected format in plain language instead of exposing the raw regular expression. A generic fallback text is used when unset.",
+            "examples": [
+              "Expected 3 uppercase letters followed by 4 digits, e.g. AAA1111"
+            ]
+          },
+          "proband_external_id_normalization": {
+            "$ref": "#/components/schemas/ProbandExternalIdNormalization",
+            "description": "How proband external IDs are normalized before validation, storage and matching for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag.",
+            "default": "none"
+          },
+          "proband_external_id_example": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Example",
+            "description": "Optional positive example of a valid proband external ID for this study (e.g. 'AAA1111'), so the frontend can proactively show 'e.g. \u2026' next to the input. Purely informational \u2014 it is not validated against the pattern.",
+            "examples": [
+              "AAA1111"
+            ]
+          },
           "deactivated": {
             "type": "boolean",
             "title": "Deactivated",
@@ -8803,8 +9299,13 @@
         "type": "object",
         "title": "Study"
       },
-      "StudyCreateAPI": {
+      "StudyApiRead": {
         "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
           "display_name": {
             "anyOf": [
               {
@@ -8826,9 +9327,189 @@
             "title": "No Permissions",
             "description": "If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study. Admin access still need to be allocated explicit.",
             "default": false
+          },
+          "proband_external_id_pattern": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern",
+            "description": "Optional regular expression a proband external ID must fully match to be accepted for this study. If unset (default), any proband ID is accepted (status quo). The pattern is validated (compiled) when the study is saved.",
+            "examples": [
+              "^[A-Z]{3}[0-9]{4}$"
+            ]
+          },
+          "proband_external_id_pattern_error_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern Error Text",
+            "description": "Human-readable error text shown when a proband ID does not match 'proband_external_id_pattern'. Should describe the expected format in plain language instead of exposing the raw regular expression. A generic fallback text is used when unset.",
+            "examples": [
+              "Expected 3 uppercase letters followed by 4 digits, e.g. AAA1111"
+            ]
+          },
+          "proband_external_id_normalization": {
+            "$ref": "#/components/schemas/ProbandExternalIdNormalization",
+            "description": "How proband external IDs are normalized before validation, storage and matching for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag.",
+            "default": "none"
+          },
+          "proband_external_id_example": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Example",
+            "description": "Optional positive example of a valid proband external ID for this study (e.g. 'AAA1111'), so the frontend can proactively show 'e.g. \u2026' next to the input. Purely informational \u2014 it is not validated against the pattern.",
+            "examples": [
+              "AAA1111"
+            ]
+          },
+          "deactivated": {
+            "type": "boolean",
+            "title": "Deactivated",
+            "default": false
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "oidc_managed_permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Oidc Managed Permissions",
+            "description": "Study permission flags managed by an OIDC group mapping for this study (STUDY_PERMISSION_MAPPING). These flags are re-applied on every login of a mapped user, so changing them in the UI has no lasting effect. Empty when the study is not referenced by any mapping."
+          },
+          "is_oidc_permission_managed": {
+            "type": "boolean",
+            "title": "Is Oidc Permission Managed",
+            "description": "Convenience flag: true when oidc_managed_permissions is non-empty. Clients should hide the study's permission management and warn before renaming the study, because the mapping is keyed by the study's display name.",
+            "default": false
           }
         },
         "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "StudyApiRead",
+        "description": "Study as returned by the API: the stored study plus config-derived OIDC facts.\n\n``Study`` is ``table=True``, so computed API-only fields can not be added to it.\nThis read model mirrors the existing ``StudyExport`` pattern instead."
+      },
+      "StudyCloneAPI": {
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Display Name",
+            "description": "Name of the new study. Must be unique across all studies, like any study name.",
+            "examples": [
+              "BARIA-DDZ-Studie (Follow-Up)"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name"
+        ],
+        "title": "StudyCloneAPI",
+        "description": "Request body for cloning the setup of an existing study into a new one.\n\nOnly the name is provided by the caller. Everything else that makes up the *setup*\nof the source study (all :class:`StudyCreateAPI` fields, e.g. the proband-ID pattern)\nplus its event structure is copied by the backend. See ``POST /study/{study_id}/clone``."
+      },
+      "StudyCreateAPI": {
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Display Name",
+            "description": "Name of the study. Required and must be unique across all studies.",
+            "examples": [
+              "Pr\u00e4diabetes-Lebensstil-Interventions-Studie (PLIS)",
+              "BARIA-DDZ-Studie"
+            ]
+          },
+          "no_permissions": {
+            "type": "boolean",
+            "title": "No Permissions",
+            "description": "If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study. Admin access still need to be allocated explicit.",
+            "default": false
+          },
+          "proband_external_id_pattern": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern",
+            "description": "Optional regular expression a proband external ID must fully match to be accepted for this study. If unset (default), any proband ID is accepted (status quo). The pattern is validated (compiled) when the study is saved.",
+            "examples": [
+              "^[A-Z]{3}[0-9]{4}$"
+            ]
+          },
+          "proband_external_id_pattern_error_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern Error Text",
+            "description": "Human-readable error text shown when a proband ID does not match 'proband_external_id_pattern'. Should describe the expected format in plain language instead of exposing the raw regular expression. A generic fallback text is used when unset.",
+            "examples": [
+              "Expected 3 uppercase letters followed by 4 digits, e.g. AAA1111"
+            ]
+          },
+          "proband_external_id_normalization": {
+            "$ref": "#/components/schemas/ProbandExternalIdNormalization",
+            "description": "How proband external IDs are normalized before validation, storage and matching for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag.",
+            "default": "none"
+          },
+          "proband_external_id_example": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Example",
+            "description": "Optional positive example of a valid proband external ID for this study (e.g. 'AAA1111'), so the frontend can proactively show 'e.g. \u2026' next to the input. Purely informational \u2014 it is not validated against the pattern.",
+            "examples": [
+              "AAA1111"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name"
+        ],
         "title": "StudyCreateAPI"
       },
       "StudyPermissionDesc": {
@@ -8948,23 +9629,74 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 128
+                "maxLength": 128,
+                "minLength": 1
               },
               {
                 "type": "null"
               }
             ],
             "title": "Display Name",
-            "examples": [
-              "Pr\u00e4diabetes-Lebensstil-Interventions-Studie (PLIS)",
-              "BARIA-DDZ-Studie"
-            ]
+            "description": "New name of the study. Omit to keep the current name; it can not be removed."
           },
           "no_permissions": {
             "type": "boolean",
             "title": "No Permissions",
             "description": "If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study. Admin access still need to be allocated explicit.",
             "default": false
+          },
+          "proband_external_id_pattern": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern",
+            "description": "Optional regular expression a proband external ID must fully match to be accepted for this study. If unset (default), any proband ID is accepted (status quo). The pattern is validated (compiled) when the study is saved.",
+            "examples": [
+              "^[A-Z]{3}[0-9]{4}$"
+            ]
+          },
+          "proband_external_id_pattern_error_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Pattern Error Text",
+            "description": "Human-readable error text shown when a proband ID does not match 'proband_external_id_pattern'. Should describe the expected format in plain language instead of exposing the raw regular expression. A generic fallback text is used when unset.",
+            "examples": [
+              "Expected 3 uppercase letters followed by 4 digits, e.g. AAA1111"
+            ]
+          },
+          "proband_external_id_normalization": {
+            "$ref": "#/components/schemas/ProbandExternalIdNormalization",
+            "description": "How proband external IDs are normalized before validation, storage and matching for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag.",
+            "default": "none"
+          },
+          "proband_external_id_example": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proband External Id Example",
+            "description": "Optional positive example of a valid proband external ID for this study (e.g. 'AAA1111'), so the frontend can proactively show 'e.g. \u2026' next to the input. Purely informational \u2014 it is not validated against the pattern.",
+            "examples": [
+              "AAA1111"
+            ]
           },
           "deactivated": {
             "type": "boolean",
@@ -9090,6 +9822,19 @@
               "clara.immerwahr",
               "titor.extern.times"
             ]
+          },
+          "last_oidc_login_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Oidc Login At",
+            "description": "Last time (UTC) the user logged in via an OpenID Connect provider. Roles and study permissions of OIDC users are synced from the provider at login. `null` if the user never logged in via OIDC."
           }
         },
         "type": "object",
@@ -9527,10 +10272,10 @@
         ],
         "title": "_EventNotEmptyDetail"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValHersteller__1": {
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype__1": {
         "properties": {
           "value": {
-            "type": "string",
+            "type": "integer",
             "title": "Value"
           },
           "display": {
@@ -9546,21 +10291,21 @@
           },
           "ref_list": {
             "type": "string",
-            "const": "/api/drug/field_def/hersteller/refs",
+            "const": "/api/drug/field_def/dispensingtype/refs",
             "title": "Ref List",
             "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/hersteller/refs"
+            "default": "/api/drug/field_def/dispensingtype/refs"
           }
         },
         "type": "object",
-        "title": "AttrRefValHersteller"
+        "title": "AttrRefValDispensingtype"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValHersteller__2": {
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype__2": {
         "properties": {
           "value": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "integer"
               },
               {
                 "type": "null"
@@ -9581,262 +10326,260 @@
           },
           "ref_list": {
             "type": "string",
-            "const": "/api/drug/field_def/hersteller/refs",
+            "const": "/api/drug/field_def/dispensingtype/refs",
             "title": "Ref List",
             "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/hersteller/refs"
+            "default": "/api/drug/field_def/dispensingtype/refs"
           }
         },
         "type": "object",
-        "title": "AttrRefValHersteller"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValVertriebsstatus__1": {
-        "properties": {
-          "value": {
-            "type": "string",
-            "title": "Value"
-          },
-          "display": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display"
-          },
-          "ref_list": {
-            "type": "string",
-            "const": "/api/drug/field_def/vertriebsstatus/refs",
-            "title": "Ref List",
-            "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/vertriebsstatus/refs"
-          }
-        },
-        "type": "object",
-        "title": "AttrRefValVertriebsstatus"
-      },
-      "medlogserver__model__drug_data__api_drug_model_factory__AttrRefValVertriebsstatus__2": {
-        "properties": {
-          "value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          },
-          "display": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display"
-          },
-          "ref_list": {
-            "type": "string",
-            "const": "/api/drug/field_def/vertriebsstatus/refs",
-            "title": "Ref List",
-            "description": "The API path to the list this value references",
-            "default": "/api/drug/field_def/vertriebsstatus/refs"
-          }
-        },
-        "type": "object",
-        "title": "AttrRefValVertriebsstatus"
+        "title": "AttrRefValDispensingtype"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__1": {
         "properties": {
-          "darreichungsform": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AttrRefValDarreichungsform"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Darreichungsform IFA"
-          },
-          "vertriebsstatus": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValVertriebsstatus__1",
-            "description": "Wird das Produkt momentan vertrieben"
-          },
-          "normgroesse": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AttrRefValNormgroesse"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Packungsgr\u00f6\u00dfenkennzeichnung f\u00fcr Medikamente ist eine in Deutschland bestehende Normierung der in der Apotheke abzugebenden Menge"
-          },
-          "abgabestatus": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AttrRefValAbgabestatus"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Ob und wie das Produkt an den Patienten abgegeben werden darf"
-          },
-          "lebensmittel": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AttrRefValLebensmittel"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Lebensmittelstatus des Produkt"
-          },
-          "diaetetikum": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AttrRefValDiaetetikum"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Diaetetikumstatus des Produkt"
-          },
-          "hersteller": {
-            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValHersteller__1",
-            "description": "Hersteller des Produkt"
+          "dispensingtype": {
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype__1",
+            "description": "How are the drugs made available."
           }
         },
         "type": "object",
         "required": [
-          "vertriebsstatus",
-          "hersteller"
+          "dispensingtype"
         ],
         "title": "AttrRefs"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__AttrRefs__2": {
         "properties": {
-          "darreichungsform": {
+          "dispensingtype": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AttrRefValDarreichungsform"
+                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValDispensingtype__2"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Darreichungsform IFA",
-            "default": []
-          },
-          "vertriebsstatus": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValVertriebsstatus__2"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Wird das Produkt momentan vertrieben",
-            "default": []
-          },
-          "normgroesse": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AttrRefValNormgroesse"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Packungsgr\u00f6\u00dfenkennzeichnung f\u00fcr Medikamente ist eine in Deutschland bestehende Normierung der in der Apotheke abzugebenden Menge",
-            "default": []
-          },
-          "abgabestatus": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AttrRefValAbgabestatus"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Ob und wie das Produkt an den Patienten abgegeben werden darf",
-            "default": []
-          },
-          "lebensmittel": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AttrRefValLebensmittel"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Lebensmittelstatus des Produkt",
-            "default": []
-          },
-          "diaetetikum": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AttrRefValDiaetetikum"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Diaetetikumstatus des Produkt",
-            "default": []
-          },
-          "hersteller": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrRefValHersteller__2"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Hersteller des Produkt",
+            "description": "How are the drugs made available.",
             "default": []
           }
         },
         "type": "object",
         "title": "AttrRefs"
       },
-      "medlogserver__model__drug_data__api_drug_model_factory__Codes__1": {
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__1": {
         "properties": {
-          "PZN": {
-            "type": "string",
-            "title": "Pzn"
-          },
-          "MMIP": {
-            "type": "string",
-            "title": "Mmip",
-            "description": "Interne 'PRODUCTID' des Vidal MMI Pharmindex"
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Keywords",
+            "description": "How are the drugs made available.",
+            "examples": [
+              [
+                "autoimmune",
+                "suppress"
+              ]
+            ]
           }
         },
         "type": "object",
         "required": [
-          "PZN",
-          "MMIP"
+          "keywords"
+        ],
+        "title": "AttrsMulti"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__2": {
+        "properties": {
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Keywords",
+            "description": "How are the drugs made available.",
+            "examples": [
+              [
+                "autoimmune",
+                "suppress"
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "title": "AttrsMulti"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__Attrs__1": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "title": "Amount",
+            "description": "Amount in package",
+            "examples": [
+              10.0,
+              5.5,
+              80.0
+            ]
+          },
+          "manufacturer": {
+            "type": "string",
+            "title": "Manufacturer",
+            "description": "Manufacturing company of the drug",
+            "examples": [
+              "PharamGigant",
+              "MoneyMaker"
+            ]
+          },
+          "deliverysystem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliverysystem",
+            "description": "Drug delivery refers to approaches, formulations, manufacturing techniques, storage systems, and technologies involved in transporting a pharmaceutical compound to its target site to achieve a desired therapeutic effect.",
+            "examples": [
+              "Spray",
+              "Needle"
+            ]
+          },
+          "routeofadministration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routeofadministration",
+            "description": "route of administration is the way by which a drug, fluid, poison, or other substance is taken into the body.",
+            "examples": [
+              "oral",
+              "intravenous"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount",
+          "manufacturer"
+        ],
+        "title": "Attrs"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__Attrs__2": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount",
+            "description": "Amount in package",
+            "examples": [
+              10.0,
+              5.5,
+              80.0
+            ]
+          },
+          "manufacturer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manufacturer",
+            "description": "Manufacturing company of the drug",
+            "examples": [
+              "PharamGigant",
+              "MoneyMaker"
+            ]
+          },
+          "deliverysystem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliverysystem",
+            "description": "Drug delivery refers to approaches, formulations, manufacturing techniques, storage systems, and technologies involved in transporting a pharmaceutical compound to its target site to achieve a desired therapeutic effect.",
+            "examples": [
+              "Spray",
+              "Needle"
+            ]
+          },
+          "routeofadministration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routeofadministration",
+            "description": "route of administration is the way by which a drug, fluid, poison, or other substance is taken into the body.",
+            "examples": [
+              "oral",
+              "intravenous"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "Attrs"
+      },
+      "medlogserver__model__drug_data__api_drug_model_factory__Codes__1": {
+        "properties": {
+          "ATC": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atc",
+            "description": "The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties."
+          },
+          "PZN": {
+            "type": "string",
+            "title": "Pzn"
+          }
+        },
+        "type": "object",
+        "required": [
+          "PZN"
         ],
         "title": "Codes"
       },
       "medlogserver__model__drug_data__api_drug_model_factory__Codes__2": {
         "properties": {
+          "ATC": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atc",
+            "description": "The Anatomical Therapeutic Chemical (ATC) Classification System is a drug classification system that classifies the active ingredients of drugs according to the organ or system on which they act and their therapeutic, pharmacological and chemical properties."
+          },
           "PZN": {
             "anyOf": [
               {
@@ -9847,18 +10590,6 @@
               }
             ],
             "title": "Pzn"
-          },
-          "MMIP": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mmip",
-            "description": "Interne 'PRODUCTID' des Vidal MMI Pharmindex"
           }
         },
         "type": "object",
@@ -9930,15 +10661,36 @@
             "title": "Custom Created By",
             "description": "If Drug is created by user as a custom drug the user id will be saved here."
           },
+          "source_dataset_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Dataset Version",
+            "description": "Version string of the drug dataset this drug comes from (e.g. '20241126'). 'Custom' for custom drugs.",
+            "examples": [
+              "20241126"
+            ]
+          },
+          "source_dataset_is_current": {
+            "type": "boolean",
+            "title": "Source Dataset Is Current",
+            "description": "`False` if the drug belongs to an older, deactivated drug dataset version. Such drugs are kept because stored intakes still reference them, but they are not offered by the drug search anymore.",
+            "default": true
+          },
           "codes": {
             "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes__1"
           },
           "attrs": {
-            "$ref": "#/components/schemas/Attrs",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs__1",
             "description": "Scalar Drug attributes. One value only per drug attribute."
           },
           "attrs_multi": {
-            "$ref": "#/components/schemas/AttrsMulti",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__1",
             "description": "All Drug attributes that can have multiple values. e.g. something like 'Keywords'. Will always be a list."
           },
           "attrs_ref": {
@@ -10023,15 +10775,36 @@
             "title": "Custom Created By",
             "description": "If Drug is created by user as a custom drug the user id will be saved here."
           },
+          "source_dataset_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Dataset Version",
+            "description": "Version string of the drug dataset this drug comes from (e.g. '20241126'). 'Custom' for custom drugs.",
+            "examples": [
+              "20241126"
+            ]
+          },
+          "source_dataset_is_current": {
+            "type": "boolean",
+            "title": "Source Dataset Is Current",
+            "description": "`False` if the drug belongs to an older, deactivated drug dataset version. Such drugs are kept because stored intakes still reference them, but they are not offered by the drug search anymore.",
+            "default": true
+          },
           "codes": {
             "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Codes__2"
           },
           "attrs": {
-            "$ref": "#/components/schemas/Attrs",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__Attrs__2",
             "description": "Scalar Drug attributes. One value only per drug attribute."
           },
           "attrs_multi": {
-            "$ref": "#/components/schemas/AttrsMulti",
+            "$ref": "#/components/schemas/medlogserver__model__drug_data__api_drug_model_factory__AttrsMulti__2",
             "description": "All Drug attributes that can have multiple values. e.g. something like 'Keywords'. Will always be a list."
           },
           "attrs_ref": {

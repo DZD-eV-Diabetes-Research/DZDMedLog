@@ -47,7 +47,11 @@ class DrugData(DrugModelTableBase, table=True):
     }
     id: uuid.UUID = Field(primary_key=True, default_factory=uuid.uuid4)
     source_dataset_id: uuid.UUID = Field(
-        foreign_key="drug_dataset_version.id", ondelete="CASCADE"
+        foreign_key="drug_dataset_version.id",
+        ondelete="CASCADE",
+        # Needed by the obsolete drug cleanup, which selects its delete batches
+        # per dataset version. Without it every batch full-scans `drug`.
+        index=True,
     )
     trade_name: str = Field(index=True)
     market_access_date: Optional[datetime.date] = Field(default=None)
@@ -89,4 +93,8 @@ class DrugData(DrugModelTableBase, table=True):
         sa_relationship_kwargs={"lazy": "selectin"},
         cascade_delete=True,
     )
-    source_dataset: DrugDataSetVersion = Relationship()
+    source_dataset: DrugDataSetVersion = Relationship(
+        # eager, because the drug API read model reports the dataset version and
+        # lazy loading is not possible in async sessions
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )

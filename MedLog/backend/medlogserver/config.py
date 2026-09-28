@@ -1,18 +1,25 @@
-from typing import List, Annotated, Optional, Literal, Dict
+from typing import List, Annotated, Optional, Literal, Dict, Tuple
 from typing_extensions import Self
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+    PydanticBaseSettingsSource,
+    SettingsError,
+)
 import os
 from pydantic import (
     Field,
+    PrivateAttr,
     SecretStr,
     field_validator,
     StringConstraints,
     model_validator,
 )
+from urllib.parse import urlparse
 import inspect
 from pathlib import Path, PurePath
-import socket
 from textwrap import dedent
+from medlogserver import config_deprecations
 from medlogserver.utils import (
     get_random_string,
     val_means_true,
@@ -21,6 +28,39 @@ from medlogserver.utils import (
 )
 
 env_file_path = os.environ.get("MEDLOG_DOT_ENV_FILE", Path(__file__).parent / ".env")
+
+# Docker (and Kubernetes via a volume mount) provide secrets as files, one file per
+# secret. A file named like a setting (e.g. /run/secrets/SERVER_SESSION_SECRET)
+# provides that setting's value. Environment variables and the .env file still win.
+DEFAULT_SECRETS_DIR = "/run/secrets"
+
+
+def resolve_secrets_dir() -> Optional[Path]:
+    """The directory to read secret files from, or None if there is none.
+
+    MEDLOG_SECRETS_DIR overrides the Docker default. An explicitly configured directory
+    must exist, so a typo fails loudly instead of silently ignoring every secret. The
+    default directory is optional because it only exists when secrets are mounted.
+    """
+    configured = os.environ.get("MEDLOG_SECRETS_DIR")
+    if not configured:
+        default_dir = Path(DEFAULT_SECRETS_DIR)
+        return default_dir if default_dir.is_dir() else None
+    secrets_dir = Path(configured).expanduser()
+    if not secrets_dir.is_dir():
+        raise SettingsError(
+            f"MEDLOG_SECRETS_DIR is set to '{configured}', which is not a directory."
+        )
+    return secrets_dir
+
+# The study permission flags that STUDY_PERMISSION_MAPPING may reference.
+# Lives here (and not in the model layer) so config-level helpers can validate a
+# mapping without importing the model layer, which imports Config itself.
+VALID_STUDY_PERMISSION_FLAGS: Tuple[str, ...] = (
+    "is_study_viewer",
+    "is_study_interviewer",
+    "is_study_admin",
+)
 
 
 class Config(BaseSettings):
@@ -131,25 +171,68 @@ class Config(BaseSettings):
         ),
         examples=["0.0.0.0", "localhost", "127.0.0.1", "176.16.8.123"],
     )
-    # ToDo: Read https://fastapi.tiangolo.com/advanced/behind-a-proxy/ if that is of any help for better hostname/FQDN detection
-    SERVER_HOSTNAME: Optional[str] = Field(
-        default_factory=socket.gethostname,
+    PUBLIC_URL: Optional[str] = Field(
+        default=None,
         description=(
+            "The URL under which the application is reachable from the outside, including "
+            "the scheme and any non-default port. This is the single source of truth for "
+            "every generated absolute URL: the OIDC redirect URI, the post-logout redirect "
+            "URI and the login endpoints handed to the web client. "
+            "Set it to your public address when a reverse proxy terminates TLS in front of "
+            "the app - the app only ever sees the plaintext hop from the proxy and cannot "
+            "detect the external scheme or hostname on its own. "
+            "It is unrelated to SERVER_LISTENING_HOST and SERVER_LISTENING_PORT, which only "
+            "say where the process binds its socket. "
+            "If left unset it is derived from the deprecated SERVER_PROTOCOL, SERVER_HOSTNAME "
+            "and SERVER_LISTENING_PORT settings."
+        ),
+        examples=[
+            "https://medlog.example.com",
+            "http://localhost:8888",
+            "https://medlog.example.com:8443",
+        ],
+    )
+
+    # DEPRECATED: replaced by PUBLIC_URL. See medlogserver/config_deprecations.py
+    # for the removal checklist.
+    SERVER_HOSTNAME: Optional[str] = Field(
+        default=None,
+        description=(
+            "DEPRECATED - use PUBLIC_URL instead. "
             "External hostname or domain name under which the API is publicly reachable. "
-            "Usually a fully-qualified domain name (FQDN) in production. "
-            "If not set, the system hostname is used as a fallback. "
-            "This value is used to build the server URL and OAuth redirect URIs."
+            "Still honoured when PUBLIC_URL is unset, and ignored when it is set. "
+            "Falls back to 'localhost' when neither is configured."
         ),
         examples=["medlog.example.com", "localhost", "10.0.0.5"],
     )
+    # DEPRECATED: replaced by PUBLIC_URL. See medlogserver/config_deprecations.py
+    # for the removal checklist.
     SERVER_PROTOCOL: Optional[Literal["http", "https"]] = Field(
         default="http",
         description=(
+            "DEPRECATED - use PUBLIC_URL instead. "
             "Protocol used to reach the server from the outside. "
-            "Automatic detection can fail behind reverse proxies that terminate TLS — "
-            "set this explicitly to 'https' when serving over SSL."
+            "Still honoured when PUBLIC_URL is unset, and ignored when it is set."
         ),
         examples=["http", "https"],
+    )
+
+    SERVER_TRUSTED_PROXIES: List[str] = Field(
+        default=["127.0.0.1", "::1"],
+        description=(
+            "Peer addresses whose 'X-Forwarded-Proto', 'X-Forwarded-Host' and "
+            "'X-Forwarded-For' headers are honoured when building externally visible "
+            "URLs such as the OIDC redirect URI. "
+            "Accepts single addresses and CIDR networks. "
+            "Set this to the address of your reverse proxy - in Docker that is the "
+            "proxy container's address on the shared network, not '127.0.0.1'. "
+            "The wildcard '*' trusts every peer and must not be used in production, "
+            "because then any client can dictate the host and scheme of generated URLs. "
+            "Note that PUBLIC_URL already fixes the scheme and hostname without trusting "
+            "anyone; this setting additionally corrects the client IP recorded on user "
+            "sessions, and lets a proxy serve the app under more than one hostname."
+        ),
+        examples=[["127.0.0.1", "::1"], ["10.33.0.200"], ["10.33.0.0/24"]],
     )
 
     SERVER_SESSION_SECRET: SecretStr = Field(
@@ -170,23 +253,81 @@ class Config(BaseSettings):
         ),
     )
 
-    def get_server_url(self) -> str:
-        if self.SERVER_PROTOCOL is not None:
-            proto = self.SERVER_PROTOCOL
-        elif self.SERVER_LISTENING_PORT == 443:
-            proto = "https"
+    # True when PUBLIC_URL was configured explicitly rather than derived from the
+    # deprecated settings. Only an explicit value is authoritative for the
+    # hostname; a derived one is only a guess and must never be forced.
+    _public_url_is_explicit: bool = PrivateAttr(default=False)
+    _config_deprecation_warnings: List[str] = PrivateAttr(default_factory=list)
 
-        port = ""
-        if self.SERVER_LISTENING_PORT not in [80, 443]:
-            port = f":{self.SERVER_LISTENING_PORT}"
-        return f"{proto}://{self.SERVER_HOSTNAME}{port}"
+    @model_validator(mode="after")
+    def resolve_public_url(self: Self):
+        """Settle the external URL once, so nothing downstream has to guess."""
+        # Capture this before assigning below: pydantic adds any attribute we set
+        # here to model_fields_set, which would make a derived value look explicit.
+        self._public_url_is_explicit = "PUBLIC_URL" in self.model_fields_set
+
+        if self._public_url_is_explicit:
+            self.PUBLIC_URL = self.PUBLIC_URL.rstrip("/")
+        else:
+            # DEPRECATED branch - delete together with config_deprecations.py and
+            # make PUBLIC_URL a required field.
+            self.PUBLIC_URL = config_deprecations.public_url_from_deprecated_settings(
+                self
+            )
+
+        self._config_deprecation_warnings = (
+            config_deprecations.collect_deprecation_warnings(
+                self, public_url_is_explicit=self._public_url_is_explicit
+            )
+        )
+        return self
+
+    @field_validator("PUBLIC_URL")
+    @classmethod
+    def validate_public_url(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        parsed = urlparse(value)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError(
+                f"PUBLIC_URL must start with 'http://' or 'https://', got '{value}'"
+            )
+        if not parsed.netloc:
+            raise ValueError(f"PUBLIC_URL must include a hostname, got '{value}'")
+        if parsed.path.rstrip("/"):
+            raise ValueError(
+                f"PUBLIC_URL must not contain a path, got '{value}'. "
+                f"Serving the app under a sub-path is not supported."
+            )
+        return value
+
+    def get_server_url(self) -> str:
+        """The externally visible base URL, without a trailing slash."""
+        return self.PUBLIC_URL
+
+    def get_public_hostname(self) -> Optional[str]:
+        """Host (with port, if non-default) of the external URL, or None if derived.
+
+        Returns None when PUBLIC_URL was not configured explicitly: a derived
+        value is only a guess at the external hostname, which must never be
+        forced onto generated URLs.
+        """
+        if not self._public_url_is_explicit:
+            return None
+        return urlparse(self.PUBLIC_URL).netloc
+
+    def get_public_scheme(self) -> str:
+        return urlparse(self.PUBLIC_URL).scheme
+
+    def get_config_deprecation_warnings(self) -> List[str]:
+        return list(self._config_deprecation_warnings)
 
     CLIENT_URL: Optional[str] = Field(
         default=None,
         description=(
             "URL where the web client is hosted. "
             "Usually the client is bundled with the server and this can be left unset — "
-            "it is then derived automatically from SERVER_PROTOCOL, SERVER_HOSTNAME, and SERVER_LISTENING_PORT."
+            "it is then derived automatically from PUBLIC_URL."
         ),
         examples=["https://medlog.example.com", "http://localhost:8888"],
     )
@@ -197,6 +338,20 @@ class Config(BaseSettings):
             "Leave unset to hide the support contact from the UI."
         ),
         examples=["support@example.com"],
+    )
+    DISABLE_UI_PERMISSION_MANAGEMENT: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Hide the role and permission management controls in the web client. "
+            "Useful when roles and study permissions are managed via OIDC group mappings, "
+            "where in-app changes are overwritten on the user's next login. "
+            "Leave unset (default) to derive the value automatically: it is then true as soon "
+            "as any configured OIDC provider has a non-empty ROLE_MAPPING. "
+            "Set it explicitly to true or false to override that. "
+            "This only affects what the web client offers; the API keeps accepting "
+            "role and permission changes."
+        ),
+        examples=[True],
     )
 
     @model_validator(mode="after")
@@ -370,10 +525,101 @@ class Config(BaseSettings):
         default=60 * 24 * 7,  # one week
         description=(
             "How many minutes an API access token remains valid after it is issued. "
-            "Applies to tokens created via login or the token management endpoint. "
+            "Applies to tokens created via the token login endpoints (`/api/auth/basic/login/token`). "
+            "Tokens created in the token management UI use `API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS` "
+            "and `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS` instead. "
             "Set to None for tokens that never expire (not recommended for production)."
         ),
         examples=[60, 1440, 10080],
+    )
+
+    API_TOKEN_MANAGEMENT_ENABLED: bool = Field(
+        default=False,
+        description=(
+            "Allow logged-in users to create, list and revoke their own long-lived API tokens "
+            "(endpoints under `/api/user/me/api-token`), e.g. to use the MedLog API from external scripts. "
+            "The tokens are bound to the user, not to the login they were created with, "
+            "so they keep working after a logout and for OIDC users. "
+            "They stop working when they expire, get revoked (by the user or a user manager) or the user is deactivated. "
+            "Switching this off again also rejects all tokens created while it was on, until it is switched back on. "
+            "Tokens can only be managed from a browser session, never with an API token. "
+            "Does not affect the token login endpoints."
+        ),
+    )
+
+    API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS: Optional[int] = Field(
+        default=30,
+        ge=1,
+        le=3650,
+        description=(
+            "Lifetime in days a managed API token gets when the user does not choose one. "
+            "Must not exceed `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS`. "
+            "Set to None to create non-expiring tokens by default, "
+            "which requires `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS` to be None as well."
+        ),
+        examples=[7, 30, 90],
+    )
+
+    API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS: Optional[int] = Field(
+        default=365,
+        ge=1,
+        le=3650,
+        description=(
+            "The longest lifetime in days a user may choose for a managed API token. "
+            "Set to None to allow tokens without any expiry date (not recommended for production). "
+            "Even then a chosen lifetime can not exceed 3650 days."
+        ),
+        examples=[90, 365],
+    )
+
+    API_TOKEN_MANAGEMENT_MAX_TOKENS_PER_USER: Optional[int] = Field(
+        default=20,
+        ge=1,
+        description=(
+            "How many unexpired managed API tokens one user may have at the same time. "
+            "Tokens from the token login endpoints do not count. Set to None for no limit."
+        ),
+        examples=[5, 20],
+    )
+
+    API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS: Optional[int] = Field(
+        default=30,
+        ge=1,
+        description=(
+            "Managed API tokens of a user who logs in via OpenID Connect stop authenticating when "
+            "the user's last OIDC login is older than this many days. They work again after the next login. "
+            "Roles and study permissions of OIDC users are only synced from the provider at login, and "
+            "MedLog does not learn when a user is removed from the provider. Without this limit a token "
+            "would keep the access the user had at the last login until the token expires. "
+            "Set to None to disable the check (tokens then keep working until they expire, are revoked "
+            "or the user is deactivated in MedLog). Users without any OIDC login are not affected."
+        ),
+        examples=[7, 30, 90],
+    )
+
+    @model_validator(mode="after")
+    def validate_api_token_management_expiry(self: Self):
+        max_days = self.API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS
+        default_days = self.API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS
+        if max_days is not None and (default_days is None or default_days > max_days):
+            raise ValueError(
+                f"API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS ({default_days}) must not exceed "
+                f"API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS ({max_days})."
+            )
+        return self
+
+    AUTH_OIDC_EXPIRED_LOGIN_RETENTION_MINUTES: int = Field(
+        default=60 * 24 * 30,  # 30 days
+        ge=0,
+        description=(
+            "How many minutes an OpenID Connect login is kept after its access token expired. "
+            "While it is kept, a browser session can still renew the access token with the stored refresh token, "
+            "so the user stays logged in. After that the background token cleaner deletes the login, its sessions "
+            "and the API tokens derived from it, and the user has to log in again. "
+            "Set this to at least the refresh token lifetime of your OIDC provider. "
+            "`0` deletes a login as soon as its access token expired, so users have to log in again whenever that happens."
+        ),
+        examples=[60 * 24, 60 * 24 * 30],
     )
 
     AUTH_MERGE_USERS_FROM_DIFFERENT_PROVIDERS: bool = Field(
@@ -560,6 +806,40 @@ class Config(BaseSettings):
         default_factory=list,
     )
 
+    @model_validator(mode="before")
+    def oidc_provider_values_from_secret_files(self_data: dict):
+        """Fill unset OIDC provider values from secret files.
+
+        AUTH_OIDC_PROVIDERS is a list, and pydantic-settings can only read a list as one
+        JSON value. To keep e.g. CLIENT_SECRET out of that JSON, a single provider value
+        can come from a secret file named `AUTH_OIDC_PROVIDERS__<list index>__<FIELD>`,
+        e.g. `AUTH_OIDC_PROVIDERS__0__CLIENT_SECRET`. A value present in the JSON wins.
+        """
+        providers = self_data.get("AUTH_OIDC_PROVIDERS")
+        if not isinstance(providers, list):
+            return self_data
+        secrets_dir = resolve_secrets_dir()
+        if secrets_dir is None:
+            return self_data
+        # Setting names are case-insensitive, like the environment variables.
+        secret_files = {
+            f.name.upper(): f for f in secrets_dir.iterdir() if f.is_file()
+        }
+        for index, provider in enumerate(providers):
+            if not isinstance(provider, dict):
+                continue
+            for field_name in Config.OpenIDConnectProvider.model_fields:
+                if field_name in provider:
+                    continue
+                secret_file = secret_files.get(
+                    f"AUTH_OIDC_PROVIDERS__{index}__{field_name}"
+                )
+                if secret_file is not None:
+                    provider[field_name] = secret_file.read_text(
+                        encoding="utf-8"
+                    ).strip()
+        return self_data
+
     @model_validator(mode="after")
     def validate_oidc_token_storage_secret(self: Self):
         if self.AUTH_OIDC_TOKEN_STORAGE_SECRET is None:
@@ -579,6 +859,53 @@ class Config(BaseSettings):
                 f"AUTH_OIDC_PROVIDERS config error. `PROVIDER_DISPLAY_NAME` must result in unique slugs accross all OIDC-provider entries. OIDC Provider Slugs:  {names}"
             )
         return AUTH_OIDC_PROVIDERS
+
+    # Both OIDC helpers below intentionally ignore `OpenIDConnectProvider.ENABLED`:
+    # that flag currently only narrows the CORS origins (app.py), while the login route
+    # and apply_oidc_group_mappings() act on every *configured* provider. The flags
+    # answer "will OIDC overwrite this?", so they must follow the mappings that are
+    # actually applied.
+    def oidc_role_mapping_is_configured(self) -> bool:
+        """True if any OIDC provider maps groups to global MedLog roles."""
+        return any(
+            bool(provider.ROLE_MAPPING)
+            for provider in (self.AUTH_OIDC_PROVIDERS or [])
+        )
+
+    def is_ui_permission_management_disabled(self) -> bool:
+        """Resolved value of DISABLE_UI_PERMISSION_MANAGEMENT.
+
+        An explicitly configured value always wins; otherwise it is derived from
+        oidc_role_mapping_is_configured(). This is a hint for the web client only -
+        the API keeps accepting role and permission changes.
+        """
+        if self.DISABLE_UI_PERMISSION_MANAGEMENT is not None:
+            return self.DISABLE_UI_PERMISSION_MANAGEMENT
+        return self.oidc_role_mapping_is_configured()
+
+    def get_oidc_managed_study_permissions(
+        self, study_display_name: str
+    ) -> List[str]:
+        """Permission flags OIDC manages for the study with this display name.
+
+        Union across all providers, restricted to VALID_STUDY_PERMISSION_FLAGS, sorted
+        for a stable API response. An empty list means the study is not OIDC-managed.
+        Matching is exact on the display name, mirroring StudyCRUD.get_by_name: a
+        renamed study silently detaches from its mapping, which is why the client is
+        told to warn before a rename.
+        """
+        managed: set[str] = set()
+        for provider in self.AUTH_OIDC_PROVIDERS or []:
+            group_permission_map = provider.STUDY_PERMISSION_MAPPING.get(
+                study_display_name
+            )
+            if not group_permission_map:
+                continue
+            for permissions in group_permission_map.values():
+                managed.update(
+                    p for p in permissions if p in VALID_STUDY_PERMISSION_FLAGS
+                )
+        return sorted(managed)
 
     # Available modules live in MedLog/backend/medlogserver/model/drug_data/importers/__init__.py
     DRUG_IMPORTER_PLUGIN: Literal["MMIPharmindex1_32", "DummyDrugImporterV1"] = Field(
@@ -721,16 +1048,10 @@ class Config(BaseSettings):
         examples=["./export_cache", "/var/lib/medlog/exports"],
     )
 
-    PROBAND_IDS_CASE_SENSETIVE: bool = Field(
-        default=False,
-        description=(
-            "Controls whether proband (subject) IDs are treated as case-sensitive. "
-            "If False (default), IDs '1A' and '1a' refer to the same proband. "
-            "If True, they are treated as distinct probands. "
-            "Note: the variable name contains a known typo ('SENSETIVE' instead of 'SENSITIVE') "
-            "that is preserved for backward compatibility with existing deployments."
-        ),
-    )
+    # Removed in favor of the per-study 'proband_external_id_normalization' setting
+    # (see medlogserver.model.study.ProbandExternalIdNormalization). The former global
+    # PROBAND_IDS_CASE_SENSETIVE value is migrated onto existing studies by the Alembic
+    # migration that introduces the per-study columns.
 
     class SystemAnnouncement(BaseSettings):
         public: bool = Field(
@@ -763,6 +1084,21 @@ class Config(BaseSettings):
     # you could call it a "meta config" class
     # if you dont know what this is you can ignore it.
     # https://docs.pydantic.dev/latest/api/base_model/#pydantic.main.BaseModel.model_config
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+        # Resolved per instantiation (unlike env_file, which is fixed at import) so the
+        # directory check runs against the environment the app actually starts in.
+        if file_secret_settings.secrets_dir is None:
+            file_secret_settings.secrets_dir = resolve_secrets_dir()
+        return init_settings, env_settings, dotenv_settings, file_secret_settings
 
     class Config:
         env_nested_delimiter = "__"

@@ -215,6 +215,7 @@ code_attr_definitions = [
             code_display_sort_order=1,
             code_icon="💊",
             client_visible=True,
+            searchable=True,
         ),
         source_mapping=drugs_csv_2_attr_mappings["codes.ATC"],
     ),
@@ -228,6 +229,7 @@ code_attr_definitions = [
             importer_name=config.DRUG_IMPORTER_PLUGIN,
             code_display_sort_order=0,
             client_visible=True,
+            searchable=True,
         ),
         source_mapping=drugs_csv_2_attr_mappings["codes.PZN"],
     ),
@@ -574,7 +576,7 @@ class DummyDrugImporterV1(DrugDataSetImporterBase):
             return [
                 field_def.field
                 for field_def in code_attr_definitions
-                if field_def.field.name == by_id
+                if field_def.field.id == by_id
             ]
         return [field_def.field for field_def in code_attr_definitions]
 

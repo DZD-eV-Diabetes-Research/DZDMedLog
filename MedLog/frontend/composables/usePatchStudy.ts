@@ -1,13 +1,22 @@
 import { useMedlogapi } from "#open-fetch";
-import type { SchemaStudyUpdate } from "#open-fetch-schemas/medlogapi";
+import type { SchemaStudyApiRead, SchemaStudyUpdate } from "#open-fetch-schemas/medlogapi";
 
-export default async function (studyId: string, body: any): Promise<SchemaStudyUpdate> {
+export default async function (studyId: string, body: SchemaStudyUpdate, confirmNormalizationChange: boolean = false): Promise<SchemaStudyApiRead> {
+    let query: { confirm_normalization_change?: boolean } = {};
+
+    if (confirmNormalizationChange) {
+        query = {
+            confirm_normalization_change: confirmNormalizationChange,
+        };
+    }
+
     const { data, error } = await useMedlogapi('/api/study/{study_id}', {
         method: "PATCH",
         path: {
             study_id: studyId,
         },
         body,
+        query: query
     });
 
     if (error.value) {

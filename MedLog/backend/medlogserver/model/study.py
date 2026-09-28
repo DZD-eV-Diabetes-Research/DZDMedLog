@@ -3,6 +3,7 @@ from pydantic import validate_email, StringConstraints, field_validator, model_v
 from pydantic_core import PydanticCustomError
 from fastapi import Depends
 import contextlib
+import enum
 from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel
@@ -25,7 +26,51 @@ log = get_logger()
 config = Config()
 
 
-class StudyCreateAPI(MedLogBaseModel, table=False):
+class ProbandExternalIdNormalization(str, enum.Enum):
+    """How a proband external ID is normalized before it is validated, stored and matched.
+
+    Applied per study. Replaces the former global ``PROBAND_IDS_CASE_SENSETIVE`` flag.
+    """
+
+    NONE = "none"  # store/match exactly as entered (case-sensitive)
+    UPPERCASE = "uppercase"  # fold to upper case (e.g. "aaa1111" -> "AAA1111")
+    LOWERCASE = "lowercase"  # fold to lower case (e.g. "AAA1111" -> "aaa1111")
+
+
+def normalize_proband_external_id(
+    value: Optional[str],
+    normalization: Optional["ProbandExternalIdNormalization"],
+) -> Optional[str]:
+    """Apply a study's proband-ID normalization rule to a raw value.
+
+    Pure/side-effect free so it can be shared between the write path, the lookup
+    path and the validation endpoint (single source of truth). ``None`` in -> ``None`` out.
+
+    Leading/trailing whitespace is *always* stripped, independent of the case rule
+    (including ``NONE``). This happens before validation, storage and matching so that a
+    value like ``"AAA1111 "`` can never be stored-with-space and then silently fail to
+    match later exact-value lookups.
+    """
+    if value is None:
+        return None
+    value = value.strip()
+    if normalization == ProbandExternalIdNormalization.UPPERCASE:
+        return value.upper()
+    if normalization == ProbandExternalIdNormalization.LOWERCASE:
+        return value.lower()
+    return value
+
+
+# A study name as accepted from API clients: surrounding whitespace is stripped and an
+# empty (or whitespace-only) name is rejected (issue #177). The DB column itself stays
+# nullable, so studies stored without a name before this rule existed can still be loaded.
+StudyDisplayName = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=128),
+]
+
+
+class StudyBase(MedLogBaseModel, table=False):
     display_name: Optional[str] = Field(
         default=None,
         index=True,
@@ -42,15 +87,93 @@ class StudyCreateAPI(MedLogBaseModel, table=False):
         default=config.APP_STUDY_PERMISSION_SYSTEM_DISABLED_BY_DEFAULT,
         description="If this is set to True all user have access as interviewers to the study. This can be utile when this MedLog instance only host one study. Admin access still need to be allocated explicit.",
     )
+    proband_external_id_pattern: Optional[str] = Field(
+        default=None,
+        max_length=1024,
+        description=(
+            "Optional regular expression a proband external ID must fully match to be accepted "
+            "for this study. If unset (default), any proband ID is accepted (status quo). "
+            "The pattern is validated (compiled) when the study is saved."
+        ),
+        schema_extra={"examples": ["^[A-Z]{3}[0-9]{4}$"]},
+    )
+    proband_external_id_pattern_error_text: Optional[str] = Field(
+        default=None,
+        max_length=1024,
+        description=(
+            "Human-readable error text shown when a proband ID does not match "
+            "'proband_external_id_pattern'. Should describe the expected format in plain "
+            "language instead of exposing the raw regular expression. A generic fallback text "
+            "is used when unset."
+        ),
+        schema_extra={"examples": ["Expected 3 uppercase letters followed by 4 digits, e.g. AAA1111"]},
+    )
+    proband_external_id_normalization: ProbandExternalIdNormalization = Field(
+        default=ProbandExternalIdNormalization.NONE,
+        description=(
+            "How proband external IDs are normalized before validation, storage and matching "
+            "for this study. Replaces the former global 'PROBAND_IDS_CASE_SENSETIVE' flag."
+        ),
+    )
+    proband_external_id_example: Optional[str] = Field(
+        default=None,
+        max_length=1024,
+        description=(
+            "Optional positive example of a valid proband external ID for this study "
+            "(e.g. 'AAA1111'), so the frontend can proactively show 'e.g. …' next to the "
+            "input. Purely informational — it is not validated against the pattern."
+        ),
+        schema_extra={"examples": ["AAA1111"]},
+    )
 
 
-class StudyUpdate(StudyCreateAPI):
-    pass
+class StudyCreateAPI(StudyBase, table=False):
+    display_name: StudyDisplayName = Field(
+        description="Name of the study. Required and must be unique across all studies.",
+        schema_extra={
+            "examples": [
+                "Prädiabetes-Lebensstil-Interventions-Studie (PLIS)",
+                "BARIA-DDZ-Studie",
+            ]
+        },
+    )
 
+
+class StudyCloneAPI(MedLogBaseModel, table=False):
+    """Request body for cloning the setup of an existing study into a new one.
+
+    Only the name is provided by the caller. Everything else that makes up the *setup*
+    of the source study (all :class:`StudyCreateAPI` fields, e.g. the proband-ID pattern)
+    plus its event structure is copied by the backend. See ``POST /study/{study_id}/clone``.
+    """
+
+    display_name: StudyDisplayName = Field(
+        description=(
+            "Name of the new study. Must be unique across all studies, like any study name."
+        ),
+        schema_extra={"examples": ["BARIA-DDZ-Studie (Follow-Up)"]},
+    )
+
+
+class StudyUpdate(StudyBase, table=False):
+    display_name: Optional[StudyDisplayName] = Field(
+        default=None,
+        description="New name of the study. Omit to keep the current name; it can not be removed.",
+    )
     deactivated: bool = Field(default=False)
 
+    @field_validator("display_name")
+    @classmethod
+    def display_name_not_null(cls, value: Optional[str]) -> str:
+        # Only runs when the client sends the field, so a PATCH without a name keeps the
+        # current one. An explicit null would wipe the name, which is not allowed (#177).
+        if value is None:
+            raise ValueError("A study must have a name")
+        return value
 
-class StudyCreate(StudyUpdate):
+
+class StudyCreate(StudyBase, table=False):
+    deactivated: bool = Field(default=False)
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4)
 
 
@@ -65,6 +188,50 @@ class Study(StudyCreate, BaseTable, TimestampModel, table=True):
         unique=True,
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
+
+
+class StudyApiRead(StudyCreate, BaseTable, TimestampModel, table=False):
+    """Study as returned by the API: the stored study plus config-derived OIDC facts.
+
+    ``Study`` is ``table=True``, so computed API-only fields can not be added to it.
+    This read model mirrors the existing ``StudyExport`` pattern instead.
+    """
+
+    # `StudyCreate` declares `id` as `Optional[uuid.UUID]`; `Study` re-declares it as
+    # required. A read model built on `StudyCreate` inherits the Optional version, so
+    # without this override all four study endpoints would start advertising a nullable
+    # `id` in the OpenAPI schema. Harmless at runtime, but a visible contract change for
+    # any generated client, so keep `id` required.
+    id: uuid.UUID
+
+    oidc_managed_permissions: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Study permission flags managed by an OIDC group mapping for this study "
+            "(STUDY_PERMISSION_MAPPING). These flags are re-applied on every login of a "
+            "mapped user, so changing them in the UI has no lasting effect. Empty when the "
+            "study is not referenced by any mapping."
+        ),
+    )
+    is_oidc_permission_managed: bool = Field(
+        default=False,
+        description=(
+            "Convenience flag: true when oidc_managed_permissions is non-empty. Clients "
+            "should hide the study's permission management and warn before renaming the "
+            "study, because the mapping is keyed by the study's display name."
+        ),
+    )
+
+    @classmethod
+    def from_study(cls, study: "Study") -> "StudyApiRead":
+        managed = config.get_oidc_managed_study_permissions(study.display_name)
+        return cls.model_validate(
+            study,
+            update={
+                "oidc_managed_permissions": managed,
+                "is_oidc_permission_managed": bool(managed),
+            },
+        )
 
 
 class StudyExport(StudyCreate, BaseTable, table=False):

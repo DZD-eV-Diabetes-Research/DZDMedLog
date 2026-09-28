@@ -18,7 +18,8 @@ The application is built by the [German Center for Diabetes Research (DZD)](http
 | [Production Deployment](docs/production.md) | Run MedLog with Docker or from source |
 | [Configuration Reference](docs/configuration.md) | All environment variables and settings |
 | [Application Logic](docs/application-logic.md) | How Studies, Events, Interviews and Intakes work |
-| [Permissions](PERMISSIONS.md) | User roles and study-level permission system |
+| [Permissions](docs/PERMISSIONS.md) | User roles and study-level permission system |
+| [API Tokens](docs/api-tokens.md) | Tokens for scripts, token management and revocation |
 | [Drug Database](docs/drug-database.md) | Drug data requirements, MMI Pharmindex, custom plugins |
 | [Development Guide](docs/development.md) | Local setup, dev scripts, testing, branching |
 
@@ -59,10 +60,10 @@ Then open **http://localhost:8888** and log in as `admin` / `adminadmin`.
 | Layer | Technology |
 |---|---|
 | Backend | Python 3.14, FastAPI, SQLModel, SQLAlchemy (async), Alembic, Uvicorn |
-| Frontend | Nuxt 3, Vue 3, TypeScript |
+| Frontend | Nuxt 3, Nuxt UI 2, Vue 3, TypeScript |
 | Database | PostgreSQL (production) / SQLite (development) |
 | Auth | OpenID Connect / OAuth2 (required) + local admin accounts (dev/bootstrap only) |
-| Packaging | Docker (multi-stage build: Bun → Python) |
+| Packaging | Docker (multi-stage build: npm → Python) |
 
 ---
 

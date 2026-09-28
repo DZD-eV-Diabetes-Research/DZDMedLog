@@ -41,6 +41,7 @@ from medlogserver.model.drug_data.drug_attr_field_lov_item import (
 from medlogserver.db.drug_data.importers._base import (
     DrugDataSetImporterBase,
     DrugDataSetImporterCapabilities,
+    MarketAccessabilityDefinition,
 )
 from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug import DrugData
@@ -302,6 +303,7 @@ def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 importer_name=importername,
                 code_display_sort_order=1,
                 client_visible=True,
+                searchable=True,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["codes.PZN"],
         ),
@@ -316,6 +318,9 @@ def get_code_attr_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 importer_name=importername,
                 code_display_sort_order=2,
                 client_visible=False,
+                # Internal ID, invisible to users. Indexing it only produced noise
+                # hits for number queries (e.g. "250" matching a product ID).
+                searchable=False,
             ),
             source_mapping=mmi_rohdaten_r3_mappings["codes.MMIP"],
         ),
@@ -725,6 +730,17 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
             )
         )
         self._ensured_dataset_version: DrugDataSetVersion = None
+        # PACKAGE.CSV keeps packages the supplier no longer delivers ("F", Außer
+        # Vertrieb: remaining pharmacy stock may still be dispensed) and gives them
+        # no OFFMARKETDATE. Only packages moved to ARCHIVE_PACKAGE.CSV ("D"/"R") get
+        # one. So market availability needs the sales status on top of the exit
+        # date, otherwise ~26k "Außer Vertrieb" packages pass as on-market (#360).
+        # Catalog 116: N=Im Vertrieb, F=Außer Vertrieb, D=Wegfall, R=Rückruf,
+        # Z=Zurückgezogen.
+        self.market_accessability = MarketAccessabilityDefinition(
+            field_name="vertriebsstatus",
+            accessable_values=["N"],
+        )
         self.batch_size = config.DRUG_IMPORTER_BATCH_SIZE
         self._attr_def_cache = {}
         self._db_session: AsyncSession | None = None
@@ -919,7 +935,7 @@ class MMIPharmindex1_32(DrugDataSetImporterBase):
             return [
                 field_def.field
                 for field_def in self._attr_def_cache["code_attr_definitions"]
-                if field_def.field.field_name == by_id
+                if field_def.field.id == by_id
             ]
         return [
             field_def.field

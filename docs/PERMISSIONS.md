@@ -51,6 +51,7 @@ Study permissions can be set:
 | Manage study memberships | no | own study | all studies | all studies |
 | Create / deactivate users | no | no | yes | yes |
 | Assign global roles | no | no | no | yes |
+| Revoke API tokens of other users | no | no | yes | yes |
 | Access all studies without explicit permission | no | no | view only | yes |
 
 ---
@@ -111,6 +112,25 @@ A study can appear under multiple OIDC groups. The resulting permissions are the
 #### Automatic study creation (`AUTO_CREATE_STUDY_FROM_MAPPING`)
 
 By default, if a study named in `STUDY_PERMISSION_MAPPING` does not exist in the database, MedLog logs a warning and skips it. Setting `AUTO_CREATE_STUDY_FROM_MAPPING=true` on the provider instead creates the study automatically the first time any OIDC login triggers that mapping entry. This is convenient when studies are defined entirely through the OIDC configuration and do not need to be created manually beforehand.
+
+---
+
+## Permission management in the web client
+
+When roles and study permissions come from OIDC group mappings, editing them in the web client is misleading: every change is overwritten on the user's next login. MedLog therefore tells the client to hide those controls.
+
+Two independent signals carry that information:
+
+* `GET /api/config/branding` returns `disable_ui_permission_management`. It reflects the `DISABLE_UI_PERMISSION_MANAGEMENT` setting, which is tri-state: left unset (the default) it is derived automatically and becomes `true` as soon as any configured OIDC provider has a non-empty `ROLE_MAPPING`. Setting it explicitly to `true` or `false` always wins over that derivation.
+* Every study returned by the API carries `oidc_managed_permissions` (the permission flags `STUDY_PERMISSION_MAPPING` manages for it, across all providers) and the convenience flag `is_oidc_permission_managed`. An empty list means no mapping references that study.
+
+The split is deliberate: the global flag comes from `ROLE_MAPPING` (global roles), the per-study fields from `STUDY_PERMISSION_MAPPING`. A client hides a study's permission controls when *either* signal applies.
+
+Both are hints for the web client only. The API keeps accepting role and permission changes, so an admin with an API key can still set a flag that OIDC overrides on the next login. Deactivating a user is *not* covered by this flag: nothing in the OIDC login path touches `deactivated`, so that control stays available.
+
+### Renaming an OIDC-mapped study
+
+`STUDY_PERMISSION_MAPPING` references studies by their **display name**, matched exactly. Renaming a mapped study silently detaches it from the mapping: the study keeps the permissions it already has, but they are no longer synced, and with `AUTO_CREATE_STUDY_FROM_MAPPING` enabled the next login recreates a second study under the old name. `is_oidc_permission_managed` exists so the client can warn before such a rename.
 
 ---
 

@@ -62,7 +62,7 @@ async function onEditUserRoles(userId: string) {
   try {
     const user = await useGetUser(userId);
     userIdForEditModal.value = userId;
-    rolesForEditModal.value = user.roles;
+    rolesForEditModal.value = user.roles ?? [];
     roleModalOpen.value = true;
   } catch (error) {
     toast.add({
@@ -108,6 +108,7 @@ onMounted(async () => {
         :loading="usersPending"
         :roles="roleStore.availableRoles"
         :users="userStore.allUsers"
+        :current-user="userStore.currentUser"
         @edit-roles="onEditUserRoles"
         @activate-user="onActivateUser"
         @deactivate-user="onDeactivateUser"

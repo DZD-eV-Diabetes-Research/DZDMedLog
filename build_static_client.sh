@@ -1,8 +1,6 @@
 #!/bin/bash
 # Create static frontend files so the python FastApi backend can server the client without the need of an extra node.js server
 
-docker pull oven/bun 
-docker run -it --user $(id -u):$(id -g) -v ./MedLog/openapi.json:/openapi.json -v ./MedLog/frontend:/app oven/bun /bin/sh -c "cd /app && bun install && bunx nuxi generate"
-# wrong file linke because it was made in docker
-rm ./MedLog/frontend/dist
-ln -s .output/public ./MedLog/frontend/dist
+docker pull node:24
+docker run -it --rm -v ./MedLog/openapi.json:/openapi.json:ro -v ./MedLog/frontend:/app-ro:ro -v ./MedLog/frontend/.output:/tmp/output node:24 /bin/sh -c "cp -r /app-ro /app && cd /app && npm ci && npm run generate && mv /app/.output/public /tmp/output/public && chown --recursive \"$(id -u):$(id -g)\" /tmp/output"
+

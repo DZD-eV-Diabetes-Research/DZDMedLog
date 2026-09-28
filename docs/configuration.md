@@ -4,9 +4,18 @@
 > This file is auto-generated from [`MedLog/backend/medlogserver/config.py`](../MedLog/backend/medlogserver/config.py).
 > Run `./build_config_docs.sh` from the repo root to regenerate it.
 
-All settings are supplied via **environment variables** or a `.env` file placed at
-`MedLog/backend/medlogserver/.env`. Nested settings use `__` as the delimiter
-(e.g. `AUTH_OIDC_PROVIDERS__0__ENABLED`).
+All settings are supplied via **environment variables**, a `.env` file placed at
+`MedLog/backend/medlogserver/.env`, or **secret files** (e.g. Docker secrets).
+List settings such as `AUTH_OIDC_PROVIDERS` are passed as one JSON value.
+
+A secret file is named like the setting and holds its value (surrounding whitespace is
+stripped), e.g. `/run/secrets/SERVER_SESSION_SECRET`. MedLog reads secret files from
+`/run/secrets`, or from the directory set in `MEDLOG_SECRETS_DIR`. Environment variables
+and the `.env` file take precedence over secret files. A single OIDC provider value can
+be kept out of the `AUTH_OIDC_PROVIDERS` JSON with a secret file named
+`AUTH_OIDC_PROVIDERS__<list index>__<SETTING>`, e.g. `AUTH_OIDC_PROVIDERS__0__CLIENT_SECRET`.
+A value present in the JSON takes precedence. See
+[Production → Secrets](production.md#secrets-docker-secrets) for an example.
 
 ---
 
@@ -221,14 +230,48 @@ SERVER_LISTENING_HOST: 176.16.8.123
 
 ---
 
-## `SERVER_HOSTNAME`
+## `PUBLIC_URL`
 
-External hostname or domain name under which the API is publicly reachable. Usually a fully-qualified domain name (FQDN) in production. If not set, the system hostname is used as a fallback. This value is used to build the server URL and OAuth redirect URIs.
+The URL under which the application is reachable from the outside, including the scheme and any non-default port. This is the single source of truth for every generated absolute URL: the OIDC redirect URI, the post-logout redirect URI and the login endpoints handed to the web client. Set it to your public address when a reverse proxy terminates TLS in front of the app - the app only ever sees the plaintext hop from the proxy and cannot detect the external scheme or hostname on its own. It is unrelated to SERVER_LISTENING_HOST and SERVER_LISTENING_PORT, which only say where the process binds its socket. If left unset it is derived from the deprecated SERVER_PROTOCOL, SERVER_HOSTNAME and SERVER_LISTENING_PORT settings.
 
 | Property | Value |
 |---|---|
 | Type | str |
 | Required | No |
+| Default | `null` |
+| Environment variable | `PUBLIC_URL` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+PUBLIC_URL: https://medlog.example.com
+```
+
+*Example 2:*
+
+```yaml
+PUBLIC_URL: http://localhost:8888
+```
+
+*Example 3:*
+
+```yaml
+PUBLIC_URL: https://medlog.example.com:8443
+```
+
+---
+
+## `SERVER_HOSTNAME`
+
+DEPRECATED - use PUBLIC_URL instead. External hostname or domain name under which the API is publicly reachable. Still honoured when PUBLIC_URL is unset, and ignored when it is set. Falls back to 'localhost' when neither is configured.
+
+| Property | Value |
+|---|---|
+| Type | str |
+| Required | No |
+| Default | `null` |
 | Environment variable | `SERVER_HOSTNAME` |
 
 **Examples:**
@@ -255,7 +298,7 @@ SERVER_HOSTNAME: 10.0.0.5
 
 ## `SERVER_PROTOCOL`
 
-Protocol used to reach the server from the outside. Automatic detection can fail behind reverse proxies that terminate TLS — set this explicitly to 'https' when serving over SSL.
+DEPRECATED - use PUBLIC_URL instead. Protocol used to reach the server from the outside. Still honoured when PUBLIC_URL is unset, and ignored when it is set.
 
 | Property | Value |
 |---|---|
@@ -277,6 +320,43 @@ SERVER_PROTOCOL: http
 
 ```yaml
 SERVER_PROTOCOL: https
+```
+
+---
+
+## `SERVER_TRUSTED_PROXIES`
+
+Peer addresses whose 'X-Forwarded-Proto', 'X-Forwarded-Host' and 'X-Forwarded-For' headers are honoured when building externally visible URLs such as the OIDC redirect URI. Accepts single addresses and CIDR networks. Set this to the address of your reverse proxy - in Docker that is the proxy container's address on the shared network, not '127.0.0.1'. The wildcard '*' trusts every peer and must not be used in production, because then any client can dictate the host and scheme of generated URLs. Note that PUBLIC_URL already fixes the scheme and hostname without trusting anyone; this setting additionally corrects the client IP recorded on user sessions, and lets a proxy serve the app under more than one hostname.
+
+| Property | Value |
+|---|---|
+| Type | List of str |
+| Required | No |
+| Default | `["127.0.0.1", "::1"]` |
+| Environment variable | `SERVER_TRUSTED_PROXIES` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+SERVER_TRUSTED_PROXIES:
+- 127.0.0.1
+- ::1
+```
+
+*Example 2:*
+
+```yaml
+SERVER_TRUSTED_PROXIES:
+- 10.33.0.200
+```
+
+*Example 3:*
+
+```yaml
+SERVER_TRUSTED_PROXIES:
+- 10.33.0.0/24
 ```
 
 ---
@@ -309,7 +389,7 @@ If True, session cookies are only sent over HTTPS (the Secure flag is set). Set 
 
 ## `CLIENT_URL`
 
-URL where the web client is hosted. Usually the client is bundled with the server and this can be left unset — it is then derived automatically from SERVER_PROTOCOL, SERVER_HOSTNAME, and SERVER_LISTENING_PORT.
+URL where the web client is hosted. Usually the client is bundled with the server and this can be left unset — it is then derived automatically from PUBLIC_URL.
 
 | Property | Value |
 |---|---|
@@ -349,6 +429,25 @@ Support email address displayed in the web client's help text. Leave unset to hi
 
 ```yaml
 BRANDING_SUPPORT_EMAIL_ADDRESS: support@example.com
+```
+
+---
+
+## `DISABLE_UI_PERMISSION_MANAGEMENT`
+
+Hide the role and permission management controls in the web client. Useful when roles and study permissions are managed via OIDC group mappings, where in-app changes are overwritten on the user's next login. Leave unset (default) to derive the value automatically: it is then true as soon as any configured OIDC provider has a non-empty ROLE_MAPPING. Set it explicitly to true or false to override that. This only affects what the web client offers; the API keeps accepting role and permission changes.
+
+| Property | Value |
+|---|---|
+| Type | bool |
+| Required | No |
+| Default | `null` |
+| Environment variable | `DISABLE_UI_PERMISSION_MANAGEMENT` |
+
+**Examples:**
+
+```yaml
+DISABLE_UI_PERMISSION_MANAGEMENT: true
 ```
 
 ---
@@ -430,7 +529,7 @@ Username for the built-in administrator account created on first startup. Must b
 | Type | str |
 | Required | No |
 | Default | `"admin"` |
-| Constraints | StringConstraints(strip_whitespace=True, to_upper=None, to_lower=None, strict=None, min_length=3, max_length=128, pattern=None) |
+| Constraints | StringConstraints(strip_whitespace=True, to_upper=None, to_lower=None, strict=None, min_length=3, max_length=128, pattern=None, ascii_only=None) |
 | Environment variable | `ADMIN_USER_NAME` |
 
 **Examples:**
@@ -643,7 +742,7 @@ NOT YET IMPLEMENTED. Placeholder for a future self-registration feature. Self-re
 
 ## `API_TOKEN_DEFAULT_EXPIRY_TIME_MINUTES`
 
-How many minutes an API access token remains valid after it is issued. Applies to tokens created via login or the token management endpoint. Set to None for tokens that never expire (not recommended for production).
+How many minutes an API access token remains valid after it is issued. Applies to tokens created via the token login endpoints (`/api/auth/basic/login/token`). Tokens created in the token management UI use `API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS` and `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS` instead. Set to None for tokens that never expire (not recommended for production).
 
 | Property | Value |
 |---|---|
@@ -670,6 +769,171 @@ API_TOKEN_DEFAULT_EXPIRY_TIME_MINUTES: 1440
 
 ```yaml
 API_TOKEN_DEFAULT_EXPIRY_TIME_MINUTES: 10080
+```
+
+---
+
+## `API_TOKEN_MANAGEMENT_ENABLED`
+
+Allow logged-in users to create, list and revoke their own long-lived API tokens (endpoints under `/api/user/me/api-token`), e.g. to use the MedLog API from external scripts. The tokens are bound to the user, not to the login they were created with, so they keep working after a logout and for OIDC users. They stop working when they expire, get revoked (by the user or a user manager) or the user is deactivated. Switching this off again also rejects all tokens created while it was on, until it is switched back on. Tokens can only be managed from a browser session, never with an API token. Does not affect the token login endpoints.
+
+| Property | Value |
+|---|---|
+| Type | bool |
+| Required | No |
+| Default | `false` |
+| Environment variable | `API_TOKEN_MANAGEMENT_ENABLED` |
+
+---
+
+## `API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS`
+
+Lifetime in days a managed API token gets when the user does not choose one. Must not exceed `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS`. Set to None to create non-expiring tokens by default, which requires `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS` to be None as well.
+
+| Property | Value |
+|---|---|
+| Type | int |
+| Required | No |
+| Default | `30` |
+| Constraints | Ge(ge=1), Le(le=3650) |
+| Environment variable | `API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS: 7
+```
+
+*Example 2:*
+
+```yaml
+API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS: 30
+```
+
+*Example 3:*
+
+```yaml
+API_TOKEN_MANAGEMENT_DEFAULT_EXPIRY_DAYS: 90
+```
+
+---
+
+## `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS`
+
+The longest lifetime in days a user may choose for a managed API token. Set to None to allow tokens without any expiry date (not recommended for production). Even then a chosen lifetime can not exceed 3650 days.
+
+| Property | Value |
+|---|---|
+| Type | int |
+| Required | No |
+| Default | `365` |
+| Constraints | Ge(ge=1), Le(le=3650) |
+| Environment variable | `API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS: 90
+```
+
+*Example 2:*
+
+```yaml
+API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS: 365
+```
+
+---
+
+## `API_TOKEN_MANAGEMENT_MAX_TOKENS_PER_USER`
+
+How many unexpired managed API tokens one user may have at the same time. Tokens from the token login endpoints do not count. Set to None for no limit.
+
+| Property | Value |
+|---|---|
+| Type | int |
+| Required | No |
+| Default | `20` |
+| Constraints | Ge(ge=1) |
+| Environment variable | `API_TOKEN_MANAGEMENT_MAX_TOKENS_PER_USER` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+API_TOKEN_MANAGEMENT_MAX_TOKENS_PER_USER: 5
+```
+
+*Example 2:*
+
+```yaml
+API_TOKEN_MANAGEMENT_MAX_TOKENS_PER_USER: 20
+```
+
+---
+
+## `API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS`
+
+Managed API tokens of a user who logs in via OpenID Connect stop authenticating when the user's last OIDC login is older than this many days. They work again after the next login. Roles and study permissions of OIDC users are only synced from the provider at login, and MedLog does not learn when a user is removed from the provider. Without this limit a token would keep the access the user had at the last login until the token expires. Set to None to disable the check (tokens then keep working until they expire, are revoked or the user is deactivated in MedLog). Users without any OIDC login are not affected.
+
+| Property | Value |
+|---|---|
+| Type | int |
+| Required | No |
+| Default | `30` |
+| Constraints | Ge(ge=1) |
+| Environment variable | `API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS: 7
+```
+
+*Example 2:*
+
+```yaml
+API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS: 30
+```
+
+*Example 3:*
+
+```yaml
+API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS: 90
+```
+
+---
+
+## `AUTH_OIDC_EXPIRED_LOGIN_RETENTION_MINUTES`
+
+How many minutes an OpenID Connect login is kept after its access token expired. While it is kept, a browser session can still renew the access token with the stored refresh token, so the user stays logged in. After that the background token cleaner deletes the login, its sessions and the API tokens derived from it, and the user has to log in again. Set this to at least the refresh token lifetime of your OIDC provider. `0` deletes a login as soon as its access token expired, so users have to log in again whenever that happens.
+
+| Property | Value |
+|---|---|
+| Type | int |
+| Required | No |
+| Default | `43200` |
+| Constraints | Ge(ge=0) |
+| Environment variable | `AUTH_OIDC_EXPIRED_LOGIN_RETENTION_MINUTES` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+AUTH_OIDC_EXPIRED_LOGIN_RETENTION_MINUTES: 1440
+```
+
+*Example 2:*
+
+```yaml
+AUTH_OIDC_EXPIRED_LOGIN_RETENTION_MINUTES: 43200
 ```
 
 ---
@@ -1399,19 +1663,6 @@ EXPORT_CACHE_DIR: ./export_cache
 ```yaml
 EXPORT_CACHE_DIR: /var/lib/medlog/exports
 ```
-
----
-
-## `PROBAND_IDS_CASE_SENSETIVE`
-
-Controls whether proband (subject) IDs are treated as case-sensitive. If False (default), IDs '1A' and '1a' refer to the same proband. If True, they are treated as distinct probands. Note: the variable name contains a known typo ('SENSETIVE' instead of 'SENSITIVE') that is preserved for backward compatibility with existing deployments.
-
-| Property | Value |
-|---|---|
-| Type | bool |
-| Required | No |
-| Default | `false` |
-| Environment variable | `PROBAND_IDS_CASE_SENSETIVE` |
 
 ---
 

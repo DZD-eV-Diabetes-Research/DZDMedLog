@@ -16,6 +16,8 @@ Study
 
 A **Study** is the top-level container. All data lives inside a study. An instance of MedLog can host multiple studies simultaneously. Each study has its own set of users and permissions (see [Permissions](../PERMISSIONS.md)).
 
+A study can be **cloned** (`POST /api/study/{study_id}/clone`, admins only): the clone gets its own name but reuses the setup of the source study, meaning its proband-ID configuration (pattern, error text, normalization, example) and a copy of its complete event structure. Collected data (interviews, intakes) and study permissions are never copied, so a clone starts empty like a freshly created study.
+
 ### Event
 
 An **Event** represents a timepoint or visit within a study — for example `Baseline`, `Visit-1`, `Month-6`. Events are ordered and define the structure of data collection over time.
@@ -37,6 +39,82 @@ An **Intake** is a single medication entry within an interview. It records:
 - Start and end date of the medication period
 
 Custom / off-label drugs that are not in the drug database can be entered as free-text entries.
+
+#### Plausibility rules
+
+Beyond checking which fields are present and which are mutually exclusive, the backend
+rejects combinations of values that cannot be true. A violation returns **422** with a
+`detail` object naming the `rule` that broke and the `fields` it concerns, so the client can
+show a hint on the right input:
+
+```json
+{
+  "detail": {
+    "rule": "consumed_today_with_past_end_date",
+    "fields": ["consumed_meds_today", "intake_end_date"],
+    "msg": "'consumed_meds_today' is 'Yes', but 'intake_end_date' is before 2026-06-15, ...",
+    "reference": "interview_date",
+    "reference_date": "2026-06-15",
+    "context": {
+      "today": "2026-06-20",
+      "interview_date": "2026-06-15",
+      "earliest_plausible_date": "1950-01-01"
+    }
+  }
+}
+```
+
+`reference_date` is the date the broken rule compared against and `reference` names which
+date that is, so a client can put it into its own translated message ("Das Interview wurde
+am 15.06.2026 begonnen ...") instead of falling back to the English `msg`. It is `null` for
+the rules that compare no date (the ordering and dose rules). `context` holds every
+reference date, for a message that needs more than the one the rule used.
+
+Two moving reference dates are used (the date floor below is the third, constant one):
+
+- **The current UTC date** for the "not in the future" rules. Nothing can be recorded for a
+  day that has not happened yet, so these have no tolerance: tomorrow is a future date. The
+  server has no way of knowing the interviewer's timezone, so in a deployment east of UTC
+  the local date is rejected during the first hours of the local day (in Germany between
+  00:00 and 01:00 or 02:00 local time), when it is still "tomorrow" in UTC.
+- **The day the parent interview was started** (`interview_start_time_utc`) for the "taken
+  today" rules. "Today" in the question "was this medication taken today?" is the day the
+  proband answered it. Using the server date instead would turn a correct answer into a
+  contradiction as soon as an interview stays open across midnight, an interview is entered
+  retroactively, or an entry is corrected on a later day. The interview timestamp is stored
+  as naive UTC while interviewers work in local time, so these comparisons get one day of
+  tolerance in both directions.
+
+| Rule | Rejected because | `reference` |
+| --- | --- | --- |
+| `end_date_before_start_date` | `intake_end_date` is before `intake_start_date`. Both on the same day is a valid one-day intake. | `null` |
+| `start_date_in_future` | The intake has not begun yet, so it cannot be recorded. | `today` |
+| `end_date_in_future` | The intake cannot have ended yet. | `today` |
+| `consumed_today_with_past_end_date` | `consumed_meds_today` is `Yes` although the intake had already ended on the day of the interview. | `interview_date` |
+| `consumed_today_with_future_start_date` | `consumed_meds_today` is `Yes` although the intake had not begun on the day of the interview. | `interview_date` |
+| `dose_per_day_negative` | `dose_per_day` is negative. `0` is allowed and is used when the daily dose is unknown. | `null` |
+| `as_needed_dose_unit_negative` | `as_needed_dose_unit` is negative. `0` is allowed and is used when the dose is unknown. | `null` |
+| `start_date_implausibly_old`, `end_date_implausibly_old` | The date is before the floor `EARLIEST_PLAUSIBLE_DATE` (currently 1950-01-01), which catches typos such as year `0202`. | `earliest_plausible_date` |
+
+These combinations are explicitly **allowed**:
+
+- `consumed_meds_today` of `No` or `UNKNOWN` with any date combination. Not having taken
+  the medication today does not contradict an ongoing intake.
+- `intake_end_date_option = ONGOING` with any `consumed_meds_today` answer.
+- `intake_start_date_option` / `intake_end_date_option` set instead of an exact date. The
+  option carries no date, so the rules that need one are skipped.
+- Start and end date on the same day.
+
+The rules are collected in `MedLog/backend/medlogserver/model/intake_rules.py` and are
+enforced in `IntakeCRUD`, which every write goes through. On **PATCH** they are evaluated
+against the *merged* record (stored row plus payload), so a partial update that only sends
+`intake_end_date` is still checked against the stored start date. A PATCH only triggers the
+rules that concern a field it actually sends: a record that was correct when it was entered
+can become contradictory purely through the passage of time, and correcting an unrelated
+field weeks later must not be blocked by that.
+
+Existing rows are **not** migrated. The rules apply to new writes only, so contradictory
+records created before this validation existed stay as they are.
 
 ---
 
@@ -66,6 +144,10 @@ MedLog supports two login methods:
 
 For OIDC setup details see [Configuration](configuration.md#oidc).
 
+Scripts and other programs authenticate with **API tokens** instead of a browser session. Users can create long-lived, named tokens for their own account if `API_TOKEN_MANAGEMENT_ENABLED` is set, and user managers can revoke the tokens of any user.
+
+Full documentation: [API Tokens](api-tokens.md)
+
 ---
 
 ## Users, Roles & Permissions
@@ -75,7 +157,7 @@ MedLog has a two-layer permission model:
 - **Global roles** — `medlog-admin` and `medlog-user-manager`, controlling system-wide capabilities.
 - **Study permissions** — per-user, per-study flags: `is_study_viewer`, `is_study_interviewer`, `is_study_admin`.
 
-Full documentation: [PERMISSIONS.md](../PERMISSIONS.md)
+Full documentation: [PERMISSIONS.md](docs/PERMISSIONS.md)
 
 ---
 
@@ -99,7 +181,7 @@ A background worker process runs alongside the web server and handles:
 
 - Importing / updating the drug database
 - Running export jobs
-- Cleaning up expired API tokens and old job records
+- Cleaning up expired API tokens, stale logins and old job records
 
 By default the worker runs in a second OS process spawned automatically. For containerised deployments with multiple replicas it can be separated: set `BACKGROUND_WORKER_START_IN_EXTRA_PROCESS=false` on the web server instances and run a dedicated worker container with `python main.py --run_worker_only`.
 

@@ -40,6 +40,7 @@ from medlogserver.model.drug_data.drug_attr import DrugValRef
 from medlogserver.db.drug_data.drug_lov_values import DrugAttrFieldLovItemCRUD
 from medlogserver.model.drug_data.api_drug_model_factory import drug_to_drugAPI_obj
 from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
+from medlogserver.db.drug_data.importers._base import MarketAccessabilityDefinition
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 from medlogserver.model.drug_data.drug import DrugAttrTypeName
@@ -47,6 +48,8 @@ from medlogserver.model.drug_data.drug import DrugAttrTypeName
 log = get_logger(modulename="DRUG_SEARCH_INDEX")
 config = Config()
 MAX_INDEXABLE_LENGTH = 4096
+# distinguishes "not looked up yet" from "importer declares none"
+_UNSET_MARKET_ACCESSABILITY = object()
 if get_db_type(config.SQL_DATABASE_URL) == "postgres":
     # hotfix for https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/110
     MAX_INDEXABLE_LENGTH = 512
@@ -84,6 +87,14 @@ class GenericSQLDrugSearchCache(SQLModel, table=True):
         description="All drug codes aggregated into one indexed string",
     )
     market_exit_date: Optional[datetime.date] = Field(default=None)
+    market_accessable: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Whether the drug is still obtainable according to the importer's market "
+            "status attribute. NULL when the importer has no such attribute or the "
+            "drug carries no value for it; such drugs count as accessible."
+        ),
+    )
     is_custom_drug: bool = Field(default=False)
 
 
@@ -95,6 +106,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         engine_config: Dict = None,
     ):
         self.drug_data_importer_class = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]
+        self._market_accessability_definition = _UNSET_MARKET_ACCESSABILITY
         self.current_dataset_version: Optional[DrugDataSetVersion] = None
         self.custom_drugs_dataset_version: Optional[DrugDataSetVersion] = None
         self._all_drug_attr_field_definitions: (
@@ -241,6 +253,20 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             )
         return self._all_drug_attr_field_definitions
 
+    def _get_market_accessability_definition(
+        self,
+    ) -> Optional[MarketAccessabilityDefinition]:
+        """How the active importer expresses market availability, if at all.
+
+        None means the importer has no market status attribute, so availability is
+        judged by `market_exit_date` alone.
+        """
+        if self._market_accessability_definition is _UNSET_MARKET_ACCESSABILITY:
+            self._market_accessability_definition = (
+                self.drug_data_importer_class().market_accessability
+            )
+        return self._market_accessability_definition
+
     def remove_trademark_symbols(self, text: str) -> str:
         """
         Remove trademark, registered trademark, copyright, and similar symbols from text.
@@ -305,6 +331,7 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         searchable_multi = [f.field_name for f in all_defs.get("attrs_multi", []) if f.searchable]
         searchable_ref = [f.field_name for f in all_defs.get("attrs_ref", []) if f.searchable]
         searchable_multi_ref = [f.field_name for f in all_defs.get("attrs_multi_ref", []) if f.searchable]
+        searchable_codes = [c.id for c in all_defs.get("codes", []) if c.searchable]
 
         is_pg = get_db_type(config.SQL_DATABASE_URL) == "postgres"
         sql = self._build_index_insert_sql(
@@ -312,7 +339,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             searchable_multi=searchable_multi,
             searchable_ref=searchable_ref,
             searchable_multi_ref=searchable_multi_ref,
+            searchable_codes=searchable_codes,
             is_pg=is_pg,
+            market_accessability=self._get_market_accessability_definition(),
         )
         log.debug("[INDEX BUILD UP] Running INSERT...SELECT aggregation in database...")
         await session.execute(
@@ -333,7 +362,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
         searchable_multi: List[str],
         searchable_ref: List[str],
         searchable_multi_ref: List[str],
+        searchable_codes: List[str],
         is_pg: bool,
+        market_accessability: Optional[MarketAccessabilityDefinition] = None,
     ) -> str:
         """Build an INSERT...SELECT that populates the search cache entirely in SQL.
 
@@ -432,21 +463,50 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             joins.append("LEFT JOIN smr ON smr.drug_id = d.id")
             content_parts.append("COALESCE(' ' || smr.agg_val, '')")
 
-        # Codes contribute to search_index_content (value only) and search_cache_codes (system:code)
-        agg_codes_content = _agg("code")
-        agg_codes = _agg("code_system_id || ':' || code", sep="'|'")
-        ctes.append(
-            "ac AS (\n"
-            "    SELECT drug_id,\n"
-            "           " + agg_codes_content + " AS agg_codes_content,\n"
-            "           " + agg_codes + " AS agg_codes\n"
-            "    FROM drug_code\n"
-            "    WHERE drug_id IN (SELECT id FROM filtered_drugs)\n"
-            "    GROUP BY drug_id\n"
-            ")"
-        )
-        joins.append("LEFT JOIN ac ON ac.drug_id = d.id")
-        content_parts.append("COALESCE(' ' || ac.agg_codes_content, '')")
+        # Market availability: some sources flag "no longer distributed" through a
+        # reference attribute instead of an exit date (issue #360). Resolve it here
+        # so the search filter stays a plain column lookup.
+        market_accessable_expr = "NULL"
+        if market_accessability is not None:
+            accessable_values = _quoted_names(market_accessability.accessable_values)
+            ctes.append(
+                "ma AS (\n"
+                "    SELECT drug_id, value\n"
+                "    FROM drug_attr_ref_val\n"
+                "    WHERE drug_id IN (SELECT id FROM filtered_drugs)\n"
+                "      AND field_name = '" + market_accessability.field_name + "'\n"
+                ")"
+            )
+            joins.append("LEFT JOIN ma ON ma.drug_id = d.id")
+            # No row or no value (custom drugs, other importers) stays NULL, which
+            # the search filter reads as "accessible" — same behaviour as before.
+            market_accessable_expr = (
+                "CASE WHEN ma.value IS NULL THEN NULL\n"
+                "         WHEN ma.value IN (" + accessable_values + ") THEN TRUE\n"
+                "         ELSE FALSE END"
+            )
+
+        # Searchable codes contribute to search_index_content (value only) and
+        # search_cache_codes (system:code)
+        codes_expr = "''"
+        if searchable_codes:
+            names = _quoted_names(searchable_codes)
+            agg_codes_content = _agg("code")
+            agg_codes = _agg("code_system_id || ':' || code", sep="'|'")
+            ctes.append(
+                "ac AS (\n"
+                "    SELECT drug_id,\n"
+                "           " + agg_codes_content + " AS agg_codes_content,\n"
+                "           " + agg_codes + " AS agg_codes\n"
+                "    FROM drug_code\n"
+                "    WHERE drug_id IN (SELECT id FROM filtered_drugs)\n"
+                "      AND code_system_id IN (" + names + ")\n"
+                "    GROUP BY drug_id\n"
+                ")"
+            )
+            joins.append("LEFT JOIN ac ON ac.drug_id = d.id")
+            content_parts.append("COALESCE(' ' || ac.agg_codes_content, '')")
+            codes_expr = "COALESCE(ac.agg_codes, '')"
 
         raw_content = " || ".join(content_parts)
         if is_pg:
@@ -466,13 +526,15 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
 
         return (
             "INSERT INTO drug_search_generic_sql_cache\n"
-            "    (id, search_index_content, search_cache_codes, market_exit_date, is_custom_drug)\n"
+            "    (id, search_index_content, search_cache_codes, market_exit_date,\n"
+            "     market_accessable, is_custom_drug)\n"
             "WITH " + ctes_sql + "\n"
             "SELECT\n"
             "    d.id,\n"
             "    " + content_expr + ",\n"
-            "    COALESCE(ac.agg_codes, ''),\n"
+            "    " + codes_expr + ",\n"
             "    d.market_exit_date,\n"
+            "    " + market_accessable_expr + ",\n"
             "    d.is_custom_drug\n"
             "FROM drug d\n"
             "JOIN filtered_drugs fd ON fd.id = d.id\n"
@@ -494,9 +556,18 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             searchable_drug_fields_names_by_type[attr_type_name] = [
                 dd.field_name for dd in field_defintions if dd.searchable == True
             ]
+        searchable_code_system_ids = [
+            c.id for c in drug_attr_field_defs_all.get("codes", []) if c.searchable
+        ]
+        searchable_codes = [
+            c for c in drug.codes if c.code_system_id in searchable_code_system_ids
+        ]
         field_values_aggregated = drug.trade_name
         for attr in drug.attrs:
-            if attr.field_name in searchable_drug_fields_names_by_type["attrs"]:
+            if (
+                attr.field_name in searchable_drug_fields_names_by_type["attrs"]
+                and attr.value is not None
+            ):
                 field_values_aggregated += f" {attr.value}"
         for attr_multi in drug.attrs_multi:
             if (
@@ -522,10 +593,12 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                             )
                 else:
                     lov_item = attr_ref.lov_item
+                # like the bulk index build: the value counts even without a LOV item
+                field_values_aggregated += f" {attr_ref.value}"
                 if lov_item:
-                    field_values_aggregated += f" {attr_ref.value} {lov_item.display}"
+                    field_values_aggregated += f" {lov_item.display}"
 
-        for code in drug.codes:
+        for code in searchable_codes:
             field_values_aggregated += f" {code.code}"
 
         for attr_multi_ref in drug.attrs_multi_ref:
@@ -547,7 +620,9 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                                 value=attr_multi_ref.value,
                             )
 
-                field_values_aggregated += f" {attr_multi_ref.value} {lov_item.display}"
+                field_values_aggregated += f" {attr_multi_ref.value}"
+                if lov_item:
+                    field_values_aggregated += f" {lov_item.display}"
         field_values_aggregated = (
             field_values_aggregated[:MAX_INDEXABLE_LENGTH]
             if field_values_aggregated
@@ -557,17 +632,43 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
             id=drug.id,
             search_index_content=self.remove_trademark_symbols(field_values_aggregated),
             search_cache_codes="|".join(
-                [f"{c.code_system_id}:{c.code}" for c in drug.codes]
+                [f"{c.code_system_id}:{c.code}" for c in searchable_codes]
             ),
             market_exit_date=drug.market_exit_date,
+            market_accessable=self._drug_market_accessable(drug),
             is_custom_drug=drug.is_custom_drug,
         )
 
+    def _drug_market_accessable(self, drug: DrugData) -> Optional[bool]:
+        """Mirror of the index build's market status resolution for a single drug.
+
+        Returns None when the importer declares no market status attribute or the
+        drug carries no value for it. Such drugs count as accessible, which is what
+        keeps custom drugs findable under the "currently on the market" filter.
+        """
+        market_accessability = self._get_market_accessability_definition()
+        if market_accessability is None:
+            return None
+        for attr_ref in drug.attrs_ref:
+            if attr_ref.field_name == market_accessability.field_name:
+                if attr_ref.value is None:
+                    return None
+                return str(attr_ref.value) in market_accessability.accessable_values
+        return None
+
     async def index_ready(self) -> bool:
         state = await self._get_state()
+        if state.index_build_up_in_process or state.last_index_build_at is None:
+            return False
+        # After a drug dataset update the new dataset is active before the index is
+        # rebuilt. Until then the index still lists drugs of the old dataset, which the
+        # search result lookup filters out, so the result would not match its
+        # `total_count` (issue #364). Treat such an outdated index as not ready.
+        current_dataset_version = await self._get_current_dataset_version()
         return (
-            not state.index_build_up_in_process
-            and state.last_index_build_at is not None
+            current_dataset_version is not None
+            and state.last_index_build_based_on_drug_datasetversion_id
+            == current_dataset_version.id
         )
 
     async def insert_drug_to_index(self, drug: DrugData):
@@ -863,20 +964,32 @@ class GenericSQLDrugSearchEngine(MedLogDrugSearchEngineBase):
                         DrugValRef.value == str(filter_ref_value),
                     )
                 )
-        if market_accessable == True:
-            query = query.where(
-                or_(
-                    is_(GenericSQLDrugSearchCache.market_exit_date, None),
-                    GenericSQLDrugSearchCache.market_exit_date > datetime.date.today(),
-                )
+        # A drug is obtainable when it has not left the market by date AND its
+        # importer's market status does not say otherwise (issue #360). A NULL
+        # status means the importer cannot tell, which counts as obtainable.
+        if market_accessable is not None:
+            today = datetime.date.today()
+            not_exited = or_(
+                is_(GenericSQLDrugSearchCache.market_exit_date, None),
+                GenericSQLDrugSearchCache.market_exit_date > today,
             )
-        if market_accessable == False:
-            query = query.where(
-                and_(
-                    is_not(GenericSQLDrugSearchCache.market_exit_date, None),
-                    GenericSQLDrugSearchCache.market_exit_date < datetime.date.today(),
-                )
+            status_allows = or_(
+                is_(GenericSQLDrugSearchCache.market_accessable, None),
+                GenericSQLDrugSearchCache.market_accessable == True,
             )
+            if market_accessable:
+                query = query.where(and_(not_exited, status_allows))
+            else:
+                # the exact complement, so "yes" and "no" together cover every drug
+                query = query.where(
+                    or_(
+                        and_(
+                            is_not(GenericSQLDrugSearchCache.market_exit_date, None),
+                            GenericSQLDrugSearchCache.market_exit_date <= today,
+                        ),
+                        GenericSQLDrugSearchCache.market_accessable == False,
+                    )
+                )
         query = query.where(score_cases > 0)
         if pagination:
             query = pagination.append_to_query(

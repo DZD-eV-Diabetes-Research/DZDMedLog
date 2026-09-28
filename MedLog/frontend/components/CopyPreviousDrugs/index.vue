@@ -61,8 +61,8 @@ const error = ref();
 const errorTitle = ref("");
 const loading = ref(false);
 
-const previousIntakes = ref<any[]>([])
-const selectedIntakes = ref<any[]>([])
+const previousIntakes = ref<any[]>([]) // eslint-disable-line @typescript-eslint/no-explicit-any
+const selectedIntakes = ref<any[]>([]) // eslint-disable-line @typescript-eslint/no-explicit-any
 const lastEventName = ref("")
 const lastEventDate = ref("")
 

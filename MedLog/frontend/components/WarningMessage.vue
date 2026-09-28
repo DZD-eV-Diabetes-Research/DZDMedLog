@@ -12,6 +12,7 @@ defineProps({
       variant="subtle"
       :title="title"
       :description="message"
+      :ui="{ title: 'font-bold' }"
   />
 </template>
 

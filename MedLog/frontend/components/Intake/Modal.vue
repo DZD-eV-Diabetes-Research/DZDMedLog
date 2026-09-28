@@ -35,8 +35,8 @@
         <IntakeForm
             :drug-id="intakeDrugId"
             :initial-state="intakeFormInitialState"
+            :submit-callback="formSubmitCallback"
             @cancel="$emit('cancel')"
-            @save="data => $emit('save', data)"
         />
       </div>
     </UCard>
@@ -72,23 +72,30 @@
 <script setup lang="ts">
 import { onMounted, ref } from "#imports";
 import type {SchemaDrugCustomCreate} from "#open-fetch-schemas/medlogapi";
+import type {IntakeFormSchema} from "~/components/Intake/Form.vue";
 
-const props = defineProps({
-  isDrugEditable: { type: Boolean, default: true },
-  initialState: { type: Object, default: null },
-});
+interface Props {
+  formSubmitCallback: (data: IntakeFormSchema) => Promise<void>
+  initialState?: Partial<IntakeFormSchema> | null
+  isDrugEditable?: boolean
+}
 
-defineEmits(['cancel', 'save'])
+const props = withDefaults(defineProps<Props>(), {
+  initialState: null,
+  isDrugEditable: true,
+})
+
+defineEmits(['cancel'])
 
 const createCustomDrugError = ref();
 const customDrugModalVisibility = ref(false);
 const intakeDrugId = ref<string>('');
-const intakeFormInitialState = ref();
+const intakeFormInitialState = ref<Partial<IntakeFormSchema>>();
 
 function onDrugSelected(newDrugId: string, activeIngredientOnly?: boolean) {
   intakeDrugId.value = newDrugId;
   if (activeIngredientOnly === true || activeIngredientOnly === false) {
-    const state = { isActiveIngredientEquivalentChoice: activeIngredientOnly };
+    const state = { is_activeingredient_equivalent_choice: activeIngredientOnly };
     if (intakeFormInitialState.value) {
       Object.assign(intakeFormInitialState.value, state);
     } else {

@@ -11,6 +11,7 @@ from typing import (
     Self,
 )
 import enum
+from decimal import Decimal
 from pydantic import (
     ValidationError,
     validate_email,
@@ -22,7 +23,7 @@ from pydantic import (
 from fastapi import Depends
 from typing import Optional
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc
-from sqlalchemy import Enum as SAEnum
+from sqlalchemy import Enum as SAEnum, Numeric
 from datetime import datetime, timezone, date
 import uuid
 from uuid import UUID
@@ -53,7 +54,42 @@ config = Config()
 
 
 class IntakeValidationError(ValueError):
-    pass
+    """Raised for every intake rule violation.
+
+    Everything but `message` is set for the plausibility rules in
+    `medlogserver/model/intake_rules.py`, so the API can tell the client which
+    rule broke, which fields to highlight and which date the check was made
+    against. `reference_date` is the date the broken rule compared against and
+    `reference` names which date that is, so a client can drop the date into its
+    own translated message without knowing the semantics of every rule.
+    `context` carries all reference dates, for a message that needs more than
+    one. They stay `None`/empty for the field-presence and mutual-exclusivity
+    errors raised below, which are raised from inside pydantic validators and get
+    wrapped in a `ValidationError` anyway, losing any extra attributes.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        rule_id: Optional[str] = None,
+        fields: Sequence[str] = (),
+        reference: Optional[str] = None,
+        reference_date: Optional[str] = None,
+        context: Optional[Dict[str, str]] = None,
+    ):
+        super().__init__(message)
+        self.rule_id = rule_id
+        self.fields = tuple(fields)
+        self.reference = reference
+        self.reference_date = reference_date
+        self.context = dict(context) if context else {}
+
+
+# `dose_per_day` is stored as NUMERIC(6, 2): fractional tablets down to a
+# hundredth (0.25, 0.2, ...) and up to 9999.99 doses a day, which is well
+# beyond any realistic intake.
+DOSE_PER_DAY_PRECISION = 6
+DOSE_PER_DAY_SCALE = 2
 
 
 class AdministeredByDoctorAnswers(str, enum.Enum):
@@ -204,9 +240,26 @@ class IntakeUpdate(MedLogBaseModel, table=False):
             nullable=True,
         ),
     )
-    dose_per_day: Optional[int] = Field(
+    dose_per_day: Optional[float] = Field(
         default=None,
-        description="Number of doses taken per day.",
+        description=(
+            "Number of doses taken per day. Must not be negative; `0` is allowed "
+            "and is used when the daily dose is unknown. "
+            "Fractional doses (half or quarter tablets) are allowed with at most "
+            "2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
+        ),
+        # Numeric(...) instead of Float, so Postgres stores the value exactly as
+        # entered instead of a binary approximation. asdecimal=False keeps the
+        # Python/JSON type a plain number. A Decimal would be serialized as a
+        # JSON string by pydantic and break existing API consumers.
+        sa_column=Column(
+            Numeric(
+                precision=DOSE_PER_DAY_PRECISION,
+                scale=DOSE_PER_DAY_SCALE,
+                asdecimal=False,
+            ),
+            nullable=True,
+        ),
     )
     regular_intervall_of_daily_dose: Optional[IntervalOfDailyDoseAnswers] = Field(
         default=None,
@@ -223,7 +276,8 @@ class IntakeUpdate(MedLogBaseModel, table=False):
     as_needed_dose_unit: Optional[int] = Field(
         default=None,
         description=(
-            "Dose unit for as-needed intake. "
+            "Dose unit for as-needed intake. Must not be negative; `0` is allowed "
+            "and is used when the dose is unknown. "
             "Required when `intake_regular_or_as_needed` is `AS_NEEDED`. "
             "Must be `null` when `intake_regular_or_as_needed` is `REGULAR`."
         ),
@@ -236,6 +290,25 @@ class IntakeUpdate(MedLogBaseModel, table=False):
             nullable=True,
         ),
     )
+
+    @field_validator("dose_per_day")
+    @classmethod
+    def validate_dose_per_day_decimal_places(
+        cls, v: Optional[float]
+    ) -> Optional[float]:
+        """Reject doses with more decimal places than the column can store.
+
+        Postgres would silently round a NUMERIC(6, 2) column while SQLite would
+        keep the full float, so the two backends would disagree on what was
+        saved. Rejecting the value keeps them in sync and tells the caller.
+        """
+        if v is None:
+            return v
+        if Decimal(str(v)).as_tuple().exponent < -DOSE_PER_DAY_SCALE:
+            raise IntakeValidationError(
+                f"'dose_per_day' must have at most {DOSE_PER_DAY_SCALE} decimal places, got {v}"
+            )
+        return v
 
     @model_validator(mode="before")
     @classmethod
@@ -372,6 +445,10 @@ class IntakeCreateAPI(IntakeUpdate, table=False):
         description="ID of the drug as returned from the drug search.",
         default=None,
         foreign_key="drug.id",
+        # Without this index PostgreSQL runs a sequential referential integrity
+        # check per deleted drug row, and the obsolete drug cleanup cannot use an
+        # index for its "drug is not referenced by any intake" anti-join.
+        index=True,
     )
 
     consumed_meds_today: ConsumedMedsTodayAnswers = Field()

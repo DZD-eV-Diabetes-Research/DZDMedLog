@@ -40,16 +40,24 @@ class UserStudyAccess:
         self,
         as_role: Literal[None, "admin", "viewer", "interviewer"] = "viewer",
     ):
+        if self.study.deactivated and as_role == "interviewer":
+            # A deactivated study is closed for data collection: no interviews, intakes or
+            # events can be created or changed through the interviewer role, not even by an
+            # instance admin. Viewing stays possible (the study and its data remain
+            # readable) and so does study administration, which is what allows an admin to
+            # reactivate the study. See issue #348 and the open questions in issue #197.
+            return False
         if self.user.is_admin():
             return True
         elif self.user.is_usermanager() and as_role in (None, "viewer"):
             # user-managers can view/list all studies for permission-management purposes;
             # elevated roles (interviewer, admin) still require explicit study permissions
             return True
-        elif self.study.no_permissions:
-            # the study has access permission switched off. all user have access
+        if self.study.no_permissions and as_role in (None, "viewer", "interviewer"):
+            # the study has access permission switched off: all users are interviewers.
+            # Study admin access still has to be granted explicitly (see `Study.no_permissions`)
             return True
-        elif self.user_study_perm:
+        if self.user_study_perm:
             if as_role is None or as_role == "viewer":
                 return (
                     self.user_study_perm.is_study_admin
@@ -64,6 +72,27 @@ class UserStudyAccess:
             elif as_role == "admin":
                 return self.user_study_perm.is_study_admin
         return False
+
+    def assert_study_is_not_deactivated(self, what: str = "this study"):
+        """Refuse a modifying request because the study is deactivated.
+
+        Deactivation closes a study for changes (issue #197). Data collection is already
+        covered by `user_has_access()` denying the interviewer role, but the study
+        *setup* - its events - is gated on the study-admin role, which deliberately stays
+        open so an admin can reactivate the study. Endpoints that change such setup call
+        this explicitly.
+
+        Deliberately exempt: patching the study itself, which is what carries the
+        reactivation, and everything read-only (listing events, exports, downloads).
+        """
+        if self.study.deactivated:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    f"Study '{self.study.display_name}' is deactivated. "
+                    f"Reactivate the study to change {what}."
+                ),
+            )
 
     def user_is_study_interviewer(self) -> bool:
         return self.user_has_access(as_role="interviewer")
@@ -100,16 +129,24 @@ class UserStudyAccessCollection:
         """
 
         if study_id:
-            studies_data = [await study_crud.get(study_id)]
+            # `show_deactivated=True` mirrors the list branch below: a deactivated study must
+            # still resolve here, otherwise no access entry is built for it and every
+            # per-study endpoint answers 404 "study does not exist" - even though the study
+            # list reports the study to the caller (issue #348). What a deactivated study
+            # still allows is decided in `UserStudyAccess.user_has_access()`, not by hiding
+            # the study from the access layer.
+            studies_data = [await study_crud.get(study_id, show_deactivated=True)]
         else:
             studies_data = await study_crud.list(show_deactivated=True)
-        if self.user.is_usermanager():
-            # Pre-populate all studies with no-perm access so usermanagers can list/view all studies
-            for study in studies_data:
-                if study is not None:
-                    self.studies_access[study.id] = UserStudyAccess(
-                        self.user, study, None
-                    )
+        # Pre-populate studies without a permission row: usermanagers can list/view all
+        # studies, and a `no_permissions` study is open to every user (issue #194).
+        # Without an entry here `user_has_access()` is never asked and the study stays
+        # hidden (list) or answers 404 (per-study endpoints).
+        for study in studies_data:
+            if study is not None and (
+                self.user.is_usermanager() or study.no_permissions
+            ):
+                self.studies_access[study.id] = UserStudyAccess(self.user, study, None)
 
         # Load actual study permissions for all users (including usermanagers) so
         # elevated roles (interviewer, study-admin) are honoured even for usermanagers
@@ -153,6 +190,31 @@ async def user_has_studies_access_map(
         study_crud=study_crud, study_permisson_crud=study_permisson_crud
     )
     return access_helper
+
+
+async def user_is_study_admin_somewhere(
+    access_map: Annotated[
+        UserStudyAccessCollection, Security(user_has_studies_access_map)
+    ],
+) -> User:
+    """Authorize an endpoint that has no single study to scope to, but should still be
+    restricted to study administrators (e.g. the stateless proband-ID pattern test).
+
+    Passes for an instance admin or for any user who is study-admin of at least one study.
+    Rejects plain viewers/interviewers and users with no study-admin rights. This is a
+    least-privilege control (issue #318, item 6) for a path where the caller supplies the
+    regex itself.
+    """
+    user = access_map.user
+    if user.is_admin():
+        return user
+    for study_access in access_map.studies_access.values():
+        if study_access.user_is_study_admin():
+            return user
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="This endpoint is restricted to study administrators.",
+    )
 
 
 async def user_has_study_access(

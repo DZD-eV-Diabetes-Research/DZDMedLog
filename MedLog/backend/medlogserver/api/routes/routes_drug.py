@@ -54,6 +54,7 @@ from medlogserver.model.drug_data.api_drug_model_factory import (
 from medlogserver.model.drug_data.drug import DrugCustomCreate
 from medlogserver.db.drug_data.drug import (
     DrugWithCodeAllreadyExists,
+    DrugWithNameAllreadyExists,
     CustomDrugAttrNotValid,
 )
 from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
@@ -171,7 +172,7 @@ class DrugAttrFieldDefinitionContainer(BaseModel):
     description=f"Search for drug in the drug database.",
     responses={
         status.HTTP_425_TOO_EARLY: {
-            "description": "Index in build up error </br>The Index is still busy being build and therefore no search is available at the moment. </br>The Error detail message will be: `The search index is not ready yet. Please try it later`"
+            "description": "Index in build up error </br>The Index is still busy being build, or was not yet rebuilt after a drug dataset update, and therefore no search is available at the moment. </br>The Error detail message will be: `The search index is not ready yet. Please try it later`"
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
             "description": "No search engine configured. </br>This can happen if the config is borked. By default search engine settings it wont.</br> The Error detail message will be: `The search index is not configured. Please contact the admin.`"
@@ -457,6 +458,14 @@ async def get_drug_code_details(
     "/drug/custom",
     response_model=CustomDrugAPIRead,
     description=f"Add a custom drug to the drug database. Should be used as a last resort if the user can not find a specific drug in the search.",
+    responses={
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "The drug search index is not available. </br>Either it is still being build or no search engine is configured. </br>A custom drug can only be created when the user was able to search the drug index for an existing drug beforehand."
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": "A drug with the same name (case-insensitive) or the same unique drug code allready exists in the current drug dataset or in the custom drugs."
+        },
+    },
 )
 async def create_custom_drug(
     custom_drug: DrugCustomCreate,
@@ -467,17 +476,31 @@ async def create_custom_drug(
     drug_crud: DrugCRUD = Depends(DrugCRUD.get_crud),
     drug_search: DrugSearch = Depends(get_drug_search),
 ) -> CustomDrugAPIRead:
+    # Creating a custom drug is only a valid fallback if the user was able to search
+    # the drug index first. Check the index upfront, otherwise we would commit the new
+    # drug and only afterwards fail to insert it into the (not yet existing) index.
+    try:
+        await drug_search._preflight()
+    except SearchEngineNotReadyException:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The search index is not ready yet. A custom drug can not be created at the moment. Please try it later",
+        )
+    except SearchEngineNotConfiguredException:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The search index is not configured. Please contact the admin.",
+        )
     custom_drug_dataset = await drug_dataset_crud.get_custom()
     try:
         new_custom_drug = await drug_crud.create_custom(
             drug_create=custom_drug, custom_drug_dataset=custom_drug_dataset, user_id = user.id
         )
-    except DrugWithCodeAllreadyExists as e:
+    except (DrugWithCodeAllreadyExists, DrugWithNameAllreadyExists) as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except CustomDrugAttrNotValid as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
         )
-    await drug_search._preflight()
     await drug_search.search_engine.insert_drug_to_index(new_custom_drug)
     return await drug_to_drugAPI_obj(new_custom_drug)

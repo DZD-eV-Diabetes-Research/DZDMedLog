@@ -55,7 +55,7 @@ export const useUserStore = defineStore('UserStore', {
             }
 
             const roleStore = useRoleStore()
-            return this.currentUser.roles.some(role => roleStore.isAdminRole(role));
+            return (this.currentUser.roles ?? []).some(role => roleStore.isAdminRole(role));
         },
         isUserAdmin(): boolean {
             if (!this.currentUser) {
@@ -63,7 +63,7 @@ export const useUserStore = defineStore('UserStore', {
             }
 
             const roleStore = useRoleStore()
-            return this.currentUser.roles.some(role => roleStore.isUserManagerRole(role));
+            return (this.currentUser.roles ?? []).some(role => roleStore.isUserManagerRole(role));
         },
         nameForUser(state: UserStore) {
             return (userId: string) => {

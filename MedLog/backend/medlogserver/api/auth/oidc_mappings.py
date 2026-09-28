@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from medlogserver.config import Config
+from medlogserver.config import Config, VALID_STUDY_PERMISSION_FLAGS
 from medlogserver.log import get_logger
 from medlogserver.model.user import User, UserUpdateByAdmin
 from medlogserver.model.user_info_oidc import UserInfoOidc
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 log = get_logger()
 config = Config()
 
-_VALID_STUDY_PERMISSIONS = {"is_study_interviewer", "is_study_viewer", "is_study_admin"}
+_VALID_STUDY_PERMISSIONS = set(VALID_STUDY_PERMISSION_FLAGS)
 
 
 async def apply_oidc_group_mappings(

@@ -175,6 +175,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 desc="ATC-Klassifikation des GKV-Arzneimittelindex mit ATC-Code,ATC-Bedeutung",
                 optional=True,
                 unique=False,
+                searchable=True,
             ),
             DrugCodeSystem(
                 id="PZN",
@@ -182,6 +183,7 @@ class WidoAiImporter52(DrugDataSetImporterBase):
                 country="Germany",
                 optional=False,
                 unique=True,
+                searchable=True,
             ),
         ]
         self._code_definitions = codes_defs

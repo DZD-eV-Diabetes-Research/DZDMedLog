@@ -63,12 +63,17 @@ def set_config_for_test_env():
     os.environ["SERVER_SESSION_SECRET"] = (
         "asdöghjsekrhsergl669823jsakdgl!32kgsadefghs5gakljghlkej5h30985zu0awgh0j34g093a4jgh09ajg09j340tgjhj45po"
     )
-    os.environ["CLIENT_URL"] = "https://localhost:8888"
+    # The test server speaks plain http on this port. This is now load-bearing:
+    # post-login redirects are absolute URLs built from CLIENT_URL.
+    os.environ["CLIENT_URL"] = "http://localhost:8888"
     os.environ["BRANDING_SUPPORT_EMAIL_ADDRESS"] = "mytest@test.de"
     os.environ["DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB"] = str(
         DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB
     )
     os.environ["SYSTEM_ANNOUNCEMENTS"] = json.dumps(SYSTEM_ANNOUNCEMENTS)
+    # Off by default. The live suite needs it on, the "switched off" behaviour is
+    # covered in-process in tests_api_token_management.py.
+    os.environ["API_TOKEN_MANAGEMENT_ENABLED"] = "true"
 
 
 # Set env vars at module level so they're in place before any test module is
@@ -92,6 +97,38 @@ def pytest_addoption(parser):
         choices=["postgres", "sqlite"],
         help="Database backend: 'postgres' (default, Docker) or 'sqlite'",
     )
+
+
+def _database_url_for(db: str) -> str:
+    return _PG_URL if db == "postgres" else f"sqlite+aiosqlite:///{DB_PATH}"
+
+
+def pytest_configure(config):
+    """Pin SQL_DATABASE_URL before any test module gets imported.
+
+    medlogserver.db._session binds `config = Config()` at import time, so the
+    URL that is in os.environ during collection is the one the test process
+    itself talks to for the whole run. Setting it only in the `database`
+    fixture is too late: test modules that import medlogserver models during
+    collection pin the SQLite fallback from set_config_for_test_env(), while
+    the server subprocess runs against Postgres, and direct DB assertions in
+    tests then query an empty SQLite file.
+    """
+    os.environ["SQL_DATABASE_URL"] = _database_url_for(config.getoption("--db"))
+
+
+def _resync_db_engine():
+    """Drop the cached engine so it is rebuilt from the current env.
+
+    Safety net for the case that something imported medlogserver.db._session
+    before pytest_configure() ran.
+    """
+    from medlogserver.config import Config
+    from medlogserver.db import _session
+
+    _session.config = Config()
+    _session._db_engine = None
+    _session._async_session_factory = None
 
 _OIDC_TEST_USERS = [
     {
@@ -119,6 +156,28 @@ _OIDC_TEST_USERS = [
             "email": "oidc-study-perm-test@test.com",
             "given_name": "OIDC Study Perm Test",
             "groups": [OIDC_TEST_INTERVIEWER_GROUP],
+        },
+    },
+    {
+        # Dedicated account for the "a deactivated user can not log in via OIDC" test.
+        # It gets its own sub and no groups so that deactivating it can never leak into
+        # another test that shares the account.
+        "sub": "oidc-deactivated-test-user",
+        "userinfo": {
+            "name": "oidc-deactivated-test-user",
+            "email": "oidc-deactivated-test@test.com",
+            "given_name": "OIDC Deactivated Test",
+            "groups": [],
+        },
+    },
+    {
+        # Dedicated account for the api token management tests (issue #198).
+        "sub": "oidc-api-token-test-user",
+        "userinfo": {
+            "name": "oidc-api-token-test-user",
+            "email": "oidc-api-token-test@test.com",
+            "given_name": "OIDC Api Token Test",
+            "groups": [],
         },
     },
 ]
@@ -254,10 +313,11 @@ def database(request):
         if reset:
             Path(DB_PATH).unlink(missing_ok=True)
             logger.info("Deleted SQLite DB at %s", DB_PATH)
-        url = f"sqlite+aiosqlite:///{DB_PATH}"
+        url = _database_url_for("sqlite")
         logger.info("SQLite DB will persist at %s after the run.", DB_PATH)
 
     os.environ["SQL_DATABASE_URL"] = url
+    _resync_db_engine()
     logger.info("Database URL: %s", url.replace(_PG_PW, "***"))
 
     yield

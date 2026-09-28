@@ -10,7 +10,7 @@
 - Git
 - Python 3.11 or higher (the setup script manages the exact version via `uv`)
 - Docker (for PostgreSQL dev containers and running tests against Postgres)
-- [bun](https://bun.sh) or npm/node (the setup script installs bun automatically)
+- npm/node (the setup script installs nvm and the required Node version automatically)
 
 ---
 
@@ -64,13 +64,13 @@ pip install -r MedLog/backend/requirements_tests.txt
 ./build_client_dev_env.sh
 ```
 
-This installs bun (or updates it if present) and runs `bun install` in `MedLog/frontend/`.
+This installs [nvm](https://github.com/nvm-sh/nvm/) (or updates it if present), sets up Node.js and runs `npm install` in `MedLog/frontend/`.
 
 If you prefer a different package manager:
 
 ```bash
 cd MedLog/frontend
-npm install   # or: yarn install / pnpm install
+yarn install   # or: pnpm install / bun install
 ```
 
 ---
@@ -120,7 +120,7 @@ If you need more control:
 export LOG_LEVEL=DEBUG
 export SERVER_SESSION_SECRET=IAMASTUPIDDUMMYANDTHATSOKSDEALWITHITINEEDTOBE64CHARSLONGTHATWHYIKEEPTALKING
 export ADMIN_USER_PW=password123
-export SERVER_HOSTNAME=localhost
+export PUBLIC_URL=http://localhost:8888
 export DEMO_MODE=true
 
 python MedLog/backend/medlogserver/main.py
@@ -134,12 +134,32 @@ In a second terminal (with the backend already running):
 
 ```bash
 cd MedLog/frontend
-bun run dev
+npm run dev
 ```
 
 The Nuxt dev server starts on **http://localhost:3000** with hot-reload.
 
 The backend API is proxied automatically. The interactive API docs are at **http://localhost:8888/docs**.
+
+### Point logins back at the dev server
+
+By default the backend sends you to its own origin after login, where it serves
+the last static build rather than your hot-reloading dev server. Set `CLIENT_URL`
+to the Nuxt dev server when starting the backend:
+
+```bash
+CLIENT_URL=http://localhost:3000 ./run_dev_backend_server_with_oidc.sh
+```
+
+`CLIENT_URL` is where the **web client** lives; `PUBLIC_URL` stays the
+**backend's** own address, because the OIDC callback has to reach the backend.
+Do not set `PUBLIC_URL=http://localhost:3000`: that would point the OIDC
+`redirect_uri` at the Nuxt dev server, which has no callback endpoint.
+
+> [!NOTE]
+> The `run_dev_backend_server_with_oidc*.sh` scripts `export` these variables,
+> and an exported variable takes precedence over a `.env` file. Override them on
+> the command line as shown above rather than in `.env`.
 
 ---
 
@@ -217,7 +237,7 @@ make frontend
 ./build_static_client.sh
 ```
 
-Uses a Docker container with bun — no local bun installation needed.
+Uses a Docker container with node — no local node installation needed.
 
 ### Build the Docker image
 

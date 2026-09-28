@@ -1,7 +1,13 @@
 <template>
   <LayoutHeader />
+  <div v-if="showWarningHeader" class="warning h-11 text-center my-6 flex flex-col justify-center items-center">
+    <span class="bg-white bg-opaci1ty-90 p-1 font-semibold align-middle rounded-lg border border-black">
+      Testumgebung &ndash; Keine Echtdaten eintragen!
+    </span>
+  </div>
   <NuxtPage id="content-wrap" />
   <LayoutFooter />
+  <UModals />
   <UNotifications />
 </template>
 
@@ -30,6 +36,15 @@ useHead(() => ({
     lang: 'de',
   },
 }))
+
+const showWarningHeader = computed(() => {
+  return configStore.versionInfo.branch === 'dev' || (
+      configStore.versionInfo.branch === 'HEAD' && (
+          (configStore.versionInfo.version ?? '').includes('beta') ||
+          (configStore.versionInfo.version ?? '').includes('dev')
+      )
+  );
+});
 
 async function refreshStatus() {
   try {
@@ -106,3 +121,15 @@ if (userStore.isLoggedIn) {
 }
 
 </script>
+
+<style scoped>
+.warning {
+  background-image: repeating-linear-gradient(
+      -45deg,
+      yellow,
+      yellow 20px,
+      black 20px,
+      black 40px
+  );
+}
+</style>

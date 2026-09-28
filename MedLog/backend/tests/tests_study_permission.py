@@ -518,7 +518,11 @@ def test_endpoint_study_permissions_me_as_regular_user():
 
 
 def test_endpoint_study_permissions_me_as_usermanager_without_db_row():
-    """Usermanager with no explicit DB permission row gets a synthetic viewer-only permission."""
+    """Usermanager with no explicit DB permission row gets an all-false synthetic permission.
+
+    A usermanager may list every study to manage its permissions, but that is not a
+    study-level role: /permissions/me must not report them as a viewer of the study.
+    """
     from medlogserver.config import Config as _Config
 
     _config = _Config()
@@ -548,11 +552,11 @@ def test_endpoint_study_permissions_me_as_usermanager_without_db_row():
         method="get",
         access_token=um_token,
     )
-    # Usermanagers get implicit viewer access only — no interviewer or study-admin rights
+    # The usermanager role grants no study-level permission of its own
     dict_must_contain(
         result,
         required_keys_and_val={
-            "is_study_viewer": True,
+            "is_study_viewer": False,
             "is_study_interviewer": False,
             "is_study_admin": False,
         },
@@ -745,3 +749,143 @@ def test_study_admin_cannot_manage_permissions_in_other_study():
         expected_http_code=404,
     )
     print("  ✓ Study admin correctly blocked from managing permissions in a different study")
+
+
+def test_endpoint_study_permissions_me_as_admin_on_deactivated_study():
+    """Issue #348: a global admin must be able to read /permissions/me for a deactivated study.
+
+    The frontend bootstrap lists all studies (including deactivated ones) and then asks
+    for the caller's permissions per study. `UserStudyAccessCollection.init()` resolves a
+    single study via `StudyCRUD.get()` without `show_deactivated=True`, so for a
+    deactivated study no access entry is built and `user_has_study_access` answers
+    404 "Study ... does not exist" - the bootstrap error in the issue.
+    """
+    study_data = create_test_study(
+        study_name="TestAdminPermsMeDeactivatedStudy", with_events=0
+    )
+    study_id = str(study_data.study.id)
+
+    # Deactivate the study (as admin, while it is still active and thus reachable)
+    deactivated_study = req(
+        f"/api/study/{study_id}",
+        method="patch",
+        b={"deactivated": True},
+    )
+    assert deactivated_study["deactivated"] is True
+
+    # The bootstrap lists deactivated studies too, so the frontend knows this study id
+    # (a generous limit: the test suite leaves more than one page of studies behind)
+    studies = req(
+        "/api/study", method="get", q={"show_deactived": True, "limit": 10000}
+    )
+    assert study_id in [
+        s["id"] for s in studies["items"]
+    ], "deactivated study is not listed for an admin - test setup is wrong"
+
+    # ... and then asks for its own permissions for every listed study. This is the
+    # call that currently fails with 404.
+    result = req(
+        f"/api/study/{study_id}/permissions/me",
+        method="get",
+    )
+    dict_must_contain(
+        result,
+        required_keys_and_val={
+            "is_study_viewer": True,
+            "is_study_interviewer": True,
+            "is_study_admin": True,
+        },
+        exception_dict_identifier="admin synthetic permission on deactivated study",
+    )
+    assert result["study_id"] == study_id
+
+
+def test_no_permissions_study_is_open_to_users_without_permission_row():
+    """Issue #194: a study with `no_permissions` must be listed and usable for every user,
+    as viewer and interviewer, even without a study permission row. Study admin access
+    still has to be granted explicitly.
+    """
+    study_data = create_test_study(study_name="TestNoPermissionsStudy", with_events=1)
+    closed_study_data = create_test_study(
+        study_name="TestNoPermissionsClosedStudy", with_events=0
+    )
+    study_id = str(study_data.study.id)
+    req(f"/api/study/{study_id}", method="patch", b={"no_permissions": True})
+
+    user_password = "noperm_pw_4471"
+    test_user = create_test_user(
+        user_name="no_permissions_study_user",
+        password=user_password,
+        email="no_permissions_study_user@test.com",
+    )
+    test_user_token = authorize_for_access_token(
+        username=test_user.user_name,
+        pw=user_password,
+        set_as_global_default_login=False,
+    )
+
+    # Listed, while a regular study without a permission row stays hidden
+    studies = req(
+        "/api/study", method="get", q={"limit": 10000}, access_token=test_user_token
+    )
+    listed_ids = [s["id"] for s in studies["items"]]
+    assert study_id in listed_ids
+    assert str(closed_study_data.study.id) not in listed_ids
+
+    # Per-study endpoints resolve the study instead of answering 404
+    req(f"/api/study/{study_id}", method="get", access_token=test_user_token)
+    events = req(
+        f"/api/study/{study_id}/event", method="get", access_token=test_user_token
+    )
+    event_ids = [e["id"] for e in events["items"]]
+    assert event_ids
+
+    # Interviewer role is granted (reordering is gated on the interviewer role)
+    req(
+        f"/api/study/{study_id}/event/order",
+        method="post",
+        b=event_ids,
+        access_token=test_user_token,
+    )
+
+    # Study admin role is not granted
+    req(
+        f"/api/study/{study_id}/event",
+        method="post",
+        b={"name": "NoPermissionsUserEvent"},
+        access_token=test_user_token,
+        expected_http_code=403,
+    )
+
+    # The client derives its UI from /permissions/me, which must report the effective roles
+    result = req(
+        f"/api/study/{study_id}/permissions/me",
+        method="get",
+        access_token=test_user_token,
+    )
+    dict_must_contain(
+        result,
+        required_keys_and_val={
+            "is_study_viewer": True,
+            "is_study_interviewer": True,
+            "is_study_admin": False,
+        },
+        exception_dict_identifier="no_permissions study /me",
+    )
+    assert result["user_id"] == str(test_user.id)
+
+    # An explicit study-admin row still grants study admin on a `no_permissions` study
+    from medlogserver.model.study_permission import StudyPermissonUpdate
+
+    req(
+        f"/api/study/{study_id}/permissions/{test_user.id}",
+        method="put",
+        b=dictyfy(StudyPermissonUpdate(is_study_admin=True)),
+    )
+    result = req(
+        f"/api/study/{study_id}/permissions/me",
+        method="get",
+        access_token=test_user_token,
+    )
+    assert result["is_study_admin"] is True
+    assert result["is_study_interviewer"] is True

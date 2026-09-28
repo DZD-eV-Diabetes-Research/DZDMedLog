@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "[INFO] Checking for Bun..."
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-if command -v bun >/dev/null 2>&1; then
-    echo "[INFO] Bun found. Updating..."
-    curl -fsSL https://bun.sh/install | bash
+echo "[INFO] Checking for nvm..."
+
+if command -v nvm >/dev/null 2>&1; then
+    echo "[INFO] nvm found. Updating..."
+    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.6/install.sh | bash
 else
-    echo "[INFO] Bun not found. Installing..."
-    curl -fsSL https://bun.sh/install | bash
+    echo "[INFO] nvm not found. Installing..."
+    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.6/install.sh | bash
 fi
 
-# Ensure Bun is in PATH for this session
-export PATH="$HOME/.bun/bin:$PATH"
-
-if ! command -v bun >/dev/null 2>&1; then
-    echo "[ERROR] Bun installation failed or PATH not set."
+if ! command -v nvm >/dev/null 2>&1; then
+    echo "[ERROR] nvm installation failed or nvm not loaded."
     exit 1
 fi
 
-echo "[INFO] Bun version: $(bun --version)"
+echo "[INFO] nvm version: $(nvm --version)"
 
 TARGET_DIR="./MedLog/frontend"
 
@@ -28,8 +28,12 @@ if [ ! -d "$TARGET_DIR" ]; then
     exit 1
 fi
 
-echo "[INFO] Running bun install in $TARGET_DIR..."
+echo "[INFO] Setting up Node.js in $TARGET_DIR..."
 cd "$TARGET_DIR"
-bun install
+nvm install
+nvm use
 
-echo "[INFO] bun install completed successfully in $TARGET_DIR"
+echo "[INFO] Running npm install in $TARGET_DIR..."
+npm install
+
+echo "[INFO] npm install completed successfully in $TARGET_DIR"

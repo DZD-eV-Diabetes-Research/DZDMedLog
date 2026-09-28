@@ -20,6 +20,7 @@ from medlogserver.model.user_auth import (
     UserAuth,
     UserAuthCreate,
     AllowedAuthSchemeType,
+    OidcTokenDecryptionError,
 )
 from medlogserver.db.user_auth import (
     UserAuthCRUD,
@@ -91,7 +92,15 @@ async def oidc_refresh_access_token(
     log.debug("REFRESH OIDC TOKEN")
     # sanity check
     assert user_session.user_auth_id == user_auth.id
-    old_token = user_auth.get_decrypted_oidc_token()
+    try:
+        old_token = user_auth.get_decrypted_oidc_token()
+    except OidcTokenDecryptionError as e:
+        # The stored token is unrecoverable (storage secret changed). Treat this as
+        # "not authenticated" instead of a server error, so the client can log in again.
+        log.warning(f"OIDC token refresh failed: {e}")
+        if raise_custom_expection_if_fails:
+            raise raise_custom_expection_if_fails
+        raise e
     refresh_token = old_token.get("refresh_token")
     if not refresh_token:
         log.warning("OIDC token refresh failed: no refresh_token stored for this session")
@@ -160,6 +169,8 @@ async def validate_api_token(
         token,
         raise_exception_if_wrong=not_authenticated_exception,
     )
+    if user_auth_crud is not None:
+        await user_auth_crud.record_api_token_use(token_user_auth, token)
     return token_user_auth
 
 
@@ -174,7 +185,6 @@ async def wipe_expired_user_session_or_user_auth(
 
 def get_access_token_expires_at_value_from_token(token: dict) -> int:
     raw_userinfo: Dict | None = None
-    log.debug(f"get_access_token_expires_at_value_from_token token {token}")
     if "userinfo" in token and "exp" in token["userinfo"]:
         return token["userinfo"]["exp"]
     if "expire_at" in token:

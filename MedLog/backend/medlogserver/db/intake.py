@@ -7,6 +7,7 @@ from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc, and_, func
 from datetime import datetime, timezone
+from types import SimpleNamespace
 import uuid
 from uuid import UUID
 
@@ -16,11 +17,18 @@ from medlogserver.log import get_logger
 from medlogserver.model._base_model import MedLogBaseModel, BaseTable, TimestampModel
 from medlogserver.model.event import Event
 from medlogserver.model.interview import Interview
+from medlogserver.model.study import ProbandExternalIdNormalization
+from medlogserver.db.proband_id import build_proband_external_id_filter
 from medlogserver.model.intake import (
     Intake,
     IntakeCreate,
     IntakeUpdate,
     IntakeDetailListItem,
+)
+from medlogserver.model.intake_rules import (
+    INTAKE_PLAUSIBILITY_FIELDS,
+    IntakeReference,
+    validate_intake_plausibility,
 )
 from medlogserver.model.drug_data.drug import DrugData
 from medlogserver.model.drug_data.api_drug_model_factory import (
@@ -42,12 +50,113 @@ class IntakeCRUD(
         update_model=IntakeUpdate,
     )
 ):
+    async def _plausibility_reference(
+        self, interview_id: Optional[UUID]
+    ) -> IntakeReference:
+        """Build the reference dates for the rules from the parent interview.
+
+        The "was this taken today?" rules are checked against the day the
+        interview was started, not against the server date, so an interview that
+        stays open across midnight or an entry that is corrected on a later day
+        does not turn a correct answer into a contradiction (issue #338).
+        """
+        interview: Optional[Interview] = None
+        if interview_id is not None:
+            interview = (
+                await self.session.exec(
+                    select(Interview).where(Interview.id == interview_id)
+                )
+            ).one_or_none()
+        return IntakeReference.for_interview_start(
+            getattr(interview, "interview_start_time_utc", None)
+        )
+
+    async def create(
+        self,
+        obj: IntakeCreate,
+        exists_ok: bool = False,
+        raise_custom_exception_if_exists: Optional[Exception] = None,
+        skip_plausibility_checks: bool = False,
+    ) -> Intake:
+        """Create an intake after checking it against the plausibility rules.
+
+        The checks live here and not in the route so that every writer is
+        covered by the same rules. `skip_plausibility_checks` exists for bulk
+        imports of pre-existing data (provisioning), which must not be rejected
+        for contradictions that were allowed when the data was recorded.
+        """
+        if not skip_plausibility_checks:
+            validate_intake_plausibility(
+                obj,
+                reference=await self._plausibility_reference(
+                    getattr(obj, "interview_id", None)
+                ),
+            )
+        return await super().create(
+            obj,
+            exists_ok=exists_ok,
+            raise_custom_exception_if_exists=raise_custom_exception_if_exists,
+        )
+
+    async def update(
+        self,
+        update_obj: IntakeUpdate | Intake,
+        id_: Optional[UUID] = None,
+        raise_exception_if_not_exists: Optional[Exception] = None,
+        skip_plausibility_checks: bool = False,
+    ) -> Intake:
+        """Update an intake after checking the *merged* record.
+
+        The generic `update()` merges the payload field by field onto the row
+        without revalidating, so a PATCH that only sends `intake_end_date` would
+        never be checked against the start date already stored. The merged view
+        is built here and handed to the rules.
+
+        Only rules that concern a field the request actually sent are enforced,
+        see `validate_intake_plausibility()`.
+        """
+        if not skip_plausibility_checks:
+            merge_id = id_ if id_ is not None else getattr(update_obj, "id", None)
+            if merge_id is None:
+                raise ValueError("No id_ (primary key) provided. Could not update")
+            current = await self._get(
+                id_=merge_id, raise_exception_if_none=raise_exception_if_not_exists
+            )
+            if current is not None:
+                # Mirror what the generic update() will actually write.
+                changed = {
+                    k: v
+                    for k, v in update_obj.model_dump(exclude_unset=True).items()
+                    if k in IntakeUpdate.model_fields
+                }
+                # A plain namespace instead of a copy of the ORM object, so the
+                # merged view can never end up attached to the session.
+                merged = SimpleNamespace(
+                    **{
+                        field: changed.get(field, getattr(current, field, None))
+                        for field in INTAKE_PLAUSIBILITY_FIELDS
+                    }
+                )
+                validate_intake_plausibility(
+                    merged,
+                    reference=await self._plausibility_reference(
+                        getattr(current, "interview_id", None)
+                    ),
+                    restrict_to_fields=changed.keys(),
+                )
+        return await super().update(
+            update_obj=update_obj,
+            id_=id_,
+            raise_exception_if_not_exists=raise_exception_if_not_exists,
+        )
+
     async def list(
         self,
         filter_event_id: str = None,
         filter_interview_id: str = None,
         filter_proband_external_id: str = None,
         filter_study_id: str = None,
+        proband_external_id_normalization: ProbandExternalIdNormalization = ProbandExternalIdNormalization.NONE,
         pagination: Optional[QueryParamsInterface] = None,
     ) -> List[Intake]:
         query = select(Intake)
@@ -62,15 +171,13 @@ class IntakeCRUD(
         if filter_event_id:
             query = query.where(Interview.event_id == filter_event_id)
         if filter_proband_external_id:
-            if config.PROBAND_IDS_CASE_SENSETIVE:
-                query = query.where(
-                    Interview.proband_external_id == filter_proband_external_id
+            query = query.where(
+                build_proband_external_id_filter(
+                    Interview.proband_external_id,
+                    filter_proband_external_id,
+                    proband_external_id_normalization,
                 )
-            else:
-                query = query.where(
-                    func.lower(Interview.proband_external_id)
-                    == func.lower(filter_proband_external_id)
-                )
+            )
         if filter_interview_id:
             query = query.where(Intake.interview_id == filter_interview_id)
         if pagination:
@@ -84,6 +191,7 @@ class IntakeCRUD(
         filter_interview_id: str = None,
         filter_proband_external_id: str = None,
         filter_study_id: str = None,
+        proband_external_id_normalization: ProbandExternalIdNormalization = ProbandExternalIdNormalization.NONE,
     ) -> int:
         # Todo that is stupid. we need a batter way to return total count for pagination, then repeat the query.
         return len(
@@ -92,6 +200,7 @@ class IntakeCRUD(
                 filter_interview_id=filter_interview_id,
                 filter_proband_external_id=filter_proband_external_id,
                 filter_study_id=filter_study_id,
+                proband_external_id_normalization=proband_external_id_normalization,
             )
         )
 
@@ -101,6 +210,7 @@ class IntakeCRUD(
         filter_interview_id: str = None,
         filter_proband_external_id: str = None,
         filter_study_id: str = None,
+        proband_external_id_normalization: ProbandExternalIdNormalization = ProbandExternalIdNormalization.NONE,
         pagination: Optional[QueryParamsInterface] = None,
     ) -> List[IntakeDetailListItem]:
         query = select(Intake, Interview, Event).select_from(Intake)
@@ -111,15 +221,13 @@ class IntakeCRUD(
         if filter_event_id:
             query = query.where(Interview.event_id == filter_event_id)
         if filter_proband_external_id:
-            if config.PROBAND_IDS_CASE_SENSETIVE:
-                query = query.where(
-                    Interview.proband_external_id == filter_proband_external_id
+            query = query.where(
+                build_proband_external_id_filter(
+                    Interview.proband_external_id,
+                    filter_proband_external_id,
+                    proband_external_id_normalization,
                 )
-            else:
-                query = query.where(
-                    func.lower(Interview.proband_external_id)
-                    == func.lower(filter_proband_external_id)
-                )
+            )
         if filter_interview_id:
             query = query.where(Intake.interview_id == filter_interview_id)
         if pagination:
@@ -149,25 +257,20 @@ class IntakeCRUD(
         study_id: str | uuid.UUID,
         proband_external_id: str,
         raise_exception_if_no_last_interview: Exception = None,
+        proband_external_id_normalization: ProbandExternalIdNormalization = ProbandExternalIdNormalization.NONE,
         pagination: Optional[QueryParamsInterface] = None,
     ) -> List[Intake]:
         last_interview_query = select(Interview).join(Event)
-        if config.PROBAND_IDS_CASE_SENSETIVE:
-            last_interview_query = last_interview_query.where(
-                and_(
-                    Interview.proband_external_id == proband_external_id,
-                    Event.study_id == study_id,
-                )
+        last_interview_query = last_interview_query.where(
+            and_(
+                build_proband_external_id_filter(
+                    Interview.proband_external_id,
+                    proband_external_id,
+                    proband_external_id_normalization,
+                ),
+                Event.study_id == study_id,
             )
-
-        else:
-            last_interview_query = last_interview_query.where(
-                and_(
-                    func.lower(Interview.proband_external_id)
-                    == func.lower(proband_external_id),
-                    Event.study_id == study_id,
-                )
-            )
+        )
         last_interview_query = last_interview_query.order_by(
             desc(Interview.interview_end_time_utc)
         ).limit(1)

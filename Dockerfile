@@ -1,14 +1,12 @@
 #FRONTEND BUILD STAGE
-
-
-FROM oven/bun AS medlog-frontend-build
-RUN mkdir /frontend_build
+FROM node:24.18 AS medlog-frontend-build
 WORKDIR /frontend_build
-COPY MedLog/frontend /frontend_build
-RUN rm -rf /frontend_build/.nuxt
-RUN rm -rf /frontend_build/.output
-RUN rm -rf /frontend_build/node_modules
-RUN bun install && bun run build && bunx nuxi generate
+COPY MedLog/frontend/package.json MedLog/frontend/package-lock.json .
+RUN npm ci --no-audit
+COPY MedLog/frontend .
+COPY MedLog/openapi.json /openapi.json
+RUN rm -rf .nuxt && npm run postinstall
+RUN npm run generate
 
 # BACKEND BUILD AND RUN STAGE
 FROM python:3.14 AS medlog-backend
@@ -70,7 +68,6 @@ WORKDIR $BASEDIR/$MODULENAME
 ENV SERVER_LISTENING_HOST=0.0.0.0
 ENV APP_PROVISIONING_DATA_YAML_FILES='[]'
 ENV DRUG_TABLE_PROVISIONING_SOURCE_DIR=/data/provisioning/dummy_drugset
-ENV SERVER_HOSTNAME=localhost
 ENV EXPORT_CACHE_DIR=/data/export
 ENV SQL_DATABASE_URL="sqlite+aiosqlite:////data/db/medlog.db"
 ENTRYPOINT ["python", "./main.py"]

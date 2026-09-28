@@ -1,6 +1,8 @@
-from typing import Optional, Union, List, Annotated
+from typing import Optional, Union, List, Annotated, Literal
+import uuid
+from urllib.parse import urlencode
 from pydantic import BaseModel, Field, ValidationError
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import FastAPI, Request, Depends, Response, HTTPException, status
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlmodel import SQLModel, Session, create_engine, select
@@ -34,6 +36,7 @@ from medlogserver.model.user_auth import (
     UserAuth,
     UserAuthCreate,
     AllowedAuthSchemeType,
+    OidcTokenDecryptionError,
 )
 
 from medlogserver.model.user_session import UserSession, UserSessionCreate
@@ -42,15 +45,50 @@ from medlogserver.api.auth.security import (
     oauth_clients,
     get_current_user,
     api_token_security,
+    not_authenticated_exception,
 )
 from medlogserver.api.auth.utils import (
     get_userinfo_from_token_or_endpoint,
     get_access_token_expires_at_value_from_token,
     generate_client_session_id,
+    validate_api_token,
 )
 
 log = get_logger()
 config = Config()
+
+
+def is_safe_target_path(target_path: str) -> bool:
+    """True for a site-root-relative path that cannot leave this deployment.
+
+    "//evil.com" and "/\\evil.com" start with a slash but are protocol-relative
+    URLs that a browser resolves to an external origin, so a startswith("/")
+    check alone is not enough to prevent an open redirect.
+    """
+    if not target_path.startswith("/"):
+        return False
+    if target_path.startswith("//") or target_path.startswith("/\\"):
+        return False
+    return True
+
+
+def client_redirect_url(target_path: Optional[str]) -> str:
+    """Absolute URL on the web client to send the browser to after login.
+
+    When this runs the browser sits on the *server's* origin: either the login
+    form posted there, or the OIDC provider redirected there. A bare path would
+    therefore resolve against the server. In a split deployment - a Nuxt dev
+    server on :3000 in front of the backend on :8888 - that drops the user on
+    the wrong app, serving whatever stale bundle the backend has on disk.
+
+    CLIENT_URL is the web client's origin and defaults to the server's own URL,
+    so bundled deployments are unaffected.
+    """
+    if not target_path or not is_safe_target_path(target_path):
+        if target_path:
+            log.warning(f"Refused unsafe login target path: '{target_path}'")
+        target_path = "/"
+    return f"{str(config.CLIENT_URL).rstrip('/')}{target_path}"
 
 
 NEEDS_ADMIN_API_INFO = "Needs admin role."
@@ -170,7 +208,7 @@ async def auth_basic_login_session_based(
     )
     user_session: UserSession = await user_session_crud.create(new_session)
     response = RedirectResponse(
-        url="/" if not target_path else target_path,
+        url=client_redirect_url(target_path),
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
@@ -316,10 +354,6 @@ async def auth_oidc_callback(
 ):
     # Retrieve the original path from session
     target_path: str = request.session.pop("target_path", "/")
-    # target_path sanity check. must be a local root path ("/thing/bla..."). Not an external ("http://..."" or an relativ "path/blaa/..")
-    if target_path and not target_path.startswith("/"):
-        log.warning(f"Weird auth_oidc_callback target path: '{target_path}'")
-        target_path = "/"
 
     login_type: Literal["token", "session"] = request.session.pop("login_type", "token")
     oauth_client = oauth_clients[provider_slug].client
@@ -332,11 +366,18 @@ async def auth_oidc_callback(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Auth error can not fetch access token from {oauth_client.access_token_url}. Error: {e}",
         )
-    log.debug(f"Token {token}")
     userinfo = await get_userinfo_from_token_or_endpoint(
         token, oauth_client, oauth_config
     )
-    user = await user_crud.get_by_user_name(user_name=userinfo.preferred_username)
+    user = await user_crud.get_by_user_name(
+        user_name=userinfo.preferred_username, show_deactivated=True
+    )
+    if user is not None and user.deactivated:
+        # Deactivation is a local decision the IdP knows nothing about, so it has to be
+        # enforced here. Without show_deactivated=True the lookup returns None and the
+        # auto-create branch below would try to recreate the user, which dies on the
+        # unique user_name constraint (500 instead of 401).
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     if user is None and oauth_config.AUTO_CREATE_AUTHORIZED_USER:
         try:
             user_create = UserCreate.from_oidc_userinfo(userinfo)
@@ -355,6 +396,11 @@ async def auth_oidc_callback(
         user_crud=user_crud,
         study_permission_crud=study_permission_crud,
         study_crud=study_crud,
+    )
+    # Managed api tokens of OIDC users pause when this gets too old
+    # (API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS)
+    await user_crud.set_last_oidc_login_at(
+        user.id, datetime.now(tz=timezone.utc).replace(tzinfo=None)
     )
     user_auth = await user_auth_crud.create(
         UserAuthCreate(
@@ -393,7 +439,7 @@ async def auth_oidc_callback(
 
     elif login_type == "session":
         # Set a session cookie (here, just user ID as session token)
-        response = RedirectResponse(url="/" if not target_path else target_path)
+        response = RedirectResponse(url=client_redirect_url(target_path))
         response.set_cookie(
             key=SESSION_COOKIE_NAME,
             value=str(user_session.id),
@@ -415,24 +461,37 @@ async def logout(
     session_cookie = request.cookies.get(SESSION_COOKIE_NAME)
     if session_cookie:
         try:
-            session = await user_session_crud.get(uuid.UUID(session_cookie))
-        except Exception:
+            session_id = uuid.UUID(session_cookie)
+        except ValueError:
             session = None
+        else:
+            session = await user_session_crud.get(session_id)
 
         if session:
             user_auth = await user_auth_crud.get(session.user_auth_id)
             await user_session_crud.delete(session.id)
-            await user_auth_crud.delete(user_auth.id)
-
-            if user_auth.auth_source_type == AllowedAuthSchemeType.oidc:
-                oidc_token = user_auth.get_decrypted_oidc_token()
-                id_token = oidc_token.get("id_token")
+            # An OIDC login belongs to this one session and goes with it. A basic login
+            # is the user's password record and must survive the logout.
+            if (
+                user_auth is not None
+                and user_auth.auth_source_type == AllowedAuthSchemeType.oidc
+            ):
+                await user_auth_crud.delete(user_auth.id)
+                try:
+                    id_token = user_auth.get_decrypted_oidc_token().get("id_token")
+                except OidcTokenDecryptionError as e:
+                    # Local logout already happened above. Without the id_token we can
+                    # still send the user to the provider, just without an id_token_hint.
+                    log.warning(f"Logout without id_token_hint: {e}")
+                    id_token = None
                 oauth_client = oauth_clients[user_auth.oidc_provider_slug]
                 server_metadata = await oauth_client.client.load_server_metadata()
                 end_session_endpoint = server_metadata.get("end_session_endpoint")
 
                 if end_session_endpoint:
-                    params = {"post_logout_redirect_uri": str(request.base_url)}
+                    params = {
+                        "post_logout_redirect_uri": f"{str(config.CLIENT_URL).rstrip('/')}/"
+                    }
                     if id_token:
                         params["id_token_hint"] = id_token
                     end_session_url = f"{end_session_endpoint}?{urlencode(params)}"
@@ -449,17 +508,18 @@ async def logout(
         response.delete_cookie(SESSION_COOKIE_NAME)
         return response
 
-    # API token-based logout: delete only the token record itself
+    # API token-based logout: delete only the token record itself. The token id is not a
+    # secret (the token management lists it), so the secret has to be verified first.
     if api_token:
-        token = api_token.credentials
         try:
-            token_id = token.split(".", maxsplit=1)[0]
-            token_user_auth = await user_auth_crud.get_api_token_by_id(
-                token_id=token_id
+            token_user_auth = await validate_api_token(
+                token=api_token.credentials,
+                not_authenticated_exception=not_authenticated_exception,
+                user_auth_crud=user_auth_crud,
             )
-            if token_user_auth:
-                await user_auth_crud.delete(id=token_user_auth.id)
-        except Exception:
-            pass
+        except HTTPException:
+            token_user_auth = None
+        if token_user_auth is not None:
+            await user_auth_crud.delete(id=token_user_auth.id)
 
     return JSONResponse(content={"message": "Logged out successfully"})

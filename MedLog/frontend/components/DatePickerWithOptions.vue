@@ -10,6 +10,7 @@ const selectedOptionValue = defineModel('option', {
 
 const props = defineProps<{
   options: Array<{ value: string; label: string; }>,
+  earliestDate?: string,
 }>();
 
 const dateSelectionMode = ref<boolean>(false);
@@ -80,6 +81,7 @@ watch([selectedDate, selectedOptionValue], ([newSelectedDate, newSelectedOptionV
         v-show="dateSelectionMode"
         v-model="selectedDate"
         type="date"
+        :min="earliestDate"
     />
     <UDropdown
       :items="dropdownItems"

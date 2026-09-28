@@ -21,7 +21,7 @@ export const useStudyPermissionStore = defineStore('StudyPermissionStore', {
             const {$medlogapi} = useNuxtApp();
             const permissions = [];
 
-            for (const study of studyStore.studies) {
+            for (const study of studyStore.allStudies) {
                 if (!study.id) {
                     continue;
                 }
@@ -51,6 +51,12 @@ export const useStudyPermissionStore = defineStore('StudyPermissionStore', {
         currentUserCanInterview(state) {
             return (studyId?: string): boolean => {
                 if (!studyId) {
+                    return false;
+                }
+
+                const studyStore = useStudyStore();
+                if (!studyStore.isStudyActive(studyId)) {
+                    // No one is allowed to conduct an interview in a deactivated study
                     return false;
                 }
 

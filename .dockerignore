@@ -357,6 +357,18 @@ yarn-error.log*
 *.sw*
 
 # Nuxt dev/build outputs
+# NOTE: .dockerignore patterns are anchored to the build context root, they are
+# NOT re-applied per directory like .gitignore. The bare entries below only match
+# ./node_modules, ./.nuxt, ... in the repo root. The `**/` variants are what
+# actually keep MedLog/frontend/{node_modules,.nuxt,.output} out of the context.
+# Without them a local dev install gets copied over the image's `npm ci` result
+# and the frontend build fails with a broken/mixed module tree.
+**/node_modules/
+**/.output/
+**/.data/
+**/.nuxt/
+**/.nitro/
+**/.cache/
 .output
 .data
 .nuxt

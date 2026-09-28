@@ -6,6 +6,7 @@ from sqlmodel import Field
 import uuid
 
 
+import sqlmodel.main
 from sqlmodel import SQLModel
 
 
@@ -16,6 +17,27 @@ from medlogserver.log import get_logger
 log = get_logger()
 config = Config()
 import uuid
+
+
+# sqlmodel >= 0.0.32 attaches a `FieldInfoMetadata` instance to every `Field()`.
+# It is a plain `@dataclass`, so Python generates `__eq__` and sets `__hash__` to
+# `None` -> any `Annotated[..., FieldInfoMetadata(...)]` becomes unhashable. FastAPI's
+# OpenAPI generation collects those annotations into a set
+# (`fastapi/_compat/v2.py: input_types = {f.field_info.annotation for f in fields}`)
+# and dies with `TypeError: unhashable type: 'FieldInfoMetadata'`.
+# In our case this is triggered by class-as-dependency params (`= Depends()`) on
+# SQLModel models, which FastAPI expands into individual route fields.
+#
+# Restoring identity-based hashing is safe: sqlmodel never puts these objects into a
+# set or dict, it only scans `field_info.metadata` with `isinstance()`. Note that the
+# obvious alternatives `@dataclass(unsafe_hash=True)` / `frozen=True` would NOT work
+# here, because they hash the field tuple - which contains `sa_column_kwargs` dicts.
+#
+# Neither fastapi nor sqlmodel have fixed this upstream (both proposed PRs were closed
+# by the stale bot without merging: sqlmodel#1889, fastapi#15429). Verified still broken
+# with fastapi 0.141.1 / sqlmodel 0.0.39 / pydantic 2.13.4.
+# See https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/226
+sqlmodel.main.FieldInfoMetadata.__hash__ = object.__hash__
 
 
 class MedLogBaseApiModel(BaseModel):

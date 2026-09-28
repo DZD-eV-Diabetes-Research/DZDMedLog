@@ -2,24 +2,35 @@
 import type { SchemaStudyPermissionRead } from "#open-fetch-schemas/medlogapi";
 
 const permissionLabels = ["Study Viewer", "Study Interviewer", "Study Admin"];
-const columns = [{
-  key: 'name',
-  label: 'Name'
-}, {
-  key: 'email',
-  label: 'Email'
-}, {
-  key: 'permissions',
-  label: 'Zugriffsrechte'
-}, {
-  key: 'actions'
-}];
 
 const props = defineProps({
   permissions: { type: Array as () => SchemaStudyPermissionRead[], default: () => [] },
+  isStudyAccessManaged: { type: Boolean, default: false },
 });
 
 defineEmits(['delete-permissions', 'edit-permissions']);
+
+const columns = computed(() => {
+  const columns = [{
+    key: 'name',
+    label: 'Name'
+  }, {
+    key: 'email',
+    label: 'Email'
+  }, {
+    key: 'permissions',
+    label: 'Zugriffsrechte'
+  }];
+
+  if (!props.isStudyAccessManaged) {
+    columns.push({
+      key: 'actions',
+      label: '',
+    });
+  }
+
+  return columns;
+});
 
 const rows = computed(() => {
   return props.permissions.map(item => {
@@ -38,12 +49,21 @@ const rows = computed(() => {
 <template>
   <UTable :rows="rows" :columns="columns">
     <template #permissions-data="{ row }">
-      <div v-if="row.permissions.length > 0" class="space-x-2">
-        <UBadge
-            v-for="permission in row.permissions" :key="permission"
-            class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg">
-          {{ permission }}
-        </UBadge>
+      <div v-if="row.permissions.length > 0">
+        <UTooltip
+            text="Die Rechte werden außerhalb von DZDMedLog verwaltet und sind daher für die Bearbeitung gesperrt."
+            :popper="{ arrow: true }"
+            :prevent="!props.isStudyAccessManaged"
+            :ui="{ width: 'max-w-4xl' }"
+        >
+          <UBadge
+              v-for="permission in row.permissions" :key="permission"
+              class="bg-white text-slate-500 border-2 border-slate-500 px-2 py-1 rounded-lg mr-2"
+              :icon="props.isStudyAccessManaged ? 'i-heroicons-lock-closed-solid' : ''"
+          >
+            {{ permission }}
+          </UBadge>
+        </UTooltip>
       </div>
       <div v-else />
     </template>

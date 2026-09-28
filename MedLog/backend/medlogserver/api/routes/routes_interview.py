@@ -45,6 +45,7 @@ from medlogserver.api.study_access import (
     UserStudyAccessCollection,
 )
 from medlogserver.api.base import HTTPMessage, HTTPErrorResponeRepresentation
+from medlogserver.api.proband_id import normalize_and_validate_proband_id
 
 config = Config()
 
@@ -114,7 +115,9 @@ async def list_interviews_of_proband(
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Interview]:
     return await interview_crud.list(
-        filter_proband_external_id=proband_id, filter_study_id=study_access.study.id
+        filter_proband_external_id=proband_id,
+        filter_study_id=study_access.study.id,
+        proband_external_id_normalization=study_access.study.proband_external_id_normalization,
     )
 
 
@@ -140,7 +143,10 @@ async def get_last_completed_interview(
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> Optional[Interview]:
     interview = await interview_crud.get_last_by_proband(
-        study_id=study_access.study.id, proband_external_id=proband_id, completed=True
+        study_id=study_access.study.id,
+        proband_external_id=proband_id,
+        completed=True,
+        proband_external_id_normalization=study_access.study.proband_external_id_normalization,
     )
     if interview is None:
         # https://fastapi.tiangolo.com/advanced/additional-responses/#additional-response-with-model
@@ -174,7 +180,10 @@ async def get_last_non_completed_interview(
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> Optional[Interview]:
     interview = await interview_crud.get_last_by_proband(
-        study_id=study_access.study.id, proband_external_id=proband_id, completed=False
+        study_id=study_access.study.id,
+        proband_external_id=proband_id,
+        completed=False,
+        proband_external_id_normalization=study_access.study.proband_external_id_normalization,
     )
     if interview is None:
         return Response(
@@ -212,12 +221,20 @@ async def create_interview(
         ),
     )
 
+    # Backend is authoritative: normalize the proband ID per the study rule and validate it
+    # against the study's configured pattern. Raises HTTP 422 (with the study error text) on
+    # mismatch. The returned value is the canonical/normalized ID used for lookup and storage.
+    interview.proband_external_id = normalize_and_validate_proband_id(
+        study_access.study, interview.proband_external_id
+    )
+
     # https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/127
     # We want to prevent having more than one interview per event for now as the webclient does not support it
     # this can be removed once https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/130 is closed
     existing_interview = await interview_crud.list(
         filter_event_id=event_id,
         filter_proband_external_id=interview.proband_external_id,
+        proband_external_id_normalization=study_access.study.proband_external_id_normalization,
     )
     if len(existing_interview) != 0:
         raise HTTPException(

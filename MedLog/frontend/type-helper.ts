@@ -6,6 +6,7 @@ import type {
     SchemaMultiAttrRefs,
 } from "#open-fetch-schemas/medlogapi";
 import type { FetchError } from "ofetch";
+import { type H3Error, isError } from "h3";
 
 // use ElementType<ValueOf<T>> to determine the type of items from an array type T
 export type ValueOf<T> = T[keyof T];
@@ -18,20 +19,60 @@ interface FastAPIError {
     detail: string | { [key: string]: string; };
 }
 
+export type PlausibilityReference = 'today' | 'interview_date' | 'earliest_plausible_date'
+
+export interface FastAPIPlausibilityError {
+    detail: {
+        rule: string
+        fields: string[]
+        msg: string
+        reference: PlausibilityReference | null
+        reference_date: string | null
+        context?: {
+            today: string
+            interview_date: string
+            earliest_plausible_date: string
+        }
+    }
+}
+
+interface NormalizationChangeError extends H3Error {
+    data: {
+        detail: {
+            affected_interview_count: number
+            current_normalization: string
+            message: string
+            requested_normalization: string
+        }
+    }
+}
+
 export function isMultiValueField(fieldDefinition: FieldDefinition, _fields?: object): _fields is SchemaMedlogserverModelDrugDataApiDrugModelFactoryAttrsMulti_1 {
-    return fieldDefinition.is_multi_val_field && !fieldDefinition.is_reference_list_field;
+    return fieldDefinition.is_multi_val_field === true && !fieldDefinition.is_reference_list_field;
 }
 
 export function isMultiRefField(fieldDefinition: FieldDefinition, _fields?: object): _fields is SchemaMultiAttrRefs {
-    return fieldDefinition.is_multi_val_field && fieldDefinition.is_reference_list_field;
+    return fieldDefinition.is_multi_val_field === true && fieldDefinition.is_reference_list_field === true;
 }
 
 export function isSingleRefField(fieldDefinition: FieldDefinition, _fields?: object): _fields is SchemaMedlogserverModelDrugDataApiDrugModelFactoryAttrRefs_1 {
-    return !fieldDefinition.is_multi_val_field && fieldDefinition.is_reference_list_field;
+    return !fieldDefinition.is_multi_val_field && fieldDefinition.is_reference_list_field === true;
 }
 
 export function isFastAPIError(error: unknown): error is FastAPIError {
     return typeof error === "object" && error !== null && 'detail' in error && !!error.detail;
+}
+
+export function isFastAPIPlausibilityError(error: unknown): error is FastAPIPlausibilityError {
+    if (!isFastAPIError(error)) {
+        return false;
+    }
+
+    return typeof error.detail === 'object'
+        && error.detail !== null
+        && 'rule' in error.detail && typeof error.detail.rule === 'string'
+        && 'fields' in error.detail && Array.isArray(error.detail.fields) && error.detail.fields.every(value => typeof value === 'string')
+        && 'msg' in error.detail && typeof error.detail.msg === 'string';
 }
 
 export function isFastAPIValidationError(error: unknown): error is SchemaHttpValidationError {
@@ -52,4 +93,20 @@ export function isFetchError(error: unknown): error is FetchError {
         && 'request' in error
         && 'response' in error
         && 'data' in error;
+}
+
+export function isNormalizationChangeError(error: unknown): error is NormalizationChangeError {
+    return isError(error)
+        && error !== null
+        && error.statusCode === 409
+        && 'data' in error
+        && typeof error.data === 'object'
+        && error.data !== null
+        && 'detail' in error.data
+        && typeof error.data.detail === 'object'
+        && error.data.detail !== null
+        && 'affected_interview_count' in error.data.detail
+        && 'current_normalization' in error.data.detail
+        && 'message' in error.data.detail
+        && 'requested_normalization' in error.data.detail;
 }

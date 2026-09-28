@@ -7,8 +7,9 @@ import uuid
 import contextlib
 from pydantic import SecretStr, Json
 from fastapi import Depends, HTTPException, status
-from sqlmodel import Field, select, delete, Enum, Column, and_, or_
+from sqlmodel import Field, select, delete, Enum, Column, and_, or_, col, func
 import secrets
+import datetime
 
 # Internal
 from medlogserver.config import Config
@@ -19,12 +20,17 @@ from medlogserver.model.user_auth import (
     UserAuthCreate,
     UserAuthUpdate,
     AllowedAuthSchemeType,
+    split_api_token,
 )
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
 log = get_logger()
 config = Config()
+
+# `api_token_last_used_at` is informational. Writing it on every request would turn each
+# API call of a busy script into a database write.
+API_TOKEN_LAST_USED_WRITE_INTERVAL = datetime.timedelta(minutes=1)
 
 
 class UserAuthCRUD(
@@ -144,6 +150,78 @@ class UserAuthCRUD(
             raise raise_exception_if_none
         return user_auth
 
+    async def list_api_tokens_by_user_id(
+        self, user_id: str | uuid.UUID
+    ) -> Sequence[UserAuth]:
+        """All api tokens of a user, newest first."""
+        query = (
+            select(UserAuth)
+            .where(
+                and_(
+                    UserAuth.user_id == user_id,
+                    UserAuth.auth_source_type == AllowedAuthSchemeType.api_token,
+                )
+            )
+            .order_by(UserAuth.created_at.desc())
+        )
+        results = await self.session.exec(statement=query)
+        return results.all()
+
+    async def get_api_token_of_user(
+        self, user_id: uuid.UUID, user_auth_id: uuid.UUID
+    ) -> UserAuth | None:
+        """The api token with the id `user_auth_id`, if it belongs to the user. Never returns
+        passwords or OIDC logins, even if the id belongs to one of them."""
+        query = select(UserAuth).where(
+            and_(
+                UserAuth.id == user_auth_id,
+                UserAuth.user_id == user_id,
+                UserAuth.auth_source_type == AllowedAuthSchemeType.api_token,
+            )
+        )
+        results = await self.session.exec(statement=query)
+        return results.one_or_none()
+
+    async def count_unexpired_managed_api_tokens(self, user_id: uuid.UUID) -> int:
+        now = int(datetime.datetime.now(tz=datetime.UTC).timestamp())
+        query = select(func.count()).where(
+            and_(
+                UserAuth.user_id == user_id,
+                UserAuth.auth_source_type == AllowedAuthSchemeType.api_token,
+                col(UserAuth.api_token_source_user_auth_id).is_(None),
+                or_(
+                    col(UserAuth.expires_at_epoch_time).is_(None),
+                    col(UserAuth.expires_at_epoch_time) >= now,
+                ),
+            )
+        )
+        results = await self.session.exec(statement=query)
+        return results.one()
+
+    async def record_api_token_use(self, user_auth: UserAuth, token: str) -> None:
+        """Bookkeeping after `token` was verified against `user_auth`.
+
+        - Sets `api_token_last_used_at`, at most once per `API_TOKEN_LAST_USED_WRITE_INTERVAL`.
+        - Rehashes a token still stored with the former slow PBKDF2 hash to SHA-256. The
+          plain token is only known in this moment, so this is the one chance to migrate it.
+        """
+        changed = False
+        if user_auth.api_token_hash_is_legacy():
+            _, secret = split_api_token(token)
+            user_auth.set_api_token(secret)
+            changed = True
+        now = datetime.datetime.now(tz=datetime.UTC).replace(tzinfo=None)
+        last_used_at = user_auth.api_token_last_used_at
+        if (
+            last_used_at is None
+            or now - last_used_at >= API_TOKEN_LAST_USED_WRITE_INTERVAL
+        ):
+            user_auth.api_token_last_used_at = now
+            changed = True
+        if changed:
+            self.session.add(user_auth)
+            await self.session.commit()
+
     async def create(
         self,
         user_auth_create: UserAuthCreate,
@@ -169,7 +247,9 @@ class UserAuthCRUD(
                 )
 
         user_auth = UserAuth.from_update_or_create_object(user_auth_create)
-        log.debug(f"CREATE USER AUTH {user_auth}")
+        log.debug(
+            f"Create user auth '{user_auth.id}' ({user_auth.auth_source_type}) for user '{user_auth.user_id}'"
+        )
         self.session.add(user_auth)
         await self.session.commit()
         await self.session.refresh(user_auth)

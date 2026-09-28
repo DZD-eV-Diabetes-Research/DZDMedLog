@@ -40,7 +40,12 @@ class InterviewUpdateAPI(MedLogBaseModel, table=False):
 
 class InterviewCreateAPI(InterviewUpdateAPI, table=False):
     proband_external_id: str = Field(
-        description="A unique ID given to the proband from the studies external proband management system"
+        # Hard length cap (issue #318, item 6): this value is fed into the study's
+        # regex on every interview creation; re has no match timeout, so bound the
+        # input feeding the matcher. 256 is far above any real external proband ID.
+        # (Kept in sync with medlogserver.api.proband_id.MAX_PROBAND_ID_LENGTH.)
+        max_length=256,
+        description="A unique ID given to the proband from the studies external proband management system",
     )
     interview_start_time_utc: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc).replace(tzinfo=None),

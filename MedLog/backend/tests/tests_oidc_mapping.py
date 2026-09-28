@@ -6,6 +6,7 @@ from utils import (
     dict_must_contain,
     oidc_login_get_token,
     create_test_study,
+    get_medlogserver_base_url,
 )
 from statics import (
     OIDC_TEST_PROVIDER_SLUG,
@@ -572,3 +573,90 @@ def test_oidc_auto_creates_study_from_mapping():
         f"Expected is_study_interviewer=True on auto-created study, got: {perm}"
     )
     print("  ✓ Permission was applied correctly on the auto-created study")
+
+
+def test_oidc_mapped_study_reports_its_managed_permissions():
+    """A study referenced in STUDY_PERMISSION_MAPPING advertises that fact (issue #344).
+
+    The client uses this to hide the study's permission management and to warn before a
+    rename - STUDY_PERMISSION_MAPPING is keyed by the study's display name, so renaming
+    silently detaches the study from the mapping.
+
+    The mapping in the test config grants is_study_interviewer and is_study_admin for
+    OIDC_TEST_STUDY_NAME, so exactly those two flags must be reported, sorted.
+    """
+    if _skip_if_no_oidc():
+        return
+
+    study_id = _get_or_create_study(OIDC_TEST_STUDY_NAME)
+
+    studies_page = req("api/study", q={"limit": 10000})
+    study = next((s for s in studies_page["items"] if s["id"] == study_id), None)
+    assert study is not None, f"Study '{OIDC_TEST_STUDY_NAME}' not found in the listing"
+
+    dict_must_contain(
+        study,
+        required_keys_and_val={
+            "is_oidc_permission_managed": True,
+            "oidc_managed_permissions": ["is_study_admin", "is_study_interviewer"],
+        },
+        exception_dict_identifier="OIDC-mapped study",
+    )
+    print(
+        f"  ✓ '{OIDC_TEST_STUDY_NAME}' reports oidc_managed_permissions="
+        f"{study['oidc_managed_permissions']}"
+    )
+
+
+def _oidc_login_response(provider_slug: str, sub: str):
+    """Drive the OIDC flow like oidc_login_get_token, but return the raw response.
+
+    oidc_login_get_token() raises on a non-2xx and then parses the body as a token, so it
+    can not be used to assert on a rejected login.
+    """
+    session = _requests.Session()
+    resp = session.get(
+        f"{get_medlogserver_base_url()}/api/auth/oidc/login/{provider_slug}/token",
+        allow_redirects=True,
+    )
+    resp.raise_for_status()
+    return session.post(resp.url, data={"sub": sub}, allow_redirects=True)
+
+
+def test_oidc_login_of_a_deactivated_user_is_refused():
+    """A deactivated user must not be able to log in via OIDC.
+
+    Deactivation is a local decision the IdP knows nothing about. The callback used to
+    look the user up with the default show_deactivated=False, so a deactivated user came
+    back as None and, with AUTO_CREATE_AUTHORIZED_USER enabled, the auto-create branch
+    tried to recreate the account - dying on the unique user_name constraint with a 500.
+    Deactivating an OIDC user was therefore effectively impossible.
+    """
+    if _skip_if_no_oidc():
+        return
+
+    sub = "oidc-deactivated-test-user"
+
+    # First login works and gives us the user's id.
+    token = oidc_login_get_token(OIDC_TEST_PROVIDER_SLUG, sub)
+    me = req("api/user/me", access_token=token)
+    user_id = me["id"]
+    assert me["deactivated"] is False
+    print(f"  ✓ First login succeeded for '{sub}'")
+
+    # Deactivate the account as admin. UserCRUD.update() dumps with exclude_unset, so
+    # patching only 'deactivated' leaves the user's roles untouched.
+    deactivated_user = req(
+        f"api/user/{user_id}",
+        method="patch",
+        b={"deactivated": True},
+    )
+    assert deactivated_user["deactivated"] is True
+    print("  ✓ User deactivated via PATCH /api/user/{id}")
+
+    # Second login must be refused with 401 — not a 500 from the auto-create branch.
+    resp = _oidc_login_response(OIDC_TEST_PROVIDER_SLUG, sub)
+    assert resp.status_code == 401, (
+        f"Expected 401 for a deactivated OIDC user, got {resp.status_code}: {resp.text}"
+    )
+    print("  ✓ Re-login of the deactivated user refused with 401")
