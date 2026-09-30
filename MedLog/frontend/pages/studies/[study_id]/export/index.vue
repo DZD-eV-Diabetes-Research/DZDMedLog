@@ -27,14 +27,28 @@
     </div>
 
     <div class="flex flex-row justify-end">
-      <UButton
-        label="Export generieren"
-        icon="i-heroicons-archive-box"
-        variant="solid"
-        @click="requestDownload()"
-      />
+      <UButtonGroup size="lg">
+        <UBadge icon="i-heroicons-archive-box" label="Export generieren:" color="white" />
+        <UButton
+            label="CSV"
+            variant="outline"
+            trailing-icon="i-heroicons-arrow-right-circle"
+            title="Exportauftrag für Datei im CSV-Format anlegen"
+            @click="requestDownload('csv')"
+        />
+        <UButton
+            label="JSON"
+            variant="outline"
+            trailing-icon="i-heroicons-arrow-right-circle"
+            title="Exportauftrag für Datei im JSON-Format anlegen"
+            @click="requestDownload('json')"
+        />
+      </UButtonGroup>
     </div>
     <UTable :rows="downloads" :columns="columns">
+      <template #format-data="{ row }">
+        <span>{{ String(row.format).toUpperCase() }}</span>
+      </template>
       <template #status-data="{ row }">
         <div v-if="row.status === 'success'">
           <UTooltip text="Export erfolgreich" :popper="{ arrow: true }">
@@ -96,6 +110,8 @@ const userStore = useUserStore();
 
 dayjs.extend(localizedFormat);
 
+type ExportFormat = 'csv' | 'json';
+
 const columns = [
   {
     key: "study",
@@ -105,6 +121,10 @@ const columns = [
   {
     key: "time",
     label: "Zeitpunkt",
+  },
+  {
+    key: "format",
+    label: "Format",
   },
   {
     key: "status",
@@ -147,6 +167,7 @@ async function listDownloads() {
     downloads.value = data.items.map((item) => ({
       study: study?.display_name ?? 'N/A',
       time: dayjs.utc(item.created_at).local().format('LLL'),
+      format: item.export_format,
       status: item.state,
       downloadLink: `${item.download_file_path}`,
     }));
@@ -210,7 +231,7 @@ async function downloadFile(row: Download) {
 
 // 1. The request is sent to the backend
 
-async function requestDownload() {
+async function requestDownload(format: ExportFormat) {
   try {
     await $medlogapi(
       '/api/study/{study_id}/export',
@@ -220,7 +241,7 @@ async function requestDownload() {
           study_id: studyId.value
         },
         query: {
-          format: 'csv',
+          format: format,
         },
       }
     );
