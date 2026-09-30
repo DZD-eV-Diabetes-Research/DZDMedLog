@@ -67,7 +67,7 @@
                     variant="outline"
                     color="red"
                     icon="i-heroicons-stop-solid"
-                    @click="endInterview(currentInterview.event_id, currentInterview.id)"
+                    @click.once="endInterview(currentInterview.event_id, currentInterview.id)"
                 />
                 <UButton
                     label="Interview fortsetzen"

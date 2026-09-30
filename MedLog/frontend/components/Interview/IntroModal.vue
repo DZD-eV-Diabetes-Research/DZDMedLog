@@ -41,11 +41,11 @@ const emit = defineEmits(['start', 'cancel'])
             <small>Interview nicht starten</small>
           </div>
           <div class="flex flex-col gap-1 items-center text-center">
-            <UButton label="Nein" size="lg" color="amber" @click="emit('start', false)"/>
+            <UButton label="Nein" size="lg" color="amber" @click.once="emit('start', false)"/>
             <small>Interview direkt abschließen</small>
           </div>
           <div class="flex flex-col gap-1 items-center text-center">
-            <UButton label="Ja" size="lg" color="emerald" @click="emit('start', true)"/>
+            <UButton label="Ja" size="lg" color="emerald" @click.once="emit('start', true)"/>
             <small>Interview starten</small>
           </div>
         </div>

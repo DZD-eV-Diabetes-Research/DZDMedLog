@@ -41,7 +41,7 @@
                 color="red"
                 variant="outline"
                 icon="i-heroicons-arrow-right-on-rectangle"
-                @click="endInterview()"
+                @click.once="endInterview()"
             />
             <span v-else>
               Das Interview wurde noch nicht abgeschlossen.
