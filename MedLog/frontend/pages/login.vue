@@ -10,7 +10,7 @@
               @login="({username, password}) => login(authScheme, username, password)"
             />
             <div v-else>
-              <UButton class="rounded-lg" @click="authStore.doOIDCLogin(authScheme)">
+              <UButton class="rounded-lg" @click.once="authStore.doOIDCLogin(authScheme)">
                 Login via: {{ authScheme.display_name }}
               </UButton>
             </div>

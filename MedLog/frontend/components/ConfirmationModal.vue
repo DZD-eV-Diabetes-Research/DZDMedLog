@@ -37,7 +37,7 @@ defineEmits(['cancel', 'confirm'])
             :label="confirmLabel"
             :color="isDangerousToConfirm ? 'red' : 'green'"
             class="px-6"
-            @click="$emit('confirm')"
+            @click.once="$emit('confirm')"
         />
       </div>
     </UCard>

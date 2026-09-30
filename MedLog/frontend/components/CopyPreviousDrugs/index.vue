@@ -33,7 +33,7 @@
                         <UTable
                             v-model="selectedIntakes" :columns="columns" :rows="previousIntakes"
                             class="border border-slate-400 rounded-md" />
-                        <UButton label="Ausgewählte Medikamente übernehmen" class="mt-8" @click="saveIntakes()" />
+                        <UButton label="Ausgewählte Medikamente übernehmen" class="mt-8" @click.once="saveIntakes()" />
                     </div>
                     <div v-if="previousIntakes.length === 0">
                         <h3>Es gibt keine Einträge im letzten Event</h3>
