@@ -70,10 +70,29 @@
             item-key="name"
             ghost-class="ghost"
         >
-          <template #item="{ element }">
+          <template #item="{ element }: { element: SchemaEvent }">
             <div class="flex flex-row items-center justify-between border-b-2 border-b-slate-200 py-2">
               <span>{{ element.name }}</span>
-              <UIcon v-show="sortingMode" name="i-heroicons-bars-3" class="ml-2 text-2xl text-gray-400 cursor-n-resize" />
+              <div>
+                <UIcon v-show="sortingMode" name="i-heroicons-bars-3" class="ml-2 text-2xl text-gray-400 cursor-n-resize" />
+                <UButton
+                    v-show="!sortingMode"
+                    title="Event bearbeiten ..."
+                    variant="outline"
+                    color="gray"
+                    icon="i-heroicons-pencil"
+                    class="ml-2"
+                    @click="openEditEventModal(element)"
+                />
+                <UButton
+                    v-show="!sortingMode"
+                    title="Event löschen ..."
+                    variant="outline"
+                    color="red"
+                    icon="i-heroicons-trash"
+                    class="ml-2"
+                />
+              </div>
             </div>
           </template>
         </Draggable>
@@ -84,13 +103,16 @@
             label="Event anlegen"
             icon="i-heroicons-plus"
             :disabled="sortingMode"
-            @click="openEventModal()"
+            @click="openCreateEventModal()"
         />
       </div>
     </div>
 
     <DZDUIModal v-model="showCreateEventModal" title="Event anlegen" :error="createEventError">
       <EventForm :submit-callback="createEvent" @cancel="showCreateEventModal = false" />
+    </DZDUIModal>
+    <DZDUIModal v-model="showEditEventModal" title="Event bearbeiten" :error="editEventError">
+      <EventForm :initial-state="eventFormInitialState" :submit-callback="updateEvent" @cancel="showEditEventModal = false" />
     </DZDUIModal>
   </section>
   <section v-else class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
@@ -112,8 +134,12 @@ const toast = useToast();
 const route = useRoute();
 
 const createEventError = ref();
+const editEventError = ref();
+const eventFormInitialState = ref<Partial<EventFormSchema>>();
+const eventIdToEdit = ref<string>('');
 const loading = ref(false);
 const showCreateEventModal = ref(false);
+const showEditEventModal = ref(false);
 const sortingMode = ref(false);
 
 const studyId = computed(() => {
@@ -157,19 +183,39 @@ async function endReordering() {
   }
 }
 
-async function openEventModal() {
+async function openCreateEventModal() {
   showCreateEventModal.value = true;
   createEventError.value = undefined;
 }
 
+async function openEditEventModal(event: SchemaEvent) {
+  eventIdToEdit.value = event.id!;
+  eventFormInitialState.value = { name: event.name };
+  showEditEventModal.value = true;
+  editEventError.value = undefined;
+}
+
 async function createEvent(data: EventFormSchema) {
   try {
+    createEventError.value = undefined;
     await useCreateEvent(data.name, studyId.value);
     showCreateEventModal.value = false;
     await loadEvents()
     await eventStore.loadAllEventsForStudy(studyId.value);
   } catch (error) {
     createEventError.value = error;
+  }
+}
+
+async function updateEvent(data: EventFormSchema) {
+  try {
+    editEventError.value = undefined;
+    await usePatchEvent(studyId.value, eventIdToEdit.value, data);
+    showEditEventModal.value = false;
+    await loadEvents()
+    await eventStore.loadAllEventsForStudy(studyId.value);
+  } catch (error) {
+    editEventError.value = error;
   }
 }
 
