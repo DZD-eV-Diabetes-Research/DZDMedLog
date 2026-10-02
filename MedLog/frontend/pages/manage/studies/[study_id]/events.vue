@@ -128,6 +128,7 @@
 import type { SchemaEvent } from "#open-fetch-schemas/medlogapi";
 import type { EventFormSchema } from "~/components/Event/Form.vue";
 import { ConfirmationModal } from "#components";
+import { isFastAPIEventNotEmptyError, isFetchError } from "~/type-helper";
 
 const eventStore = useEventStore();
 const modal = useModal();
@@ -218,10 +219,17 @@ async function deleteEvent(event: SchemaEvent) {
       try {
         await useDeleteEvent(event.study_id, event.id!);
       } catch (error) {
-        toast.add({
-          title: "Konnte Event nicht löschen",
-          description: useGetErrorMessage(error),
-        });
+        if ((isFetchError(error) || isNuxtError(error)) && error.statusCode === 409 && isFastAPIEventNotEmptyError(error.data)) {
+          toast.add({
+            title: "Konnte Event nicht löschen",
+            description: `Es sind noch ${error.data.detail.interview_ids.length} Interview(s) zu diesem Event vorhanden.`,
+          });
+        } else {
+          toast.add({
+            title: "Konnte Event nicht löschen",
+            description: useGetErrorMessage(error),
+          });
+        }
       }
       await loadEvents();
       await eventStore.loadAllEventsForStudy(studyId.value);

@@ -4,6 +4,7 @@ import type {
     SchemaMedlogserverModelDrugDataApiDrugModelFactoryAttrRefs_1,
     SchemaMedlogserverModelDrugDataApiDrugModelFactoryAttrsMulti_1,
     SchemaMultiAttrRefs,
+    SchemaEventNotEmptyErrorResponse,
 } from "#open-fetch-schemas/medlogapi";
 import type { FetchError } from "ofetch";
 import { type H3Error, isError } from "h3";
@@ -61,6 +62,16 @@ export function isSingleRefField(fieldDefinition: FieldDefinition, _fields?: obj
 
 export function isFastAPIError(error: unknown): error is FastAPIError {
     return typeof error === "object" && error !== null && 'detail' in error && !!error.detail;
+}
+
+export function isFastAPIEventNotEmptyError(error: unknown): error is SchemaEventNotEmptyErrorResponse {
+    if (!isFastAPIError(error)) {
+        return false;
+    }
+
+    return typeof error.detail === 'object'
+        && error.detail !== null
+        && 'interview_ids' in error.detail && Array.isArray(error.detail.interview_ids) && error.detail.interview_ids.every(value => typeof value === 'string')
 }
 
 export function isFastAPIPlausibilityError(error: unknown): error is FastAPIPlausibilityError {
