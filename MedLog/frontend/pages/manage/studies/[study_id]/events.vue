@@ -91,6 +91,7 @@
                     color="red"
                     icon="i-heroicons-trash"
                     class="ml-2"
+                    @click="deleteEvent(element)"
                 />
               </div>
             </div>
@@ -126,8 +127,10 @@
 <script setup lang="ts">
 import type { SchemaEvent } from "#open-fetch-schemas/medlogapi";
 import type { EventFormSchema } from "~/components/Event/Form.vue";
+import { ConfirmationModal } from "#components";
 
 const eventStore = useEventStore();
+const modal = useModal();
 const studyPermissionStore = useStudyPermissionStore();
 const studyStore = useStudyStore();
 const toast = useToast();
@@ -205,6 +208,28 @@ async function createEvent(data: EventFormSchema) {
   } catch (error) {
     createEventError.value = error;
   }
+}
+
+async function deleteEvent(event: SchemaEvent) {
+  modal.open(ConfirmationModal, {
+    onCancel: modal.close,
+    onConfirm: async () => {
+      await modal.close();
+      try {
+        await useDeleteEvent(event.study_id, event.id!);
+      } catch (error) {
+        toast.add({
+          title: "Konnte Event nicht löschen",
+          description: useGetErrorMessage(error),
+        });
+      }
+      await loadEvents();
+      await eventStore.loadAllEventsForStudy(studyId.value);
+    },
+    description: "Nur Events, für die kein Interview vorliegt, können gelöscht werden. Entfernen Sie ggf. vorher betroffene Interviews.",
+    question: `Soll das Event "${event.name}" wirklich gelöscht werden?`,
+    isDangerousToConfirm: true,
+  })
 }
 
 async function updateEvent(data: EventFormSchema) {

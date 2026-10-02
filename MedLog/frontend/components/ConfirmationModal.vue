@@ -2,6 +2,7 @@
 defineProps({
   title: { type: String, default: "Sind sie sicher?" },
   description: { type: String, default: "" },
+  question: { type: String, default: "" },
   isDangerousToConfirm: { type: Boolean, default: false },
   cancelLabel: { type: String, default: "Abbrechen" },
   confirmLabel: { type: String, default: "Fortfahren" },
@@ -23,6 +24,12 @@ defineEmits(['cancel', 'confirm'])
       <slot name="description">
         <p v-if="description" class="break-words">
           {{ description }}
+        </p>
+      </slot>
+
+      <slot name="question">
+        <p v-if="question" class="break-words mt-2 font-semibold">
+          {{ question }}
         </p>
       </slot>
 
