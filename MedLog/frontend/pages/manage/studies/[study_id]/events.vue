@@ -89,22 +89,9 @@
       </div>
     </div>
 
-    <UModal v-model="showCreateEventModal" prevent-close>
-      <div class="p-4">
-        <UForm :schema="eventSchema" :state="eventState" class="space-y-4" @submit="createEvent">
-          <h3>Event anlegen</h3>
-          <ErrorMessage v-if="createEventError" :error="createEventError" />
-          <UFormGroup label="Name des Events" description="Der Name muss innerhalb der Studie eindeutig sein." name="name">
-            <UInput v-model="eventState.name" required placeholder="Interview Nr. 1" />
-          </UFormGroup>
-          <hr>
-          <div class="flex justify-between">
-            <UButton label="Abbrechen" variant="outline" color="gray" @click.prevent="showCreateEventModal = false" />
-            <UButton type="submit" label="Event anlegen" />
-          </div>
-        </UForm>
-      </div>
-    </UModal>
+    <DZDUIModal v-model="showCreateEventModal" title="Event anlegen" :error="createEventError">
+      <EventForm :submit-callback="createEvent" @cancel="showCreateEventModal = false" />
+    </DZDUIModal>
   </section>
   <section v-else class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
     <ErrorMessage
@@ -116,7 +103,7 @@
 
 <script setup lang="ts">
 import type { SchemaEvent } from "#open-fetch-schemas/medlogapi";
-import { object, string } from "yup";
+import type { EventFormSchema } from "~/components/Event/Form.vue";
 
 const eventStore = useEventStore();
 const studyPermissionStore = useStudyPermissionStore();
@@ -147,12 +134,6 @@ async function loadEvents() {
   loading.value = false;
 }
 
-const eventState = reactive({ name: "" });
-
-const eventSchema = object({
-  name: string().required("Das Event muss einen Namen haben"),
-});
-
 function beginReordering() {
   sortingMode.value = true;
 }
@@ -178,13 +159,12 @@ async function endReordering() {
 
 async function openEventModal() {
   showCreateEventModal.value = true;
-  eventState.name = "";
   createEventError.value = undefined;
 }
 
-async function createEvent() {
+async function createEvent(data: EventFormSchema) {
   try {
-    await useCreateEvent(eventState.name, studyId.value);
+    await useCreateEvent(data.name, studyId.value);
     showCreateEventModal.value = false;
     await loadEvents()
     await eventStore.loadAllEventsForStudy(studyId.value);
