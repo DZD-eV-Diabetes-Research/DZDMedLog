@@ -51,7 +51,6 @@ class _EventNotEmptyDetail(BaseModel):
 
     error: str = Field(default="event not empty", examples=["event not empty"])
     interview_ids: List[uuid.UUID] = Field(
-        alias="following interviews, interview_ids",
         description="IDs of all interviews that must be deleted before this event can be removed.",
         examples=[["a1b2c3d4-0000-0000-0000-000000000001", "a1b2c3d4-0000-0000-0000-000000000002"]],
     )
