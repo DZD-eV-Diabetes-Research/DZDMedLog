@@ -13,6 +13,8 @@ export default function (errorObject: unknown): string {
         } else if (isFastAPIError(error.data)) {
             if (typeof error.data.detail == 'object' && 'message' in error.data.detail) {
                 return String(error.data.detail.message);
+            } else if (typeof error.data.detail == 'object' && 'error' in error.data.detail) {
+                return String(error.data.detail.error);
             }
 
             return String(error.data.detail);
