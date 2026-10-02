@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.10b6.post1.dev24+g756f03737.d20260916"
+    "version": "1.0.10.post1.dev5+gc59cda532.d20261002"
   },
   "paths": {
     "/api/health": {
@@ -2422,7 +2422,7 @@
             }
           },
           "409": {
-            "description": "The event still has interviews attached. The response body lists their IDs under `detail.following interviews, interview_ids`. Delete all interviews first, then retry.",
+            "description": "The event still has interviews attached. The response body lists their IDs under `detail.interview_ids`. Delete all interviews first, then retry.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10250,13 +10250,13 @@
               "event not empty"
             ]
           },
-          "following interviews, interview_ids": {
+          "interview_ids": {
             "items": {
               "type": "string",
               "format": "uuid"
             },
             "type": "array",
-            "title": "Following Interviews, Interview Ids",
+            "title": "Interview Ids",
             "description": "IDs of all interviews that must be deleted before this event can be removed.",
             "examples": [
               [
@@ -10268,7 +10268,7 @@
         },
         "type": "object",
         "required": [
-          "following interviews, interview_ids"
+          "interview_ids"
         ],
         "title": "_EventNotEmptyDetail"
       },

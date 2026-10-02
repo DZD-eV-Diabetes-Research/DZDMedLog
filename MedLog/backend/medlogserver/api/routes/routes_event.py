@@ -182,7 +182,7 @@ async def update_event(
             "model": EventNotEmptyErrorResponse,
             "description": (
                 "The event still has interviews attached. "
-                "The response body lists their IDs under `detail.following interviews, interview_ids`. "
+                "The response body lists their IDs under `detail.interview_ids`. "
                 "Delete all interviews first, then retry."
             ),
         },
@@ -222,7 +222,7 @@ async def delete_event(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "error": "event not empty",
-                "following interviews, interview_ids": [
+                "interview_ids": [
                     str(i.id) for i in interviews
                 ],
             },

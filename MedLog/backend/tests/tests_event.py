@@ -139,7 +139,7 @@ def test_endpoint_delete_event_blocked_by_interviews():
     )
 
     assert response["detail"]["error"] == "event not empty"
-    assert str(interview.interview.id) in response["detail"]["following interviews, interview_ids"]
+    assert str(interview.interview.id) in response["detail"]["interview_ids"]
 
 
 def test_endpoint_study_event_order_create():
