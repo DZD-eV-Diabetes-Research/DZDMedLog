@@ -15,6 +15,8 @@ defineEmits<{
   confirm: [pattern: string, normalization: SchemaProbandExternalIdNormalization]
 }>()
 
+const modelValue = defineModel<boolean>();
+
 const loading = ref(false);
 const patternMatches = ref<boolean|undefined>(undefined)
 const patternValid = ref<boolean|undefined>(undefined)
@@ -90,77 +92,73 @@ watch(
 </script>
 
 <template>
-  <UModal :ui="{ width: 'lg:max-w-2xl' }" prevent-close>
-    <UCard>
-      <template #header>
-        <div class="flex items-center justify-between">
-          <span class="text-lg">Normalisierung & Regulären Ausdruck testen</span>
-          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="$emit('cancel')" />
-        </div>
-      </template>
+  <DZDUIModal
+      v-model="modelValue"
+      title="Normalisierung & Regulären Ausdruck testen"
+      :ui="{ width: 'lg:max-w-2xl' }"
+      @cancel="$emit('cancel')"
+  >
+    <p class="mb-4 text-gray-500 text-sm">
+      Hier können die Einstellungen für die Normalisierung und den regulären Ausdruck interaktiv ausprobiert und am Schluss in das Formular übernommen werden.
+    </p>
 
-      <p class="mb-4 text-gray-500 text-sm">
-        Hier können die Einstellungen für die Normalisierung und den regulären Ausdruck interaktiv ausprobiert und am Schluss in das Formular übernommen werden.
-      </p>
+    <div class="flex flex-row gap-2 justify-between">
+      <UForm :state="state" :schema="schema" class="space-y-4">
+        <UFormGroup
+            label="Normalisierung"
+            name="normalization"
+        >
+          <USelect v-model="state.normalization" :options="probandExternalIdNormalizationOptions" />
+        </UFormGroup>
 
-      <div class="flex flex-row gap-2 justify-between">
-        <UForm :state="state" :schema="schema" class="space-y-4">
-          <UFormGroup
-              label="Normalisierung"
-              name="normalization"
-          >
-            <USelect v-model="state.normalization" :options="probandExternalIdNormalizationOptions" />
-          </UFormGroup>
+        <UFormGroup
+            label="Regulärer Ausdruck"
+            name="pattern"
+        >
+          <UInput v-model.trim="state.pattern" type="text">
+            <template #leading>^</template>
+            <template #trailing>$</template>
+          </UInput>
+        </UFormGroup>
 
-          <UFormGroup
-              label="Regulärer Ausdruck"
-              name="pattern"
-          >
-            <UInput v-model.trim="state.pattern" type="text">
-              <template #leading>^</template>
-              <template #trailing>$</template>
-            </UInput>
-          </UFormGroup>
+        <UFormGroup
+            label="Zu testende ID"
+            name="value"
+        >
+          <UInput v-model.trim="state.value" type="text" icon="i-heroicons-hashtag-solid" :loading="loading" />
+        </UFormGroup>
+      </UForm>
 
-          <UFormGroup
-              label="Zu testende ID"
-              name="value"
-          >
-            <UInput v-model.trim="state.value" type="text" icon="i-heroicons-hashtag-solid" :loading="loading" />
-          </UFormGroup>
-        </UForm>
+      <UDivider orientation="vertical" icon="i-heroicons-arrow-right-circle" />
 
-        <UDivider orientation="vertical" icon="i-heroicons-arrow-right-circle" />
-
-        <div class="self-center">
-          <dl>
-            <dt>Ausdruck gültig</dt>
-            <dd><StatusBadge :value="patternValid" fail-label="Nein" ok-label="Ja" /></dd>
-            <dt>Ausdruck sicher</dt>
-            <dd><StatusBadge :value="patternSafe" fail-label="Nein" ok-label="Ja" /></dd>
-            <dt>Test-ID besteht Prüfung</dt>
-            <dd><StatusBadge :value="patternMatches" fail-label="Nein" ok-label="Ja" /></dd>
-          </dl>
-        </div>
+      <div class="self-center">
+        <dl>
+          <dt>Ausdruck gültig</dt>
+          <dd><StatusBadge :value="patternValid" fail-label="Nein" ok-label="Ja" /></dd>
+          <dt>Ausdruck sicher</dt>
+          <dd><StatusBadge :value="patternSafe" fail-label="Nein" ok-label="Ja" /></dd>
+          <dt>Test-ID besteht Prüfung</dt>
+          <dd><StatusBadge :value="patternMatches" fail-label="Nein" ok-label="Ja" /></dd>
+        </dl>
       </div>
+    </div>
 
-      <div class="flex flex-row justify-between mt-4">
-        <UButton
-            label="Abbrechen"
-            color="gray"
-            class="px-6"
-            @click="$emit('cancel')"
-        />
-        <UButton
-            label="Übernehmen"
-            :color="patternValid && patternSafe && patternMatches ? 'green' : 'amber'"
-            class="px-6"
-            :disabled="loading"
-            @click="$emit('confirm', state.pattern ?? '', state.normalization)"
-        />
-      </div>
-    </UCard>
-  </UModal>
+    <div class="flex flex-row justify-between mt-4">
+      <UButton
+          label="Abbrechen"
+          color="gray"
+          class="px-6"
+          @click="$emit('cancel')"
+      />
+      <UButton
+          label="Übernehmen"
+          :color="patternValid && patternSafe && patternMatches ? 'green' : 'amber'"
+          class="px-6"
+          :disabled="loading"
+          @click="$emit('confirm', state.pattern ?? '', state.normalization)"
+      />
+    </div>
+  </DZDUIModal>
 </template>
 
 <style scoped>

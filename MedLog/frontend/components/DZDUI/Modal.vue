@@ -1,25 +1,43 @@
 <script setup lang="ts">
 interface Props {
-  error?: unknown;
   title: string;
+  error?: unknown;
+  ui?: Record<string, string>;
+  showCloseButton?: boolean;
 }
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+  error: undefined,
+  ui: () => ({}),
+  showCloseButton: true,
+});
 
 const modelValue = defineModel<boolean>();
+const emit = defineEmits<{
+  cancel: [];
+  "after-leave": [];
+}>();
 
 function closeModal() {
+  emit("cancel");
   modelValue.value = false;
 }
 </script>
 
 <template>
-  <UModal v-model="modelValue" prevent-close>
+  <UModal v-model="modelValue" :ui="ui" prevent-close @after-leave="emit('after-leave')">
     <UCard>
       <template #header>
         <div class="flex items-center justify-between">
           <span class="text-lg">{{ title }}</span>
-          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="closeModal" />
+          <UButton
+              v-if="showCloseButton"
+              color="gray"
+              variant="ghost"
+              icon="i-heroicons-x-mark-20-solid"
+              class="-my-1"
+              @click="closeModal"
+          />
         </div>
       </template>
 

@@ -116,7 +116,6 @@ onMounted(async () => {
     <UserManagementRoleModal
         v-model="roleModalOpen"
         :initial-roles="rolesForEditModal"
-        prevent-close
         @cancel="roleModalOpen = false;"
         @save="onRoleModalSave"
     />

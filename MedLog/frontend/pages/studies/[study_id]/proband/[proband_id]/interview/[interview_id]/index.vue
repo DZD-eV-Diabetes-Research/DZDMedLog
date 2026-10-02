@@ -152,9 +152,7 @@
       <IntakeModal
           v-if="createIntakeModalVisible"
           v-model="createIntakeModalVisible"
-          :ui="{ width: 'w-full sm:max-w-3xl' }"
           :form-submit-callback="saveIntake"
-          prevent-close
           @cancel="() => { createIntakeModalVisible = false }"
       />
       <IntakeModal
@@ -163,8 +161,6 @@
           :initial-state="intakeToEdit"
           :is-drug-editable="false"
           :form-submit-callback="saveEditIntake"
-          :ui="{ width: 'w-full sm:max-w-3xl' }"
-          prevent-close
           @cancel="() => { editModalVisible = false }"
       />
     </div>
