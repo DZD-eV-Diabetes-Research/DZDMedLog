@@ -283,7 +283,13 @@ class CRUDBase(
         update_obj: GenericCRUDUpdateType | GenericCRUDTableType,
         id_: Optional[UUID] = None,
         raise_exception_if_not_exists: Optional[Exception] = None,
+        raise_custom_exception_if_exists: Optional[Exception] = None,
     ) -> GenericCRUDReadType:
+        """Update the object with the given id.
+
+        `raise_custom_exception_if_exists` is raised instead of the raw IntegrityError when
+        the update violates a unique constraint (e.g. renaming to an already taken name).
+        """
         id_ = id_ if id_ is not None else getattr(update_obj, "id", None)
         if id_ is None:
             raise ValueError("No id_ (primary key) provided. Could not update")
@@ -298,7 +304,16 @@ class CRUDBase(
 
         self.session.add(obj_from_db)
 
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except IntegrityError as err:
+            await self.session.rollback()
+            if raise_custom_exception_if_exists and (
+                "UNIQUE constraint failed" in str(err)
+                or "duplicate key value" in str(err)
+            ):
+                raise raise_custom_exception_if_exists
+            raise err
         await self.session.refresh(obj_from_db)
         return obj_from_db
 

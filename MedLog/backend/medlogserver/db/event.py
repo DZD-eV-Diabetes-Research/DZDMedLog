@@ -41,6 +41,18 @@ class EventCRUD(create_crud_base(Event, EventRead, EventCreate, EventUpdate)):
         results = await self.session.exec(statement=query)
         return results.first()
 
+    async def get_by_name(
+        self,
+        study_id: uuid.UUID,
+        event_name: str,
+    ) -> Optional[Event]:
+        """Return the event of the study with exactly this name, or None."""
+        query = select(Event).where(
+            Event.study_id == study_id, Event.name == event_name
+        )
+        results = await self.session.exec(statement=query)
+        return results.first()
+
     async def list(
         self,
         filter_study_id: UUID = None,

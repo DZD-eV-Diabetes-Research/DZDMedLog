@@ -100,6 +100,61 @@ def test_endpoint_study_event_update():
     )
 
 
+def test_endpoint_study_event_name_collision_issue_382():
+    """Creating or renaming an event to a name already used in the study returns 409, not 500"""
+    study_data: TestDataContainerStudy = create_test_study(
+        study_name="TestEventNameCollisionStudy", with_events=2
+    )
+    study_id = study_data.study.id
+    event_a = study_data.events[0].event
+    event_b = study_data.events[1].event
+
+    # Create with a taken name
+    req(
+        f"api/study/{study_id}/event",
+        method="post",
+        b={"name": event_a.name},
+        expected_http_code=409,
+    )
+
+    # Rename to a taken name
+    response = req(
+        f"api/study/{study_id}/event/{event_b.id}",
+        method="patch",
+        b={"name": event_a.name},
+        expected_http_code=409,
+    )
+    assert event_a.name in response["detail"]
+
+    # Re-submitting the event's own name is not a collision
+    unchanged = req(
+        f"api/study/{study_id}/event/{event_b.id}",
+        method="patch",
+        b={"name": event_b.name, "order_position": 99},
+    )
+    assert unchanged["name"] == event_b.name
+    assert unchanged["order_position"] == 99
+
+    # The same name in another study is fine
+    other_study: TestDataContainerStudy = create_test_study(
+        study_name="TestEventNameCollisionOtherStudy", with_events=1
+    )
+    renamed = req(
+        f"api/study/{other_study.study.id}/event/{other_study.events[0].event.id}",
+        method="patch",
+        b={"name": event_a.name},
+    )
+    assert renamed["name"] == event_a.name
+
+    # An event of another study can not be patched through this study's path
+    req(
+        f"api/study/{study_id}/event/{other_study.events[0].event.id}",
+        method="patch",
+        b={"name": "Hijacked"},
+        expected_http_code=404,
+    )
+
+
 def test_endpoint_delete_event_success():
     """Test DELETE /api/study/{study_id}/event/{event_id} - empty event can be deleted"""
     study_data: TestDataContainerStudy = create_test_study(
