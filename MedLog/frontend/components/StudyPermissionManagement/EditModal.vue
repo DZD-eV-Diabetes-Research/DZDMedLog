@@ -8,6 +8,8 @@ const props = defineProps({
   initialPermissions: { type: Array as () => string[], default: () => [] },
 });
 
+const modelValue = defineModel<boolean>();
+
 const emit = defineEmits(['cancel', 'save'])
 
 type PermissionFormSchema = {
@@ -37,33 +39,24 @@ watch(() => props.initialPermissions, (newValue) => {
 </script>
 
 <template>
-  <UModal prevent-close>
-    <UCard>
-      <template #header>
-        <div class="flex items-center justify-between">
-          <span class="text-lg">Zugriff bearbeiten</span>
-          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="$emit('cancel')" />
-        </div>
-      </template>
-
-      <UForm :state="state" class="space-y-4" @submit="onSubmit">
-        <UCheckbox
-            v-for="permission in availablePermissions"
-            :key="permission.study_permission_name"
-            v-model="state.permissions"
-            :label="permission.study_permission_name"
-            :help="permission.description ?? ''"
-            :value="permission.study_permission_name"
-            class="mb-2"
-        />
-        <hr>
-        <div class="flex justify-between">
-          <UButton label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
-          <UButton type="submit" label="Speichern" />
-        </div>
-      </UForm>
-    </UCard>
-  </UModal>
+  <DZDUIModal v-model="modelValue" title="Zugriff bearbeiten" @cancel="$emit('cancel')">
+    <UForm :state="state" class="space-y-4" @submit="onSubmit">
+      <UCheckbox
+          v-for="permission in availablePermissions"
+          :key="permission.study_permission_name"
+          v-model="state.permissions"
+          :label="permission.study_permission_name"
+          :help="permission.description ?? ''"
+          :value="permission.study_permission_name"
+          class="mb-2"
+      />
+      <hr>
+      <div class="flex justify-between">
+        <UButton label="Abbrechen" variant="outline" @click.prevent="$emit('cancel')" />
+        <UButton type="submit" label="Speichern" />
+      </div>
+    </UForm>
+  </DZDUIModal>
 </template>
 
 <style scoped>

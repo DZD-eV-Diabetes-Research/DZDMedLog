@@ -1,72 +1,57 @@
 <template>
-  <UModal>
-    <UCard>
-      <template #header>
-        <div class="flex items-center justify-between">
-          <span class="text-lg">Präparat erfassen</span>
-          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="$emit('cancel')" />
-        </div>
-      </template>
-
-      <div v-if="!intakeDrugId">
-        <div class="flex flex-row justify-start">
-          <p class="text-base mb-2">
-            Präparat aus der Datenbank auswählen
-          </p>
-        </div>
-        <DrugSearch :autofocus-input="true" @drug-selected="onDrugSelected" />
-
-        <UDivider label="oder" class="my-4" />
-
-        <p>
-          Falls ein Präparat nicht in der Datenbank enthalten ist, kann es hier hinzugefügt werden.
-          Danach ist es über die Suche auffindbar.
+  <DZDUIModal v-model="modelValue" :ui="{ width: 'w-full sm:max-w-3xl' }" title="Präparat erfassen" @cancel="$emit('cancel')">
+    <div v-if="!intakeDrugId">
+      <div class="flex flex-row justify-start">
+        <p class="text-base mb-2">
+          Präparat aus der Datenbank auswählen
         </p>
-        <div class="flex justify-end">
-          <UButton
-              label="Ungelistetes Medikament aufnehmen" color="purple" variant="outline"
-              @click="openCustomModal()"
-          />
-        </div>
       </div>
+      <DrugSearch :autofocus-input="true" @drug-selected="onDrugSelected" />
 
-      <div v-else>
-        <DrugSummaryCard v-model="intakeDrugId" :readonly="!isDrugEditable" class="mb-4" />
-        <IntakeForm
-            :drug-id="intakeDrugId"
-            :initial-state="intakeFormInitialState"
-            :submit-callback="formSubmitCallback"
-            @cancel="$emit('cancel')"
+      <UDivider label="oder" class="my-4" />
+
+      <p>
+        Falls ein Präparat nicht in der Datenbank enthalten ist, kann es hier hinzugefügt werden.
+        Danach ist es über die Suche auffindbar.
+      </p>
+      <div class="flex justify-end">
+        <UButton
+            label="Ungelistetes Medikament aufnehmen" color="purple" variant="outline"
+            @click="openCustomModal()"
         />
       </div>
-    </UCard>
+    </div>
 
-    <UModal v-model="customDrugModalVisibility" prevent-close>
-      <UCard>
-        <template #header>
-          Präparat anlegen
-        </template>
+    <div v-else>
+      <DrugSummaryCard v-model="intakeDrugId" :readonly="!isDrugEditable" class="mb-4" />
+      <IntakeForm
+          :drug-id="intakeDrugId"
+          :initial-state="intakeFormInitialState"
+          :submit-callback="formSubmitCallback"
+          @cancel="$emit('cancel')"
+      />
+    </div>
 
-        <UAlert
-            icon="i-heroicons-information-circle"
-            color="sky"
-            variant="subtle"
-            description="Der Name des Präparats ist das einzige Pflichtfeld. Sollten Codes (z.B. PZN) bekannt sein, können diese bei einer späteren Datenharmonisierung helfen."
-        />
-        <CustomDrugForm
-            class="mt-5"
-            @save="saveCustomDrug"
-            @cancel="customDrugModalVisibility = false"
-        />
-        <ErrorMessage
-            v-if="createCustomDrugError"
-            title="Konnte Präparat nicht speichern"
-            :error="createCustomDrugError"
-            class="mt-5"
-        />
-      </UCard>
-    </UModal>
-  </UModal>
+    <DZDUIModal v-model="customDrugModalVisibility" title="Präparat anlegen" :show-close-button="false">
+      <UAlert
+          icon="i-heroicons-information-circle"
+          color="sky"
+          variant="subtle"
+          description="Der Name des Präparats ist das einzige Pflichtfeld. Sollten Codes (z.B. PZN) bekannt sein, können diese bei einer späteren Datenharmonisierung helfen."
+      />
+      <CustomDrugForm
+          class="mt-5"
+          @save="saveCustomDrug"
+          @cancel="customDrugModalVisibility = false"
+      />
+      <ErrorMessage
+          v-if="createCustomDrugError"
+          title="Konnte Präparat nicht speichern"
+          :error="createCustomDrugError"
+          class="mt-5"
+      />
+    </DZDUIModal>
+  </DZDUIModal>
 </template>
 
 <script setup lang="ts">
@@ -84,6 +69,8 @@ const props = withDefaults(defineProps<Props>(), {
   initialState: null,
   isDrugEditable: true,
 })
+
+const modelValue = defineModel<boolean>();
 
 defineEmits(['cancel'])
 
@@ -119,7 +106,11 @@ async function saveCustomDrug(customDrugBody: SchemaDrugCustomCreate) {
   );
 
   if (error.value) {
-    createCustomDrugError.value = error.value;
+    if (isNuxtError(error.value) && error.value.status === 409) {
+      createCustomDrugError.value = "Ein Präparat mit diesem Namen existiert bereits";
+    } else {
+      createCustomDrugError.value = error.value;
+    }
     return;
   }
 
