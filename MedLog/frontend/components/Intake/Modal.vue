@@ -106,7 +106,11 @@ async function saveCustomDrug(customDrugBody: SchemaDrugCustomCreate) {
   );
 
   if (error.value) {
-    createCustomDrugError.value = error.value;
+    if (isNuxtError(error.value) && error.value.status === 409) {
+      createCustomDrugError.value = "Ein Präparat mit diesem Namen existiert bereits";
+    } else {
+      createCustomDrugError.value = error.value;
+    }
     return;
   }
 

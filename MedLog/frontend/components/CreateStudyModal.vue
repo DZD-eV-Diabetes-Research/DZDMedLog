@@ -3,6 +3,14 @@ import { object, string } from "yup";
 
 const studyStore = useStudyStore();
 
+interface Props {
+  error?: unknown;
+}
+
+withDefaults(defineProps<Props>(), {
+  error: undefined,
+});
+
 const modelValue = defineModel<boolean>();
 
 const emit = defineEmits<{
@@ -61,7 +69,7 @@ watch(modelValue, (isOpen) => {
 </script>
 
 <template>
-  <DZDUIModal v-model="modelValue" :ui="{ width: 'w-full sm:max-w-lg' }" title="Studie anlegen">
+  <DZDUIModal v-model="modelValue" :error="error" :ui="{ width: 'w-full sm:max-w-lg' }" title="Studie anlegen">
     <slot name="error" />
 
     <UForm :schema="schema" :state="state" class="space-y-4 mt-2" @submit="createStudy">
