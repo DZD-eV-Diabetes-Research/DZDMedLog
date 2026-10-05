@@ -59,6 +59,13 @@ class _EventNotEmptyDetail(BaseModel):
 class EventNotEmptyErrorResponse(BaseModel):
     detail: _EventNotEmptyDetail
 
+def _event_name_conflict_exception(event_name: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=f"Event with name '{event_name}' already exists in this study",
+    )
+
+
 config = Config()
 
 from medlogserver.log import get_logger
@@ -101,6 +108,12 @@ async def list_events(
     "/study/{study_id}/event",
     response_model=EventRead,
     description=f"Create a new event.",
+    responses={
+        status.HTTP_409_CONFLICT: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "An event with the requested `name` already exists in this study.",
+        },
+    },
 )
 async def create_event(
     event: EventCreateAPI,
@@ -125,10 +138,7 @@ async def create_event(
     event_create = EventCreate(**event.model_dump(), study_id=study_access.study.id)
     return await event_crud.create(
         event_create,
-        raise_custom_exception_if_exists=HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Event with name '{event.name}' allready exists",
-        ),
+        raise_custom_exception_if_exists=_event_name_conflict_exception(event.name),
     )
 
 
@@ -136,6 +146,16 @@ async def create_event(
     "/study/{study_id}/event/{event_id}",
     response_model=EventRead,
     description=f"Update existing event",
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "No event with the given `event_id` exists in this study.",
+        },
+        status.HTTP_409_CONFLICT: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "Another event of this study already has the requested `name`.",
+        },
+    },
 )
 async def update_event(
     event_id: uuid.UUID,
@@ -149,13 +169,33 @@ async def update_event(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to update event",
         )
+    event_not_found_exception = HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"No event with id '{event_id}'",
+    )
+    existing_event = await event_crud.get(
+        event_id, raise_exception_if_none=event_not_found_exception
+    )
+    # The study access check only covers the study in the path, so make sure the event
+    # actually belongs to it.
+    if existing_event.study_id != study_access.study.id:
+        raise event_not_found_exception
+
+    # Explicit pre-check for a clean error message (issue #382: a rename to a taken name
+    # used to surface as a 500 from the unique index); the CRUD still maps the unique
+    # constraint violation to the same 409 in case of a race.
+    if "name" in event.model_fields_set and event.name is not None:
+        event_with_same_name = await event_crud.get_by_name(
+            study_id=study_access.study.id, event_name=event.name
+        )
+        if event_with_same_name is not None and event_with_same_name.id != event_id:
+            raise _event_name_conflict_exception(event.name)
+
     return await event_crud.update(
         id_=event_id,
         update_obj=event,
-        raise_exception_if_not_exists=HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No study with id '{event_id}'",
-        ),
+        raise_exception_if_not_exists=event_not_found_exception,
+        raise_custom_exception_if_exists=_event_name_conflict_exception(event.name),
     )
 
 

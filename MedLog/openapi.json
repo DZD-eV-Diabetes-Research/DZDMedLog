@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.10.post1.dev5+gc59cda532.d20261002"
+    "version": "1.0.10.post1.dev13+gd1aeae817.d20261005"
   },
   "paths": {
     "/api/health": {
@@ -2270,6 +2270,16 @@
               }
             }
           },
+          "409": {
+            "description": "An event with the requested `name` already exists in this study.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -2335,6 +2345,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EventRead"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No event with the given `event_id` exists in this study.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another event of this study already has the requested `name`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
                 }
               }
             }
