@@ -26,6 +26,7 @@ from typing import Any, Callable, Dict, Iterable, Optional, Tuple
 
 from medlogserver.model.intake import (
     ConsumedMedsTodayAnswers,
+    IntakeRegularOrAsNeededAnswers,
     IntakeValidationError,
 )
 
@@ -182,6 +183,25 @@ def _dose_per_day_negative(intake: Any, reference: IntakeReference) -> bool:
     return dose is not None and dose < 0
 
 
+def _dose_per_day_set_while_unknown(intake: Any, reference: IntakeReference) -> bool:
+    # Missing on a record that predates the field counts as "not unknown".
+    unknown = bool(getattr(intake, "dose_per_day_unknown", False))
+    return unknown and intake.dose_per_day is not None
+
+
+def _dose_per_day_unknown_for_as_needed_intake(
+    intake: Any, reference: IntakeReference
+) -> bool:
+    # `dose_per_day` only applies to regular intakes, so "the daily dose is
+    # unknown" cannot be said about an as-needed intake.
+    unknown = bool(getattr(intake, "dose_per_day_unknown", False))
+    return (
+        unknown
+        and intake.intake_regular_or_as_needed
+        == IntakeRegularOrAsNeededAnswers.ASNEEDED
+    )
+
+
 def _as_needed_dose_unit_negative(intake: Any, reference: IntakeReference) -> bool:
     dose = intake.as_needed_dose_unit
     return dose is not None and dose < 0
@@ -252,10 +272,28 @@ INTAKE_PLAUSIBILITY_RULES: Tuple[IntakeRule, ...] = (
         id="dose_per_day_negative",
         fields=("dose_per_day",),
         message=(
-            "'dose_per_day' must not be negative. 0 is allowed and is used when "
-            "the daily dose is unknown."
+            "'dose_per_day' must not be negative. 0 is allowed. An unknown daily "
+            "dose is recorded with 'dose_per_day_unknown'."
         ),
         is_violated=_dose_per_day_negative,
+    ),
+    IntakeRule(
+        id="dose_per_day_set_while_unknown",
+        fields=("dose_per_day", "dose_per_day_unknown"),
+        message=(
+            "'dose_per_day_unknown' is true, but 'dose_per_day' is set. Either "
+            "record the daily dose or mark it as unknown, not both."
+        ),
+        is_violated=_dose_per_day_set_while_unknown,
+    ),
+    IntakeRule(
+        id="dose_per_day_unknown_for_as_needed_intake",
+        fields=("dose_per_day_unknown", "intake_regular_or_as_needed"),
+        message=(
+            "'dose_per_day_unknown' is true, but 'intake_regular_or_as_needed' is "
+            "'as needed'. A daily dose only exists for regular intakes."
+        ),
+        is_violated=_dose_per_day_unknown_for_as_needed_intake,
     ),
     IntakeRule(
         id="as_needed_dose_unit_negative",

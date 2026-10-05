@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.10.post1.dev13+gd1aeae817.d20261005"
+    "version": "1.0.10.post1.dev15+g9485cdd92.d20261005"
   },
   "paths": {
     "/api/health": {
@@ -3474,7 +3474,7 @@
             }
           },
           "422": {
-            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n**Plausibility (combinations that cannot be true)**\nTwo reference dates are used. The \"not in the future\" rules compare against the server's current UTC date, without tolerance: tomorrow is a future date. The \"taken today\" rules compare against the day the parent interview was started, because that is the day the proband answered the question. That keeps an interview that stays open across midnight, a retroactively entered interview and a later correction of an entry from turning a correct answer into a contradiction. Those comparisons get one day of tolerance in both directions, to absorb the offset between the stored UTC timestamp and the interviewer's local time.\nThe rules are checked on the record as it will be stored, so a PATCH is validated against the merged record, not just the payload. A PATCH only triggers the rules that concern a field it actually sends.\n- `end_date_before_start_date` \u2014 `intake_end_date` is before `intake_start_date`. The same day for both is allowed.\n- `start_date_in_future` \u2014 `intake_start_date` lies after the current date.\n- `end_date_in_future` \u2014 `intake_end_date` lies after the current date.\n- `consumed_today_with_past_end_date` \u2014 `consumed_meds_today` is `Yes` while `intake_end_date` lies before the interview date.\n- `consumed_today_with_future_start_date` \u2014 `consumed_meds_today` is `Yes` while `intake_start_date` lies after the interview date.\n- `dose_per_day_negative` \u2014 `dose_per_day` is negative. `0` is allowed and means the daily dose is unknown.\n- `as_needed_dose_unit_negative` \u2014 `as_needed_dose_unit` is negative. `0` is allowed and means the dose is unknown.\n- `start_date_implausibly_old` / `end_date_implausibly_old` \u2014 the date is before 1950-01-01.\n\nRules that need an exact date are skipped when `intake_start_date_option` / `intake_end_date_option` is set instead of a date, because the option carries no date to compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\nA plausibility violation returns an object as `detail`, carrying the `rule` that broke and the `fields` it concerns. For a translated, client-side message it also carries `reference_date`, the ISO date the broken rule compared against (`null` for a rule that compares no date), and `reference`, naming which date that is: `today`, `interview_date` or `earliest_plausible_date`. `context` holds all three dates, for a message that needs more than the one the rule used. The other rules above return a plain string.",
+            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n**Plausibility (combinations that cannot be true)**\nTwo reference dates are used. The \"not in the future\" rules compare against the server's current UTC date, without tolerance: tomorrow is a future date. The \"taken today\" rules compare against the day the parent interview was started, because that is the day the proband answered the question. That keeps an interview that stays open across midnight, a retroactively entered interview and a later correction of an entry from turning a correct answer into a contradiction. Those comparisons get one day of tolerance in both directions, to absorb the offset between the stored UTC timestamp and the interviewer's local time.\nThe rules are checked on the record as it will be stored, so a PATCH is validated against the merged record, not just the payload. A PATCH only triggers the rules that concern a field it actually sends.\n- `end_date_before_start_date` \u2014 `intake_end_date` is before `intake_start_date`. The same day for both is allowed.\n- `start_date_in_future` \u2014 `intake_start_date` lies after the current date.\n- `end_date_in_future` \u2014 `intake_end_date` lies after the current date.\n- `consumed_today_with_past_end_date` \u2014 `consumed_meds_today` is `Yes` while `intake_end_date` lies before the interview date.\n- `consumed_today_with_future_start_date` \u2014 `consumed_meds_today` is `Yes` while `intake_start_date` lies after the interview date.\n- `dose_per_day_negative` \u2014 `dose_per_day` is negative. `0` is allowed.\n- `dose_per_day_set_while_unknown`: `dose_per_day_unknown` is `true` while `dose_per_day` is set. An unknown daily dose is sent as `dose_per_day: null` plus `dose_per_day_unknown: true`.\n- `dose_per_day_unknown_for_as_needed_intake`: `dose_per_day_unknown` is `true` while `intake_regular_or_as_needed` is `as needed`. A daily dose only exists for regular intakes.\n- `as_needed_dose_unit_negative` \u2014 `as_needed_dose_unit` is negative. `0` is allowed and means the dose is unknown.\n- `start_date_implausibly_old` / `end_date_implausibly_old` \u2014 the date is before 1950-01-01.\n\nRules that need an exact date are skipped when `intake_start_date_option` / `intake_end_date_option` is set instead of a date, because the option carries no date to compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\nA plausibility violation returns an object as `detail`, carrying the `rule` that broke and the `fields` it concerns. For a translated, client-side message it also carries `reference_date`, the ISO date the broken rule compared against (`null` for a rule that compares no date), and `reference`, naming which date that is: `today`, `interview_date` or `earliest_plausible_date`. `context` holds all three dates, for a message that needs more than the one the rule used. The other rules above return a plain string.",
             "content": {
               "application/json": {
                 "examples": {
@@ -3667,7 +3667,7 @@
             }
           },
           "422": {
-            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n**Plausibility (combinations that cannot be true)**\nTwo reference dates are used. The \"not in the future\" rules compare against the server's current UTC date, without tolerance: tomorrow is a future date. The \"taken today\" rules compare against the day the parent interview was started, because that is the day the proband answered the question. That keeps an interview that stays open across midnight, a retroactively entered interview and a later correction of an entry from turning a correct answer into a contradiction. Those comparisons get one day of tolerance in both directions, to absorb the offset between the stored UTC timestamp and the interviewer's local time.\nThe rules are checked on the record as it will be stored, so a PATCH is validated against the merged record, not just the payload. A PATCH only triggers the rules that concern a field it actually sends.\n- `end_date_before_start_date` \u2014 `intake_end_date` is before `intake_start_date`. The same day for both is allowed.\n- `start_date_in_future` \u2014 `intake_start_date` lies after the current date.\n- `end_date_in_future` \u2014 `intake_end_date` lies after the current date.\n- `consumed_today_with_past_end_date` \u2014 `consumed_meds_today` is `Yes` while `intake_end_date` lies before the interview date.\n- `consumed_today_with_future_start_date` \u2014 `consumed_meds_today` is `Yes` while `intake_start_date` lies after the interview date.\n- `dose_per_day_negative` \u2014 `dose_per_day` is negative. `0` is allowed and means the daily dose is unknown.\n- `as_needed_dose_unit_negative` \u2014 `as_needed_dose_unit` is negative. `0` is allowed and means the dose is unknown.\n- `start_date_implausibly_old` / `end_date_implausibly_old` \u2014 the date is before 1950-01-01.\n\nRules that need an exact date are skipped when `intake_start_date_option` / `intake_end_date_option` is set instead of a date, because the option carries no date to compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\nA plausibility violation returns an object as `detail`, carrying the `rule` that broke and the `fields` it concerns. For a translated, client-side message it also carries `reference_date`, the ISO date the broken rule compared against (`null` for a rule that compares no date), and `reference`, naming which date that is: `today`, `interview_date` or `earliest_plausible_date`. `context` holds all three dates, for a message that needs more than the one the rule used. The other rules above return a plain string.",
+            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n**Plausibility (combinations that cannot be true)**\nTwo reference dates are used. The \"not in the future\" rules compare against the server's current UTC date, without tolerance: tomorrow is a future date. The \"taken today\" rules compare against the day the parent interview was started, because that is the day the proband answered the question. That keeps an interview that stays open across midnight, a retroactively entered interview and a later correction of an entry from turning a correct answer into a contradiction. Those comparisons get one day of tolerance in both directions, to absorb the offset between the stored UTC timestamp and the interviewer's local time.\nThe rules are checked on the record as it will be stored, so a PATCH is validated against the merged record, not just the payload. A PATCH only triggers the rules that concern a field it actually sends.\n- `end_date_before_start_date` \u2014 `intake_end_date` is before `intake_start_date`. The same day for both is allowed.\n- `start_date_in_future` \u2014 `intake_start_date` lies after the current date.\n- `end_date_in_future` \u2014 `intake_end_date` lies after the current date.\n- `consumed_today_with_past_end_date` \u2014 `consumed_meds_today` is `Yes` while `intake_end_date` lies before the interview date.\n- `consumed_today_with_future_start_date` \u2014 `consumed_meds_today` is `Yes` while `intake_start_date` lies after the interview date.\n- `dose_per_day_negative` \u2014 `dose_per_day` is negative. `0` is allowed.\n- `dose_per_day_set_while_unknown`: `dose_per_day_unknown` is `true` while `dose_per_day` is set. An unknown daily dose is sent as `dose_per_day: null` plus `dose_per_day_unknown: true`.\n- `dose_per_day_unknown_for_as_needed_intake`: `dose_per_day_unknown` is `true` while `intake_regular_or_as_needed` is `as needed`. A daily dose only exists for regular intakes.\n- `as_needed_dose_unit_negative` \u2014 `as_needed_dose_unit` is negative. `0` is allowed and means the dose is unknown.\n- `start_date_implausibly_old` / `end_date_implausibly_old` \u2014 the date is before 1950-01-01.\n\nRules that need an exact date are skipped when `intake_start_date_option` / `intake_end_date_option` is set instead of a date, because the option carries no date to compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\nA plausibility violation returns an object as `detail`, carrying the `rule` that broke and the `fields` it concerns. For a translated, client-side message it also carries `reference_date`, the ISO date the broken rule compared against (`null` for a rule that compares no date), and `reference`, naming which date that is: `today`, `interview_date` or `earliest_plausible_date`. `context` holds all three dates, for a message that needs more than the one the rule used. The other rules above return a plain string.",
             "content": {
               "application/json": {
                 "examples": {
@@ -3857,6 +3857,7 @@
                 "administered_by_doctor",
                 "intake_regular_or_as_needed",
                 "dose_per_day",
+                "dose_per_day_unknown",
                 "regular_intervall_of_daily_dose",
                 "as_needed_dose_unit",
                 "consumed_meds_today",
@@ -4000,6 +4001,7 @@
                 "administered_by_doctor",
                 "intake_regular_or_as_needed",
                 "dose_per_day",
+                "dose_per_day_unknown",
                 "regular_intervall_of_daily_dose",
                 "as_needed_dose_unit",
                 "consumed_meds_today",
@@ -7740,7 +7742,13 @@
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day. Must not be negative; `0` is allowed and is used when the daily dose is unknown. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
+            "description": "Number of doses taken per day. Must not be negative. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`. When the daily dose is unknown, leave this `null` and set `dose_per_day_unknown` to `true` instead of using a placeholder value."
+          },
+          "dose_per_day_unknown": {
+            "type": "boolean",
+            "title": "Dose Per Day Unknown",
+            "description": "Set to `true` when the proband does not know the daily dose. Mutually exclusive with `dose_per_day`: when this is `true`, `dose_per_day` must be `null`. Only allowed for regular intakes, must be `false` when `intake_regular_or_as_needed` is `as needed`. Defaults to `false`.",
+            "default": false
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -7891,7 +7899,13 @@
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day. Must not be negative; `0` is allowed and is used when the daily dose is unknown. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
+            "description": "Number of doses taken per day. Must not be negative. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`. When the daily dose is unknown, leave this `null` and set `dose_per_day_unknown` to `true` instead of using a placeholder value."
+          },
+          "dose_per_day_unknown": {
+            "type": "boolean",
+            "title": "Dose Per Day Unknown",
+            "description": "Set to `true` when the proband does not know the daily dose. Mutually exclusive with `dose_per_day`: when this is `true`, `dose_per_day` must be `null`. Only allowed for regular intakes, must be `false` when `intake_regular_or_as_needed` is `as needed`. Defaults to `false`.",
+            "default": false
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -8032,7 +8046,13 @@
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day. Must not be negative; `0` is allowed and is used when the daily dose is unknown. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
+            "description": "Number of doses taken per day. Must not be negative. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`. When the daily dose is unknown, leave this `null` and set `dose_per_day_unknown` to `true` instead of using a placeholder value."
+          },
+          "dose_per_day_unknown": {
+            "type": "boolean",
+            "title": "Dose Per Day Unknown",
+            "description": "Set to `true` when the proband does not know the daily dose. Mutually exclusive with `dose_per_day`: when this is `true`, `dose_per_day` must be `null`. Only allowed for regular intakes, must be `false` when `intake_regular_or_as_needed` is `as needed`. Defaults to `false`.",
+            "default": false
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
@@ -8227,7 +8247,13 @@
               }
             ],
             "title": "Dose Per Day",
-            "description": "Number of doses taken per day. Must not be negative; `0` is allowed and is used when the daily dose is unknown. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
+            "description": "Number of doses taken per day. Must not be negative. Fractional doses (half or quarter tablets) are allowed with at most 2 decimal places, e.g. `0.25`, `0.2`, `1.25`. When the daily dose is unknown, leave this `null` and set `dose_per_day_unknown` to `true` instead of using a placeholder value."
+          },
+          "dose_per_day_unknown": {
+            "type": "boolean",
+            "title": "Dose Per Day Unknown",
+            "description": "Set to `true` when the proband does not know the daily dose. Mutually exclusive with `dose_per_day`: when this is `true`, `dose_per_day` must be `null`. Only allowed for regular intakes, must be `false` when `intake_regular_or_as_needed` is `as needed`. Defaults to `false`.",
+            "default": false
           },
           "regular_intervall_of_daily_dose": {
             "anyOf": [
