@@ -92,7 +92,7 @@ async function openCopyIntakeModal() {
             Custom: intake.drug?.is_custom_drug ? "Ja" : "Nein",
             Einnahmebeginn: intake.intake_start_date || 'Unbekannt',
             Einnahmeende: intake.intake_end_date || 'Unbekannt',
-            Dosis: intake.dose_per_day || 'Unbekannt',
+            Dosis: intake.dose_per_day_unknown ? 'Unbekannt' : (intake.dose_per_day ? intake.dose_per_day.toLocaleString('de-DE', { useGrouping: false }) : ''),
             ID: intake.id,
             postBody: {
                 "drug_id": intake.drug_id,
@@ -105,6 +105,7 @@ async function openCopyIntakeModal() {
                 "administered_by_doctor": intake.administered_by_doctor,
                 "intake_regular_or_as_needed": intake.intake_regular_or_as_needed,
                 "dose_per_day": intake.dose_per_day,
+                "dose_per_day_unknown": intake.dose_per_day_unknown,
                 "regular_intervall_of_daily_dose": intake.regular_intervall_of_daily_dose,
                 "as_needed_dose_unit": intake.as_needed_dose_unit,
                 "consumed_meds_today": intake.consumed_meds_today,

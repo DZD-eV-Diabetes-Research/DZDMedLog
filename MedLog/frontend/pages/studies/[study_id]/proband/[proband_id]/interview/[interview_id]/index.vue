@@ -193,7 +193,12 @@ import {
   useStudyStore,
   useToast,
 } from "#imports";
-import type {SchemaIntakeCreateApi, SchemaIntakeDetailListItem, SchemaInterview} from "#open-fetch-schemas/medlogapi";
+import type {
+  SchemaIntakeCreateApi,
+  SchemaIntakeDetailListItem,
+  SchemaIntakeUpdate,
+  SchemaInterview
+} from "#open-fetch-schemas/medlogapi";
 
 const route = useRoute();
 const dayjs = useDayjs();
@@ -241,6 +246,7 @@ async function saveIntake(data: IntakeFormSchema) {
     as_needed_dose_unit: null,
     consumed_meds_today: data.consumed_meds_today,
     dose_per_day: data.dose_per_day,
+    dose_per_day_unknown: data.dose_per_day_unknown,
     drug_id: data.drugId,
     intake_end_date: data.intake_end_date ? dayjs(data.intake_end_date).format("YYYY-MM-DD") : null,
     intake_end_date_option: data.endDateOption ?? null,
@@ -253,8 +259,13 @@ async function saveIntake(data: IntakeFormSchema) {
   };
 
   if (body.intake_regular_or_as_needed === 'as needed') {
-    delete body.dose_per_day;
-    delete body.regular_intervall_of_daily_dose;
+    body.dose_per_day = null;
+    body.dose_per_day_unknown = false;
+    body.regular_intervall_of_daily_dose = null;
+  }
+
+  if (body.intake_regular_or_as_needed === 'regular' && body.dose_per_day_unknown) {
+    body.dose_per_day = null
   }
 
   await $medlogapi("/api/study/{study_id}/interview/{interview_id}/intake", {
@@ -286,6 +297,7 @@ async function openEditModal(intakeId: string) {
     intakeToEdit.value = {
       administered_by_doctor: intake.administered_by_doctor === null ? undefined : intake.administered_by_doctor,
       dose_per_day: intake.dose_per_day === null ? undefined : intake.dose_per_day,
+      dose_per_day_unknown: intake.dose_per_day_unknown === true,
       drugId: intake.drug_id ?? "",
       source_of_drug_information: intake.source_of_drug_information === null ? undefined : intake.source_of_drug_information,
       intake_end_date: intake.intake_end_date ?? undefined,
@@ -309,12 +321,12 @@ async function openEditModal(intakeId: string) {
 }
 
 async function saveEditIntake(data: IntakeFormSchema) {
-  const body = {
+  const body: SchemaIntakeUpdate = {
     administered_by_doctor: data.administered_by_doctor,
     as_needed_dose_unit: null,
     consumed_meds_today: data.consumed_meds_today,
     dose_per_day: data.dose_per_day,
-    drug_id: data.drugId,
+    dose_per_day_unknown: data.dose_per_day_unknown,
     intake_end_date: data.intake_end_date ? dayjs(data.intake_end_date).format("YYYY-MM-DD") : null,
     intake_end_date_option: data.endDateOption ?? null,
     intake_regular_or_as_needed: data.intake_regular_or_as_needed,
@@ -326,8 +338,13 @@ async function saveEditIntake(data: IntakeFormSchema) {
   };
 
   if (body.intake_regular_or_as_needed === 'as needed') {
-    delete body.dose_per_day;
-    delete body.regular_intervall_of_daily_dose;
+    body.dose_per_day = null;
+    body.dose_per_day_unknown = false;
+    body.regular_intervall_of_daily_dose = null;
+  }
+
+  if (body.intake_regular_or_as_needed === 'regular' && body.dose_per_day_unknown) {
+    body.dose_per_day = null
   }
 
   await $medlogapi('/api/study/{study_id}/interview/{interview_id}/intake/{intake_id}',

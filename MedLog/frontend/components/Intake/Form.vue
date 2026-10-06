@@ -22,7 +22,12 @@
     <div class="flex flex-row space-x-4">
       <div class="flex-1">
         <UFormGroup label="Dosis pro Tag der Einnahme" style="border-color: red" name="dose_per_day">
-          <UInput v-model.trim="state.dose_per_day" type="text" inputmode="decimal" :disabled="state.intake_regular_or_as_needed !== 'regular'"/>
+          <UInput v-model.trim="state.dose_per_day" type="text" inputmode="decimal" :disabled="state.intake_regular_or_as_needed !== 'regular' || state.dose_per_day_unknown"/>
+        </UFormGroup>
+      </div>
+      <div class="flex-1">
+        <UFormGroup label="Dosis pro Tag unbekannt" style="border-color: red" name="dose_per_day_unknown">
+          <UCheckbox v-model.trim="state.dose_per_day_unknown" :disabled="state.intake_regular_or_as_needed !== 'regular'"/>
         </UFormGroup>
       </div>
       <div class="flex-1">
@@ -108,7 +113,8 @@ const form = useTemplateRef<typeof UForm>('intakeForm')
 
 const state = reactive<IntakeFormSchema>({
   administered_by_doctor: administeredByDoctorOptions[0].value,
-  dose_per_day: 0,
+  dose_per_day: undefined,
+  dose_per_day_unknown: false,
   drugId: "",
   source_of_drug_information: drugSourceOptions[0].value,
   intake_end_date: undefined,
@@ -124,26 +130,37 @@ const state = reactive<IntakeFormSchema>({
 const schema = object({
   administered_by_doctor: string().oneOf(administeredByDoctorOptions.map(item => item.value)),
   dose_per_day: number()
-      .transform((value, originalValue, schema) => {
-        if (schema.isType(value)) {
-          return value;
-        }
+      .when('intake_regular_or_as_needed', {
+          is: 'regular',
+          then: (schema) => schema.when('dose_per_day_unknown', {
+              is: false,
+              then: (schema) => schema
+                  .required()
+                  .transform((value, originalValue, schema) => {
+                      if (schema.isType(value)) {
+                        return value;
+                      }
 
-        if (originalValue === '') {
-          return NaN;
-        }
+                      if (originalValue === '') {
+                        return NaN;
+                      }
 
-        return Number(String(originalValue).replace(',', '.'));
-      })
-      .typeError('Eingabe ist keine gültige Zahl')
-      .min(0, "Die Dosis muss 0 oder eine positive Zahl sein")
-      .test(
-        'two-decimal-places',
-        'Maximal zwei Dezimalstellen angeben',
-        (value) => {
-          return String(value).match(/^\d+([.,]\d{1,2})?$/) !== null;
-        }
-      ),
+                      return Number(String(originalValue).replace(',', '.'));
+                  })
+                  .typeError('Eingabe ist keine gültige Zahl')
+                  .positive("Die Dosis muss eine positive Zahl sein")
+                  .test(
+                      'two-decimal-places',
+                      'Maximal zwei Dezimalstellen angeben',
+                      (value) => {
+                        return String(value).match(/^\d+([.,]\d{1,2})?$/) !== null;
+                      }
+                  ),
+              otherwise: (schema) => schema.optional().notRequired().transform(() => undefined) // ignore input
+          }),
+          otherwise: (schema) => schema.optional(),
+      }),
+  dose_per_day_unknown: boolean().required(),
   drugId: string().required("Kein Medikament ausgewählt"),
   source_of_drug_information: string().oneOf(drugSourceOptions.map(item => item.value)).required("Required"),
   intake_end_date: string().when('endDateOption', { is: undefined, then: (schema) => schema.required(), otherwise: (schema) => schema.optional() }),
@@ -209,6 +226,22 @@ function getLocalizedPlausibilityErrorMessage(error: FastAPIPlausibilityError): 
 watch(() => props.drugId, async (newDrugId?: string) => {
   state.drugId = newDrugId ?? "";
 }, { immediate: true });
+
+watch(() => state.dose_per_day_unknown, async (newValue: boolean, oldValue: boolean) => {
+  if (newValue && !oldValue) {
+    // The daily dose has been marked as unknown, reset dose value and error state
+    state.dose_per_day = undefined;
+    form.value?.clear('dose_per_day')
+  }
+});
+
+watch(() => state.intake_regular_or_as_needed, async (newValue: 'regular' | 'as needed', oldValue: 'regular' | 'as needed') => {
+  if (oldValue === 'regular' && newValue === 'as needed') {
+    state.dose_per_day = undefined;
+    state.dose_per_day_unknown = false;
+    state.regular_intervall_of_daily_dose = 'Unknown';
+  }
+});
 
 onMounted(async () => {
   if (props.initialState) {

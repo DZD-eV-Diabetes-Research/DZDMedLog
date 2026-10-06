@@ -1,11 +1,20 @@
 export default defineAppConfig({
     ui: {
+        checkbox: {
+            base: 'disabled:bg-gray-100',
+        },
+        input: {
+            base: 'disabled:bg-gray-100',
+        },
         notification: {
             default: {
                 color: "red",
                 icon: "i-heroicons-exclamation-circle",
                 timeout: 10000,
             },
+        },
+        select: {
+            base: 'disabled:bg-gray-100',
         },
         selectMenu: {
             default: {
