@@ -243,10 +243,12 @@ class IntakeUpdate(MedLogBaseModel, table=False):
     dose_per_day: Optional[float] = Field(
         default=None,
         description=(
-            "Number of doses taken per day. Must not be negative; `0` is allowed "
-            "and is used when the daily dose is unknown. "
+            "Number of doses taken per day. Must be positive, `0` and `9999` "
+            "(the old placeholders for an unknown dose) are rejected. "
             "Fractional doses (half or quarter tablets) are allowed with at most "
-            "2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
+            "2 decimal places, e.g. `0.25`, `0.2`, `1.25`. "
+            "When the daily dose is unknown, leave this `null` and set "
+            "`dose_per_day_unknown` to `true` instead of using a placeholder value."
         ),
         # Numeric(...) instead of Float, so Postgres stores the value exactly as
         # entered instead of a binary approximation. asdecimal=False keeps the
@@ -261,7 +263,17 @@ class IntakeUpdate(MedLogBaseModel, table=False):
             nullable=True,
         ),
     )
-    regular_intervall_of_daily_dose: Optional[IntervalOfDailyDoseAnswers] = Field(
+    dose_per_day_unknown: bool = Field(
+        default=False,
+        description=(
+            "Set to `true` when the proband does not know the daily dose. "
+            "Mutually exclusive with `dose_per_day`: when this is `true`, "
+            "`dose_per_day` must be `null`. Only allowed for regular intakes, "
+            "must be `false` when `intake_regular_or_as_needed` is `as needed`. "
+            "Defaults to `false`."
+        ),
+    )
+    regular_intervall_of_daily_dose:Optional[IntervalOfDailyDoseAnswers] = Field(
         default=None,
         description=(
             "Interval between doses for regular intake. "

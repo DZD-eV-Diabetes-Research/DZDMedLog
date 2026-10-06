@@ -143,7 +143,11 @@ function myOptions(row: ElementType<ValueOf<typeof rows>>) {
   return [options];
 }
 
-function getDosePerDayString(value: number | null | undefined) {
+function getDosePerDayString(value: number | null | undefined, valueUnknown?: boolean) {
+  if (valueUnknown) {
+    return "unbekannt";
+  }
+
   if (!value && value !== 0) {
     return "";
   }
@@ -162,8 +166,8 @@ const rows = computed(() => {
     intake: item,
     pzn: item.is_activeingredient_equivalent_choice ? '' : item.drug.codes?.PZN,
     name: item.drug.trade_name,
-    dose: getDosePerDayString(item.dose_per_day),
-    intervall: useGetLabelForValue(doseIntervalOptions, item.regular_intervall_of_daily_dose),
+    dose: item.intake_regular_or_as_needed === 'regular' ? getDosePerDayString(item.dose_per_day, item.dose_per_day_unknown) : 'nach Bedarf',
+    intervall: item.intake_regular_or_as_needed === 'regular' ? useGetLabelForValue(doseIntervalOptions, item.regular_intervall_of_daily_dose) : 'nach Bedarf',
     time: getIntakeDurationString(item),
     intakeId: item.id,
   }));
