@@ -152,8 +152,12 @@ export const plausibilityErrorMessages: { rule: string, message: string, message
         message: "'Tagesdosis unbekannt' darf bei 'nach Bedarf' nicht gesetzt sein",
     },
     {
+        rule: "dose_per_day_placeholder",
+        message: "Tagesdosis 0 oder 9999 nicht erlaubt, bitte 'unbekannt' setzen",
+    },
+    {
         rule: "dose_per_day_negative",
-        message: "Tagesdosis muss 0 oder positive Zahl sein"
+        message: "Tagesdosis muss positive Zahl sein"
     },
     {
         rule: "start_date_implausibly_old",
