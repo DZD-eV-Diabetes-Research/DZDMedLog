@@ -663,8 +663,8 @@ def test_consumed_today_with_future_start_date_rejected_on_patch():
 
 # ── rule 6: negative doses ─────────────────────────────────────────────────
 #
-# `0` is *not* rejected (reported in the review of issue #338). An unknown dose
-# is recorded with `dose_per_day_unknown` since issue #384.
+# An unknown dose is recorded with `dose_per_day_unknown` since issue #384, so
+# the old placeholders `0` and `9999` are rejected.
 
 
 def test_negative_dose_per_day_rejected_on_post():
@@ -678,12 +678,36 @@ def test_negative_dose_per_day_rejected_on_patch():
     _assert_rejected_by(response, "dose_per_day_negative")
 
 
-def test_dose_per_day_zero_accepted():
-    """`0` doses a day is not an implausible value."""
-    intake = _post(_payload(dose_per_day=0))
-    assert intake["dose_per_day"] == 0
-    updated = _patch(intake["id"], {"dose_per_day": 0})
-    assert updated["dose_per_day"] == 0
+def test_dose_per_day_placeholders_rejected_on_post():
+    from medlogserver.model.intake import IntakeRegularOrAsNeededAnswers
+
+    for dose in (0, 9999):
+        response = _post(_payload(dose_per_day=dose), expected_http_code=422)
+        _assert_rejected_by(response, "dose_per_day_placeholder")
+    # As-needed intakes have no daily dose, the old frontend sent `0` there.
+    response = _post(
+        _payload(
+            intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED.value,
+            as_needed_dose_unit=1,
+            dose_per_day=0,
+        ),
+        expected_http_code=422,
+    )
+    _assert_rejected_by(response, "dose_per_day_placeholder")
+
+
+def test_dose_per_day_placeholders_rejected_on_patch():
+    intake = _post(_payload())
+    for dose in (0, 9999):
+        response = _patch(intake["id"], {"dose_per_day": dose}, expected_http_code=422)
+        _assert_rejected_by(response, "dose_per_day_placeholder")
+
+
+def test_dose_per_day_near_placeholders_accepted():
+    """Only the exact placeholder values are rejected."""
+    for dose in (0.01, 9999.5):
+        intake = _post(_payload(dose_per_day=dose))
+        assert intake["dose_per_day"] == dose
 
 
 def test_negative_as_needed_dose_unit_rejected_on_post():
@@ -837,12 +861,12 @@ def test_dose_per_day_set_while_unknown_rule_unit():
     validate_intake_plausibility(_intake(dose_per_day=3, dose_per_day_unknown=False))
     validate_intake_plausibility(_intake(dose_per_day=None, dose_per_day_unknown=False))
     try:
-        validate_intake_plausibility(_intake(dose_per_day=0, dose_per_day_unknown=True))
+        validate_intake_plausibility(_intake(dose_per_day=2, dose_per_day_unknown=True))
     except IntakeValidationError as e:
         assert e.rule_id == "dose_per_day_set_while_unknown"
         assert set(e.fields) == {"dose_per_day", "dose_per_day_unknown"}
     else:
-        raise AssertionError("dose_per_day=0 with dose_per_day_unknown=True passed")
+        raise AssertionError("dose_per_day=2 with dose_per_day_unknown=True passed")
 
 
 def _run_dose_unknown_migration(connection):

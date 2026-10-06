@@ -183,6 +183,17 @@ def _dose_per_day_negative(intake: Any, reference: IntakeReference) -> bool:
     return dose is not None and dose < 0
 
 
+# Values that were used for "daily dose unknown" before `dose_per_day_unknown`
+# existed (issue #384). The migration turned them into the flag, rejecting them
+# keeps the placeholders from creeping back in.
+DOSE_PER_DAY_PLACEHOLDERS = (0, 9999)
+
+
+def _dose_per_day_placeholder(intake: Any, reference: IntakeReference) -> bool:
+    dose = intake.dose_per_day
+    return dose is not None and dose in DOSE_PER_DAY_PLACEHOLDERS
+
+
 def _dose_per_day_set_while_unknown(intake: Any, reference: IntakeReference) -> bool:
     # Missing on a record that predates the field counts as "not unknown".
     unknown = bool(getattr(intake, "dose_per_day_unknown", False))
@@ -272,10 +283,21 @@ INTAKE_PLAUSIBILITY_RULES: Tuple[IntakeRule, ...] = (
         id="dose_per_day_negative",
         fields=("dose_per_day",),
         message=(
-            "'dose_per_day' must not be negative. 0 is allowed. An unknown daily "
-            "dose is recorded with 'dose_per_day_unknown'."
+            "'dose_per_day' must not be negative. An unknown daily dose is "
+            "recorded with 'dose_per_day_unknown'."
         ),
         is_violated=_dose_per_day_negative,
+    ),
+    IntakeRule(
+        id="dose_per_day_placeholder",
+        fields=("dose_per_day",),
+        message=(
+            "'dose_per_day' must not be 0 or 9999. These were placeholders for an "
+            "unknown daily dose. Send 'dose_per_day': null with "
+            "'dose_per_day_unknown': true instead, or leave 'dose_per_day' null "
+            "for an as-needed intake."
+        ),
+        is_violated=_dose_per_day_placeholder,
     ),
     IntakeRule(
         id="dose_per_day_set_while_unknown",

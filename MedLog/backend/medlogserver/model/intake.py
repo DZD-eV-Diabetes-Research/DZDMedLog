@@ -243,7 +243,8 @@ class IntakeUpdate(MedLogBaseModel, table=False):
     dose_per_day: Optional[float] = Field(
         default=None,
         description=(
-            "Number of doses taken per day. Must not be negative. "
+            "Number of doses taken per day. Must be positive, `0` and `9999` "
+            "(the old placeholders for an unknown dose) are rejected. "
             "Fractional doses (half or quarter tablets) are allowed with at most "
             "2 decimal places, e.g. `0.25`, `0.2`, `1.25`. "
             "When the daily dose is unknown, leave this `null` and set "
