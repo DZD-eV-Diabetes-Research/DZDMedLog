@@ -79,9 +79,30 @@
             </UAlert>
             <div v-else-if="eventsToStartOptions.length" class="flex flex-row gap-2">
               <USelect v-model="eventIdToStart" :options="eventsToStartOptions" />
-              <UButton color="green" :disabled="!eventIdToStart" @click="introModalVisible = true">
-                Interview starten
-              </UButton>
+              <UButtonGroup orientation="horizontal">
+                <UButton color="green" :disabled="!eventIdToStart" @click="introModalVisible = true">
+                  Interview starten
+                </UButton>
+                <UDropdown
+                    :items="[[
+                      {
+                        label: 'Interview nachtragen',
+                        slot: 'backdate-interview',
+                        click: openBackdateModal,
+                        disabled: !eventIdToStart,
+                      },
+                    ]]"
+                    :popper="{ placement: 'bottom-end' }"
+                    :ui="{ item: { base: 'flex-col' } }"
+                >
+                  <UButton icon="i-heroicons-chevron-down-20-solid" color="green" />
+
+                  <template #backdate-interview>
+                    <span class="font-semibold text-left self-start">Interview nachtragen</span>
+                    <small class="text-left">Ein bereits abgeschlossenes Interview nachträglich eintragen.</small>
+                  </template>
+                </UDropdown>
+              </UButtonGroup>
             </div>
             <UAlert
                 v-else
@@ -138,11 +159,13 @@ import type {
 } from "#open-fetch-schemas/medlogapi";
 import { useDayjs } from '#dayjs'
 import localizedFormat from 'dayjs/plugin/localizedFormat'
+import BackdateModal, { type BackdateFormSchema } from "~/components/Interview/BackdateModal.vue";
 
 const dayjs = useDayjs();
 const route = useRoute()
 const eventStore = useEventStore()
 const interviewStore = useInterviewStore()
+const modal = useModal()
 const studyPermissionStore = useStudyPermissionStore()
 const studyStore = useStudyStore()
 const toast = useToast();
@@ -166,16 +189,16 @@ const completedInterviews = computed(() => {
   return interviewsForProband.value.filter(interview => interview.interview_end_time_utc !== null);
 });
 
-async function startInterview(hasTakenMeds: boolean) {
+async function startInterview(hasTakenMeds: boolean, startDate?: Date, endDate?: Date) {
   try {
-    const interview = await useCreateInterview(studyId.value, eventIdToStart.value, probandId.value, hasTakenMeds)
+    const interview = await useCreateInterview(studyId.value, eventIdToStart.value, probandId.value, hasTakenMeds, startDate)
 
     if (hasTakenMeds) {
       // Go ahead and conduct the interview
       await navigateTo(`/studies/${studyId.value}/proband/${probandId.value}/interview/${interview.id}`)
     } else {
       // No need to proceed, end the interview right away
-      await endInterview(eventIdToStart.value, interview.id)
+      await endInterview(eventIdToStart.value, interview.id, endDate ?? startDate)
       introModalVisible.value = false
     }
   }
@@ -187,10 +210,10 @@ async function startInterview(hasTakenMeds: boolean) {
   }
 }
 
-async function endInterview(eventId: string, interviewId: string) {
+async function endInterview(eventId: string, interviewId: string, endDate?: Date) {
   try {
     loading.value = true;
-    await interviewStore.endInterview(studyId.value, eventId, interviewId);
+    await interviewStore.endInterview(studyId.value, eventId, interviewId, endDate);
     eventsForProband.value = await useGetEventsByStudyAndProband(studyId.value, probandId.value);
     interviewsForProband.value = await useGetInterviewsByStudyAndProband(studyId.value, probandId.value);
     currentInterview.value = await useGetCurrentInterviewByStudyAndProband(studyId.value, probandId.value);
@@ -240,6 +263,14 @@ function fillInterviewStartSelector() {
 
     eventIdToStart.value = nextEventId;
   }
+}
+
+function openBackdateModal() {
+  modal.open(BackdateModal, {
+    submitCallback: async function (data: BackdateFormSchema) {
+      await startInterview(data.proband_has_taken_meds, data.interview_start_time_utc, data.interview_end_time_utc)
+    }
+  });
 }
 
 onMounted(async () => {
