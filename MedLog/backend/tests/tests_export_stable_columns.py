@@ -64,6 +64,12 @@ def test_csv_export_has_columns_no_drug_has_a_value_for(session_db, tmp_path):
         row["drug_attr_value_trade_name"] == "Export stable columns drug without attrs"
         for row in rows
     )
+    # missing dates are empty, not the string "None" as before issue #387
+    for column in (
+        "drug_attr_value_market_access_date",
+        "drug_attr_value_market_exit_date",
+    ):
+        assert all(row[column] == "" for row in rows)
 
 
 def test_csv_exports_of_studies_with_different_drugs_have_the_same_header(
@@ -136,6 +142,8 @@ def test_json_export_lists_all_drug_attrs(session_db, tmp_path):
         assert attrs["trade_name"]["drug_attr_value"] == (
             "Export stable columns drug without attrs json"
         )
+        assert attrs["market_access_date"]["drug_attr_value"] is None
+        assert attrs["market_exit_date"]["drug_attr_value"] is None
         # reference attributes have a (null) reference code, the others none
         assert attrs["producing_country"] == {
             "drug_attr_name": "producing_country",

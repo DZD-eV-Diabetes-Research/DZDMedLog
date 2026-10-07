@@ -7,6 +7,7 @@ from medlogserver.model.user_session import UserSession
 from medlogserver.model.user_auth import UserAuth
 from medlogserver.model.user import User
 from medlogserver.model.worker_job import WorkerJob
+from medlogserver.model.export_schema import ExportSchema
 from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
 )
@@ -46,4 +47,5 @@ all_tables = [
     DrugCode,
     DrugDataSetVersion,
     DrugData,
+    ExportSchema,
 ]

@@ -7,7 +7,8 @@ queries, so the query count grew with the number of intake rows (1000 rows took
 * the rewritten exporter writes the same data as the exporter before #362 (frozen
   in `export_reference_pre_issue_362.py`). Since issue #387 the new export has
   additional, empty drug columns (CSV) and null drug attributes (JSON) for drug
-  attributes a drug has no value for. Apart from these, the output is unchanged,
+  attributes a drug has no value for, and missing market access/exit dates are
+  empty (null) instead of the string `None`. Apart from these, the output is unchanged,
 * the number of queries depends on the number of distinct drugs, not on the
   number of intake rows.
 
@@ -322,6 +323,18 @@ def _export_layout() -> ExportLayout:
     return asyncio.run(ExportLayout.from_importer())
 
 
+# The legacy exporter wrote missing dates as the string "None" (fixed in issue #387).
+LEGACY_NONE_STRING_ATTRS = ("market_access_date", "market_exit_date")
+
+
+def _legacy_csv_row_with_none_strings_fixed(row: Dict[str, str]) -> Dict[str, str]:
+    for name in LEGACY_NONE_STRING_ATTRS:
+        column = f"drug_attr_value_{name}"
+        if row.get(column) == "None":
+            row[column] = ""
+    return row
+
+
 def _assert_csv_same_data_as_legacy(old_text: str, new_text: str):
     """New CSV = legacy CSV plus the layout columns the legacy export left out."""
     layout_columns = _export_layout().csv_columns()
@@ -334,7 +347,7 @@ def _assert_csv_same_data_as_legacy(old_text: str, new_text: str):
         return
     old_reader = csv.DictReader(io.StringIO(old_text))
     old_columns = old_reader.fieldnames
-    old_rows = list(old_reader)
+    old_rows = [_legacy_csv_row_with_none_strings_fixed(r) for r in old_reader]
     assert set(old_columns) <= set(layout_columns)
     assert len(new_rows) == len(old_rows)
     added_columns = [c for c in layout_columns if c not in old_columns]
@@ -357,6 +370,9 @@ def _assert_json_same_data_as_legacy(old_text: str, new_text: str):
     layout_attr_names = [attr.name for attr in layout.drug_attrs]
     for old_intake, new_intake in zip(old_export["intakes"], new_export["intakes"]):
         old_attrs = {a["drug_attr_name"]: a for a in old_intake.pop("drug_attrs")}
+        for name in LEGACY_NONE_STRING_ATTRS:
+            if name in old_attrs and old_attrs[name]["drug_attr_value"] == "None":
+                old_attrs[name]["drug_attr_value"] = None
         new_attrs = {a["drug_attr_name"]: a for a in new_intake.pop("drug_attrs")}
         assert new_intake == old_intake
         assert list(new_attrs) == layout_attr_names

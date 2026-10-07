@@ -54,6 +54,9 @@ tests = [
     "oidc-provider-mock",
     "memory_profiler",
     "pyftpdlib",
+    # validate exports against the export schemas (issue #387)
+    "jsonschema",
+    "frictionless",
 ]
 docs = ["mkdocs", "mkdocstrings[python]", "mkdocs-autorefs", "mkdocs-material", "psyplus"]
 

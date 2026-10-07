@@ -26,6 +26,9 @@ class Tasks(Enum):
     DRUG_DATA_AUTO_UPDATER = (
         "medlogserver.worker.tasks.drug_data_auto_updater.TaskDrugDataAutoUpdater"
     )
+    EXPORT_SCHEMA_BUILD = (
+        "medlogserver.worker.tasks.export_schema_build.TaskBuildExportSchemas"
+    )
 
 
 def import_task_class(class_path: str) -> Type["TaskBase"]:

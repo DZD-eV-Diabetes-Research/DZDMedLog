@@ -82,6 +82,10 @@ class ExportContainer(BaseModel):
         return values
 
 
+def _str_or_none(value: Any) -> str | None:
+    return None if value is None else str(value)
+
+
 def drug_to_export_data(
     drug: DrugData,
     layout: ExportLayout,
@@ -104,16 +108,18 @@ def drug_to_export_data(
     attrs.append(
         DrugDataExport(drug_attr_name="trade_name", drug_attr_value=drug.trade_name)
     )
+    # Missing dates are null (an empty CSV cell). Before issue #387 they were
+    # written as the string "None".
     attrs.append(
         DrugDataExport(
             drug_attr_name="market_access_date",
-            drug_attr_value=str(drug.market_access_date),
+            drug_attr_value=_str_or_none(drug.market_access_date),
         )
     )
     attrs.append(
         DrugDataExport(
             drug_attr_name="market_exit_date",
-            drug_attr_value=str(drug.market_exit_date),
+            drug_attr_value=_str_or_none(drug.market_exit_date),
         )
     )
     attrs.append(
