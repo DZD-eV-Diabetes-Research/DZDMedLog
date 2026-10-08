@@ -62,12 +62,9 @@
                 Vor dem Start eines neuen Interviews muss das laufende Interview beendet sein.
               </template>
               <template #actions>
-                <UButton
-                    label="Interview abschließen"
-                    variant="outline"
-                    color="red"
-                    icon="i-heroicons-stop-solid"
-                    @click.once="endInterview(currentInterview.event_id, currentInterview.id)"
+                <InterviewEndButtonGroup
+                    :end-interview-callback="endInterviewCallback"
+                    :start-date="$dayjs.utc(currentInterview.interview_start_time_utc).toDate()"
                 />
                 <UButton
                     label="Interview fortsetzen"
@@ -223,6 +220,12 @@ async function endInterview(eventId: string, interviewId: string, endDate?: Date
     errorMessage.value = error;
   } finally {
     loading.value = false;
+  }
+}
+
+async function endInterviewCallback(date?: Date) {
+  if (currentInterview.value) {
+    await endInterview(currentInterview.value.event_id, currentInterview.value.id, date)
   }
 }
 

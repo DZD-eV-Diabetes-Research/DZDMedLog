@@ -35,38 +35,11 @@
                 {{ $dayjs.utc(interview.interview_end_time_utc).local().format('LLL') }}
               </time>
             </span>
-            <UButtonGroup v-else-if="studyPermissionStore.currentUserCanInterview(studyId)" orientation="horizontal">
-              <UButton
-                label="Interview abschließen"
-                color="red"
-                icon="i-heroicons-arrow-right-on-rectangle"
-                title="Schließt das Interview mit der aktuellen Uhrzeit ab"
-                @click.once="endInterview()"
-              />
-              <UDropdown
-                :items="[[
-                  {
-                    label: 'Interview nachträglich abschließen',
-                    slot: 'custom-interview-end',
-                    click: () => {
-                      modal.open(CustomEndModal, {
-                        startDate: $dayjs.utc(interview?.interview_start_time_utc).toDate(),
-                        submitCallback: async (data) => { await endInterview(data.interview_end_time_utc) }
-                      })
-                      },
-                  },
-                ]]"
-                :popper="{ placement: 'bottom-end' }"
-                :ui="{ item: { base: 'flex-col' } }"
-              >
-                <UButton icon="i-heroicons-chevron-down-20-solid" color="red" />
-
-                <template #custom-interview-end>
-                  <span class="font-semibold text-left self-start">Interview nachträglich abschließen</span>
-                  <small class="text-left">Einen früheren Zeitpunkt als Ende des Interviews eintragen.</small>
-                </template>
-              </UDropdown>
-            </UButtonGroup>
+            <InterviewEndButtonGroup
+                v-else-if="studyPermissionStore.currentUserCanInterview(studyId)"
+                :end-interview-callback="endInterview"
+                :start-date="$dayjs.utc(interview?.interview_start_time_utc).toDate()"
+            />
             <span v-else>
               Das Interview wurde noch nicht abgeschlossen.
             </span>
@@ -193,7 +166,6 @@
 
 <script setup lang="ts">
 import type { IntakeFormSchema } from "~/components/Intake/Form.vue";
-import CustomEndModal from "~/components/Interview/CustomEndModal.vue"
 import { useDayjs } from '#dayjs'
 import localizedFormat from 'dayjs/plugin/localizedFormat'
 import {
@@ -225,7 +197,6 @@ const route = useRoute();
 const dayjs = useDayjs();
 const eventStore = useEventStore();
 const interviewStore = useInterviewStore();
-const modal = useModal();
 const studyPermissionStore = useStudyPermissionStore();
 const studyStore = useStudyStore();
 const toast = useToast();
