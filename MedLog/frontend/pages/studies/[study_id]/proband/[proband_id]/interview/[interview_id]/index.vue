@@ -35,13 +35,10 @@
                 {{ $dayjs.utc(interview.interview_end_time_utc).local().format('LLL') }}
               </time>
             </span>
-            <UButton
+            <InterviewEndButtonGroup
                 v-else-if="studyPermissionStore.currentUserCanInterview(studyId)"
-                label="Interview Beenden"
-                color="red"
-                variant="outline"
-                icon="i-heroicons-arrow-right-on-rectangle"
-                @click.once="endInterview()"
+                :end-interview-callback="endInterview"
+                :start-date="$dayjs.utc(interview?.interview_start_time_utc).toDate()"
             />
             <span v-else>
               Das Interview wurde noch nicht abgeschlossen.
@@ -382,9 +379,9 @@ async function deleteIntake() {
   }
 }
 
-async function endInterview() {
+async function endInterview(date?: Date) {
   try {
-    await interviewStore.endInterview(studyId.value, eventId.value, interviewId.value);
+    await interviewStore.endInterview(studyId.value, eventId.value, interviewId.value, date);
     await navigateTo(`/studies/${studyId.value}/proband/${probandId.value}`);
   } catch (error) {
     toast.add({
