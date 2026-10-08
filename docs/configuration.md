@@ -1666,6 +1666,26 @@ EXPORT_CACHE_DIR: /var/lib/medlog/exports
 
 ---
 
+## `EVENT_TYPES`
+
+List of event types an interview can be recorded as, e.g. an on-site visit or a remote interview. Study admins configure per event whether the type is fixed, pre-filled (default) or must be chosen by the interviewer. The type of each interview is part of the study export. Leave empty to switch the feature off. Removing a type later does not change interviews that already have it, but it can no longer be selected. Pass as a JSON array string when setting via environment variable.
+
+| Property | Value |
+|---|---|
+| Type | List of str |
+| Required | No |
+| Environment variable | `EVENT_TYPES` |
+
+**Examples:**
+
+```yaml
+EVENT_TYPES:
+- on-site visit
+- remote interview
+```
+
+---
+
 ## `SYSTEM_ANNOUNCEMENTS`
 
 List of system-wide announcement banners displayed in the web client. Public announcements are shown to all visitors; non-public ones only to logged-in users. Pass as a JSON array string when setting via environment variable.

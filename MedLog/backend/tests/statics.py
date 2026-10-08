@@ -12,6 +12,8 @@ SYSTEM_ANNOUNCEMENTS = [
     {"type": "info", "public": True, "message": "This is a public message"},
     {"type": "alert", "public": False, "message": "This is a non-public alert"},
 ]
+# Issue #388
+EVENT_TYPES = ["on-site visit", "remote interview", "phone call"]
 
 # OIDC mock constants — consumed by tests_oidc_mapping.py and main.py
 OIDC_TEST_PROVIDER_DISPLAY_NAME = "LocalTestOIDC"

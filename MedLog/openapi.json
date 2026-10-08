@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.10.post1.dev17+g3494aef4f.d20261006"
+    "version": "1.0.10.post1.dev23+gb64de24de.d20261008"
   },
   "paths": {
     "/api/health": {
@@ -140,6 +140,33 @@
             }
           }
         }
+      }
+    },
+    "/api/config/event-types": {
+      "get": {
+        "tags": [
+          "Config"
+        ],
+        "summary": "Get Event Type Config",
+        "description": "Provides the event types an interview can be recorded as (server config `EVENT_TYPES`). Study admins choose from them in the `event_type` of an event, interviewers in the `event_type` of an interview.",
+        "operationId": "get_event_type_config_api_config_event_types_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventTypeConfig"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/config/announcements": {
@@ -2178,6 +2205,9 @@
               "enum": [
                 "created_at",
                 "order_position",
+                "external_id",
+                "event_type_mode",
+                "event_type",
                 "name",
                 "study_id",
                 "id"
@@ -2281,11 +2311,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "`event_type_mode` and `event_type` do not fit together, or `event_type` is not one of the configured `EVENT_TYPES`.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
                 }
               }
             }
@@ -2370,11 +2400,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "`event_type_mode` and `event_type` do not fit together, or `event_type` is not one of the configured `EVENT_TYPES`.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
                 }
               }
             }
@@ -2651,6 +2681,9 @@
               "enum": [
                 "created_at",
                 "order_position",
+                "external_id",
+                "event_type_mode",
+                "event_type",
                 "name",
                 "study_id",
                 "id"
@@ -2870,11 +2903,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "`event_type` does not fit the `event_type_mode` of the event, see `event_type`.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
                 }
               }
             }
@@ -3016,11 +3049,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "`event_type` does not fit the `event_type_mode` of the event, see `event_type`.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
                 }
               }
             }
@@ -7291,6 +7324,51 @@
             "title": "Order Position",
             "description": "A ranked value to sort this event if its contained in list of events. If not provided, it will default to highest sort order compared to existing events in this study."
           },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id",
+            "description": "Optional free text ID to map this event to the ID used in external systems (e.g. an eCRF). Only for mapping, the authoritative identifier stays `id`.",
+            "examples": [
+              "1201",
+              "V01"
+            ]
+          },
+          "event_type_mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventTypeMode"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How the event type of the interviews of this event is set. `fixed`: always `event_type`, can not be changed. `default`: pre-filled with `event_type`, can be changed. `required_choice`: no pre-fill, has to be chosen for every interview. `null`: the event does not track an event type. Only available if the server config `EVENT_TYPES` is set."
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type",
+            "description": "The event type for the modes `fixed` and `default`. Must be one of the configured `EVENT_TYPES`. Must be `null` for the mode `required_choice` or if no mode is set.",
+            "examples": [
+              "on-site visit"
+            ]
+          },
           "name": {
             "type": "string",
             "maxLength": 64,
@@ -7332,6 +7410,51 @@
             ],
             "title": "Order Position",
             "description": "A ranked value to sort this event if its contained in list of events. If not provided, it will default to highest sort order compared to existing events in this study."
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id",
+            "description": "Optional free text ID to map this event to the ID used in external systems (e.g. an eCRF). Only for mapping, the authoritative identifier stays `id`.",
+            "examples": [
+              "1201",
+              "V01"
+            ]
+          },
+          "event_type_mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventTypeMode"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How the event type of the interviews of this event is set. `fixed`: always `event_type`, can not be changed. `default`: pre-filled with `event_type`, can be changed. `required_choice`: no pre-fill, has to be chosen for every interview. `null`: the event does not track an event type. Only available if the server config `EVENT_TYPES` is set."
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type",
+            "description": "The event type for the modes `fixed` and `default`. Must be one of the configured `EVENT_TYPES`. Must be `null` for the mode `required_choice` or if no mode is set.",
+            "examples": [
+              "on-site visit"
+            ]
           },
           "name": {
             "type": "string",
@@ -7378,6 +7501,51 @@
             ],
             "title": "Order Position",
             "description": "A ranked value to sort this event if its contained in list of events. If not provided, it will default to highest sort order compared to existing events in this study."
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id",
+            "description": "Optional free text ID to map this event to the ID used in external systems (e.g. an eCRF). Only for mapping, the authoritative identifier stays `id`.",
+            "examples": [
+              "1201",
+              "V01"
+            ]
+          },
+          "event_type_mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventTypeMode"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How the event type of the interviews of this event is set. `fixed`: always `event_type`, can not be changed. `default`: pre-filled with `event_type`, can be changed. `required_choice`: no pre-fill, has to be chosen for every interview. `null`: the event does not track an event type. Only available if the server config `EVENT_TYPES` is set."
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type",
+            "description": "The event type for the modes `fixed` and `default`. Must be one of the configured `EVENT_TYPES`. Must be `null` for the mode `required_choice` or if no mode is set.",
+            "examples": [
+              "on-site visit"
+            ]
           },
           "name": {
             "type": "string",
@@ -7427,6 +7595,51 @@
             "title": "Order Position",
             "description": "A ranked value to sort this event if its contained in list of events. If not provided, it will default to highest sort order compared to existing events in this study."
           },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id",
+            "description": "Optional free text ID to map this event to the ID used in external systems (e.g. an eCRF). Only for mapping, the authoritative identifier stays `id`.",
+            "examples": [
+              "1201",
+              "V01"
+            ]
+          },
+          "event_type_mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventTypeMode"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How the event type of the interviews of this event is set. `fixed`: always `event_type`, can not be changed. `default`: pre-filled with `event_type`, can be changed. `required_choice`: no pre-fill, has to be chosen for every interview. `null`: the event does not track an event type. Only available if the server config `EVENT_TYPES` is set."
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type",
+            "description": "The event type for the modes `fixed` and `default`. Must be one of the configured `EVENT_TYPES`. Must be `null` for the mode `required_choice` or if no mode is set.",
+            "examples": [
+              "on-site visit"
+            ]
+          },
           "name": {
             "type": "string",
             "maxLength": 64,
@@ -7468,6 +7681,46 @@
         ],
         "title": "EventReadPerProband"
       },
+      "EventTypeConfig": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Are event types available on this server. If `false`, `event_type_mode` and `event_type` of events must stay `null` and the client should hide all event type inputs."
+          },
+          "event_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Event Types",
+            "description": "The configured event types, in the configured order.",
+            "examples": [
+              [
+                "on-site visit",
+                "remote interview"
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "event_types"
+        ],
+        "title": "EventTypeConfig",
+        "description": "The event types an interview can be recorded as (issue #388)."
+      },
+      "EventTypeMode": {
+        "type": "string",
+        "enum": [
+          "fixed",
+          "default",
+          "required_choice"
+        ],
+        "title": "EventTypeMode",
+        "description": "How the event type of an interview is set (issue #388).\n\nThe available event types come from the server config `EVENT_TYPES`."
+      },
       "EventUpdate": {
         "properties": {
           "order_position": {
@@ -7481,6 +7734,51 @@
             ],
             "title": "Order Position",
             "description": "A ranked value to sort this event if its contained in list of events. If not provided, it will default to highest sort order compared to existing events in this study."
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id",
+            "description": "Optional free text ID to map this event to the ID used in external systems (e.g. an eCRF). Only for mapping, the authoritative identifier stays `id`.",
+            "examples": [
+              "1201",
+              "V01"
+            ]
+          },
+          "event_type_mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventTypeMode"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How the event type of the interviews of this event is set. `fixed`: always `event_type`, can not be changed. `default`: pre-filled with `event_type`, can be changed. `required_choice`: no pre-fill, has to be chosen for every interview. `null`: the event does not track an event type. Only available if the server config `EVENT_TYPES` is set."
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type",
+            "description": "The event type for the modes `fixed` and `default`. Must be one of the configured `EVENT_TYPES`. Must be `null` for the mode `required_choice` or if no mode is set.",
+            "examples": [
+              "on-site visit"
+            ]
           },
           "name": {
             "anyOf": [
@@ -8337,6 +8635,22 @@
             "type": "boolean",
             "title": "Proband Has Taken Meds"
           },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type",
+            "description": "The event type this interview actually was (e.g. an on-site visit or a remote interview). Depends on the `event_type_mode` of the event: `fixed`: set from the event, a different value is rejected. `default`: the event's `event_type` is used if left out. `required_choice`: must be one of the configured event types. `null` (no mode): must be left out.",
+            "examples": [
+              "remote interview"
+            ]
+          },
           "proband_external_id": {
             "type": "string",
             "maxLength": 256,
@@ -8393,6 +8707,22 @@
             "type": "boolean",
             "title": "Proband Has Taken Meds"
           },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type",
+            "description": "The event type this interview actually was (e.g. an on-site visit or a remote interview). Depends on the `event_type_mode` of the event: `fixed`: set from the event, a different value is rejected. `default`: the event's `event_type` is used if left out. `required_choice`: must be one of the configured event types. `null` (no mode): must be left out.",
+            "examples": [
+              "remote interview"
+            ]
+          },
           "proband_external_id": {
             "type": "string",
             "maxLength": 256,
@@ -8443,6 +8773,22 @@
               }
             ],
             "title": "Proband Has Taken Meds"
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type",
+            "description": "The event type this interview actually was (e.g. an on-site visit or a remote interview). Depends on the `event_type_mode` of the event: `fixed`: set from the event, a different value is rejected. `default`: the event's `event_type` is used if left out. `required_choice`: must be one of the configured event types. `null` (no mode): must be left out.",
+            "examples": [
+              "remote interview"
+            ]
           }
         },
         "type": "object",

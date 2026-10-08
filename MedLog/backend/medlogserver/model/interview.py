@@ -36,6 +36,19 @@ class InterviewUpdateAPI(MedLogBaseModel, table=False):
     )
     interview_end_time_utc: Optional[datetime] = Field(default=None)
     proband_has_taken_meds: Optional[bool] = Field(default=None)
+    event_type: Optional[str] = Field(
+        default=None,
+        max_length=64,
+        description=(
+            "The event type this interview actually was (e.g. an on-site visit or a remote interview). "
+            "Depends on the `event_type_mode` of the event: "
+            "`fixed`: set from the event, a different value is rejected. "
+            "`default`: the event's `event_type` is used if left out. "
+            "`required_choice`: must be one of the configured event types. "
+            "`null` (no mode): must be left out."
+        ),
+        schema_extra={"examples": ["remote interview"]},
+    )
 
 
 class InterviewCreateAPI(InterviewUpdateAPI, table=False):
