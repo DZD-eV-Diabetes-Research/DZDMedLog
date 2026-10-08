@@ -47,7 +47,10 @@ watch([endDate, endTime], ([newEndDate, newEndTime]) => {
 
 <template>
   <DZDUIModal v-model="modelValue" title="Interview nachträglich abschließen" :error="patchError" >
-    <UForm :schema="schema" :state="state" class="space-y-4 mt-2" @submit="submitForm">
+    <p>
+      Beginn des Interviews: <DateTime :datetime="props.startDate.toISOString()" />
+    </p>
+    <UForm :schema="schema" :state="state" class="space-y-4 mt-4" @submit="submitForm">
       <UFormGroup label="Ende des Interviews" name="interview_end_time_utc" required>
         <div class="flex flex-row">
           <UInput v-model="endDate" type="date" required />
