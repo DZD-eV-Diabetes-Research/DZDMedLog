@@ -1334,7 +1334,7 @@ STUDY_PERMISSION_MAPPING: "{\n                            \"MyStudyName\": {\n  
 
 ## `DRUG_IMPORTER_PLUGIN`
 
-Selects the drug data importer plugin. 'DummyDrugImporterV1' uses a small built-in sample dataset, suitable for development and demos. 'MMIPharmindex1_32' imports from the MMI Pharmindex format (version 1.32), used with German GKV Arzneimittelverzeichnis data.
+Selects the drug data importer plugin. 'DummyDrugImporterV1' uses a small built-in sample dataset, suitable for development and demos. 'MMIPharmindex1_32' imports from the MMI Pharmindex format (version 1.32), used with German GKV Arzneimittelverzeichnis data. Choose it before the first start: switching the plugin on a database that already holds drug data is not supported. MedLog refuses to start in that case. Set it back to the previous value, or wipe the database (this deletes all MedLog data).
 
 | Property | Value |
 |---|---|
