@@ -6,6 +6,7 @@ import time
 import uuid
 from itertools import groupby
 from pydantic import BaseModel, field_serializer, model_serializer
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from medlogserver.utils import path_is_parent
 from medlogserver.worker.task import TaskBase
@@ -27,7 +28,14 @@ from medlogserver.model import (
 from medlogserver.model.drug_data.api_drug_model_factory import (
     DrugData,
 )
+from medlogserver.model.drug_data.drug_attr_field_definition import (
+    DrugAttrFieldDefinition,
+    ValueTypeCasting,
+)
 from medlogserver.db.drug_data.drug import DrugCRUD
+from medlogserver.db.drug_data.importers.mmi_pharmindex import (
+    importername as MMI_PHARMINDEX_IMPORTER_NAME,
+)
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -39,8 +47,37 @@ config = Config()
 # below the bound parameter limit of SQLite and PostgreSQL.
 DRUG_LOAD_BATCH_SIZE = 500
 
+# Reference fields whose reference code only repeats the display value, e.g. MMI
+# `lebensmittel` "N" next to "Nein". Their reference code is left out (issue #389).
+# Keyed by (importer_name, field_name).
+REDUNDANT_REFERENCE_CODE_FIELDS: set[Tuple[str, str]] = {
+    (MMI_PHARMINDEX_IMPORTER_NAME, "diaetetikum"),
+    (MMI_PHARMINDEX_IMPORTER_NAME, "lebensmittel"),
+}
+
+# Raw values of BOOL drug attributes as stored by the importers, e.g. MMI "0"/"1".
+_BOOL_ATTR_VALUES = {
+    "1": True,
+    "true": True,
+    "0": False,
+    "false": False,
+}
+
+
+def _bool_attr_value(value: str | None) -> bool | str | None:
+    """Turn a stored BOOL attribute value into a real bool.
+
+    All booleans in the export are `True`/`False` this way, instead of a mix of
+    "0"/"1" (MMI `ist_*` fields) and "True"/"False" (issue #389). Unknown values are
+    kept as they are, so no data gets lost.
+    """
+    if value is None:
+        return None
+    return _BOOL_ATTR_VALUES.get(str(value).strip().lower(), value)
+
 
 class DrugCodesExport(BaseModel):
+    drug_code_system_id: str
     drug_code_system_name: str
     drug_code: str
 
@@ -51,7 +88,7 @@ class ValueReferenceCodeNotApplicable:
 
 class DrugDataExport(BaseModel):
     drug_attr_name: str
-    drug_attr_value: str | List[str | None] | None
+    drug_attr_value: bool | str | List[bool | str | None] | None
     drug_attr_reference_code: (
         str | List[str | None] | None | Type[ValueReferenceCodeNotApplicable]
     ) = ValueReferenceCodeNotApplicable
@@ -85,16 +122,20 @@ def flatten_export_objects(
     objs: BaseModel | List[BaseModel],
     obj_name: str,
     pivot_by_column: str | None = None,
+    exclude: set[str] | None = None,
 ) -> Dict[str, Any]:
     """Turn one export object (or a list of them) into flat CSV columns.
 
     Lists are pivoted: every item becomes its own set of columns, suffixed with the
     value of `pivot_by_column` (e.g. one `drug_code_<system>` column per code system).
+    Properties in `exclude` get no column.
     """
     columns: Dict[str, Any] = {}
     if not isinstance(objs, list):
         objs = [objs]
-    exclude_set = {pivot_by_column} if pivot_by_column else None
+    exclude_set = set(exclude or ())
+    if pivot_by_column:
+        exclude_set.add(pivot_by_column)
     for obj in objs:
         for prop_name, prop_value in obj.model_dump(exclude=exclude_set).items():
             if prop_value == ValueReferenceCodeNotApplicable:
@@ -107,6 +148,18 @@ def flatten_export_objects(
                 column_name = f"{column_name}_{list_column_att}".lower()
             columns[column_name] = prop_value
     return columns
+
+
+def flatten_export_drug_codes(drug_codes: List[DrugCodesExport]) -> Dict[str, Any]:
+    # One column per code system, named by the code system id (`drug_code_pzn`).
+    # The display name contains spaces for some systems ("MMI Product ID"), which made
+    # awkward column names (issue #389).
+    return flatten_export_objects(
+        drug_codes,
+        "drug_code",
+        "drug_code_system_id",
+        exclude={"drug_code_system_name"},
+    )
 
 
 class ExportContainer(BaseModel):
@@ -126,9 +179,7 @@ class ExportContainer(BaseModel):
             row.update(flatten_export_objects(intake.interview, "interview"))
             row.update(flatten_export_objects(intake.intake, "intake"))
             row.update(
-                flatten_export_objects(
-                    intake.drug_codes, "drug_code", "drug_code_system_name"
-                )
+                flatten_export_drug_codes(intake.drug_codes)
             )
             row.update(
                 flatten_export_objects(intake.drug_attrs, "drug", "drug_attr_name")
@@ -139,12 +190,16 @@ class ExportContainer(BaseModel):
 
 def drug_to_export_data(
     drug: DrugData,
+    bool_fields: set[Tuple[str, str]] | None = None,
 ) -> Tuple[List[DrugCodesExport], List[DrugDataExport]]:
+    """`bool_fields` are the (importer_name, field_name) of all BOOL attributes."""
+    bool_fields = bool_fields or set()
     codes: List[DrugCodesExport] = []
     attrs: List[DrugDataExport] = []
     for code in drug.codes:
         codes.append(
             DrugCodesExport(
+                drug_code_system_id=code.code_system.id,
                 drug_code_system_name=code.code_system.name,
                 drug_code=code.code,
             )
@@ -156,19 +211,19 @@ def drug_to_export_data(
     attrs.append(
         DrugDataExport(
             drug_attr_name="market_access_date",
-            drug_attr_value=str(drug.market_access_date),
+            drug_attr_value=_date_attr_value(drug.market_access_date),
         )
     )
     attrs.append(
         DrugDataExport(
             drug_attr_name="market_exit_date",
-            drug_attr_value=str(drug.market_exit_date),
+            drug_attr_value=_date_attr_value(drug.market_exit_date),
         )
     )
     attrs.append(
         DrugDataExport(
             drug_attr_name="is_custom_drug",
-            drug_attr_value=str(drug.is_custom_drug),
+            drug_attr_value=drug.is_custom_drug,
         )
     )
     attrs.append(
@@ -179,19 +234,18 @@ def drug_to_export_data(
     )
 
     for attr in drug.attrs:
-        attrs.append(
-            DrugDataExport(drug_attr_name=attr.field_name, drug_attr_value=attr.value)
-        )
+        value = attr.value
+        if (attr.importer_name, attr.field_name) in bool_fields:
+            value = _bool_attr_value(value)
+        attrs.append(DrugDataExport(drug_attr_name=attr.field_name, drug_attr_value=value))
     for attr in drug.attrs_ref:
-        attrs.append(
-            DrugDataExport(
-                drug_attr_name=attr.field_name,
-                drug_attr_value=attr.lov_item.display
-                if attr.value is not None
-                else None,
-                drug_attr_reference_code=attr.value,
-            )
+        export_attr = DrugDataExport(
+            drug_attr_name=attr.field_name,
+            drug_attr_value=attr.lov_item.display if attr.value is not None else None,
         )
+        if (attr.importer_name, attr.field_name) not in REDUNDANT_REFERENCE_CODE_FIELDS:
+            export_attr.drug_attr_reference_code = attr.value
+        attrs.append(export_attr)
     # attr_multi
     attrs_multi_sorted_by_name_and_index = sorted(
         drug.attrs_multi,
@@ -202,7 +256,12 @@ def drug_to_export_data(
         attrs_multi_sorted_by_name_and_index,
         key=lambda attr: attr.field_name,
     ):
-        values = [attr.value for attr in attr_group]
+        values = [
+            _bool_attr_value(attr.value)
+            if (attr.importer_name, attr.field_name) in bool_fields
+            else attr.value
+            for attr in attr_group
+        ]
         attrs.append(
             DrugDataExport(
                 drug_attr_name=field_name,
@@ -233,6 +292,11 @@ def drug_to_export_data(
             )
         )
     return codes, attrs
+
+
+def _date_attr_value(value) -> str | None:
+    # `str(None)` wrote the text "None" into the export instead of an empty value (#389)
+    return None if value is None else str(value)
 
 
 def _indent_json(json_str: str, indent: str) -> str:
@@ -331,6 +395,7 @@ class StudyDataExporter:
     async def _load_drugs(self, session: AsyncSession):
         # dict keeps the order of first appearance, which the CSV header relies on
         distinct_drug_ids = list(dict.fromkeys(i.drug_id for i in self.intakes))
+        bool_fields = await self._load_bool_attr_fields(session)
         async with DrugCRUD.crud_context(session) as drug_crud:
             drug_crud: DrugCRUD = drug_crud
             for batch_start in range(0, len(distinct_drug_ids), DRUG_LOAD_BATCH_SIZE):
@@ -340,7 +405,7 @@ class StudyDataExporter:
                 for drug in await drug_crud.list_by_ids_with_relations_any_dataset_version(
                     batch
                 ):
-                    self.drugs[drug.id] = drug_to_export_data(drug)
+                    self.drugs[drug.id] = drug_to_export_data(drug, bool_fields)
         missing_drug_ids = [d for d in distinct_drug_ids if d not in self.drugs]
         if missing_drug_ids:
             raise ValueError(
@@ -349,6 +414,16 @@ class StudyDataExporter:
             )
         # Keep the dict in order of first appearance, `list_by_ids...` does not sort.
         self.drugs = {drug_id: self.drugs[drug_id] for drug_id in distinct_drug_ids}
+
+    @staticmethod
+    async def _load_bool_attr_fields(session: AsyncSession) -> set[Tuple[str, str]]:
+        result = await session.exec(
+            select(
+                DrugAttrFieldDefinition.importer_name,
+                DrugAttrFieldDefinition.field_name,
+            ).where(DrugAttrFieldDefinition.value_type == ValueTypeCasting.BOOL)
+        )
+        return {(importer_name, field_name) for importer_name, field_name in result}
 
     def _intake_container(self, intake: Intake) -> ExportIntakeContainer:
         interview = self.interviews[intake.interview_id]
@@ -402,9 +477,7 @@ class StudyDataExporter:
                     container.interview, "interview"
                 )
             if intake.drug_id not in drug_columns:
-                columns = flatten_export_objects(
-                    container.drug_codes, "drug_code", "drug_code_system_name"
-                )
+                columns = flatten_export_drug_codes(container.drug_codes)
                 columns.update(
                     flatten_export_objects(
                         container.drug_attrs, "drug", "drug_attr_name"

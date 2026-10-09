@@ -5,7 +5,8 @@ queries, so the query count grew with the number of intake rows (1000 rows took
 4 to 5 minutes on production). These tests make sure that
 
 * the rewritten exporter produces byte-identical CSV and JSON files compared to
-  the exporter before #362 (frozen in `export_reference_pre_issue_362.py`),
+  the exporter before #362 (frozen in `export_reference_pre_issue_362.py`), apart
+  from the intended drug column changes of issue #389 (see `_apply_issue_389`),
 * the number of queries depends on the number of distinct drugs, not on the
   number of intake rows.
 
@@ -35,7 +36,9 @@ the real one crashed (see there).
 
 from typing import Any, Dict, List, Literal, Tuple
 import asyncio
+import csv
 import datetime
+import io
 import json
 import os
 import random
@@ -63,6 +66,7 @@ from export_reference_pre_issue_362 import (
 )
 
 from medlogserver.model.drug_data.drug import DrugData, DrugCustomCreate
+from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug_attr import DrugMultiValApiCreate
 from medlogserver.model.event import Event
 from medlogserver.model.interview import Interview
@@ -309,6 +313,66 @@ def _run_export(
     }
 
 
+def _code_system_ids_by_name(db: ExportTestDB) -> Dict[str, str]:
+    async def load():
+        async with AsyncSession(db.engine) as session:
+            result = await session.exec(select(DrugCodeSystem.name, DrugCodeSystem.id))
+            return dict(result.all())
+
+    return asyncio.run(load())
+
+
+def _apply_issue_389(
+    legacy_text: str, format_: ExportFormat, code_system_ids: Dict[str, str]
+) -> str:
+    """Apply the intended drug column changes of issue #389 to a legacy export.
+
+    * drug code columns are named by code system id, not name (`drug_code_pzn`),
+      and the JSON drug codes carry the `drug_code_system_id`,
+    * empty market dates are empty instead of the text "None",
+    * `is_custom_drug` is a real boolean in the JSON export.
+
+    The study and intake column changes of #389 come from the shared export models,
+    so the legacy exporter already has them.
+    """
+    if not legacy_text:
+        return legacy_text
+    date_attrs = ("market_access_date", "market_exit_date")
+    if format_ == "csv":
+        reader = csv.DictReader(io.StringIO(legacy_text, newline=""))
+        renames = {
+            f"drug_code_{name}".lower(): f"drug_code_{id_}".lower()
+            for name, id_ in code_system_ids.items()
+        }
+        fieldnames = [renames.get(f, f) for f in reader.fieldnames]
+        out = io.StringIO(newline="")
+        # `read_text()` turned the "\r\n" line ends into "\n"
+        writer = csv.DictWriter(out, fieldnames=fieldnames, lineterminator="\n")
+        writer.writeheader()
+        for row in reader:
+            row = {renames.get(k, k): v for k, v in row.items()}
+            for attr in date_attrs:
+                if row[f"drug_attr_value_{attr}"] == "None":
+                    row[f"drug_attr_value_{attr}"] = ""
+            writer.writerow(row)
+        return out.getvalue()
+    export = json.loads(legacy_text)
+    for intake in export["intakes"]:
+        intake["drug_codes"] = [
+            {
+                "drug_code_system_id": code_system_ids[code["drug_code_system_name"]],
+                **code,
+            }
+            for code in intake["drug_codes"]
+        ]
+        for attr in intake["drug_attrs"]:
+            if attr["drug_attr_name"] in date_attrs and attr["drug_attr_value"] == "None":
+                attr["drug_attr_value"] = None
+            if attr["drug_attr_name"] == "is_custom_drug":
+                attr["drug_attr_value"] = attr["drug_attr_value"] == "True"
+    return to_json(export, indent=4).decode()
+
+
 def _legacy_exporter_class(format_: ExportFormat) -> type:
     return LegacyJsonReferenceExporter if format_ == "json" else LegacyStudyDataExporter
 
@@ -317,6 +381,7 @@ def _legacy_exporter_class(format_: ExportFormat) -> type:
 def test_export_output_identical_to_pre_issue_362_exporter(
     session_db, tmp_path, format_: ExportFormat
 ):
+    code_system_ids = _code_system_ids_by_name(session_db)
     drug_ids = _pick_imported_drug_ids(session_db, minimum=10)
     # custom drug names must be unique (issue #37), so every test uses its own name
     drug_ids.append(
@@ -347,7 +412,9 @@ def test_export_output_identical_to_pre_issue_362_exporter(
             old_file,
         )
         _run_export(session_db, StudyDataExporter, seeded.study_id, format_, new_file)
-        old_text = old_file.read_text(encoding="utf-8")
+        old_text = _apply_issue_389(
+            old_file.read_text(encoding="utf-8"), format_, code_system_ids
+        )
         new_text = new_file.read_text(encoding="utf-8")
         if seeded.intake_count:
             # guard against comparing two empty or trivial files
