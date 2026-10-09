@@ -156,6 +156,17 @@ async def reset_stuck_drugsearchindex_build_ups():
     return
 
 
+async def sync_drug_field_definitions():
+    # The drug field and code definitions are defined in code. Sync them on every boot,
+    # otherwise changes only reach the database with the next drug dataset import.
+    # see https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/218
+    from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
+
+    log.info("Sync drug field definitions into the database...")
+    drug_importer = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]()
+    await drug_importer.ensure_field_definitions_in_database()
+
+
 async def create_inital_drug_data_loader_job():
     from medlogserver.worker.tasks import Tasks
     from medlogserver.worker.tasks.drug_data_load import TaskDrugDataLoading
@@ -234,6 +245,7 @@ async def init_db():
         await conn.commit()
 
         await create_admin_if_not_exists()
+        await sync_drug_field_definitions()
         await create_inital_drug_data_loader_job()
         await reset_stuck_drugsearchindex_build_ups()
         await provision_base_data()
