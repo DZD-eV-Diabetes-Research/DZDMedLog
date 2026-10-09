@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.10.post1.dev23+gb64de24de.d20261008"
+    "version": "1.0.10.post1.dev33+ged3ccc9c5"
   },
   "paths": {
     "/api/health": {
@@ -5470,6 +5470,68 @@
         }
       }
     },
+    "/api/export/schema/{export_format}": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "summary": "Download Export Schema",
+        "description": "Download the schema of the study export in format `export_format`: a [JSON Schema](https://json-schema.org/) for the JSON export, a [Frictionless Table Schema](https://datapackage.org/standard/table-schema/) for the CSV export. The schema describes every column/attribute an export of this installation can have, for the running MedLog version and the active drug dataset version. It is built by a background job on startup and after every drug data import, until then the endpoint returns `503`.",
+        "operationId": "download_export_schema_api_export_schema__export_format__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "export_format",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ExportSchemaFormat"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The schema.",
+            "content": {
+              "application/schema+json": {
+                "schema": {
+                  "type": "object"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The export schema is not built yet. It is built by a background job on startup and after every drug data import. Try again in a few minutes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/medlogserver__utils__Error__4"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/debug/worker/job": {
       "get": {
         "tags": [
@@ -7856,6 +7918,15 @@
         ],
         "title": "ExportJob"
       },
+      "ExportSchemaFormat": {
+        "type": "string",
+        "enum": [
+          "json",
+          "csv"
+        ],
+        "title": "ExportSchemaFormat",
+        "description": "Which export file a schema describes."
+      },
       "HTTPErrorResponeRepresentation": {
         "properties": {
           "detail": {
@@ -10148,7 +10219,8 @@
           "medlogserver.worker.tasks.drug_data_load.TaskDrugDataLoading",
           "medlogserver.worker.tasks.drug_data_update_download.TaskDrugDataUpdateDownload",
           "medlogserver.worker.tasks.drug_data_remove_obsolete_drug_entries.TaskRemoveOnbsoleteDrugDataEntries",
-          "medlogserver.worker.tasks.drug_data_auto_updater.TaskDrugDataAutoUpdater"
+          "medlogserver.worker.tasks.drug_data_auto_updater.TaskDrugDataAutoUpdater",
+          "medlogserver.worker.tasks.export_schema_build.TaskBuildExportSchemas"
         ],
         "title": "Tasks"
       },
@@ -11262,6 +11334,20 @@
             "type": "object",
             "title": "Detail",
             "default": "Export job does not exist."
+          }
+        },
+        "type": "object",
+        "title": "Error"
+      },
+      "medlogserver__utils__Error__4": {
+        "properties": {
+          "detail": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Detail",
+            "default": "The export schema is not built yet. It is built by a background job on startup and after every drug data import. Try again in a few minutes."
           }
         },
         "type": "object",

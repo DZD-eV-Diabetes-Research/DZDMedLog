@@ -1,11 +1,11 @@
-from typing import Literal, Dict, List, Any, Tuple, Type, TextIO
+from typing import Literal, Dict, List, Any, Tuple, TextIO
 from pathlib import Path, PurePath
 import shutil
 import csv
 import time
 import uuid
 from itertools import groupby
-from pydantic import BaseModel, field_serializer, model_serializer
+from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 from medlogserver.utils import path_is_parent
 from medlogserver.worker.task import TaskBase
@@ -28,6 +28,13 @@ from medlogserver.model.drug_data.api_drug_model_factory import (
     DrugData,
 )
 from medlogserver.db.drug_data.drug import DrugCRUD
+from medlogserver.worker.tasks.export_layout import (
+    DrugCodesExport,
+    DrugDataExport,
+    ExportLayout,
+    flatten_export_drug_codes,
+    flatten_export_objects,
+)
 from medlogserver.config import Config
 from medlogserver.log import get_logger
 
@@ -40,73 +47,12 @@ config = Config()
 DRUG_LOAD_BATCH_SIZE = 500
 
 
-class DrugCodesExport(BaseModel):
-    drug_code_system_name: str
-    drug_code: str
-
-
-class ValueReferenceCodeNotApplicable:
-    pass
-
-
-class DrugDataExport(BaseModel):
-    drug_attr_name: str
-    drug_attr_value: str | List[str | None] | None
-    drug_attr_reference_code: (
-        str | List[str | None] | None | Type[ValueReferenceCodeNotApplicable]
-    ) = ValueReferenceCodeNotApplicable
-
-    # Attributes that are not references (e.g. `trade_name`) have no reference code.
-    # The key is left out instead of being written as null. The CSV export skips
-    # these columns the same way. Before, `model_dump_json()` failed on the marker
-    # class, so the JSON export of any study with intakes died with
-    # "Unable to serialize unknown type: <class 'type'>".
-    @field_serializer("drug_attr_reference_code")
-    def _serialize_reference_code(self, value):
-        return None if value is ValueReferenceCodeNotApplicable else value
-
-    @model_serializer(mode="wrap")
-    def _omit_not_applicable_reference_code(self, handler):
-        data = handler(self)
-        if self.drug_attr_reference_code is ValueReferenceCodeNotApplicable:
-            data.pop("drug_attr_reference_code", None)
-        return data
-
-
 class ExportIntakeContainer(BaseModel):
     event: EventExport
     interview: InterviewExport
     intake: IntakeExport
     drug_codes: List[DrugCodesExport]
     drug_attrs: List[DrugDataExport]
-
-
-def flatten_export_objects(
-    objs: BaseModel | List[BaseModel],
-    obj_name: str,
-    pivot_by_column: str | None = None,
-) -> Dict[str, Any]:
-    """Turn one export object (or a list of them) into flat CSV columns.
-
-    Lists are pivoted: every item becomes its own set of columns, suffixed with the
-    value of `pivot_by_column` (e.g. one `drug_code_<system>` column per code system).
-    """
-    columns: Dict[str, Any] = {}
-    if not isinstance(objs, list):
-        objs = [objs]
-    exclude_set = {pivot_by_column} if pivot_by_column else None
-    for obj in objs:
-        for prop_name, prop_value in obj.model_dump(exclude=exclude_set).items():
-            if prop_value == ValueReferenceCodeNotApplicable:
-                continue
-            column_name = f"{obj_name}_{prop_name}"
-            if prop_name.startswith(obj_name):
-                column_name = prop_name
-            if pivot_by_column:
-                list_column_att = getattr(obj, pivot_by_column)
-                column_name = f"{column_name}_{list_column_att}".lower()
-            columns[column_name] = prop_value
-    return columns
 
 
 class ExportContainer(BaseModel):
@@ -125,11 +71,7 @@ class ExportContainer(BaseModel):
             row.update(flatten_export_objects(intake.event, "event"))
             row.update(flatten_export_objects(intake.interview, "interview"))
             row.update(flatten_export_objects(intake.intake, "intake"))
-            row.update(
-                flatten_export_objects(
-                    intake.drug_codes, "drug_code", "drug_code_system_name"
-                )
-            )
+            row.update(flatten_export_drug_codes(intake.drug_codes))
             row.update(
                 flatten_export_objects(intake.drug_attrs, "drug", "drug_attr_name")
             )
@@ -137,14 +79,58 @@ class ExportContainer(BaseModel):
         return values
 
 
+def _str_or_none(value: Any) -> str | None:
+    return None if value is None else str(value)
+
+
+# Raw values of BOOL drug attributes as stored by the importers, e.g. MMI "0"/"1".
+_BOOL_ATTR_VALUES = {
+    "1": True,
+    "true": True,
+    "0": False,
+    "false": False,
+}
+
+
+def _bool_attr_value(value: Any) -> bool | str | None:
+    """Turn a stored BOOL attribute value into a real bool.
+
+    All booleans in the export are `True`/`False` this way, instead of a mix of
+    "0"/"1" (MMI `ist_*` fields) and "True"/"False" (issue #389). Unknown values are
+    kept as they are, so no data gets lost.
+    """
+    if value is None or isinstance(value, bool):
+        return value
+    return _BOOL_ATTR_VALUES.get(str(value).strip().lower(), value)
+
+
 def drug_to_export_data(
     drug: DrugData,
+    layout: ExportLayout,
 ) -> Tuple[List[DrugCodesExport], List[DrugDataExport]]:
+    """Codes and attributes of `drug` for the export.
+
+    The attributes are completed to all attributes of `layout`, in layout order.
+    Attributes the drug has no value for get a null value (issue #387). Boolean
+    attributes get real booleans, and reference attributes whose code only repeats
+    the value get no reference code (issue #389).
+    """
+
+    def is_bool(field_name: str) -> bool:
+        layout_attr = layout.drug_attrs_by_name.get(field_name)
+        return layout_attr is not None and layout_attr.is_bool
+
+    def has_reference_code(field_name: str) -> bool:
+        # attributes unknown to the layout keep their code, nothing is dropped silently
+        layout_attr = layout.drug_attrs_by_name.get(field_name)
+        return layout_attr is None or layout_attr.has_reference_code
+
     codes: List[DrugCodesExport] = []
     attrs: List[DrugDataExport] = []
     for code in drug.codes:
         codes.append(
             DrugCodesExport(
+                drug_code_system_id=code.code_system.id,
                 drug_code_system_name=code.code_system.name,
                 drug_code=code.code,
             )
@@ -153,22 +139,24 @@ def drug_to_export_data(
     attrs.append(
         DrugDataExport(drug_attr_name="trade_name", drug_attr_value=drug.trade_name)
     )
+    # Missing dates are null (an empty CSV cell). Before issue #387 they were
+    # written as the string "None".
     attrs.append(
         DrugDataExport(
             drug_attr_name="market_access_date",
-            drug_attr_value=str(drug.market_access_date),
+            drug_attr_value=_str_or_none(drug.market_access_date),
         )
     )
     attrs.append(
         DrugDataExport(
             drug_attr_name="market_exit_date",
-            drug_attr_value=str(drug.market_exit_date),
+            drug_attr_value=_str_or_none(drug.market_exit_date),
         )
     )
     attrs.append(
         DrugDataExport(
             drug_attr_name="is_custom_drug",
-            drug_attr_value=str(drug.is_custom_drug),
+            drug_attr_value=drug.is_custom_drug,
         )
     )
     attrs.append(
@@ -179,19 +167,18 @@ def drug_to_export_data(
     )
 
     for attr in drug.attrs:
-        attrs.append(
-            DrugDataExport(drug_attr_name=attr.field_name, drug_attr_value=attr.value)
-        )
+        value = attr.value
+        if is_bool(attr.field_name):
+            value = _bool_attr_value(value)
+        attrs.append(DrugDataExport(drug_attr_name=attr.field_name, drug_attr_value=value))
     for attr in drug.attrs_ref:
-        attrs.append(
-            DrugDataExport(
-                drug_attr_name=attr.field_name,
-                drug_attr_value=attr.lov_item.display
-                if attr.value is not None
-                else None,
-                drug_attr_reference_code=attr.value,
-            )
+        export_attr = DrugDataExport(
+            drug_attr_name=attr.field_name,
+            drug_attr_value=attr.lov_item.display if attr.value is not None else None,
         )
+        if has_reference_code(attr.field_name):
+            export_attr.drug_attr_reference_code = attr.value
+        attrs.append(export_attr)
     # attr_multi
     attrs_multi_sorted_by_name_and_index = sorted(
         drug.attrs_multi,
@@ -203,6 +190,8 @@ def drug_to_export_data(
         key=lambda attr: attr.field_name,
     ):
         values = [attr.value for attr in attr_group]
+        if is_bool(field_name):
+            values = [_bool_attr_value(value) for value in values]
         attrs.append(
             DrugDataExport(
                 drug_attr_name=field_name,
@@ -224,15 +213,13 @@ def drug_to_export_data(
             attr.lov_item.display if attr.value is not None else None
             for attr in group_list
         ]
-        attr_multi_ref_codes = [attr.value for attr in group_list]
-        attrs.append(
-            DrugDataExport(
-                drug_attr_name=field_name,
-                drug_attr_value=attr_multi_ref_values,
-                drug_attr_reference_code=attr_multi_ref_codes,
-            )
+        export_attr = DrugDataExport(
+            drug_attr_name=field_name, drug_attr_value=attr_multi_ref_values
         )
-    return codes, attrs
+        if has_reference_code(field_name):
+            export_attr.drug_attr_reference_code = [attr.value for attr in group_list]
+        attrs.append(export_attr)
+    return codes, layout.complete_drug_attrs(attrs)
 
 
 def _indent_json(json_str: str, indent: str) -> str:
@@ -255,9 +242,11 @@ class StudyDataExporter:
     * The output is written row by row instead of first building the whole export
       in memory.
 
-    The CSV output is byte-identical to the exporter before #362. The JSON output is
-    what that exporter would have written, had it not crashed on the not applicable
-    reference codes (see `DrugDataExport` and `tests/tests_export_performance.py`).
+    Every export of an installation has the same drug attributes (issue #387): the
+    CSV header is `ExportLayout.csv_columns()`, independent of the exported drugs, and
+    in the JSON export every intake lists all drug attributes of the layout, with null
+    for missing values. Apart from these added columns and attributes the output is
+    the same as the exporter before #362 wrote (see `tests/tests_export_performance.py`).
     """
 
     def __init__(
@@ -270,6 +259,7 @@ class StudyDataExporter:
         self.events: Dict[uuid.UUID, EventExport] = {}
         self.interviews: Dict[uuid.UUID, InterviewExport] = {}
         self.intakes: List[Intake] = []
+        self.layout: ExportLayout | None = None
         self.drugs: Dict[
             uuid.UUID, Tuple[List[DrugCodesExport], List[DrugDataExport]]
         ] = {}
@@ -302,6 +292,7 @@ class StudyDataExporter:
         return self.target_file
 
     async def _gather_export_data(self):
+        self.layout = await ExportLayout.from_importer()
         async with get_async_session_context() as session:
             async with StudyCRUD.crud_context(session) as study_crud:
                 study_crud: StudyCRUD = study_crud
@@ -329,7 +320,6 @@ class StudyDataExporter:
             await self._load_drugs(session)
 
     async def _load_drugs(self, session: AsyncSession):
-        # dict keeps the order of first appearance, which the CSV header relies on
         distinct_drug_ids = list(dict.fromkeys(i.drug_id for i in self.intakes))
         async with DrugCRUD.crud_context(session) as drug_crud:
             drug_crud: DrugCRUD = drug_crud
@@ -340,14 +330,15 @@ class StudyDataExporter:
                 for drug in await drug_crud.list_by_ids_with_relations_any_dataset_version(
                     batch
                 ):
-                    self.drugs[drug.id] = drug_to_export_data(drug)
+                    self.drugs[drug.id] = drug_to_export_data(drug, self.layout)
         missing_drug_ids = [d for d in distinct_drug_ids if d not in self.drugs]
         if missing_drug_ids:
             raise ValueError(
                 f"Export of study '{self.study_id}' failed: intakes reference drugs "
                 f"that do not exist in the database: {missing_drug_ids}"
             )
-        # Keep the dict in order of first appearance, `list_by_ids...` does not sort.
+        # Order of first appearance, `list_by_ids...` does not sort. Keeps the order of
+        # unexpected extra CSV columns (see `_write_csv`) deterministic.
         self.drugs = {drug_id: self.drugs[drug_id] for drug_id in distinct_drug_ids}
 
     def _intake_container(self, intake: Intake) -> ExportIntakeContainer:
@@ -380,16 +371,35 @@ class StudyDataExporter:
         target_file.write("\n    ]\n}")
 
     def _write_csv(self, target_file: TextIO):
-        if not self.intakes:
-            return
         # Study, event, interview and drug columns are the same for many rows, so they
         # are flattened once and cached. Only the intake columns are per row.
         study_columns = flatten_export_objects(self.study, "study")
         event_columns: Dict[uuid.UUID, Dict[str, Any]] = {}
         interview_columns: Dict[uuid.UUID, Dict[str, Any]] = {}
         drug_columns: Dict[uuid.UUID, Dict[str, Any]] = {}
+        for drug_id, (drug_codes, drug_attrs) in self.drugs.items():
+            columns = flatten_export_drug_codes(drug_codes)
+            columns.update(flatten_export_objects(drug_attrs, "drug", "drug_attr_name"))
+            drug_columns[drug_id] = columns
 
-        def build_row(intake: Intake) -> Dict[str, Any]:
+        # The header comes from the layout, so it does not depend on the exported
+        # drugs (issue #387). Drug data the layout does not know (should not happen,
+        # the drugs were imported by the same importer) is not dropped silently but
+        # gets extra columns at the end.
+        fieldnames: Dict[str, None] = dict.fromkeys(self.layout.csv_columns())
+        for columns in drug_columns.values():
+            unknown_columns = [c for c in columns if c not in fieldnames]
+            if unknown_columns:
+                log.warning(
+                    f"Export of study '{self.study_id}': drug columns not defined by "
+                    f"drug importer '{config.DRUG_IMPORTER_PLUGIN}': {unknown_columns}. "
+                    "They are appended to the CSV header."
+                )
+                fieldnames.update(dict.fromkeys(unknown_columns))
+
+        writer = csv.DictWriter(target_file, fieldnames=list(fieldnames), restval="")
+        writer.writeheader()
+        for intake in self.intakes:
             container = self._intake_container(intake)
             interview_id = container.interview.id
             event_id = container.event.id
@@ -401,42 +411,14 @@ class StudyDataExporter:
                 interview_columns[interview_id] = flatten_export_objects(
                     container.interview, "interview"
                 )
-            if intake.drug_id not in drug_columns:
-                columns = flatten_export_objects(
-                    container.drug_codes, "drug_code", "drug_code_system_name"
-                )
-                columns.update(
-                    flatten_export_objects(
-                        container.drug_attrs, "drug", "drug_attr_name"
-                    )
-                )
-                drug_columns[intake.drug_id] = columns
-            # `update()` in this order gives the same column order and the same
-            # values on colliding names as the old one-dict-per-row flattening.
+            # `update()` in this order gives the same values on colliding names as
+            # the old one-dict-per-row flattening.
             row = dict(study_columns)
             row.update(event_columns[event_id])
             row.update(interview_columns[interview_id])
             row.update(flatten_export_objects(container.intake, "intake"))
             row.update(drug_columns[intake.drug_id])
-            return row
-
-        # The header is the union of all row columns in order of first appearance.
-        # Study, event, interview and intake always dump the same fields, so only the
-        # drug columns differ between rows, and rows with the same drug have the same
-        # columns. One row per distinct drug, in order of first appearance, is
-        # therefore enough to get the header without holding all rows in memory.
-        fieldnames: Dict[str, None] = {}
-        seen_drug_ids: set[uuid.UUID] = set()
-        for intake in self.intakes:
-            if intake.drug_id in seen_drug_ids:
-                continue
-            seen_drug_ids.add(intake.drug_id)
-            fieldnames.update(dict.fromkeys(build_row(intake)))
-
-        writer = csv.DictWriter(target_file, fieldnames=list(fieldnames))
-        writer.writeheader()
-        for intake in self.intakes:
-            writer.writerow(build_row(intake))
+            writer.writerow(row)
 
 
 async def export_study_intake_data(

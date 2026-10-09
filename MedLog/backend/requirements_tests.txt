@@ -9,7 +9,9 @@ aiosqlite==0.22.1
 alembic==1.19.1
     # via medlogserver (MedLog/backend/pyproject.toml)
 annotated-doc==0.0.5
-    # via fastapi
+    # via
+    #   fastapi
+    #   typer
 annotated-types==0.8.0
     # via pydantic
 anyio==4.14.2
@@ -18,6 +20,11 @@ anyio==4.14.2
     #   starlette
 apscheduler==3.11.3
     # via medlogserver (MedLog/backend/pyproject.toml)
+attrs==26.1.0
+    # via
+    #   frictionless
+    #   jsonschema
+    #   referencing
 authlib==1.7.2
     # via
     #   medlogserver (MedLog/backend/pyproject.toml)
@@ -33,6 +40,8 @@ certifi==2026.7.22
     #   requests
 cffi==2.1.1
     # via cryptography
+chardet==7.6.0
+    # via frictionless
 charset-normalizer==3.4.9
     # via requests
 click==8.4.2
@@ -51,6 +60,8 @@ fastapi==0.141.1
     # via medlogserver (MedLog/backend/pyproject.toml)
 flask==3.1.3
     # via oidc-provider-mock
+frictionless==5.19.1
+    # via medlogserver (MedLog/backend/pyproject.toml)
 greenlet==3.5.5
     # via sqlalchemy
 h11==0.16.0
@@ -65,6 +76,8 @@ httpx==0.28.1
     # via
     #   medlogserver (MedLog/backend/pyproject.toml)
     #   oidc-provider-mock
+humanize==4.16.0
+    # via frictionless
 idna==3.18
     # via
     #   anyio
@@ -73,18 +86,32 @@ idna==3.18
     #   requests
 iniconfig==2.3.0
     # via pytest
+isodate==0.7.2
+    # via frictionless
 itsdangerous==2.2.0
     # via
     #   flask
     #   medlogserver (MedLog/backend/pyproject.toml)
 jinja2==3.1.6
-    # via flask
+    # via
+    #   flask
+    #   frictionless
 joserfc==1.7.4
     # via
     #   authlib
     #   oidc-provider-mock
+jsonschema==4.26.0
+    # via
+    #   frictionless
+    #   medlogserver (MedLog/backend/pyproject.toml)
+jsonschema-specifications==2025.9.1
+    # via jsonschema
 mako==1.4.1
     # via alembic
+markdown-it-py==4.2.0
+    # via rich
+marko==2.2.4
+    # via frictionless
 markupsafe==3.0.3
     # via
     #   flask
@@ -92,6 +119,8 @@ markupsafe==3.0.3
     #   jinja2
     #   mako
     #   werkzeug
+mdurl==0.1.2
+    # via markdown-it-py
 memory-profiler==0.61.0
     # via medlogserver (MedLog/backend/pyproject.toml)
 oidc-provider-mock==0.4.6
@@ -101,6 +130,8 @@ packaging==26.3
     #   pytest
     #   setuptools-scm
     #   vcs-versioning
+petl==1.7.28
+    # via frictionless
 pluggy==1.6.0
     # via pytest
 polars==1.43.2
@@ -124,6 +155,7 @@ pycparser==3.0
 pydantic[email]==2.13.4
     # via
     #   fastapi
+    #   frictionless
     #   medlogserver (MedLog/backend/pyproject.toml)
     #   oidc-provider-mock
     #   pydantic-settings
@@ -135,21 +167,48 @@ pydantic-settings==2.15.0
 pyftpdlib==2.2.0
     # via medlogserver (MedLog/backend/pyproject.toml)
 pygments==2.20.0
-    # via pytest
+    # via
+    #   pytest
+    #   rich
 pytest==9.1.1
     # via medlogserver (MedLog/backend/pyproject.toml)
+python-dateutil==2.9.0.post0
+    # via frictionless
 python-dotenv==1.2.2
     # via pydantic-settings
 python-multipart==0.0.32
     # via medlogserver (MedLog/backend/pyproject.toml)
+python-slugify==9.1.3
+    # via frictionless
 pyyaml==6.0.3
     # via
+    #   frictionless
     #   medlogserver (MedLog/backend/pyproject.toml)
     #   oidc-provider-mock
+referencing==0.37.0
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
 requests==2.34.2
-    # via medlogserver (MedLog/backend/pyproject.toml)
+    # via
+    #   frictionless
+    #   medlogserver (MedLog/backend/pyproject.toml)
+rfc3986==2.0.0
+    # via frictionless
+rich==15.0.0
+    # via typer
+rpds-py==2026.9.1
+    # via
+    #   jsonschema
+    #   referencing
 setuptools-scm==10.2.1
     # via medlogserver (MedLog/backend/pyproject.toml)
+shellingham==1.5.4
+    # via typer
+simpleeval==1.0.8
+    # via frictionless
+six==1.17.0
+    # via python-dateutil
 sqlalchemy[asyncio]==2.0.51
     # via
     #   alembic
@@ -161,10 +220,17 @@ starlette==1.6.0
     # via
     #   fastapi
     #   medlogserver (MedLog/backend/pyproject.toml)
+tabulate==0.10.0
+    # via frictionless
+text-unidecode==1.3
+    # via python-slugify
+typer==0.27.3
+    # via frictionless
 typing-extensions==4.16.0
     # via
     #   alembic
     #   fastapi
+    #   frictionless
     #   oidc-provider-mock
     #   pydantic
     #   pydantic-core
@@ -184,6 +250,8 @@ uvicorn==0.52.1
     # via
     #   medlogserver (MedLog/backend/pyproject.toml)
     #   oidc-provider-mock
+validators==0.35.0
+    # via frictionless
 vcs-versioning==2.2.4
     # via setuptools-scm
 werkzeug==3.1.8

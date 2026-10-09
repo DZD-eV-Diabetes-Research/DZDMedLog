@@ -1,6 +1,9 @@
 <script setup lang="ts">
 const modelValue = defineModel<boolean>();
-const emit = defineEmits(['start', 'cancel'])
+const emit = defineEmits<{
+  start: [hasTakenMeds: boolean];
+  cancel: []
+}>()
 </script>
 
 <template>
