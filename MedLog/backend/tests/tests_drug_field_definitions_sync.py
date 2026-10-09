@@ -15,11 +15,15 @@ for the fixture.
 from typing import Dict, List
 import asyncio
 
+import pytest
 from sqlmodel import select
 
 from medlogserver.model.__tables__ import all_tables  # noqa: F401  (registers metadata)
 from medlogserver.db._session import get_async_session_context
-from medlogserver.db._init_db import sync_drug_field_definitions
+from medlogserver.db._init_db import (
+    ensure_drug_importer_not_switched,
+    sync_drug_field_definitions,
+)
 from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.model.drug_data.drug_attr_field_definition import (
     DrugAttrFieldDefinition,
@@ -149,3 +153,43 @@ def test_sync_resets_values_left_on_default_in_code(isolated_db):
     assert db_codes[code_def.id].code_icon is None
     assert db_attrs[attr_def.field_name].show_in_search_results is True
     _assert_db_matches_code()
+
+
+async def _rename_importer_in_db(importer_name: str):
+    """Simulate a database that was set up with another drug importer plugin."""
+    async with get_async_session_context() as session:
+        for code in (await session.exec(select(DrugCodeSystem))).all():
+            code.importer_name = importer_name
+            session.add(code)
+        await session.commit()
+
+
+def test_switch_guard_passes_on_empty_database(isolated_db):
+    asyncio.run(ensure_drug_importer_not_switched())
+
+
+def test_switch_guard_passes_for_configured_importer(isolated_db):
+    asyncio.run(sync_drug_field_definitions())
+    asyncio.run(ensure_drug_importer_not_switched())
+
+
+def test_switch_guard_exits_when_importer_was_switched(isolated_db, caplog):
+    asyncio.run(sync_drug_field_definitions())
+    asyncio.run(_rename_importer_in_db("SomeOtherImporter"))
+
+    with pytest.raises(SystemExit):
+        asyncio.run(ensure_drug_importer_not_switched())
+    assert "Switching the drug module is not supported" in caplog.text
+    assert "'SomeOtherImporter'" in caplog.text
+
+
+def test_failing_sync_does_not_stop_startup(isolated_db, monkeypatch):
+    from medlogserver.db.drug_data.importers._base import DrugDataSetImporterBase
+
+    async def _fail(self):
+        raise RuntimeError("sync failed")
+
+    monkeypatch.setattr(
+        DrugDataSetImporterBase, "ensure_field_definitions_in_database", _fail
+    )
+    asyncio.run(sync_drug_field_definitions())

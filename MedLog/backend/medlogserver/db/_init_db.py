@@ -2,7 +2,7 @@ from typing import AsyncGenerator, List, Optional, Type
 import uuid
 from fastapi import Depends
 from pathlib import Path, PurePath
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -156,6 +156,37 @@ async def reset_stuck_drugsearchindex_build_ups():
     return
 
 
+async def ensure_drug_importer_not_switched():
+    # Switching the drug importer on a database that already holds data of another
+    # importer is not supported. The definition tables (and the code system ids, which
+    # are not unique per importer) would collide, and stored intakes reference drugs of
+    # the old importer. Stop here with a clear message instead of failing somewhere later.
+    # Every importer writes its definitions with `importer_name=config.DRUG_IMPORTER_PLUGIN`.
+    async with get_async_session_context() as session:
+        stored_importer_names = set(
+            (await session.exec(select(DrugCodeSystem.importer_name).distinct())).all()
+        ) | set(
+            (
+                await session.exec(
+                    select(DrugAttrFieldDefinition.importer_name).distinct()
+                )
+            ).all()
+        )
+    foreign_importer_names = stored_importer_names - {config.DRUG_IMPORTER_PLUGIN}
+    if not foreign_importer_names:
+        return
+    previous = ", ".join(f"'{n}'" for n in sorted(foreign_importer_names, key=str))
+    log.error(
+        f"Switching the drug module is not supported. The database holds drug data of "
+        f"DRUG_IMPORTER_PLUGIN={previous}, but MedLog is configured with "
+        f"DRUG_IMPORTER_PLUGIN='{config.DRUG_IMPORTER_PLUGIN}'. "
+        f"Set DRUG_IMPORTER_PLUGIN back to {previous}, or wipe the database to start over "
+        f"with '{config.DRUG_IMPORTER_PLUGIN}' (this deletes all MedLog data, including "
+        f"studies and interviews)."
+    )
+    raise SystemExit(1)
+
+
 async def sync_drug_field_definitions():
     # The drug field and code definitions are defined in code. Sync them on every boot,
     # otherwise changes only reach the database with the next drug dataset import.
@@ -164,7 +195,15 @@ async def sync_drug_field_definitions():
 
     log.info("Sync drug field definitions into the database...")
     drug_importer = DRUG_IMPORTERS[config.DRUG_IMPORTER_PLUGIN]()
-    await drug_importer.ensure_field_definitions_in_database()
+    try:
+        await drug_importer.ensure_field_definitions_in_database()
+    except Exception:
+        # Outdated definitions only affect UI hints until the next sync, that is no
+        # reason to keep the server down.
+        log.exception(
+            "Could not sync drug field definitions into the database. "
+            "The database keeps the previous definitions."
+        )
 
 
 async def create_inital_drug_data_loader_job():
@@ -245,6 +284,7 @@ async def init_db():
         await conn.commit()
 
         await create_admin_if_not_exists()
+        await ensure_drug_importer_not_switched()
         await sync_drug_field_definitions()
         await create_inital_drug_data_loader_job()
         await reset_stuck_drugsearchindex_build_ups()
