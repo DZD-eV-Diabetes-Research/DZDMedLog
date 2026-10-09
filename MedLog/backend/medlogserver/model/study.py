@@ -238,3 +238,12 @@ class StudyExport(StudyCreate, BaseTable, table=False):
     deactivated: bool = Field(exclude=True)
     no_permissions: bool = Field(exclude=True)
     created_at: datetime.datetime = Field(exclude=True)
+    # Proband ID input helpers for the UI, no study data (issue #389).
+    # `proband_external_id_pattern` stays in the export.
+    proband_external_id_example: Optional[str] = Field(default=None, exclude=True)
+    proband_external_id_pattern_error_text: Optional[str] = Field(
+        default=None, exclude=True
+    )
+    proband_external_id_normalization: ProbandExternalIdNormalization = Field(
+        default=ProbandExternalIdNormalization.NONE, exclude=True
+    )

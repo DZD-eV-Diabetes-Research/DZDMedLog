@@ -17,6 +17,7 @@ from pydantic import (
     validate_email,
     field_validator,
     model_validator,
+    model_serializer,
     StringConstraints,
     ValidationInfo,
 )
@@ -498,6 +499,19 @@ class IntakeExport(IntakeCreate, BaseTable, table=False):
     created_at: datetime = Field(exclude=True)
     interview_id: UUID = Field(exclude=True)
     id: uuid.UUID = Field()
+
+    # The field is misspelled ("intervall") in the API and the database. Renaming it
+    # there breaks API clients, so only the export uses the correct spelling (#389).
+    @model_serializer(mode="wrap")
+    def _fix_interval_typo(self, handler):
+        return {
+            (
+                "regular_interval_of_daily_dose"
+                if key == "regular_intervall_of_daily_dose"
+                else key
+            ): value
+            for key, value in handler(self).items()
+        }
 
 
 class IntakeDetailListItem(IntakeCreate, BaseTable, table=False):
