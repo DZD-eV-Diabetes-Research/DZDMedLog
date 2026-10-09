@@ -232,7 +232,12 @@ class DrugDataSetImporterBase:
     async def run_import(self):
         raise NotImplementedError()
 
-    async def start_import_process(self):
+    async def start_import_process(self) -> bool:
+        """Import the dataset in `source_dir`.
+
+        Returns False if this dataset version was imported (or failed) before and the
+        import was skipped. A failed import raises.
+        """
         if self.source_dir is None:
             raise ValueError("Importer has no source dir defined.")
         self.version = await self.get_drug_dataset_version()
@@ -247,7 +252,7 @@ class DrugDataSetImporterBase:
                 log.info(
                     f" Dataset '{self.dataset_name}' with version '{self.version}' already imported. Skip drug data import."
                 )
-            return
+            return False
         drug_dataset = await self._ensure_drug_dataset_version()
         drug_custom_dataset = await self._ensure_custom_drug_dataset_version()
         await self._ensure_field_definitions_in_database()
@@ -266,6 +271,7 @@ class DrugDataSetImporterBase:
             raise e
 
         await self._finish_import()
+        return True
 
     async def _finish_import(self):
         await self._set_dataset_version_status("done")

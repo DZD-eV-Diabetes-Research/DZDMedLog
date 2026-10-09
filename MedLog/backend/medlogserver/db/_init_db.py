@@ -205,6 +205,14 @@ async def create_inital_drug_data_loader_job():
                 system_job = await worker_job_crud.create(system_job)
 
 
+async def queue_export_schema_build_if_missing():
+    from medlogserver.worker.tasks.export_schema_build import (
+        queue_export_schema_build_if_missing,
+    )
+
+    await queue_export_schema_build_if_missing()
+
+
 async def provision_base_data():
     from medlogserver.worker.tasks.provisioning_data_loader import (
         TaskLoadProvisioningData,
@@ -229,3 +237,4 @@ async def init_db():
         await create_inital_drug_data_loader_job()
         await reset_stuck_drugsearchindex_build_ups()
         await provision_base_data()
+        await queue_export_schema_build_if_missing()

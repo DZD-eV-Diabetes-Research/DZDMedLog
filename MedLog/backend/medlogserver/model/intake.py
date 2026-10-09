@@ -17,9 +17,9 @@ from pydantic import (
     validate_email,
     field_validator,
     model_validator,
-    model_serializer,
     StringConstraints,
     ValidationInfo,
+    ConfigDict,
 )
 from fastapi import Depends
 from typing import Optional
@@ -502,16 +502,15 @@ class IntakeExport(IntakeCreate, BaseTable, table=False):
 
     # The field is misspelled ("intervall") in the API and the database. Renaming it
     # there breaks API clients, so only the export uses the correct spelling (#389).
-    @model_serializer(mode="wrap")
-    def _fix_interval_typo(self, handler):
-        return {
-            (
-                "regular_interval_of_daily_dose"
-                if key == "regular_intervall_of_daily_dose"
-                else key
-            ): value
-            for key, value in handler(self).items()
-        }
+    # An alias instead of a serializer, so the export schema (#387) sees the name too.
+    model_config = ConfigDict(serialize_by_alias=True)
+    regular_intervall_of_daily_dose: Optional[IntervalOfDailyDoseAnswers] = Field(
+        default=None,
+        serialization_alias="regular_interval_of_daily_dose",
+        description=IntakeUpdate.model_fields[
+            "regular_intervall_of_daily_dose"
+        ].description,
+    )
 
 
 class IntakeDetailListItem(IntakeCreate, BaseTable, table=False):

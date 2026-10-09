@@ -1,4 +1,5 @@
 from typing import Annotated, Sequence, List, Type, Optional, Literal
+import json
 from datetime import datetime, timedelta, timezone
 import uuid
 from pydantic import BaseModel
@@ -36,6 +37,8 @@ from medlogserver.api.study_access import (
 )
 from medlogserver.utils import sanitize_string, http_exception_to_resp_desc
 from medlogserver.db.study import StudyCRUD
+from medlogserver.db.export_schema import ExportSchemaCRUD
+from medlogserver.model.export_schema import ExportSchemaFormat
 from medlogserver.api.paginator import (
     PaginatedResponse,
     create_query_params_class,
@@ -60,6 +63,19 @@ exception_export_job_not_existing = HTTPException(
 exception_export_job_not_finished = HTTPException(
     status_code=status.HTTP_425_TOO_EARLY,
     detail="Export job is not finished yet. Try again later.",
+)
+
+
+exception_export_schema_no_drug_dataset = HTTPException(
+    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+    detail="The export schema is not available yet: no drug dataset is active. It is built after the first drug data import.",
+    headers={"Retry-After": "300"},
+)
+
+exception_export_schema_not_built = HTTPException(
+    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+    detail="The export schema is not built yet. It is built by a background job on startup and after every drug data import. Try again in a few minutes.",
+    headers={"Retry-After": "60"},
 )
 
 
@@ -232,4 +248,63 @@ async def download_export(
         # headers=headers,
         filename=filename,
         media_type=media_type,
+    )
+
+
+EXPORT_SCHEMA_MEDIA_TYPES = {
+    ExportSchemaFormat.JSON: "application/schema+json",
+    ExportSchemaFormat.CSV: "application/json",
+}
+
+
+@fast_api_export_router.get(
+    "/export/schema/{export_format}",
+    response_class=Response,
+    description=(
+        "Download the schema of the study export in format `export_format`: a "
+        "[JSON Schema](https://json-schema.org/) for the JSON export, a "
+        "[Frictionless Table Schema](https://datapackage.org/standard/table-schema/) "
+        "for the CSV export. The schema describes every column/attribute an export "
+        "of this installation can have, for the running MedLog version and the "
+        "active drug dataset version. It is built by a background job on startup and "
+        "after every drug data import, until then the endpoint returns `503`."
+    ),
+    responses={
+        200: {
+            "content": {
+                media_type: {"schema": {"type": "object"}}
+                for media_type in dict.fromkeys(EXPORT_SCHEMA_MEDIA_TYPES.values())
+            },
+            "description": "The schema.",
+        },
+        **http_exception_to_resp_desc(exception_export_schema_not_built),
+    },
+)
+async def download_export_schema(
+    export_format: ExportSchemaFormat,
+    current_user: User = Depends(get_current_user),
+    export_schema_crud: ExportSchemaCRUD = Depends(ExportSchemaCRUD.get_crud),
+) -> Response:
+    from medlogserver.worker.tasks.export_schema_build import (
+        get_active_drug_dataset,
+        medlog_version,
+    )
+
+    drug_dataset = await get_active_drug_dataset()
+    if drug_dataset is None:
+        raise exception_export_schema_no_drug_dataset
+    export_schema = await export_schema_crud.get(
+        medlog_version=medlog_version(),
+        drug_dataset_version=drug_dataset.dataset_version,
+        format_=export_format,
+        raise_exception_if_none=exception_export_schema_not_built,
+    )
+    filename = (
+        f"medlog_export_schema_{export_format.value}_"
+        f"{sanitize_string(drug_dataset.dataset_version)}"
+    )
+    return Response(
+        content=json.dumps(export_schema.content, indent=2, ensure_ascii=False),
+        media_type=EXPORT_SCHEMA_MEDIA_TYPES[export_format],
+        headers={"Content-Disposition": f'attachment; filename="{filename}.json"'},
     )

@@ -1,9 +1,11 @@
 """Export column changes of issue #389.
 
 The test database only has the dummy drug dataset, so the MMI Pharmindex specific
-parts are tested with a drug object built by hand.
+parts are tested with a drug object built by hand and the export layout of the MMI
+importer (its field definitions are defined in code, no drug data needed).
 """
 
+import asyncio
 import datetime
 import json
 import uuid
@@ -17,13 +19,15 @@ from medlogserver.model.intake import (
 )
 from medlogserver.model.study import StudyExport
 from medlogserver.db.drug_data.importers.mmi_pharmindex import (
+    MMIPharmindex1_32,
     importername as MMI,
 )
-from medlogserver.worker.tasks.export_study_data import (
-    drug_to_export_data,
+from medlogserver.worker.tasks.export_layout import (
+    ExportLayout,
     flatten_export_drug_codes,
     flatten_export_objects,
 )
+from medlogserver.worker.tasks.export_study_data import drug_to_export_data
 
 
 def _mmi_drug():
@@ -69,15 +73,11 @@ def _mmi_drug():
     )
 
 
-MMI_BOOL_FIELDS = {
-    (MMI, "ist_generikum"),
-    (MMI, "ist_kosmetikum"),
-    (MMI, "ist_pflanzlich"),
-}
+MMI_LAYOUT = asyncio.run(ExportLayout.from_importer(MMIPharmindex1_32()))
 
 
 def _drug_columns():
-    codes, attrs = drug_to_export_data(_mmi_drug(), MMI_BOOL_FIELDS)
+    codes, attrs = drug_to_export_data(_mmi_drug(), MMI_LAYOUT)
     columns = flatten_export_drug_codes(codes)
     columns.update(flatten_export_objects(attrs, "drug", "drug_attr_name"))
     return columns
@@ -117,7 +117,7 @@ def test_redundant_mmi_reference_codes_are_removed():
     # other reference codes stay
     assert columns["drug_attr_reference_code_hersteller"] == "10245"
 
-    _, attrs = drug_to_export_data(_mmi_drug(), MMI_BOOL_FIELDS)
+    _, attrs = drug_to_export_data(_mmi_drug(), MMI_LAYOUT)
     json_attrs = {
         a["drug_attr_name"]: a
         for a in (json.loads(attr.model_dump_json()) for attr in attrs)
@@ -127,6 +127,23 @@ def test_redundant_mmi_reference_codes_are_removed():
         "drug_attr_value": "Nein",
     }
     assert json_attrs["ist_generikum"]["drug_attr_value"] is True
+
+
+def test_mmi_layout_has_the_issue_389_columns():
+    """The CSV header and the export schemas are built from the layout (#387)."""
+    columns = MMI_LAYOUT.csv_columns()
+    assert "drug_code_pzn" in columns
+    assert "drug_code_mmip" in columns
+    assert not [c for c in columns if " " in c]
+    assert "drug_attr_value_lebensmittel" in columns
+    assert "drug_attr_reference_code_lebensmittel" not in columns
+    assert "drug_attr_reference_code_diaetetikum" not in columns
+    assert "drug_attr_reference_code_hersteller" in columns
+    assert "intake_regular_interval_of_daily_dose" in columns
+    assert "study_proband_external_id_example" not in columns
+    assert MMI_LAYOUT.drug_attrs_by_name["ist_generikum"].is_bool
+    assert MMI_LAYOUT.drug_attrs_by_name["is_custom_drug"].is_bool
+    assert not MMI_LAYOUT.drug_attrs_by_name["lebensmittel"].is_bool
 
 
 def test_study_export_without_proband_id_input_helpers():

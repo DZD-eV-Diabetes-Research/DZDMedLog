@@ -4,9 +4,13 @@ The export used to load every intake's drug with its own session and about nine
 queries, so the query count grew with the number of intake rows (1000 rows took
 4 to 5 minutes on production). These tests make sure that
 
-* the rewritten exporter produces byte-identical CSV and JSON files compared to
-  the exporter before #362 (frozen in `export_reference_pre_issue_362.py`), apart
-  from the intended drug column changes of issue #389 (see `_apply_issue_389`),
+* the rewritten exporter writes the same data as the exporter before #362 (frozen
+  in `export_reference_pre_issue_362.py`). Since issue #387 the new export has
+  additional, empty drug columns (CSV) and null drug attributes (JSON) for drug
+  attributes a drug has no value for, and missing market access/exit dates are
+  empty (null) instead of the string `None`. Issue #389 renamed the drug code
+  columns and made booleans real booleans (see `_apply_issue_389`). Apart from
+  these, the output is unchanged,
 * the number of queries depends on the number of distinct drugs, not on the
   number of intake rows.
 
@@ -79,6 +83,7 @@ from medlogserver.model.intake import (
     SourceOfDrugInformationAnwers,
 )
 from medlogserver.worker.tasks.export_study_data import StudyDataExporter
+from medlogserver.worker.tasks.export_layout import ExportLayout
 
 ExportFormat = Literal["csv", "json"]
 
@@ -327,6 +332,8 @@ def _apply_issue_389(
 ) -> str:
     """Apply the intended drug column changes of issue #389 to a legacy export.
 
+    `_assert_*_same_data_as_legacy()` compares the result with the new export.
+
     * drug code columns are named by code system id, not name (`drug_code_pzn`),
       and the JSON drug codes carry the `drug_code_system_id`,
     * empty market dates are empty instead of the text "None",
@@ -346,8 +353,7 @@ def _apply_issue_389(
         }
         fieldnames = [renames.get(f, f) for f in reader.fieldnames]
         out = io.StringIO(newline="")
-        # `read_text()` turned the "\r\n" line ends into "\n"
-        writer = csv.DictWriter(out, fieldnames=fieldnames, lineterminator="\n")
+        writer = csv.DictWriter(out, fieldnames=fieldnames)
         writer.writeheader()
         for row in reader:
             row = {renames.get(k, k): v for k, v in row.items()}
@@ -377,8 +383,60 @@ def _legacy_exporter_class(format_: ExportFormat) -> type:
     return LegacyJsonReferenceExporter if format_ == "json" else LegacyStudyDataExporter
 
 
+def _export_layout() -> ExportLayout:
+    return asyncio.run(ExportLayout.from_importer())
+
+
+def _assert_csv_same_data_as_legacy(old_text: str, new_text: str):
+    """New CSV = legacy CSV plus the layout columns the legacy export left out."""
+    layout_columns = _export_layout().csv_columns()
+    new_reader = csv.DictReader(io.StringIO(new_text))
+    assert new_reader.fieldnames == layout_columns
+    new_rows = list(new_reader)
+    if not old_text:
+        # the legacy exporter wrote an empty file for a study without intakes
+        assert new_rows == []
+        return
+    old_reader = csv.DictReader(io.StringIO(old_text))
+    old_columns = old_reader.fieldnames
+    old_rows = list(old_reader)
+    assert set(old_columns) <= set(layout_columns)
+    assert len(new_rows) == len(old_rows)
+    added_columns = [c for c in layout_columns if c not in old_columns]
+    for old_row, new_row in zip(old_rows, new_rows):
+        assert {c: new_row[c] for c in old_columns} == old_row
+        # The legacy header had a column for every value of any exported drug, so
+        # the added columns have no values.
+        assert all(
+            new_row[c] == "" for c in added_columns
+        ), {c: new_row[c] for c in added_columns if new_row[c] != ""}
+
+
+def _assert_json_same_data_as_legacy(old_text: str, new_text: str):
+    """New JSON = legacy JSON plus null entries for the attributes a drug lacks."""
+    layout = _export_layout()
+    old_export = json.loads(old_text)
+    new_export = json.loads(new_text)
+    assert new_export["study"] == old_export["study"]
+    assert len(new_export["intakes"]) == len(old_export["intakes"])
+    layout_attr_names = [attr.name for attr in layout.drug_attrs]
+    for old_intake, new_intake in zip(old_export["intakes"], new_export["intakes"]):
+        old_attrs = {a["drug_attr_name"]: a for a in old_intake.pop("drug_attrs")}
+        new_attrs = {a["drug_attr_name"]: a for a in new_intake.pop("drug_attrs")}
+        assert new_intake == old_intake
+        assert list(new_attrs) == layout_attr_names
+        for name, new_attr in new_attrs.items():
+            if name in old_attrs:
+                assert new_attr == old_attrs[name]
+                continue
+            expected = {"drug_attr_name": name, "drug_attr_value": None}
+            if layout.drug_attrs_by_name[name].has_reference_code:
+                expected["drug_attr_reference_code"] = None
+            assert new_attr == expected
+
+
 @pytest.mark.parametrize("format_", ["csv", "json"])
-def test_export_output_identical_to_pre_issue_362_exporter(
+def test_export_output_same_data_as_pre_issue_362_exporter(
     session_db, tmp_path, format_: ExportFormat
 ):
     code_system_ids = _code_system_ids_by_name(session_db)
@@ -421,10 +479,10 @@ def test_export_output_identical_to_pre_issue_362_exporter(
             assert seeded.distinct_drug_count == len(drug_ids)
             assert "producing_country" in old_text
             assert f"Export performance test drug with refs {format_}" in old_text
-        assert new_text == old_text, (
-            f"{format_} export of study with {seeded.intake_count} intakes differs "
-            f"from the pre-#362 exporter. Compare {old_file} and {new_file}"
-        )
+        if format_ == "csv":
+            _assert_csv_same_data_as_legacy(old_text, new_text)
+        else:
+            _assert_json_same_data_as_legacy(old_text, new_text)
 
 
 def test_json_export_is_valid_json_with_reference_codes_only_on_ref_attrs(
