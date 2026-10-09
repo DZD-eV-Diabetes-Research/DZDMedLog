@@ -3413,7 +3413,7 @@
           "Intake"
         ],
         "summary": "Update Intake",
-        "description": "Update intake record. user must have at least 'interviewer'-permissions on study.  \n    **Start Date** \u2014 exactly one of `intake_start_date` or `intake_start_date_option` must be set.  \n    Sending both returns 400. The omitted field is automatically nulled out.  \n    **End Date** \u2014 at most one of `intake_end_date` or `intake_end_date_option` may be set.  \n    Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.\n    The omitted field is automatically nulled out.  \n    **Intake mode** \u2014 mutually exclusive fields depending on `intake_regular_or_as_needed`:  \n    - `REGULAR`: `as_needed_dose_unit` must be `null`  \n    - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`",
+        "description": "Update intake record. user must have at least 'interviewer'-permissions on study.  \n    **Start Date** \u2014 exactly one of `intake_start_date` or `intake_start_date_option` must be set.  \n    Sending both returns 400. The omitted field is automatically nulled out.  \n    **End Date** \u2014 at most one of `intake_end_date` or `intake_end_date_option` may be set.  \n    Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.\n    The omitted field is automatically nulled out.  \n    **Date precision** \u2014 `intake_start_date_precision` / `intake_end_date_precision` (`day`, `month`, `year`)\n    default to `day` when a date is sent without them and must be `null` when an option is set.\n    A `month` or `year` date is stored as the first day of the period.  \n    **Intake mode** \u2014 mutually exclusive fields depending on `intake_regular_or_as_needed`:  \n    - `REGULAR`: `as_needed_dose_unit` must be `null`  \n    - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`",
         "operationId": "update_intake_api_study__study_id__interview__interview_id__intake__intake_id__patch",
         "security": [
           {
@@ -3474,7 +3474,7 @@
             }
           },
           "422": {
-            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n**Plausibility (combinations that cannot be true)**\nTwo reference dates are used. The \"not in the future\" rules compare against the server's current UTC date, without tolerance: tomorrow is a future date. The \"taken today\" rules compare against the day the parent interview was started, because that is the day the proband answered the question. That keeps an interview that stays open across midnight, a retroactively entered interview and a later correction of an entry from turning a correct answer into a contradiction. Those comparisons get one day of tolerance in both directions, to absorb the offset between the stored UTC timestamp and the interviewer's local time.\nThe rules are checked on the record as it will be stored, so a PATCH is validated against the merged record, not just the payload. A PATCH only triggers the rules that concern a field it actually sends.\n- `end_date_before_start_date` \u2014 `intake_end_date` is before `intake_start_date`. The same day for both is allowed.\n- `start_date_in_future` \u2014 `intake_start_date` lies after the current date.\n- `end_date_in_future` \u2014 `intake_end_date` lies after the current date.\n- `consumed_today_with_past_end_date` \u2014 `consumed_meds_today` is `Yes` while `intake_end_date` lies before the interview date.\n- `consumed_today_with_future_start_date` \u2014 `consumed_meds_today` is `Yes` while `intake_start_date` lies after the interview date.\n- `dose_per_day_negative` \u2014 `dose_per_day` is negative.\n- `dose_per_day_placeholder`: `dose_per_day` is `0` or `9999`, the old placeholders for an unknown daily dose. Use `dose_per_day_unknown` instead.\n- `dose_per_day_set_while_unknown`: `dose_per_day_unknown` is `true` while `dose_per_day` is set. An unknown daily dose is sent as `dose_per_day: null` plus `dose_per_day_unknown: true`.\n- `dose_per_day_unknown_for_as_needed_intake`: `dose_per_day_unknown` is `true` while `intake_regular_or_as_needed` is `as needed`. A daily dose only exists for regular intakes.\n- `as_needed_dose_unit_negative` \u2014 `as_needed_dose_unit` is negative. `0` is allowed and means the dose is unknown.\n- `start_date_implausibly_old` / `end_date_implausibly_old` \u2014 the date is before 1950-01-01.\n\nRules that need an exact date are skipped when `intake_start_date_option` / `intake_end_date_option` is set instead of a date, because the option carries no date to compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\nA plausibility violation returns an object as `detail`, carrying the `rule` that broke and the `fields` it concerns. For a translated, client-side message it also carries `reference_date`, the ISO date the broken rule compared against (`null` for a rule that compares no date), and `reference`, naming which date that is: `today`, `interview_date` or `earliest_plausible_date`. `context` holds all three dates, for a message that needs more than the one the rule used. The other rules above return a plain string.",
+            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Date precision**\n- `intake_start_date_precision` / `intake_end_date_precision` is not `null` while the matching date option is set.\n- `intake_start_date_precision` / `intake_end_date_precision` is sent without its date or date option.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n**Plausibility (combinations that cannot be true)**\nTwo reference dates are used. The \"not in the future\" rules compare against the server's current UTC date, without tolerance: tomorrow is a future date. The \"taken today\" rules compare against the day the parent interview was started, because that is the day the proband answered the question. That keeps an interview that stays open across midnight, a retroactively entered interview and a later correction of an entry from turning a correct answer into a contradiction. Those comparisons get one day of tolerance in both directions, to absorb the offset between the stored UTC timestamp and the interviewer's local time.\nThe rules are checked on the record as it will be stored, so a PATCH is validated against the merged record, not just the payload. A PATCH only triggers the rules that concern a field it actually sends.\nA date with precision `month` or `year` stands for the whole month or year. A rule only fails if it is violated for every day of that period, e.g. a start date of the current month is not in the future, and an end date in March 2024 is not before a start date of 2024-03-20.\n- `end_date_before_start_date` \u2014 `intake_end_date` is before `intake_start_date`. The same day for both is allowed.\n- `start_date_in_future` \u2014 `intake_start_date` lies after the current date.\n- `end_date_in_future` \u2014 `intake_end_date` lies after the current date.\n- `consumed_today_with_past_end_date` \u2014 `consumed_meds_today` is `Yes` while `intake_end_date` lies before the interview date.\n- `consumed_today_with_future_start_date` \u2014 `consumed_meds_today` is `Yes` while `intake_start_date` lies after the interview date.\n- `dose_per_day_negative` \u2014 `dose_per_day` is negative.\n- `dose_per_day_placeholder`: `dose_per_day` is `0` or `9999`, the old placeholders for an unknown daily dose. Use `dose_per_day_unknown` instead.\n- `dose_per_day_set_while_unknown`: `dose_per_day_unknown` is `true` while `dose_per_day` is set. An unknown daily dose is sent as `dose_per_day: null` plus `dose_per_day_unknown: true`.\n- `dose_per_day_unknown_for_as_needed_intake`: `dose_per_day_unknown` is `true` while `intake_regular_or_as_needed` is `as needed`. A daily dose only exists for regular intakes.\n- `as_needed_dose_unit_negative` \u2014 `as_needed_dose_unit` is negative. `0` is allowed and means the dose is unknown.\n- `start_date_implausibly_old` / `end_date_implausibly_old` \u2014 the date is before 1950-01-01.\n\nRules that need an exact date are skipped when `intake_start_date_option` / `intake_end_date_option` is set instead of a date, because the option carries no date to compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\nA plausibility violation returns an object as `detail`, carrying the `rule` that broke and the `fields` it concerns. For a translated, client-side message it also carries `reference_date`, the ISO date the broken rule compared against (`null` for a rule that compares no date), and `reference`, naming which date that is: `today`, `interview_date` or `earliest_plausible_date`. `context` holds all three dates, for a message that needs more than the one the rule used. The other rules above return a plain string.",
             "content": {
               "application/json": {
                 "examples": {
@@ -3616,7 +3616,7 @@
           "Intake"
         ],
         "summary": "Create Intake",
-        "description": "Create intake record in certain interview. user must have at least 'interviewer'-permissions on study.\n    **Start Date** \u2014 exactly one of `intake_start_date` or `intake_start_date_option` must be set.  \n    Sending both returns 400. The omitted field is automatically nulled out.  \n    **End Date** \u2014 at most one of `intake_end_date` or `intake_end_date_option` may be set.  \n    Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.\n    The omitted field is automatically nulled out.  \n    **Intake mode** \u2014 mutually exclusive fields depending on `intake_regular_or_as_needed`:  \n    - `REGULAR`: `as_needed_dose_unit` must be `null`  \n    - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`",
+        "description": "Create intake record in certain interview. user must have at least 'interviewer'-permissions on study.\n    **Start Date** \u2014 exactly one of `intake_start_date` or `intake_start_date_option` must be set.  \n    Sending both returns 400. The omitted field is automatically nulled out.  \n    **End Date** \u2014 at most one of `intake_end_date` or `intake_end_date_option` may be set.  \n    Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.\n    The omitted field is automatically nulled out.  \n    **Date precision** \u2014 `intake_start_date_precision` / `intake_end_date_precision` (`day`, `month`, `year`)\n    default to `day` when a date is sent without them and must be `null` when an option is set.\n    A `month` or `year` date is stored as the first day of the period.  \n    **Intake mode** \u2014 mutually exclusive fields depending on `intake_regular_or_as_needed`:  \n    - `REGULAR`: `as_needed_dose_unit` must be `null`  \n    - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`",
         "operationId": "create_intake_api_study__study_id__interview__interview_id__intake_post",
         "security": [
           {
@@ -3667,7 +3667,7 @@
             }
           },
           "422": {
-            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n**Plausibility (combinations that cannot be true)**\nTwo reference dates are used. The \"not in the future\" rules compare against the server's current UTC date, without tolerance: tomorrow is a future date. The \"taken today\" rules compare against the day the parent interview was started, because that is the day the proband answered the question. That keeps an interview that stays open across midnight, a retroactively entered interview and a later correction of an entry from turning a correct answer into a contradiction. Those comparisons get one day of tolerance in both directions, to absorb the offset between the stored UTC timestamp and the interviewer's local time.\nThe rules are checked on the record as it will be stored, so a PATCH is validated against the merged record, not just the payload. A PATCH only triggers the rules that concern a field it actually sends.\n- `end_date_before_start_date` \u2014 `intake_end_date` is before `intake_start_date`. The same day for both is allowed.\n- `start_date_in_future` \u2014 `intake_start_date` lies after the current date.\n- `end_date_in_future` \u2014 `intake_end_date` lies after the current date.\n- `consumed_today_with_past_end_date` \u2014 `consumed_meds_today` is `Yes` while `intake_end_date` lies before the interview date.\n- `consumed_today_with_future_start_date` \u2014 `consumed_meds_today` is `Yes` while `intake_start_date` lies after the interview date.\n- `dose_per_day_negative` \u2014 `dose_per_day` is negative.\n- `dose_per_day_placeholder`: `dose_per_day` is `0` or `9999`, the old placeholders for an unknown daily dose. Use `dose_per_day_unknown` instead.\n- `dose_per_day_set_while_unknown`: `dose_per_day_unknown` is `true` while `dose_per_day` is set. An unknown daily dose is sent as `dose_per_day: null` plus `dose_per_day_unknown: true`.\n- `dose_per_day_unknown_for_as_needed_intake`: `dose_per_day_unknown` is `true` while `intake_regular_or_as_needed` is `as needed`. A daily dose only exists for regular intakes.\n- `as_needed_dose_unit_negative` \u2014 `as_needed_dose_unit` is negative. `0` is allowed and means the dose is unknown.\n- `start_date_implausibly_old` / `end_date_implausibly_old` \u2014 the date is before 1950-01-01.\n\nRules that need an exact date are skipped when `intake_start_date_option` / `intake_end_date_option` is set instead of a date, because the option carries no date to compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\nA plausibility violation returns an object as `detail`, carrying the `rule` that broke and the `fields` it concerns. For a translated, client-side message it also carries `reference_date`, the ISO date the broken rule compared against (`null` for a rule that compares no date), and `reference`, naming which date that is: `today`, `interview_date` or `earliest_plausible_date`. `context` holds all three dates, for a message that needs more than the one the rule used. The other rules above return a plain string.",
+            "description": "**UNPROCESSABLE ENTITY** \u2014 Returned when the request body violates one of the following validation rules:\n\n**Start Date (exactly one required)**\n- Both `intake_start_date` and `intake_start_date_option` are set \u2014 only one may be provided.\n- Neither `intake_start_date` nor `intake_start_date_option` is set \u2014 exactly one must be provided.\n\n**End Date (at most one allowed)**\n- Both `intake_end_date` and `intake_end_date_option` are set \u2014 only one may be provided. If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n**Date precision**\n- `intake_start_date_precision` / `intake_end_date_precision` is not `null` while the matching date option is set.\n- `intake_start_date_precision` / `intake_end_date_precision` is sent without its date or date option.\n\n**Intake Mode (mutually exclusive dose fields)**\n- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n**Plausibility (combinations that cannot be true)**\nTwo reference dates are used. The \"not in the future\" rules compare against the server's current UTC date, without tolerance: tomorrow is a future date. The \"taken today\" rules compare against the day the parent interview was started, because that is the day the proband answered the question. That keeps an interview that stays open across midnight, a retroactively entered interview and a later correction of an entry from turning a correct answer into a contradiction. Those comparisons get one day of tolerance in both directions, to absorb the offset between the stored UTC timestamp and the interviewer's local time.\nThe rules are checked on the record as it will be stored, so a PATCH is validated against the merged record, not just the payload. A PATCH only triggers the rules that concern a field it actually sends.\nA date with precision `month` or `year` stands for the whole month or year. A rule only fails if it is violated for every day of that period, e.g. a start date of the current month is not in the future, and an end date in March 2024 is not before a start date of 2024-03-20.\n- `end_date_before_start_date` \u2014 `intake_end_date` is before `intake_start_date`. The same day for both is allowed.\n- `start_date_in_future` \u2014 `intake_start_date` lies after the current date.\n- `end_date_in_future` \u2014 `intake_end_date` lies after the current date.\n- `consumed_today_with_past_end_date` \u2014 `consumed_meds_today` is `Yes` while `intake_end_date` lies before the interview date.\n- `consumed_today_with_future_start_date` \u2014 `consumed_meds_today` is `Yes` while `intake_start_date` lies after the interview date.\n- `dose_per_day_negative` \u2014 `dose_per_day` is negative.\n- `dose_per_day_placeholder`: `dose_per_day` is `0` or `9999`, the old placeholders for an unknown daily dose. Use `dose_per_day_unknown` instead.\n- `dose_per_day_set_while_unknown`: `dose_per_day_unknown` is `true` while `dose_per_day` is set. An unknown daily dose is sent as `dose_per_day: null` plus `dose_per_day_unknown: true`.\n- `dose_per_day_unknown_for_as_needed_intake`: `dose_per_day_unknown` is `true` while `intake_regular_or_as_needed` is `as needed`. A daily dose only exists for regular intakes.\n- `as_needed_dose_unit_negative` \u2014 `as_needed_dose_unit` is negative. `0` is allowed and means the dose is unknown.\n- `start_date_implausibly_old` / `end_date_implausibly_old` \u2014 the date is before 1950-01-01.\n\nRules that need an exact date are skipped when `intake_start_date_option` / `intake_end_date_option` is set instead of a date, because the option carries no date to compare. `consumed_meds_today` of `No` or `UNKNOWN` never conflicts with a date.\n\nA plausibility violation returns an object as `detail`, carrying the `rule` that broke and the `fields` it concerns. For a translated, client-side message it also carries `reference_date`, the ISO date the broken rule compared against (`null` for a rule that compares no date), and `reference`, naming which date that is: `today`, `interview_date` or `earliest_plausible_date`. `context` holds all three dates, for a message that needs more than the one the rule used. The other rules above return a plain string.",
             "content": {
               "application/json": {
                 "examples": {
@@ -3852,8 +3852,10 @@
                 "is_activeingredient_equivalent_choice",
                 "intake_start_date",
                 "intake_start_date_option",
+                "intake_start_date_precision",
                 "intake_end_date",
                 "intake_end_date_option",
+                "intake_end_date_precision",
                 "administered_by_doctor",
                 "intake_regular_or_as_needed",
                 "dose_per_day",
@@ -3996,8 +3998,10 @@
                 "is_activeingredient_equivalent_choice",
                 "intake_start_date",
                 "intake_start_date_option",
+                "intake_start_date_precision",
                 "intake_end_date",
                 "intake_end_date_option",
+                "intake_end_date_precision",
                 "administered_by_doctor",
                 "intake_regular_or_as_needed",
                 "dose_per_day",
@@ -7757,6 +7761,17 @@
             ],
             "description": "Use when no exact start date is available (e.g. `UNKNOWN`, `SINCE_BIRTH`). Mutually exclusive with `intake_start_date` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date` is automatically set to `null`."
           },
+          "intake_start_date_precision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDatePrecision"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Precision of `intake_start_date`: `day` (exact day), `month` (only the month is known) or `year` (only the year is known). Defaults to `day` when `intake_start_date` is sent without it. For `month` and `year` the date is stored as the first day of the period (`2024-03-01` for March 2024, `2024-01-01` for 2024), whatever day was sent. Do not send a placeholder day (e.g. the 15th) for an unknown day, send `month` instead. Must be `null` when `intake_start_date_option` is set, and can only be sent together with `intake_start_date` or `intake_start_date_option`."
+          },
           "intake_end_date": {
             "anyOf": [
               {
@@ -7780,6 +7795,17 @@
               }
             ],
             "description": "Use when no exact end date is available (e.g. `ONGOING`, `UNKNOWN`). Mutually exclusive with `intake_end_date` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date` is automatically set to `null`. If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
+          },
+          "intake_end_date_precision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDatePrecision"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Precision of `intake_end_date`, same values and rules as `intake_start_date_precision`. Start and end may have different precisions. Must be `null` when `intake_end_date_option` is set, and can only be sent together with `intake_end_date` or `intake_end_date_option`."
           },
           "administered_by_doctor": {
             "anyOf": [
@@ -7914,6 +7940,17 @@
             ],
             "description": "Use when no exact start date is available (e.g. `UNKNOWN`, `SINCE_BIRTH`). Mutually exclusive with `intake_start_date` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date` is automatically set to `null`."
           },
+          "intake_start_date_precision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDatePrecision"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Precision of `intake_start_date`: `day` (exact day), `month` (only the month is known) or `year` (only the year is known). Defaults to `day` when `intake_start_date` is sent without it. For `month` and `year` the date is stored as the first day of the period (`2024-03-01` for March 2024, `2024-01-01` for 2024), whatever day was sent. Do not send a placeholder day (e.g. the 15th) for an unknown day, send `month` instead. Must be `null` when `intake_start_date_option` is set, and can only be sent together with `intake_start_date` or `intake_start_date_option`."
+          },
           "intake_end_date": {
             "anyOf": [
               {
@@ -7937,6 +7974,17 @@
               }
             ],
             "description": "Use when no exact end date is available (e.g. `ONGOING`, `UNKNOWN`). Mutually exclusive with `intake_end_date` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date` is automatically set to `null`. If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
+          },
+          "intake_end_date_precision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDatePrecision"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Precision of `intake_end_date`, same values and rules as `intake_start_date_precision`. Start and end may have different precisions. Must be `null` when `intake_end_date_option` is set, and can only be sent together with `intake_end_date` or `intake_end_date_option`."
           },
           "administered_by_doctor": {
             "anyOf": [
@@ -8018,6 +8066,16 @@
         "title": "IntakeCreateAPI",
         "description": "This class/table also saves some extra question for every interview. This is 1-to-1 what the old IDOM software did. and its a mess.\ni fucking hate it. its unflexible, complex and ugly!\nfor a future version we need an extra class/table to store extra question on a per study base.\nfields (with meatdata like options) could be defined in json schema. so clients can generate dynamic forms relatively easy."
       },
+      "IntakeDatePrecision": {
+        "type": "string",
+        "enum": [
+          "day",
+          "month",
+          "year"
+        ],
+        "title": "IntakeDatePrecision",
+        "description": "How precise an intake start or end date is (issue #392).\n\nA `month` or `year` date stands for the whole period and is stored as its\nfirst day, `2024-03-01` for \"March 2024\", `2024-01-01` for \"2024\"."
+      },
       "IntakeDetailListItem": {
         "properties": {
           "source_of_drug_information": {
@@ -8061,6 +8119,17 @@
             ],
             "description": "Use when no exact start date is available (e.g. `UNKNOWN`, `SINCE_BIRTH`). Mutually exclusive with `intake_start_date` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date` is automatically set to `null`."
           },
+          "intake_start_date_precision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDatePrecision"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Precision of `intake_start_date`: `day` (exact day), `month` (only the month is known) or `year` (only the year is known). Defaults to `day` when `intake_start_date` is sent without it. For `month` and `year` the date is stored as the first day of the period (`2024-03-01` for March 2024, `2024-01-01` for 2024), whatever day was sent. Do not send a placeholder day (e.g. the 15th) for an unknown day, send `month` instead. Must be `null` when `intake_start_date_option` is set, and can only be sent together with `intake_start_date` or `intake_start_date_option`."
+          },
           "intake_end_date": {
             "anyOf": [
               {
@@ -8084,6 +8153,17 @@
               }
             ],
             "description": "Use when no exact end date is available (e.g. `ONGOING`, `UNKNOWN`). Mutually exclusive with `intake_end_date` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date` is automatically set to `null`. If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
+          },
+          "intake_end_date_precision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDatePrecision"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Precision of `intake_end_date`, same values and rules as `intake_start_date_precision`. Start and end may have different precisions. Must be `null` when `intake_end_date_option` is set, and can only be sent together with `intake_end_date` or `intake_end_date_option`."
           },
           "administered_by_doctor": {
             "anyOf": [
@@ -8262,6 +8342,17 @@
             ],
             "description": "Use when no exact start date is available (e.g. `UNKNOWN`, `SINCE_BIRTH`). Mutually exclusive with `intake_start_date` \u2014 exactly one of the two must be set. If this field is provided, `intake_start_date` is automatically set to `null`."
           },
+          "intake_start_date_precision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDatePrecision"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Precision of `intake_start_date`: `day` (exact day), `month` (only the month is known) or `year` (only the year is known). Defaults to `day` when `intake_start_date` is sent without it. For `month` and `year` the date is stored as the first day of the period (`2024-03-01` for March 2024, `2024-01-01` for 2024), whatever day was sent. Do not send a placeholder day (e.g. the 15th) for an unknown day, send `month` instead. Must be `null` when `intake_start_date_option` is set, and can only be sent together with `intake_start_date` or `intake_start_date_option`."
+          },
           "intake_end_date": {
             "anyOf": [
               {
@@ -8285,6 +8376,17 @@
               }
             ],
             "description": "Use when no exact end date is available (e.g. `ONGOING`, `UNKNOWN`). Mutually exclusive with `intake_end_date` \u2014 at most one of the two may be set. If this field is provided, `intake_end_date` is automatically set to `null`. If neither this nor `intake_end_date` is provided, this field defaults to `ONGOING`."
+          },
+          "intake_end_date_precision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDatePrecision"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Precision of `intake_end_date`, same values and rules as `intake_start_date_precision`. Start and end may have different precisions. Must be `null` when `intake_end_date_option` is set, and can only be sent together with `intake_end_date` or `intake_end_date_option`."
           },
           "administered_by_doctor": {
             "anyOf": [
@@ -8363,7 +8465,7 @@
         },
         "type": "object",
         "title": "IntakeUpdate",
-        "description": "Update an existing medication intake record.\n\n**Start Date** \u2014 exactly one of `intake_start_date` or `intake_start_date_option` must be set.\nSending both returns 400. The omitted field is automatically nulled out.\n\n**End Date** \u2014 at most one of `intake_end_date` or `intake_end_date_option` may be set.\nSending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.\nThe omitted field is automatically nulled out.\n\n**Intake mode** \u2014 mutually exclusive fields depending on `intake_regular_or_as_needed`:\n- `REGULAR`: `as_needed_dose_unit` must be `null`\n- `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`"
+        "description": "Update an existing medication intake record.\n\n**Start Date** \u2014 exactly one of `intake_start_date` or `intake_start_date_option` must be set.\nSending both returns 400. The omitted field is automatically nulled out.\n\n**End Date** \u2014 at most one of `intake_end_date` or `intake_end_date_option` may be set.\nSending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.\nThe omitted field is automatically nulled out.\n\n**Date precision** \u2014 `intake_start_date_precision` / `intake_end_date_precision`\nsay whether a date is an exact `day`, a `month` or a `year`. They default to `day`\nwhen a date is sent without them, and are `null` when an option is set instead of\na date. A `month` or `year` date is stored as the first day of the period.\n\n**Intake mode** \u2014 mutually exclusive fields depending on `intake_regular_or_as_needed`:\n- `REGULAR`: `as_needed_dose_unit` must be `null`\n- `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`"
       },
       "IntervalOfDailyDoseAnswers": {
         "type": "string",

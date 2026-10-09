@@ -86,6 +86,11 @@ INTAKE_422_RESPONSE_DOC = {
         "**End Date (at most one allowed)**\n"
         "- Both `intake_end_date` and `intake_end_date_option` are set — only one may be provided. "
         "If neither is sent, `intake_end_date_option` defaults to `ONGOING`.\n\n"
+        "**Date precision**\n"
+        "- `intake_start_date_precision` / `intake_end_date_precision` is not `null` while "
+        "the matching date option is set.\n"
+        "- `intake_start_date_precision` / `intake_end_date_precision` is sent without its "
+        "date or date option.\n\n"
         "**Intake Mode (mutually exclusive dose fields)**\n"
         "- `intake_regular_or_as_needed` is `REGULAR` but `as_needed_dose_unit` is not `null`.\n"
         "- `intake_regular_or_as_needed` is `AS_NEEDED` but `regular_intervall_of_daily_dose` is not `null`.\n\n"
@@ -101,6 +106,10 @@ INTAKE_422_RESPONSE_DOC = {
         "The rules are checked on the record as it will be stored, so a PATCH is validated "
         "against the merged record, not just the payload. A PATCH only triggers the rules that "
         "concern a field it actually sends.\n"
+        "A date with precision `month` or `year` stands for the whole month or year. A rule "
+        "only fails if it is violated for every day of that period, e.g. a start date of the "
+        "current month is not in the future, and an end date in March 2024 is not before a "
+        "start date of 2024-03-20.\n"
         "- `end_date_before_start_date` — `intake_end_date` is before `intake_start_date`. "
         "The same day for both is allowed.\n"
         "- `start_date_in_future` — `intake_start_date` lies after the current date.\n"
@@ -210,6 +219,9 @@ async def get_intake(
     **End Date** — at most one of `intake_end_date` or `intake_end_date_option` may be set.  
     Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.
     The omitted field is automatically nulled out.  
+    **Date precision** — `intake_start_date_precision` / `intake_end_date_precision` (`day`, `month`, `year`)
+    default to `day` when a date is sent without them and must be `null` when an option is set.
+    A `month` or `year` date is stored as the first day of the period.  
     **Intake mode** — mutually exclusive fields depending on `intake_regular_or_as_needed`:  
     - `REGULAR`: `as_needed_dose_unit` must be `null`  
     - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`  
@@ -258,6 +270,9 @@ async def create_intake(
     **End Date** — at most one of `intake_end_date` or `intake_end_date_option` may be set.  
     Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.
     The omitted field is automatically nulled out.  
+    **Date precision** — `intake_start_date_precision` / `intake_end_date_precision` (`day`, `month`, `year`)
+    default to `day` when a date is sent without them and must be `null` when an option is set.
+    A `month` or `year` date is stored as the first day of the period.  
     **Intake mode** — mutually exclusive fields depending on `intake_regular_or_as_needed`:  
     - `REGULAR`: `as_needed_dose_unit` must be `null`  
     - `AS_NEEDED`: `regular_intervall_of_daily_dose` must be `null`  
