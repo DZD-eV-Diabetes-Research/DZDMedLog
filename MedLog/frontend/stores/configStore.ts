@@ -16,6 +16,11 @@ interface ConfigStore {
         supportsForceManualUpdate: boolean,
         supportsScheduledAutoUpdate: boolean,
     },
+    eventTypes: {
+        enabled: boolean,
+        eventTypes: string[],
+        loaded: boolean,
+    },
 }
 
 export const useConfigStore = defineStore('config', {
@@ -33,7 +38,12 @@ export const useConfigStore = defineStore('config', {
             sourceInfoUrl: "",
             supportsForceManualUpdate: false,
             supportsScheduledAutoUpdate: false
-        }
+        },
+        eventTypes: {
+            enabled: false,
+            eventTypes: [],
+            loaded: false,
+        },
     }),
     actions: {
         async fetchAllConfigs() {
@@ -82,12 +92,30 @@ export const useConfigStore = defineStore('config', {
             this.drugData.supportsForceManualUpdate = data.value?.supports_force_manual_update === true;
             this.drugData.supportsScheduledAutoUpdate = data.value?.supports_scheduled_auto_update === true;
         },
+        // Not part of fetchAllConfigs(): unlike the other config endpoints this one requires a
+        // logged-in user, but error.vue also calls fetchAllConfigs() for anonymous visitors.
+        // Loaded by the pages that need it instead, which also covers a fresh login (issue #388)
+        async loadEventTypes(force = false) {
+            if (this.eventTypes.loaded && !force) {
+                return;
+            }
+
+            const { $medlogapi } = useNuxtApp();
+            const data = await $medlogapi("/api/config/event-types");
+
+            this.eventTypes.enabled = data.enabled === true;
+            this.eventTypes.eventTypes = data.event_types ?? [];
+            this.eventTypes.loaded = true;
+        },
     },
     getters: {
         appName: () => {
             // Currently the app name is part of the health check report
             const healthCheckStore = useHealthCheckStore();
             return healthCheckStore.fullReport?.name ?? "DZDMedLog"
+        },
+        eventTypeOptions: (state: ConfigStore): { label: string; value: string }[] => {
+            return state.eventTypes.eventTypes.map(eventType => ({ label: eventType, value: eventType }));
         },
     },
 });

@@ -76,8 +76,23 @@
             </UAlert>
             <div v-else-if="eventsToStartOptions.length" class="flex flex-row gap-2">
               <USelect v-model="eventIdToStart" :options="eventsToStartOptions" />
+              <USelect
+                  v-if="eventTypeSelectable"
+                  v-model="eventTypeToStart"
+                  :options="eventTypeToStartOptions"
+                  placeholder="Art wählen ..."
+                  title="Art des Interviews"
+              />
+              <UBadge
+                  v-else-if="eventToStart?.event_type_mode === 'fixed'"
+                  color="gray"
+                  variant="soft"
+                  title="Art des Interviews, für dieses Event fest vorgegeben"
+              >
+                {{ eventToStart.event_type }}
+              </UBadge>
               <UButtonGroup orientation="horizontal">
-                <UButton color="green" :disabled="!eventIdToStart" @click="introModalVisible = true">
+                <UButton color="green" :disabled="!canStartInterview" @click="introModalVisible = true">
                   Interview starten
                 </UButton>
                 <UDropdown
@@ -86,7 +101,7 @@
                         label: 'Interview nachtragen',
                         slot: 'backdate-interview',
                         click: openBackdateModal,
-                        disabled: !eventIdToStart,
+                        disabled: !canStartInterview,
                       },
                     ]]"
                     :popper="{ placement: 'bottom-end' }"
@@ -160,6 +175,7 @@ import BackdateModal, { type BackdateFormSchema } from "~/components/Interview/B
 
 const dayjs = useDayjs();
 const route = useRoute()
+const configStore = useConfigStore()
 const eventStore = useEventStore()
 const interviewStore = useInterviewStore()
 const modal = useModal()
@@ -173,6 +189,7 @@ const currentInterview = ref<SchemaInterview>();
 const errorMessage = ref();
 const eventsForProband = ref<SchemaEventReadPerProband[]>([]);
 const eventIdToStart = ref();
+const eventTypeToStart = ref("");
 const eventsToStartOptions = ref<{ label: string; value: string }[]>([]);
 const intakes = ref<SchemaIntakeDetailListItem[]>([]);
 const interviewsForProband = ref<SchemaInterview[]>([]);
@@ -186,9 +203,44 @@ const completedInterviews = computed(() => {
   return interviewsForProband.value.filter(interview => interview.interview_end_time_utc !== null);
 });
 
+const eventToStart = computed(() => {
+  return eventsForProband.value.find(event => event.id === eventIdToStart.value);
+});
+
+// Issue #388: for "fixed" the backend sets the type, without a mode the event does not track one
+const eventTypeSelectable = computed(() => {
+  const mode = eventToStart.value?.event_type_mode;
+  return configStore.eventTypes.enabled && (mode === "default" || mode === "required_choice");
+});
+
+const eventTypeToStartOptions = computed(() => {
+  const options = [...configStore.eventTypeOptions];
+  // Keep the default of the event selectable, even if it was removed from the server config
+  const defaultType = eventToStart.value?.event_type_mode === "default" ? eventToStart.value.event_type : undefined;
+  if (defaultType && !configStore.eventTypes.eventTypes.includes(defaultType)) {
+    options.push({ label: defaultType, value: defaultType });
+  }
+  return options;
+});
+
+const canStartInterview = computed(() => {
+  if (!eventIdToStart.value) {
+    return false;
+  }
+  return eventToStart.value?.event_type_mode !== "required_choice" || !!eventTypeToStart.value;
+});
+
+watch(eventToStart, (event) => {
+  eventTypeToStart.value = event?.event_type_mode === "default" ? (event.event_type ?? "") : "";
+});
+
 async function startInterview(hasTakenMeds: boolean, startDate?: Date, endDate?: Date) {
   try {
-    const interview = await useCreateInterview(studyId.value, eventIdToStart.value, probandId.value, hasTakenMeds, startDate)
+    // Only send a type the interviewer chose, the backend fills in the default of the event itself
+    const eventType = eventTypeSelectable.value && eventTypeToStart.value !== eventToStart.value?.event_type
+        ? eventTypeToStart.value || undefined
+        : undefined;
+    const interview = await useCreateInterview(studyId.value, eventIdToStart.value, probandId.value, hasTakenMeds, startDate, eventType)
 
     if (hasTakenMeds) {
       // Go ahead and conduct the interview
@@ -217,7 +269,11 @@ async function endInterview(eventId: string, interviewId: string, endDate?: Date
     lastInterview.value = await useGetLastInterviewByStudyAndProband(studyId.value, probandId.value);
     fillInterviewStartSelector();
   } catch (error) {
-    errorMessage.value = error;
+    // e.g. the event requires an event type the interview does not have yet (issue #388)
+    toast.add({
+      title: "Konnte Interview nicht abschließen",
+      description: useGetErrorMessage(error),
+    });
   } finally {
     loading.value = false;
   }
@@ -280,6 +336,7 @@ onMounted(async () => {
   try {
     loading.value = true;
     await eventStore.loadAllEventsForStudy(studyId.value);
+    await configStore.loadEventTypes();
     eventsForProband.value = await useGetEventsByStudyAndProband(studyId.value, probandId.value);
     interviewsForProband.value = await useGetInterviewsByStudyAndProband(studyId.value, probandId.value);
     currentInterview.value = await useGetCurrentInterviewByStudyAndProband(studyId.value, probandId.value);

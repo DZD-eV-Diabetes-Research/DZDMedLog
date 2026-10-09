@@ -15,6 +15,53 @@
 
           <div class="py-1.5" style="max-width: 25%">
             <span class="text-lg">{{ eventStore.nameForEvent(eventId) || 'N/A' }}</span>
+            <div v-if="event?.event_type_mode" class="mt-1 flex flex-row flex-wrap items-center gap-1">
+              <span class="text-sm text-gray-500">Art:</span>
+              <template v-if="eventTypeEditing">
+                <USelect
+                    v-model="eventTypeDraft"
+                    :options="eventTypeOptions"
+                    placeholder="Art wählen ..."
+                    size="xs"
+                    title="Art des Interviews"
+                />
+                <UButton
+                    icon="i-heroicons-check"
+                    size="xs"
+                    color="green"
+                    title="Art speichern"
+                    :disabled="!eventTypeDraft || eventTypeDraft === interview?.event_type"
+                    :loading="eventTypeSaving"
+                    @click="saveEventType"
+                />
+                <UButton
+                    icon="i-heroicons-x-mark"
+                    size="xs"
+                    color="gray"
+                    variant="outline"
+                    title="Abbrechen"
+                    :disabled="eventTypeSaving"
+                    @click="eventTypeEditing = false"
+                />
+              </template>
+              <template v-else>
+                <UBadge v-if="interview?.event_type" color="gray" variant="soft" title="Art des Interviews">
+                  {{ interview.event_type }}
+                </UBadge>
+                <UBadge v-else color="orange" variant="soft" title="Für dieses Interview wurde noch keine Art festgelegt">
+                  nicht festgelegt
+                </UBadge>
+                <UButton
+                    v-if="eventTypeEditable"
+                    icon="i-heroicons-pencil"
+                    size="xs"
+                    color="gray"
+                    variant="ghost"
+                    title="Art des Interviews ändern ..."
+                    @click="startEventTypeEditing"
+                />
+              </template>
+            </div>
           </div>
 
           <div class="text-center" style="word-break: break-word; max-width: 25%">
@@ -195,6 +242,7 @@ import type {
 
 const route = useRoute();
 const dayjs = useDayjs();
+const configStore = useConfigStore();
 const eventStore = useEventStore();
 const interviewStore = useInterviewStore();
 const studyPermissionStore = useStudyPermissionStore();
@@ -391,6 +439,63 @@ async function endInterview(date?: Date) {
   }
 }
 
+const event = computed(() => eventStore.events.find(item => item.id === eventId.value));
+
+// Issue #388: an interview created before its event got an event type has none yet,
+// so it can be set once, even for a "fixed" event type
+const eventTypeMissing = computed(() => {
+  return !!event.value?.event_type_mode && !interview.value?.event_type;
+});
+
+const eventTypeEditable = computed(() => {
+  const mode = event.value?.event_type_mode;
+  return configStore.eventTypes.enabled
+      && (mode === "default" || mode === "required_choice" || eventTypeMissing.value)
+      && studyPermissionStore.currentUserCanInterview(studyId.value);
+});
+
+const eventTypeOptions = computed(() => {
+  // The backend only accepts the event's own type for a "fixed" event type
+  if (event.value?.event_type_mode === "fixed" && event.value.event_type) {
+    return [{ label: event.value.event_type, value: event.value.event_type }];
+  }
+  const options = [...configStore.eventTypeOptions];
+  // Keep the type of the interview selectable, even if it was removed from the server config
+  const currentType = interview.value?.event_type;
+  if (currentType && !configStore.eventTypes.eventTypes.includes(currentType)) {
+    options.push({ label: `${currentType} (nicht mehr konfiguriert)`, value: currentType });
+  }
+  return options;
+});
+
+const eventTypeEditing = ref(false);
+const eventTypeDraft = ref("");
+const eventTypeSaving = ref(false);
+
+function startEventTypeEditing() {
+  // Pre-fill a missing type with the event's type ("fixed" or "default")
+  eventTypeDraft.value = interview.value?.event_type ?? event.value?.event_type ?? "";
+  eventTypeEditing.value = true;
+}
+
+async function saveEventType() {
+  if (!eventTypeDraft.value || eventTypeDraft.value === interview.value?.event_type) {
+    return;
+  }
+  try {
+    eventTypeSaving.value = true;
+    interview.value = await usePatchInterview(studyId.value, eventId.value, interviewId.value, { event_type: eventTypeDraft.value });
+    eventTypeEditing.value = false;
+  } catch (error) {
+    toast.add({
+      title: "Konnte Art des Interviews nicht speichern",
+      description: useGetErrorMessage(error),
+    });
+  } finally {
+    eventTypeSaving.value = false;
+  }
+}
+
 async function loadIntakeList() {
   try {
     intakes.value = await useGetIntakesByStudyAndProband(studyId.value, probandId.value, interviewId.value) ?? [];
@@ -403,6 +508,7 @@ onMounted(async () => {
   loading.value = true;
   try {
     await eventStore.loadAllEventsForStudy(studyId.value);
+    await configStore.loadEventTypes();
     const interviewsForProband = await useGetInterviewsByStudyAndProband(studyId.value, probandId.value);
     const foundInterview = interviewsForProband.find(item => item.id === interviewId.value);
     if (!foundInterview) {
