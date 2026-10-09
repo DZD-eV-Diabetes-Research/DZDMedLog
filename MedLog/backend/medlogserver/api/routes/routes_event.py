@@ -28,6 +28,7 @@ from medlogserver.model.event import (
     EventRead,
     EventCreateAPI,
     EventReadPerProband,
+    check_event_type_settings,
 )
 from medlogserver.db.interview import InterviewCRUD, Interview
 from medlogserver.db.event import EventCRUD
@@ -58,6 +59,21 @@ class _EventNotEmptyDetail(BaseModel):
 
 class EventNotEmptyErrorResponse(BaseModel):
     detail: _EventNotEmptyDetail
+
+def _assert_valid_event_type_settings(event_type_mode, event_type) -> None:
+    try:
+        check_event_type_settings(event_type_mode, event_type)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
+
+
+_event_type_settings_error_response = {
+    "model": HTTPErrorResponeRepresentation,
+    "description": "`event_type_mode` and `event_type` do not fit together, or `event_type` is not one of the configured `EVENT_TYPES`.",
+}
+
 
 def _event_name_conflict_exception(event_name: str) -> HTTPException:
     return HTTPException(
@@ -113,6 +129,7 @@ async def list_events(
             "model": HTTPErrorResponeRepresentation,
             "description": "An event with the requested `name` already exists in this study.",
         },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: _event_type_settings_error_response,
     },
 )
 async def create_event(
@@ -126,6 +143,7 @@ async def create_event(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to create new event",
         )
+    _assert_valid_event_type_settings(event.event_type_mode, event.event_type)
     if event.order_position is None:
         event.order_position = 0
         all_events = await event_crud.list(filter_study_id=study_access.study.id)
@@ -155,6 +173,7 @@ async def create_event(
             "model": HTTPErrorResponeRepresentation,
             "description": "Another event of this study already has the requested `name`.",
         },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: _event_type_settings_error_response,
     },
 )
 async def update_event(
@@ -180,6 +199,27 @@ async def update_event(
     # actually belongs to it.
     if existing_event.study_id != study_access.study.id:
         raise event_not_found_exception
+
+    # The event type settings are only checked when they are changed, so an event whose
+    # type was removed from the server config can still be renamed or reordered.
+    if {"event_type_mode", "event_type"} & event.model_fields_set:
+        if not study_access.user_is_study_admin():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to change the event type settings of an event",
+            )
+        _assert_valid_event_type_settings(
+            (
+                event.event_type_mode
+                if "event_type_mode" in event.model_fields_set
+                else existing_event.event_type_mode
+            ),
+            (
+                event.event_type
+                if "event_type" in event.model_fields_set
+                else existing_event.event_type
+            ),
+        )
 
     # Explicit pre-check for a clean error message (issue #382: a rename to a taken name
     # used to surface as a 500 from the unique index); the CRUD still maps the unique

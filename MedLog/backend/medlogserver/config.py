@@ -1051,6 +1051,31 @@ class Config(BaseSettings):
         examples=["./export_cache", "/var/lib/medlog/exports"],
     )
 
+    EVENT_TYPES: List[str] = Field(
+        default_factory=list,
+        description=(
+            "List of event types an interview can be recorded as, e.g. an on-site visit or a remote interview. "
+            "Study admins configure per event whether the type is fixed, pre-filled (default) or must be chosen "
+            "by the interviewer. The type of each interview is part of the study export. "
+            "Leave empty to switch the feature off. "
+            "Removing a type later does not change interviews that already have it, but it can no longer be selected. "
+            "Pass as a JSON array string when setting via environment variable."
+        ),
+        examples=[["on-site visit", "remote interview"]],
+    )
+
+    @field_validator("EVENT_TYPES")
+    @classmethod
+    def validate_event_types(cls, value: List[str]) -> List[str]:
+        stripped = [event_type.strip() for event_type in value]
+        if any(not event_type for event_type in stripped):
+            raise ValueError("EVENT_TYPES must not contain empty values.")
+        if any(len(event_type) > 64 for event_type in stripped):
+            raise ValueError("EVENT_TYPES values must not be longer than 64 characters.")
+        if len(set(stripped)) != len(stripped):
+            raise ValueError(f"EVENT_TYPES must not contain duplicates: {stripped}")
+        return stripped
+
     # Removed in favor of the per-study 'proband_external_id_normalization' setting
     # (see medlogserver.model.study.ProbandExternalIdNormalization). The former global
     # PROBAND_IDS_CASE_SENSETIVE value is migrated onto existing studies by the Alembic
