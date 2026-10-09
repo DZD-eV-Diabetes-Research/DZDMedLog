@@ -32,6 +32,7 @@ from medlogserver.worker.tasks.export_layout import (
     DrugCodesExport,
     DrugDataExport,
     ExportLayout,
+    flatten_export_drug_codes,
     flatten_export_objects,
 )
 from medlogserver.config import Config
@@ -70,11 +71,7 @@ class ExportContainer(BaseModel):
             row.update(flatten_export_objects(intake.event, "event"))
             row.update(flatten_export_objects(intake.interview, "interview"))
             row.update(flatten_export_objects(intake.intake, "intake"))
-            row.update(
-                flatten_export_objects(
-                    intake.drug_codes, "drug_code", "drug_code_system_name"
-                )
-            )
+            row.update(flatten_export_drug_codes(intake.drug_codes))
             row.update(
                 flatten_export_objects(intake.drug_attrs, "drug", "drug_attr_name")
             )
@@ -86,6 +83,27 @@ def _str_or_none(value: Any) -> str | None:
     return None if value is None else str(value)
 
 
+# Raw values of BOOL drug attributes as stored by the importers, e.g. MMI "0"/"1".
+_BOOL_ATTR_VALUES = {
+    "1": True,
+    "true": True,
+    "0": False,
+    "false": False,
+}
+
+
+def _bool_attr_value(value: Any) -> bool | str | None:
+    """Turn a stored BOOL attribute value into a real bool.
+
+    All booleans in the export are `True`/`False` this way, instead of a mix of
+    "0"/"1" (MMI `ist_*` fields) and "True"/"False" (issue #389). Unknown values are
+    kept as they are, so no data gets lost.
+    """
+    if value is None or isinstance(value, bool):
+        return value
+    return _BOOL_ATTR_VALUES.get(str(value).strip().lower(), value)
+
+
 def drug_to_export_data(
     drug: DrugData,
     layout: ExportLayout,
@@ -93,13 +111,26 @@ def drug_to_export_data(
     """Codes and attributes of `drug` for the export.
 
     The attributes are completed to all attributes of `layout`, in layout order.
-    Attributes the drug has no value for get a null value (issue #387).
+    Attributes the drug has no value for get a null value (issue #387). Boolean
+    attributes get real booleans, and reference attributes whose code only repeats
+    the value get no reference code (issue #389).
     """
+
+    def is_bool(field_name: str) -> bool:
+        layout_attr = layout.drug_attrs_by_name.get(field_name)
+        return layout_attr is not None and layout_attr.is_bool
+
+    def has_reference_code(field_name: str) -> bool:
+        # attributes unknown to the layout keep their code, nothing is dropped silently
+        layout_attr = layout.drug_attrs_by_name.get(field_name)
+        return layout_attr is None or layout_attr.has_reference_code
+
     codes: List[DrugCodesExport] = []
     attrs: List[DrugDataExport] = []
     for code in drug.codes:
         codes.append(
             DrugCodesExport(
+                drug_code_system_id=code.code_system.id,
                 drug_code_system_name=code.code_system.name,
                 drug_code=code.code,
             )
@@ -125,7 +156,7 @@ def drug_to_export_data(
     attrs.append(
         DrugDataExport(
             drug_attr_name="is_custom_drug",
-            drug_attr_value=str(drug.is_custom_drug),
+            drug_attr_value=drug.is_custom_drug,
         )
     )
     attrs.append(
@@ -136,19 +167,18 @@ def drug_to_export_data(
     )
 
     for attr in drug.attrs:
-        attrs.append(
-            DrugDataExport(drug_attr_name=attr.field_name, drug_attr_value=attr.value)
-        )
+        value = attr.value
+        if is_bool(attr.field_name):
+            value = _bool_attr_value(value)
+        attrs.append(DrugDataExport(drug_attr_name=attr.field_name, drug_attr_value=value))
     for attr in drug.attrs_ref:
-        attrs.append(
-            DrugDataExport(
-                drug_attr_name=attr.field_name,
-                drug_attr_value=attr.lov_item.display
-                if attr.value is not None
-                else None,
-                drug_attr_reference_code=attr.value,
-            )
+        export_attr = DrugDataExport(
+            drug_attr_name=attr.field_name,
+            drug_attr_value=attr.lov_item.display if attr.value is not None else None,
         )
+        if has_reference_code(attr.field_name):
+            export_attr.drug_attr_reference_code = attr.value
+        attrs.append(export_attr)
     # attr_multi
     attrs_multi_sorted_by_name_and_index = sorted(
         drug.attrs_multi,
@@ -160,6 +190,8 @@ def drug_to_export_data(
         key=lambda attr: attr.field_name,
     ):
         values = [attr.value for attr in attr_group]
+        if is_bool(field_name):
+            values = [_bool_attr_value(value) for value in values]
         attrs.append(
             DrugDataExport(
                 drug_attr_name=field_name,
@@ -181,14 +213,12 @@ def drug_to_export_data(
             attr.lov_item.display if attr.value is not None else None
             for attr in group_list
         ]
-        attr_multi_ref_codes = [attr.value for attr in group_list]
-        attrs.append(
-            DrugDataExport(
-                drug_attr_name=field_name,
-                drug_attr_value=attr_multi_ref_values,
-                drug_attr_reference_code=attr_multi_ref_codes,
-            )
+        export_attr = DrugDataExport(
+            drug_attr_name=field_name, drug_attr_value=attr_multi_ref_values
         )
+        if has_reference_code(field_name):
+            export_attr.drug_attr_reference_code = [attr.value for attr in group_list]
+        attrs.append(export_attr)
     return codes, layout.complete_drug_attrs(attrs)
 
 
@@ -348,9 +378,7 @@ class StudyDataExporter:
         interview_columns: Dict[uuid.UUID, Dict[str, Any]] = {}
         drug_columns: Dict[uuid.UUID, Dict[str, Any]] = {}
         for drug_id, (drug_codes, drug_attrs) in self.drugs.items():
-            columns = flatten_export_objects(
-                drug_codes, "drug_code", "drug_code_system_name"
-            )
+            columns = flatten_export_drug_codes(drug_codes)
             columns.update(flatten_export_objects(drug_attrs, "drug", "drug_attr_name"))
             drug_columns[drug_id] = columns
 

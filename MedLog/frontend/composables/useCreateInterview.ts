@@ -2,10 +2,14 @@
 import { useMedlogapi } from "#open-fetch";
 import type { SchemaInterview, SchemaInterviewCreateApi } from "#open-fetch-schemas/medlogapi";
 
-export async function useCreateInterview(studyId:string, eventId:string, probandExternalId: string, probandHasTakenMeds:boolean): Promise<SchemaInterview>{
+export async function useCreateInterview(studyId:string, eventId:string, probandExternalId: string, probandHasTakenMeds: boolean, startDate?: Date): Promise<SchemaInterview>{
     const body: SchemaInterviewCreateApi = {
         "proband_external_id": probandExternalId,
         "proband_has_taken_meds": probandHasTakenMeds,
+    }
+
+    if (startDate) {
+        body.interview_start_time_utc = new Date(startDate).toISOString()
     }
 
     const { data, error } = await useMedlogapi("/api/study/{study_id}/event/{event_id}/interview", {

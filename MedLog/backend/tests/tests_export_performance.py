@@ -8,7 +8,9 @@ queries, so the query count grew with the number of intake rows (1000 rows took
   in `export_reference_pre_issue_362.py`). Since issue #387 the new export has
   additional, empty drug columns (CSV) and null drug attributes (JSON) for drug
   attributes a drug has no value for, and missing market access/exit dates are
-  empty (null) instead of the string `None`. Apart from these, the output is unchanged,
+  empty (null) instead of the string `None`. Issue #389 renamed the drug code
+  columns and made booleans real booleans (see `_apply_issue_389`). Apart from
+  these, the output is unchanged,
 * the number of queries depends on the number of distinct drugs, not on the
   number of intake rows.
 
@@ -68,6 +70,7 @@ from export_reference_pre_issue_362 import (
 )
 
 from medlogserver.model.drug_data.drug import DrugData, DrugCustomCreate
+from medlogserver.model.drug_data.drug_code_system import DrugCodeSystem
 from medlogserver.model.drug_data.drug_attr import DrugMultiValApiCreate
 from medlogserver.model.event import Event
 from medlogserver.model.interview import Interview
@@ -315,24 +318,73 @@ def _run_export(
     }
 
 
+def _code_system_ids_by_name(db: ExportTestDB) -> Dict[str, str]:
+    async def load():
+        async with AsyncSession(db.engine) as session:
+            result = await session.exec(select(DrugCodeSystem.name, DrugCodeSystem.id))
+            return dict(result.all())
+
+    return asyncio.run(load())
+
+
+def _apply_issue_389(
+    legacy_text: str, format_: ExportFormat, code_system_ids: Dict[str, str]
+) -> str:
+    """Apply the intended drug column changes of issue #389 to a legacy export.
+
+    `_assert_*_same_data_as_legacy()` compares the result with the new export.
+
+    * drug code columns are named by code system id, not name (`drug_code_pzn`),
+      and the JSON drug codes carry the `drug_code_system_id`,
+    * empty market dates are empty instead of the text "None",
+    * `is_custom_drug` is a real boolean in the JSON export.
+
+    The study and intake column changes of #389 come from the shared export models,
+    so the legacy exporter already has them.
+    """
+    if not legacy_text:
+        return legacy_text
+    date_attrs = ("market_access_date", "market_exit_date")
+    if format_ == "csv":
+        reader = csv.DictReader(io.StringIO(legacy_text, newline=""))
+        renames = {
+            f"drug_code_{name}".lower(): f"drug_code_{id_}".lower()
+            for name, id_ in code_system_ids.items()
+        }
+        fieldnames = [renames.get(f, f) for f in reader.fieldnames]
+        out = io.StringIO(newline="")
+        writer = csv.DictWriter(out, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in reader:
+            row = {renames.get(k, k): v for k, v in row.items()}
+            for attr in date_attrs:
+                if row[f"drug_attr_value_{attr}"] == "None":
+                    row[f"drug_attr_value_{attr}"] = ""
+            writer.writerow(row)
+        return out.getvalue()
+    export = json.loads(legacy_text)
+    for intake in export["intakes"]:
+        intake["drug_codes"] = [
+            {
+                "drug_code_system_id": code_system_ids[code["drug_code_system_name"]],
+                **code,
+            }
+            for code in intake["drug_codes"]
+        ]
+        for attr in intake["drug_attrs"]:
+            if attr["drug_attr_name"] in date_attrs and attr["drug_attr_value"] == "None":
+                attr["drug_attr_value"] = None
+            if attr["drug_attr_name"] == "is_custom_drug":
+                attr["drug_attr_value"] = attr["drug_attr_value"] == "True"
+    return to_json(export, indent=4).decode()
+
+
 def _legacy_exporter_class(format_: ExportFormat) -> type:
     return LegacyJsonReferenceExporter if format_ == "json" else LegacyStudyDataExporter
 
 
 def _export_layout() -> ExportLayout:
     return asyncio.run(ExportLayout.from_importer())
-
-
-# The legacy exporter wrote missing dates as the string "None" (fixed in issue #387).
-LEGACY_NONE_STRING_ATTRS = ("market_access_date", "market_exit_date")
-
-
-def _legacy_csv_row_with_none_strings_fixed(row: Dict[str, str]) -> Dict[str, str]:
-    for name in LEGACY_NONE_STRING_ATTRS:
-        column = f"drug_attr_value_{name}"
-        if row.get(column) == "None":
-            row[column] = ""
-    return row
 
 
 def _assert_csv_same_data_as_legacy(old_text: str, new_text: str):
@@ -347,7 +399,7 @@ def _assert_csv_same_data_as_legacy(old_text: str, new_text: str):
         return
     old_reader = csv.DictReader(io.StringIO(old_text))
     old_columns = old_reader.fieldnames
-    old_rows = [_legacy_csv_row_with_none_strings_fixed(r) for r in old_reader]
+    old_rows = list(old_reader)
     assert set(old_columns) <= set(layout_columns)
     assert len(new_rows) == len(old_rows)
     added_columns = [c for c in layout_columns if c not in old_columns]
@@ -370,9 +422,6 @@ def _assert_json_same_data_as_legacy(old_text: str, new_text: str):
     layout_attr_names = [attr.name for attr in layout.drug_attrs]
     for old_intake, new_intake in zip(old_export["intakes"], new_export["intakes"]):
         old_attrs = {a["drug_attr_name"]: a for a in old_intake.pop("drug_attrs")}
-        for name in LEGACY_NONE_STRING_ATTRS:
-            if name in old_attrs and old_attrs[name]["drug_attr_value"] == "None":
-                old_attrs[name]["drug_attr_value"] = None
         new_attrs = {a["drug_attr_name"]: a for a in new_intake.pop("drug_attrs")}
         assert new_intake == old_intake
         assert list(new_attrs) == layout_attr_names
@@ -381,7 +430,7 @@ def _assert_json_same_data_as_legacy(old_text: str, new_text: str):
                 assert new_attr == old_attrs[name]
                 continue
             expected = {"drug_attr_name": name, "drug_attr_value": None}
-            if layout.drug_attrs_by_name[name].is_reference:
+            if layout.drug_attrs_by_name[name].has_reference_code:
                 expected["drug_attr_reference_code"] = None
             assert new_attr == expected
 
@@ -390,6 +439,7 @@ def _assert_json_same_data_as_legacy(old_text: str, new_text: str):
 def test_export_output_same_data_as_pre_issue_362_exporter(
     session_db, tmp_path, format_: ExportFormat
 ):
+    code_system_ids = _code_system_ids_by_name(session_db)
     drug_ids = _pick_imported_drug_ids(session_db, minimum=10)
     # custom drug names must be unique (issue #37), so every test uses its own name
     drug_ids.append(
@@ -420,7 +470,9 @@ def test_export_output_same_data_as_pre_issue_362_exporter(
             old_file,
         )
         _run_export(session_db, StudyDataExporter, seeded.study_id, format_, new_file)
-        old_text = old_file.read_text(encoding="utf-8")
+        old_text = _apply_issue_389(
+            old_file.read_text(encoding="utf-8"), format_, code_system_ids
+        )
         new_text = new_file.read_text(encoding="utf-8")
         if seeded.intake_count:
             # guard against comparing two empty or trivial files

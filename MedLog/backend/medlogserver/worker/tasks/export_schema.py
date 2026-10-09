@@ -9,10 +9,12 @@ the database; the reference values are passed in (see `export_schema_build.py`).
 
 What the export really writes, and the schemas therefore describe:
 
-* All drug attribute values are written as strings, whatever their `value_type`. The
+* Drug attribute values are written as strings, whatever their `value_type`. The
   importers store the raw source value and only check that it can be cast. The JSON
   Schema types them as strings and names the value type in the description, the
-  Table Schema maps the value type to a column type.
+  Table Schema maps the value type to a column type. Boolean attributes (`value_type`
+  BOOL and `is_custom_drug`) are the exception: they are converted to real booleans
+  (issue #389).
 * The CSV export writes Python values with `str()`: booleans as `True`/`False`,
   datetimes as `YYYY-MM-DD HH:MM:SS[.ffffff]`, missing values as empty cells.
 * Multi value drug attributes are written to the CSV as Python list reprs, e.g.
@@ -149,11 +151,19 @@ def _drug_attr_description(attr: ExportDrugAttr) -> str:
         field_desc = attr.field_definition.field_desc.strip()
         parts.append(field_desc if field_desc.endswith((".", "!", "?")) else f"{field_desc}.")
     value_type = _value_type_name(attr)
-    if attr.is_reference:
+    if attr.has_reference_code:
         parts.append(
             "Reference list attribute: the value is the display text of the "
             f"reference list entry, the reference code is its code (value type {value_type})."
         )
+    elif attr.is_reference:
+        parts.append(
+            "Reference list attribute: the value is the display text of the "
+            "reference list entry. It has no reference code, the code only repeats "
+            "the display text."
+        )
+    elif attr.is_bool:
+        parts.append("Boolean, written as `True`/`False` in the CSV.")
     else:
         parts.append(f"Value type {value_type}, written as string.")
     return " ".join(parts)
@@ -178,8 +188,11 @@ def _json_drug_attr_value_schemas(
     if attr.name in reference_values:
         codes = sorted({code for code, _ in reference_values[attr.name]})
         displays = sorted({display for _, display in reference_values[attr.name]})
-    value = _nullable_strings(displays if attr.is_reference else None)
-    code = _nullable_strings(codes) if attr.is_reference else None
+    if attr.is_bool:
+        value = {"type": ["boolean", "null"]}
+    else:
+        value = _nullable_strings(displays if attr.is_reference else None)
+    code = _nullable_strings(codes) if attr.has_reference_code else None
     if attr.is_multi:
         value = {"type": ["array", "null"], "items": value}
         if code is not None:
@@ -224,13 +237,17 @@ def build_export_json_schema(
         "description": "A code of the drug. Only the codes the drug has are listed.",
         "type": "object",
         "properties": {
+            "drug_code_system_id": {
+                "description": "Id of the code system, also used in the CSV column name.",
+                "enum": [code_system.id for code_system in layout.code_systems],
+            },
             "drug_code_system_name": {
                 "description": "Name of the code system.",
                 "enum": [code_system.name for code_system in layout.code_systems],
             },
             "drug_code": {"type": "string"},
         },
-        "required": ["drug_code_system_name", "drug_code"],
+        "required": ["drug_code_system_id", "drug_code_system_name", "drug_code"],
         "additionalProperties": False,
     }
     # Replaces the generated definition: its `drug_attr_reference_code` had a
@@ -241,9 +258,10 @@ def build_export_json_schema(
         "description": (
             "One drug attribute. Every intake lists all attributes known to the drug "
             "importer, in a fixed order, with null for missing values. Values are "
-            "strings, whatever the value type of the attribute. Reference list "
-            "attributes also have `drug_attr_reference_code`, the other attributes "
-            "do not have this key."
+            "strings, whatever the value type of the attribute, except for boolean "
+            "attributes, which are booleans. Reference list attributes also have "
+            "`drug_attr_reference_code` (except the ones whose code only repeats the "
+            "display text), the other attributes do not have this key."
         ),
         "type": "object",
         "properties": {
@@ -357,9 +375,12 @@ _VALUE_TYPE_TABLE_FIELDS: Dict[ValueTypeCasting, Dict[str, Any]] = {
     ValueTypeCasting.STR: {"type": "string"},
     ValueTypeCasting.INT: {"type": "integer"},
     ValueTypeCasting.FLOAT: {"type": "number"},
-    # The raw source value is written, which is not necessarily `True`/`False`
-    # (the importers only check that `bool()` accepts it, which is always the case).
-    ValueTypeCasting.BOOL: {"type": "string"},
+    # The exporter converts the stored values ("0"/"1", ...) to `True`/`False` (#389)
+    ValueTypeCasting.BOOL: {
+        "type": "boolean",
+        "trueValues": ["True"],
+        "falseValues": ["False"],
+    },
     ValueTypeCasting.DATE: {"type": "date"},
     ValueTypeCasting.DATETIME: {"type": "datetime", "format": "any"},
 }
@@ -386,7 +407,11 @@ def _table_drug_attr_fields(
         value_field.update(
             _VALUE_TYPE_TABLE_FIELDS[ValueTypeCasting(attr.field_definition.value_type)]
         )
-    if not attr.is_reference:
+    if attr.is_reference and attr.name in reference_values and not attr.is_multi:
+        value_field["constraints"] = {
+            "enum": sorted({display for _, display in reference_values[attr.name]})
+        }
+    if not attr.has_reference_code:
         return [value_field]
 
     code_field: Dict[str, Any] = {
@@ -397,9 +422,6 @@ def _table_drug_attr_fields(
         "type": "string",
     }
     if attr.name in reference_values and not attr.is_multi:
-        value_field["constraints"] = {
-            "enum": sorted({display for _, display in reference_values[attr.name]})
-        }
         code_field["constraints"] = {
             "enum": sorted({code for code, _ in reference_values[attr.name]})
         }
