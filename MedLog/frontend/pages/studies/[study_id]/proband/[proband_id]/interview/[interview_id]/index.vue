@@ -7,91 +7,75 @@
     <ErrorMessage v-else-if="error" :error="error" />
 
     <div v-else class="flex flex-col self-center justify-center gap-4 mt-4 max-w-6xl mx-auto">
-      <UCard>
+      <UCard id="interview-meta-box">
         <div class="flex flex-row justify-between items-start space-x-4 break-words">
           <div class="py-1.5" style="max-width: 25%">
-            <span class="text-lg">{{ studyStore.nameForStudy(studyId) || 'N/A' }}</span>
+            <dl>
+              <dt>Studie</dt>
+              <dd>{{ studyStore.nameForStudy(studyId) || 'N/A' }}</dd>
+            </dl>
           </div>
 
           <div class="py-1.5" style="max-width: 25%">
-            <span class="text-lg">{{ eventStore.nameForEvent(eventId) || 'N/A' }}</span>
-            <div v-if="event?.event_type_mode" class="mt-1 flex flex-row flex-wrap items-center gap-1">
-              <span class="text-sm text-gray-500">Erhebungsmodus:</span>
-              <template v-if="eventTypeEditing">
-                <USelect
-                    v-model="eventTypeDraft"
-                    :options="eventTypeOptions"
-                    placeholder="Erhebungsmodus wählen ..."
-                    size="xs"
-                    title="Erhebungsmodus"
-                />
-                <UButton
-                    icon="i-heroicons-check"
-                    size="xs"
-                    color="green"
-                    title="Erhebungsmodus speichern"
-                    :disabled="!eventTypeDraft || eventTypeDraft === interview?.event_type"
-                    :loading="eventTypeSaving"
-                    @click="saveEventType"
-                />
-                <UButton
-                    icon="i-heroicons-x-mark"
-                    size="xs"
-                    color="gray"
-                    variant="outline"
-                    title="Abbrechen"
-                    :disabled="eventTypeSaving"
-                    @click="eventTypeEditing = false"
-                />
+            <dl>
+              <dt>Event</dt>
+              <dd>{{ eventStore.nameForEvent(eventId) || 'N/A' }}</dd>
+              <template v-if="event?.event_type_mode">
+                <dt>Erhebungsmodus</dt>
+                <dd v-if="interview?.event_type">{{ interview.event_type }}</dd>
+                <dd v-else class="text-orange-500 font-semibold">nicht festgelegt</dd>
               </template>
-              <template v-else>
-                <UBadge v-if="interview?.event_type" color="gray" variant="soft" title="Erhebungsmodus">
-                  {{ interview.event_type }}
-                </UBadge>
-                <UBadge v-else color="orange" variant="soft" title="Für dieses Interview wurde noch kein Erhebungsmodus festgelegt">
-                  nicht festgelegt
-                </UBadge>
-                <UButton
-                    v-if="eventTypeEditable"
-                    icon="i-heroicons-pencil"
-                    size="xs"
-                    color="gray"
-                    variant="ghost"
-                    title="Erhebungsmodus ändern ..."
-                    @click="startEventTypeEditing"
-                />
-              </template>
-            </div>
+            </dl>
           </div>
 
-          <div class="text-center" style="word-break: break-word; max-width: 25%">
-            <UButton
-                :to="`/studies/${studyId}/proband/${probandId}`"
-                :label="`Proband #${probandId ?? '???'}`"
-                class="text-lg"
-                variant="link"
-                icon="i-heroicons-arrow-right-circle"
-                trailing
-            />
+          <div class="" style="word-break: break-word; max-width: 25%">
+            <dl>
+              <dt>Probanden-ID</dt>
+              <dd>
+                <UButton
+                  :to="`/studies/${studyId}/proband/${probandId}`"
+                  :label="`${probandId ?? '???'}`"
+                  class="text-lg p-0"
+                  variant="link"
+                  icon="i-heroicons-arrow-right-circle"
+                  trailing
+                />
+              </dd>
+            </dl>
           </div>
 
-          <div class="py-1.5 text-end" style="max-width: 25%">
-            <span v-if="interview?.interview_end_time_utc">
-              Interview abgeschlossen am<br>
-              <time :datetime="$dayjs.utc(interview.interview_end_time_utc).format()">
-                {{ $dayjs.utc(interview.interview_end_time_utc).local().format('LLL') }}
-              </time>
-            </span>
-            <InterviewEndButtonGroup
-                v-else-if="studyPermissionStore.currentUserCanInterview(studyId)"
-                :end-interview-callback="endInterview"
-                :start-date="$dayjs.utc(interview?.interview_start_time_utc).toDate()"
-            />
-            <span v-else>
-              Das Interview wurde noch nicht abgeschlossen.
-            </span>
+          <div class="py-1.5 text-end flex flex-col items-end gap-2" style="max-width: 25%">
+            <dl>
+              <dt>Beginn</dt>
+              <dd>
+                <DateTime v-if="interview?.interview_start_time_utc" :datetime="interview.interview_start_time_utc" />
+                <span v-else>??</span>
+              </dd>
+              <dt>Ende</dt>
+              <dd>
+                <DateTime v-if="interview?.interview_end_time_utc" :datetime="interview.interview_end_time_utc" />
+                <span v-else>&mdash;</span>
+              </dd>
+            </dl>
           </div>
         </div>
+
+        <template v-if="studyPermissionStore.currentUserCanInterview(studyId)" #footer>
+          <div class="flex flex-row justify-between items-start">
+            <UButton
+                label="Interview bearbeiten"
+                icon="i-heroicons-pencil"
+                color="gray"
+                variant="outline"
+                @click="editInterviewModalVisible = true"
+            />
+            <InterviewEndButtonGroup
+                :end-interview-callback="endInterview"
+                :start-date="$dayjs.utc(interview?.interview_start_time_utc).toDate()"
+                :disabled="interview?.interview_end_time_utc !== null"
+            />
+          </div>
+        </template>
       </UCard>
 
       <div v-if="studyPermissionStore.currentUserCanInterview(studyId)" class="grid grid-cols-2 gap-4">
@@ -207,6 +191,15 @@
           :form-submit-callback="saveEditIntake"
           @cancel="() => { editModalVisible = false }"
       />
+      <InterviewEditModal
+          v-if="editInterviewModalVisible && interview"
+          v-model="editInterviewModalVisible"
+          :interview="interview"
+          :event-type-editable="eventTypeEditable"
+          :event-type-options="eventTypeOptions"
+          :default-event-type="event?.event_type"
+          :submit-callback="saveInterview"
+      />
     </div>
   </div>
 </template>
@@ -237,7 +230,8 @@ import type {
   SchemaIntakeCreateApi,
   SchemaIntakeDetailListItem,
   SchemaIntakeUpdate,
-  SchemaInterview
+  SchemaInterview,
+  SchemaInterviewUpdateApi
 } from "#open-fetch-schemas/medlogapi";
 
 const route = useRoute();
@@ -468,32 +462,11 @@ const eventTypeOptions = computed(() => {
   return options;
 });
 
-const eventTypeEditing = ref(false);
-const eventTypeDraft = ref("");
-const eventTypeSaving = ref(false);
+const editInterviewModalVisible = ref(false);
 
-function startEventTypeEditing() {
-  // Pre-fill a missing type with the event's type ("fixed" or "default")
-  eventTypeDraft.value = interview.value?.event_type ?? event.value?.event_type ?? "";
-  eventTypeEditing.value = true;
-}
-
-async function saveEventType() {
-  if (!eventTypeDraft.value || eventTypeDraft.value === interview.value?.event_type) {
-    return;
-  }
-  try {
-    eventTypeSaving.value = true;
-    interview.value = await usePatchInterview(studyId.value, eventId.value, interviewId.value, { event_type: eventTypeDraft.value });
-    eventTypeEditing.value = false;
-  } catch (error) {
-    toast.add({
-      title: "Konnte Erhebungsmodus nicht speichern",
-      description: useGetErrorMessage(error),
-    });
-  } finally {
-    eventTypeSaving.value = false;
-  }
+// Errors are shown by the modal
+async function saveInterview(body: SchemaInterviewUpdateApi) {
+  interview.value = await usePatchInterview(studyId.value, eventId.value, interviewId.value, body);
 }
 
 async function loadIntakeList() {
@@ -529,5 +502,8 @@ onMounted(async () => {
 
 
 <style scoped>
-
+#interview-meta-box dt {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
 </style>
