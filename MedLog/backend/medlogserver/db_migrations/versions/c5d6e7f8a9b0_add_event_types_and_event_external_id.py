@@ -18,8 +18,8 @@ Postgres), matching the convention of the other enum columns in this schema.
 
 See: https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/388
 
-Revision ID: b4c5d6e7f8a9
-Revises: a3b4c5d6e7f8
+Revision ID: c5d6e7f8a9b0
+Revises: b4c5d6e7f8a9
 Create Date: 2026-10-08 10:00:00.000000
 
 """
@@ -30,8 +30,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = "b4c5d6e7f8a9"
-down_revision: Union[str, Sequence[str], None] = "a3b4c5d6e7f8"
+revision: str = "c5d6e7f8a9b0"
+down_revision: Union[str, Sequence[str], None] = "b4c5d6e7f8a9"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
