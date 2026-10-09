@@ -77,7 +77,7 @@
                 <UBadge v-if="element.external_id" color="gray" variant="subtle" size="xs" class="text-gray-700" title="Externe ID">
                   ID: {{ element.external_id }}
                 </UBadge>
-                <UBadge v-if="eventTypeBadgeLabel(element)" color="primary" variant="subtle" size="xs" class="text-primary-700" title="Art des Interviews">
+                <UBadge v-if="eventTypeBadgeLabel(element)" color="primary" variant="subtle" size="xs" class="text-primary-700" title="Erhebungsmodus">
                   {{ eventTypeBadgeLabel(element) }}
                 </UBadge>
               </div>
@@ -289,7 +289,7 @@ onMounted(() => {
   loadEvents();
   configStore.loadEventTypes().catch((error) => {
     toast.add({
-      title: "Konnte Arten der Interviews nicht laden",
+      title: "Konnte Erhebungsmodi nicht laden",
       description: useGetErrorMessage(error),
     });
   });

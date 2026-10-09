@@ -43,8 +43,8 @@ const eventSchema = computed(() => object({
   event_type: string().nullable().defined().transform(emptyToNull).when("event_type_mode", {
     is: (mode: string | null) => mode === "fixed" || mode === "default",
     then: schema => schema
-        .required("Für diesen Modus muss eine Art gewählt werden")
-        .oneOf(eventTypeOptions.value.map(option => option.value), "Diese Art ist auf dem Server nicht konfiguriert"),
+        .required("Hierfür muss ein Erhebungsmodus gewählt werden")
+        .oneOf(eventTypeOptions.value.map(option => option.value), "Dieser Erhebungsmodus ist auf dem Server nicht konfiguriert"),
   }),
 }));
 
@@ -86,11 +86,11 @@ onMounted(async () => {
       <UInput v-model="eventState.external_id" />
     </UFormGroup>
     <template v-if="configStore.eventTypes.enabled">
-      <UFormGroup label="Art des Interviews" description="Wie die Art (z.B. vor Ort oder remote) der Interviews dieses Events festgelegt wird." name="event_type_mode">
+      <UFormGroup label="Erhebungsmodus erfassen" description="Ob und wie der Erhebungsmodus (z.B. vor Ort oder remote) der Interviews dieses Events festgelegt wird." name="event_type_mode">
         <USelect v-model="eventState.event_type_mode" :options="eventTypeModeOptions" />
       </UFormGroup>
-      <UFormGroup v-if="modeNeedsEventType" label="Art" name="event_type" required>
-        <USelect v-model="eventState.event_type" :options="eventTypeOptions" placeholder="Art wählen ..." />
+      <UFormGroup v-if="modeNeedsEventType" label="Erhebungsmodus" name="event_type" required>
+        <USelect v-model="eventState.event_type" :options="eventTypeOptions" placeholder="Erhebungsmodus wählen ..." />
       </UFormGroup>
     </template>
     <hr>

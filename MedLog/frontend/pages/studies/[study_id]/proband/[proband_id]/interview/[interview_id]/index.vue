@@ -16,20 +16,20 @@
           <div class="py-1.5" style="max-width: 25%">
             <span class="text-lg">{{ eventStore.nameForEvent(eventId) || 'N/A' }}</span>
             <div v-if="event?.event_type_mode" class="mt-1 flex flex-row flex-wrap items-center gap-1">
-              <span class="text-sm text-gray-500">Art:</span>
+              <span class="text-sm text-gray-500">Erhebungsmodus:</span>
               <template v-if="eventTypeEditing">
                 <USelect
                     v-model="eventTypeDraft"
                     :options="eventTypeOptions"
-                    placeholder="Art wählen ..."
+                    placeholder="Erhebungsmodus wählen ..."
                     size="xs"
-                    title="Art des Interviews"
+                    title="Erhebungsmodus"
                 />
                 <UButton
                     icon="i-heroicons-check"
                     size="xs"
                     color="green"
-                    title="Art speichern"
+                    title="Erhebungsmodus speichern"
                     :disabled="!eventTypeDraft || eventTypeDraft === interview?.event_type"
                     :loading="eventTypeSaving"
                     @click="saveEventType"
@@ -45,10 +45,10 @@
                 />
               </template>
               <template v-else>
-                <UBadge v-if="interview?.event_type" color="gray" variant="soft" title="Art des Interviews">
+                <UBadge v-if="interview?.event_type" color="gray" variant="soft" title="Erhebungsmodus">
                   {{ interview.event_type }}
                 </UBadge>
-                <UBadge v-else color="orange" variant="soft" title="Für dieses Interview wurde noch keine Art festgelegt">
+                <UBadge v-else color="orange" variant="soft" title="Für dieses Interview wurde noch kein Erhebungsmodus festgelegt">
                   nicht festgelegt
                 </UBadge>
                 <UButton
@@ -57,7 +57,7 @@
                     size="xs"
                     color="gray"
                     variant="ghost"
-                    title="Art des Interviews ändern ..."
+                    title="Erhebungsmodus ändern ..."
                     @click="startEventTypeEditing"
                 />
               </template>
@@ -488,7 +488,7 @@ async function saveEventType() {
     eventTypeEditing.value = false;
   } catch (error) {
     toast.add({
-      title: "Konnte Art des Interviews nicht speichern",
+      title: "Konnte Erhebungsmodus nicht speichern",
       description: useGetErrorMessage(error),
     });
   } finally {

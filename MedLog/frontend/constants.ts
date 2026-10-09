@@ -174,14 +174,14 @@ export const plausibilityErrorMessages: { rule: string, message: string, message
 
 // Issue #388
 export const eventTypeModeLabels: Record<SchemaEventTypeMode, string> = {
-    fixed: "Fest",
+    fixed: "Festgelegt",
     default: "Vorbelegt",
     required_choice: "Auswahl durch Interviewer",
 };
 
 export const eventTypeModeOptions: { value: SchemaEventTypeMode | ""; label: string }[] = [
-    { value: "", label: "Nicht erfasst" },
-    { value: "fixed", label: `${eventTypeModeLabels.fixed} – immer diese Art, nicht änderbar` },
+    { value: "", label: "Nicht erfassen" },
+    { value: "fixed", label: `${eventTypeModeLabels.fixed} – immer dieser Erhebungsmodus, nicht änderbar` },
     { value: "default", label: `${eventTypeModeLabels.default} – vorausgewählt, änderbar` },
     { value: "required_choice", label: `${eventTypeModeLabels.required_choice} – muss bei jedem Interview gewählt werden` },
 ];

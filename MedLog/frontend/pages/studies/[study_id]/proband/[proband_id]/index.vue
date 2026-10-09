@@ -80,14 +80,14 @@
                   v-if="eventTypeSelectable"
                   v-model="eventTypeToStart"
                   :options="eventTypeToStartOptions"
-                  placeholder="Art wählen ..."
-                  title="Art des Interviews"
+                  placeholder="Erhebungsmodus wählen ..."
+                  title="Erhebungsmodus"
               />
               <UBadge
                   v-else-if="eventToStart?.event_type_mode === 'fixed'"
                   color="gray"
                   variant="soft"
-                  title="Art des Interviews, für dieses Event fest vorgegeben"
+                  title="Erhebungsmodus, für dieses Event fest vorgegeben"
               >
                 {{ eventToStart.event_type }}
               </UBadge>

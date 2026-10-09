@@ -27,7 +27,7 @@ const columns = computed(() => [{
   label: 'Event'
 }, ...(showEventType.value ? [{
   key: 'eventType',
-  label: 'Art'
+  label: 'Erhebungsmodus'
 }] : []), {
   key: 'actions',
   label: ''
