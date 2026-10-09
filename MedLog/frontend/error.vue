@@ -120,7 +120,7 @@ const is404 = computed(() => {
 
 onMounted(async () => {
   try {
-    await configStore.fetchAllConfigs();
+    await configStore.fetchAllPublicConfigs();
   } catch (error) {
     fetchError.value = error;
   }

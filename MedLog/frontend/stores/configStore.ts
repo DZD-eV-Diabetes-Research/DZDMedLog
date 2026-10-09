@@ -47,6 +47,10 @@ export const useConfigStore = defineStore('config', {
     }),
     actions: {
         async fetchAllConfigs() {
+            await this.fetchAllPublicConfigs();
+            await this.loadEventTypes(true);
+        },
+        async fetchAllPublicConfigs() {
             await this.fetchVersionConfig();
             await this.fetchBrandingConfig();
             await this.fetchDataSourceConfig();
@@ -92,9 +96,6 @@ export const useConfigStore = defineStore('config', {
             this.drugData.supportsForceManualUpdate = data.value?.supports_force_manual_update === true;
             this.drugData.supportsScheduledAutoUpdate = data.value?.supports_scheduled_auto_update === true;
         },
-        // Not part of fetchAllConfigs(): unlike the other config endpoints this one requires a
-        // logged-in user, but error.vue also calls fetchAllConfigs() for anonymous visitors.
-        // Loaded by the pages that need it instead, which also covers a fresh login (issue #388)
         async loadEventTypes(force = false) {
             if (this.eventTypes.loaded && !force) {
                 return;
