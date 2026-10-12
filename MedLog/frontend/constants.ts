@@ -1,6 +1,7 @@
 import type {
     SchemaAdministeredByDoctorAnswers,
     SchemaConsumedMedsTodayAnswers,
+    SchemaEventTypeMode,
     SchemaIntakeEndDateOption,
     SchemaIntakeRegularOrAsNeededAnswers,
     SchemaIntakeStartDateOption,
@@ -169,4 +170,18 @@ export const plausibilityErrorMessages: { rule: string, message: string, message
         message: "Enddatum unrealistisch lange her",
         messageTemplate: "Das Datum darf nicht vor %s liegen"
     },
+];
+
+// Issue #388
+export const eventTypeModeLabels: Record<SchemaEventTypeMode, string> = {
+    fixed: "Festgelegt",
+    default: "Vorbelegt",
+    required_choice: "Auswahl durch Interviewer",
+};
+
+export const eventTypeModeOptions: { value: SchemaEventTypeMode | ""; label: string }[] = [
+    { value: "", label: "Nicht erfassen" },
+    { value: "fixed", label: `${eventTypeModeLabels.fixed} – immer dieser Erhebungsmodus, nicht änderbar` },
+    { value: "default", label: `${eventTypeModeLabels.default} – vorausgewählt, änderbar` },
+    { value: "required_choice", label: `${eventTypeModeLabels.required_choice} – muss bei jedem Interview gewählt werden` },
 ];

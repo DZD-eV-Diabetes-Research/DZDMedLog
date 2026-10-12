@@ -914,7 +914,10 @@ class Config(BaseSettings):
             "Selects the drug data importer plugin. "
             "'DummyDrugImporterV1' uses a small built-in sample dataset, suitable for development and demos. "
             "'MMIPharmindex1_32' imports from the MMI Pharmindex format (version 1.32), "
-            "used with German GKV Arzneimittelverzeichnis data."
+            "used with German GKV Arzneimittelverzeichnis data. "
+            "Choose it before the first start: switching the plugin on a database that already holds drug data "
+            "is not supported. MedLog refuses to start in that case. Set it back to the previous value, "
+            "or wipe the database (this deletes all MedLog data)."
         ),
         examples=["DummyDrugImporterV1", "MMIPharmindex1_32"],
     )
@@ -1047,6 +1050,31 @@ class Config(BaseSettings):
         ),
         examples=["./export_cache", "/var/lib/medlog/exports"],
     )
+
+    EVENT_TYPES: List[str] = Field(
+        default_factory=list,
+        description=(
+            "List of event types an interview can be recorded as, e.g. an on-site visit or a remote interview. "
+            "Study admins configure per event whether the type is fixed, pre-filled (default) or must be chosen "
+            "by the interviewer. The type of each interview is part of the study export. "
+            "Leave empty to switch the feature off. "
+            "Removing a type later does not change interviews that already have it, but it can no longer be selected. "
+            "Pass as a JSON array string when setting via environment variable."
+        ),
+        examples=[["on-site visit", "remote interview"]],
+    )
+
+    @field_validator("EVENT_TYPES")
+    @classmethod
+    def validate_event_types(cls, value: List[str]) -> List[str]:
+        stripped = [event_type.strip() for event_type in value]
+        if any(not event_type for event_type in stripped):
+            raise ValueError("EVENT_TYPES must not contain empty values.")
+        if any(len(event_type) > 64 for event_type in stripped):
+            raise ValueError("EVENT_TYPES values must not be longer than 64 characters.")
+        if len(set(stripped)) != len(stripped):
+            raise ValueError(f"EVENT_TYPES must not contain duplicates: {stripped}")
+        return stripped
 
     # Removed in favor of the per-study 'proband_external_id_normalization' setting
     # (see medlogserver.model.study.ProbandExternalIdNormalization). The former global

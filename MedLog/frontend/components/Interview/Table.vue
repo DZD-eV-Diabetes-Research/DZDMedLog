@@ -4,6 +4,7 @@ import type { SchemaInterview } from "#open-fetch-schemas/medlogapi";
 import localizedFormat from 'dayjs/plugin/localizedFormat'
 
 const dayjs = useDayjs();
+const configStore = useConfigStore()
 const eventStore = useEventStore()
 
 dayjs.extend(localizedFormat);
@@ -13,16 +14,24 @@ const props = defineProps({
   studyId: { type: String, required: true },
 });
 
-const columns = [{
+// The event type column (issue #388) is only of interest if event types are or were in use
+const showEventType = computed(() => {
+  return configStore.eventTypes.enabled || props.interviews.some(interview => interview.event_type);
+});
+
+const columns = computed(() => [{
   key: 'date',
   label: 'Datum'
 }, {
   key: 'eventName',
   label: 'Event'
-}, {
+}, ...(showEventType.value ? [{
+  key: 'eventType',
+  label: 'Erhebungsmodus'
+}] : []), {
   key: 'actions',
   label: ''
-}]
+}])
 
 const rows = computed(() => {
   const items = props.interviews?.map((interview: SchemaInterview) => {
@@ -31,6 +40,7 @@ const rows = computed(() => {
       timestamp: dayjs.utc(interview.interview_start_time_utc).valueOf() ?? 0,
       eventId: interview.event_id,
       eventName: eventStore.nameForEvent(interview.event_id),
+      eventType: interview.event_type ?? '–',
       interviewId: interview.id,
       probandId: interview.proband_external_id,
     }
