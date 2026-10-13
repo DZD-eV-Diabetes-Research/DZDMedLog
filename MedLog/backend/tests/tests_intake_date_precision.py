@@ -582,9 +582,9 @@ def _run_precision_migration(connection):
     mig_path = (
         Path(__file__).resolve().parent.parent
         / "medlogserver/db_migrations/versions/"
-        "c5d6e7f8a9b0_add_intake_date_precision.py"
+        "d6e7f8a9b0c1_add_intake_date_precision.py"
     )
-    spec = importlib.util.spec_from_file_location("mig_c5d6e7f8a9b0", mig_path)
+    spec = importlib.util.spec_from_file_location("mig_d6e7f8a9b0c1", mig_path)
     mig = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mig)
     mig.op = Operations(MigrationContext.configure(connection))
