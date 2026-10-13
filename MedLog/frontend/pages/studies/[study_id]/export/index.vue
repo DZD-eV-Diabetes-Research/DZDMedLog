@@ -26,30 +26,49 @@
       </h1>
     </div>
 
-    <div class="flex flex-row justify-end">
+    <div class="flex flex-row justify-between">
+      <UButtonGroup size="lg">
+        <UBadge icon="i-heroicons-information-circle" label="Schema-Definitionen" color="white" />
+        <UButton
+            label="CSV"
+            variant="outline"
+            color="gray"
+            trailing-icon="i-heroicons-arrow-down-tray"
+            title="JSON-Schema für CSV-Export herunterladen"
+            @click="downloadFile('/api/export/schema/csv')"
+        />
+        <UButton
+            label="JSON"
+            variant="outline"
+            color="gray"
+            trailing-icon="i-heroicons-arrow-down-tray"
+            title="JSON-Schema für JSON-Export herunterladen"
+            @click="downloadFile('/api/export/schema/json')"
+        />
+      </UButtonGroup>
       <UButtonGroup size="lg">
         <UBadge icon="i-heroicons-archive-box" label="Export generieren:" color="white" />
         <UButton
             label="CSV"
-            variant="outline"
-            trailing-icon="i-heroicons-arrow-right-circle"
+            variant="solid"
+            trailing-icon="i-heroicons-plus-circle"
             title="Exportauftrag für Datei im CSV-Format anlegen"
             @click="requestDownload('csv')"
         />
         <UButton
             label="JSON"
-            variant="outline"
-            trailing-icon="i-heroicons-arrow-right-circle"
+            variant="solid"
+            trailing-icon="i-heroicons-plus-circle"
             title="Exportauftrag für Datei im JSON-Format anlegen"
             @click="requestDownload('json')"
         />
       </UButtonGroup>
     </div>
     <UTable :rows="downloads" :columns="columns">
-      <template #format-data="{ row }">
+      <template #format-data="{ row }: { row: Download }">
         <span>{{ String(row.format).toUpperCase() }}</span>
       </template>
-      <template #status-data="{ row }">
+      <template #status-data="{ row }: { row: Download }">
         <div v-if="row.status === 'success'">
           <UTooltip text="Export erfolgreich" :popper="{ arrow: true }">
             <UButton
@@ -75,7 +94,7 @@
           </UTooltip>
         </div>
       </template>
-      <template #actions-data="{ row }">
+      <template #actions-data="{ row }: { row: Download }">
         <UButton
             v-if="row.status === 'success'"
             :to="row.downloadLink"
@@ -83,7 +102,7 @@
             color="gray"
             variant="outline"
             icon="i-heroicons-arrow-down-tray"
-            @click.prevent="downloadFile(row)" />
+            @click.prevent="downloadFile(row.downloadLink)" />
       </template>
     </UTable>
   </section>
@@ -141,6 +160,7 @@ interface Download {
   time: string;
   status: SchemaWorkerJobState;
   downloadLink: string;
+  format?: ExportFormat;
 }
 
 const downloads = ref<Download[]>([]);
@@ -184,9 +204,9 @@ async function listDownloads() {
   }
 }
 
-async function downloadFile(row: Download) {
+async function downloadFile(link: string) {
   try {
-    const response = await fetch(row.downloadLink, {
+    const response = await fetch(link, {
       method: "GET",
     });
 
