@@ -164,6 +164,7 @@ watch([selectedDate, selectedOptionValue, selectedPrecision], ([newSelectedDate,
     <UDropdown
       :items="dropdownItems"
       :popper="{ placement: 'bottom-end' }"
+      :ui="{ width: 'w-52' }"
     >
       <UButton icon="i-heroicons-chevron-down-20-solid" color="green" />
     </UDropdown>
