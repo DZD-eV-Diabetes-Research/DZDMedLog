@@ -19,7 +19,7 @@
     <UFormGroup label="Einnahme regelmäßig oder nach Bedarf?" name="intake_regular_or_as_needed">
       <USelect v-model="state.intake_regular_or_as_needed" :options="frequencyOptions" />
     </UFormGroup>
-    <div class="flex flex-row space-x-4">
+    <div v-show="state.intake_regular_or_as_needed === 'regular'" class="flex flex-row space-x-4">
       <div class="flex-1">
         <UFormGroup label="Dosis pro Tag der Einnahme" style="border-color: red" name="dose_per_day">
           <UInput v-model.trim="state.dose_per_day" type="text" inputmode="decimal" :disabled="state.intake_regular_or_as_needed !== 'regular' || state.dose_per_day_unknown"/>
@@ -126,7 +126,7 @@ const state = reactive<IntakeFormSchema>({
   intake_end_date: undefined,
   endDateOption: undefined,
   endDatePrecision: undefined,
-  intake_regular_or_as_needed: frequencyOptions[0].value,
+  intake_regular_or_as_needed: 'regular',
   regular_intervall_of_daily_dose: doseIntervalOptions[0].value,
   is_activeingredient_equivalent_choice: false,
   consumed_meds_today: medsTakenTodayOptions[0].value,
