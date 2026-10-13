@@ -47,6 +47,7 @@ import type { SchemaIntakeDetailListItem } from "#open-fetch-schemas/medlogapi";
 import type { ElementType, ValueOf } from "~/type-helper";
 import {doseIntervalOptions, endDateOptions, startDateOptions} from "~/constants";
 import useGetLabelForValue from "~/utils/useGetLabelForValue";
+import useGetIntakeDateLabel from "~/utils/useGetIntakeDateLabel";
 
 const toast = useToast();
 
@@ -104,12 +105,13 @@ if (props.canEdit || props.canDelete) {
 }
 
 function getIntakeDurationString(intake: SchemaIntakeDetailListItem) {
+  const startDate = useGetIntakeDateLabel(intake.intake_start_date, intake.intake_start_date_precision, startDateOptions, intake.intake_start_date_option);
+  const endDate = useGetIntakeDateLabel(intake.intake_end_date, intake.intake_end_date_precision, endDateOptions, intake.intake_end_date_option);
+
   if (intake.intake_start_date && intake.intake_end_date) {
-    return `${intake.intake_start_date} bis ${intake.intake_end_date}`;
+    return `${startDate} bis ${endDate}`;
   }
 
-  const startDate = intake.intake_start_date === null ? useGetLabelForValue(startDateOptions, intake.intake_start_date_option) : intake.intake_start_date;
-  const endDate = intake.intake_end_date === null ? useGetLabelForValue(endDateOptions, intake.intake_end_date_option) : intake.intake_end_date;
   return `Beginn: ${startDate}, Ende: ${endDate}`;
 }
 

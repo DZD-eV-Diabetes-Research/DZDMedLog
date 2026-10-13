@@ -42,8 +42,9 @@
           <DatePickerWithOptions
               v-model:date="state.intake_start_date"
               v-model:option="state.startDateOption"
+              v-model:precision="state.startDatePrecision"
               :options="startDateOptions"
-              earliest-date="1900-01-01"
+              earliest-date="1950-01-01"
           />
         </UFormGroup>
       </div>
@@ -52,12 +53,16 @@
           <DatePickerWithOptions
               v-model:date="state.intake_end_date"
               v-model:option="state.endDateOption"
+              v-model:precision="state.endDatePrecision"
               :options="endDateOptions"
-              earliest-date="1900-01-01"
+              earliest-date="1950-01-01"
           />
         </UFormGroup>
       </div>
     </div>
+    <p class="text-sm text-gray-500">
+      Bei nur teilweise bekanntem Datum die Option <i>Monat und Jahr</i> oder <i>Nur Jahr</i> nutzen, anstatt eine Platzhalterzahl wie den 15. des Monats einzutragen.
+    </p>
     <UFormGroup name="consumed_meds_today">
       <URadioGroup
           v-model="state.consumed_meds_today"
@@ -83,6 +88,7 @@ import {
 } from "#imports";
 import {
   administeredByDoctorOptions,
+  datePrecisionOptions,
   doseIntervalOptions,
   drugSourceOptions, endDateOptions,
   frequencyOptions,
@@ -119,12 +125,14 @@ const state = reactive<IntakeFormSchema>({
   source_of_drug_information: drugSourceOptions[0].value,
   intake_end_date: undefined,
   endDateOption: undefined,
+  endDatePrecision: undefined,
   intake_regular_or_as_needed: frequencyOptions[0].value,
   regular_intervall_of_daily_dose: doseIntervalOptions[0].value,
   is_activeingredient_equivalent_choice: false,
   consumed_meds_today: medsTakenTodayOptions[0].value,
   intake_start_date: undefined,
   startDateOption: undefined,
+  startDatePrecision: undefined,
 });
 
 const schema = object({
@@ -165,12 +173,14 @@ const schema = object({
   source_of_drug_information: string().oneOf(drugSourceOptions.map(item => item.value)).required("Required"),
   intake_end_date: string().when('endDateOption', { is: undefined, then: (schema) => schema.required(), otherwise: (schema) => schema.optional() }),
   endDateOption: string().oneOf(endDateOptions.map(item => item.value)).optional(),
+  endDatePrecision: string().oneOf(datePrecisionOptions.map(item => item.value)).optional(),
   intake_regular_or_as_needed: string().oneOf(frequencyOptions.map(item => item.value)).required("Required"),
   regular_intervall_of_daily_dose: string().oneOf(doseIntervalOptions.map(item => item.value)),
   is_activeingredient_equivalent_choice: boolean().required(),
   consumed_meds_today: string().oneOf(medsTakenTodayOptions.map(item => item.value)).required("Required"),
   intake_start_date: string().when('startDateOption', { is: undefined, then: (schema) => schema.required(), otherwise: (schema) => schema.optional() }),
   startDateOption: string().oneOf(startDateOptions.map(item => item.value)).optional(),
+  startDatePrecision: string().oneOf(datePrecisionOptions.map(item => item.value)).optional(),
 });
 
 export type IntakeFormSchema = InferType<typeof schema>;
