@@ -2,6 +2,7 @@ import type {
     SchemaAdministeredByDoctorAnswers,
     SchemaConsumedMedsTodayAnswers,
     SchemaEventTypeMode,
+    SchemaIntakeDatePrecision,
     SchemaIntakeEndDateOption,
     SchemaIntakeRegularOrAsNeededAnswers,
     SchemaIntakeStartDateOption,
@@ -104,6 +105,36 @@ export const endDateOptions: { value: SchemaIntakeEndDateOption; label: string }
         value: "unknown",
         label: "Unbekannt",
     },
+];
+
+export const datePrecisionOptions: { value: SchemaIntakeDatePrecision; label: string }[] = [
+    {
+        value: "day",
+        label: "Exakter Tag",
+    },
+    {
+        value: "month",
+        label: "Monat und Jahr",
+    },
+    {
+        value: "year",
+        label: "Nur Jahr",
+    },
+];
+
+export const monthOptions: { value: string; label: string }[] = [
+    { value: "01", label: "Januar" },
+    { value: "02", label: "Februar" },
+    { value: "03", label: "März" },
+    { value: "04", label: "April" },
+    { value: "05", label: "Mai" },
+    { value: "06", label: "Juni" },
+    { value: "07", label: "Juli" },
+    { value: "08", label: "August" },
+    { value: "09", label: "September" },
+    { value: "10", label: "Oktober" },
+    { value: "11", label: "November" },
+    { value: "12", label: "Dezember" },
 ];
 
 export const probandExternalIdNormalizationOptions: { value: SchemaProbandExternalIdNormalization; label: string }[] = [

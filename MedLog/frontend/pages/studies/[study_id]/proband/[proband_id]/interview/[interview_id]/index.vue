@@ -285,9 +285,11 @@ async function saveIntake(data: IntakeFormSchema) {
     drug_id: data.drugId,
     intake_end_date: data.intake_end_date ? dayjs(data.intake_end_date).format("YYYY-MM-DD") : null,
     intake_end_date_option: data.endDateOption ?? null,
+    intake_end_date_precision: data.intake_end_date ? (data.endDatePrecision ?? 'day') : null,
     intake_regular_or_as_needed: data.intake_regular_or_as_needed,
     intake_start_date: data.intake_start_date ? dayjs(data.intake_start_date).format("YYYY-MM-DD") : null,
     intake_start_date_option: data.startDateOption ?? null,
+    intake_start_date_precision: data.intake_start_date ? (data.startDatePrecision ?? 'day') : null,
     is_activeingredient_equivalent_choice: data.is_activeingredient_equivalent_choice,
     regular_intervall_of_daily_dose: data.regular_intervall_of_daily_dose,
     source_of_drug_information: data.source_of_drug_information
@@ -337,12 +339,14 @@ async function openEditModal(intakeId: string) {
       source_of_drug_information: intake.source_of_drug_information === null ? undefined : intake.source_of_drug_information,
       intake_end_date: intake.intake_end_date ?? undefined,
       endDateOption: intake.intake_end_date_option ?? undefined,
+      endDatePrecision: intake.intake_end_date_precision ?? undefined,
       intake_regular_or_as_needed: intake.intake_regular_or_as_needed === null ? undefined : intake.intake_regular_or_as_needed,
       regular_intervall_of_daily_dose: intake.regular_intervall_of_daily_dose === null ? undefined : intake.regular_intervall_of_daily_dose,
       is_activeingredient_equivalent_choice: intake.is_activeingredient_equivalent_choice,
       consumed_meds_today: intake.consumed_meds_today,
       intake_start_date: intake.intake_start_date ?? undefined,
       startDateOption: intake.intake_start_date_option ?? undefined,
+      startDatePrecision: intake.intake_start_date_precision ?? undefined,
     }
   } catch (error) {
     toast.add({
@@ -364,9 +368,11 @@ async function saveEditIntake(data: IntakeFormSchema) {
     dose_per_day_unknown: data.dose_per_day_unknown,
     intake_end_date: data.intake_end_date ? dayjs(data.intake_end_date).format("YYYY-MM-DD") : null,
     intake_end_date_option: data.endDateOption ?? null,
+    intake_end_date_precision: data.intake_end_date ? (data.endDatePrecision ?? 'day') : null,
     intake_regular_or_as_needed: data.intake_regular_or_as_needed,
     intake_start_date: data.intake_start_date ? dayjs(data.intake_start_date).format("YYYY-MM-DD") : null,
     intake_start_date_option: data.startDateOption ?? null,
+    intake_start_date_precision: data.intake_start_date ? (data.startDatePrecision ?? 'day') : null,
     is_activeingredient_equivalent_choice: data.is_activeingredient_equivalent_choice,
     regular_intervall_of_daily_dose: data.regular_intervall_of_daily_dose,
     source_of_drug_information: data.source_of_drug_information
