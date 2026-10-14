@@ -6,7 +6,7 @@
         class="mb-4"
     />
 
-    <ErrorMessage v-if="loginError" :error="loginError" class="mb-4" />
+    <ErrorMessage v-if="authStore.loginError" :error="authStore.loginError" class="mb-4" />
 
     <div class="flex flex-col items-center justify-center">
       <UCard class="w-96">
@@ -16,7 +16,11 @@
 
         <div class="flex flex-col gap-4">
           <div v-if="authStore.isLocalLoginAvailable">
-            <LoginForm @login="(username, password) => login(authStore.localLoginScheme!, username, password)"/>
+            <LoginForm
+              :loading="authStore.loginInProgress && authStore.loginInProgressProviderSlug === null"
+              :locked="authStore.loginInProgress"
+              @login="(username, password) => login(authStore.localLoginScheme!, username, password)"
+            />
           </div>
 
           <UDivider
@@ -34,6 +38,8 @@
                 variant="solid"
                 trailing-icon="i-heroicons-arrow-right-circle"
                 class="justify-center"
+                :disabled="authStore.loginInProgress"
+                :loading="authStore.loginInProgress && authStore.loginInProgressProviderSlug === authScheme.provider_slug"
                 @click.once="authStore.doOIDCLogin(authScheme)"
             >
               {{ authScheme.display_name }}
@@ -52,16 +58,11 @@ const authStore = useAuthStore();
 const healthCheckStore = useHealthCheckStore();
 const userStore = useUserStore();
 
-const loginError = ref();
-
 async function login(authScheme: SchemaAuthSchemeInfo, username: string, password: string) {
-  loginError.value = undefined;
-  try {
-    await authStore.doBasicLogin(authScheme, username, password);
+  await authStore.doBasicLogin(authScheme, username, password);
+  if (!authStore.loginError) {
     await userStore.setUserInfo()
     await navigateTo('/')
-  } catch (error) {
-    loginError.value = error;
   }
 }
 
@@ -69,11 +70,7 @@ onMounted(async () => {
   await authStore.fetchAllAuthSchemes()
 
   if (healthCheckStore.healthy && authStore.autoLoginAvailable) {
-    try {
-      await authStore.doAutoLogin();
-    } catch (error) {
-      loginError.value = error;
-    }
+    await authStore.doAutoLogin();
   }
 })
 </script>

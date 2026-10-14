@@ -2,6 +2,16 @@
 import { type InferType, object, string } from "yup";
 import type { FormSubmitEvent } from "#ui/types";
 
+interface Props {
+  loading?: boolean;
+  locked?: boolean;
+}
+
+withDefaults(defineProps<Props>(), {
+  loading: false,
+  locked: false,
+})
+
 const emits = defineEmits<{
   login: [username: string, password: string];
 }>();
@@ -24,15 +34,15 @@ function submitForm(event: FormSubmitEvent<LoginFormSchema>) {
 </script>
 
 <template>
-  <UForm :schema="schema" :state="state" class="space-y-4" :validate-on="['submit']" @submit="submitForm">
+  <UForm :schema="schema" :state="state" class="space-y-4" :validate-on="['submit']" @submit.prevent="submitForm">
     <UFormGroup label="Benutzername" name="username">
-      <UInput v-model="state.username" />
+      <UInput v-model="state.username" :disabled="locked" />
     </UFormGroup>
     <UFormGroup label="Passwort" name="password">
-      <UInput v-model="state.password" type="password" />
+      <UInput v-model="state.password" type="password" :disabled="locked" />
     </UFormGroup>
     <div class="flex justify-center">
-      <UButton type="submit" block>
+      <UButton type="submit" :disabled="locked" :loading="loading" block>
         Einloggen
       </UButton>
     </div>
