@@ -72,6 +72,7 @@ export const useAuthStore = defineStore('auth', {
 
             // Wait for the state to change in the DOM, so the animation shows during login
             await nextTick();
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             await navigateTo(schema.login_endpoint, { external: true });
 
