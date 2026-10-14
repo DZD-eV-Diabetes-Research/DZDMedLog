@@ -58,5 +58,14 @@ export const useAuthStore = defineStore('auth', {
             return state.schemes.find(schema => schema.auto_login)
         },
         allSchemes: (state) => state.schemes,
+        isLocalLoginAvailable(): boolean {
+            return this.localLoginScheme !== undefined;
+        },
+        localLoginScheme(state): SchemaAuthSchemeInfo | undefined {
+            return state.schemes.find(scheme => scheme.auth_type === 'basic');
+        },
+        oidcLoginSchemes(state): SchemaAuthSchemeInfo[] | undefined {
+            return state.schemes.filter(scheme => scheme.auth_type === 'oidc');
+        },
     },
 });

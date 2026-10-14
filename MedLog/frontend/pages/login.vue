@@ -1,36 +1,48 @@
 <template>
-  <div>
-    <UIBaseCard>
-      <div v-if="healthCheckStore.healthy" class="flex flex-col justify-center">
-        <div v-if="authStore.allSchemes" class="flex flex-col space-y-2">
-          <ErrorMessage v-if="loginError" :error="loginError" />
-          <div v-for="authScheme in authStore.allSchemes" :key="authScheme.auth_type">
-            <LoginForm
-              v-if="authScheme.auth_type === 'basic'"
-              @login="({username, password}) => login(authScheme, username, password)"
-            />
-            <div v-else>
-              <UButton class="rounded-lg" @click.once="authStore.doOIDCLogin(authScheme)">
-                Login via: {{ authScheme.display_name }}
-              </UButton>
-            </div>
+  <section class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
+    <WarningMessage
+        v-if="healthCheckStore.healthy === false"
+        message="Das System ist derzeit nicht voll funktionsfähig"
+        class="mb-4"
+    />
+
+    <ErrorMessage v-if="loginError" :error="loginError" class="mb-4" />
+
+    <div class="flex flex-col items-center justify-center">
+      <UCard class="w-96">
+        <template #header>
+          Willkommen bei DZDMedLog
+        </template>
+
+        <div class="flex flex-col gap-4">
+          <div v-if="authStore.isLocalLoginAvailable">
+            <LoginForm @login="(username, password) => login(authStore.localLoginScheme!, username, password)"/>
+          </div>
+
+          <UDivider
+              v-if="authStore.isLocalLoginAvailable && authStore.oidcLoginSchemes?.length"
+              label="oder Login via"
+              orientation="horizontal"
+              class="mb-4"
+          />
+
+          <div v-if="authStore.oidcLoginSchemes?.length" class="flex flex-col gap-4">
+            <UButton
+                v-for="authScheme in authStore.oidcLoginSchemes"
+                :key="authScheme.provider_slug!"
+                color="gray"
+                variant="solid"
+                trailing-icon="i-heroicons-arrow-right-circle"
+                class="justify-center"
+                @click.once="authStore.doOIDCLogin(authScheme)"
+            >
+              {{ authScheme.display_name }}
+            </UButton>
           </div>
         </div>
-        <div class="mt-4">
-          <p>
-            Kein Account?
-            <a
-              href="https://auth.dzd-ev.org/" target="_blank"
-              class="hover:border-[#ec372d] hover:border-b-2">Registrieren Sie sich hier.</a>
-          </p>
-        </div>
-      </div>
-      <div v-else class="flex flex-col space-y-8 text-center">
-        <h3 class="text-4xl text-red-500">Der Backendstatus ist "not healthy"</h3>
-        <p class="text-lg text-red-500">Bitte wenden Sie sich an ihren Admin</p>
-      </div>
-    </UIBaseCard>
-  </div>
+      </UCard>
+    </div>
+  </section>
 </template>
 
 <script setup lang="ts">
