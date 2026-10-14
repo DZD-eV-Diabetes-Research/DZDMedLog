@@ -70,6 +70,9 @@ export const useAuthStore = defineStore('auth', {
             this.loginInProgress = true;
             this.loginInProgressProviderSlug = schema.provider_slug;
 
+            // Wait for the state to change in the DOM, so the animation shows during login
+            await nextTick();
+
             await navigateTo(schema.login_endpoint, { external: true });
 
             this.loginInProgress = false;
