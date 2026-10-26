@@ -1,5 +1,5 @@
 #FRONTEND BUILD STAGE
-FROM node:24.18 AS medlog-frontend-build
+FROM node:24.22 AS medlog-frontend-build
 WORKDIR /frontend_build
 COPY MedLog/frontend/package.json MedLog/frontend/package-lock.json .
 RUN npm ci --no-audit
