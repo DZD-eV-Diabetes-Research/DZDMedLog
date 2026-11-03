@@ -7,44 +7,75 @@
     <ErrorMessage v-else-if="error" :error="error" />
 
     <div v-else class="flex flex-col self-center justify-center gap-4 mt-4 max-w-6xl mx-auto">
-      <UCard>
+      <UCard id="interview-meta-box">
         <div class="flex flex-row justify-between items-start space-x-4 break-words">
           <div class="py-1.5" style="max-width: 25%">
-            <span class="text-lg">{{ studyStore.nameForStudy(studyId) || 'N/A' }}</span>
+            <dl>
+              <dt>Studie</dt>
+              <dd>{{ studyStore.nameForStudy(studyId) || 'N/A' }}</dd>
+            </dl>
           </div>
 
           <div class="py-1.5" style="max-width: 25%">
-            <span class="text-lg">{{ eventStore.nameForEvent(eventId) || 'N/A' }}</span>
+            <dl>
+              <dt>Event</dt>
+              <dd>{{ eventStore.nameForEvent(eventId) || 'N/A' }}</dd>
+              <template v-if="event?.event_type_mode">
+                <dt>Erhebungsmodus</dt>
+                <dd v-if="interview?.event_type">{{ interview.event_type }}</dd>
+                <dd v-else class="text-orange-500 font-semibold">nicht festgelegt</dd>
+              </template>
+            </dl>
           </div>
 
-          <div class="text-center" style="word-break: break-word; max-width: 25%">
-            <UButton
-                :to="`/studies/${studyId}/proband/${probandId}`"
-                :label="`Proband #${probandId ?? '???'}`"
-                class="text-lg"
-                variant="link"
-                icon="i-heroicons-arrow-right-circle"
-                trailing
-            />
+          <div class="" style="word-break: break-word; max-width: 25%">
+            <dl>
+              <dt>Probanden-ID</dt>
+              <dd>
+                <UButton
+                  :to="`/studies/${studyId}/proband/${probandId}`"
+                  :label="`${probandId ?? '???'}`"
+                  class="text-lg p-0"
+                  variant="link"
+                  icon="i-heroicons-arrow-right-circle"
+                  trailing
+                />
+              </dd>
+            </dl>
           </div>
 
-          <div class="py-1.5 text-end" style="max-width: 25%">
-            <span v-if="interview?.interview_end_time_utc">
-              Interview abgeschlossen am<br>
-              <time :datetime="$dayjs.utc(interview.interview_end_time_utc).format()">
-                {{ $dayjs.utc(interview.interview_end_time_utc).local().format('LLL') }}
-              </time>
-            </span>
-            <InterviewEndButtonGroup
-                v-else-if="studyPermissionStore.currentUserCanInterview(studyId)"
-                :end-interview-callback="endInterview"
-                :start-date="$dayjs.utc(interview?.interview_start_time_utc).toDate()"
-            />
-            <span v-else>
-              Das Interview wurde noch nicht abgeschlossen.
-            </span>
+          <div class="py-1.5 text-end flex flex-col items-end gap-2" style="max-width: 25%">
+            <dl>
+              <dt>Beginn</dt>
+              <dd>
+                <DateTime v-if="interview?.interview_start_time_utc" :datetime="interview.interview_start_time_utc" />
+                <span v-else>??</span>
+              </dd>
+              <dt>Ende</dt>
+              <dd>
+                <DateTime v-if="interview?.interview_end_time_utc" :datetime="interview.interview_end_time_utc" />
+                <span v-else>&mdash;</span>
+              </dd>
+            </dl>
           </div>
         </div>
+
+        <template v-if="studyPermissionStore.currentUserCanInterview(studyId)" #footer>
+          <div class="flex flex-row justify-between items-start">
+            <UButton
+                label="Interview bearbeiten"
+                icon="i-heroicons-pencil"
+                color="gray"
+                variant="outline"
+                @click="editInterviewModalVisible = true"
+            />
+            <InterviewEndButtonGroup
+                :end-interview-callback="endInterview"
+                :start-date="$dayjs.utc(interview?.interview_start_time_utc).toDate()"
+                :disabled="interview?.interview_end_time_utc !== null"
+            />
+          </div>
+        </template>
       </UCard>
 
       <div v-if="studyPermissionStore.currentUserCanInterview(studyId)" class="grid grid-cols-2 gap-4">
@@ -160,6 +191,15 @@
           :form-submit-callback="saveEditIntake"
           @cancel="() => { editModalVisible = false }"
       />
+      <InterviewEditModal
+          v-if="editInterviewModalVisible && interview"
+          v-model="editInterviewModalVisible"
+          :interview="interview"
+          :event-type-editable="eventTypeEditable"
+          :event-type-options="eventTypeOptions"
+          :default-event-type="event?.event_type"
+          :submit-callback="saveInterview"
+      />
     </div>
   </div>
 </template>
@@ -190,11 +230,13 @@ import type {
   SchemaIntakeCreateApi,
   SchemaIntakeDetailListItem,
   SchemaIntakeUpdate,
-  SchemaInterview
+  SchemaInterview,
+  SchemaInterviewUpdateApi
 } from "#open-fetch-schemas/medlogapi";
 
 const route = useRoute();
 const dayjs = useDayjs();
+const configStore = useConfigStore();
 const eventStore = useEventStore();
 const interviewStore = useInterviewStore();
 const studyPermissionStore = useStudyPermissionStore();
@@ -243,9 +285,11 @@ async function saveIntake(data: IntakeFormSchema) {
     drug_id: data.drugId,
     intake_end_date: data.intake_end_date ? dayjs(data.intake_end_date).format("YYYY-MM-DD") : null,
     intake_end_date_option: data.endDateOption ?? null,
+    intake_end_date_precision: data.intake_end_date ? (data.endDatePrecision ?? 'day') : null,
     intake_regular_or_as_needed: data.intake_regular_or_as_needed,
     intake_start_date: data.intake_start_date ? dayjs(data.intake_start_date).format("YYYY-MM-DD") : null,
     intake_start_date_option: data.startDateOption ?? null,
+    intake_start_date_precision: data.intake_start_date ? (data.startDatePrecision ?? 'day') : null,
     is_activeingredient_equivalent_choice: data.is_activeingredient_equivalent_choice,
     regular_intervall_of_daily_dose: data.regular_intervall_of_daily_dose,
     source_of_drug_information: data.source_of_drug_information
@@ -295,12 +339,14 @@ async function openEditModal(intakeId: string) {
       source_of_drug_information: intake.source_of_drug_information === null ? undefined : intake.source_of_drug_information,
       intake_end_date: intake.intake_end_date ?? undefined,
       endDateOption: intake.intake_end_date_option ?? undefined,
+      endDatePrecision: intake.intake_end_date_precision ?? undefined,
       intake_regular_or_as_needed: intake.intake_regular_or_as_needed === null ? undefined : intake.intake_regular_or_as_needed,
       regular_intervall_of_daily_dose: intake.regular_intervall_of_daily_dose === null ? undefined : intake.regular_intervall_of_daily_dose,
       is_activeingredient_equivalent_choice: intake.is_activeingredient_equivalent_choice,
       consumed_meds_today: intake.consumed_meds_today,
       intake_start_date: intake.intake_start_date ?? undefined,
       startDateOption: intake.intake_start_date_option ?? undefined,
+      startDatePrecision: intake.intake_start_date_precision ?? undefined,
     }
   } catch (error) {
     toast.add({
@@ -322,9 +368,11 @@ async function saveEditIntake(data: IntakeFormSchema) {
     dose_per_day_unknown: data.dose_per_day_unknown,
     intake_end_date: data.intake_end_date ? dayjs(data.intake_end_date).format("YYYY-MM-DD") : null,
     intake_end_date_option: data.endDateOption ?? null,
+    intake_end_date_precision: data.intake_end_date ? (data.endDatePrecision ?? 'day') : null,
     intake_regular_or_as_needed: data.intake_regular_or_as_needed,
     intake_start_date: data.intake_start_date ? dayjs(data.intake_start_date).format("YYYY-MM-DD") : null,
     intake_start_date_option: data.startDateOption ?? null,
+    intake_start_date_precision: data.intake_start_date ? (data.startDatePrecision ?? 'day') : null,
     is_activeingredient_equivalent_choice: data.is_activeingredient_equivalent_choice,
     regular_intervall_of_daily_dose: data.regular_intervall_of_daily_dose,
     source_of_drug_information: data.source_of_drug_information
@@ -391,6 +439,42 @@ async function endInterview(date?: Date) {
   }
 }
 
+const event = computed(() => eventStore.events.find(item => item.id === eventId.value));
+
+// Issue #388: an interview created before its event got an event type has none yet,
+// so it can be set once, even for a "fixed" event type
+const eventTypeMissing = computed(() => {
+  return !!event.value?.event_type_mode && !interview.value?.event_type;
+});
+
+const eventTypeEditable = computed(() => {
+  const mode = event.value?.event_type_mode;
+  return configStore.eventTypes.enabled
+      && (mode === "default" || mode === "required_choice" || eventTypeMissing.value)
+      && studyPermissionStore.currentUserCanInterview(studyId.value);
+});
+
+const eventTypeOptions = computed(() => {
+  // The backend only accepts the event's own type for a "fixed" event type
+  if (event.value?.event_type_mode === "fixed" && event.value.event_type) {
+    return [{ label: event.value.event_type, value: event.value.event_type }];
+  }
+  const options = [...configStore.eventTypeOptions];
+  // Keep the type of the interview selectable, even if it was removed from the server config
+  const currentType = interview.value?.event_type;
+  if (currentType && !configStore.eventTypes.eventTypes.includes(currentType)) {
+    options.push({ label: `${currentType} (nicht mehr konfiguriert)`, value: currentType });
+  }
+  return options;
+});
+
+const editInterviewModalVisible = ref(false);
+
+// Errors are shown by the modal
+async function saveInterview(body: SchemaInterviewUpdateApi) {
+  interview.value = await usePatchInterview(studyId.value, eventId.value, interviewId.value, body);
+}
+
 async function loadIntakeList() {
   try {
     intakes.value = await useGetIntakesByStudyAndProband(studyId.value, probandId.value, interviewId.value) ?? [];
@@ -403,6 +487,7 @@ onMounted(async () => {
   loading.value = true;
   try {
     await eventStore.loadAllEventsForStudy(studyId.value);
+    await configStore.loadEventTypes();
     const interviewsForProband = await useGetInterviewsByStudyAndProband(studyId.value, probandId.value);
     const foundInterview = interviewsForProband.find(item => item.id === interviewId.value);
     if (!foundInterview) {
@@ -423,5 +508,8 @@ onMounted(async () => {
 
 
 <style scoped>
-
+#interview-meta-box dt {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
 </style>

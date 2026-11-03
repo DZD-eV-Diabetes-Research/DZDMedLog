@@ -670,14 +670,18 @@ async def commit_with_retry_when_sqlite_is_locked(
             time.sleep(wait_time)
 
 
-def sqlmodel_apply_updates(existing: SQLModel, incoming: SQLModel) -> bool:
+def sqlmodel_apply_updates(
+    existing: SQLModel, incoming: SQLModel, only_set_fields: bool = True
+) -> bool:
     """
-    Copy non-None fields from `incoming` to `existing`.
+    Copy fields from `incoming` to `existing`.
+    With `only_set_fields`, only fields explicitly set on `incoming` are copied.
+    Otherwise fields left on their default are copied as well, which resets them on `existing`.
     Returns True if at least one field was changed, otherwise False.
     """
     changed = False
 
-    for field, new_value in incoming.model_dump(exclude_unset=True).items():
+    for field, new_value in incoming.model_dump(exclude_unset=only_set_fields).items():
         old_value = getattr(existing, field)
 
         if new_value != old_value:

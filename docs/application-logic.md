@@ -105,6 +105,35 @@ These combinations are explicitly **allowed**:
   option carries no date, so the rules that need one are skipped.
 - Start and end date on the same day.
 
+### Imprecise dates (month only, year only)
+
+When only the month or the year of an intake start or end is known, the date is sent with
+`intake_start_date_precision` / `intake_end_date_precision` set to `month` or `year` instead
+of a placeholder day. The date is stored as the first day of the period (`2024-03-01` for
+March 2024, `2024-01-01` for 2024). The precision defaults to `day` when a date is sent
+without it, is `null` when a date option is set instead of a date, and is only accepted
+together with its date or date option. Start and end may have different precisions.
+
+An imprecise date stands for a period, and a rule only fails if it is violated for every day
+of that period:
+
+| Precision | Earliest day | Latest day |
+| --- | --- | --- |
+| `day` | the date | the date |
+| `month` | 1st of the month | last day of the month |
+| `year` | January 1st | December 31st |
+
+| Rule | Compares |
+| --- | --- |
+| `end_date_before_start_date` | latest end < earliest start |
+| `start_date_in_future`, `end_date_in_future` | earliest day > today, so the current month or year is allowed |
+| `consumed_today_with_past_end_date` | latest end < interview date minus tolerance |
+| `consumed_today_with_future_start_date` | earliest start > interview date plus tolerance |
+| `start_date_implausibly_old`, `end_date_implausibly_old` | latest day < `EARLIEST_PLAUSIBLE_DATE` |
+
+Dates entered before the precision existed are exact days. Placeholder days entered before
+(usually the 15th) are indistinguishable from real ones and stay as they are.
+
 The rules are collected in `MedLog/backend/medlogserver/model/intake_rules.py` and are
 enforced in `IntakeCRUD`, which every write goes through. On **PATCH** they are evaluated
 against the *merged* record (stored row plus payload), so a partial update that only sends
@@ -172,6 +201,20 @@ Full documentation: [Drug Database](drug-database.md)
 ## Export
 
 Study data (interviews and intakes) can be exported as CSV. Exports are triggered through the web interface by users with at least viewer access. The export job runs in the background worker and the result file is cached in `EXPORT_CACHE_DIR`.
+
+Intake start and end dates are exported with the precision they were entered with (see
+[Imprecise dates](#imprecise-dates-month-only-year-only)), shown here for the start date:
+
+| Column | Day | Month | Year |
+| --- | --- | --- | --- |
+| `intake_start_date` | `2024-03-10` | `2024-03` | `2024` |
+| `intake_start_date_precision` | `day` | `month` | `year` |
+| `intake_start_date_earliest` | `2024-03-10` | `2024-03-01` | `2024-01-01` |
+| `intake_start_date_latest` | `2024-03-10` | `2024-03-31` | `2024-12-31` |
+
+`intake_start_date` / `intake_end_date` can therefore contain `YYYY-MM` or `YYYY`. Analysis
+scripts that need a full date use the `_earliest` / `_latest` columns. The JSON export has
+the same keys and values.
 
 ---
 

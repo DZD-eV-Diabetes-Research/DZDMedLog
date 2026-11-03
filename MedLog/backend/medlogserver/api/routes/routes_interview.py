@@ -36,7 +36,7 @@ from medlogserver.model.interview import (
 
 from medlogserver.db.interview import InterviewCRUD
 from medlogserver.db.intake import IntakeCRUD
-from medlogserver.model.event import Event
+from medlogserver.model.event import Event, resolve_interview_event_type
 from medlogserver.db.event import EventCRUD
 from medlogserver.api.study_access import (
     user_has_studies_access_map,
@@ -55,6 +55,25 @@ log = get_logger()
 
 
 fast_api_interview_router: APIRouter = APIRouter()
+
+
+def _resolve_event_type_or_422(
+    event: Event, requested_event_type: Optional[str], stored_event_type: Optional[str]
+) -> Optional[str]:
+    try:
+        return resolve_interview_event_type(
+            event, requested_event_type, stored_event_type
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
+
+
+_event_type_error_response = {
+    "model": HTTPErrorResponeRepresentation,
+    "description": "`event_type` does not fit the `event_type_mode` of the event, see `event_type`.",
+}
 
 
 @fast_api_interview_router.get(
@@ -199,6 +218,7 @@ async def get_last_non_completed_interview(
     "/study/{study_id}/event/{event_id}/interview",
     response_model=Interview,
     description=f"Create new interview. At the moment there is artificial restriction that only allows for one interview per proband per event. See https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/127 and https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/130",
+    responses={status.HTTP_422_UNPROCESSABLE_ENTITY: _event_type_error_response},
 )
 async def create_interview(
     interview: Annotated[InterviewCreateAPI, Body()],
@@ -243,6 +263,9 @@ async def create_interview(
         )
     # /127
 
+    interview.event_type = _resolve_event_type_or_422(
+        event, interview.event_type, stored_event_type=None
+    )
     interview_create = InterviewCreate(
         event_id=event.id,
         interviewer_user_id=user.id,
@@ -256,12 +279,14 @@ async def create_interview(
     "/study/{study_id}/event/{event_id}/interview/{interview_id}",
     response_model=Interview,
     description=f"Update existing interview",
+    responses={status.HTTP_422_UNPROCESSABLE_ENTITY: _event_type_error_response},
 )
 async def update_interview(
     interview_id: uuid.UUID,
     event_id: uuid.UUID,
     interview_update: InterviewUpdateAPI,
     study_access: UserStudyAccess = Security(user_has_study_access),
+    event_crud: EventCRUD = Depends(EventCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> User:
     if not study_access.user_is_study_interviewer():
@@ -275,6 +300,18 @@ async def update_interview(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No interview with this id under this event available",
         )
+    event: Event = await event_crud.get(event_id)
+    # Also fills in the type of an interview created before the event got a "fixed" or
+    # "default" event type, and asks for one under "required_choice".
+    event_type = _resolve_event_type_or_422(
+        event, interview_update.event_type, interview_from_db.event_type
+    )
+    # An explicit `null` keeps the stored type instead of clearing it.
+    if (
+        "event_type" in interview_update.model_fields_set
+        or event_type != interview_from_db.event_type
+    ):
+        interview_update.event_type = event_type
     return await interview_crud.update(update_obj=interview_update, id_=interview_id)
 
 

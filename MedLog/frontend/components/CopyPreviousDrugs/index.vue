@@ -47,6 +47,8 @@
 <script setup lang="ts">
 import { useDayjs } from '#dayjs'
 import localizedFormat from 'dayjs/plugin/localizedFormat'
+import { endDateOptions, startDateOptions } from "~/constants";
+import useGetIntakeDateLabel from "~/utils/useGetIntakeDateLabel";
 
 const dayjs = useDayjs();
 const { $medlogapi } = useNuxtApp();
@@ -90,8 +92,8 @@ async function openCopyIntakeModal() {
         previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake) => ({
             Medikament: intake.drug.trade_name,
             Custom: intake.drug?.is_custom_drug ? "Ja" : "Nein",
-            Einnahmebeginn: intake.intake_start_date || 'Unbekannt',
-            Einnahmeende: intake.intake_end_date || 'Unbekannt',
+            Einnahmebeginn: useGetIntakeDateLabel(intake.intake_start_date, intake.intake_start_date_precision, startDateOptions, intake.intake_start_date_option) || 'Unbekannt',
+            Einnahmeende: useGetIntakeDateLabel(intake.intake_end_date, intake.intake_end_date_precision, endDateOptions, intake.intake_end_date_option) || 'Unbekannt',
             Dosis: intake.dose_per_day_unknown ? 'Unbekannt' : (intake.dose_per_day ? intake.dose_per_day.toLocaleString('de-DE', { useGrouping: false }) : ''),
             ID: intake.id,
             postBody: {
@@ -100,8 +102,10 @@ async function openCopyIntakeModal() {
                 "source_of_drug_information": intake.source_of_drug_information,
                 "intake_start_date": intake.intake_start_date,
                 "intake_start_date_option": intake.intake_start_date_option,
+                "intake_start_date_precision": intake.intake_start_date_precision,
                 "intake_end_date": intake.intake_end_date,
                 "intake_end_date_option": intake.intake_end_date_option,
+                "intake_end_date_precision": intake.intake_end_date_precision,
                 "administered_by_doctor": intake.administered_by_doctor,
                 "intake_regular_or_as_needed": intake.intake_regular_or_as_needed,
                 "dose_per_day": intake.dose_per_day,

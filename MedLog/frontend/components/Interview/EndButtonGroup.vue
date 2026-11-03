@@ -4,11 +4,14 @@ import CustomEndModal from "~/components/Interview/CustomEndModal.vue";
 const modal = useModal();
 
 interface Props {
+  disabled?: boolean;
   endInterviewCallback: (date?: Date) => Promise<void>;
   startDate: Date;
 }
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+  disabled: false,
+});
 </script>
 
 <template>
@@ -18,6 +21,7 @@ defineProps<Props>();
       color="red"
       icon="i-heroicons-stop-solid"
       title="Schließt das Interview mit der aktuellen Uhrzeit ab"
+      :disabled="disabled"
       @click.once="endInterviewCallback()"
     />
     <UDropdown
@@ -25,6 +29,7 @@ defineProps<Props>();
         {
           label: 'Interview nachträglich abschließen',
           slot: 'custom-interview-end',
+          disabled: disabled,
           click: () => {
             modal.open(CustomEndModal, {
               startDate: startDate,
@@ -36,7 +41,7 @@ defineProps<Props>();
       :popper="{ placement: 'bottom-end' }"
       :ui="{ item: { base: 'flex-col' } }"
     >
-      <UButton icon="i-heroicons-chevron-down-20-solid" color="red" />
+      <UButton icon="i-heroicons-chevron-down-20-solid" color="red" :disabled="disabled" />
 
       <template #custom-interview-end>
         <span class="font-semibold text-left self-start">Interview nachträglich abschließen</span>

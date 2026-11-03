@@ -72,7 +72,15 @@
         >
           <template #item="{ element }: { element: SchemaEvent }">
             <div class="flex flex-row items-center justify-between border-b-2 border-b-slate-200 py-2">
-              <span>{{ element.name }}</span>
+              <div class="flex flex-row flex-wrap items-center gap-2">
+                <span>{{ element.name }}</span>
+                <UBadge v-if="element.external_id" color="gray" variant="subtle" size="xs" class="text-gray-700" title="Externe ID">
+                  ID: {{ element.external_id }}
+                </UBadge>
+                <UBadge v-if="eventTypeBadgeLabel(element)" color="primary" variant="subtle" size="xs" class="text-primary-700" title="Erhebungsmodus">
+                  {{ eventTypeBadgeLabel(element) }}
+                </UBadge>
+              </div>
               <div>
                 <UIcon v-show="sortingMode" name="i-heroicons-bars-3" class="ml-2 text-2xl text-gray-400 cursor-n-resize" />
                 <UButton
@@ -125,11 +133,13 @@
 </template>
 
 <script setup lang="ts">
-import type { SchemaEvent } from "#open-fetch-schemas/medlogapi";
+import type { SchemaEvent, SchemaEventUpdate } from "#open-fetch-schemas/medlogapi";
 import type { EventFormSchema } from "~/components/Event/Form.vue";
+import { eventTypeModeLabels } from "~/constants";
 import { ConfirmationModal } from "#components";
 import { isFastAPIEventNotEmptyError, isFetchError } from "~/type-helper";
 
+const configStore = useConfigStore();
 const eventStore = useEventStore();
 const modal = useModal();
 const studyPermissionStore = useStudyPermissionStore();
@@ -194,7 +204,12 @@ async function openCreateEventModal() {
 
 async function openEditEventModal(event: SchemaEvent) {
   eventIdToEdit.value = event.id!;
-  eventFormInitialState.value = { name: event.name };
+  eventFormInitialState.value = {
+    name: event.name,
+    external_id: event.external_id ?? null,
+    event_type_mode: event.event_type_mode ?? null,
+    event_type: event.event_type ?? null,
+  };
   showEditEventModal.value = true;
   editEventError.value = undefined;
 }
@@ -202,7 +217,7 @@ async function openEditEventModal(event: SchemaEvent) {
 async function createEvent(data: EventFormSchema) {
   try {
     createEventError.value = undefined;
-    await useCreateEvent(data.name, studyId.value);
+    await useCreateEvent(data, studyId.value);
     showCreateEventModal.value = false;
     await loadEvents()
     await eventStore.loadAllEventsForStudy(studyId.value);
@@ -243,7 +258,17 @@ async function deleteEvent(event: SchemaEvent) {
 async function updateEvent(data: EventFormSchema) {
   try {
     editEventError.value = undefined;
-    await usePatchEvent(studyId.value, eventIdToEdit.value, data);
+    const { event_type_mode, event_type, ...rest } = data;
+    const body: SchemaEventUpdate = rest;
+    // Only send the event type settings if they were changed. The backend validates them
+    // against the current server config, so an event whose type was removed from the
+    // config (or with the feature switched off) can still be renamed.
+    const initialState = eventFormInitialState.value;
+    if (event_type_mode !== initialState?.event_type_mode || event_type !== initialState?.event_type) {
+      body.event_type_mode = event_type_mode;
+      body.event_type = event_type;
+    }
+    await usePatchEvent(studyId.value, eventIdToEdit.value, body);
     showEditEventModal.value = false;
     await loadEvents()
     await eventStore.loadAllEventsForStudy(studyId.value);
@@ -252,8 +277,22 @@ async function updateEvent(data: EventFormSchema) {
   }
 }
 
+function eventTypeBadgeLabel(event: SchemaEvent): string | undefined {
+  if (!event.event_type_mode) {
+    return undefined;
+  }
+  const modeLabel = eventTypeModeLabels[event.event_type_mode];
+  return event.event_type ? `${modeLabel}: ${event.event_type}` : modeLabel;
+}
+
 onMounted(() => {
   loadEvents();
+  configStore.loadEventTypes().catch((error) => {
+    toast.add({
+      title: "Konnte Erhebungsmodi nicht laden",
+      description: useGetErrorMessage(error),
+    });
+  });
 });
 </script>
 

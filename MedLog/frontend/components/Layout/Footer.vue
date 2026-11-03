@@ -42,7 +42,7 @@ const userStore = useUserStore();
           <NuxtLink to="/help">Hilfe</NuxtLink>
           <NuxtLink to="https://www.dzd-ev.de/impressum" :external="true" target="_blank">Impressum</NuxtLink>
         </div>
-        <span class="text-sm font-extralight">
+        <span v-if="userStore.isLoggedIn" class="text-sm font-extralight">
           Version {{ configStore.versionInfo.version ?? 'N/A' }}
         </span>
       </div>
