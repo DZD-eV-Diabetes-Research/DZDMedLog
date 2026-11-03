@@ -20,7 +20,7 @@ from medlogserver.model.study import (
     StudyCreateAPI,
     StudyUpdate,
 )
-from medlogserver.model.event import Event, EventCreate
+from medlogserver.model.event import Event, EventCreate, EventCreateAPI
 from medlogserver.db._base_crud import create_crud_base
 from medlogserver.api.paginator import QueryParamsInterface
 
@@ -92,9 +92,10 @@ class StudyCRUD(
 
         Copied is everything that makes up the *setup* of the source study - all
         `StudyCreateAPI` fields (proband ID pattern/error text/normalization/example and
-        the `no_permissions` flag) plus one new event per source event, keeping name and
-        `order_position`. Deriving the copied fields from `StudyCreateAPI` (instead of an
-        explicit list) means future study-setup fields are cloned automatically.
+        the `no_permissions` flag) plus one new event per source event with all
+        `EventCreateAPI` fields (name, `order_position`, `external_id`, `event_type_mode`,
+        `event_type`). Deriving the copied fields from `StudyCreateAPI`/`EventCreateAPI`
+        (instead of explicit lists) means future setup fields are cloned automatically.
 
         Explicitly *not* copied: collected data (interviews, intakes) and study
         permissions - a clone starts empty and, like a freshly created study, is only
@@ -129,13 +130,12 @@ class StudyCRUD(
             # rolls the study back together with its events.
             await self.session.flush()
             for source_event in source_events:
+                cloned_event_setup = source_event.model_dump(
+                    include=set(EventCreateAPI.model_fields.keys())
+                )
                 self.session.add(
                     Event.model_validate(
-                        EventCreate(
-                            name=source_event.name,
-                            order_position=source_event.order_position,
-                            study_id=new_study.id,
-                        )
+                        EventCreate(**cloned_event_setup, study_id=new_study.id)
                     )
                 )
             await self.session.commit()

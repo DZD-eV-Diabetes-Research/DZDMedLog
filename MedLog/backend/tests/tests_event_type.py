@@ -321,6 +321,45 @@ def test_interview_event_type_after_event_settings_change():
     assert updated["event_type"] == PHONE
 
 
+# ---------------------------------------------------------------- study clone
+
+
+def test_study_clone_keeps_event_type_and_external_id():
+    """Cloning a study copies the event type settings and external ID of every event
+    (issue #401)."""
+    study_id = _study("TestCloneEventTypeSource", proband_count=0).study.id
+    source_events = [
+        _create_event(
+            study_id,
+            "fixed",
+            external_id="V01",
+            event_type_mode="fixed",
+            event_type=ON_SITE,
+        ),
+        _create_event(
+            study_id,
+            "default",
+            external_id="1201",
+            event_type_mode="default",
+            event_type=REMOTE,
+        ),
+        _create_event(study_id, "required", event_type_mode="required_choice"),
+        _create_event(study_id, "plain"),
+    ]
+
+    clone = req(
+        f"api/study/{study_id}/clone",
+        method="post",
+        b={"display_name": "TestCloneEventTypeTarget"},
+    )
+    clone_events = req(f"api/study/{clone['id']}/event", method="get")["items"]
+
+    copied_fields = ["name", "order_position", "external_id", "event_type_mode", "event_type"]
+    assert [{f: e[f] for f in copied_fields} for e in clone_events] == [
+        {f: e[f] for f in copied_fields} for e in source_events
+    ]
+
+
 # ---------------------------------------------------------------- export
 
 
