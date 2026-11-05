@@ -29,10 +29,12 @@ dependencies = [
     # FastAPI's OpenAPI generation crash with `TypeError: unhashable type: 'FieldInfoMetadata'`.
     # Still unfixed upstream in both fastapi and sqlmodel, so we shim it ourselves in
     # `medlogserver/model/_base_model.py` — see the comment there and issue #226.
-    # The floor is 0.0.32 because that is where `FieldInfoMetadata` (and thus the shim
-    # target) appeared; on older versions the shim would raise AttributeError.
+    # sqlmodel 0.0.45+ maps `datetime` fields to a tz-aware `UTCDateTime` column type; we
+    # map them back to naive `DateTime` columns, also in `_base_model.py`.
+    # The floor is 0.0.45 because both shims need their targets (`FieldInfoMetadata`,
+    # `UTCDateTime`) to exist; on older versions they would fail on import.
     # See: https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/226
-    "sqlmodel >= 0.0.32",
+    "sqlmodel >= 0.0.45",
     "sqlalchemy[asyncio]",
     "aiosqlite",
     "pyyaml",
