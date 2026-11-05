@@ -203,8 +203,12 @@ def test_endpoint_drug_update_workflow():
     #####
     response_cleaner_job = None
     cleaning_running = True
+    start_time = time.time()
     while cleaning_running:
-        from medlogserver.api.routes.routes_debug import list_all_worker_jobs
+        if time.time() - start_time > timeout_seconds:
+            raise TimeoutError(
+                f"Obsolete drug data cleaning job did not finish within {timeout_seconds} seconds"
+            )
 
         response_cleaner_job: List[Dict] = cast(
             List[Dict],
@@ -218,6 +222,7 @@ def test_endpoint_drug_update_workflow():
             f"test_endpoint_drug_update_trigger response_status: {response_cleaner_job}"
         )
         if len(response_cleaner_job) == 0:
+            time.sleep(2)
             continue
         from medlogserver.api.routes.routes_debug import WorkerJob
 

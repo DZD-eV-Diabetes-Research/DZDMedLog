@@ -1,13 +1,14 @@
 from typing import Optional
 import datetime
 from pydantic import field_validator, ValidationInfo, BaseModel
-from sqlalchemy import text
+from sqlalchemy import text, DateTime
 from sqlmodel import Field
 import uuid
 
 
 import sqlmodel.main
 from sqlmodel import SQLModel
+from sqlmodel.sql.sqltypes import UTCDateTime
 
 
 from medlogserver.config import Config
@@ -35,9 +36,38 @@ import uuid
 #
 # Neither fastapi nor sqlmodel have fixed this upstream (both proposed PRs were closed
 # by the stale bot without merging: sqlmodel#1889, fastapi#15429). Verified still broken
-# with fastapi 0.141.1 / sqlmodel 0.0.39 / pydantic 2.13.4.
+# with fastapi 0.162.0 / sqlmodel 0.0.48 / pydantic 2.14.3.
 # See https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/226
 sqlmodel.main.FieldInfoMetadata.__hash__ = object.__hash__
+
+
+# sqlmodel >= 0.0.45 maps plain `datetime` fields to its own `UTCDateTime` column type
+# (`timestamp with time zone` on Postgres) and raises
+# `ValueError: Datetime values must have timezone information` on every naive value.
+# MedLog stores naive UTC datetimes throughout (see `get_now_datetime_witout_timezone`,
+# `utils.get_now_datetime` and the `.replace(tzinfo=None)` call sites) and the existing
+# Postgres columns are `timestamp without time zone`. So we map `datetime` fields back to
+# a naive `DateTime` column - exactly the type older sqlmodel versions produced, which
+# means no schema change and no Alembic migration.
+# sqlmodel's built-in opt-out (annotating fields with pydantic's `NaiveDatetime`) is not
+# an option: it would also make the API reject tz-aware datetimes sent by clients.
+# Switching MedLog to tz-aware UTC storage would be the long-term alternative, but that
+# needs a migration of all datetime columns and changes the API/export datetime format.
+#
+# This must run before any table model class is defined, because sqlmodel resolves the
+# column types at class creation. `medlogserver/model/__init__.py` imports this module
+# first, which covers all table models (they all live in, or import from, that package).
+_sqlmodel_get_sqlalchemy_type = sqlmodel.main.get_sqlalchemy_type
+
+
+def _get_sqlalchemy_type_with_naive_datetime(field):
+    sa_type = _sqlmodel_get_sqlalchemy_type(field)
+    if isinstance(sa_type, UTCDateTime):
+        return DateTime(timezone=False)
+    return sa_type
+
+
+sqlmodel.main.get_sqlalchemy_type = _get_sqlalchemy_type_with_naive_datetime
 
 
 class MedLogBaseApiModel(BaseModel):

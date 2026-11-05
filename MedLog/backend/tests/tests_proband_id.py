@@ -561,7 +561,9 @@ def test_example_round_trips_on_create_and_update():
     assert created["proband_external_id_example"] == "AAA1111", created
 
     # present in study GET (list)
-    listed = req("api/study", method="get")
+    # The list is paginated (default limit 100) and the suite creates more studies than
+    # that, so the new study would not be on the first page.
+    listed = req("api/study", method="get", q={"limit": 10000})
     from utils import find_first_dict_in_list
 
     study_in_list = find_first_dict_in_list(
