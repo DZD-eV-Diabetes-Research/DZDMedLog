@@ -1,11 +1,11 @@
-from typing import Literal, Dict, List, Any, Tuple, TextIO
+from typing import Literal, Dict, List, Any, Optional, Tuple, TextIO
 from pathlib import Path, PurePath
 import shutil
 import csv
 import time
 import uuid
 from itertools import groupby
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel.ext.asyncio.session import AsyncSession
 from medlogserver.utils import path_is_parent
 from medlogserver.worker.task import TaskBase
@@ -48,11 +48,24 @@ DRUG_LOAD_BATCH_SIZE = 500
 
 
 class ExportIntakeContainer(BaseModel):
+    """One intake, or one interview without intakes (issue #404).
+
+    An interview without intakes (e.g. answered with "no meds taken") has
+    `intake` null and empty `drug_codes`/`drug_attrs`, so the export shows that the
+    interview took place.
+    """
+
     event: EventExport
     interview: InterviewExport
-    intake: IntakeExport
-    drug_codes: List[DrugCodesExport]
-    drug_attrs: List[DrugDataExport]
+    intake: Optional[IntakeExport] = Field(
+        description="Null for an interview without intakes."
+    )
+    drug_codes: List[DrugCodesExport] = Field(
+        description="Empty for an interview without intakes."
+    )
+    drug_attrs: List[DrugDataExport] = Field(
+        description="Empty for an interview without intakes."
+    )
 
 
 class ExportContainer(BaseModel):
@@ -70,7 +83,8 @@ class ExportContainer(BaseModel):
                 row.update(flatten_export_objects(self.study, "study"))
             row.update(flatten_export_objects(intake.event, "event"))
             row.update(flatten_export_objects(intake.interview, "interview"))
-            row.update(flatten_export_objects(intake.intake, "intake"))
+            if intake.intake is not None:
+                row.update(flatten_export_objects(intake.intake, "intake"))
             row.update(flatten_export_drug_codes(intake.drug_codes))
             row.update(
                 flatten_export_objects(intake.drug_attrs, "drug", "drug_attr_name")
@@ -247,6 +261,10 @@ class StudyDataExporter:
     in the JSON export every intake lists all drug attributes of the layout, with null
     for missing values. Apart from these added columns and attributes the output is
     the same as the exporter before #362 wrote (see `tests/tests_export_performance.py`).
+
+    Interviews without intakes (e.g. answered with "no meds taken") are exported too
+    (issue #404): after the intake rows, one row per such interview with empty intake
+    and drug columns (CSV), or an entry with `intake` null and empty drug lists (JSON).
     """
 
     def __init__(
@@ -259,6 +277,8 @@ class StudyDataExporter:
         self.events: Dict[uuid.UUID, EventExport] = {}
         self.interviews: Dict[uuid.UUID, InterviewExport] = {}
         self.intakes: List[Intake] = []
+        # in the order of `self.interviews`
+        self.interviews_without_intakes: List[InterviewExport] = []
         self.layout: ExportLayout | None = None
         self.drugs: Dict[
             uuid.UUID, Tuple[List[DrugCodesExport], List[DrugDataExport]]
@@ -275,7 +295,8 @@ class StudyDataExporter:
         await self._gather_export_data()
         log.info(
             f"Export of study '{self.study_id}': gathered {len(self.intakes)} intakes "
-            f"with {len(self.drugs)} distinct drugs in "
+            f"with {len(self.drugs)} distinct drugs and "
+            f"{len(self.interviews_without_intakes)} interviews without intakes in "
             f"{time.monotonic() - gather_start:.2f}s"
         )
         write_start = time.monotonic()
@@ -317,6 +338,12 @@ class StudyDataExporter:
                 self.intakes = list(
                     await intake_crud.list(filter_study_id=self.study_id)
                 )
+            interview_ids_with_intakes = {i.interview_id for i in self.intakes}
+            self.interviews_without_intakes = [
+                interview
+                for interview_id, interview in self.interviews.items()
+                if interview_id not in interview_ids_with_intakes
+            ]
             await self._load_drugs(session)
 
     async def _load_drugs(self, session: AsyncSession):
@@ -352,6 +379,24 @@ class StudyDataExporter:
             drug_attrs=drug_attrs,
         )
 
+    def _interview_without_intakes_container(
+        self, interview: InterviewExport
+    ) -> ExportIntakeContainer:
+        return ExportIntakeContainer(
+            event=self.events[interview.event_id],
+            interview=interview,
+            intake=None,
+            drug_codes=[],
+            drug_attrs=[],
+        )
+
+    def _containers(self):
+        """All entries of the export: intakes first, then interviews without intakes."""
+        for intake in self.intakes:
+            yield self._intake_container(intake)
+        for interview in self.interviews_without_intakes:
+            yield self._interview_without_intakes_container(interview)
+
     def _write_json(self, target_file: TextIO):
         # Same document as `ExportContainer.model_dump_json(indent=4)`, but written one
         # intake at a time instead of serializing the whole study into one string.
@@ -359,14 +404,14 @@ class StudyDataExporter:
         target_file.write(
             f'    "study": {_indent_json(self.study.model_dump_json(indent=4), " " * 4)},\n'
         )
-        if not self.intakes:
+        if not self.intakes and not self.interviews_without_intakes:
             target_file.write('    "intakes": []\n}')
             return
         target_file.write('    "intakes": [\n')
-        for index, intake in enumerate(self.intakes):
+        for index, container in enumerate(self._containers()):
             if index > 0:
                 target_file.write(",\n")
-            intake_json = self._intake_container(intake).model_dump_json(indent=4)
+            intake_json = container.model_dump_json(indent=4)
             target_file.write(" " * 8 + _indent_json(intake_json, " " * 8))
         target_file.write("\n    ]\n}")
 
@@ -399,8 +444,7 @@ class StudyDataExporter:
 
         writer = csv.DictWriter(target_file, fieldnames=list(fieldnames), restval="")
         writer.writeheader()
-        for intake in self.intakes:
-            container = self._intake_container(intake)
+        for container in self._containers():
             interview_id = container.interview.id
             event_id = container.event.id
             if event_id not in event_columns:
@@ -416,8 +460,9 @@ class StudyDataExporter:
             row = dict(study_columns)
             row.update(event_columns[event_id])
             row.update(interview_columns[interview_id])
-            row.update(flatten_export_objects(container.intake, "intake"))
-            row.update(drug_columns[intake.drug_id])
+            if container.intake is not None:
+                row.update(flatten_export_objects(container.intake, "intake"))
+                row.update(drug_columns[container.intake.drug_id])
             writer.writerow(row)
 
 

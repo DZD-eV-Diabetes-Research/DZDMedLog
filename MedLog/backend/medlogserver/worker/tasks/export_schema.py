@@ -93,6 +93,10 @@ FIXED_DRUG_ATTR_TABLE_FIELDS: Dict[str, Dict[str, Any]] = {
     "custom_drug_notes": {"type": "string"},
 }
 
+INTERVIEW_WITHOUT_INTAKES_NOTE = (
+    "Empty in the row of an interview without intakes (e.g. no meds taken)."
+)
+
 MULTI_VALUE_CSV_NOTE = (
     "Multi value attribute: the CSV cell holds a Python list repr, e.g. "
     "`['a', 'b', None]`, so the column can only be typed as string."
@@ -362,12 +366,18 @@ def _table_fixed_fields() -> List[Dict[str, Any]]:
     fields: Dict[str, Dict[str, Any]] = {}
     for obj_name, model in FIXED_EXPORT_OBJECTS:
         schema = _model_serialization_schema(model)
-        required = set(schema.get("required", []))
+        # Rows of interviews without intakes leave the intake columns empty (#404)
+        required = set(schema.get("required", [])) if obj_name != "intake" else set()
         for prop_name, prop in schema["properties"].items():
             name = export_column_name(obj_name, prop_name)
-            fields[name] = _table_field_from_json_schema(
+            field = _table_field_from_json_schema(
                 name, prop, schema.get("$defs", {}), prop_name in required
             )
+            if obj_name == "intake":
+                field["description"] = (
+                    f"{field.get('description', '')} {INTERVIEW_WITHOUT_INTAKES_NOTE}"
+                ).strip()
+            fields[name] = field
     return list(fields.values())
 
 

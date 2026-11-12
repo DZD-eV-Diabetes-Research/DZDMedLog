@@ -202,6 +202,14 @@ Full documentation: [Drug Database](drug-database.md)
 
 Study data (interviews and intakes) can be exported as CSV. Exports are triggered through the web interface by users with at least viewer access. The export job runs in the background worker and the result file is cached in `EXPORT_CACHE_DIR`.
 
+The CSV export has one row per intake. Interviews without intakes (for example answered
+with "no meds taken", `interview_proband_has_taken_meds` = `False`) are exported too: one
+row per interview after the intake rows, with empty intake and drug columns. In the JSON
+export these entries have `intake` set to `null` and empty `drug_codes` / `drug_attrs`.
+
+When an intake is added to an interview that was answered with "no meds taken",
+`proband_has_taken_meds` of the interview is set to `true`.
+
 Intake start and end dates are exported with the precision they were entered with (see
 [Imprecise dates](#imprecise-dates-month-only-year-only)), shown here for the start date:
 
