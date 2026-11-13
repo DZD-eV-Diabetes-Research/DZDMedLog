@@ -5,6 +5,10 @@ MedLog needs a drug database to power the medication search during interviews. T
 > [!IMPORTANT]
 > MedLog does **not** include a licensed drug database. You must either supply your own (see below) or use the built-in dummy dataset for development and demo purposes.
 
+> [!WARNING]
+> Choose `DRUG_IMPORTER_PLUGIN` before the first start. Switching it on a database that already holds drug data is **not supported**: drug definitions of different importers collide, and recorded intakes reference drugs of the previous importer.
+> If MedLog detects a switch, it refuses to start and logs which plugin the database was set up with. Either set `DRUG_IMPORTER_PLUGIN` back to that value, or wipe the database to start over with the new plugin. Wiping deletes **all** MedLog data, including studies, interviews and intakes.
+
 ---
 
 ## Built-in Dummy Dataset

@@ -2,46 +2,49 @@
 defineProps({
   title: { type: String, default: "Sind sie sicher?" },
   description: { type: String, default: "" },
+  question: { type: String, default: "" },
   isDangerousToConfirm: { type: Boolean, default: false },
   cancelLabel: { type: String, default: "Abbrechen" },
   confirmLabel: { type: String, default: "Fortfahren" },
 })
 
-defineEmits(['cancel', 'confirm'])
+const modelValue = defineModel<boolean>();
+
+defineEmits<{
+  cancel: [];
+  confirm: [];
+}>()
 </script>
 
 <template>
-  <UModal prevent-close>
-    <UCard>
-      <template #header>
-        <div class="flex items-center justify-between">
-          <span class="text-lg">{{ title }}</span>
-          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="$emit('cancel')" />
-        </div>
-      </template>
+  <DZDUIModal v-model="modelValue" :title="title" @cancel="$emit('cancel')">
+    <slot name="description">
+      <p v-if="description" class="break-words">
+        {{ description }}
+      </p>
+    </slot>
 
-      <slot name="description">
-        <p v-if="description" class="break-words">
-          {{ description }}
-        </p>
-      </slot>
+    <slot name="question">
+      <p v-if="question" class="break-words mt-2 font-semibold">
+        {{ question }}
+      </p>
+    </slot>
 
-      <div class="flex flex-row justify-between mt-4">
-        <UButton
-            :label="cancelLabel"
-            color="gray"
-            class="px-6"
-            @click="$emit('cancel')"
-        />
-        <UButton
-            :label="confirmLabel"
-            :color="isDangerousToConfirm ? 'red' : 'green'"
-            class="px-6"
-            @click="$emit('confirm')"
-        />
-      </div>
-    </UCard>
-  </UModal>
+    <div class="flex flex-row justify-between mt-4">
+      <UButton
+          :label="cancelLabel"
+          color="gray"
+          class="px-6"
+          @click="$emit('cancel')"
+      />
+      <UButton
+          :label="confirmLabel"
+          :color="isDangerousToConfirm ? 'red' : 'green'"
+          class="px-6"
+          @click.once="$emit('confirm')"
+      />
+    </div>
+  </DZDUIModal>
 </template>
 
 <style scoped>

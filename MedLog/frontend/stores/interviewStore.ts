@@ -10,9 +10,9 @@ export const useInterviewStore = defineStore('interviews', {
         interviews: [],
     }),
     actions: {
-        async endInterview(studyId: string, eventId: string, interviewId: string) {
+        async endInterview(studyId: string, eventId: string, interviewId: string, date?: Date) {
             await usePatchInterview(studyId, eventId, interviewId, {
-                interview_end_time_utc: new Date().toISOString()
+                interview_end_time_utc: (date ?? new Date()).toISOString()
             });
         }
     },

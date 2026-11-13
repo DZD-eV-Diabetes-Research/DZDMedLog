@@ -1,6 +1,8 @@
 import type {
     SchemaAdministeredByDoctorAnswers,
     SchemaConsumedMedsTodayAnswers,
+    SchemaEventTypeMode,
+    SchemaIntakeDatePrecision,
     SchemaIntakeEndDateOption,
     SchemaIntakeRegularOrAsNeededAnswers,
     SchemaIntakeStartDateOption,
@@ -105,6 +107,36 @@ export const endDateOptions: { value: SchemaIntakeEndDateOption; label: string }
     },
 ];
 
+export const datePrecisionOptions: { value: SchemaIntakeDatePrecision; label: string }[] = [
+    {
+        value: "day",
+        label: "Exakter Tag",
+    },
+    {
+        value: "month",
+        label: "Monat und Jahr",
+    },
+    {
+        value: "year",
+        label: "Nur Jahr",
+    },
+];
+
+export const monthOptions: { value: string; label: string }[] = [
+    { value: "01", label: "Januar" },
+    { value: "02", label: "Februar" },
+    { value: "03", label: "März" },
+    { value: "04", label: "April" },
+    { value: "05", label: "Mai" },
+    { value: "06", label: "Juni" },
+    { value: "07", label: "Juli" },
+    { value: "08", label: "August" },
+    { value: "09", label: "September" },
+    { value: "10", label: "Oktober" },
+    { value: "11", label: "November" },
+    { value: "12", label: "Dezember" },
+];
+
 export const probandExternalIdNormalizationOptions: { value: SchemaProbandExternalIdNormalization; label: string }[] = [
     {
         value: "none",
@@ -144,8 +176,20 @@ export const plausibilityErrorMessages: { rule: string, message: string, message
         messageTemplate: "Einnahme am Tag der Untersuchung (%s) ist nicht möglich, wenn der Einnahmezeitraum bereits zuvor endete",
     },
     {
+        rule: "dose_per_day_set_while_unknown",
+        message: "Tagesdosis angegeben und gleichzeitig als 'unbekannt' markiert",
+    },
+    {
+        rule: "dose_per_day_unknown_for_as_needed_intake",
+        message: "'Tagesdosis unbekannt' darf bei 'nach Bedarf' nicht gesetzt sein",
+    },
+    {
+        rule: "dose_per_day_placeholder",
+        message: "Tagesdosis 0 oder 9999 nicht erlaubt, bitte 'unbekannt' setzen",
+    },
+    {
         rule: "dose_per_day_negative",
-        message: "Tagesdosis muss 0 oder positive Zahl sein"
+        message: "Tagesdosis muss positive Zahl sein"
     },
     {
         rule: "start_date_implausibly_old",
@@ -157,4 +201,18 @@ export const plausibilityErrorMessages: { rule: string, message: string, message
         message: "Enddatum unrealistisch lange her",
         messageTemplate: "Das Datum darf nicht vor %s liegen"
     },
+];
+
+// Issue #388
+export const eventTypeModeLabels: Record<SchemaEventTypeMode, string> = {
+    fixed: "Festgelegt",
+    default: "Vorbelegt",
+    required_choice: "Auswahl durch Interviewer",
+};
+
+export const eventTypeModeOptions: { value: SchemaEventTypeMode | ""; label: string }[] = [
+    { value: "", label: "Nicht erfassen" },
+    { value: "fixed", label: `${eventTypeModeLabels.fixed} – immer dieser Erhebungsmodus, nicht änderbar` },
+    { value: "default", label: `${eventTypeModeLabels.default} – vorausgewählt, änderbar` },
+    { value: "required_choice", label: `${eventTypeModeLabels.required_choice} – muss bei jedem Interview gewählt werden` },
 ];

@@ -6,6 +6,7 @@ import threading
 import subprocess
 import logging
 from pathlib import Path
+from typing import Dict, Optional
 
 import pytest
 
@@ -39,6 +40,7 @@ from statics import (
     ADMIN_USER_NAME,
     DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB,
     SYSTEM_ANNOUNCEMENTS,
+    EVENT_TYPES,
     OIDC_TEST_PROVIDER_DISPLAY_NAME,
     OIDC_TEST_PROVIDER_SLUG,
     OIDC_TEST_STUDY_NAME,
@@ -71,6 +73,9 @@ def set_config_for_test_env():
         DRUG_IMPORTER_ALLOW_MANUAL_UPDATE_DRUG_DB
     )
     os.environ["SYSTEM_ANNOUNCEMENTS"] = json.dumps(SYSTEM_ANNOUNCEMENTS)
+    # Events without an `event_type_mode` behave as before, so this does not change the
+    # other tests. The "switched off" behaviour is covered in-process in tests_event_type.py.
+    os.environ["EVENT_TYPES"] = json.dumps(EVENT_TYPES)
     # Off by default. The live suite needs it on, the "switched off" behaviour is
     # covered in-process in tests_api_token_management.py.
     os.environ["API_TOKEN_MANAGEMENT_ENABLED"] = "true"
@@ -326,11 +331,13 @@ def database(request):
         _teardown_postgres()
 
 
-def _start_subprocess(label: str, cmd: list) -> subprocess.Popen:
+def _start_subprocess(
+    label: str, cmd: list, extra_env: Optional[Dict[str, str]] = None
+) -> subprocess.Popen:
     """Start a subprocess and stream its combined stdout+stderr through the logger."""
     proc = subprocess.Popen(
         cmd,
-        env=dict(os.environ),
+        env={**os.environ, **(extra_env or {})},
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         cwd=str(GIT_ROOT),
@@ -362,7 +369,15 @@ def live_server(database):
     # Run main.py as a real script (not -c) so __main__.__file__ is set correctly.
     # This mirrors exactly how run_dev_backend_server_with_oidc.sh starts the server.
     logger.info("Starting MedLog server subprocess...")
-    server_proc = _start_subprocess("server", [sys.executable, str(MEDLOG_MAIN)])
+    # The server runs with LOG_LEVEL=DEBUG because some tests use endpoints that are only
+    # enabled in DEBUG mode (e.g. `api/debug/worker/job`). Its output only ends up in this
+    # logger at debug level, so it is not noisy. Only set for the server subprocess: the
+    # in-process medlogserver loggers write to stdout and would flood `-s` runs.
+    server_proc = _start_subprocess(
+        "server",
+        [sys.executable, str(MEDLOG_MAIN)],
+        extra_env={"LOG_LEVEL": os.environ.get("LOG_LEVEL", "DEBUG")},
+    )
     logger.info("Starting background worker subprocess...")
     worker_proc = _start_subprocess("worker", [sys.executable, str(MEDLOG_MAIN), "--run_worker_only"])
 

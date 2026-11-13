@@ -663,8 +663,8 @@ def test_consumed_today_with_future_start_date_rejected_on_patch():
 
 # ── rule 6: negative doses ─────────────────────────────────────────────────
 #
-# `0` is *not* rejected: the interviewers use it as "the dose is unknown"
-# (reported in the review of issue #338).
+# An unknown dose is recorded with `dose_per_day_unknown` since issue #384, so
+# the old placeholders `0` and `9999` are rejected.
 
 
 def test_negative_dose_per_day_rejected_on_post():
@@ -678,12 +678,36 @@ def test_negative_dose_per_day_rejected_on_patch():
     _assert_rejected_by(response, "dose_per_day_negative")
 
 
-def test_dose_per_day_zero_accepted():
-    """`0` doses a day means "unknown", not an implausible value."""
-    intake = _post(_payload(dose_per_day=0))
-    assert intake["dose_per_day"] == 0
-    updated = _patch(intake["id"], {"dose_per_day": 0})
-    assert updated["dose_per_day"] == 0
+def test_dose_per_day_placeholders_rejected_on_post():
+    from medlogserver.model.intake import IntakeRegularOrAsNeededAnswers
+
+    for dose in (0, 9999):
+        response = _post(_payload(dose_per_day=dose), expected_http_code=422)
+        _assert_rejected_by(response, "dose_per_day_placeholder")
+    # As-needed intakes have no daily dose, the old frontend sent `0` there.
+    response = _post(
+        _payload(
+            intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED.value,
+            as_needed_dose_unit=1,
+            dose_per_day=0,
+        ),
+        expected_http_code=422,
+    )
+    _assert_rejected_by(response, "dose_per_day_placeholder")
+
+
+def test_dose_per_day_placeholders_rejected_on_patch():
+    intake = _post(_payload())
+    for dose in (0, 9999):
+        response = _patch(intake["id"], {"dose_per_day": dose}, expected_http_code=422)
+        _assert_rejected_by(response, "dose_per_day_placeholder")
+
+
+def test_dose_per_day_near_placeholders_accepted():
+    """Only the exact placeholder values are rejected."""
+    for dose in (0.01, 9999.5):
+        intake = _post(_payload(dose_per_day=dose))
+        assert intake["dose_per_day"] == dose
 
 
 def test_negative_as_needed_dose_unit_rejected_on_post():
@@ -728,6 +752,190 @@ def test_fractional_dose_still_accepted():
     """Rule 6 must not collide with the decimal doses from issue #337."""
     intake = _post(_payload(dose_per_day=0.25))
     assert intake["dose_per_day"] == 0.25
+
+
+# ── unknown daily dose (issue #384) ────────────────────────────────────────
+#
+# An unknown daily dose used to be recorded as the placeholder `9999` (or `0`).
+# It is now `dose_per_day: null` plus `dose_per_day_unknown: true`, the two must
+# not both carry a value, and the flag only exists for regular intakes.
+
+
+def test_dose_per_day_unknown_accepted():
+    intake = _post(_payload(dose_per_day=None, dose_per_day_unknown=True))
+    assert intake["dose_per_day"] is None
+    assert intake["dose_per_day_unknown"] is True
+
+
+def test_dose_per_day_unknown_defaults_to_false():
+    intake = _post(_payload())
+    assert intake["dose_per_day_unknown"] is False
+
+
+def test_dose_per_day_with_unknown_rejected_on_post():
+    response = _post(
+        _payload(dose_per_day=2, dose_per_day_unknown=True), expected_http_code=422
+    )
+    _assert_rejected_by(response, "dose_per_day_set_while_unknown")
+
+
+def test_dose_per_day_unknown_rejected_on_patch_while_dose_stored():
+    """The merged record is checked: the stored dose conflicts with the flag."""
+    intake = _post(_payload(dose_per_day=2))
+    response = _patch(
+        intake["id"], {"dose_per_day_unknown": True}, expected_http_code=422
+    )
+    _assert_rejected_by(response, "dose_per_day_set_while_unknown")
+
+
+def test_dose_per_day_rejected_on_patch_while_unknown_stored():
+    intake = _post(_payload(dose_per_day=None, dose_per_day_unknown=True))
+    response = _patch(intake["id"], {"dose_per_day": 2}, expected_http_code=422)
+    _assert_rejected_by(response, "dose_per_day_set_while_unknown")
+
+
+def test_switch_between_known_and_unknown_dose_on_patch():
+    intake = _post(_payload(dose_per_day=2))
+    updated = _patch(
+        intake["id"], {"dose_per_day": None, "dose_per_day_unknown": True}
+    )
+    assert updated["dose_per_day"] is None
+    assert updated["dose_per_day_unknown"] is True
+    updated = _patch(
+        intake["id"], {"dose_per_day": 1.5, "dose_per_day_unknown": False}
+    )
+    assert updated["dose_per_day"] == 1.5
+    assert updated["dose_per_day_unknown"] is False
+
+
+def test_dose_per_day_unknown_rejected_for_as_needed_on_post():
+    from medlogserver.model.intake import IntakeRegularOrAsNeededAnswers
+
+    response = _post(
+        _payload(
+            intake_regular_or_as_needed=IntakeRegularOrAsNeededAnswers.ASNEEDED.value,
+            as_needed_dose_unit=1,
+            dose_per_day=None,
+            dose_per_day_unknown=True,
+        ),
+        expected_http_code=422,
+    )
+    _assert_rejected_by(response, "dose_per_day_unknown_for_as_needed_intake")
+
+
+def test_switch_to_as_needed_keeps_unknown_flag_rejected_on_patch():
+    """The merged record still carries the flag, so the switch must reset it."""
+    from medlogserver.model.intake import IntakeRegularOrAsNeededAnswers
+
+    intake = _post(_payload(dose_per_day=None, dose_per_day_unknown=True))
+    as_needed = {
+        "intake_regular_or_as_needed": IntakeRegularOrAsNeededAnswers.ASNEEDED.value,
+        "regular_intervall_of_daily_dose": None,
+        "as_needed_dose_unit": 1,
+    }
+    response = _patch(intake["id"], as_needed, expected_http_code=422)
+    _assert_rejected_by(response, "dose_per_day_unknown_for_as_needed_intake")
+    updated = _patch(intake["id"], {**as_needed, "dose_per_day_unknown": False})
+    assert updated["dose_per_day_unknown"] is False
+
+
+def test_dose_per_day_set_while_unknown_rule_unit():
+    from medlogserver.model.intake import IntakeValidationError
+    from medlogserver.model.intake_rules import validate_intake_plausibility
+
+    def _intake(**fields):
+        base = {
+            field: None
+            for field in (
+                "intake_start_date",
+                "intake_end_date",
+                "consumed_meds_today",
+                "as_needed_dose_unit",
+                "intake_regular_or_as_needed",
+            )
+        }
+        base.update(fields)
+        return SimpleNamespace(**base)
+
+    validate_intake_plausibility(_intake(dose_per_day=None, dose_per_day_unknown=True))
+    validate_intake_plausibility(_intake(dose_per_day=3, dose_per_day_unknown=False))
+    validate_intake_plausibility(_intake(dose_per_day=None, dose_per_day_unknown=False))
+    try:
+        validate_intake_plausibility(_intake(dose_per_day=2, dose_per_day_unknown=True))
+    except IntakeValidationError as e:
+        assert e.rule_id == "dose_per_day_set_while_unknown"
+        assert set(e.fields) == {"dose_per_day", "dose_per_day_unknown"}
+    else:
+        raise AssertionError("dose_per_day=2 with dose_per_day_unknown=True passed")
+
+
+def _run_dose_unknown_migration(connection):
+    import importlib.util
+    from pathlib import Path
+
+    from alembic.operations import Operations
+    from alembic.runtime.migration import MigrationContext
+
+    mig_path = (
+        Path(__file__).resolve().parent.parent
+        / "medlogserver/db_migrations/versions/"
+        "a3b4c5d6e7f8_add_dose_per_day_unknown_to_intake.py"
+    )
+    spec = importlib.util.spec_from_file_location("mig_a3b4c5d6e7f8", mig_path)
+    mig = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mig)
+    mig.op = Operations(MigrationContext.configure(connection))
+    mig.upgrade()
+
+
+def test_migration_replaces_unknown_dose_placeholders(tmp_path):
+    """9999 and 0 both mean "unknown". As-needed intakes have no daily dose,
+    their placeholder becomes NULL without the unknown flag."""
+    import sqlalchemy as sa
+
+    engine = sa.create_engine(f"sqlite:///{tmp_path / 'mig_dose_unknown.db'}")
+    with engine.begin() as conn:
+        conn.execute(
+            sa.text(
+                "CREATE TABLE intake (id VARCHAR PRIMARY KEY, "
+                "dose_per_day NUMERIC(6, 2), intake_regular_or_as_needed VARCHAR(8))"
+            )
+        )
+        conn.execute(
+            sa.text(
+                "INSERT INTO intake VALUES "
+                "('regular_9999', 9999, 'REGULAR'), ('regular_0', 0, 'REGULAR'), "
+                "('regular_known', 2, 'REGULAR'), ('regular_fraction', 0.25, 'REGULAR'), "
+                "('regular_almost', 9999.5, 'REGULAR'), ('regular_empty', NULL, 'REGULAR'), "
+                "('as_needed_0', 0, 'ASNEEDED'), ('as_needed_9999', 9999, 'ASNEEDED'), "
+                "('as_needed_known', 3, 'ASNEEDED'), "
+                "('no_mode_9999', 9999, NULL), ('no_mode_0', 0, NULL), "
+                "('no_mode_known', 1, NULL)"
+            )
+        )
+    with engine.begin() as conn:
+        _run_dose_unknown_migration(conn)
+    with engine.connect() as conn:
+        rows = {
+            row[0]: (row[1], row[2])
+            for row in conn.execute(
+                sa.text("SELECT id, dose_per_day, dose_per_day_unknown FROM intake")
+            )
+        }
+    assert rows == {
+        "regular_9999": (None, 1),
+        "regular_0": (None, 1),
+        "regular_known": (2, 0),
+        "regular_fraction": (0.25, 0),
+        "regular_almost": (9999.5, 0),
+        "regular_empty": (None, 0),
+        "as_needed_0": (None, 0),
+        "as_needed_9999": (None, 0),
+        "as_needed_known": (3, 0),
+        "no_mode_9999": (None, 1),
+        "no_mode_0": (None, 1),
+        "no_mode_known": (1, 0),
+    }
 
 
 # ── rule 7: implausibly old dates ──────────────────────────────────────────

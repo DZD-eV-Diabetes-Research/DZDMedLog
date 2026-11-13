@@ -39,6 +39,7 @@ from medlogserver.db.drug_data.importers import DRUG_IMPORTERS
 from medlogserver.model.branding_data import BrandingData
 from medlogserver.model.drug_data_config import DrugDataConfig
 from medlogserver.model.api_only.api_token import ApiTokenManagementConfig
+from medlogserver.model.api_only.event_type_config import EventTypeConfig
 from medlogserver.model.api_only.system_accouncement import SystemAnnouncement
 from medlogserver.config import Config
 from medlogserver.log import get_logger
@@ -104,6 +105,20 @@ async def get_api_token_management_config() -> ApiTokenManagementConfig:
         max_expiry_days=config.API_TOKEN_MANAGEMENT_MAX_EXPIRY_DAYS,
         max_tokens_per_user=config.API_TOKEN_MANAGEMENT_MAX_TOKENS_PER_USER,
         oidc_login_max_age_days=config.API_TOKEN_MANAGEMENT_OIDC_LOGIN_MAX_AGE_DAYS,
+    )
+
+
+@fast_api_config_router.get(
+    "/config/event-types",
+    response_model=EventTypeConfig,
+    description="Provides the event types an interview can be recorded as (server config `EVENT_TYPES`). Study admins choose from them in the `event_type` of an event, interviewers in the `event_type` of an interview.",
+)
+async def get_event_type_config(
+    current_user: User = Security(get_current_user),
+) -> EventTypeConfig:
+    return EventTypeConfig(
+        enabled=bool(config.EVENT_TYPES),
+        event_types=config.EVENT_TYPES,
     )
 
 

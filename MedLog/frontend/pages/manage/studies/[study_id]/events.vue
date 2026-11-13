@@ -70,10 +70,38 @@
             item-key="name"
             ghost-class="ghost"
         >
-          <template #item="{ element }">
+          <template #item="{ element }: { element: SchemaEvent }">
             <div class="flex flex-row items-center justify-between border-b-2 border-b-slate-200 py-2">
-              <span>{{ element.name }}</span>
-              <UIcon v-show="sortingMode" name="i-heroicons-bars-3" class="ml-2 text-2xl text-gray-400 cursor-n-resize" />
+              <div class="flex flex-row flex-wrap items-center gap-2">
+                <span>{{ element.name }}</span>
+                <UBadge v-if="element.external_id" color="gray" variant="subtle" size="xs" class="text-gray-700" title="Externe ID">
+                  ID: {{ element.external_id }}
+                </UBadge>
+                <UBadge v-if="eventTypeBadgeLabel(element)" color="primary" variant="subtle" size="xs" class="text-primary-700" title="Erhebungsmodus">
+                  {{ eventTypeBadgeLabel(element) }}
+                </UBadge>
+              </div>
+              <div>
+                <UIcon v-show="sortingMode" name="i-heroicons-bars-3" class="ml-2 text-2xl text-gray-400 cursor-n-resize" />
+                <UButton
+                    v-show="!sortingMode"
+                    title="Event bearbeiten ..."
+                    variant="outline"
+                    color="gray"
+                    icon="i-heroicons-pencil"
+                    class="ml-2"
+                    @click="openEditEventModal(element)"
+                />
+                <UButton
+                    v-show="!sortingMode"
+                    title="Event löschen ..."
+                    variant="outline"
+                    color="red"
+                    icon="i-heroicons-trash"
+                    class="ml-2"
+                    @click="deleteEvent(element)"
+                />
+              </div>
             </div>
           </template>
         </Draggable>
@@ -84,27 +112,17 @@
             label="Event anlegen"
             icon="i-heroicons-plus"
             :disabled="sortingMode"
-            @click="openEventModal()"
+            @click="openCreateEventModal()"
         />
       </div>
     </div>
 
-    <UModal v-model="showCreateEventModal" prevent-close>
-      <div class="p-4">
-        <UForm :schema="eventSchema" :state="eventState" class="space-y-4" @submit="createEvent">
-          <h3>Event anlegen</h3>
-          <ErrorMessage v-if="createEventError" :error="createEventError" />
-          <UFormGroup label="Name des Events" description="Der Name muss innerhalb der Studie eindeutig sein." name="name">
-            <UInput v-model="eventState.name" required placeholder="Interview Nr. 1" />
-          </UFormGroup>
-          <hr>
-          <div class="flex justify-between">
-            <UButton label="Abbrechen" variant="outline" color="gray" @click.prevent="showCreateEventModal = false" />
-            <UButton type="submit" label="Event anlegen" />
-          </div>
-        </UForm>
-      </div>
-    </UModal>
+    <DZDUIModal v-model="showCreateEventModal" title="Event anlegen" :error="createEventError">
+      <EventForm :submit-callback="createEvent" @cancel="showCreateEventModal = false" />
+    </DZDUIModal>
+    <DZDUIModal v-model="showEditEventModal" title="Event bearbeiten" :error="editEventError">
+      <EventForm :initial-state="eventFormInitialState" :submit-callback="updateEvent" @cancel="showEditEventModal = false" />
+    </DZDUIModal>
   </section>
   <section v-else class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
     <ErrorMessage
@@ -115,18 +133,27 @@
 </template>
 
 <script setup lang="ts">
-import type { SchemaEvent } from "#open-fetch-schemas/medlogapi";
-import { object, string } from "yup";
+import type { SchemaEvent, SchemaEventUpdate } from "#open-fetch-schemas/medlogapi";
+import type { EventFormSchema } from "~/components/Event/Form.vue";
+import { eventTypeModeLabels } from "~/constants";
+import { ConfirmationModal } from "#components";
+import { isFastAPIEventNotEmptyError, isFetchError } from "~/type-helper";
 
+const configStore = useConfigStore();
 const eventStore = useEventStore();
+const modal = useModal();
 const studyPermissionStore = useStudyPermissionStore();
 const studyStore = useStudyStore();
 const toast = useToast();
 const route = useRoute();
 
 const createEventError = ref();
+const editEventError = ref();
+const eventFormInitialState = ref<Partial<EventFormSchema>>();
+const eventIdToEdit = ref<string>('');
 const loading = ref(false);
 const showCreateEventModal = ref(false);
+const showEditEventModal = ref(false);
 const sortingMode = ref(false);
 
 const studyId = computed(() => {
@@ -146,12 +173,6 @@ async function loadEvents() {
   myEvents.value = await useGetEventsByStudy(studyId.value);
   loading.value = false;
 }
-
-const eventState = reactive({ name: "" });
-
-const eventSchema = object({
-  name: string().required("Das Event muss einen Namen haben"),
-});
 
 function beginReordering() {
   sortingMode.value = true;
@@ -176,15 +197,27 @@ async function endReordering() {
   }
 }
 
-async function openEventModal() {
+async function openCreateEventModal() {
   showCreateEventModal.value = true;
-  eventState.name = "";
   createEventError.value = undefined;
 }
 
-async function createEvent() {
+async function openEditEventModal(event: SchemaEvent) {
+  eventIdToEdit.value = event.id!;
+  eventFormInitialState.value = {
+    name: event.name,
+    external_id: event.external_id ?? null,
+    event_type_mode: event.event_type_mode ?? null,
+    event_type: event.event_type ?? null,
+  };
+  showEditEventModal.value = true;
+  editEventError.value = undefined;
+}
+
+async function createEvent(data: EventFormSchema) {
   try {
-    await useCreateEvent(eventState.name, studyId.value);
+    createEventError.value = undefined;
+    await useCreateEvent(data, studyId.value);
     showCreateEventModal.value = false;
     await loadEvents()
     await eventStore.loadAllEventsForStudy(studyId.value);
@@ -193,8 +226,73 @@ async function createEvent() {
   }
 }
 
+async function deleteEvent(event: SchemaEvent) {
+  modal.open(ConfirmationModal, {
+    onCancel: modal.close,
+    onConfirm: async () => {
+      await modal.close();
+      try {
+        await useDeleteEvent(event.study_id, event.id!);
+      } catch (error) {
+        if ((isFetchError(error) || isNuxtError(error)) && error.statusCode === 409 && isFastAPIEventNotEmptyError(error.data)) {
+          toast.add({
+            title: "Konnte Event nicht löschen",
+            description: `Es sind noch ${error.data.detail.interview_ids.length} Interview(s) zu diesem Event vorhanden.`,
+          });
+        } else {
+          toast.add({
+            title: "Konnte Event nicht löschen",
+            description: useGetErrorMessage(error),
+          });
+        }
+      }
+      await loadEvents();
+      await eventStore.loadAllEventsForStudy(studyId.value);
+    },
+    description: "Nur Events, für die kein Interview vorliegt, können gelöscht werden. Entfernen Sie ggf. vorher betroffene Interviews.",
+    question: `Soll das Event "${event.name}" wirklich gelöscht werden?`,
+    isDangerousToConfirm: true,
+  })
+}
+
+async function updateEvent(data: EventFormSchema) {
+  try {
+    editEventError.value = undefined;
+    const { event_type_mode, event_type, ...rest } = data;
+    const body: SchemaEventUpdate = rest;
+    // Only send the event type settings if they were changed. The backend validates them
+    // against the current server config, so an event whose type was removed from the
+    // config (or with the feature switched off) can still be renamed.
+    const initialState = eventFormInitialState.value;
+    if (event_type_mode !== initialState?.event_type_mode || event_type !== initialState?.event_type) {
+      body.event_type_mode = event_type_mode;
+      body.event_type = event_type;
+    }
+    await usePatchEvent(studyId.value, eventIdToEdit.value, body);
+    showEditEventModal.value = false;
+    await loadEvents()
+    await eventStore.loadAllEventsForStudy(studyId.value);
+  } catch (error) {
+    editEventError.value = error;
+  }
+}
+
+function eventTypeBadgeLabel(event: SchemaEvent): string | undefined {
+  if (!event.event_type_mode) {
+    return undefined;
+  }
+  const modeLabel = eventTypeModeLabels[event.event_type_mode];
+  return event.event_type ? `${modeLabel}: ${event.event_type}` : modeLabel;
+}
+
 onMounted(() => {
   loadEvents();
+  configStore.loadEventTypes().catch((error) => {
+    toast.add({
+      title: "Konnte Erhebungsmodi nicht laden",
+      description: useGetErrorMessage(error),
+    });
+  });
 });
 </script>
 

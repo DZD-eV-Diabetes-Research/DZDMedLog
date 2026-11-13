@@ -134,3 +134,25 @@ class DrugAttrFieldLovItemCRUD(
         if obj is None and raise_exception_if_none:
             raise raise_exception_if_none
         return obj
+
+    async def list_distinct_of_all_dataset_versions(
+        self, field_name: str, importer_name: str
+    ) -> List[Tuple[str, str]]:
+        """Distinct (value, display) pairs of a field in any imported dataset version.
+
+        Unlike the other methods this is not limited to the current dataset version.
+        Intakes can reference drugs of older dataset versions, so the export can contain
+        reference values that the current dataset no longer has (used for the export
+        schema, issue #387).
+        """
+        query = (
+            select(DrugAttrFieldLovItem.value, DrugAttrFieldLovItem.display)
+            .where(
+                DrugAttrFieldLovItem.field_name == field_name,
+                DrugAttrFieldLovItem.importer_name == importer_name,
+            )
+            .distinct()
+            .order_by(DrugAttrFieldLovItem.value, DrugAttrFieldLovItem.display)
+        )
+        results = await self.session.exec(statement=query)
+        return [(value, display) for value, display in results.all()]

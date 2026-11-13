@@ -1334,7 +1334,7 @@ STUDY_PERMISSION_MAPPING: "{\n                            \"MyStudyName\": {\n  
 
 ## `DRUG_IMPORTER_PLUGIN`
 
-Selects the drug data importer plugin. 'DummyDrugImporterV1' uses a small built-in sample dataset, suitable for development and demos. 'MMIPharmindex1_32' imports from the MMI Pharmindex format (version 1.32), used with German GKV Arzneimittelverzeichnis data.
+Selects the drug data importer plugin. 'DummyDrugImporterV1' uses a small built-in sample dataset, suitable for development and demos. 'MMIPharmindex1_32' imports from the MMI Pharmindex format (version 1.32), used with German GKV Arzneimittelverzeichnis data. Choose it before the first start: switching the plugin on a database that already holds drug data is not supported. MedLog refuses to start in that case. Set it back to the previous value, or wipe the database (this deletes all MedLog data).
 
 | Property | Value |
 |---|---|
@@ -1662,6 +1662,26 @@ EXPORT_CACHE_DIR: ./export_cache
 
 ```yaml
 EXPORT_CACHE_DIR: /var/lib/medlog/exports
+```
+
+---
+
+## `EVENT_TYPES`
+
+List of event types an interview can be recorded as, e.g. an on-site visit or a remote interview. Study admins configure per event whether the type is fixed, pre-filled (default) or must be chosen by the interviewer. The type of each interview is part of the study export. Leave empty to switch the feature off. Removing a type later does not change interviews that already have it, but it can no longer be selected. Pass as a JSON array string when setting via environment variable.
+
+| Property | Value |
+|---|---|
+| Type | List of str |
+| Required | No |
+| Environment variable | `EVENT_TYPES` |
+
+**Examples:**
+
+```yaml
+EVENT_TYPES:
+- on-site visit
+- remote interview
 ```
 
 ---

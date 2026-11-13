@@ -47,6 +47,7 @@ import type { SchemaIntakeDetailListItem } from "#open-fetch-schemas/medlogapi";
 import type { ElementType, ValueOf } from "~/type-helper";
 import {doseIntervalOptions, endDateOptions, startDateOptions} from "~/constants";
 import useGetLabelForValue from "~/utils/useGetLabelForValue";
+import useGetIntakeDateLabel from "~/utils/useGetIntakeDateLabel";
 
 const toast = useToast();
 
@@ -104,12 +105,13 @@ if (props.canEdit || props.canDelete) {
 }
 
 function getIntakeDurationString(intake: SchemaIntakeDetailListItem) {
+  const startDate = useGetIntakeDateLabel(intake.intake_start_date, intake.intake_start_date_precision, startDateOptions, intake.intake_start_date_option);
+  const endDate = useGetIntakeDateLabel(intake.intake_end_date, intake.intake_end_date_precision, endDateOptions, intake.intake_end_date_option);
+
   if (intake.intake_start_date && intake.intake_end_date) {
-    return `${intake.intake_start_date} bis ${intake.intake_end_date}`;
+    return `${startDate} bis ${endDate}`;
   }
 
-  const startDate = intake.intake_start_date === null ? useGetLabelForValue(startDateOptions, intake.intake_start_date_option) : intake.intake_start_date;
-  const endDate = intake.intake_end_date === null ? useGetLabelForValue(endDateOptions, intake.intake_end_date_option) : intake.intake_end_date;
   return `Beginn: ${startDate}, Ende: ${endDate}`;
 }
 
@@ -143,7 +145,11 @@ function myOptions(row: ElementType<ValueOf<typeof rows>>) {
   return [options];
 }
 
-function getDosePerDayString(value: number | null | undefined) {
+function getDosePerDayString(value: number | null | undefined, valueUnknown?: boolean) {
+  if (valueUnknown) {
+    return "unbekannt";
+  }
+
   if (!value && value !== 0) {
     return "";
   }
@@ -162,8 +168,8 @@ const rows = computed(() => {
     intake: item,
     pzn: item.is_activeingredient_equivalent_choice ? '' : item.drug.codes?.PZN,
     name: item.drug.trade_name,
-    dose: getDosePerDayString(item.dose_per_day),
-    intervall: useGetLabelForValue(doseIntervalOptions, item.regular_intervall_of_daily_dose),
+    dose: item.intake_regular_or_as_needed === 'regular' ? getDosePerDayString(item.dose_per_day, item.dose_per_day_unknown) : 'nach Bedarf',
+    intervall: item.intake_regular_or_as_needed === 'regular' ? useGetLabelForValue(doseIntervalOptions, item.regular_intervall_of_daily_dose) : 'nach Bedarf',
     time: getIntakeDurationString(item),
     intakeId: item.id,
   }));

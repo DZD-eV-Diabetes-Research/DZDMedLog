@@ -232,7 +232,12 @@ class DrugDataSetImporterBase:
     async def run_import(self):
         raise NotImplementedError()
 
-    async def start_import_process(self):
+    async def start_import_process(self) -> bool:
+        """Import the dataset in `source_dir`.
+
+        Returns False if this dataset version was imported (or failed) before and the
+        import was skipped. A failed import raises.
+        """
         if self.source_dir is None:
             raise ValueError("Importer has no source dir defined.")
         self.version = await self.get_drug_dataset_version()
@@ -247,10 +252,10 @@ class DrugDataSetImporterBase:
                 log.info(
                     f" Dataset '{self.dataset_name}' with version '{self.version}' already imported. Skip drug data import."
                 )
-            return
+            return False
         drug_dataset = await self._ensure_drug_dataset_version()
         drug_custom_dataset = await self._ensure_custom_drug_dataset_version()
-        await self._ensure_field_definitions_in_database()
+        await self.ensure_field_definitions_in_database()
         log.info(f" Start import of '{self.source_dir}'...")
         await self._set_dataset_version_status("running")
         try:
@@ -266,6 +271,7 @@ class DrugDataSetImporterBase:
             raise e
 
         await self._finish_import()
+        return True
 
     async def _finish_import(self):
         await self._set_dataset_version_status("done")
@@ -404,7 +410,13 @@ class DrugDataSetImporterBase:
                     await session.commit()
         return custom_drug_dataset
 
-    async def _ensure_field_definitions_in_database(self):
+    async def ensure_field_definitions_in_database(self):
+        """Write the field and code definitions from code into the database.
+
+        Existing rows are overwritten, including fields that were reset to their default in code.
+        Runs on every startup (see `init_db()`) and before each import, so changes to the
+        definitions in code (e.g. UI hints like `code_icon`) need no migration or re-import.
+        """
         all_attr_defs_by_type = await self.get_all_attr_field_definitions()
 
         # Separate definitions by type
@@ -448,7 +460,7 @@ class DrugDataSetImporterBase:
                     #    f"_ensure_field_definitions_in_database add new def {current_def}"
                     # )
                 else:
-                    sqlmodel_apply_updates(old_def, current_def)
+                    sqlmodel_apply_updates(old_def, current_def, only_set_fields=False)
                     update_defs.append(old_def)
 
             # Process code definitions
@@ -464,11 +476,15 @@ class DrugDataSetImporterBase:
                 if old_def is None:
                     insert_defs.append(current_def)
                 else:
-                    field_updated: bool = sqlmodel_apply_updates(old_def, current_def)
+                    field_updated: bool = sqlmodel_apply_updates(
+                        old_def, current_def, only_set_fields=False
+                    )
                     if field_updated:
                         update_defs.append(old_def)
 
-            session.add_all(insert_defs)
+            # Insert copies. Importers may hand out the same (e.g. module level) definition
+            # objects on every call, once added to a session they would count as persisted.
+            session.add_all([type(d)(**d.model_dump()) for d in insert_defs])
             # log.debug(
             #    f"_ensure_field_definitions_in_database update_defs {update_defs}"
             # )

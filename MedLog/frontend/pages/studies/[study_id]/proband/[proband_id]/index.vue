@@ -62,12 +62,9 @@
                 Vor dem Start eines neuen Interviews muss das laufende Interview beendet sein.
               </template>
               <template #actions>
-                <UButton
-                    label="Interview abschließen"
-                    variant="outline"
-                    color="red"
-                    icon="i-heroicons-stop-solid"
-                    @click="endInterview(currentInterview.event_id, currentInterview.id)"
+                <InterviewEndButtonGroup
+                    :end-interview-callback="endInterviewCallback"
+                    :start-date="$dayjs.utc(currentInterview.interview_start_time_utc).toDate()"
                 />
                 <UButton
                     label="Interview fortsetzen"
@@ -79,9 +76,45 @@
             </UAlert>
             <div v-else-if="eventsToStartOptions.length" class="flex flex-row gap-2">
               <USelect v-model="eventIdToStart" :options="eventsToStartOptions" />
-              <UButton color="green" :disabled="!eventIdToStart" @click="introModalVisible = true">
-                Interview starten
-              </UButton>
+              <USelect
+                  v-if="eventTypeSelectable"
+                  v-model="eventTypeToStart"
+                  :options="eventTypeToStartOptions"
+                  placeholder="Erhebungsmodus wählen ..."
+                  title="Erhebungsmodus"
+              />
+              <UBadge
+                  v-else-if="eventToStart?.event_type_mode === 'fixed'"
+                  color="gray"
+                  variant="soft"
+                  title="Erhebungsmodus, für dieses Event fest vorgegeben"
+              >
+                {{ eventToStart.event_type }}
+              </UBadge>
+              <UButtonGroup orientation="horizontal">
+                <UButton color="green" :disabled="!canStartInterview" @click="introModalVisible = true">
+                  Interview starten
+                </UButton>
+                <UDropdown
+                    :items="[[
+                      {
+                        label: 'Interview nachtragen',
+                        slot: 'backdate-interview',
+                        click: openBackdateModal,
+                        disabled: !canStartInterview,
+                      },
+                    ]]"
+                    :popper="{ placement: 'bottom-end' }"
+                    :ui="{ item: { base: 'flex-col' } }"
+                >
+                  <UButton icon="i-heroicons-chevron-down-20-solid" color="green" />
+
+                  <template #backdate-interview>
+                    <span class="font-semibold text-left self-start">Interview nachtragen</span>
+                    <small class="text-left">Ein bereits abgeschlossenes Interview nachträglich eintragen.</small>
+                  </template>
+                </UDropdown>
+              </UButtonGroup>
             </div>
             <UAlert
                 v-else
@@ -138,11 +171,14 @@ import type {
 } from "#open-fetch-schemas/medlogapi";
 import { useDayjs } from '#dayjs'
 import localizedFormat from 'dayjs/plugin/localizedFormat'
+import BackdateModal, { type BackdateFormSchema } from "~/components/Interview/BackdateModal.vue";
 
 const dayjs = useDayjs();
 const route = useRoute()
+const configStore = useConfigStore()
 const eventStore = useEventStore()
 const interviewStore = useInterviewStore()
+const modal = useModal()
 const studyPermissionStore = useStudyPermissionStore()
 const studyStore = useStudyStore()
 const toast = useToast();
@@ -153,6 +189,7 @@ const currentInterview = ref<SchemaInterview>();
 const errorMessage = ref();
 const eventsForProband = ref<SchemaEventReadPerProband[]>([]);
 const eventIdToStart = ref();
+const eventTypeToStart = ref("");
 const eventsToStartOptions = ref<{ label: string; value: string }[]>([]);
 const intakes = ref<SchemaIntakeDetailListItem[]>([]);
 const interviewsForProband = ref<SchemaInterview[]>([]);
@@ -166,16 +203,51 @@ const completedInterviews = computed(() => {
   return interviewsForProband.value.filter(interview => interview.interview_end_time_utc !== null);
 });
 
-async function startInterview(hasTakenMeds: boolean) {
+const eventToStart = computed(() => {
+  return eventsForProband.value.find(event => event.id === eventIdToStart.value);
+});
+
+// Issue #388: for "fixed" the backend sets the type, without a mode the event does not track one
+const eventTypeSelectable = computed(() => {
+  const mode = eventToStart.value?.event_type_mode;
+  return configStore.eventTypes.enabled && (mode === "default" || mode === "required_choice");
+});
+
+const eventTypeToStartOptions = computed(() => {
+  const options = [...configStore.eventTypeOptions];
+  // Keep the default of the event selectable, even if it was removed from the server config
+  const defaultType = eventToStart.value?.event_type_mode === "default" ? eventToStart.value.event_type : undefined;
+  if (defaultType && !configStore.eventTypes.eventTypes.includes(defaultType)) {
+    options.push({ label: defaultType, value: defaultType });
+  }
+  return options;
+});
+
+const canStartInterview = computed(() => {
+  if (!eventIdToStart.value) {
+    return false;
+  }
+  return eventToStart.value?.event_type_mode !== "required_choice" || !!eventTypeToStart.value;
+});
+
+watch(eventToStart, (event) => {
+  eventTypeToStart.value = event?.event_type_mode === "default" ? (event.event_type ?? "") : "";
+});
+
+async function startInterview(hasTakenMeds: boolean, startDate?: Date, endDate?: Date) {
   try {
-    const interview = await useCreateInterview(studyId.value, eventIdToStart.value, probandId.value, hasTakenMeds)
+    // Only send a type the interviewer chose, the backend fills in the default of the event itself
+    const eventType = eventTypeSelectable.value && eventTypeToStart.value !== eventToStart.value?.event_type
+        ? eventTypeToStart.value || undefined
+        : undefined;
+    const interview = await useCreateInterview(studyId.value, eventIdToStart.value, probandId.value, hasTakenMeds, startDate, eventType)
 
     if (hasTakenMeds) {
       // Go ahead and conduct the interview
       await navigateTo(`/studies/${studyId.value}/proband/${probandId.value}/interview/${interview.id}`)
     } else {
       // No need to proceed, end the interview right away
-      await endInterview(eventIdToStart.value, interview.id)
+      await endInterview(eventIdToStart.value, interview.id, endDate ?? startDate)
       introModalVisible.value = false
     }
   }
@@ -187,19 +259,29 @@ async function startInterview(hasTakenMeds: boolean) {
   }
 }
 
-async function endInterview(eventId: string, interviewId: string) {
+async function endInterview(eventId: string, interviewId: string, endDate?: Date) {
   try {
     loading.value = true;
-    await interviewStore.endInterview(studyId.value, eventId, interviewId);
+    await interviewStore.endInterview(studyId.value, eventId, interviewId, endDate);
     eventsForProband.value = await useGetEventsByStudyAndProband(studyId.value, probandId.value);
     interviewsForProband.value = await useGetInterviewsByStudyAndProband(studyId.value, probandId.value);
     currentInterview.value = await useGetCurrentInterviewByStudyAndProband(studyId.value, probandId.value);
     lastInterview.value = await useGetLastInterviewByStudyAndProband(studyId.value, probandId.value);
     fillInterviewStartSelector();
   } catch (error) {
-    errorMessage.value = error;
+    // e.g. the event requires an event type the interview does not have yet (issue #388)
+    toast.add({
+      title: "Konnte Interview nicht abschließen",
+      description: useGetErrorMessage(error),
+    });
   } finally {
     loading.value = false;
+  }
+}
+
+async function endInterviewCallback(date?: Date) {
+  if (currentInterview.value) {
+    await endInterview(currentInterview.value.event_id, currentInterview.value.id, date)
   }
 }
 
@@ -242,10 +324,19 @@ function fillInterviewStartSelector() {
   }
 }
 
+function openBackdateModal() {
+  modal.open(BackdateModal, {
+    submitCallback: async function (data: BackdateFormSchema) {
+      await startInterview(data.proband_has_taken_meds, data.interview_start_time_utc, data.interview_end_time_utc)
+    }
+  });
+}
+
 onMounted(async () => {
   try {
     loading.value = true;
     await eventStore.loadAllEventsForStudy(studyId.value);
+    await configStore.loadEventTypes();
     eventsForProband.value = await useGetEventsByStudyAndProband(studyId.value, probandId.value);
     interviewsForProband.value = await useGetInterviewsByStudyAndProband(studyId.value, probandId.value);
     currentInterview.value = await useGetCurrentInterviewByStudyAndProband(studyId.value, probandId.value);

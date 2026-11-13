@@ -11,14 +11,18 @@ from typing import (
     Self,
 )
 import enum
+import calendar
 from decimal import Decimal
 from pydantic import (
     ValidationError,
     validate_email,
     field_validator,
     model_validator,
+    field_serializer,
+    computed_field,
     StringConstraints,
     ValidationInfo,
+    ConfigDict,
 )
 from fastapi import Depends
 from typing import Optional
@@ -143,6 +147,114 @@ class IntakeEndDateOption(str, enum.Enum):
     ONGOING = "ongoing"
 
 
+class IntakeDatePrecision(str, enum.Enum):
+    """How precise an intake start or end date is (issue #392).
+
+    A `month` or `year` date stands for the whole period and is stored as its
+    first day, `2024-03-01` for "March 2024", `2024-01-01` for "2024".
+    """
+
+    DAY = "day"
+    MONTH = "month"
+    YEAR = "year"
+
+
+def intake_date_earliest(
+    value: Optional[date], precision: Optional[IntakeDatePrecision]
+) -> Optional[date]:
+    """First day of the period an intake date stands for.
+
+    A missing precision counts as `day`: that is what every date meant before
+    the precision existed.
+    """
+    if value is None:
+        return None
+    if precision == IntakeDatePrecision.YEAR:
+        return value.replace(month=1, day=1)
+    if precision == IntakeDatePrecision.MONTH:
+        return value.replace(day=1)
+    return value
+
+
+def intake_date_latest(
+    value: Optional[date], precision: Optional[IntakeDatePrecision]
+) -> Optional[date]:
+    """Last day of the period an intake date stands for."""
+    if value is None:
+        return None
+    if precision == IntakeDatePrecision.YEAR:
+        return value.replace(month=12, day=31)
+    if precision == IntakeDatePrecision.MONTH:
+        return value.replace(
+            day=calendar.monthrange(value.year, value.month)[1]
+        )
+    return value
+
+
+def format_intake_date(
+    value: Optional[date], precision: Optional[IntakeDatePrecision]
+) -> Optional[str]:
+    """ISO 8601 with reduced precision: `2024-03-10`, `2024-03` or `2024`."""
+    if value is None:
+        return None
+    if precision == IntakeDatePrecision.YEAR:
+        return f"{value.year:04d}"
+    if precision == IntakeDatePrecision.MONTH:
+        return f"{value.year:04d}-{value.month:02d}"
+    return value.isoformat()
+
+
+def _validate_date_precision(
+    values: Dict[str, Any] | Any,
+    date_field: str,
+    option_field: str,
+    has_date: bool,
+    has_option: bool,
+) -> None:
+    """Set the precision that belongs to the date or option just validated.
+
+    Called by the start and end date validators once they know whether a date or
+    an option is stored. A date without precision is an exact day, which keeps
+    clients working that do not know the precision yet. An option carries no
+    date, so it has no precision.
+    """
+    precision_field = f"{date_field}_precision"
+    if isinstance(values, dict):
+        precision = values.get(precision_field)
+    else:
+        precision = getattr(values, precision_field, None)
+
+    if has_option and precision is not None:
+        raise IntakeValidationError(
+            f"'{precision_field}' must be null when '{option_field}' is set."
+        )
+    if has_date:
+        new_precision = precision if precision is not None else IntakeDatePrecision.DAY
+    else:
+        new_precision = None
+
+    if isinstance(values, dict):
+        values[precision_field] = new_precision
+    elif new_precision != precision:
+        object.__setattr__(values, precision_field, new_precision)
+
+
+def _reject_precision_without_date(
+    values: Dict[str, Any] | Any, date_field: str, option_field: str
+) -> None:
+    """A precision is only accepted together with the date it describes.
+
+    Changing only the precision would leave the stored date at a placeholder of
+    the old precision (e.g. the 1st of the month when switching to `day`).
+    """
+    precision_field = f"{date_field}_precision"
+    if isinstance(values, dict) and precision_field in values:
+        raise IntakeValidationError(
+            f"'{precision_field}' can only be sent together with "
+            f"'{date_field}' or '{option_field}'."
+        )
+
+
 class IntakeUpdate(MedLogBaseModel, table=False):
     """
     Update an existing medication intake record.
@@ -153,6 +265,11 @@ class IntakeUpdate(MedLogBaseModel, table=False):
     **End Date** — at most one of `intake_end_date` or `intake_end_date_option` may be set.
     Sending both returns 400. If neither is provided, `intake_end_date_option` defaults to `ONGOING`.
     The omitted field is automatically nulled out.
+
+    **Date precision** — `intake_start_date_precision` / `intake_end_date_precision`
+    say whether a date is an exact `day`, a `month` or a `year`. They default to `day`
+    when a date is sent without them, and are `null` when an option is set instead of
+    a date. A `month` or `year` date is stored as the first day of the period.
 
     **Intake mode** — mutually exclusive fields depending on `intake_regular_or_as_needed`:
     - `REGULAR`: `as_needed_dose_unit` must be `null`
@@ -194,6 +311,22 @@ class IntakeUpdate(MedLogBaseModel, table=False):
             SAEnum(IntakeStartDateOption, name="intakestartdateoption"), nullable=True
         ),
     )
+    intake_start_date_precision: Optional[IntakeDatePrecision] = Field(
+        default=None,
+        description=(
+            "Precision of `intake_start_date`: `day` (exact day), `month` (only the "
+            "month is known) or `year` (only the year is known). Defaults to `day` "
+            "when `intake_start_date` is sent without it. For `month` and `year` the "
+            "date is stored as the first day of the period (`2024-03-01` for March "
+            "2024, `2024-01-01` for 2024), whatever day was sent. Do not send a "
+            "placeholder day (e.g. the 15th) for an unknown day, send `month` instead. "
+            "Must be `null` when `intake_start_date_option` is set, and can only be "
+            "sent together with `intake_start_date` or `intake_start_date_option`."
+        ),
+        sa_column=Column(
+            SAEnum(IntakeDatePrecision, name="intakedateprecision"), nullable=True
+        ),
+    )
 
     intake_end_date: Optional[date] = Field(
         default=None,
@@ -214,6 +347,19 @@ class IntakeUpdate(MedLogBaseModel, table=False):
         ),
         sa_column=Column(
             SAEnum(IntakeEndDateOption, name="intakeenddateoption"), nullable=True
+        ),
+    )
+    intake_end_date_precision: Optional[IntakeDatePrecision] = Field(
+        default=None,
+        description=(
+            "Precision of `intake_end_date`, same values and rules as "
+            "`intake_start_date_precision`. Start and end may have different "
+            "precisions. Must be `null` when `intake_end_date_option` is set, and "
+            "can only be sent together with `intake_end_date` or "
+            "`intake_end_date_option`."
+        ),
+        sa_column=Column(
+            SAEnum(IntakeDatePrecision, name="intakedateprecision"), nullable=True
         ),
     )
 
@@ -243,10 +389,12 @@ class IntakeUpdate(MedLogBaseModel, table=False):
     dose_per_day: Optional[float] = Field(
         default=None,
         description=(
-            "Number of doses taken per day. Must not be negative; `0` is allowed "
-            "and is used when the daily dose is unknown. "
+            "Number of doses taken per day. Must be positive, `0` and `9999` "
+            "(the old placeholders for an unknown dose) are rejected. "
             "Fractional doses (half or quarter tablets) are allowed with at most "
-            "2 decimal places, e.g. `0.25`, `0.2`, `1.25`."
+            "2 decimal places, e.g. `0.25`, `0.2`, `1.25`. "
+            "When the daily dose is unknown, leave this `null` and set "
+            "`dose_per_day_unknown` to `true` instead of using a placeholder value."
         ),
         # Numeric(...) instead of Float, so Postgres stores the value exactly as
         # entered instead of a binary approximation. asdecimal=False keeps the
@@ -261,7 +409,17 @@ class IntakeUpdate(MedLogBaseModel, table=False):
             nullable=True,
         ),
     )
-    regular_intervall_of_daily_dose: Optional[IntervalOfDailyDoseAnswers] = Field(
+    dose_per_day_unknown: bool = Field(
+        default=False,
+        description=(
+            "Set to `true` when the proband does not know the daily dose. "
+            "Mutually exclusive with `dose_per_day`: when this is `true`, "
+            "`dose_per_day` must be `null`. Only allowed for regular intakes, "
+            "must be `false` when `intake_regular_or_as_needed` is `as needed`. "
+            "Defaults to `false`."
+        ),
+    )
+    regular_intervall_of_daily_dose:Optional[IntervalOfDailyDoseAnswers] = Field(
         default=None,
         description=(
             "Interval between doses for regular intake. "
@@ -320,6 +478,9 @@ class IntakeUpdate(MedLogBaseModel, table=False):
                 "intake_start_date" not in values
                 and "intake_start_date_option" not in values
             ):
+                _reject_precision_without_date(
+                    values, "intake_start_date", "intake_start_date_option"
+                )
                 return values  # neither sent, nothing to validate
             has_date: bool = values.get("intake_start_date") is not None
             has_option: bool = values.get("intake_start_date_option") is not None
@@ -352,6 +513,13 @@ class IntakeUpdate(MedLogBaseModel, table=False):
             else:
                 object.__setattr__(values, "intake_start_date", None)
 
+        _validate_date_precision(
+            values,
+            "intake_start_date",
+            "intake_start_date_option",
+            has_date,
+            has_option,
+        )
         return values
 
     @model_validator(mode="before")
@@ -362,6 +530,9 @@ class IntakeUpdate(MedLogBaseModel, table=False):
                 "intake_end_date" not in values
                 and "intake_end_date_option" not in values
             ):
+                _reject_precision_without_date(
+                    values, "intake_end_date", "intake_end_date_option"
+                )
                 return values  # neither sent, nothing to validate
             has_date: bool = values.get("intake_end_date") is not None
             has_option: bool = values.get("intake_end_date_option") is not None
@@ -396,7 +567,29 @@ class IntakeUpdate(MedLogBaseModel, table=False):
             else:
                 object.__setattr__(values, "intake_end_date", None)
 
+        _validate_date_precision(
+            values, "intake_end_date", "intake_end_date_option", has_date, has_option
+        )
         return values
+
+    @model_validator(mode="after")
+    def normalize_dates_to_precision(self) -> Self:
+        """Store a `month` or `year` date as the first day of its period.
+
+        A client may send any day of the period, e.g. the day its date picker
+        happened to show. Storing it would bring back the placeholder days this
+        precision is meant to replace (issue #392).
+        """
+        for date_field in ("intake_start_date", "intake_end_date"):
+            value = getattr(self, date_field, None)
+            if value is None:
+                continue
+            earliest = intake_date_earliest(
+                value, getattr(self, f"{date_field}_precision", None)
+            )
+            if earliest != value:
+                object.__setattr__(self, date_field, earliest)
+        return self
 
     @model_validator(mode="before")
     @classmethod
@@ -486,6 +679,92 @@ class IntakeExport(IntakeCreate, BaseTable, table=False):
     created_at: datetime = Field(exclude=True)
     interview_id: UUID = Field(exclude=True)
     id: uuid.UUID = Field()
+
+    # The field is misspelled ("intervall") in the API and the database. Renaming it
+    # there breaks API clients, so only the export uses the correct spelling (#389).
+    # An alias instead of a serializer, so the export schema (#387) sees the name too.
+    model_config = ConfigDict(serialize_by_alias=True)
+    regular_intervall_of_daily_dose: Optional[IntervalOfDailyDoseAnswers] = Field(
+        default=None,
+        serialization_alias="regular_interval_of_daily_dose",
+        description=IntakeUpdate.model_fields[
+            "regular_intervall_of_daily_dose"
+        ].description,
+    )
+
+    # Imprecise dates (issue #392). The date itself is written with the precision
+    # it has, `_earliest` and `_latest` are the period it stands for as full dates,
+    # for analysis scripts that need a real date to compute with.
+    intake_start_date: Optional[date] = Field(
+        default=None,
+        description=(
+            "Start date of the intake, ISO 8601 with the precision given in "
+            "`intake_start_date_precision`: `YYYY-MM-DD` (day), `YYYY-MM` (month) or "
+            "`YYYY` (year). Empty when `intake_start_date_option` is set. Use "
+            "`intake_start_date_earliest` / `intake_start_date_latest` for a full date."
+        ),
+    )
+    intake_end_date: Optional[date] = Field(
+        default=None,
+        description=(
+            "End date of the intake, ISO 8601 with the precision given in "
+            "`intake_end_date_precision`: `YYYY-MM-DD` (day), `YYYY-MM` (month) or "
+            "`YYYY` (year). Empty when `intake_end_date_option` is set. Use "
+            "`intake_end_date_earliest` / `intake_end_date_latest` for a full date."
+        ),
+    )
+
+    @field_serializer("intake_start_date")
+    def _serialize_start_date(self, value: Optional[date]) -> Optional[str]:
+        return format_intake_date(value, self.intake_start_date_precision)
+
+    @field_serializer("intake_end_date")
+    def _serialize_end_date(self, value: Optional[date]) -> Optional[str]:
+        return format_intake_date(value, self.intake_end_date_precision)
+
+    @computed_field(
+        description=(
+            "First day of the period `intake_start_date` stands for: the date itself "
+            "(day), the 1st of the month (month) or January 1st (year)."
+        )
+    )
+    @property
+    def intake_start_date_earliest(self) -> Optional[date]:
+        return intake_date_earliest(
+            self.intake_start_date, self.intake_start_date_precision
+        )
+
+    @computed_field(
+        description=(
+            "Last day of the period `intake_start_date` stands for: the date itself "
+            "(day), the last day of the month (month) or December 31st (year)."
+        )
+    )
+    @property
+    def intake_start_date_latest(self) -> Optional[date]:
+        return intake_date_latest(
+            self.intake_start_date, self.intake_start_date_precision
+        )
+
+    @computed_field(
+        description=(
+            "First day of the period `intake_end_date` stands for: the date itself "
+            "(day), the 1st of the month (month) or January 1st (year)."
+        )
+    )
+    @property
+    def intake_end_date_earliest(self) -> Optional[date]:
+        return intake_date_earliest(self.intake_end_date, self.intake_end_date_precision)
+
+    @computed_field(
+        description=(
+            "Last day of the period `intake_end_date` stands for: the date itself "
+            "(day), the last day of the month (month) or December 31st (year)."
+        )
+    )
+    @property
+    def intake_end_date_latest(self) -> Optional[date]:
+        return intake_date_latest(self.intake_end_date, self.intake_end_date_precision)
 
 
 class IntakeDetailListItem(IntakeCreate, BaseTable, table=False):

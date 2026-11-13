@@ -33,7 +33,7 @@
                         <UTable
                             v-model="selectedIntakes" :columns="columns" :rows="previousIntakes"
                             class="border border-slate-400 rounded-md" />
-                        <UButton label="Ausgewählte Medikamente übernehmen" class="mt-8" @click="saveIntakes()" />
+                        <UButton label="Ausgewählte Medikamente übernehmen" class="mt-8" @click.once="saveIntakes()" />
                     </div>
                     <div v-if="previousIntakes.length === 0">
                         <h3>Es gibt keine Einträge im letzten Event</h3>
@@ -47,6 +47,8 @@
 <script setup lang="ts">
 import { useDayjs } from '#dayjs'
 import localizedFormat from 'dayjs/plugin/localizedFormat'
+import { endDateOptions, startDateOptions } from "~/constants";
+import useGetIntakeDateLabel from "~/utils/useGetIntakeDateLabel";
 
 const dayjs = useDayjs();
 const { $medlogapi } = useNuxtApp();
@@ -90,9 +92,9 @@ async function openCopyIntakeModal() {
         previousIntakes.value = Array.isArray(intakes) ? intakes.map((intake) => ({
             Medikament: intake.drug.trade_name,
             Custom: intake.drug?.is_custom_drug ? "Ja" : "Nein",
-            Einnahmebeginn: intake.intake_start_date || 'Unbekannt',
-            Einnahmeende: intake.intake_end_date || 'Unbekannt',
-            Dosis: intake.dose_per_day || 'Unbekannt',
+            Einnahmebeginn: useGetIntakeDateLabel(intake.intake_start_date, intake.intake_start_date_precision, startDateOptions, intake.intake_start_date_option) || 'Unbekannt',
+            Einnahmeende: useGetIntakeDateLabel(intake.intake_end_date, intake.intake_end_date_precision, endDateOptions, intake.intake_end_date_option) || 'Unbekannt',
+            Dosis: intake.dose_per_day_unknown ? 'Unbekannt' : (intake.dose_per_day ? intake.dose_per_day.toLocaleString('de-DE', { useGrouping: false }) : ''),
             ID: intake.id,
             postBody: {
                 "drug_id": intake.drug_id,
@@ -100,11 +102,14 @@ async function openCopyIntakeModal() {
                 "source_of_drug_information": intake.source_of_drug_information,
                 "intake_start_date": intake.intake_start_date,
                 "intake_start_date_option": intake.intake_start_date_option,
+                "intake_start_date_precision": intake.intake_start_date_precision,
                 "intake_end_date": intake.intake_end_date,
                 "intake_end_date_option": intake.intake_end_date_option,
+                "intake_end_date_precision": intake.intake_end_date_precision,
                 "administered_by_doctor": intake.administered_by_doctor,
                 "intake_regular_or_as_needed": intake.intake_regular_or_as_needed,
                 "dose_per_day": intake.dose_per_day,
+                "dose_per_day_unknown": intake.dose_per_day_unknown,
                 "regular_intervall_of_daily_dose": intake.regular_intervall_of_daily_dose,
                 "as_needed_dose_unit": intake.as_needed_dose_unit,
                 "consumed_meds_today": intake.consumed_meds_today,

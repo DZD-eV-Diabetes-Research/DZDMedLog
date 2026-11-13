@@ -697,6 +697,8 @@ def get_attr_multi_ref_definitions() -> List[DrugAttrFieldDefinitionContainer]:
                 optional=True,
                 is_reference_list_field=True,
                 is_multi_val_field=True,
+                # about 19k ICD-10 codes
+                is_large_reference_list=True,
                 examples=["A01.0, M01.39", "B44.8 K23.8", "F41.1"],
                 importer_name=importername,
                 searchable=True,

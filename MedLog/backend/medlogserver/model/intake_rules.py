@@ -18,6 +18,12 @@ Each rule carries the fields it concerns. That serves two purposes:
   fields (see `validate_intake_plausibility`)
 
 Two different reference dates are used, see `IntakeReference`.
+
+A date may be imprecise (only the month or the year is known, issue #392). Such a
+date stands for a period, and a rule only fails if it is violated for *every*
+possible day of that period. The rules therefore compare the earliest or the
+latest day of the period, whichever is the most favourable for the intake, see
+`_earliest()` and `_latest()`.
 """
 
 from dataclasses import dataclass
@@ -26,7 +32,10 @@ from typing import Any, Callable, Dict, Iterable, Optional, Tuple
 
 from medlogserver.model.intake import (
     ConsumedMedsTodayAnswers,
+    IntakeRegularOrAsNeededAnswers,
     IntakeValidationError,
+    intake_date_earliest,
+    intake_date_latest,
 )
 
 
@@ -139,26 +148,47 @@ class IntakeRule:
     its own translated message."""
 
 
+def _earliest(intake: Any, date_field: str) -> Optional[date]:
+    """First possible day of an intake date, None if no date is set.
+
+    A record without precision (e.g. a merged view built before the field
+    existed) is treated as an exact day.
+    """
+    return intake_date_earliest(
+        getattr(intake, date_field, None),
+        getattr(intake, f"{date_field}_precision", None),
+    )
+
+
+def _latest(intake: Any, date_field: str) -> Optional[date]:
+    """Last possible day of an intake date, None if no date is set."""
+    return intake_date_latest(
+        getattr(intake, date_field, None),
+        getattr(intake, f"{date_field}_precision", None),
+    )
+
+
 def _end_date_before_start_date(intake: Any, reference: IntakeReference) -> bool:
-    start = intake.intake_start_date
-    end = intake.intake_end_date
+    start = _earliest(intake, "intake_start_date")
+    end = _latest(intake, "intake_end_date")
     # Equal dates are a valid one-day intake. If an option is set instead of a
     # date, the corresponding date is None and there is nothing to order.
     return start is not None and end is not None and end < start
 
 
 def _start_date_in_future(intake: Any, reference: IntakeReference) -> bool:
-    start = intake.intake_start_date
+    # The earliest day, so the current month or year is not a future date.
+    start = _earliest(intake, "intake_start_date")
     return start is not None and start > reference.today
 
 
 def _end_date_in_future(intake: Any, reference: IntakeReference) -> bool:
-    end = intake.intake_end_date
+    end = _earliest(intake, "intake_end_date")
     return end is not None and end > reference.today
 
 
 def _consumed_today_with_past_end_date(intake: Any, reference: IntakeReference) -> bool:
-    end = intake.intake_end_date
+    end = _latest(intake, "intake_end_date")
     return (
         intake.consumed_meds_today == ConsumedMedsTodayAnswers.YES
         and end is not None
@@ -169,7 +199,7 @@ def _consumed_today_with_past_end_date(intake: Any, reference: IntakeReference) 
 def _consumed_today_with_future_start_date(
     intake: Any, reference: IntakeReference
 ) -> bool:
-    start = intake.intake_start_date
+    start = _earliest(intake, "intake_start_date")
     return (
         intake.consumed_meds_today == ConsumedMedsTodayAnswers.YES
         and start is not None
@@ -182,18 +212,48 @@ def _dose_per_day_negative(intake: Any, reference: IntakeReference) -> bool:
     return dose is not None and dose < 0
 
 
+# Values that were used for "daily dose unknown" before `dose_per_day_unknown`
+# existed (issue #384). The migration turned them into the flag, rejecting them
+# keeps the placeholders from creeping back in.
+DOSE_PER_DAY_PLACEHOLDERS = (0, 9999)
+
+
+def _dose_per_day_placeholder(intake: Any, reference: IntakeReference) -> bool:
+    dose = intake.dose_per_day
+    return dose is not None and dose in DOSE_PER_DAY_PLACEHOLDERS
+
+
+def _dose_per_day_set_while_unknown(intake: Any, reference: IntakeReference) -> bool:
+    # Missing on a record that predates the field counts as "not unknown".
+    unknown = bool(getattr(intake, "dose_per_day_unknown", False))
+    return unknown and intake.dose_per_day is not None
+
+
+def _dose_per_day_unknown_for_as_needed_intake(
+    intake: Any, reference: IntakeReference
+) -> bool:
+    # `dose_per_day` only applies to regular intakes, so "the daily dose is
+    # unknown" cannot be said about an as-needed intake.
+    unknown = bool(getattr(intake, "dose_per_day_unknown", False))
+    return (
+        unknown
+        and intake.intake_regular_or_as_needed
+        == IntakeRegularOrAsNeededAnswers.ASNEEDED
+    )
+
+
 def _as_needed_dose_unit_negative(intake: Any, reference: IntakeReference) -> bool:
     dose = intake.as_needed_dose_unit
     return dose is not None and dose < 0
 
 
 def _start_date_implausibly_old(intake: Any, reference: IntakeReference) -> bool:
-    start = intake.intake_start_date
+    start = _latest(intake, "intake_start_date")
     return start is not None and start < EARLIEST_PLAUSIBLE_DATE
 
 
 def _end_date_implausibly_old(intake: Any, reference: IntakeReference) -> bool:
-    end = intake.intake_end_date
+    end = _latest(intake, "intake_end_date")
     return end is not None and end < EARLIEST_PLAUSIBLE_DATE
 
 
@@ -252,10 +312,39 @@ INTAKE_PLAUSIBILITY_RULES: Tuple[IntakeRule, ...] = (
         id="dose_per_day_negative",
         fields=("dose_per_day",),
         message=(
-            "'dose_per_day' must not be negative. 0 is allowed and is used when "
-            "the daily dose is unknown."
+            "'dose_per_day' must not be negative. An unknown daily dose is "
+            "recorded with 'dose_per_day_unknown'."
         ),
         is_violated=_dose_per_day_negative,
+    ),
+    IntakeRule(
+        id="dose_per_day_placeholder",
+        fields=("dose_per_day",),
+        message=(
+            "'dose_per_day' must not be 0 or 9999. These were placeholders for an "
+            "unknown daily dose. Send 'dose_per_day': null with "
+            "'dose_per_day_unknown': true instead, or leave 'dose_per_day' null "
+            "for an as-needed intake."
+        ),
+        is_violated=_dose_per_day_placeholder,
+    ),
+    IntakeRule(
+        id="dose_per_day_set_while_unknown",
+        fields=("dose_per_day", "dose_per_day_unknown"),
+        message=(
+            "'dose_per_day_unknown' is true, but 'dose_per_day' is set. Either "
+            "record the daily dose or mark it as unknown, not both."
+        ),
+        is_violated=_dose_per_day_set_while_unknown,
+    ),
+    IntakeRule(
+        id="dose_per_day_unknown_for_as_needed_intake",
+        fields=("dose_per_day_unknown", "intake_regular_or_as_needed"),
+        message=(
+            "'dose_per_day_unknown' is true, but 'intake_regular_or_as_needed' is "
+            "'as needed'. A daily dose only exists for regular intakes."
+        ),
+        is_violated=_dose_per_day_unknown_for_as_needed_intake,
     ),
     IntakeRule(
         id="as_needed_dose_unit_negative",
@@ -284,9 +373,15 @@ INTAKE_PLAUSIBILITY_RULES: Tuple[IntakeRule, ...] = (
 
 
 # Every field any rule looks at. Used to build the merged view of an intake for
-# a PATCH without having to touch the ORM object.
+# a PATCH without having to touch the ORM object. The precisions are not part of
+# the rules' `fields`: they are only accepted together with their date (see
+# `IntakeUpdate`), so the date field already gates the rule on PATCH, and the
+# client highlights the date, not its precision selector.
 INTAKE_PLAUSIBILITY_FIELDS: Tuple[str, ...] = tuple(
-    dict.fromkeys(field for rule in INTAKE_PLAUSIBILITY_RULES for field in rule.fields)
+    dict.fromkeys(
+        [field for rule in INTAKE_PLAUSIBILITY_RULES for field in rule.fields]
+        + ["intake_start_date_precision", "intake_end_date_precision"]
+    )
 )
 
 

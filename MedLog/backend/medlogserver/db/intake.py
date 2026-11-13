@@ -60,16 +60,31 @@ class IntakeCRUD(
         stays open across midnight or an entry that is corrected on a later day
         does not turn a correct answer into a contradiction (issue #338).
         """
-        interview: Optional[Interview] = None
-        if interview_id is not None:
-            interview = (
-                await self.session.exec(
-                    select(Interview).where(Interview.id == interview_id)
-                )
-            ).one_or_none()
+        interview = await self._get_interview(interview_id)
         return IntakeReference.for_interview_start(
             getattr(interview, "interview_start_time_utc", None)
         )
+
+    async def _get_interview(self, interview_id: Optional[UUID]) -> Optional[Interview]:
+        if interview_id is None:
+            return None
+        return (
+            await self.session.exec(
+                select(Interview).where(Interview.id == interview_id)
+            )
+        ).one_or_none()
+
+    async def _mark_interview_has_taken_meds(self, interview_id: Optional[UUID]):
+        """Set `proband_has_taken_meds` of the parent interview to true (issue #404).
+
+        An interview answered with "no meds taken" that gets an intake later would
+        otherwise contradict its own data. The change is only added to the session;
+        it is committed together with the new intake.
+        """
+        interview = await self._get_interview(interview_id)
+        if interview is not None and not interview.proband_has_taken_meds:
+            interview.proband_has_taken_meds = True
+            self.session.add(interview)
 
     async def create(
         self,
@@ -92,6 +107,7 @@ class IntakeCRUD(
                     getattr(obj, "interview_id", None)
                 ),
             )
+        await self._mark_interview_has_taken_meds(getattr(obj, "interview_id", None))
         return await super().create(
             obj,
             exists_ok=exists_ok,

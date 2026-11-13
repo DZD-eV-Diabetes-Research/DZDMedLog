@@ -16,11 +16,7 @@
 
     <StudyManagementTable :studies="studyStore.allStudies"/>
 
-    <CreateStudyModal v-model="createStudyModalVisible" class="w-[1000px] !important" @create-study="createStudy">
-      <template #error>
-        <ErrorMessage v-if="createStudyError" title="Konnte Studie nicht anlegen" :error="createStudyError" />
-      </template>
-    </CreateStudyModal>
+    <CreateStudyModal v-model="createStudyModalVisible" :error="createStudyError" @create-study="createStudy" />
   </section>
   <section v-else class="container w-11/12 lg:w-8/12 xl:w-6/12 mx-auto mt-8">
     <ErrorMessage

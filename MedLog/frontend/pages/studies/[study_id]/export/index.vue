@@ -26,16 +26,49 @@
       </h1>
     </div>
 
-    <div class="flex flex-row justify-end">
-      <UButton
-        label="Export generieren"
-        icon="i-heroicons-archive-box"
-        variant="solid"
-        @click="requestDownload()"
-      />
+    <div class="flex flex-row justify-between">
+      <UButtonGroup size="lg">
+        <UBadge icon="i-heroicons-information-circle" label="Schema-Definitionen" color="white" />
+        <UButton
+            label="CSV"
+            variant="outline"
+            color="gray"
+            trailing-icon="i-heroicons-arrow-down-tray"
+            title="JSON-Schema für CSV-Export herunterladen"
+            @click="downloadFile('/api/export/schema/csv')"
+        />
+        <UButton
+            label="JSON"
+            variant="outline"
+            color="gray"
+            trailing-icon="i-heroicons-arrow-down-tray"
+            title="JSON-Schema für JSON-Export herunterladen"
+            @click="downloadFile('/api/export/schema/json')"
+        />
+      </UButtonGroup>
+      <UButtonGroup size="lg">
+        <UBadge icon="i-heroicons-archive-box" label="Export generieren:" color="white" />
+        <UButton
+            label="CSV"
+            variant="solid"
+            trailing-icon="i-heroicons-plus-circle"
+            title="Exportauftrag für Datei im CSV-Format anlegen"
+            @click="requestDownload('csv')"
+        />
+        <UButton
+            label="JSON"
+            variant="solid"
+            trailing-icon="i-heroicons-plus-circle"
+            title="Exportauftrag für Datei im JSON-Format anlegen"
+            @click="requestDownload('json')"
+        />
+      </UButtonGroup>
     </div>
     <UTable :rows="downloads" :columns="columns">
-      <template #status-data="{ row }">
+      <template #format-data="{ row }: { row: Download }">
+        <span>{{ String(row.format).toUpperCase() }}</span>
+      </template>
+      <template #status-data="{ row }: { row: Download }">
         <div v-if="row.status === 'success'">
           <UTooltip text="Export erfolgreich" :popper="{ arrow: true }">
             <UButton
@@ -61,7 +94,7 @@
           </UTooltip>
         </div>
       </template>
-      <template #actions-data="{ row }">
+      <template #actions-data="{ row }: { row: Download }">
         <UButton
             v-if="row.status === 'success'"
             :to="row.downloadLink"
@@ -69,7 +102,7 @@
             color="gray"
             variant="outline"
             icon="i-heroicons-arrow-down-tray"
-            @click.prevent="downloadFile(row)" />
+            @click.prevent="downloadFile(row.downloadLink)" />
       </template>
     </UTable>
   </section>
@@ -96,6 +129,8 @@ const userStore = useUserStore();
 
 dayjs.extend(localizedFormat);
 
+type ExportFormat = 'csv' | 'json';
+
 const columns = [
   {
     key: "study",
@@ -105,6 +140,10 @@ const columns = [
   {
     key: "time",
     label: "Zeitpunkt",
+  },
+  {
+    key: "format",
+    label: "Format",
   },
   {
     key: "status",
@@ -121,6 +160,7 @@ interface Download {
   time: string;
   status: SchemaWorkerJobState;
   downloadLink: string;
+  format?: ExportFormat;
 }
 
 const downloads = ref<Download[]>([]);
@@ -147,6 +187,7 @@ async function listDownloads() {
     downloads.value = data.items.map((item) => ({
       study: study?.display_name ?? 'N/A',
       time: dayjs.utc(item.created_at).local().format('LLL'),
+      format: item.export_format,
       status: item.state,
       downloadLink: `${item.download_file_path}`,
     }));
@@ -163,9 +204,9 @@ async function listDownloads() {
   }
 }
 
-async function downloadFile(row: Download) {
+async function downloadFile(link: string) {
   try {
-    const response = await fetch(row.downloadLink, {
+    const response = await fetch(link, {
       method: "GET",
     });
 
@@ -210,7 +251,7 @@ async function downloadFile(row: Download) {
 
 // 1. The request is sent to the backend
 
-async function requestDownload() {
+async function requestDownload(format: ExportFormat) {
   try {
     await $medlogapi(
       '/api/study/{study_id}/export',
@@ -220,7 +261,7 @@ async function requestDownload() {
           study_id: studyId.value
         },
         query: {
-          format: 'csv',
+          format: format,
         },
       }
     );

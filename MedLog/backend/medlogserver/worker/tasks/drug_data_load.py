@@ -127,13 +127,18 @@ class DrugDataLoader:
 
         await search_engine.build_index()
 
-    async def load_new_drug_data_if_available(self):
+    async def load_new_drug_data_if_available(self) -> bool:
+        """Import the next queued drug dataset, if there is one.
+
+        Returns True if a dataset was imported. A failed import raises.
+        """
         await self._create_inital_drugdataset_entry_if_needed()
         drug_dataset = await self._get_next_queued_drug_data_set()
+        dataset_imported = False
         if drug_dataset:
             log.debug(f"Import drug dataset: {drug_dataset}")
             self.importer.source_dir = Path(drug_dataset.import_path)
-            await self.importer.start_import_process()
+            dataset_imported = await self.importer.start_import_process()
             gc.collect()
         else:
             log.info("...no new drug data available.")
@@ -141,6 +146,7 @@ class DrugDataLoader:
         # was loaded. This ensures a stale/incomplete index (e.g. from a previous
         # container crash mid-build) is detected and rebuilt on every task run.
         await self._rebuild_drugsearch_index()
+        return dataset_imported
 
     async def create_follow_up_job_drug_data_cleaning(
         self, user_id: uuid.UUID | None, parent_job_id: uuid.UUID
@@ -165,12 +171,36 @@ class DrugDataLoader:
                 )
 
 
+    async def create_follow_up_job_export_schema_build(
+        self, user_id: uuid.UUID | None, parent_job_id: uuid.UUID
+    ):
+        # The export schemas list the reference values of the new dataset (issue #387)
+        from medlogserver.worker.tasks.export_schema_build import (
+            create_export_schema_build_job,
+        )
+
+        await create_export_schema_build_job(
+            user_id=user_id,
+            tags=[
+                "drug-loading",
+                f"triggeredBy:drug-data-loader/version:{self.importer.version}",
+                f"triggeredByJobID:{parent_job_id}",
+                f"version:{self.importer.version}",
+            ],
+        )
+
+
 class TaskDrugDataLoading(TaskBase):
     async def work(self, source_dir: str = None):
         log.info("Load new drug data if available...")
         drug_data_loader = DrugDataLoader()
 
-        await drug_data_loader.load_new_drug_data_if_available()
+        # A failed import raises, so neither follow-up job is created.
+        dataset_imported = await drug_data_loader.load_new_drug_data_if_available()
         await drug_data_loader.create_follow_up_job_drug_data_cleaning(
             self.job.user_id, self.job.id
         )
+        if dataset_imported:
+            await drug_data_loader.create_follow_up_job_export_schema_build(
+                self.job.user_id, self.job.id
+            )
