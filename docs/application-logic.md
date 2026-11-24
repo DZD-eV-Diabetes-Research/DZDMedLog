@@ -30,6 +30,10 @@ A **Proband** is a study participant. Probands are identified by a freeform stri
 
 An **Interview** is one data-collection session: a specific proband at a specific event. An interviewer opens an interview, records all current medications, then closes it. Interviews track start/end time and whether the proband has taken any medications at all.
 
+The answer "no medications taken" (`proband_has_taken_meds` = `false`) and intakes exclude each other: adding an intake switches the answer to `true`, and the answer can only be changed to `false` while the interview has no intakes.
+
+**Deleting interviews:** study admins can delete any interview, together with its intakes. The interviewer who created an interview can delete it themselves while it has no intakes and only within `INTERVIEW_SELF_DELETE_WINDOW_HOURS` hours (default 168, which is 7 days) after it was entered into MedLog. The window counts from when the interview was entered, not from the interview date. The API returns the end of the window as `self_delete_until_utc`.
+
 ### Intake
 
 An **Intake** is a single medication entry within an interview. It records:
@@ -209,6 +213,11 @@ export these entries have `intake` set to `null` and empty `drug_codes` / `drug_
 
 When an intake is added to an interview that was answered with "no meds taken",
 `proband_has_taken_meds` of the interview is set to `true`.
+
+Interviews with `interview_proband_has_taken_meds` = `True` but no intakes can still
+occur, for example when an interview was started but never completed, or was entered a
+second time under another event. Read them as "unknown", not as "takes no drugs": the
+answer may have been wrong, or the intakes were never entered.
 
 Intake start and end dates are exported with the precision they were entered with (see
 [Imprecise dates](#imprecise-dates-month-only-year-only)), shown here for the start date:

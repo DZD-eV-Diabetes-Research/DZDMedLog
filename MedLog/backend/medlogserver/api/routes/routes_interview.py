@@ -32,7 +32,10 @@ from medlogserver.model.interview import (
     InterviewUpdate,
     InterviewUpdateAPI,
     InterviewCreateAPI,
+    InterviewRead,
+    interview_self_delete_until,
 )
+from medlogserver.model._base_model import get_now_datetime_witout_timezone
 
 from medlogserver.db.interview import InterviewCRUD
 from medlogserver.db.intake import IntakeCRUD
@@ -70,6 +73,21 @@ def _resolve_event_type_or_422(
         )
 
 
+async def _assert_interview_in_study_or_404(
+    interview_crud: InterviewCRUD, interview_id: uuid.UUID, study_access: UserStudyAccess
+):
+    """The study in the path is what the access check was done for, so an interview of
+    another study must not be reachable through it, even with a matching event id."""
+    await interview_crud.assert_belongs_to_study(
+        interview_id=interview_id,
+        study_id=study_access.study.id,
+        raise_exception_if_not=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No interview with id '{interview_id}' found in this study",
+        ),
+    )
+
+
 _event_type_error_response = {
     "model": HTTPErrorResponeRepresentation,
     "description": "`event_type` does not fit the `event_type_mode` of the event, see `event_type`.",
@@ -78,7 +96,7 @@ _event_type_error_response = {
 
 @fast_api_interview_router.get(
     "/study/{study_id}/interview",
-    response_model=List[Interview],
+    response_model=List[InterviewRead],
     description=f"List all interviews of one study.",
 )
 async def list_all_interviews_of_study(
@@ -90,7 +108,7 @@ async def list_all_interviews_of_study(
 
 @fast_api_interview_router.get(
     "/study/{study_id}/event/{event_id}/interview",
-    response_model=List[Interview],
+    response_model=List[InterviewRead],
     description=f"List all interviews of an event.",
 )
 async def list_interviews_by_study_event(
@@ -98,12 +116,14 @@ async def list_interviews_by_study_event(
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> List[Interview]:
-    return await interview_crud.list(filter_event_id=event_id)
+    return await interview_crud.list(
+        filter_event_id=event_id, filter_study_id=study_access.study.id
+    )
 
 
 @fast_api_interview_router.get(
     "/study/{study_id}/event/{event_id}/interview/{interview_id}",
-    response_model=Interview,
+    response_model=InterviewRead,
     description=f"Get a certain interview by its id.",
 )
 async def get_interview(
@@ -112,8 +132,14 @@ async def get_interview(
     study_access: UserStudyAccess = Security(user_has_study_access),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
 ) -> Interview:
-    interview: Interview = await interview_crud.get(interview_id)
-    log.debug((interview.event_id, event_id, interview.event_id == event_id))
+    await _assert_interview_in_study_or_404(interview_crud, interview_id, study_access)
+    interview: Interview = await interview_crud.get(
+        interview_id,
+        raise_exception_if_none=HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No interview with id '{interview_id}'",
+        ),
+    )
     if interview.event_id == event_id:
         return interview
     else:
@@ -125,7 +151,7 @@ async def get_interview(
 
 @fast_api_interview_router.get(
     "/study/{study_id}/proband/{proband_id}/interview",
-    response_model=List[Interview],
+    response_model=List[InterviewRead],
     description=f"List all interviews of one proband.",
 )
 async def list_interviews_of_proband(
@@ -142,7 +168,7 @@ async def list_interviews_of_proband(
 
 @fast_api_interview_router.get(
     "/study/{study_id}/proband/{proband_id}/interview/last",
-    response_model=Optional[Interview],
+    response_model=Optional[InterviewRead],
     description=f"Get the last completed interview of proband.",
     responses={
         status.HTTP_204_NO_CONTENT: {
@@ -179,7 +205,7 @@ async def get_last_completed_interview(
 
 @fast_api_interview_router.get(
     "/study/{study_id}/proband/{proband_id}/interview/current",
-    response_model=Optional[Interview],
+    response_model=Optional[InterviewRead],
     description=f"Get the latest non completed interview of proband.",
     responses={
         status.HTTP_204_NO_CONTENT: {
@@ -216,7 +242,7 @@ async def get_last_non_completed_interview(
 
 @fast_api_interview_router.post(
     "/study/{study_id}/event/{event_id}/interview",
-    response_model=Interview,
+    response_model=InterviewRead,
     description=f"Create new interview. At the moment there is artificial restriction that only allows for one interview per proband per event. See https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/127 and https://github.com/DZD-eV-Diabetes-Research/DZDMedLog/issues/130",
     responses={status.HTTP_422_UNPROCESSABLE_ENTITY: _event_type_error_response},
 )
@@ -240,6 +266,11 @@ async def create_interview(
             detail=f"No event found with id '{event_id}'",
         ),
     )
+    if event.study_id != study_access.study.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No event found with id '{event_id}' in this study",
+        )
 
     # Backend is authoritative: normalize the proband ID per the study rule and validate it
     # against the study's configured pattern. Raises HTTP 422 (with the study error text) on
@@ -277,9 +308,18 @@ async def create_interview(
 
 @fast_api_interview_router.patch(
     "/study/{study_id}/event/{event_id}/interview/{interview_id}",
-    response_model=Interview,
-    description=f"Update existing interview",
-    responses={status.HTTP_422_UNPROCESSABLE_ENTITY: _event_type_error_response},
+    response_model=InterviewRead,
+    description=(
+        "Update existing interview. "
+        "`proband_has_taken_meds` can only be changed to `false` while the interview has no intakes."
+    ),
+    responses={
+        status.HTTP_409_CONFLICT: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": "`proband_has_taken_meds` was changed to `false`, but the interview has intakes.",
+        },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: _event_type_error_response,
+    },
 )
 async def update_interview(
     interview_id: uuid.UUID,
@@ -288,17 +328,35 @@ async def update_interview(
     study_access: UserStudyAccess = Security(user_has_study_access),
     event_crud: EventCRUD = Depends(EventCRUD.get_crud),
     interview_crud: InterviewCRUD = Depends(InterviewCRUD.get_crud),
-) -> User:
+    intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
+) -> Interview:
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User not authorized to update interview in this study",
         )
+    await _assert_interview_in_study_or_404(interview_crud, interview_id, study_access)
     interview_from_db: Interview = await interview_crud.get(interview_id)
     if interview_from_db is None or interview_from_db.event_id != event_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No interview with this id under this event available",
+        )
+    # "No meds taken" contradicts existing intakes (issue #409). Adding an intake does
+    # the reverse and switches the answer to true (issue #404).
+    if (
+        interview_update.proband_has_taken_meds is False
+        # Leave an unchanged value alone: interviews from before #404 can have intakes
+        # and "no meds taken", and editing another field must not fail on that.
+        and interview_from_db.proband_has_taken_meds is not False
+        and await intake_crud.interview_has_intakes(interview_id)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "The interview has intakes, so 'proband_has_taken_meds' cannot be set to false. "
+                "Delete the intakes first."
+            ),
         )
     event: Event = await event_crud.get(event_id)
     # Also fills in the type of an interview created before the event got a "fixed" or
@@ -322,7 +380,7 @@ async def update_interview(
     status_code=204,
     responses={
         status.HTTP_204_NO_CONTENT: {
-            "description": "Interview and all its intakes deleted successfully.",
+            "description": "Interview (and, when deleted by a study admin, all its intakes) deleted successfully.",
         },
         status.HTTP_401_UNAUTHORIZED: {
             "model": HTTPErrorResponeRepresentation,
@@ -331,14 +389,22 @@ async def update_interview(
         status.HTTP_403_FORBIDDEN: {
             "model": HTTPErrorResponeRepresentation,
             "description": (
-                "Caller has no interviewer-level access on this study, or "
-                "is an interviewer but did not create this interview. "
-                "Only the creating interviewer or a study/global admin may delete it."
+                "Caller has no interviewer-level access on this study, "
+                "is an interviewer but did not create this interview, "
+                "or created it but the self-delete window (`self_delete_until_utc`) has passed. "
+                "Only a study/global admin can delete it then."
             ),
         },
         status.HTTP_404_NOT_FOUND: {
             "model": HTTPErrorResponeRepresentation,
             "description": "No interview with the given `interview_id` exists within this study and event.",
+        },
+        status.HTTP_409_CONFLICT: {
+            "model": HTTPErrorResponeRepresentation,
+            "description": (
+                "Caller is the interviewer who created the interview, but it has intakes. "
+                "Delete the intakes first, or ask a study admin."
+            ),
         },
     },
 )
@@ -351,28 +417,26 @@ async def delete_interview(
     intake_crud: IntakeCRUD = Depends(IntakeCRUD.get_crud),
 ) -> None:
     """
-    Delete an interview and **all its intake records** (cascade delete).
+    Delete an interview.
 
-    All intakes belonging to this interview are removed automatically — no need to delete them first.
+    **Study/global admins** can delete any interview at any time. Its intake records are
+    deleted with it (cascade delete).
 
-    **Authorization:** caller must have at least interviewer role (`403` otherwise), and must be
-    either the interviewer who created this interview or a study/global admin (`403` otherwise).
+    **The interviewer who created the interview** can delete it only
 
-    Deleting an interview does not delete the parent event.
+    * while it has no intakes (`409` otherwise), and
+    * within `INTERVIEW_SELF_DELETE_WINDOW_HOURS` hours after it was entered into MedLog
+      (`created_at`, not the interview date). The interview's `self_delete_until_utc`
+      shows the end of that window (`403` afterwards).
+
+    Other interviewers get a `403`. Deleting an interview does not delete the parent event.
     """
     if not study_access.user_is_study_interviewer():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to delete interview",
         )
-    await interview_crud.assert_belongs_to_study(
-        interview_id=interview_id,
-        study_id=study_access.study.id,
-        raise_exception_if_not=HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No interview with id '{interview_id}' found in this study",
-        ),
-    )
+    await _assert_interview_in_study_or_404(interview_crud, interview_id, study_access)
     interview = await interview_crud.get(
         interview_id,
         raise_exception_if_none=HTTPException(
@@ -380,12 +444,34 @@ async def delete_interview(
             detail=f"No interview with id '{interview_id}'",
         ),
     )
-    is_owner = interview.interviewer_user_id == current_user.id
-    if not (study_access.user_is_study_admin() or is_owner):
+    if interview.event_id != event_id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to delete this interview. Must be study admin or the interviewer who created it.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No interview with id '{interview_id}' found under this event",
         )
+    if not study_access.user_is_study_admin():
+        # Self-delete by the creating interviewer (issue #409)
+        if interview.interviewer_user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to delete this interview. Must be study admin or the interviewer who created it.",
+            )
+        # Window first: after it, deleting the intakes would not help either.
+        delete_until = interview_self_delete_until(interview.created_at)
+        if get_now_datetime_witout_timezone() >= delete_until:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    f"Interviewers can only delete their own interviews within "
+                    f"{config.INTERVIEW_SELF_DELETE_WINDOW_HOURS} hours after entering them "
+                    f"(until {delete_until.isoformat()} UTC). Ask a study admin to delete the interview."
+                ),
+            )
+        if await intake_crud.interview_has_intakes(interview_id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The interview has intakes. Delete the intakes first, or ask a study admin to delete the interview.",
+            )
     await intake_crud.delete_by_interview_id(interview_id)
     await interview_crud.delete(
         id_=interview_id,

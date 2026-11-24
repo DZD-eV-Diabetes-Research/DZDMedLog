@@ -1076,6 +1076,21 @@ class Config(BaseSettings):
             raise ValueError(f"EVENT_TYPES must not contain duplicates: {stripped}")
         return stripped
 
+    INTERVIEW_SELF_DELETE_WINDOW_HOURS: int = Field(
+        default=168,
+        ge=0,
+        le=876000,  # 100 years. Larger values overflow the datetime arithmetic.
+        description=(
+            "Number of hours an interviewer can delete an interview they created themselves. "
+            "The default of 168 hours is 7 days. "
+            "The hours are counted from when the interview was entered into MedLog, not from the interview date. "
+            "Only interviews without intakes can be deleted this way. "
+            "After the window, only a study admin can delete the interview. "
+            "Set to 0 to allow only study admins to delete interviews."
+        ),
+        examples=[168, 24, 2, 0],
+    )
+
     # Removed in favor of the per-study 'proband_external_id_normalization' setting
     # (see medlogserver.model.study.ProbandExternalIdNormalization). The former global
     # PROBAND_IDS_CASE_SENSETIVE value is migrated onto existing studies by the Alembic

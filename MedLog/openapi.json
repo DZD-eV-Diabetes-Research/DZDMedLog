@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MedLog REST API",
-    "version": "1.0.10.post1.dev33+ged3ccc9c5"
+    "version": "1.0.11b4.post1.dev0+g013545820.d20261124"
   },
   "paths": {
     "/api/health": {
@@ -1462,7 +1462,7 @@
           "Study"
         ],
         "summary": "Clone the setup of an existing study into a new study",
-        "description": "Create a new study that reuses the setup of an existing one. Copied are the study configuration (proband ID pattern, its error text, normalization and example, plus the 'no_permissions' flag) and the complete event structure (one new event per source event, keeping name and 'order_position'). Only the new name is supplied by the caller. **Not** copied: interviews, intakes and study permissions - the clone starts empty and, like a freshly created study, is only accessible to instance admins until permissions are granted. The clone is always active, even when the source study is deactivated. Needs admin role.",
+        "description": "Create a new study that reuses the setup of an existing one. Copied are the study configuration (proband ID pattern, its error text, normalization and example, plus the 'no_permissions' flag) and the complete event structure (one new event per source event, keeping name, 'order_position', 'external_id', 'event_type_mode' and 'event_type'). Only the new name is supplied by the caller. **Not** copied: interviews, intakes and study permissions - the clone starts empty and, like a freshly created study, is only accessible to instance admins until permissions are granted. The clone is always active, even when the source study is deactivated. Needs admin role.",
         "operationId": "clone_study_api_study__study_id__clone_post",
         "security": [
           {
@@ -2765,7 +2765,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Interview"
+                    "$ref": "#/components/schemas/InterviewRead"
                   },
                   "title": "Response List All Interviews Of Study Api Study  Study Id  Interview Get"
                 }
@@ -2828,7 +2828,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Interview"
+                    "$ref": "#/components/schemas/InterviewRead"
                   },
                   "title": "Response List Interviews By Study Event Api Study  Study Id  Event  Event Id  Interview Get"
                 }
@@ -2897,7 +2897,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Interview"
+                  "$ref": "#/components/schemas/InterviewRead"
                 }
               }
             }
@@ -2966,7 +2966,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Interview"
+                  "$ref": "#/components/schemas/InterviewRead"
                 }
               }
             }
@@ -2988,7 +2988,7 @@
           "Interview"
         ],
         "summary": "Update Interview",
-        "description": "Update existing interview",
+        "description": "Update existing interview. `proband_has_taken_meds` can only be changed to `false` while the interview has no intakes.",
         "operationId": "update_interview_api_study__study_id__event__event_id__interview__interview_id__patch",
         "security": [
           {
@@ -3043,7 +3043,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Interview"
+                  "$ref": "#/components/schemas/InterviewRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`proband_has_taken_meds` was changed to `false`, but the interview has intakes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
                 }
               }
             }
@@ -3065,7 +3075,7 @@
           "Interview"
         ],
         "summary": "Delete an interview",
-        "description": "Delete an interview and **all its intake records** (cascade delete).\n\nAll intakes belonging to this interview are removed automatically \u2014 no need to delete them first.\n\n**Authorization:** caller must have at least interviewer role (`403` otherwise), and must be\neither the interviewer who created this interview or a study/global admin (`403` otherwise).\n\nDeleting an interview does not delete the parent event.",
+        "description": "Delete an interview.\n\n**Study/global admins** can delete any interview at any time. Its intake records are\ndeleted with it (cascade delete).\n\n**The interviewer who created the interview** can delete it only\n\n* while it has no intakes (`409` otherwise), and\n* within `INTERVIEW_SELF_DELETE_WINDOW_HOURS` hours after it was entered into MedLog\n  (`created_at`, not the interview date). The interview's `self_delete_until_utc`\n  shows the end of that window (`403` afterwards).\n\nOther interviewers get a `403`. Deleting an interview does not delete the parent event.",
         "operationId": "delete_interview_api_study__study_id__event__event_id__interview__interview_id__delete",
         "security": [
           {
@@ -3110,7 +3120,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Interview and all its intakes deleted successfully."
+            "description": "Interview (and, when deleted by a study admin, all its intakes) deleted successfully."
           },
           "401": {
             "description": "Not authenticated.",
@@ -3123,7 +3133,7 @@
             }
           },
           "403": {
-            "description": "Caller has no interviewer-level access on this study, or is an interviewer but did not create this interview. Only the creating interviewer or a study/global admin may delete it.",
+            "description": "Caller has no interviewer-level access on this study, is an interviewer but did not create this interview, or created it but the self-delete window (`self_delete_until_utc`) has passed. Only a study/global admin can delete it then.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3134,6 +3144,16 @@
           },
           "404": {
             "description": "No interview with the given `interview_id` exists within this study and event.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponeRepresentation"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Caller is the interviewer who created the interview, but it has intakes. Delete the intakes first, or ask a study admin.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3197,7 +3217,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Interview"
+                    "$ref": "#/components/schemas/InterviewRead"
                   },
                   "title": "Response List Interviews Of Proband Api Study  Study Id  Proband  Proband Id  Interview Get"
                 }
@@ -3259,7 +3279,7 @@
                 "schema": {
                   "anyOf": [
                     {
-                      "$ref": "#/components/schemas/Interview"
+                      "$ref": "#/components/schemas/InterviewRead"
                     },
                     {
                       "type": "null"
@@ -3337,7 +3357,7 @@
                 "schema": {
                   "anyOf": [
                     {
-                      "$ref": "#/components/schemas/Interview"
+                      "$ref": "#/components/schemas/InterviewRead"
                     },
                     {
                       "type": "null"
@@ -3548,7 +3568,7 @@
           "Intake"
         ],
         "summary": "Delete an intake record",
-        "description": "Delete a single medication intake record.\n\n**Authorization:** caller must have at least interviewer role (`403` otherwise), and must be\neither the interviewer who created the **parent interview** or a study/global admin (`403` otherwise).\nOwnership is tied to the interview, not to who added this specific intake.\n\nTo delete all intakes of an interview at once, delete the interview itself\n(`DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`).",
+        "description": "Delete a single medication intake record.\n\n**Authorization:** caller must have at least interviewer role (`403` otherwise), and must be\neither the interviewer who created the **parent interview** or a study/global admin (`403` otherwise).\nOwnership is tied to the interview, not to who added this specific intake.\n\nA study admin can delete all intakes of an interview at once by deleting the interview\nitself (`DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`). The\ninterviewer who created it can delete the interview only after its intakes are deleted.",
         "operationId": "delete_intake_api_study__study_id__interview__interview_id__intake__intake_id__delete",
         "security": [
           {
@@ -8909,6 +8929,90 @@
           "proband_external_id"
         ],
         "title": "InterviewCreateAPI"
+      },
+      "InterviewRead": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "interview_start_time_utc": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Interview Start Time Utc",
+            "description": "Defaults to current time."
+          },
+          "interview_end_time_utc": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interview End Time Utc"
+          },
+          "proband_has_taken_meds": {
+            "type": "boolean",
+            "title": "Proband Has Taken Meds"
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type",
+            "description": "The event type this interview actually was (e.g. an on-site visit or a remote interview). Depends on the `event_type_mode` of the event: `fixed`: set from the event, a different value is rejected. `default`: the event's `event_type` is used if left out. `required_choice`: must be one of the configured event types. `null` (no mode): must be left out.",
+            "examples": [
+              "remote interview"
+            ]
+          },
+          "proband_external_id": {
+            "type": "string",
+            "maxLength": 256,
+            "title": "Proband External Id",
+            "description": "A unique ID given to the proband from the studies external proband management system"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Event Id"
+          },
+          "interviewer_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Interviewer User Id"
+          },
+          "self_delete_until_utc": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Self Delete Until Utc",
+            "description": "Until when (UTC) the interviewer who created the interview can delete it themselves, counted from `created_at`. They can only do so while the interview has no intakes. Afterwards, only a study admin can delete it. Configured with `INTERVIEW_SELF_DELETE_WINDOW_HOURS`.",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "proband_has_taken_meds",
+          "proband_external_id",
+          "event_id",
+          "interviewer_user_id",
+          "self_delete_until_utc"
+        ],
+        "title": "InterviewRead"
       },
       "InterviewUpdateAPI": {
         "properties": {

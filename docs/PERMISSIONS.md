@@ -48,6 +48,7 @@ Study permissions can be set:
 |---|:---:|:---:|:---:|:---:|
 | View study data | own studies only | own studies only | all studies | all studies |
 | Create interviews | if `is_study_interviewer` | if `is_study_interviewer` | no | yes |
+| Delete interviews | own ones if `is_study_interviewer`, only without intakes and within `INTERVIEW_SELF_DELETE_WINDOW_HOURS` | any in own study | no | any |
 | Manage study memberships | no | own study | all studies | all studies |
 | Create / deactivate users | no | no | yes | yes |
 | Assign global roles | no | no | no | yes |

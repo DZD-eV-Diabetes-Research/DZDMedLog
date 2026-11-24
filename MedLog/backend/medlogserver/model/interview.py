@@ -5,6 +5,7 @@ from pydantic import (
     StringConstraints,
     field_validator,
     ValidationInfo,
+    computed_field,
 )
 from pydantic_core import PydanticCustomError
 from fastapi import Depends
@@ -13,7 +14,7 @@ from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Field, select, delete, Column, JSON, SQLModel, desc
 from sqlalchemy.sql.operators import is_not, is_
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import uuid
 from uuid import UUID
 
@@ -87,6 +88,29 @@ class Interview(InterviewCreate, BaseTable, TimestampModel, table=True):
         unique=True,
         # sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
+
+
+def interview_self_delete_until(created_at: datetime) -> datetime:
+    """End of the window in which the creating interviewer can delete an interview (#409).
+
+    Counted from when the interview was entered (`created_at`), not from the interview
+    date, because interviews are often entered after the fact. Naive UTC like `created_at`.
+    """
+    return created_at + timedelta(hours=config.INTERVIEW_SELF_DELETE_WINDOW_HOURS)
+
+
+class InterviewRead(InterviewCreate, TimestampModel, table=False):
+    @computed_field(
+        description=(
+            "Until when (UTC) the interviewer who created the interview can delete it "
+            "themselves, counted from `created_at`. They can only do so while the interview "
+            "has no intakes. Afterwards, only a study admin can delete it. "
+            "Configured with `INTERVIEW_SELF_DELETE_WINDOW_HOURS`."
+        )
+    )
+    @property
+    def self_delete_until_utc(self) -> datetime:
+        return interview_self_delete_until(self.created_at)
 
 
 class InterviewExport(InterviewCreate, table=False):

@@ -367,6 +367,10 @@ class IntakeCRUD(
             return False
         return True
 
+    async def interview_has_intakes(self, interview_id: UUID) -> bool:
+        query = select(Intake.id).where(Intake.interview_id == interview_id).limit(1)
+        return (await self.session.exec(query)).first() is not None
+
     async def delete_by_interview_id(self, interview_id: UUID) -> None:
         await self.session.exec(
             delete(Intake).where(Intake.interview_id == interview_id)
