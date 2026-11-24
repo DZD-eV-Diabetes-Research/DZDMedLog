@@ -347,8 +347,9 @@ async def delete_intake(
     either the interviewer who created the **parent interview** or a study/global admin (`403` otherwise).
     Ownership is tied to the interview, not to who added this specific intake.
 
-    To delete all intakes of an interview at once, delete the interview itself
-    (`DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`).
+    A study admin can delete all intakes of an interview at once by deleting the interview
+    itself (`DELETE /study/{study_id}/event/{event_id}/interview/{interview_id}`). The
+    interviewer who created it can delete the interview only after its intakes are deleted.
     """
     if not study_access.user_is_study_interviewer():
         raise HTTPException(

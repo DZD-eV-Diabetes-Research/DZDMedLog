@@ -396,3 +396,67 @@ def test_endpoint_delete_interview_study_admin_can_delete_any():
         expected_http_code=204,
         access_token=study_admin_token,
     )
+
+
+def test_interview_of_other_study_is_not_reachable_through_own_study():
+    """An interviewer of study A must not read, change or add interviews of study B by
+    putting B's event and interview ids under A's path."""
+    study_a = create_test_study(
+        study_name="TestCrossStudyInterviewA", with_events=1, proband_count=1
+    )
+    study_b = create_test_study(
+        study_name="TestCrossStudyInterviewB",
+        with_events=1,
+        with_interviews_per_event_per_proband=1,
+        proband_count=1,
+    )
+    user = create_test_user("cross_study_interviewer", "pw_cross_study", "cross@test.de")
+    token = authorize_for_access_token("cross_study_interviewer", "pw_cross_study")
+    _grant_study_permission(study_a.study.id, user.id, is_interviewer=True)
+
+    event_b = study_b.events[0].event.id
+    interview_b = study_b.events[0].interviews[0].interview
+    foreign_path = f"api/study/{study_a.study.id}/event/{event_b}/interview"
+
+    assert req(foreign_path, method="get", access_token=token) == []
+    req(
+        f"{foreign_path}/{interview_b.id}",
+        method="get",
+        expected_http_code=404,
+        access_token=token,
+    )
+    req(
+        f"{foreign_path}/{interview_b.id}",
+        method="patch",
+        b={"interview_end_time_utc": datetime.datetime.now().isoformat()},
+        expected_http_code=404,
+        access_token=token,
+    )
+    req(
+        foreign_path,
+        method="post",
+        b={"proband_external_id": "CROSSSTUDY", "proband_has_taken_meds": False},
+        expected_http_code=404,
+        access_token=token,
+    )
+    req(
+        f"{foreign_path}/{interview_b.id}",
+        method="delete",
+        expected_http_code=404,
+        access_token=token,
+    )
+
+    # study B is unchanged
+    stored = req(
+        f"api/study/{study_b.study.id}/event/{event_b}/interview/{interview_b.id}",
+        method="get",
+    )
+    assert stored["interview_end_time_utc"] == (
+        interview_b.interview_end_time_utc.isoformat()
+        if interview_b.interview_end_time_utc
+        else None
+    )
+    assert [
+        i["proband_external_id"]
+        for i in req(f"api/study/{study_b.study.id}/event/{event_b}/interview")
+    ] == [interview_b.proband_external_id]

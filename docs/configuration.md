@@ -1686,6 +1686,46 @@ EVENT_TYPES:
 
 ---
 
+## `INTERVIEW_SELF_DELETE_WINDOW_HOURS`
+
+Number of hours an interviewer can delete an interview they created themselves. The default of 168 hours is 7 days. The hours are counted from when the interview was entered into MedLog, not from the interview date. Only interviews without intakes can be deleted this way. After the window, only a study admin can delete the interview. Set to 0 to allow only study admins to delete interviews.
+
+| Property | Value |
+|---|---|
+| Type | int |
+| Required | No |
+| Default | `168` |
+| Constraints | Ge(ge=0), Le(le=876000) |
+| Environment variable | `INTERVIEW_SELF_DELETE_WINDOW_HOURS` |
+
+**Examples:**
+
+*Example 1:*
+
+```yaml
+INTERVIEW_SELF_DELETE_WINDOW_HOURS: 168
+```
+
+*Example 2:*
+
+```yaml
+INTERVIEW_SELF_DELETE_WINDOW_HOURS: 24
+```
+
+*Example 3:*
+
+```yaml
+INTERVIEW_SELF_DELETE_WINDOW_HOURS: 2
+```
+
+*Example 4:*
+
+```yaml
+INTERVIEW_SELF_DELETE_WINDOW_HOURS: 0
+```
+
+---
+
 ## `SYSTEM_ANNOUNCEMENTS`
 
 List of system-wide announcement banners displayed in the web client. Public announcements are shown to all visitors; non-public ones only to logged-in users. Pass as a JSON array string when setting via environment variable.
